@@ -1,0 +1,16 @@
+#!/usr/bin/env ruby
+# Usage: bin/ashen_vault [--map NAME] [--at TX,TZ,YAW] [--smoke FRAMES] [--shot PATH] [--script "forward:1 attack"]
+require "optparse"
+require "bundler/setup"
+require_relative "../lib/ashen_vault"
+
+opts = {}
+OptionParser.new do |o|
+  o.on("--map NAME", "Skip the title and start on this map") { |v| opts[:map] = v }
+  o.on("--at TX,TZ,YAW", "Start tile and heading in degrees") { |v| opts[:at] = v }
+  o.on("--smoke FRAMES", Integer, "Run this many frames, save a screenshot, exit") { |v| opts[:smoke] = v }
+  o.on("--shot PATH", "Screenshot path for --smoke") { |v| opts[:shot] = v }
+  o.on("--script STEPS", "Scripted input, e.g. 'forward:1.5 attack wait:1'") { |v| opts[:script] = v }
+end.parse!
+
+AshenVault::Game.new(opts).run

@@ -1,0 +1,60 @@
+[meta]
+name = Harrowmere
+ambient = 0.62 0.58 0.62
+fog = 0.42 0.46 0.55
+fog_range = 10 46
+torch = 0 0 0 0
+start = 15 20 -90
+default = ,
+edge_top = -0.5
+
+[legend]
+R = wall tex=rough_stone top=7 cap=grass
+H = wall tex=timber top=4.2 cap=roof
+, = floor tex=grass h=0
+. = floor tex=cobble h=0
+- = floor tex=dirt h=0
+p = floor tex=wood_plank h=0.1 side=wood_plank
+i = floor tex=wood_plank h=0.2 ceil=3.4 ceil_tex=wood_plank side=wood_plank
+~ = water tex=water h=-0.8 side=rough_stone
+
+[grid]
+RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR
+R,,,,,,,,,,,HHHHHHHH,,,,,,,,,,,R
+R,,T,,,,,,,,HiiiiiiH,,,,,,,T,,,R
+R,,,,,,,,,,,HiiiBiiH,,,,,,,,,,,R
+R,,,,,,,,,,,HiiiiiiH,,,,,,,,,,,R
+R,,,,,,,,,,,HiLiiLiH,,,,,,,,,,,R
+R,,,,,,,,,,,HHHiiHHH,,,,,,,,,,,R
+R,,,,,,,,,,,,,,..,,,,,,,,,,,,,,R
+R,,HHHHHH,,,,,,..,,,,,,HHHHHH,,R
+R,,HiiiiH,,,,,,..,,,,,,HHHHHH,,R
+R,,HiMiii..............HHHHHH,,R
+R,,HiiiiH,,,,,,..,,,,,,HHHHHH,,R
+R,,HHHHHH,,,,,,..,,,,,,,,,,,,,,R
+R,,,,,,,,,,t........t,,,,,T,,,,R
+R,,T,,,,,,,.S........,,,,,,,,,,R
+R,,,,,,,,,,....W.....,,,,,,,,,,R
+R,,,,,,,,,,.......g..,,,,,,,,,,R
+R,,,,,,,,,,..........,,,,,,,,,,R
+R,,,,,,,,,,t........t,,,T,,,,,,R
+R,,,,,,,,,,,,,,..,,,,,,,,,,,,,,R
+R,,,,,,,,,,,,,,..,,,,,,,,,,,,,,R
+R------------------------------R
+R~~~~~~~~~~~~~~pp~~~~~~~~~~~~~~R
+R~~~~~~~~~~~~~~pp~~~~~~~~~~~~~~R
+R~~~~~~~~~~~~~~pf~~~~~~~~~~~~~~R
+R~~~~~~~~~~~~~~pp~~~~~~~~~~~~~~R
+R~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~R
+R~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~R
+
+[entities]
+T = tree
+B = npc id=odrin yaw=90 on=i
+L = torch radius=6 on=i
+M = npc id=pell yaw=0 on=i
+t = torch radius=7 on=.
+S = save_statue on=.
+W = exit map=sunken_keep at=15,27,-90 label=Descend_the_well model=well on=.
+g = npc id=hollis yaw=180 on=.
+f = npc id=maeve yaw=-90 on=p

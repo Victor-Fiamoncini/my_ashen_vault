@@ -1,0 +1,74 @@
+[meta]
+name = The Sunken Keep
+ambient = 0.2 0.19 0.22
+fog = 0.0 0.0 0.0
+fog_range = 4 20
+torch = 9 0.75 0.62 0.48
+start = 15 27 -90
+default = .
+edge_top = 6
+
+[legend]
+# = wall tex=stone_brick top=6
+M = wall tex=mossy_brick top=6
+. = floor tex=flagstone h=0 ceil=3.2
+: = floor tex=flagstone h=1.6 ceil=6.5 side=stone_brick
+= = floor tex=flagstone h=1.6 ceil=4.8
+_ = floor tex=flagstone h=1.2 ceil=4.6
+; = floor tex=flagstone h=0.8 ceil=4.2
+, = floor tex=flagstone h=0.4 ceil=3.8
+- = floor tex=dirt h=0 ceil=3.2 side=mossy_brick
+~ = water tex=water h=-0.6 ceil=3.2 side=mossy_brick
+
+[grid]
+################################
+##########::::::::::::##########
+##########:b::::::::b:##########
+##########::::::::::::##########
+##########:::::w::::::##########
+##########::::::::::::##########
+##########::::::::::::##########
+##########:b::::::::b:##########
+##########::::::::::::##########
+###############D################
+########================########
+########===x========x==k########
+########=l============l=########
+########================########
+###############_################
+###############;################
+#-~~~~~~-######,################
+#-~~--~~-######.########v...q###
+#-~~-c~~-######G########.....###
+#-~~--~~-##.........r###.....###
+#--------##..a.......#####C#####
+#-s----s-..t........t.........##
+#-~~~~~~-##.......a..#####O#####
+#-~~~~~~-##..........###..a.m###
+#--------######..#######.....###
+#############......#############
+#############t...S.#############
+#############......#############
+###############E################
+################################
+
+[entities]
+b = brazier radius=10 on=:
+w = ashen_warden yaw=90 on=:
+D = door key=warden_key on==
+x = cinder_wisp on==
+k = chest item=warden_key on==
+l = torch radius=9 on==
+G = gate lever=north_lever
+c = chest item=cell_key on=-
+s = mire_slime on=-
+v = lever id=north_lever
+q = chest item=scroll_lumen gold=20
+r = chest item=red_tonic count=2
+a = bone_walker
+t = torch radius=9
+C = door key=cell_key
+O = door
+m = chest item=blue_moss count=2 gold=30
+S = save_statue
+E = exit map=harrowmere at=15,16,-90 label=Climb_the_rope model=rope
