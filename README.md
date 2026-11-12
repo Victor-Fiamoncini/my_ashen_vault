@@ -14,7 +14,16 @@ The bell of Harrowmere has cracked. Beneath the village well, the drowned halls 
 begun to stir. Take up a rusted sword, descend into the dark, and bring back the Ember Sigil before the
 keep wakes for good.
 
-All names, maps, monsters, story and art are original.
+### Inspiration
+
+Ashen Vault is a love letter to **FromSoftware's *King's Field*** series, the slow, first-person
+dungeon crawlers from the early PlayStation era that later led to *Demon's Souls* and *Dark Souls*.
+It borrows their spirit: a lonely descent through dark stone halls, deliberate stamina-gauge combat,
+magic learned from scrolls, and a world that tells its story through the places you walk.
+
+It is a fan project, not a remake. All names, maps, monsters, story, art and sound are original, and
+the game is not affiliated with or endorsed by FromSoftware. *King's Field* is a trademark of
+FromSoftware, Inc.
 
 ## Screenshots
 
@@ -164,6 +173,22 @@ uv add <package>            # add a runtime dependency; `uv add --dev <package>`
 ```
 
 CI runs the same checks on every push and pull request (`.github/workflows/ci.yml`).
+
+### Tool versions and editor settings
+
+- Python and uv versions are pinned in `mise.toml`, `.tool-versions` and `.python-version`. With
+  [mise](https://mise.jdx.dev), run `mise install` once; asdf users get the same versions from
+  `.tool-versions`, and uv reads `.python-version`. Keep all three in sync when bumping.
+- mise also has tasks for the commands above: `mise run play`, `test`, `lint`, `fmt` and `check`
+  (`check` runs everything CI runs).
+- `.editorconfig` sets UTF-8, LF line endings, a final newline, trimmed whitespace and 4-space
+  indents (2 for TOML/YAML/JSON/Markdown). Most editors pick it up automatically; JetBrains and
+  VS Code with the EditorConfig extension both do.
+
+### AI coding agents
+
+`AGENTS.md` describes the project, commands and conventions for coding agents. `CLAUDE.md` imports
+it, so Claude Code, Codex, Cursor and Copilot all follow the same rules.
 
 ### Project layout
 

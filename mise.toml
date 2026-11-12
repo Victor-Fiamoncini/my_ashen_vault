@@ -1,0 +1,30 @@
+# Tool versions and dev tasks for mise (https://mise.jdx.dev). Keep the versions in sync with
+# .tool-versions (asdf) and .python-version (uv, pyenv).
+
+[tools]
+python = "3.14.8"
+uv = "0.13.7"
+
+[tasks.sync]
+description = "Create or update .venv from uv.lock"
+run = "uv sync"
+
+[tasks.play]
+description = "Start the game"
+run = "uv run ashen-vault"
+
+[tasks.test]
+description = "Run the test suite with coverage"
+run = "uv run pytest --cov"
+
+[tasks.lint]
+description = "Lint and check formatting"
+run = ["uv run ruff check", "uv run ruff format --check"]
+
+[tasks.fmt]
+description = "Auto-fix lint findings and format the code"
+run = ["uv run ruff check --fix", "uv run ruff format"]
+
+[tasks.check]
+description = "Everything CI runs"
+depends = ["lint", "test"]

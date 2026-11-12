@@ -11,3 +11,7 @@ dist/
 coverage.xml
 htmlcov/
 .ruff_cache/
+
+# Editors and agents
+.idea/
+.claude/settings.local.json
