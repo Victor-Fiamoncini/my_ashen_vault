@@ -1,16 +1,16 @@
 # Ashen Vault
 
-A first-person dungeon crawler in the spirit of 1990s PS1 King's Field games, written in Ruby with
-[raylib-bindings](https://github.com/vaiorabbit/raylib-bindings). All names, maps, monsters, story and
-art are original. Every texture, model and sound is generated in code.
+A first-person dungeon crawler in the spirit of 1990s PS1 dungeon crawlers, written in Python with
+[raylib-python-cffi](https://github.com/electronstudio/raylib-python-cffi) (`pyray`). All names, maps, monsters,
+story and art are original. Every texture, model and sound is generated in code.
 
 ## Run
 
 ```sh
-bundle config set --local path vendor/bundle
-bundle install
-bundle exec bin/ashen_vault      # or: bundle exec rake run
-bundle exec rake test            # headless logic tests
+python3 -m venv .venv
+.venv/bin/pip install -e '.[test]'
+bin/ashen_vault                  # or: .venv/bin/python -m ashen_vault
+.venv/bin/pytest                 # headless logic tests
 ```
 
 ## Controls
@@ -35,10 +35,12 @@ The stone shrines save your progress and restore you.
 
 ## Layout
 
-- `lib/ashen_vault/core.rb`: raylib-free game logic (maps, collision, combat, AI, saves), covered by `test/`
-- `lib/ashen_vault/render/`: PS1 shader, procedural textures, map mesh builder, low-poly models
+- `ashen_vault/core.py`: re-exports the raylib-free game logic (maps, collision, combat, AI, saves), covered by `tests/`
+- `ashen_vault/world/`, `player/`, `ai/`, `save/`: that logic, module by module
+- `ashen_vault/render/`: PS1 shader, procedural textures, map mesh builder, low-poly models
+- `ashen_vault/game.py`: scenes and the main loop; `ui/hud.py` the 2D overlay; `audio/synth.py` the sound effects
 - `data/maps/*.map`: plain-text tile maps (`[meta]`, `[legend]`, `[grid]`, `[entities]`)
-- `data/dialogue.rb`: NPC conversations
+- `data/dialogue.py`: NPC conversations
 
 ## Debug flags
 

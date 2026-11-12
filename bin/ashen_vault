@@ -1,16 +1,14 @@
-#!/usr/bin/env ruby
+#!/usr/bin/env python3
 # Usage: bin/ashen_vault [--map NAME] [--at TX,TZ,YAW] [--smoke FRAMES] [--shot PATH] [--script "forward:1 attack"]
-require "optparse"
-require "bundler/setup"
-require_relative "../lib/ashen_vault"
+import os
+import sys
 
-opts = {}
-OptionParser.new do |o|
-  o.on("--map NAME", "Skip the title and start on this map") { |v| opts[:map] = v }
-  o.on("--at TX,TZ,YAW", "Start tile and heading in degrees") { |v| opts[:at] = v }
-  o.on("--smoke FRAMES", Integer, "Run this many frames, save a screenshot, exit") { |v| opts[:smoke] = v }
-  o.on("--shot PATH", "Screenshot path for --smoke") { |v| opts[:shot] = v }
-  o.on("--script STEPS", "Scripted input, e.g. 'forward:1.5 attack wait:1'") { |v| opts[:script] = v }
-end.parse!
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+venv_python = os.path.join(ROOT, ".venv", "bin", "python")
+if os.path.exists(venv_python) and os.path.realpath(sys.prefix) != os.path.realpath(os.path.join(ROOT, ".venv")):
+    os.execv(venv_python, [venv_python, *sys.argv])  # re-run inside the project venv
 
-AshenVault::Game.new(opts).run
+sys.path.insert(0, ROOT)
+from ashen_vault.__main__ import main  # noqa: E402
+
+main()
