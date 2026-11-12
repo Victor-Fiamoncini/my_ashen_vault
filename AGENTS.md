@@ -79,4 +79,5 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 ## Git
 
 - Work on the `development` branch; `master` only receives fast-forward merges from it.
+- Contributor workflow (PRs to `development`, DCO sign-off) is in CONTRIBUTING.md.
 - Commit only when asked. Don't commit `.idea/`, screenshots outside `docs/`, or coverage files.
