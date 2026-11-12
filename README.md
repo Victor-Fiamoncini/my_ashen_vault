@@ -1,17 +1,121 @@
-# Ashen Vault
+<p align="center">
+  <img src="docs/logo/ashen_vault.svg" alt="Ashen Vault — beneath the silent bell" width="640">
+</p>
 
-A first-person dungeon crawler in the spirit of 1990s PS1 dungeon crawlers, written in Python with
-[raylib-python-cffi](https://github.com/electronstudio/raylib-python-cffi) (`pyray`). All names, maps, monsters,
-story and art are original. Every texture, model and sound is generated in code.
+<p align="center">
+  A slow, atmospheric first-person dungeon crawler with PS1-era graphics.<br>
+  Written in Python with <a href="https://github.com/electronstudio/raylib-python-cffi">raylib</a>.
+  Every texture, model and sound is generated in code.
+</p>
 
-## Run
+---
+
+The bell of Harrowmere has cracked. Beneath the village well, the drowned halls of the Sunken Keep have
+begun to stir. Take up a rusted sword, descend into the dark, and bring back the Ember Sigil before the
+keep wakes for good.
+
+All names, maps, monsters, story and art are original.
+
+## Screenshots
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/title.png" alt="Title screen over the foggy village square"></td>
+    <td><img src="docs/screenshots/village.png" alt="Harrowmere's cobbled square, with the shrine and the well"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Title screen</sub></td>
+    <td align="center"><sub>Harrowmere, the village above the keep</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/dialogue.png" alt="Talking to Odrin the bell-keeper"></td>
+    <td><img src="docs/screenshots/flame_bolt.png" alt="A flame bolt flying at a bone walker"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Odrin, keeper of the silent bell</sub></td>
+    <td align="center"><sub>Flame Bolt against a Bone Walker</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/warden.png" alt="The Ashen Warden boss in its hall"></td>
+    <td><img src="docs/screenshots/inventory.png" alt="The Belongings screen with a rotating item preview"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>The Ashen Warden</sub></td>
+    <td align="center"><sub>Belongings, with a spinning item preview</sub></td>
+  </tr>
+</table>
+
+## Features
+
+- **PS1-style renderer**: 320×240 internal resolution, vertex snapping, affine texture warping,
+  15-bit color with ordered dithering, distance fog and baked vertex lighting.
+- **Deliberate, weighty combat**: an ATK gauge that refills between swings, enemy wind-ups you can read
+  and interrupt, and a boss with poise.
+- **Spells**: Flame Bolt, Mend and Lumen, cast from a MAG gauge.
+- **Two hand-built areas**: the village of Harrowmere and the Sunken Keep, with locked doors, levers,
+  a flooded cellar, chests, a shop and four villagers to talk to.
+- **Everything procedural**: textures, low-poly models and sound effects are all generated at startup.
+  The game itself ships no image or audio files.
+- **Save shrines**: pray at a stone shrine to heal and record your journey.
+
+## Installing
+
+### What you need
+
+- **Python 3.11 or newer**. Check with `python3 --version`.
+- **A GPU with OpenGL 3.3**. Any graphics card or integrated GPU from the last ten years works.
+- **Linux, macOS or Windows**. The `raylib` package ships prebuilt binaries for all three, so no C
+  compiler is required.
+
+### Option 1: install it as an app (recommended for players)
+
+[pipx](https://pipx.pypa.io/) installs the game into its own isolated environment and puts an
+`ashen-vault` command on your PATH:
 
 ```sh
+git clone <this repository's URL> ashen-vault
+cd ashen-vault
+pipx install .
+ashen-vault
+```
+
+To update later, `git pull` and then run `pipx install --force .`. To remove the game, run
+`pipx uninstall ashen-vault`.
+
+### Option 2: run from a source checkout (recommended for development)
+
+**Linux and macOS**
+
+```sh
+git clone <this repository's URL> ashen-vault
+cd ashen-vault
 python3 -m venv .venv
 .venv/bin/pip install -e '.[test]'
-bin/ashen_vault                  # or: .venv/bin/python -m ashen_vault
-.venv/bin/pytest                 # headless logic tests
+bin/ashen_vault
 ```
+
+**Windows (PowerShell)**
+
+```powershell
+git clone <this repository's URL> ashen-vault
+cd ashen-vault
+py -m venv .venv
+.venv\Scripts\pip install -e ".[test]"
+.venv\Scripts\ashen-vault
+```
+
+`bin/ashen_vault` automatically re-runs itself inside `.venv` if one exists, so you don't need to
+activate the environment first. `python -m ashen_vault` works too.
+
+### Troubleshooting
+
+| Problem | Fix |
+| --- | --- |
+| `GLFW: Error: 65548 ... Wayland: The platform does not provide the window position` | Harmless warning on Wayland. The game runs normally. |
+| Window opens but no sound | No audio device was found. The game keeps running silently. |
+| OpenGL errors or a black window on Linux | Install your distribution's Mesa / OpenGL drivers (e.g. `mesa` on Arch, `libgl1` on Debian/Ubuntu). |
+| `No matching distribution found for raylib` | Your Python version or platform has no prebuilt `raylib` wheel. Try a different recent CPython release on x86_64 or arm64. |
+| Want to start over | Delete the save file (see [Save file](#save-file)). |
 
 ## Controls
 
@@ -27,26 +131,54 @@ bin/ashen_vault                  # or: .venv/bin/python -m ashen_vault
 | Quick Red Tonic / Blue Moss | 1 / 2 |
 | Pause | Esc |
 
-The same list is in the game under **Controls** on the title and pause menus. In Belongings, Enter on an
-equipped item (marked `(E)`) takes it off; with no weapon you fight bare-handed.
+The same list is in the game under **Controls** on the title and pause menus.
 
-Your swing damage scales with the **ATK** gauge, so wait for it to refill (it won't while you sprint). Spells need a full **MAG** gauge.
-The stone shrines save your progress and restore you.
+## Tips
 
-## Layout
+- Your swing damage scales with the **ATK** gauge (gold bar, bottom right). Wait for it to refill
+  before swinging. It doesn't refill while you sprint.
+- Spells need a full **MAG** gauge (cyan bar) as well as enough MP.
+- Watch for enemies raising their weapons. A solid hit during the wind-up staggers most of them.
+- In Belongings, press Enter on an equipped item (marked `(E)`) to take it off. With no weapon you fight
+  bare-handed.
+- Talk to everyone in Harrowmere before you descend. They have gifts and directions.
 
-- `ashen_vault/core.py`: re-exports the raylib-free game logic (maps, collision, combat, AI, saves), covered by `tests/`
-- `ashen_vault/world/`, `player/`, `ai/`, `save/`: that logic, module by module
-- `ashen_vault/render/`: PS1 shader, procedural textures, map mesh builder, low-poly models
-- `ashen_vault/game.py`: scenes and the main loop; `ui/hud.py` the 2D overlay; `audio/synth.py` the sound effects
-- `data/maps/*.map`: plain-text tile maps (`[meta]`, `[legend]`, `[grid]`, `[entities]`)
-- `data/dialogue.py`: NPC conversations
+## Save file
 
-## Debug flags
+The game saves only at shrines, to `~/.local/share/ashen_vault/save.json` (Windows:
+`%USERPROFILE%\.local\share\ashen_vault\save.json`). Set the `ASHEN_VAULT_SAVE` environment variable
+to use a different path.
+
+## Development
+
+```sh
+.venv/bin/pytest            # headless tests: maps, collision, combat, AI, saves, mesh building
+```
+
+### Project layout
+
+| Path | What lives there |
+| --- | --- |
+| `ashen_vault/world/`, `player/`, `ai/`, `save/` | Game logic with no raylib dependency, covered by `tests/` |
+| `ashen_vault/render/` | PS1 shaders, procedural textures, map mesh builder, matrix rig, low-poly models |
+| `ashen_vault/game.py` | Scenes and the main loop |
+| `ashen_vault/ui/hud.py` | HUD, compass, menus and dialogue boxes |
+| `ashen_vault/audio/synth.py` | Synthesized sound effects |
+| `data/maps/*.map` | Plain-text tile maps (`[meta]`, `[legend]`, `[grid]`, `[entities]`) |
+| `data/dialogue.py` | NPC conversations |
+| `docs/logo/make_logo.py` | Generates the pixel-art logo SVG |
+
+### Debug flags
 
 ```sh
 bin/ashen_vault --map sunken_keep --at 15,21,180 --smoke 100 --script "wait:1.2 attack" --shot out.png
 ```
 
-`--smoke N` runs N frames, writes a 3x screenshot and prints a state summary. `--script` drives input.
-The save file lives at `~/.local/share/ashen_vault/save.json`; set `ASHEN_VAULT_SAVE` to override it.
+- `--map NAME` skips the title screen and starts on that map.
+- `--at TX,TZ,YAW` sets the start tile and heading in degrees.
+- `--smoke N` runs N frames at a fixed timestep, writes a 3× screenshot and prints a state summary.
+- `--script "..."` drives input: `action` presses once, `action:1.5` holds for 1.5 s, `wait:1` pauses.
+- `--shot PATH` sets where `--smoke` writes its screenshot.
+
+The README screenshots were taken this way. For example, the flame bolt shot is
+`bin/ashen_vault --map sunken_keep --at 15,22,0 --smoke 30 --script "wait:0.3 cast" --shot flame_bolt.png`.
