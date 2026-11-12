@@ -1,0 +1,16 @@
+[project]
+name = "ashen-vault"
+version = "0.1.0"
+description = "A first-person dungeon crawler with procedural PS1-style graphics"
+requires-python = ">=3.11"
+dependencies = ["raylib>=5.5"]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[project.scripts]
+ashen-vault = "ashen_vault.__main__:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", "tests"]
