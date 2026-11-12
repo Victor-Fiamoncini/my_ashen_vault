@@ -217,3 +217,9 @@ uv run ashen-vault --map sunken_keep --at 15,21,180 --smoke 100 --script "wait:1
 
 The README screenshots were taken this way. For example, the flame bolt shot is
 `uv run ashen-vault --map sunken_keep --at 15,22,0 --smoke 30 --script "wait:0.3 cast" --shot flame_bolt.png`.
+
+---
+
+Released in 2026. This project is under the [GPL-3.0](LICENSE) license.
+
+By [Victor B. Fiamoncini](https://github.com/Victor-Fiamoncini) ☕️
