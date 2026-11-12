@@ -1,10 +1,8 @@
 """Headless checks for the raylib-free parts of the renderer."""
-import os
 
 from ashen_vault import map_path
-from ashen_vault.render import texture_gen
+from ashen_vault.render import rig, texture_gen
 from ashen_vault.render.mesh_builder import MeshBuilder
-from ashen_vault.render import rig
 from ashen_vault.world.map_loader import MapLoader
 
 

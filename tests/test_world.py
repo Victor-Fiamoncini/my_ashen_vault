@@ -6,7 +6,7 @@ import pytest
 
 from ashen_vault import MAP_DIR
 from ashen_vault.world import collision
-from ashen_vault.world.map_loader import MapLoader, MapError
+from ashen_vault.world.map_loader import MapError, MapLoader
 from ashen_vault.world.tile_map import TileMap
 from conftest import ROOM
 

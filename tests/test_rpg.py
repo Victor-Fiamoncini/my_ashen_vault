@@ -1,12 +1,10 @@
-import os
-
 import pytest
 
-from ashen_vault.player.combat import Gauge, Combat
-from ashen_vault.player.stats import Stats
+from ashen_vault.player.combat import Combat, Gauge
 from ashen_vault.player.inventory import Inventory
 from ashen_vault.player.items import Items
 from ashen_vault.player.player import Player
+from ashen_vault.player.stats import Stats
 from ashen_vault.save.save_system import SaveSystem
 from ashen_vault.world.tile_map import TileMap
 

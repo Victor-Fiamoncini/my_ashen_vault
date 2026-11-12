@@ -69,43 +69,42 @@ All names, maps, monsters, story and art are original.
 
 ### Option 1: install it as an app (recommended for players)
 
-[pipx](https://pipx.pypa.io/) installs the game into its own isolated environment and puts an
-`ashen-vault` command on your PATH:
+[uv](https://docs.astral.sh/uv/) (or [pipx](https://pipx.pypa.io/)) installs the game into its own
+isolated environment and puts an `ashen-vault` command on your PATH:
 
 ```sh
-git clone <this repository's URL> ashen-vault
-cd ashen-vault
-pipx install .
+git clone <this repository's URL> my_ashen_vault
+cd my_ashen_vault
+uv tool install .          # or: pipx install .
 ashen-vault
 ```
 
-To update later, `git pull` and then run `pipx install --force .`. To remove the game, run
-`pipx uninstall ashen-vault`.
+To update later, `git pull` and then run `uv tool install --force .`. To remove the game, run
+`uv tool uninstall ashen-vault`.
 
 ### Option 2: run from a source checkout (recommended for development)
 
-**Linux and macOS**
+Install uv once ([other install methods](https://docs.astral.sh/uv/getting-started/installation/)):
 
 ```sh
-git clone <this repository's URL> ashen-vault
-cd ashen-vault
-python3 -m venv .venv
-.venv/bin/pip install -e '.[test]'
-bin/ashen_vault
+curl -LsSf https://astral.sh/uv/install.sh | sh                          # Linux and macOS
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"               # Windows
 ```
 
-**Windows (PowerShell)**
+Then, on any platform:
 
-```powershell
-git clone <this repository's URL> ashen-vault
-cd ashen-vault
-py -m venv .venv
-.venv\Scripts\pip install -e ".[test]"
-.venv\Scripts\ashen-vault
+```sh
+git clone <this repository's URL> my_ashen_vault
+cd my_ashen_vault
+uv run ashen-vault
 ```
 
-`bin/ashen_vault` automatically re-runs itself inside `.venv` if one exists, so you don't need to
-activate the environment first. `python -m ashen_vault` works too.
+`uv run` creates `.venv`, installs the exact versions pinned in `uv.lock` (including dev tools) and
+starts the game. It also downloads a matching Python if you don't have one. `uv run python -m
+ashen_vault` works too.
+
+Without uv, plain pip works: `python3 -m venv .venv`, `.venv/bin/pip install -e .`, then
+`.venv/bin/ashen-vault`.
 
 ### Troubleshooting
 
@@ -151,27 +150,38 @@ to use a different path.
 
 ## Development
 
+The project uses [uv](https://docs.astral.sh/uv/) for environments and dependencies,
+[ruff](https://docs.astral.sh/ruff/) for linting and formatting, and pytest with
+[pytest-cov](https://pytest-cov.readthedocs.io/) for tests and coverage. All of them are configured in
+`pyproject.toml` and pinned in `uv.lock`.
+
 ```sh
-.venv/bin/pytest            # headless tests: maps, collision, combat, AI, saves, mesh building
+uv run pytest               # headless tests: maps, collision, combat, AI, saves, mesh building
+uv run pytest --cov         # same, with a branch-coverage report (fails under the floor in pyproject.toml)
+uv run ruff check           # lint (add --fix to auto-fix)
+uv run ruff format          # format
+uv add <package>            # add a runtime dependency; `uv add --dev <package>` for a dev tool
 ```
+
+CI runs the same checks on every push and pull request (`.github/workflows/ci.yml`).
 
 ### Project layout
 
 | Path | What lives there |
 | --- | --- |
-| `ashen_vault/world/`, `player/`, `ai/`, `save/` | Game logic with no raylib dependency, covered by `tests/` |
-| `ashen_vault/render/` | PS1 shaders, procedural textures, map mesh builder, matrix rig, low-poly models |
-| `ashen_vault/game.py` | Scenes and the main loop |
-| `ashen_vault/ui/hud.py` | HUD, compass, menus and dialogue boxes |
-| `ashen_vault/audio/synth.py` | Synthesized sound effects |
-| `data/maps/*.map` | Plain-text tile maps (`[meta]`, `[legend]`, `[grid]`, `[entities]`) |
-| `data/dialogue.py` | NPC conversations |
+| `src/ashen_vault/world/`, `player/`, `ai/`, `save/` | Game logic with no raylib dependency, covered by `tests/` |
+| `src/ashen_vault/render/` | PS1 shaders, procedural textures, map mesh builder, matrix rig, low-poly models |
+| `src/ashen_vault/game.py` | Scenes and the main loop |
+| `src/ashen_vault/ui/hud.py` | HUD, compass, menus and dialogue boxes |
+| `src/ashen_vault/audio/synth.py` | Synthesized sound effects |
+| `src/ashen_vault/maps/*.map` | Plain-text tile maps (`[meta]`, `[legend]`, `[grid]`, `[entities]`) |
+| `src/ashen_vault/dialogue.py` | NPC conversations |
 | `docs/logo/make_logo.py` | Generates the pixel-art logo SVG |
 
 ### Debug flags
 
 ```sh
-bin/ashen_vault --map sunken_keep --at 15,21,180 --smoke 100 --script "wait:1.2 attack" --shot out.png
+uv run ashen-vault --map sunken_keep --at 15,21,180 --smoke 100 --script "wait:1.2 attack" --shot out.png
 ```
 
 - `--map NAME` skips the title screen and starts on that map.
@@ -181,4 +191,4 @@ bin/ashen_vault --map sunken_keep --at 15,21,180 --smoke 100 --script "wait:1.2 
 - `--shot PATH` sets where `--smoke` writes its screenshot.
 
 The README screenshots were taken this way. For example, the flame bolt shot is
-`bin/ashen_vault --map sunken_keep --at 15,22,0 --smoke 30 --script "wait:0.3 cast" --shot flame_bolt.png`.
+`uv run ashen-vault --map sunken_keep --at 15,22,0 --smoke 30 --script "wait:0.3 cast" --shot flame_bolt.png`.
