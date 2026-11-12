@@ -23,11 +23,17 @@ GPU note: `gpu.py` is untested until the game window opens (smoke run). Rig.at/e
 - [x] render/gpu
 - [x] render/rig
 - [x] render/models
-- [ ] world/world (raylib-dependent runtime world)
-- [ ] audio/synth
-- [ ] input (incl. --script driver)
-- [ ] ui/hud
-- [ ] data/dialogue.py
-- [ ] game.py + __main__.py + bin/ashen_vault launcher (--map --at --smoke --script --shot)
-- [ ] smoke run on both maps
+- [x] world/world (raylib-dependent runtime world)
+- [x] audio/synth
+- [x] input (incl. --script driver)
+- [x] ui/hud
+- [x] data/dialogue.py
+- [x] game.py + __main__.py + bin/ashen_vault launcher (--map --at --smoke --script --shot)
+- [x] smoke run on both maps
 - [ ] remove Ruby files, update README
+
+## Smoke results (pass 3)
+- harrowmere 60 frames: state line identical to Ruby build; screenshot pixel-identical to Ruby's.
+- sunken_keep --at 15,21,180 scripted attack/cast/menu: combat, flame bolt, inventory preview OK, 60 fps.
+- title -> Controls via script OK.
+- `python -m ashen_vault` is the entry point; bin/ashen_vault is still the Ruby script (swap in final pass).
