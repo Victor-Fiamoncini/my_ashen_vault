@@ -99,6 +99,10 @@ class Platform:
     # A drawbridge stands raised (0) until its lever is pulled, then swings down (to 1). It only
     # bears weight once it is all the way down. Other platforms are always "down".
     lowered: float = 1.0
+    # How a lift is drawn: "" for an open deck, "cage" for a barred jail cage, whose `doors` are the
+    # (dx, dz) sides that open onto a landing.
+    model: str = ""
+    doors: tuple = ()
 
     @property
     def afloat(self):
@@ -350,6 +354,20 @@ def _deck(map_, spec):
     return map_[spec.tx, spec.tz].floor + DECK
 
 
+DOOR_STEP = 1.0  # metres between a lift's stop and a neighbour's floor that still count as a landing
+
+
+def lift_doors(map_, tx, tz, low, high):
+    """The sides (dx, dz) of a lift shaft that open onto a landing: a walkable neighbour whose floor
+    lies at either of the lift's stops. A cage is barred on every other side."""
+    out = []
+    for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        tile = map_[tx + dx, tz + dz]
+        if tile.walkable and any(abs(tile.floor - stop) < DOOR_STEP for stop in (low, high)):
+            out.append((dx, dz))
+    return tuple(out)
+
+
 def build_platforms(map_):
     """Platforms for every raft, plank, ledge and boards entity. A raft's `to=tx,tz` is its far landing;
     `deck=` sets a platform's height (a ledge over a chasm, floorboards over a cellar)."""
@@ -368,6 +386,8 @@ def build_platforms(map_):
             p.speed = float(spec.props.get("speed", str(LIFT_SPEED)))
             p.lever = spec.props.get("lever")
             p.locked = p.lever is not None
+            p.model = spec.props.get("model", "")
+            p.doors = lift_doors(map_, spec.tx, spec.tz, p.low, p.high)
         elif spec.kind == "bridge":
             p.lever = spec.props.get("lever")
             p.locked = p.lever is not None

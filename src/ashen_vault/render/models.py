@@ -37,6 +37,7 @@ def enemy(r, e):
         "loom_mother": loom_mother,
         "loom_brood": loom_brood,
         "gaoler": gaoler,
+        "butcher": butcher,
         "bone_crawler": bone_crawler,
         "forge_golem": forge_models.forge_golem,
         "iron_bowman": forge_models.iron_bowman,
@@ -410,6 +411,67 @@ def gaoler(r, e, t):
                 for i in range(5):  # the chain hangs loose, the hook trailing on the floor
                     r.part("cube", 0, -0.9 - i * 0.14, 0, 0.05, 0.12, 0.05, IRON, ry=i * 1.2)
                 r.part("cone", 0.05, -1.62, 0, 0.18, 0.3, 0.06, STEEL, rz=math.pi)
+
+
+CLEAVER = (150, 146, 140)
+
+
+def cleaver_parts(r, length=1.0, steel=CLEAVER):
+    """A butcher's cleaver in a `held` frame: a short wrapped handle through the fist and a broad,
+    square blade hanging below its spine."""
+    r.part("cube", 0.0, 0, 0, 0.36, 0.07, 0.07, (70, 50, 34))
+    r.part("cube", -0.18, 0, 0, 0.06, 0.09, 0.09, DARK_IRON)  # the butt cap
+    blade = length - 0.2
+    r.part("cube", 0.18 + blade / 2, -0.12, 0, blade, 0.36, 0.04, steel)
+    r.part("cube", 0.18 + blade / 2, 0.05, 0, blade, 0.04, 0.06, _dim(steel))  # the spine
+    r.part("cube", 0.18 + blade * 0.8, -0.04, 0, 0.08, 0.08, 0.05, (20, 16, 14))  # the hanging hole
+
+
+def butcher(r, e, t):
+    """The keep's slaughterman: a huge, hunched brute in a blood-dark leather apron and a sackcloth
+    hood, a cleaver as long as a man's arm in one fist. His moves share the Warden's arm poses.
+    Slain, he drops to his knees and pitches forward onto his face."""
+    swing = walk_cycle(e, t) * 0.5
+    kneel = death_fall(e, 0.6)
+    pitch = death_fall(e, 1.4)
+    lift, spin, _, _ = _spider_move(e, t, 0.0, 1.0)
+    hit, free, blade, elbow, twist, crouch, _ = _warden_arms(e, t)
+    skin = (240, 220, 200) if e.state == "hurt" else (160, 118, 98)
+    apron = (96, 40, 34) if e.phase2 else (88, 62, 46)
+    with (
+        r.at(0, lift * 0.6 + crouch + 0.55 - 0.5 * kneel, 0, s=1.3, ry=spin + twist),
+        r.at(0, 0, 0, rz=-1.2 * pitch),
+        r.at(0, -0.55, 0),
+    ):
+        for side, a in ((-0.24, swing), (0.24, -swing)):
+            with r.at(0, 0.8, side, rz=a - 1.5 * kneel):
+                r.part("cube", 0, -0.4, 0, 0.28, 0.8, 0.26, (70, 54, 42))
+                r.part("cube", 0.07, -0.8, 0, 0.38, 0.12, 0.28, (46, 36, 30))
+        with r.at(0, 0.85, 0, rz=-0.2):  # the hunched bulk
+            r.part("sphere", 0.02, 0.5, 0, 0.8, 1.0, 0.95, skin)
+            r.part("cube", 0.24, 0.3, 0, 0.36, 1.0, 0.76, apron)  # apron
+            r.part("cube", 0.43, 0.2, -0.1, 0.02, 0.4, 0.3, (70, 22, 18))  # old blood
+            r.part("cube", 0.43, 0.55, 0.15, 0.02, 0.2, 0.2, (70, 22, 18))
+            r.part("cube", 0, 0.8, 0, 0.82, 0.1, 0.98, (54, 40, 32))  # the apron's strap
+            with r.at(0.22, 1.12, 0):  # the hooded head, thrust forward
+                r.part("sphere", 0, 0, 0, 0.44, 0.46, 0.42, SACKCLOTH)
+                r.part("cube", 0.21, 0.02, -0.09, 0.04, 0.05, 0.06, (20, 14, 10))
+                r.part("cube", 0.21, 0.02, 0.09, 0.04, 0.05, 0.06, (20, 14, 10))
+                r.part("cube", 0.2, -0.16, 0, 0.04, 0.03, 0.18, (90, 30, 26))  # a stained seam
+        # The free arm hangs, or rises with the cleaver arm for a two-handed chop.
+        with r.at(0, 1.7, -0.56, rz=free + swing * 0.4 - 0.4 * kneel):
+            r.part("cube", 0, -0.22, 0, 0.24, 0.46, 0.24, skin)
+            r.part("cube", 0, -0.62, 0, 0.21, 0.4, 0.21, skin)
+        # The cleaver arm: shoulder, elbow, and the cleaver turned at the wrist; slain, it slips.
+        with r.at(0, 1.7, 0.56, rz=hit - 0.6 * kneel):
+            r.part("cube", 0, -0.21, 0, 0.25, 0.44, 0.25, skin)
+            elbow = _mix(elbow, 0.2, kneel)
+            with r.at(0, -0.42, 0, rz=elbow):
+                r.part("cube", 0, -0.2, 0, 0.22, 0.42, 0.22, skin)
+                wrist = aim_wrist(blade, hit + elbow)
+                slip = aim_wrist(-math.pi / 2, hit - 0.6 * kneel + elbow)
+                with r.at(0, -0.44, 0), held(r, _mix(wrist, slip, kneel), skin, size=0.2, splay=0.3):
+                    cleaver_parts(r, 1.1)
 
 
 def bone_crawler(r, e, t):
@@ -930,10 +992,8 @@ OAK = (96, 66, 40)
 
 
 def lever(r, k, wall=True, wood=False):
-    """A winch lever: an iron-banded oak beam pivoting in a notched iron quadrant on a dressed-stone
-    block, with a toothed wheel beside it whose chain runs up into the wall. `k` (0..1) is how far
-    it has been hauled: the beam swings from up-and-back to down-and-forward and the wheel turns.
-    Mounted on a wall at local -X, or free-standing."""
+    """A plain lever: a shaft pivoting on a block, thrown from up-and-back to down-and-forward as
+    `k` (0..1) runs. Mounted on a wall at local -X, or free-standing."""
     with r.at(0, 0, 0, s=1.2):
         if wood:
             _wood_lever(r, k, wall)
@@ -942,119 +1002,93 @@ def lever(r, k, wall=True, wood=False):
 
 
 def _wood_lever(r, k, wall):
-    """The jungle's lever: a rough beam on a wooden axle through a split-log post, with a pegged
-    timber quadrant and vine lashings, and a rope that runs up from its spindle into the wall."""
+    """The jungle's lever: a rough beam on a peg through a stump post, its grip wound with vine."""
     bx = -0.5 if wall else -0.15
-    rope = (170, 150, 100)
-    r.part("cyl", bx, 0.12, 0, 0.7, 0.24, 0.7, BARK, tex="bark")  # the stump it stands on
-    for z in (-0.16, 0.16):  # the two halves of the split post
-        r.part("cube", bx, 0.68, z, 0.3, 1.0, 0.12, (110, 80, 50), tex="bark")
-    r.part("cube", bx, 1.18, 0, 0.34, 0.08, 0.46, DARK_BARK)  # a cap lashed across the top
-    for y in (0.45, 0.9):
-        r.part("cube", bx, y, 0, 0.32, 0.06, 0.48, (70, 110, 46))  # vine bindings
-    px, py = bx + 0.3, 1.0
-    for i in range(5):  # pegs in an arc mark the beam's travel
-        a = -0.9 + i * 0.45
-        r.part(
-            "cyl",
-            px + math.sin(a) * 0.4,
-            py + math.cos(a) * 0.4,
-            0.2,
-            0.05,
-            0.12,
-            0.05,
-            (150, 116, 76),
-            rx=math.pi / 2,
-        )
-    r.part("cyl", px, py, 0, 0.14, 0.5, 0.14, (124, 92, 58), rx=math.pi / 2)  # the axle
+    r.part("cyl", bx, 0.45, 0, 0.5, 0.9, 0.5, BARK, tex="bark")  # the stump post
+    px, py = bx + 0.3, 0.75
+    r.part("cyl", px, py, 0, 0.12, 0.4, 0.12, (124, 92, 58), rx=math.pi / 2)  # the axle peg
     with r.at(px, py, 0, rz=0.95 - 1.9 * k):
-        r.part("cube", 0, 0.5, 0, 0.14, 1.05, 0.12, (126, 92, 58), tex="bark")
-        r.part("cube", 0, 0.62, 0, 0.16, 0.08, 0.14, (70, 110, 46))  # vine grip wraps
-        r.part("cube", 0, 0.78, 0, 0.16, 0.08, 0.14, (70, 110, 46))
-        r.part("cube", 0, 1.05, 0, 0.1, 0.1, 0.32, (110, 80, 50))  # cross handle
-    # The spindle winds the rope as the beam is hauled.
-    with r.at(bx + 0.05, py, -0.36, rz=-k * 3.0):
-        r.part("cyl", 0, 0, 0, 0.32, 0.22, 0.32, (124, 92, 58), rx=math.pi / 2)
-        r.part("cyl", 0, 0, 0, 0.24, 0.24, 0.24, rope, rx=math.pi / 2)
-    top = 2.2 if wall else 1.4
-    cx = bx - 0.16 if wall else bx + 0.05
-    length = top - py
-    sag = 0.1 * k
-    r.part("cube", cx + sag, py + length / 2, -0.36, 0.04, length, 0.04, rope)
-    if wall:
-        r.part("cube", -0.8, top, -0.36, 0.08, 0.14, 0.14, DARK_BARK)  # a peg where it enters the wall
+        r.part("cube", 0, 0.45, 0, 0.14, 0.95, 0.12, (126, 92, 58), tex="bark")
+        r.part("cube", 0, 0.75, 0, 0.17, 0.22, 0.15, (70, 110, 46))  # vine-wound grip
 
 
 def _lever(r, k, wall):
+    """The keep's lever: an iron shaft with a ball grip, pivoting in a slotted plate on a stone block."""
     bx = -0.5 if wall else -0.15
-    r.part("cube", bx, 0.45, 0, 0.55, 0.9, 0.8, WHITE, tex="rough_stone")
-    r.part("cube", bx, 0.93, 0, 0.62, 0.06, 0.86, (110, 106, 100))  # capstone
-    px, py = bx + 0.32, 1.05  # the pivot
-    for i in range(7):  # the notched quadrant
-        a = -1.0 + i * (2.0 / 6)
-        r.part(
-            "cube", px + math.sin(a) * 0.36, py + math.cos(a) * 0.36, 0.12, 0.06, 0.1, 0.05, DARK_IRON, rz=-a
-        )
-        r.part(
-            "cube", px + math.sin(a) * 0.36, py + math.cos(a) * 0.36, -0.12, 0.06, 0.1, 0.05, DARK_IRON, rz=-a
-        )
-    r.part("cyl", px, py, 0, 0.12, 0.34, 0.12, DARK_IRON, rx=math.pi / 2)  # axle
+    r.part("cube", bx, 0.4, 0, 0.55, 0.8, 0.7, WHITE, tex="rough_stone")
+    r.part("cube", bx, 0.83, 0, 0.62, 0.06, 0.76, (110, 106, 100))  # capstone
+    px, py = bx + 0.3, 0.95
+    for z in (-0.1, 0.1):  # the slotted plate the shaft swings in
+        r.part("cube", px - 0.02, py - 0.02, z, 0.3, 0.3, 0.04, DARK_IRON)
+    r.part("cyl", px, py, 0, 0.1, 0.3, 0.1, IRON, rx=math.pi / 2)  # the axle
     with r.at(px, py, 0, rz=0.95 - 1.9 * k):
-        r.part("cube", 0, 0.45, 0, 0.13, 0.95, 0.13, OAK)
-        for y in (0.15, 0.62):  # iron bands, riveted
-            r.part("cube", 0, y, 0, 0.13, 0.06, 0.13, IRON)
-            r.part("cube", 0.07, y, 0, 0.02, 0.03, 0.03, BRASS)
-        r.part("cube", 0, 0.88, 0, 0.09, 0.08, 0.09, IRON)
-        r.part("cube", 0, 0.95, 0, 0.06, 0.06, 0.36, IRON)  # the cross-grip
-        r.part("cyl", 0, 1.02, 0, 0.18, 0.04, 0.18, IRON, rx=math.pi / 2)  # ring pommel
-    # The toothed wheel turns as the beam is hauled.
-    with r.at(bx + 0.1, py, -0.42, rz=-k * 3.0):
-        r.part("cyl", 0, 0, 0, 0.5, 0.08, 0.5, DARK_IRON, rx=math.pi / 2)
-        for i in range(8):
-            a = i * math.pi / 4
-            r.part("cube", math.cos(a) * 0.27, math.sin(a) * 0.27, 0, 0.08, 0.08, 0.06, IRON, rz=a)
-        r.part("cube", 0, 0, 0.05, 0.42, 0.05, 0.03, OAK)
-        r.part("cube", 0, 0, 0.05, 0.05, 0.42, 0.03, OAK)
-    # Its chain runs up into the wall (or into a ring on the block); slack once hauled.
-    top = 2.2 if wall else 1.0
-    cx = bx - 0.18 if wall else bx + 0.1
-    links = max(int((top - py) / 0.14), 1) if wall else 0
-    for i in range(links):
-        y = py + 0.25 + i * 0.14
-        sag = math.sin(i / max(links - 1, 1) * math.pi) * 0.12 * k
-        r.part("cube", cx + sag, y, -0.42, 0.03, 0.15, 0.07, IRON, ry=0 if i % 2 else math.pi / 2)
-    if wall:
-        r.part("cube", -0.8, top, -0.42, 0.06, 0.18, 0.18, DARK_IRON)  # where it vanishes into the wall
+        r.part("cube", 0, 0.42, 0, 0.08, 0.85, 0.08, IRON)
+        r.part("sphere", 0, 0.88, 0, 0.18, 0.18, 0.18, DARK_IRON)  # the ball grip
 
 
-def lift(r, t, moving, chain_h):
-    """A chain lift: an oak deck in an iron frame, hung from four chains that run up to a pulley
-    beam under the shaft's ceiling. Riding, the chains shiver."""
+def lift(r, t, moving, chain_h, model="", doors=()):
+    """A chain lift. `model="cage"` is the keep's jail cage: an iron-barred box hung from a single
+    heavy chain, open only on the `doors` sides (dx, dz) that face a landing. Otherwise an oak deck
+    in an iron frame, hung from four chains. Both run up to a pulley beam under the shaft's ceiling;
+    riding, the chains shiver."""
+    shiver = math.sin(t * 30) * 0.01 if moving else 0.0
+    if model == "cage":
+        _cage_lift(r, chain_h, shiver, doors)
+        return
     r.part("cube", 0, -0.08, 0, 1.92, 0.14, 1.92, WHITE, tex="wood_plank")
     for sx, sz in ((1, 0), (-1, 0), (0, 1), (0, -1)):  # the iron frame
         r.part("cube", sx * 0.94, -0.05, sz * 0.94, 0.1 if sx else 1.98, 0.18, 0.1 if sz else 1.98, DARK_IRON)
     for z in (-0.5, 0.0, 0.5):  # the cross straps
         r.part("cube", 0, 0.005, z, 1.86, 0.02, 0.08, IRON)
-    shiver = math.sin(t * 30) * 0.01 if moving else 0.0
-    link = 0.45
-    links = min(max(int(chain_h / link), 1), 40)
+    links = _links(chain_h - 0.2)
     for cx, cz in ((0.85, 0.85), (0.85, -0.85), (-0.85, 0.85), (-0.85, -0.85)):
         r.part("cube", cx, 0.1, cz, 0.14, 0.2, 0.14, DARK_IRON)  # the shackle
-        for i in range(links):
-            r.part(
-                "cube",
-                cx + shiver,
-                0.2 + (i + 0.5) * link,
-                cz,
-                0.04,
-                link,
-                0.1,
-                IRON,
-                ry=0 if i % 2 else 1.57,
-            )
+        _chain(r, cx + shiver, 0.2, cz, links, 0.04)
+    _pulley(r, chain_h)
+
+
+LINK = 0.45  # length of one lift chain link
+CAGE_H = 2.5  # height of the jail cage's roof above its floor
+CAGE_BARS = 5  # bars along each closed side
+
+
+def _links(span):
+    return min(max(int(span / LINK), 1), 40)
+
+
+def _chain(r, x, y, z, links, thick):
+    for i in range(links):
+        r.part("cube", x, y + (i + 0.5) * LINK, z, thick, LINK, thick * 2.5, IRON, ry=0 if i % 2 else 1.57)
+
+
+def _pulley(r, chain_h):
     r.part("cube", 0, chain_h, 0, 1.9, 0.25, 0.3, OAK)  # the pulley beam
     for cx in (-0.85, 0.85):
         r.part("cyl", cx, chain_h - 0.2, 0, 0.35, 0.12, 0.35, DARK_IRON, rx=math.pi / 2)
+
+
+def _cage_lift(r, chain_h, shiver, doors):
+    h = max(min(CAGE_H, chain_h - 0.6), 1.9)
+    r.part("cube", 0, -0.08, 0, 1.92, 0.14, 1.92, (110, 100, 92), tex="wood_plank")  # a scorched floor
+    for i in range(-2, 3):  # an iron grating over it
+        r.part("cube", i * 0.4, 0.005, 0, 0.06, 0.03, 1.9, DARK_IRON)
+    for cx, cz in ((0.9, 0.9), (0.9, -0.9), (-0.9, 0.9), (-0.9, -0.9)):  # corner posts
+        r.part("cube", cx, h / 2, cz, 0.12, h, 0.12, DARK_IRON)
+    for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        door = (dx, dz) in doors
+        for y in (0.06, h) if door else (0.06, h * 0.5, h):  # rails; a doorway keeps its sill and lintel
+            r.part("cube", dx * 0.9, y, dz * 0.9, 0.08 if dx else 1.86, 0.08, 0.08 if dz else 1.86, DARK_IRON)
+        if door:
+            continue
+        for i in range(CAGE_BARS):  # the bars
+            u = -0.9 + (i + 1) * 1.8 / (CAGE_BARS + 1)
+            r.part("cube", dx * 0.9 or u, h / 2, dz * 0.9 or u, 0.05, h, 0.05, IRON)
+    for u in (-0.3, 0.3):  # a barred roof
+        r.part("cube", u, h, 0, 0.06, 0.06, 1.86, IRON)
+        r.part("cube", 0, h, u, 1.86, 0.06, 0.06, IRON)
+    r.part("cyl", 0, h + 0.08, 0, 0.4, 0.1, 0.4, DARK_IRON)  # the ring the chain is shackled to
+    _chain(r, shiver, h + 0.1, 0, _links(chain_h - h - 0.3), 0.07)
+    _pulley(r, chain_h)
 
 
 def pickup(r, t):
@@ -2327,6 +2361,7 @@ WEAPON_LEN = {
     "felling_axe": 1.45,
     "bearded_axe": 1.15,
     "hatchet": 0.9,
+    "butcher_cleaver": 1.0,
     "oak_cudgel": 1.0,
     "spiked_club": 1.05,
     "stormbrand": 1.2,
@@ -2352,6 +2387,8 @@ def weapon(r, item_id, phase=None):
         felling_axe(r)
     elif item_id in ("hatchet", "bearded_axe"):
         hand_axe(r, item_id == "bearded_axe")
+    elif item_id == "butcher_cleaver":
+        cleaver(r)
     elif item_id == "stormbrand":
         forge_models.stormbrand(r)
     elif item_id == "slagbreaker":
@@ -2508,6 +2545,18 @@ def hand_axe(r, bearded):
         r.part("cube", 0, top, 0.17, 0.04, 0.2, 0.08, (150, 150, 156))
         r.part("cube", 0.022, top, 0.21, 0.01, 0.22, 0.02, (215, 215, 222))
     r.part("cube", 0, top + 0.08, 0, 0.065, 0.03, 0.065, LEATHER)
+
+
+def cleaver(r):
+    """The Butcher's cleaver: a wrapped oak handle and a broad, square blade, its spine along the
+    top and a hole for the hook it hung from."""
+    r.part("cube", 0, 0.0, 0, 0.06, 0.42, 0.06, LEATHER)
+    r.part("cube", 0, -0.23, 0, 0.075, 0.05, 0.075, DARK_IRON)  # butt cap
+    r.part("cube", 0, 0.5, 0.13, 0.035, 0.6, 0.3, (140, 136, 130))  # the blade
+    r.part("cube", 0.02, 0.5, 0.27, 0.01, 0.6, 0.03, (205, 202, 196))  # its edge
+    r.part("cube", 0, 0.5, -0.015, 0.05, 0.62, 0.04, (90, 88, 86))  # the spine
+    r.part("cube", 0.02, 0.72, 0.1, 0.01, 0.06, 0.06, (24, 20, 18))  # hanging hole
+    r.part("cube", 0.02, 0.35, 0.2, 0.01, 0.12, 0.08, (90, 30, 26))  # a stain
 
 
 def hammer(r):
@@ -2825,22 +2874,38 @@ def winch(r, t, turning):
         r.part("cube", -0.75, 1.2 + i * 0.15, 0.0, 0.03, 0.16, 0.08, IRON, ry=0 if i % 2 else 1.57)
 
 
-BRONZE = (150, 108, 56)
+def headsman_block(r, seed):
+    """An executioner's block: a squat, stained oak stump with a neck notch, a broad axe bitten into
+    its top, and a bucket at its foot."""
+    stain = (70, 22, 18)
+    r.part("cyl", 0, 0.32, 0, 1.0, 0.64, 1.0, (110, 78, 50), tex="bark")
+    r.part("cyl", 0, 0.645, 0, 0.92, 0.02, 0.92, (128, 96, 62))  # the hewn top
+    r.part("cube", 0, 0.66, 0, 0.94, 0.04, 0.22, stain)  # the notch, dark with old blood
+    r.part("cube", 0.25, 0.005, 0.4, 0.9, 0.01, 0.6, stain)  # a stain spreading on the floor
+    with r.at(-0.15, 0.66, -0.25, ry=0.4 + (seed % 3) * 0.2, rz=-0.5):
+        r.part("cube", 0, 0.5, 0, 0.07, 1.1, 0.07, OAK)  # the haft
+        r.part("cube", 0, 0.06, 0.16, 0.04, 0.32, 0.36, IRON)  # the head, sunk in the wood
+    r.part("cyl", 0.75, 0.2, -0.55, 0.34, 0.4, 0.34, (80, 62, 44), tex="wood_plank")  # the bucket
+    r.part("cyl", 0.75, 0.38, -0.55, 0.3, 0.02, 0.3, stain)
+    r.part("cyl", 0.75, 0.3, -0.55, 0.36, 0.04, 0.36, DARK_IRON)  # its hoop
 
 
-def bell(r, t, seed):
-    """A great bronze bell in a timber frame, green with age; it stirs in a draught."""
-    for z in (-0.8, 0.8):
-        r.part("cube", 0, 1.3, z, 0.2, 2.6, 0.2, OAK)
-    r.part("cube", 0, 2.6, 0, 0.26, 0.24, 1.9, OAK)
-    with r.at(0, 2.45, 0, rz=math.sin(t * 0.8 + seed) * 0.04):
-        r.part("cube", 0, -0.08, 0, 0.16, 0.16, 0.3, DARK_IRON)  # the crown it hangs by
-        r.part("sphere", 0, -0.45, 0, 0.8, 0.6, 0.8, BRONZE)  # shoulder
-        r.part("cyl", 0, -0.75, 0, 0.82, 0.6, 0.82, BRONZE)  # waist
-        r.part("cyl", 0, -1.1, 0, 1.0, 0.25, 1.0, BRONZE)  # flaring skirt
-        r.part("cyl", 0, -1.25, 0, 1.15, 0.1, 1.15, (90, 120, 96))  # verdigris lip
-        r.part("cyl", 0, -0.62, 0, 0.84, 0.05, 0.84, (110, 80, 44))  # a cast band
-        r.part("sphere", 0, -1.25, 0, 0.2, 0.2, 0.2, DARK_IRON)  # clapper
+def meat_hooks(r, t, seed, ceil_h):
+    """A rail of butcher's hooks hung from the ceiling on chains, a few still carrying slabs."""
+    r.part("cube", 0, ceil_h - 0.1, 0, 1.8, 0.12, 0.12, DARK_IRON)  # the rail
+    for i in range(3):
+        x = -0.6 + i * 0.6
+        length = 1.0 + ((seed + i) % 3) * 0.45
+        sway = math.sin(t * 0.7 + seed + i * 1.7) * 0.05
+        with r.at(x, ceil_h - 0.15, 0, rx=sway):
+            for k in range(int(length / 0.2)):
+                r.part("cube", 0, -0.1 - k * 0.2, 0, 0.03, 0.2, 0.07, IRON, ry=0 if k % 2 else 1.57)
+            y = -length - 0.1
+            r.part("cube", 0, y, 0.05, 0.04, 0.2, 0.04, DARK_IRON)  # the hook's shank
+            r.part("cube", 0, y - 0.1, 0.0, 0.04, 0.04, 0.14, DARK_IRON)  # and its curl
+            if (seed + i) % 3:
+                r.part("cube", 0, y - 0.45, 0, 0.32, 0.6, 0.18, (120, 44, 40), rz=0.08)  # a slab
+                r.part("cube", 0, y - 0.45, 0.095, 0.26, 0.5, 0.01, (170, 140, 116))  # its fat
 
 
 # The Cinderhold's models live in their own module; it borrows the helpers above, so it is imported last.

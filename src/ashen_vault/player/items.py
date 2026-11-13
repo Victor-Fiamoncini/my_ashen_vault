@@ -247,6 +247,18 @@ class Items:
                 desc="A short camp axe, light enough for one hand.",
             ),
             Item(
+                id="butcher_cleaver",
+                name="Butcher's Cleaver",
+                kind="weapon",
+                category="axe",
+                price=0,
+                power=17,
+                reach=2.0,
+                speed=1.5,
+                level=4,
+                desc="The slaughterman's cleaver, broad as a shovel and never quite clean.",
+            ),
+            Item(
                 id="bearded_axe",
                 name="Bearded Axe",
                 kind="weapon",

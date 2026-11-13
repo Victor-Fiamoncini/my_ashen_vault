@@ -99,7 +99,7 @@ def test_separate_pushes_apart():
 STATIC_BLOCKERS = (
     *("barrel", "crate", "urn", "iron_maiden", "save_statue", "well", "npc"),
     *("altar", "table", "rack", "rubble", "cocoon", "frog_idol"),
-    *("pillar", "sarcophagus", "bell", "bonfire", "giant_mushroom", "totem"),
+    *("pillar", "sarcophagus", "headsman_block", "bonfire", "giant_mushroom", "totem"),
     *("anvil", "chimney"),
 )
 

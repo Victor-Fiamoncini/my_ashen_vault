@@ -33,17 +33,17 @@ o = floor tex=dirt h=-3.4 ceil=4.8 side=stone_brick pit
 ################################
 ##########0p:::::::::0##########
 ##########:bi::::::ib:##########
-##########>:1::::::1:>##########
-##########:::::w::::::##########
-##########:::k::::k:::##########
-##########>:1::::::1:>##########
-##########:bi::::::ib:##########
-##########%:::::::::ph##########
-###############D#########&///7H#
+##########>:1::::::1:>###7/)/)7#
+##########:::::w::::::###t/u//t#
+##########:::k::::k:::###)////)#
+##########>:1::::::1:>###V/////#
+##########:bi::::::ib:###/k//k/#
+##########%:::::::::ph###//////#
+###############D#########&////H#
 #Zooooi#08==t=>=>==t===B#//k///#
-#LXXXX=W===x=!======x==K#///V/7#
+#LXXXX=W===x=!======x==K#/////7#
 #QooooL#========<=J====B#//L/!t#
-########8=A=t======t==N=U//k/5/#
+########8=A=t======t==N=U//k///#
 ###############_#########N</3//#
 ###############;#########/F/%e&#
 #8~~~~~~0######,#########n######
@@ -110,8 +110,8 @@ i = candles
 p = rubble
 e = urn
 // The Undercroft, below the cell block: lifts down from the cells and up to the shrine.
-4 = lift top=0 on=?
-9 = lift top=0 lever=crypt_winch on=?
+4 = lift top=0 model=cage on=?
+9 = lift top=0 lever=crypt_winch model=cage on=?
 d = lever id=crypt_winch
 y = chest item=kite_shield gold=40
 5 = gaoler
@@ -123,11 +123,14 @@ g = grate
 < = roots
 ! = cage
 N = winch
-// The Warden's Gallery, above the antechamber: a lift up from beside the boss door, and one
-// down to the lever room, chained fast until its winch is freed.
-U = lift top=7.6 on=`
-n = lift top=7.6 start=top lever=belfry_winch on=]
+// The Warden's Gallery, above the antechamber: a cage lift up from beside the boss door, and one
+// down to the lever room, chained fast until its winch is freed. North of it, the Butcher's
+// slaughter hall.
+U = lift top=7.6 model=cage on=`
+n = lift top=7.6 start=top lever=belfry_winch model=cage on=]
 F = lever id=belfry_winch
 H = chest item=chain_mitts gold=80
 k = pillar
-V = bell
+V = headsman_block
+) = meat_hooks
+u = butcher yaw=90 item=butcher_cleaver

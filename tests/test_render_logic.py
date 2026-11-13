@@ -318,6 +318,8 @@ def test_keep_props_lift_lever_and_fire_draw():
         models.lever(r, k, wall=False)
     models.lift(r, 0.5, True, 6.0)
     models.lift(r, 0.5, False, 60.0)  # a very tall shaft caps its chain links
+    models.lift(r, 0.5, True, 6.0, "cage", ((1, 0),))
+    models.lift(r, 0.5, False, 2.0, "cage", ())  # a low shaft squats the cage
     models.ember_crest(r, (200, 180, 140))
     models.banner(r, 0.5, 2)
     models.pillar(r, 3, 4.9)
@@ -330,7 +332,8 @@ def test_keep_props_lift_lever_and_fire_draw():
     models.roots(r, 0.5, 2, 3.4)
     models.winch(r, 0.5, True)
     models.winch(r, 0.5, False)
-    models.bell(r, 0.5, 1)
+    models.headsman_block(r, 1)
+    models.meat_hooks(r, 0.5, 1, 4.0)
     models.eruption(r, 0.6, 0.0, 0.5)
     models.eruption(r, 0.0, 0.8, 0.5)
     models.shockwave_ring(r, 0.4, 4.0)
@@ -365,7 +368,7 @@ def test_jungle_fires_mushrooms_bridge_and_wooden_lever_draw():
     models.secret_wall(r, 1.4, 0.0, tex="web_wall")
     for id_ in ("venom", "veil", "pyre"):
         models.spell_orb(r, id_, 0.5)
-    assert len(gpu.parts) > 300
+    assert len(gpu.parts) > 150  # the levers are plain now
 
 
 def test_a_cold_fire_draws_no_flame():

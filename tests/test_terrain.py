@@ -619,3 +619,20 @@ def test_a_drawbridge_never_rots_under_you():
     for _ in range(400):
         bridge.update(0.05, loaded=True)
     assert bridge.afloat and bridge.sink == 0.0
+
+
+def test_a_lift_opens_only_toward_its_landings():
+    """A cage lift is barred on every side but the ones that face a landing at one of its stops."""
+    _m, h = shaft("model=cage")
+    (lift,) = h.platforms
+    assert lift.model == "cage"
+    assert set(lift.doors) == {(1, 0), (-1, 0)}  # the bottom landing east, the top one west
+    _m, h = shaft()
+    assert h.platforms[0].model == ""  # an open deck unless told otherwise
+
+
+def test_a_neighbour_far_from_either_stop_is_no_landing():
+    m = MapLoader(
+        SHAFT.replace("{extra}", "").replace("_ = floor h=-6", "_ = floor h=-3"), name="shaft"
+    ).parse()
+    assert terrain.lift_doors(m, 2, 1, -6.0, 0.0) == ((-1, 0),)

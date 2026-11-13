@@ -134,7 +134,7 @@ def test_a_shrine_rest_puts_out_the_fires():
 
 def test_new_props_block_their_tiles():
     _game, world = keep()
-    for kind in ("pillar", "sarcophagus", "bell"):
+    for kind in ("pillar", "sarcophagus", "headsman_block"):
         p = next(p for p in world.props if p.kind == kind)
         assert world.blocked_tile(p.tx, p.tz), kind
     for kind in ("cage", "roots", "grate", "cobweb", "skull_niche", "winch"):
@@ -157,3 +157,43 @@ def test_a_shield_that_stops_the_hook_stops_the_drag():
     x = game.player.x
     world.hook(g, 0.4, 2.5)
     assert game.player.x == x and game.messages == []
+
+
+def butcher(world):
+    return next((e for e in world.enemies if e.type.id == "butcher"), None)
+
+
+def test_the_butcher_waits_in_his_hall_north_of_the_gallery():
+    _game, world = keep()
+    b = butcher(world)
+    assert b is not None and b.type.boss and b.type.drop is None  # no relic: the ending is untouched
+    assert world.map.tile_at(b.x, b.z).floor == pytest.approx(7.6)
+    assert TileMap.tile_coord(b.z) < 9  # in the slaughter hall, beyond the old gallery's north wall
+
+
+def test_the_butcher_drops_his_cleaver_and_stays_dead():
+    _game, world = keep()
+    b = butcher(world)
+    b.kill()
+    world.drop_enemy_loot(b)
+    assert any(p.kind == "pickup" and p.props["item"] == "butcher_cleaver" for p in world.props)
+    # A shrine rest brings back a living boss as he is...
+    _game, world = keep()
+    world.respawn_enemies()
+    assert butcher(world) is not None
+    # ...but once he has fallen, neither a reload nor a rest brings him back.
+    _game, world = keep(flags={"butcher_dead"})
+    assert butcher(world) is None
+    world.respawn_enemies()
+    assert butcher(world) is None
+
+
+def test_the_keeps_lifts_are_jail_cages_open_toward_their_landings():
+    _game, world = keep()
+    lifts = [p for p in world.terrain.platforms if p.kind == "lift"]
+    assert len(lifts) == 4 and all(p.model == "cage" for p in lifts)
+    for p in lifts:
+        assert p.doors, (p.x, p.z)  # every cage has a way in
+        tx, tz = TileMap.tile_coord(p.x), TileMap.tile_coord(p.z)
+        for dx, dz in p.doors:
+            assert world.map[tx + dx, tz + dz].walkable

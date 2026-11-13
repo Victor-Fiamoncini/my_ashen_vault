@@ -92,7 +92,7 @@ BLOCKING_PROPS = (
     "frog_idol",
     "pillar",
     "sarcophagus",
-    "bell",
+    "headsman_block",
     "bonfire",
     "giant_mushroom",
     "totem",
@@ -1163,7 +1163,8 @@ class World:
             with rig.at(pl.x, pl.deck - pl.sink + shake, pl.z):
                 if pl.kind == "lift":
                     tile = self.map[TileMap.tile_coord(pl.x), TileMap.tile_coord(pl.z)]
-                    models.lift(rig, self._time, pl.moving, (tile.ceil or pl.high + 3.0) - pl.deck)
+                    chain_h = (tile.ceil or pl.high + 3.0) - pl.deck
+                    models.lift(rig, self._time, pl.moving, chain_h, pl.model, pl.doors)
                 elif pl.kind == "raft":
                     models.raft(rig, self._time)
                 elif pl.kind == "ledge":
@@ -1356,8 +1357,10 @@ class World:
                 pl.moving and math.hypot(pl.x - p.x, pl.z - p.z) < 4 for pl in self.terrain.platforms
             )
             models.winch(rig, t, turning)
-        elif k == "bell":
-            models.bell(rig, t, p.tx + p.tz)
+        elif k == "headsman_block":
+            models.headsman_block(rig, p.tx + p.tz)
+        elif k == "meat_hooks":
+            models.meat_hooks(rig, t, p.tx * 3 + p.tz, self._ceil_h(p))
         elif k == "save_statue":
             models.save_statue(rig, t)
         elif k == "tree":

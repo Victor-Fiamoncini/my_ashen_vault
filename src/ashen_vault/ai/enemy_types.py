@@ -154,6 +154,32 @@ class EnemyTypes:
                 shot_rgb=(255, 140, 50),
             ),
             EnemyType(
+                id="butcher",
+                name="The Butcher",
+                hp=120,
+                speed=1.5,
+                damage=18,
+                reach=2.5,
+                sight=12,
+                windup=0.95,
+                recover=1.3,
+                exp=70,
+                gold=range(45, 61),
+                radius=0.7,
+                height=2.6,
+                tall=2.7,
+                boss=True,
+                dead_flag="butcher_dead",
+                epitaph="The Butcher topples among his hooks, and does not rise.",
+                poise=12,
+                # The keep's slaughterman, above the Warden's hall: a slow, heavy cleaver that sweeps
+                # all round, a lunge across the floor and a chain of hacks. At half HP he tears into a
+                # frenzy and adds a two-handed chop that shakes the floor.
+                moves=("sweep", "pounce", "combo"),
+                phase_moves=("slam",),
+                rage="The Butcher roars and hacks wildly!",
+            ),
+            EnemyType(
                 id="mimic",
                 name="Mimic",
                 hp=60,
