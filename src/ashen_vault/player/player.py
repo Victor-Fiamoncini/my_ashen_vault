@@ -1,6 +1,7 @@
+import dataclasses
 import math
 
-from ashen_vault.player import guard, weapons
+from ashen_vault.player import burden, guard, weapons
 from ashen_vault.player.combat import Gauge, Stamina
 from ashen_vault.player.inventory import HANDS, RIGHT, Inventory
 from ashen_vault.player.items import Items
@@ -155,7 +156,8 @@ class Player:
         if fwd == 0 and strafe == 0:
             return False
         fx, fz = self.forward()
-        speed = self.BACK_SPEED if fwd < 0 else self.WALK_SPEED
+        load = self.burden
+        speed = (self.BACK_SPEED if fwd < 0 else self.WALK_SPEED) * load.speed
         sprint = sprint and self.stamina.can_sprint and not self.guarding
         if self.guarding:
             speed *= guard.WALK
@@ -190,7 +192,7 @@ class Player:
         self.bob_t += moved * 2.2
         self.sprinting = sprint and moved > 1e-4
         if self.sprinting:
-            self.stamina.drain(dt)
+            self.stamina.drain(dt * load.cost)
         return moved > 1e-4
 
     def settle(self, map_, dt, floor=None, snap=False):
@@ -207,7 +209,7 @@ class Player:
             if not (self.swinging and self.swing_hand == h):
                 gauge.update(dt)
         if not self.sprinting:
-            self.stamina.update(dt, guard.REFILL if self.guarding else 1.0)
+            self.stamina.update(dt, (guard.REFILL if self.guarding else 1.0) * self.burden.refill)
         self.since_sprint = 0.0 if self.sprinting else self.since_sprint + dt
         self.still_t += dt
         self.since_block += dt
@@ -295,7 +297,7 @@ class Player:
 
     def can_heavy(self, hand=RIGHT):
         heavy = weapons.attack(self.hand_weapon(hand), weapons.HEAVY)
-        return not self.stamina.exhausted and self.stamina.value >= heavy.stamina
+        return not self.stamina.exhausted and self.stamina.value >= heavy.stamina * self.burden.cost
 
     def context(self):
         """What secrets look at as a swing starts."""
@@ -319,8 +321,9 @@ class Player:
             return None
         if kind == weapons.HEAVY and not self.can_heavy(hand):
             kind = weapons.LIGHT
-        a = weapons.attack(item, kind)
+        a = self._loaded(weapons.attack(item, kind))
         hidden = weapons.secret(item, kind, self.context()) if secrets else None
+        hidden = hidden and self._loaded(hidden)
         if hidden and self.stamina.value >= hidden.stamina:
             a = hidden
             self.combo_n = 0
@@ -334,6 +337,16 @@ class Player:
         self.queued_quick = False
         self.guarding = False
         return a
+
+    def _loaded(self, a):
+        """Attack `a` with its ST cost scaled by how heavily you are loaded."""
+        cost = self.burden.cost
+        return a if cost == 1.0 else dataclasses.replace(a, stamina=a.stamina * cost)
+
+    @property
+    def burden(self):
+        """The load tier your equipped gear puts you in (see player/burden.py)."""
+        return burden.of(self.inventory, self.stats)
 
     def double_strike(self, hand):
         """A second click within DOUBLE_CLICK of a light swing of the same hand: the weapon's quick attack.
@@ -396,7 +409,7 @@ class Player:
         fx, fz = self.forward()
         b = guard.block(dmg, guard.facing_cos(self.x, self.z, fx, fz, ax, az), shield, self.stamina.value)
         if b.stamina:
-            self.stamina.spend(b.stamina)
+            self.stamina.spend(b.stamina * self.burden.cost)
         if b.broken:
             self.guarding = False
             self.guard_break_t = guard.BREAK_TIME

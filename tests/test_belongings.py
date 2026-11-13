@@ -90,3 +90,25 @@ def test_only_weapons_shields_and_spells_take_a_slot():
     assert not belongings.slottable(Items.get("padded_coat"))
     assert not belongings.slottable(Items.get("red_tonic"))
     assert belongings.held_id(spell_row()) == SPELL
+
+
+def test_every_item_has_a_tab_and_keys_and_sigils_are_unique():
+    from ashen_vault.player.items import Items
+    from ashen_vault.ui.belongings import TABS, tab_of
+
+    for item in Items.ALL.values():
+        assert tab_of(item) in TABS
+    assert tab_of(Items.get("red_tonic")) == "Items"
+    assert tab_of(Items.get("buckler")) == "Weapons"
+    assert tab_of(Items.get("ringmail")) == "Armor"
+    assert tab_of(Items.get("scroll_pyre")) == "Spells"
+    assert tab_of(Items.get("ember_sigil")) == "Unique"
+
+
+def test_tabs_wrap_and_clicks_find_the_label_under_the_pointer():
+    from ashen_vault.ui.belongings import TAB_GAP, TABS, step_tab, tab_at, tab_spans
+
+    assert step_tab(TABS[0], -1) == TABS[-1] and step_tab(TABS[-1], 1) == TABS[0]
+    spans = tab_spans(10, [20, 30])
+    assert spans == [(10, 30), (30 + TAB_GAP, 60 + TAB_GAP)]
+    assert tab_at(spans, 12) == 0 and tab_at(spans, 40) == 1 and tab_at(spans, 5) is None

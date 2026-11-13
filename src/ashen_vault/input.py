@@ -21,6 +21,8 @@ KEYS = {
     "cancel": [rl.KEY_ESCAPE, rl.KEY_TAB, rl.KEY_BACKSPACE],
     "slot1": [rl.KEY_ONE],  # Belongings: equip the selected row as Primary
     "slot2": [rl.KEY_TWO],  # ... or as Secondary
+    "tab_prev": [rl.KEY_A, rl.KEY_LEFT],  # Belongings: the tab to the left
+    "tab_next": [rl.KEY_D, rl.KEY_RIGHT],  # ... and to the right
 }
 MOUSE = {
     "attack": rl.MOUSE_BUTTON_LEFT,  # the Primary slot
@@ -45,6 +47,7 @@ CONTROLS = [
     ("Quick item", "Middle mouse"),
     ("Choose quick item", "Mouse wheel"),
     ("Equip, ready spells", "Belongings: 1 / 2"),
+    ("Belongings tabs", "A D / Left Right"),
     ("Use, talk, open", "E"),
     ("Belongings", "Tab / I"),
     ("Pause", "Esc"),

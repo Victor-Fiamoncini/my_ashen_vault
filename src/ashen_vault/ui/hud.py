@@ -208,16 +208,20 @@ def hud_box(x, y, w, h, fill=HUD_FILL, radius=HUD_RADIUS, edge=HUD_EDGE):
     pr.draw_rectangle_rounded_lines_ex(rect, roundness, 4, 1, edge)
 
 
+MOUSE_W, MOUSE_H = 5, 7  # the mini mouse drawn on the cards and beside equipped rows
+BAR_Y = HUD_PAD + 2  # a card's gauge bar, level with the middle of its mouse
+
+
 def mini_mouse(x, y, lit, dim=False):
-    """A 7x10 mouse with the `lit` button ("left" / "right" / "wheel", or None for none) glowing."""
+    """A 5x7 mouse with the `lit` button ("left" / "right" / "wheel", or None for none) glowing."""
     body = color(150, 140, 120, 120 if dim else 255)
-    pr.draw_rectangle_rounded(pr.Rectangle(x, y, 7, 10), 0.6, 4, body)
+    pr.draw_rectangle_rounded(pr.Rectangle(x, y, MOUSE_W, MOUSE_H), 0.6, 4, body)
     off = color(60, 54, 44)
     on = color(*HIGHLIGHT_RGB) if not dim else color(120, 100, 64)
-    pr.draw_rectangle(x + 1, y + 1, 2, 3, on if lit == "left" else off)
-    pr.draw_rectangle(x + 4, y + 1, 2, 3, on if lit == "right" else off)
-    pr.draw_rectangle(x + 3, y + 1, 1, 3, on if lit == "wheel" else color(30, 26, 20))
-    pr.draw_line(x + 1, y + 5, x + 6, y + 5, color(90, 80, 64))
+    pr.draw_rectangle(x + 1, y + 1, 1, 2, on if lit == "left" else off)
+    pr.draw_rectangle(x + 3, y + 1, 1, 2, on if lit == "right" else off)
+    pr.draw_rectangle(x + 2, y + 1, 1, 2, on if lit == "wheel" else color(30, 26, 20))
+    pr.draw_line(x + 1, y + 4, x + 4, y + 4, color(90, 80, 64))
 
 
 def cards_hud(player, x, y):
@@ -245,11 +249,12 @@ def slot_card(player, hand, x, y):
     at the outer (right) end of the bar."""
     two_handed = hand == LEFT and player.inventory.two_handing()
     hud_box(x, y, CARD_W, HUD_BOX_H)
-    bw = CARD_W - 2 * HUD_PAD - 10  # the bar fills the top row beside the 7 px mouse and a 3 px gap
+    gap = MOUSE_W + 3  # the bar fills the top row beside the mouse and a 3 px gap
+    bw = CARD_W - 2 * HUD_PAD - gap
     if hand == RIGHT:
-        mx, bx = x + HUD_PAD, x + HUD_PAD + 10
+        mx, bx = x + HUD_PAD, x + HUD_PAD + gap
     else:
-        mx, bx = x + CARD_W - HUD_PAD - 7, x + HUD_PAD
+        mx, bx = x + CARD_W - HUD_PAD - MOUSE_W, x + HUD_PAD
     mini_mouse(mx, y + HUD_PAD, "left" if hand == RIGHT else "right", dim=two_handed)
     cx, cy = x + CARD_W // 2, y + 21
     item = player.hand_item(hand)
@@ -260,12 +265,12 @@ def slot_card(player, hand, x, y):
         weapon_icon(item, cx, cy, t, 70)
     elif item.kind == "shield":
         up = player.guarding
-        gauge_bar(bx, y + 6, bw, player.stamina.value if up else 0, STAMINA_RGB)
+        gauge_bar(bx, y + BAR_Y, bw, player.stamina.value if up else 0, STAMINA_RGB)
         shield_icon(item, cx, cy, 110 if player.guard_break_t > 0 else 255, up)
     elif item.kind == "spell":
         spell = player.current_spell()
         g = player.magic_gauge
-        gauge_bar(bx, y + 6, bw, g.value if spell else 0, FOCUS_RGB if g.full else FOCUS_CHARGING_RGB)
+        gauge_bar(bx, y + BAR_Y, bw, g.value if spell else 0, FOCUS_RGB if g.full else FOCUS_CHARGING_RGB)
         if spell:
             spell_icon(spell.id, cx, cy, t, 255 if g.full else 110)
             pulse = g
@@ -273,8 +278,8 @@ def slot_card(player, hand, x, y):
             pr.draw_ring(pr.Vector2(cx, cy), 4, 6, 0, 360, 24, color(60, 56, 48))
     else:
         g = player.gauge(hand)
-        gauge_bar(bx, y + 6, bw, g.value, ATK_RGB if g.full else ATK_CHARGING_RGB)
-        charge_bar(player, hand, bx, y + 6, bw)
+        gauge_bar(bx, y + BAR_Y, bw, g.value, ATK_RGB if g.full else ATK_CHARGING_RGB)
+        charge_bar(player, hand, bx, y + BAR_Y, bw)
         weapon_icon(item, cx, cy, t, 255 if g.full else 110, g.full)
         pulse = g
     label_col = color(120, 100, 64) if two_handed else DIM
@@ -308,7 +313,7 @@ def quick_card(player, x, y):
     uses it, rolling picks another), and how many are left."""
     hud_box(x, y, CARD_W, HUD_BOX_H)
     cx = x + CARD_W // 2
-    mini_mouse(cx - 3, y + HUD_PAD, "wheel")
+    mini_mouse(cx - MOUSE_W // 2, y + HUD_PAD, "wheel")
     item = player.quick_item()
     n = player.inventory.count(item.id)
     pr.rl_push_matrix()

@@ -9,6 +9,44 @@ from ashen_vault.player.items import Items
 
 SLOT_KEYS = {RIGHT: "1", LEFT: "2"}  # the number keys that equip into each slot, and the row marks
 SLOT_BUTTONS = {RIGHT: "left", LEFT: "right"}  # the mouse button each slot answers to
+# Belongings tabs, left to right, and the item kinds each one lists (spells and the scrolls that
+# teach them share a tab; keys and boss sigils are the unique items).
+TABS = ("Items", "Weapons", "Armor", "Spells", "Unique")
+TAB_KINDS = {
+    "Items": ("consumable",),
+    "Weapons": ("weapon", "shield"),
+    "Armor": ("armor",),
+    "Spells": ("spell", "scroll"),
+    "Unique": ("key",),
+}
+TAB_GAP = 5  # pixels between tab labels
+
+
+def tab_of(item):
+    """The Belongings tab that lists `item`."""
+    return next(t for t in TABS if item.kind in TAB_KINDS[t])
+
+
+def step_tab(tab, step):
+    """The tab `step` places along from `tab`, wrapping around."""
+    return TABS[(TABS.index(tab) + step) % len(TABS)]
+
+
+def tab_spans(x, widths):
+    """(left, right) pixel span of each tab label laid out from `x`, given their text widths."""
+    spans = []
+    for w in widths:
+        spans.append((x, x + w))
+        x += w + TAB_GAP
+    return spans
+
+
+def tab_at(spans, px):
+    """Index of the tab label under pointer x `px` (gaps count toward the label before), or None."""
+    for i, (lo, hi) in enumerate(spans):
+        if lo <= px < hi + TAB_GAP:
+            return i
+    return None
 
 
 def held_id(item):

@@ -9,7 +9,7 @@ from ashen_vault import dialogue as dialogue_data
 from ashen_vault.ai.enemy import Enemy
 from ashen_vault.audio.synth import Audio
 from ashen_vault.input import CONTROLS, Input
-from ashen_vault.player import weapons
+from ashen_vault.player import burden, weapons
 from ashen_vault.player.combat import Combat
 from ashen_vault.player.inventory import LEFT, PRIMARY, RIGHT, SECONDARY, SLOT_ALIASES, SLOT_NAMES, SPELL
 from ashen_vault.player.items import Item, Items
@@ -32,7 +32,7 @@ from ashen_vault.screen import (
     list_row_at,
     scroll_into_view,
 )
-from ashen_vault.ui import belongings
+from ashen_vault.ui import belongings, compare
 from ashen_vault.ui import hud as ui
 from ashen_vault.ui.tally import GoldTally
 from ashen_vault.util import clamp, rround
@@ -52,6 +52,8 @@ PICK_LIST = (24, 60, 190)  # the "which slot?" chooser over Belongings
 EQUIPPED_PANEL = (182, 6, 132)  # Belongings: what Primary, Secondary, Body and Hands hold
 STATS_PANEL = (182, 80, 132)
 TITLE_Y, TITLE_STEP = 140, 14
+# Comparing gear: a better stat green, a worse one red (keyed by compare.better).
+COMPARE_COLORS = {1: ui.color(120, 210, 110), -1: ui.color(225, 95, 80), 0: ui.TEXT}
 ENDING = [
     "The bell of Harrowmere rings again.",
     "Its note rolls down the well into the drowned halls",
@@ -98,6 +100,8 @@ class Game:
         self.world = None
         self.scene = None
         self._menu_index = 0
+        self._menu_tab = belongings.TABS[0]  # the Belongings tab shown; kept between visits
+        self._tab_rows = {}  # Belongings: the row last highlighted on each tab
         self._time = 0.0
         self._frames = 0
         self._running = True
@@ -495,10 +499,7 @@ class Game:
 
     def _swing_power(self, weapon):
         """A weapon's ATK; bare fists hit harder in gauntlets."""
-        if weapon.category != "fists":
-            return weapon.power
-        gloves = self.player.inventory.hands_item()
-        return weapon.power + 2 * ((gloves.power or 0) if gloves else 0)
+        return compare.swing_power(weapon, self.player.inventory.hands_item())
 
     def _resolve_swing(self):
         self._hit_done = True
@@ -930,7 +931,7 @@ class Game:
 
     def _open_menu(self):
         self.scene = "menu"
-        self._menu_index = 0
+        self._menu_index = self._tab_rows.get(self._menu_tab, 0)
         self._menu_top = 0
         self._pick = None
         self._mouse_look(False)
@@ -978,15 +979,46 @@ class Game:
             Item(id=f"spell_{s.id}", name=s.name, kind="spell", spell=s.id, desc=s.desc)
             for s in (Spells.get(id_) for id_ in self.player.spells)
         ]
-        rows = self.player.inventory.items() + spells
+        rows = [i for i in self.player.inventory.items() + spells if belongings.tab_of(i) == self._menu_tab]
         return sorted(rows, key=lambda i: (KIND_ORDER.index(i.kind), i.name))
+
+    def _tab_spans(self):
+        x, _y, _w = MENU_LIST
+        return belongings.tab_spans(x + 8, [ui.measure(t) for t in belongings.TABS])
+
+    def _switch_tab(self, tab):
+        """Shows Belongings tab `tab`, back on the row last highlighted there."""
+        if tab == self._menu_tab:
+            return
+        self._tab_rows[self._menu_tab] = self._menu_index
+        self._menu_tab = tab
+        self._menu_index = self._tab_rows.get(tab, 0)
+        self._menu_top = 0
+        self.sfx("step", 0.4)
+
+    def _update_tabs(self):
+        """A / D (or Left / Right) step through the tabs; clicking a tab's label opens it."""
+        for action, step in (("tab_prev", -1), ("tab_next", 1)):
+            if self._input.pressed(action):
+                self._switch_tab(belongings.step_tab(self._menu_tab, step))
+        ptr = self._input.pointer()
+        if ptr and self._input.pressed("click"):
+            px, py, _ = ptr
+            _x, y, _w = MENU_LIST
+            i = belongings.tab_at(self._tab_spans(), px) if y + 2 <= py < y + 16 else None
+            if i is not None:
+                self._switch_tab(belongings.TABS[i])
+                return True
+        return False
 
     def _update_menu(self):
         if self._pick:
             return self._update_pick()
-        items = self._menu_items()
         if self._back():
             return self._enter_play()
+        if self._update_tabs():
+            return
+        items = self._menu_items()
         if not items:
             return
         self._menu_nav(len(items))
@@ -1287,24 +1319,34 @@ class Game:
             )
             for i in items
         ]
-        ui.list_menu(
-            "Belongings", *MENU_LIST, rows, self._menu_index, first=self._menu_top, visible=LIST_ROWS
-        )
-        self._draw_equipped()
-        self._draw_stats()
+        ui.list_menu("", *MENU_LIST, rows, self._menu_index, first=self._menu_top, visible=LIST_ROWS)
+        self._draw_tabs()
         item = items[self._menu_index] if self._menu_index < len(items) else None
+        self._draw_equipped()
+        self._draw_stats(compare.preview(self.player.inventory, item) if item and not self._pick else {})
         self._draw_item_panel(
             item,
             self._item_detail(item) if item else "",
-            "1: Primary   2: Secondary   Enter: choose   Tab: close",
+            "A/D: tab   1/2: Primary/Secondary   Enter: choose",
         )
+        for text, _ in self._weight_mark(item) if item else ():
+            ui.text(text, 310 - ui.measure(text), 162, ui.DIM)
         if self._pick:
             x, y, w = PICK_LIST
             rows = [(label,) for label, _ in self._pick_options()]
             ui.list_menu(f"Equip {self._pick.name}", *PICK_LIST, rows, self._pick_index)
             for i, (_, slot) in enumerate(self._pick_options()):
                 if slot is not None:
-                    ui.mini_mouse(x + w - 13, y + ROW_TOP + i * ROW_H - 1, belongings.SLOT_BUTTONS[slot])
+                    ui.mini_mouse(x + w - 11, y + ROW_TOP + i * ROW_H, belongings.SLOT_BUTTONS[slot])
+
+    def _draw_tabs(self):
+        """The Belongings tabs along the list's title line, the open one lit and underlined."""
+        _x, y, _w = MENU_LIST
+        for tab, (lo, hi) in zip(belongings.TABS, self._tab_spans(), strict=True):
+            on = tab == self._menu_tab
+            ui.text(tab, lo, y + 5, ui.HIGHLIGHT if on else ui.DIM)
+            if on:
+                pr.draw_line(lo, y + 14, hi, y + 14, ui.HIGHLIGHT)
 
     def _menu_right(self, item):
         """A Belongings row's right column: how many, a spell's MP cost, or the level it needs."""
@@ -1324,32 +1366,62 @@ class Game:
         ):
             ry = y + ROW_TOP + i * ROW_H
             if button:
-                ui.mini_mouse(x + 8, ry - 1, button)
+                ui.mini_mouse(x + 9, ry, button)
             else:
                 ui.tiny(slot.upper(), x + 6, ry + 2, ui.DIM)
             ui.text(name, x + 30, ry, ui.DIM if name.startswith("(") or name == "-" else ui.TEXT)
 
-    def _draw_stats(self):
-        """Level, vitals and attributes in two columns, EXP across the bottom."""
+    def _draw_stats(self, changes=None):
+        """Level, vitals and attributes in two columns, then your load and EXP across the bottom.
+        `changes` ({stat: (now, then)}, see ui/compare.py) shows what equipping the highlighted item
+        would do: "8>12", the new value green when it is better and red when it is worse."""
+        changes = changes or {}
         s = self.player.stats
         inv = self.player.inventory
         x, y, w = STATS_PANEL
-        ui.panel(x, y, w, 5 * ROW_H + 10)
+        ui.panel(x, y, w, 6 * ROW_H + 6)
+        nums = compare.numbers(inv)
         pairs = [
             (("Lv", s.level), ("Gold", inv.gold)),
             (("HP", f"{s.hp}/{s.max_hp}"), ("MP", f"{s.mp}/{s.max_mp}")),
             (("STR", s.strength), ("MAG", s.magic)),
-            (("ATK", self._swing_power(inv.weapon_item())), ("DEF", inv.defense)),
+            (("ATK", nums["ATK"]), ("DEF", nums["DEF"])),
         ]
         half = (w - 16) // 2
         for i, row in enumerate(pairs):
             for j, (k, v) in enumerate(row):
                 cx = x + 8 + j * (half + 4)
                 ui.text(k, cx, y + 6 + i * ROW_H, ui.DIM)
-                ui.text(str(v), cx + half - 4 - ui.measure(str(v)), y + 6 + i * ROW_H)
+                self._stat_value(k, v, changes.get(k), cx + half - 4, y + 6 + i * ROW_H)
+        ly = y + 6 + 4 * ROW_H
+        cap = burden.capacity(s.strength)
+        load = changes.get("Load", (nums["Load"], nums["Load"]))[1]
+        tier = burden.tier(load, cap)
+        heavy = tier.name in ("Heavy", "Overloaded")
+        ui.text("Load", x + 8, ly, ui.DIM)
+        name = f" {tier.name}"
+        right = x + w - 8 - ui.measure(name)
+        ui.text(name, right, ly, ui.color(220, 90, 80) if heavy else ui.DIM)
+        self._stat_value("Load", nums["Load"], changes.get("Load"), right, ly, f"/{compare.fmt(cap)}")
         exp = f"{s.exp}/{s.next_level_exp}"
-        ui.text("EXP", x + 8, y + 6 + 4 * ROW_H, ui.DIM)
-        ui.text(exp, x + w - 8 - ui.measure(exp), y + 6 + 4 * ROW_H)
+        ui.text("EXP", x + 8, y + 6 + 5 * ROW_H, ui.DIM)
+        ui.text(exp, x + w - 8 - ui.measure(exp), y + 6 + 5 * ROW_H)
+
+    def _stat_value(self, stat, value, change, right, y, suffix=""):
+        """Draws a stat right-aligned to `right`: its value, or "now>then" with `then` coloured by
+        whether equipping makes it better (green) or worse (red)."""
+        if change is None:
+            v = (compare.fmt(value) if stat == "Load" else str(value)) + suffix
+            ui.text(v, right - ui.measure(v), y)
+            return
+        now, then = (compare.fmt(n) for n in change)
+        tail = f"{then}{suffix}"
+        x = right - ui.measure(tail) - ui.measure(now) - 7
+        ui.text(now, x, y, ui.DIM)
+        x += ui.measure(now) + 2
+        for i in range(3):  # a 3 px arrow between the two values
+            pr.draw_line(x + i, y + 2 + i, x + i, y + 7 - i, ui.DIM)
+        ui.text(tail, x + 5, y, COMPARE_COLORS[compare.better(stat, *change)])
 
     def _equipped_mark(self, item):
         """Row suffix: which slots hold the item ([1], [2], [1+2]), or [Worn] for armor."""
@@ -1358,6 +1430,11 @@ class Game:
 
     def _level_mark(self, item):
         return f"Lv{item.level}" if item.level > 1 else None
+
+    @staticmethod
+    def _weight_mark(item):
+        """[("Wt N", 0)] for gear that adds to your load, else []."""
+        return [(f"Wt {compare.fmt(item.mass)}", 0)] if item.mass else []
 
     def _draw_item_panel(self, item, detail, footer):
         """Bottom panel shared by Belongings and the shop: spinning preview, name, details, description."""
@@ -1428,6 +1505,13 @@ class Game:
         item = self._selected_item()
         detail = f"{self._item_detail(item)}   {item.price}g" if item else ""
         self._draw_item_panel(item, detail, "Enter/Click: buy   Esc/R-click: leave")
+        if item:  # what wearing it would change, beside its name
+            x = 310
+            changes = compare.deltas(compare.preview(self.player.inventory, item))
+            for text, good in reversed(changes or self._weight_mark(item)):
+                x -= ui.measure(text)
+                ui.text(text, x, 162, COMPARE_COLORS[good] if good else ui.DIM)
+                x -= 8
 
     def _draw_dead(self):
         pr.draw_rectangle(0, 0, W, H, ui.color(40, 0, 0, rround(min(self._dead_t * 120, 200))))
