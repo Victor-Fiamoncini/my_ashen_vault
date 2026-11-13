@@ -22,7 +22,7 @@ from ashen_vault.save.save_system import SaveSystem
 from ashen_vault.screen import FOV, LIST_ROWS, PREVIEW, H, W, centered_row_at, list_row_at, scroll_into_view
 from ashen_vault.ui import hud as ui
 from ashen_vault.util import clamp, rround
-from ashen_vault.world import darkness, doors, relics
+from ashen_vault.world import darkness, doors, elements, relics
 from ashen_vault.world.rest import RestSequence
 from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.world import World
@@ -499,16 +499,20 @@ class Game:
         self.sfx("hit")
         for target in targets:
             back = target.hit_mult(p.x, p.z)
+            element = weapon.element
             dmg = Combat.damage(
                 base=self._swing_power(weapon),
                 strength=p.stats.strength,
                 gauge=p.swing_power,
                 defense=4 if target.type.boss and not a.pierce_def else 0,
-                mult=a.damage * back * mult,
+                mult=a.damage * back * mult * elements.mult(target.type, element),
             )
             if back > 1:
                 self.message(f"You strike the {target.name}'s weak spot!")
-            self.damage_enemy(target, dmg, a.poise * back)
+            jolt = elements.staggers(target.type, element)
+            self.damage_enemy(target, dmg, 99.0 if jolt else a.poise * back)
+            if elements.burns(target.type, element) and target.alive:
+                target.afflict("burn", *elements.WEAPON_BURN)
             if a.pull and target.alive:
                 self._pull(target, a.pull)
         return targets
@@ -582,6 +586,8 @@ class Game:
             self.message(f"You reached level {self.player.stats.level}!")
         if not t.boss:
             return
+        if not relics.boss_falls(t, self.world.enemies):
+            return  # its twin fights on; the pair falls together
         if t.brood:
             for e in self.world.enemies:
                 if e.type.id == t.brood:
@@ -635,6 +641,17 @@ class Game:
         elif spell.id == "pyre":
             self.sfx("pyre")
             self.world.pyre(p.stats.magic, gauge)
+        elif spell.id == "thunder":
+            self.sfx("thunder")
+            self.world.fire_bolt(
+                Spells.thunder_damage(p.stats.magic, gauge),
+                effect="thunder",
+                rgb=(200, 225, 255),
+                speed=Spells.THUNDER_SPEED,
+            )
+        elif spell.id == "motes":
+            self.sfx("motes")
+            self.world.motes(Spells.mote_damage(p.stats.magic, gauge))
 
     def _cycle_quick(self, step=1):
         item = self.player.cycle_quick(step)

@@ -24,12 +24,12 @@ c = floor tex=rough_stone h=0 ceil=3.4 ceil_tex=cliff_rock side=cliff_rock dark=
 
 [grid]
 RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRAAAAAAAAAAAAAA
-R,,,,,,,,,,,HHHHHHHH,,,,,,,,,,,RAAAAAAAAAAAAAA
-R,,T,,,,,,,,HiiiiiiH,,,,,,,T,,,RAAAAAAAAAAAAAA
-R,,,,,,,,,,,HiiiBiiH,,,,,,,,,,,RAAAAAAAAAAAAAA
-R,,,,,,,,,,,HiiiiiiH,,,,,,,,,,,RAAAAAAAAAAAAAA
-R,,,,,,,,,,,HiLiiLiH,,,,,,,,,,,RAAAAAAAAAAAAAA
-R,,,,,,,,,,,HHHiiHHH,,,,,,,,,,,RAAAAAAAAAAAAAA
+R,,,,,,,,,,,HHHHHHHH,,,,,N,,,,,RAAAAAAAAAAAAAA
+R,,T,,,,,,,,HiiiiiiH,,,,,-,T,,,RAAAAAAAAAAAAAA
+R,,,,,,,,,,,HiiiBiiH,,,,,-,,,,,RAAAAAAAAAAAAAA
+R,,,,,,,,,,,HiiiiiiH,,,,,-,,,,,RAAAAAAAAAAAAAA
+R,,,,,,,,,,,HiLiiLiH,,,,,-,,,,,RAAAAAAAAAAAAAA
+R,,,,,,,,,,,HHHiiHHH,,,,,-,,,,,RAAAAAAAAAAAAAA
 R,,,,,,,,,,,,,,..,,,,,,,,,,,,,,RAAAAAAAAAAAAAA
 R,,HHHHHH,,,,,,..,,,,,,HHHHHH,,RAAAAAAAAAAAAAA
 R,,HiiiiH,,,,,,..,,,,,,HHHHHH,,RAAAAAAAAAAAAAA
@@ -69,3 +69,5 @@ u = torch radius=6 on=v
 j = jungle_tree on=v
 m = mushrooms on=v
 x = fungus radius=4 on=c
+// The north road, out through the wall to the Cinderhold.
+N = exit map=cinderhold at=30,69,-90 label=Take_the_north_road model=road_gate yaw=-90 on=-

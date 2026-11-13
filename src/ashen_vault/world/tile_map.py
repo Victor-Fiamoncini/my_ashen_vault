@@ -26,6 +26,9 @@ class Tile:
     # How much of the map's ambient light this tile loses (0 = none, 1 = pitch black): caves and
     # hollows where only torches, glowing fungus and your own light show the way.
     dark: float = 0.0
+    # Molten rock: it reads as a pit (you can walk in), but it sears whoever touches it and hauls
+    # them back to the last solid ground. It also glows.
+    lava: bool = False
 
     @property
     def hazardous(self):

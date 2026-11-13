@@ -33,6 +33,8 @@ class EnemyType:
     bite_reach: float | None = None
     # Color of the projectiles a ranged enemy fires.
     shot_rgb: tuple = (255, 120, 40)
+    # What its shots look like when they are not plain bolts of light: "arrow".
+    shot: str | None = None
     # Turning speed in rad/s; None turns instantly. Slow turners can be outflanked.
     turn_rate: float | None = None
     # Damage multiplier for blows landed from behind (a weak spot on the back).
@@ -40,7 +42,7 @@ class EnemyType:
     # Lurkers sit still until you come within `sight`, then give chase for `GIVE_UP` metres.
     lurk: bool = False
     # Special attacks mixed in (see enemy.MOVES): "sweep", "web", "pounce", "cinders", "combo",
-    # "slam", "eruption", "hook".
+    # "slam", "eruption", "hook", "breath", "dive".
     moves: tuple = ()
     # Enemy type a boss calls to its side once, when it drops to half HP.
     brood: str | None = None
@@ -50,6 +52,16 @@ class EnemyType:
     phase_moves: tuple = ()
     # Plant foes: fire (Pyre) hurts them more and leaves them burning.
     flammable: bool = False
+    # Iron foes: lightning hurts them more and jolts them (see world/elements.py).
+    conductive: bool = False
+    # Forged in fire: fire hurts them half as much and never sets them alight.
+    fireproof: bool = False
+    # Perched like a statue until you come within `sight`; waking one wakes its twin too.
+    perch: bool = False
+    # Bosses fought as a pair: the other one's type id. The pair shares a `dead_flag`, which is only
+    # set (and the relic only dropped) once both have fallen; when one falls the other flies into its
+    # `rage`. They take turns with their special moves.
+    twin: str | None = None
 
     @property
     def rooted(self):
@@ -296,6 +308,130 @@ class EnemyTypes:
                 tall=0.6,
                 # Lies as a heap of bones until you walk up to it, then skitters after you.
                 lurk=True,
+            ),
+            EnemyType(
+                id="forge_golem",
+                name="Forge Golem",
+                hp=90,
+                speed=0.9,
+                damage=18,
+                reach=2.4,
+                sight=10,
+                windup=1.0,
+                recover=1.4,
+                exp=48,
+                gold=range(14, 30),
+                radius=0.8,
+                height=2.4,
+                tall=2.6,
+                poise=14,
+                # A walking furnace: slow to turn, with its firebox open on its back.
+                turn_rate=1.0,
+                back_mult=2.0,
+                moves=("slam", "sweep"),
+                conductive=True,
+                fireproof=True,
+            ),
+            EnemyType(
+                id="iron_bowman",
+                name="Iron Bowman",
+                hp=26,
+                speed=1.3,
+                damage=10,
+                reach=13.0,
+                sight=15,
+                windup=1.0,
+                recover=1.6,
+                exp=20,
+                gold=range(6, 15),
+                radius=0.45,
+                height=1.8,
+                tall=1.9,
+                poise=4,
+                ranged=True,
+                bite_reach=1.8,  # too close and he bashes you with his bow-stave
+                shot_rgb=(150, 150, 160),
+                shot="arrow",
+                conductive=True,
+            ),
+            EnemyType(
+                id="slag_hound",
+                name="Slag Hound",
+                hp=30,
+                speed=3.0,
+                damage=9,
+                reach=1.6,
+                sight=11,
+                windup=0.4,
+                recover=0.8,
+                exp=18,
+                gold=range(3, 10),
+                radius=0.5,
+                height=0.9,
+                tall=1.0,
+                moves=("pounce",),
+                fireproof=True,
+            ),
+            EnemyType(
+                id="brand",
+                name="Brand",
+                hp=260,
+                speed=2.1,
+                damage=19,
+                reach=2.6,
+                sight=14,
+                windup=0.75,
+                recover=1.1,
+                exp=170,
+                gold=range(70, 71),
+                radius=0.9,
+                height=2.2,
+                tall=2.4,
+                boss=True,
+                drop="iron_sigil",
+                dead_flag="gargoyles_dead",
+                epitaph="The iron gargoyles lie still. Something cold and grey gleams on the roof.",
+                poise=16,
+                # The ground-bound twin: tail sweeps, claw chains, leaps and a crushing landing.
+                moves=("sweep", "combo", "pounce", "slam"),
+                phase_moves=("eruption",),
+                rage="Brand roars over its fallen twin, and the roof begins to smoke!",
+                conductive=True,
+                fireproof=True,
+                perch=True,
+                twin="bellows",
+                shot_rgb=(255, 150, 60),
+            ),
+            EnemyType(
+                id="bellows",
+                name="Bellows",
+                hp=220,
+                speed=1.9,
+                damage=16,
+                reach=2.4,
+                sight=14,
+                windup=0.8,
+                recover=1.2,
+                exp=170,
+                gold=range(70, 71),
+                radius=0.85,
+                height=2.0,
+                tall=2.4,
+                hover=1.0,
+                boss=True,
+                drop="iron_sigil",
+                dead_flag="gargoyles_dead",
+                epitaph="The iron gargoyles lie still. Something cold and grey gleams on the roof.",
+                poise=14,
+                # The winged twin: rakes the roof with fire, swoops through you and spits embers.
+                moves=("breath", "dive", "cinders"),
+                phase_moves=("eruption",),
+                rage="Bellows shrieks over its fallen twin, its throat white-hot!",
+                conductive=True,
+                fireproof=True,
+                perch=True,
+                twin="brand",
+                shot_rgb=(255, 170, 70),
             ),
         ]
     }

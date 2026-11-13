@@ -1,0 +1,181 @@
+[meta]
+name = The Cinderhold
+ambient = 0.46 0.34 0.30
+fog = 0.22 0.08 0.05
+fog_range = 20 100
+model_range = 46
+torch = 7 0.9 0.7 0.5
+start = 30 69 -90
+default = ,
+edge_top = 16
+edge_tex = black_brick
+entity_floor = auto
+
+[legend]
+K = wall tex=black_brick top=16 cap=slate
+# = wall tex=black_brick top=8 cap=slate
+p = wall tex=black_brick top=7.2 cap=black_brick
+P = wall tex=black_brick top=13.2 cap=black_brick
+A = wall tex=cliff_rock top=7 cap=cliff_rock
+r = wall tex=black_brick top=1.0 cap=black_brick
+, = floor tex=ash_road h=0 side=cliff_rock
+= = floor tex=flagstone h=0 side=black_brick
+_ = floor tex=lava h=-8 side=cliff_rock chasm
+^ = floor tex=slate h=16 side=black_brick
+$ = floor tex=flagstone h=3 side=black_brick
+. = floor tex=iron_plate h=0 ceil=6 ceil_tex=black_brick side=black_brick
+: = floor tex=slag h=0 side=black_brick
+g = floor tex=iron_grate h=0 ceil=6 ceil_tex=black_brick side=black_brick
+l = floor tex=lava h=-1 ceil=6 ceil_tex=black_brick side=black_brick lava
+R = floor tex=flagstone h=6 side=black_brick
+o = floor tex=slate h=12 side=black_brick
+s = floor tex=slag h=-3.8 ceil=0.2 ceil_tex=black_brick side=black_brick dark=0.6
+v = floor tex=lava h=-4.8 ceil=0.2 ceil_tex=black_brick side=black_brick lava
+| = floor tex=iron_grate h=-3.8 ceil=6 ceil_tex=black_brick side=black_brick chasm
+a = floor tex=flagstone h=0.5 side=black_brick
+b = floor tex=flagstone h=1 side=black_brick
+c = floor tex=flagstone h=1.5 side=black_brick
+d = floor tex=flagstone h=2 side=black_brick
+e = floor tex=flagstone h=2.5 side=black_brick
+f = floor tex=flagstone h=3 side=black_brick
+h = floor tex=flagstone h=3.5 side=black_brick
+i = floor tex=flagstone h=4 side=black_brick
+j = floor tex=flagstone h=4.5 side=black_brick
+k = floor tex=flagstone h=5 side=black_brick
+m = floor tex=flagstone h=5.5 side=black_brick
+n = floor tex=flagstone h=6 side=black_brick
+q = floor tex=flagstone h=6.5 side=black_brick
+t = floor tex=flagstone h=7 side=black_brick
+u = floor tex=flagstone h=7.5 side=black_brick
+w = floor tex=flagstone h=8 side=black_brick
+x = floor tex=flagstone h=8.5 side=black_brick
+y = floor tex=flagstone h=9 side=black_brick
+z = floor tex=flagstone h=9.5 side=black_brick
+0 = floor tex=flagstone h=10 side=black_brick
+8 = floor tex=flagstone h=10.5 side=black_brick
+9 = floor tex=flagstone h=11 side=black_brick
+! = floor tex=flagstone h=11.5 side=black_brick
+1 = floor tex=slag h=-0.55 ceil=3 ceil_tex=black_brick side=black_brick dark=0.1
+2 = floor tex=slag h=-1.1 ceil=3 ceil_tex=black_brick side=black_brick dark=0.2
+3 = floor tex=slag h=-1.65 ceil=3 ceil_tex=black_brick side=black_brick dark=0.3
+4 = floor tex=slag h=-2.2 ceil=3 ceil_tex=black_brick side=black_brick dark=0.4
+5 = floor tex=slag h=-2.75 ceil=3 ceil_tex=black_brick side=black_brick dark=0.5
+6 = floor tex=slag h=-3.3 ceil=3 ceil_tex=black_brick side=black_brick dark=0.6
+
+[grid]
+KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK
+KKKKKKKKKKKKKKKKKKKKKKPPPPPPPPPPPPPPPPPKKKKKKKKKKKKKKKKKKKKK
+KKKKKKKKKKKKKKKKKKKKKKPoooooooooooooooPKKKKKKKKKKKKKKKKKKKKK
+KKKKKKKKKKKKKKKKKKKKKKPooooooooooooooTooBoooooo!980KKKKKKKKK
+KKKKKKKKKKKKKKKKKKKKKKPoÛooooCooooooooPKKKKKKKKKKKzKKKKKKKKK
+KKKKKKKKKKKKKKKKKKKKKKPoooooooEoooooooPKKKKKKKKKKKyKKKKKKKKK
+KKKKKKKKKKKKKKKKKKKKKKPoooooooooooooooPKKKKKKKKKKKxKKKKKKKKK
+KKKKKKKKKKKKKKKKKKKKKKPoÝoooooooCoooooPKKKKKKKKKKKwKKKKKKKKK
+KKKKKKKKKKKKKKKKKKKKKKPoooEoooooooooooPKKKKKKKKKKKuKKKKKKKKK
+KKKKKKKKKKKKKKKKKKKKKKPoooooooooooooooPKKKKKKKKKKKtKKKKKKKKK
+KKKKppppppppppppppppppPPPPPPPPPPPPPPPPPpppppppppppqppKKKKKKK
+KKKKppORRRRRRRRRTRRRBRRRRRRRRRRRRRRRRRRRRRRRRRTRRRRppKKKKKKK
+KKKKppRTRRFRRRRRRRRRRRRRRRRRRRRRRRTRRRRRRRBRRRRRRRÜppKKKKKKK
+KK###################pppppppppppppÖppppppppppppppppppKKKKKKK
+KK#.X...ll..M.ll...T##:abcdefhijkmn:::####################KK
+KK#.....ll.W..gg..N.##::::::::::::::::#############.....I#KK
+KK#.....ll....ll....##::::::::W:::::::#############.N....#KK
+KK#T....ll.F..ll......::::::::::::::::#############......#KK
+KK#..W..ll....ll....##::::::H:::::::::T..J..Þ..ß........T#KK
+KK#.....gg....ll.N..##:::Z:::::::::Z::#############......#KK
+KK#.....ll..T.ll....##::::::::::::::::#############...F..#KK
+KK#1##################::::::::::::::::#############......#KK
+KK#2TssvvsHsssssvvT##########..######K######......Ù......#KK
+KK#3sssvvsssvvvsvvs#.T.#T..........T#K######Ç.....#....N.#KK
+KK#4sssvvsssvvvssssD...#............#K######...T..#T.....#KK
+KK#5ssssssssvvvsssL#................#K######......#......#KK
+KK#6sUsssssTvvvHssY#...#.........Ô..#K####################KK
+KK##################Q..#....Õ..T....#K####################KK
+KKKKKKÒKKKKKKKÒKKKKKKK.KKKKKKGKKKKKKKÒKKKKKKKÒKKKKKKKÒKKKKKK
+KKKKKKKKKKKKKKKKKKKKKKÓKKKKKK.KKKKKKKKKKKKKKKKKKKKKKKKKKKKKK
+AAAAAAAAAAAAAAAAAAAAAr=BJ=Þ====ArB$rAAAAAAAAAAAAAAAAAAAAAAAA
+AAA__________________________==__________________________AAA
+AAA_________________________r==r_________________________AAA
+AAA__________________________==__________________________AAA
+AAA__________________________==__________________________AAA
+AAA_________________________r=Er_________________________AAA
+AAA__________________________==______V___________________AAA
+AAA___________________Ä______==__________________________AAA
+AAA_________________________r==r_________________________AAA
+AAA__________________________==__________________________AAA
+AAA__________________________==__________________________AAA
+AAA_______________________rr_==rrrr______________________AAA
+AAA______________________r========r______________________AAA
+AAA_______________________B==H=E==_______________________AAA
+AAA______________________r======H=r______________________AAA
+AAA______________________r========r______________________AAA
+AAA______________________rrrr==_rr_______________________AAA
+AAA_________________________r==r_________________________AAA
+AAA___________________V______==__________________________AAA
+AAA__________________________==__________________________AAA
+AAA_________________________r==r_________________________AAA
+AAA__________________________==__________________________AAA
+AAA__________________________E=______Ä___________________AAA
+AAA_________________________r==r_________________________AAA
+AAA__________________________==__________________________AAA
+AAA__________________________==__________________________AAA
+AAA_________________________r==r_________________________AAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAA,==,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAA,,,,,,,,,,,,,TAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAA,,,T,,,,,,,,,,,,ÑAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAA,,,,,,,,,,,,,,,,,AAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAA,,,AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAA,,,AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAA,,,,,,,,,,,,,,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAA,,,,,,,,,,T,,,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAA,,,,,,,,,,,,,,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAA,,,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAA,,,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAA,,,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAA,,,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAÐAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+
+[entities]
+// The road down to Harrowmere and the wayside shrine.
+Ð = exit map=harrowmere at=25,2,90 label=Return_to_Harrowmere model=road_gate yaw=90
+Ñ = save_statue
+T = torch radius=7
+// The long bridge: vents in the lava lob bombs onto it; hounds and bowmen hold it.
+V = magma_vent radius=18 every=3.6 on=_
+Ä = magma_vent radius=18 every=4.2 phase=1.8 on=_
+H = slag_hound
+B = iron_bowman
+J = flame_jet dir=s len=1 every=3.2
+Þ = flame_jet dir=s len=1 every=3.2 phase=1.1
+ß = flame_jet dir=s len=1 every=3.2 phase=2.2
+E = embers
+Ò = spire height=10 on=^
+G = gate lever=hold_gate
+Ó = door
+// The gatehouse: a shrine, and the winch that raises the main gate.
+Ô = save_statue
+Õ = lever id=hold_gate
+Q = chest item=red_tonic count=2 gold=60
+Z = brazier radius=9
+W = cinder_wisp
+Ö = door key=forge_key on=R
+// The foundry and the smelter pits below it.
+F = forge_golem
+X = chest item=scroll_thunder gold=40
+M = mimic
+N = anvil
+Y = chest item=forge_key gold=50
+U = chest item=red_tonic count=3 gold=90
+L = lever id=smelt_lift
+D = lift top=0 lever=smelt_lift on=|
+// The ashworks: a gauntlet of flame jets, and a forge with a false wall.
+I = chest item=blue_moss count=3 gold=120
+Ù = secret_wall
+Ç = chest item=stormbrand
+// The rampart, the tower stair and the roof where the gargoyles perch.
+O = chest item=slagbreaker
+Ü = chest item=scroll_motes gold=60
+Û = brand
+Ý = bellows
+C = chimney height=2.6

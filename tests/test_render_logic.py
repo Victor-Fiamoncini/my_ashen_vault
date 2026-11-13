@@ -379,3 +379,46 @@ def test_web_wall_texture_has_holes_to_see_through():
     tex = texture_gen.web_wall()
     alphas = tex[3::4]
     assert 0 in alphas and 255 in alphas
+
+
+def test_cinderhold_props_shots_and_hazards_draw():
+    from ashen_vault.render import forge_models
+
+    gpu = _ExtentGpu()
+    r = rig.Rig(gpu)
+    forge_models.road_gate(r)
+    forge_models.spire(r, 3, 10.0)
+    forge_models.anvil(r, 0.5)
+    forge_models.chimney(r, 0.5, 2.6)
+    forge_models.embers_rain(r, 0.5, 2)
+    forge_models.magma_vent(r, 0.5)
+    forge_models.magma_bomb(r, 0.5)
+    forge_models.arrow(r, (150, 150, 160))
+    forge_models.thunder_spear(r, 0.5)
+    forge_models.mote(r, 0.5)
+    assert gpu.glows > 0
+    cold, roaring = _ExtentGpu(), _ExtentGpu()
+    forge_models.flame_jet(rig.Rig(cold), 0.0, 0.0, 2.0, 0.5)
+    forge_models.flame_jet(rig.Rig(roaring), 1.0, 1.0, 2.0, 0.5)
+    assert cold.glows == 0 and roaring.glows > 0
+    assert roaring.glows > 4  # the gout of flame itself
+
+
+def test_a_perched_gargoyle_is_a_cold_grey_statue():
+    import random
+
+    from ashen_vault.ai.enemy import Enemy
+    from ashen_vault.ai.enemy_types import EnemyTypes
+    from ashen_vault.render import models
+
+    for type_id in ("brand", "bellows"):
+        e = Enemy(EnemyTypes.get(type_id), 0, 0, rng=random.Random(0))
+        perched = _ExtentGpu()
+        models.enemy(rig.Rig(perched), e)
+        e.rouse()
+        e.anim_t = 1.0
+        awake = _ExtentGpu()
+        models.enemy(rig.Rig(awake), e)
+        assert perched.glows == 0 and awake.glows > 0, type_id
+    # Bellows hovers once awake; perched, it squats on the parapet like Brand.
+    assert awake.bottom > 0.3 and perched.bottom < 0.1

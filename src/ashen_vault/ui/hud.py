@@ -503,6 +503,29 @@ def spell_icon(id_, cx, cy, t, alpha=255):
                 tip, pr.Vector2(cx - 2, cy + 5), pr.Vector2(cx + 2, cy + 5), color(230, 90, 30, a)
             )
         pr.draw_circle(cx, cy + 5, 2.5, color(255, 210, 90, a))
+    elif id_ == "thunder":
+        # A jagged bolt that flickers, with a white flash now and then.
+        flash = (t * 2.3) % 1 < 0.12
+        pts = [(cx + 3, cy - 8), (cx - 2, cy - 1), (cx + 2, cy - 1), (cx - 3, cy + 8)]
+        rgb = (255, 255, 255) if flash else (190, 220, 255)
+        for (x0, y0), (x1, y1) in itertools.pairwise(pts):
+            pr.draw_line(x0, y0, x1, y1, color(*rgb, a))
+            pr.draw_line(x0 + 1, y0, x1 + 1, y1, color(120, 160, 255, rround(a * 0.7)))
+        if flash:
+            pr.draw_circle(cx, cy, 6, color(200, 220, 255, rround(a * 0.25)))
+    elif id_ == "motes":
+        # Three violet sparks circling a common centre, each trailing a glint.
+        for i in range(3):
+            ang = t * 2.4 + i * 2.094
+            for j in range(3):
+                b = ang - j * 0.3
+                pr.draw_circle(
+                    rround(cx + math.cos(b) * 5),
+                    rround(cy + math.sin(b) * 5),
+                    1.8 - j * 0.5,
+                    color(190, 120, 255, rround(a * (1 - j * 0.3))),
+                )
+        pr.draw_circle(cx, cy, 1.5, color(240, 210, 255, a))
     else:
         pr.draw_circle(cx, cy, 4, color(200, 200, 200, a))
 
@@ -575,14 +598,20 @@ def boss_bar(game):
     world = game.world
     if not world:
         return
-    boss = next((e for e in world.enemies if e.type.boss and e.alive and e.state != "idle"), None)
-    if not boss:
-        return
+    awake = [e for e in world.enemies if e.type.boss and e.alive and e.state not in ("idle", "perched")]
+    for i, boss in enumerate(awake[:2]):  # twin bosses get a bar each, one under the other
+        _boss_bar(boss, i * BOSS_BAR_STEP)
+
+
+BOSS_BAR_STEP = 26  # pixels between stacked boss bars
+
+
+def _boss_bar(boss, dy):
     max_hp = boss.type.hp
     bw, bh = BOSS_BAR_W, 5
-    x, y = W // 2 - bw // 2, 22
-    hud_box(x - 6, 8, bw + 12, 23)
-    small_centered(boss.name, W // 2, 11, HIGHLIGHT)
+    x, y = W // 2 - bw // 2, 22 + dy
+    hud_box(x - 6, 8 + dy, bw + 12, 23)
+    small_centered(boss.name, W // 2, 11 + dy, HIGHLIGHT)
     pr.draw_rectangle(x - 1, y - 1, bw + 2, bh + 2, color(0, 0, 0, 230))
     pr.draw_rectangle(x, y, bw, bh, color(40, 14, 12))
     trail = rround(bw * clamp(boss.trail_hp / max_hp, 0, 1))

@@ -19,6 +19,8 @@ MOVES = {
     "slam": (1.0, 7.0, 1.1),  # an overhead slam whose shockwave hits all around
     "eruption": (1.1, 8.0, 0.9),  # plants the blade: fire bursts up under you (second phase)
     "hook": (0.8, 6.0, 0.4),  # a hooked chain that drags you in
+    "breath": (1.0, 7.0, 0.8),  # rakes a line of fire along the floor toward you and past you
+    "dive": (0.9, 8.0, 1.2),  # swoops low straight through where you stood
 }
 COMBO_SWINGS = 3
 COMBO_GAP = 0.45  # seconds between the swings of a combo
@@ -29,6 +31,12 @@ HOOK_PULL = 2.5  # metres a hook drags you toward the thrower
 SWEEP_REACH = 1.0  # extra reach of a sweep over the type's normal reach
 POUNCE_SPEED = 13.0  # m/s through the air
 POUNCE_TIME = 0.5  # longest a pounce can fly
+DIVE_SPEED = 11.0  # m/s along a swoop
+DIVE_TIME = 1.1  # longest a swoop lasts
+DIVE_OVERSHOOT = 3.0  # metres a swoop carries on past where you stood
+DIVE_HIT = 1.1  # a swoop passing this close (beyond its radius) strikes you, once
+BREATH_RANGE = (3.0, 10.0)  # distances a gout of breath is loosed from
+DIVE_RANGE = (5.0, 13.0)
 TRAIL_HOLD = 0.6  # seconds the boss bar's damage trail waits before draining
 TRAIL_RATE = 0.35  # fraction of max HP the trail drains per second
 VEIL_NOTICE = 1.8  # a foe notices you through a Veil of Mist only this close
@@ -45,7 +53,9 @@ class Enemy:
     player_x, player_z, player_alive, can_see(ax, az, bx, bz),
     move_enemy(enemy, dx, dz), enemy_strike(enemy, mult), enemy_fire(enemy, kind),
     for bosses with a brood, summon(enemy, type_id, count); for bosses with a rage, boss_rage(enemy),
-    slam(enemy) and eruption(enemy); for hook throwers, hook(enemy, mult, pull)
+    slam(enemy) and eruption(enemy); for hook throwers, hook(enemy, mult, pull);
+    for fire-breathers, breath(enemy). Optional, for twin bosses: rouse_twin(enemy), twin_fallen(enemy)
+    and twin_busy(enemy).
     """
 
     def __init__(self, type_, x, z, yaw=0.0, marker=None, rng=None, loot=None, key=None):
@@ -62,7 +72,7 @@ class Enemy:
         self._rng = rng or random.Random()
         self.loot = loot  # item dropped on death
         self.key = key  # flag set on death for enemies that stay dead
-        self.state = "dormant" if type_.ambush else "idle"
+        self.state = "dormant" if type_.ambush else "perched" if type_.perch else "idle"
         self.state_t = 0.0
         self.anim_t = 0.0
         self._wander_dir = None
@@ -109,10 +119,16 @@ class Enemy:
         self._update_trail(dt)
         if self.state in ("dead", "dormant"):
             return
+        dist = math.hypot(world.player_x - self.x, world.player_z - self.z)
+        if self.state == "perched":
+            if self._notices(world, dist):
+                self.rouse()
+                if hasattr(world, "rouse_twin"):
+                    world.rouse_twin(self)
+            return
         for m in self.cooldowns:
             self.cooldowns[m] = max(self.cooldowns[m] - dt, 0.0)
-        dist = math.hypot(world.player_x - self.x, world.player_z - self.z)
-        if self._should_turn():
+        if self._should_turn(world):
             self.phase2 = True
             for m in self.type.phase_moves:
                 self.cooldowns[m] = MOVES[m][1] * 0.3
@@ -139,14 +155,15 @@ class Enemy:
         """A boss in its second phase fights harder: quicker moves, shorter cooldowns."""
         return self.phase2
 
-    def _should_turn(self):
-        """Half HP: a boss with a brood calls it, one with a rage kindles it. Once only."""
-        return (
-            (self.type.brood is not None or self.type.rage is not None)
-            and not self.phase2
-            and self.hp <= self.type.hp / 2
-            and self.state in ("chase", "recover")
-        )
+    def _should_turn(self, world=None):
+        """Half HP: a boss with a brood calls it, one with a rage kindles it. Once only. A twin
+        instead turns when the other one falls."""
+        if self.phase2 or self.state not in ("chase", "recover"):
+            return False
+        if self.type.twin:
+            fallen = getattr(world, "twin_fallen", None)
+            return bool(fallen and fallen(self))
+        return (self.type.brood is not None or self.type.rage is not None) and self.hp <= self.type.hp / 2
 
     def _update_trail(self, dt):
         """After a short hold, the damage trail drains down to the current HP."""
@@ -197,7 +214,7 @@ class Enemy:
         stagger tougher foes; lingering harm (`stagger=False`) never does."""
         if not self.alive:
             return False
-        was_dormant = self.dormant
+        was_dormant = self.dormant or self.perched
         self.hp -= amount
         self._trail_hold = TRAIL_HOLD
         if self.hp <= 0:
@@ -213,6 +230,15 @@ class Enemy:
     @property
     def dormant(self):
         return self.state == "dormant"
+
+    @property
+    def perched(self):
+        return self.state == "perched"
+
+    def rouse(self):
+        """A perched statue comes to life and gives chase."""
+        if self.perched:
+            self._switch("chase")
 
     def wake(self, px, pz):
         """A disguised enemy springs: it turns on whoever disturbed it and strikes straight away."""
@@ -307,6 +333,9 @@ class Enemy:
         ready = [m for m, cd in self.cooldowns.items() if cd <= 0]
         if not ready:
             return None
+        busy = getattr(world, "twin_busy", None)
+        if busy and busy(self):
+            return None  # its twin is mid-move: it waits its turn
         reach = self.type.reach
         options = []
         if "sweep" in ready and dist <= reach + SWEEP_REACH * 0.8:
@@ -326,6 +355,10 @@ class Enemy:
             options.append("eruption")
         if "hook" in ready and seen and HOOK_RANGE[0] <= dist <= HOOK_RANGE[1]:
             options.append("hook")
+        if "breath" in ready and seen and BREATH_RANGE[0] <= dist <= BREATH_RANGE[1]:
+            options.append("breath")
+        if "dive" in ready and seen and DIVE_RANGE[0] <= dist <= DIVE_RANGE[1]:
+            options.append("dive")
         if not options:
             return None
         # Up close a special is only sometimes chosen, so the plain blow stays in the mix.
@@ -353,6 +386,14 @@ class Enemy:
             if kind == "pounce":
                 # It springs at where you stand now; step aside at the last moment to dodge.
                 self._target = (world.player_x, world.player_z)
+            elif kind == "dive":
+                # It swoops through where you stand now and carries on past.
+                dx, dz = world.player_x - self.x, world.player_z - self.z
+                d = math.hypot(dx, dz) or 1.0
+                self._target = (
+                    world.player_x + dx / d * DIVE_OVERSHOOT,
+                    world.player_z + dz / d * DIVE_OVERSHOOT,
+                )
 
     def _attack(self, world, dist, dt=0.0):
         kind = self.attack_kind
@@ -360,6 +401,8 @@ class Enemy:
             return self._pounce(world, dt)
         if kind == "combo":
             return self._combo(world, dist, dt)
+        if kind == "dive":
+            return self._dive(world, dt)
         if not self._struck:
             self._struck = True
             if kind in ("shot", "web", "cinders"):
@@ -374,6 +417,8 @@ class Enemy:
                     world.enemy_strike(self, MOVES["slam"][2])
             elif kind == "eruption":
                 world.eruption(self)
+            elif kind == "breath":
+                world.breath(self)
             elif kind == "hook":
                 if dist <= HOOK_RANGE[1] + 0.5 and self._facing(world.player_x, world.player_z):
                     world.hook(self, MOVES["hook"][2], HOOK_PULL)
@@ -382,7 +427,9 @@ class Enemy:
                     world.enemy_strike(self, MOVES["sweep"][2])
             elif dist <= self._strike_reach() + 0.3 and self._facing(world.player_x, world.player_z):
                 world.enemy_strike(self)
-        if self.state_t >= {"sweep": 0.35, "slam": 0.45, "kindle": 0.6, "eruption": 0.5}.get(kind, 0.2):
+        if self.state_t >= {"sweep": 0.35, "slam": 0.45, "kindle": 0.6, "eruption": 0.5, "breath": 0.6}.get(
+            kind, 0.2
+        ):
             self._switch("recover")
 
     @property
@@ -423,6 +470,30 @@ class Enemy:
             if dist <= self.radius + 1.2:
                 world.enemy_strike(self, MOVES["pounce"][2])
             self._switch("recover")
+
+    def _dive(self, world, dt):
+        """A low swoop along a straight line: it strikes you once if it passes close, and ends at
+        its mark, against a wall, or when its time runs out."""
+        tx, tz = self._target
+        dx, dz = tx - self.x, tz - self.z
+        d = math.hypot(dx, dz)
+        done = d < 0.4 or self.state_t >= DIVE_TIME
+        if not done:
+            step = min(DIVE_SPEED * dt, d)
+            ox, oz = self.x, self.z
+            world.move_enemy(self, dx / d * step, dz / d * step)
+            done = math.hypot(self.x - ox, self.z - oz) < step * 0.3
+        if not self._struck:
+            near = math.hypot(world.player_x - self.x, world.player_z - self.z)
+            if near <= self.radius + DIVE_HIT:
+                self._struck = True
+                world.enemy_strike(self, MOVES["dive"][2])
+        if done:
+            self._switch("recover")
+
+    @property
+    def diving(self):
+        return self.state == "attack" and self.attack_kind == "dive"
 
     def _strike_reach(self):
         return self.type.bite_reach if self.attack_kind == "bite" else self.type.reach

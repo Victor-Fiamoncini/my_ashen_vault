@@ -37,6 +37,11 @@ def enemy(r, e):
         "loom_brood": loom_brood,
         "gaoler": gaoler,
         "bone_crawler": bone_crawler,
+        "forge_golem": forge_models.forge_golem,
+        "iron_bowman": forge_models.iron_bowman,
+        "slag_hound": forge_models.slag_hound,
+        "brand": forge_models.gargoyle,
+        "bellows": forge_models.gargoyle,
     }.get(e.type.id)
     if fn:
         fn(r, e, t)
@@ -1851,6 +1856,8 @@ SPELL_ORB = {
     "venom": (120, 210, 60),
     "veil": (200, 210, 215),
     "pyre": (255, 90, 30),
+    "thunder": (200, 225, 255),
+    "motes": (190, 120, 255),
 }
 
 
@@ -2177,6 +2184,8 @@ SPELL_GLOW = {
     "venom": (130, 220, 70),
     "veil": (205, 215, 220),
     "pyre": (255, 110, 40),
+    "thunder": (190, 220, 255),
+    "motes": (190, 120, 255),
 }
 
 
@@ -2200,6 +2209,8 @@ WEAPON_LEN = {
     "hatchet": 0.9,
     "oak_cudgel": 1.0,
     "spiked_club": 1.05,
+    "stormbrand": 1.2,
+    "slagbreaker": 1.5,
 }
 
 
@@ -2221,6 +2232,10 @@ def weapon(r, item_id, phase=None):
         felling_axe(r)
     elif item_id in ("hatchet", "bearded_axe"):
         hand_axe(r, item_id == "bearded_axe")
+    elif item_id == "stormbrand":
+        forge_models.stormbrand(r)
+    elif item_id == "slagbreaker":
+        forge_models.slagbreaker(r)
     else:
         sword(r, item_id)
 
@@ -2706,3 +2721,7 @@ def bell(r, t, seed):
         r.part("cyl", 0, -1.25, 0, 1.15, 0.1, 1.15, (90, 120, 96))  # verdigris lip
         r.part("cyl", 0, -0.62, 0, 0.84, 0.05, 0.84, (110, 80, 44))  # a cast band
         r.part("sphere", 0, -1.25, 0, 0.2, 0.2, 0.2, DARK_IRON)  # clapper
+
+
+# The Cinderhold's models live in their own module; it borrows the helpers above, so it is imported last.
+from ashen_vault.render import forge_models  # noqa: E402

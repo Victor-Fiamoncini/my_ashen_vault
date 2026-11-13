@@ -14,7 +14,7 @@ class FakeGame:
 
     def finish_game(self):
         self.finished = True
-        for i in ("ember_sigil", "verdant_sigil"):
+        for i in ("ember_sigil", "verdant_sigil", "iron_sigil"):
             self.player.inventory.remove(i)
 
     def message(self, text):
@@ -32,11 +32,15 @@ def talk(id_, game):
     return speaker, " ".join(lines)
 
 
-def test_odrin_intro_asks_for_both_sigils_and_gives_supplies():
+ALL_SIGILS = ["ember_sigil", "verdant_sigil", "iron_sigil"]
+
+
+def test_odrin_intro_asks_for_all_three_sigils_and_gives_supplies():
     g = FakeGame()
     speaker, text = talk("odrin", g)
     assert speaker == "Odrin"
-    assert "Ember Sigil" in text and "Verdant Sigil" in text
+    assert "Ember Sigil" in text and "Verdant Sigil" in text and "Iron Sigil" in text
+    assert "Cinderhold" in text and "north road" in text
     assert "quest" in g.flags
     assert g.player.inventory.gold == 60
     assert g.player.inventory.count("red_tonic") == 2
@@ -46,35 +50,44 @@ def test_odrin_intro_asks_for_both_sigils_and_gives_supplies():
 def test_odrin_without_sigils_gives_directions():
     g = FakeGame(flags={"quest"})
     _, text = talk("odrin", g)
-    assert "well" in text and "green trail" in text
+    assert "well" in text and "green trail" in text and "north road" in text
     assert not g.finished
 
 
-def test_odrin_with_only_the_ember_sigil_points_to_the_hollow():
+def test_odrin_with_only_the_ember_sigil_points_to_the_other_two():
     g = FakeGame(flags={"quest"}, items=["ember_sigil"])
     _, text = talk("odrin", g)
     assert "green trail" in text and "Verdant Sigil" in text
+    assert "north road" in text and "Iron Sigil" in text
+    assert "well in the square" not in text
     assert not g.finished
     assert g.player.inventory.has("ember_sigil")
 
 
-def test_odrin_with_only_the_verdant_sigil_points_to_the_well():
+def test_odrin_with_only_the_verdant_sigil_points_to_the_well_and_the_road():
     g = FakeGame(flags={"quest"}, items=["verdant_sigil"])
     _, text = talk("odrin", g)
-    assert "well" in text and "Ember Sigil" in text
+    assert "well" in text and "Ember Sigil" in text and "Iron Sigil" in text
     assert not g.finished
 
 
-def test_odrin_with_both_sigils_ends_the_game():
+def test_odrin_with_two_sigils_still_wants_the_third():
     g = FakeGame(flags={"quest"}, items=["ember_sigil", "verdant_sigil"])
+    _, text = talk("odrin", g)
+    assert not g.finished
+    assert "Iron Sigil" in text and "Cinderhold" in text
+    assert g.player.inventory.has("ember_sigil") and g.player.inventory.has("verdant_sigil")
+
+
+def test_odrin_with_all_three_sigils_ends_the_game():
+    g = FakeGame(flags={"quest"}, items=ALL_SIGILS)
     talk("odrin", g)
     assert g.finished
-    assert not g.player.inventory.has("ember_sigil")
-    assert not g.player.inventory.has("verdant_sigil")
+    assert not any(g.player.inventory.has(i) for i in ALL_SIGILS)
 
 
-def test_odrin_with_both_sigils_ends_the_game_even_before_the_quest():
-    g = FakeGame(items=["ember_sigil", "verdant_sigil"])
+def test_odrin_with_all_three_sigils_ends_the_game_even_before_the_quest():
+    g = FakeGame(items=ALL_SIGILS)
     talk("odrin", g)
     assert g.finished
 
@@ -86,9 +99,18 @@ def test_odrin_reminds_about_fallen_bosses_relics():
     g = FakeGame(flags={"quest", "spider_dead"})
     _, text = talk("odrin", g)
     assert "Verdant Sigil" in text
+    g = FakeGame(flags={"quest", "gargoyles_dead"})
+    _, text = talk("odrin", g)
+    assert "gargoyles" in text and "Iron Sigil" in text and "roof" in text
     g = FakeGame(flags={"quest", "boss_dead", "sigil_taken"})
     _, text = talk("odrin", g)
     assert "Warden has fallen" not in text
+
+
+def test_odrin_reminds_about_a_fallen_keeper_while_you_hold_another_sigil():
+    g = FakeGame(flags={"quest", "gargoyles_dead"}, items=["ember_sigil"])
+    _, text = talk("odrin", g)
+    assert "Iron Sigil lies up on the Cinderhold's roof" in text
 
 
 def test_hollis_hints_at_the_green_trail_until_the_spider_dies():
@@ -98,6 +120,13 @@ def test_hollis_hints_at_the_green_trail_until_the_spider_dies():
     assert "green trail" not in text
     _, text = talk("hollis", FakeGame(flags={"lever:north_lever"}))
     assert "north gate" in text and "green trail" in text
+
+
+def test_hollis_warns_of_the_fortress_until_the_gargoyles_fall():
+    _, text = talk("hollis", FakeGame())
+    assert "north road" in text
+    _, text = talk("hollis", FakeGame(flags={"gargoyles_dead"}))
+    assert "north road" not in text
 
 
 def test_pell_greets_once_then_opens_the_shop():

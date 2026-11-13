@@ -21,6 +21,7 @@ class Item:
     slot: str | None = None  # armor: "body" or "hands"
     guard: float | None = None  # shields: share of a frontal blow they stop (0..1)
     stability: float | None = None  # shields: damage a full ST bar can absorb
+    element: str | None = None  # weapons: "lightning" or "fire" (see world/elements.py)
 
 
 class Items:
@@ -132,6 +133,33 @@ class Items:
                 level=5,
                 two_handed=True,
                 desc="A block of iron on a long haft. Its heavy slams all around you.",
+            ),
+            Item(
+                id="stormbrand",
+                name="Stormbrand",
+                kind="weapon",
+                category="sword",
+                price=0,
+                power=17,
+                reach=2.4,
+                speed=1.7,
+                level=6,
+                element="lightning",
+                desc="A blade forged in a thunderstorm. It bites iron like a lightning strike.",
+            ),
+            Item(
+                id="slagbreaker",
+                name="Slagbreaker",
+                kind="weapon",
+                category="hammer",
+                price=0,
+                power=27,
+                reach=2.1,
+                speed=2.7,
+                level=9,
+                two_handed=True,
+                element="fire",
+                desc="A foundry maul whose head never cooled. What it strikes catches fire.",
             ),
             Item(
                 id="felling_axe",
@@ -405,6 +433,22 @@ class Items:
                 desc="Teaches Pyre, a gout of flame that kindles what it touches.",
             ),
             Item(
+                id="scroll_thunder",
+                name="Scroll of Thunder Spear",
+                kind="scroll",
+                price=0,
+                spell="thunder",
+                desc="Teaches Thunder Spear, a bolt of lightning that bites iron.",
+            ),
+            Item(
+                id="scroll_motes",
+                name="Scroll of Arcane Motes",
+                kind="scroll",
+                price=0,
+                spell="motes",
+                desc="Teaches Arcane Motes: three seeking sparks that find their mark.",
+            ),
+            Item(
                 id="cell_key",
                 name="Cell Key",
                 kind="key",
@@ -438,6 +482,20 @@ class Items:
                 kind="key",
                 price=0,
                 desc="A cool disc of green glass with a living leaf sealed inside. It hums.",
+            ),
+            Item(
+                id="forge_key",
+                name="Forge Key",
+                kind="key",
+                price=0,
+                desc="A long iron key, still warm. It opens the way up onto the Cinderhold's rampart.",
+            ),
+            Item(
+                id="iron_sigil",
+                name="Iron Sigil",
+                kind="key",
+                price=0,
+                desc="A heavy disc of black iron, cold however long you hold it. It rings faintly.",
             ),
         ]
     }

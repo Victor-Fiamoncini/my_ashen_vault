@@ -37,6 +37,13 @@ def all_textures():
         "log_wall": log_wall(),
         "ossuary": ossuary(),
         "web_wall": web_wall(),
+        "black_brick": black_brick(),
+        "iron_plate": iron_plate(),
+        "iron_grate": iron_grate(),
+        "lava": lava(),
+        "slag": slag(),
+        "ash_road": ash_road(),
+        "slate": slate(),
         "white": solid(255, 255, 255),
     }
 
@@ -488,5 +495,108 @@ def ossuary():
         if not knob and y % 8 in (1, 6):
             return tint([34, 31, 28], 0.8 + n * 0.4)
         return tint([140, 128, 104], 0.62 + hash_(x // 16, course, 7) * 0.25 + (n - 0.5) * 0.3)
+
+    return build(px)
+
+
+# --- the Cinderhold -----------------------------------------------------------------------------
+
+
+def black_brick():
+    """The fortress's soot-black ashlar, with ember-orange glints of slag in the mortar."""
+    base = bricks([62, 56, 58], [24, 20, 20], 301, rows=4, cols=2)
+
+    def px(x, y):
+        c = _rgb_at(base, x, y)
+        if hash_(x, y, 302) > 0.985 and c[0] < 40:
+            return [200, 90, 30]
+        return c
+
+    return build(px)
+
+
+def iron_plate():
+    """Riveted iron plates, streaked with rust and scorch."""
+
+    def px(x, y):
+        n = fbm(x, y, 311)
+        seam = x % 32 == 0 or y % 32 == 0
+        if seam:
+            return tint([30, 28, 30], 0.9 + n * 0.2)
+        if (x % 32 in (4, 28)) and (y % 32 in (4, 28)):
+            return [130, 126, 130]  # a rivet head
+        k = 0.65 + n * 0.4
+        c = tint([82, 80, 86], k)
+        if noise(x, y, 8, 312) > 0.68:
+            c = [rround(c[0] * 1.2 + 20), rround(c[1] * 0.8), rround(c[2] * 0.6)]  # rust
+        return c
+
+    return build(px)
+
+
+def iron_grate():
+    """A heavy floor grate over a red glow far below."""
+
+    def px(x, y):
+        bar = x % 16 < 4 or y % 16 < 4
+        n = fbm(x, y, 321)
+        if bar:
+            return tint([70, 68, 72], 0.7 + n * 0.4)
+        return tint([150, 50, 20], 0.4 + n * 0.5)
+
+    return build(px)
+
+
+def lava():
+    """Molten rock: bright cracks of yellow-white between rafts of dark crust."""
+
+    def px(x, y):
+        n = fbm(x, y, 331)
+        v = noise(x, y, 8, 332)
+        crack = abs(v - 0.5) < 0.07 + n * 0.05
+        if crack:
+            return [255, rround(200 + n * 50), rround(90 + n * 60)]
+        if n > 0.55:
+            return [255, rround(110 + n * 60), 30]
+        return tint([150, 46, 16], 0.7 + n * 0.6)
+
+    return build(px)
+
+
+def slag():
+    """Cooled slag underfoot: black, glassy, pitted, with a faint red heat in the deepest pits."""
+
+    def px(x, y):
+        n = fbm(x, y, 341)
+        if hash_(x // 2, y // 2, 342) > 0.94:
+            return [110, 34, 14]
+        return tint([50, 44, 44], 0.6 + n * 0.6)
+
+    return build(px)
+
+
+def ash_road():
+    """Packed grey ash with cinders trodden into it."""
+
+    def px(x, y):
+        n = fbm(x, y, 351)
+        if hash_(x, y, 352) > 0.97:
+            return [40, 36, 34]
+        return tint([104, 98, 94], 0.6 + n * 0.45)
+
+    return build(px)
+
+
+def slate():
+    """Overlapping roof slates, dark blue-grey, edged with soot."""
+
+    def px(x, y):
+        row = y // 8
+        ox = (x + (8 if row % 2 else 0)) % SIZE
+        n = fbm(x, y, 361)
+        if y % 8 == 7 or ox % 16 == 0:
+            return tint([22, 22, 26], 0.9 + n * 0.2)
+        k = 0.7 + hash_(ox // 16, row, 362) * 0.25 + (n - 0.5) * 0.3
+        return tint([70, 74, 84], k)
 
     return build(px)

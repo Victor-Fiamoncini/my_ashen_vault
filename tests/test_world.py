@@ -100,6 +100,7 @@ STATIC_BLOCKERS = (
     *("barrel", "crate", "urn", "iron_maiden", "save_statue", "well", "npc"),
     *("altar", "table", "rack", "rubble", "cocoon", "frog_idol"),
     *("pillar", "sarcophagus", "bell", "bonfire", "giant_mushroom", "totem"),
+    *("anvil", "chimney"),
 )
 
 
@@ -257,7 +258,7 @@ def test_verdant_hollow_loads_with_start_exit_boss_and_enemies():
     assert keys and keys <= chest_items
 
 
-def _reachable(m, start, open_tiles=(), shortcuts=False):
+def _reachable(m, start, open_tiles=(), shortcuts=False, avoid=()):
     """Tiles a walker can reach from `start`, honoring step heights; doors count as closed unless listed.
     Fixed platforms (planks, ledges, floorboards) count as footing at their deck height. Platforms
     chained to a lever (lifts, drawbridges) only count with `shortcuts`: a lift then links the
@@ -268,6 +269,7 @@ def _reachable(m, start, open_tiles=(), shortcuts=False):
         (s.tx, s.tz) for s in m.entities if s.kind in ("door", "gate", "secret_wall", *STATIC_BLOCKERS)
     }
     blocked -= set(open_tiles)
+    blocked |= set(avoid)
     platforms = [p for p in terrain.build_platforms(m) if p.kind != "raft" and (shortcuts or not p.lever)]
     decks = {
         (TileMap.tile_coord(p.x), TileMap.tile_coord(p.z)): p.deck for p in platforms if p.kind != "lift"
@@ -453,3 +455,115 @@ def test_auto_floor_looks_past_the_edge_of_the_grid():
     text = AUTO.replace("{auto}", "entity_floor = auto").replace("#######\n#..#__#", "##b####\n#..#__#", 1)
     m = MapLoader(text, name="edge").parse()
     assert m[2, 0].floor == 0.0  # nothing above it, the room below it
+
+
+# --- the Cinderhold ---------------------------------------------------------------------------------
+
+
+def _cinder():
+    return MapLoader.load_file(os.path.join(MAP_DIR, "cinderhold.map"))
+
+
+def _lava(m):
+    """Lava tiles: you can step in, but only to be seared and hauled back out, so a walker avoids them."""
+    return {(tx, tz) for tx, tz, tile in m.each_tile() if tile.lava}
+
+
+def test_harrowmere_has_the_north_road():
+    """The Cinderhold is reached by a gate in the town's north wall; each side lands you at the other."""
+    town = MapLoader.load_file(os.path.join(MAP_DIR, "harrowmere.map"))
+    (gate,) = _spec(town, "exit", map="cinderhold")
+    assert gate.props["model"] == "road_gate"
+    assert town[gate.tx, gate.tz - 1].solid  # the town wall behind it
+    sx, sz = (int(v) for v in town.meta["start"][:2])
+    assert (gate.tx, gate.tz + 1) in _reachable(town, (sx, sz))
+    m = _cinder()
+    (back,) = _spec(m, "exit", map="harrowmere")
+    tx, tz, _ = (int(v) for v in back.props["at"].split(","))
+    assert (tx, tz) == (gate.tx, gate.tz + 1)  # you come back through the gate, onto the track
+    start = tuple(int(v) for v in m.meta["start"][:2])
+    assert tuple(int(v) for v in gate.props["at"].split(",")[:2]) == start
+    assert (back.tx, back.tz) == (start[0], start[1] + 1)  # the gate out is right behind you
+
+
+def test_cinderhold_loads_with_its_bridge_fortress_and_twin_gargoyles():
+    m = _cinder()
+    assert m.meta["name"] == "The Cinderhold"
+    kinds = [s.kind for s in m.entities]
+    assert kinds.count("brand") == 1 and kinds.count("bellows") == 1
+    for foe in ("forge_golem", "iron_bowman", "slag_hound"):
+        assert foe in kinds
+    for hazard in ("flame_jet", "magma_vent"):
+        assert hazard in kinds
+    assert kinds.count("save_statue") == 2
+    assert {"spire", "chimney", "anvil"} <= set(kinds)
+    assert any(t.lava for _, _, t in m.each_tile())
+    # The long bridge: a deck at least twenty tiles long running north over the lava gorge.
+    start = tuple(int(v) for v in m.meta["start"][:2])
+    deck = [z for z in range(m.depth) if m[29, z].floor_tex == "flagstone" and m[29, z].floor == 0]
+    gorge = [z for z in deck if m[27, z].chasm and m[27, z].floor_tex == "lava"]
+    assert len(gorge) >= 20
+    assert start[1] > max(gorge)  # you arrive south of it and cross northward
+    # The roof is high above everything, where the twins perch.
+    (brand,) = _spec(m, "brand")
+    assert m[brand.tx, brand.tz].floor >= 12 and m[brand.tx, brand.tz].open_sky
+    # The new loot is in its chests.
+    items = {s.props.get("item") for s in _spec(m, "chest")}
+    assert {"scroll_thunder", "scroll_motes", "stormbrand", "slagbreaker", "forge_key"} <= items
+
+
+def test_cinderhold_is_solvable():
+    """Every chest, lever and both gargoyles can be reached with only the honest doors and the false
+    wall opened: the forge key's chest without its door. The main gate and the smelter lift are
+    shortcuts, each joining two places you can already reach. Nowhere strands you."""
+    m = _cinder()
+    lava = _lava(m)
+    start = tuple(int(v) for v in m.meta["start"][:2])
+    reach = _reachable(m, start, avoid=lava)
+    (key_chest,) = [s for s in _spec(m, "chest") if s.props.get("item") == "forge_key"]
+    (key_door,) = _spec(m, "door", key="forge_key")
+    (postern,) = [s for s in _spec(m, "door") if not s.props.get("key")]
+    secrets = [(s.tx, s.tz) for s in _spec(m, "secret_wall")]
+    honest = [(postern.tx, postern.tz), *secrets]
+    before_key = _reachable(m, start, open_tiles=honest, avoid=lava)
+    assert (key_chest.tx, key_chest.tz) in before_key
+    (brand,) = _spec(m, "brand")
+    assert (brand.tx, brand.tz) not in before_key  # up past the locked rampart door
+    opened = _reachable(m, start, open_tiles=[*honest, (key_door.tx, key_door.tz)], avoid=lava)
+    assert (postern.tx, postern.tz) not in reach  # the postern is shut until you open it
+    for s in m.entities:
+        if s.kind in ("chest", "lever", "brand", "bellows", "mimic"):
+            assert (s.tx, s.tz) in opened, (s.kind, s.props)
+        if s.kind in ("save_statue", "anvil", "chimney"):  # solid: you stand beside them
+            around = {(s.tx + dx, s.tz + dz) for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1))}
+            assert around & opened, (s.kind, s.tx, s.tz)
+    (store,) = [s for s in _spec(m, "chest") if s.props.get("item") == "stormbrand"]
+    assert (store.tx, store.tz) not in _reachable(m, start, open_tiles=[(postern.tx, postern.tz)], avoid=lava)
+    # The main gate joins the bridge to the gatehouse; the lift joins the pits to the guardroom.
+    (gate,) = _spec(m, "gate")
+    assert {(gate.tx, gate.tz - 1), (gate.tx, gate.tz + 1)} <= opened
+    for p in terrain.build_platforms(m):
+        if not p.lever:
+            continue
+        sx, sz = TileMap.tile_coord(p.x), TileMap.tile_coord(p.z)
+        near = {(sx + dx, sz + dz) for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1))}
+        assert {round(m[t].floor, 1) for t in near & opened} >= {p.low, p.high}, (sx, sz)
+    # Every tile you can drop into, you can climb back out of.
+    doors = [(s.tx, s.tz) for s in m.entities if s.kind in ("door", "gate", "secret_wall")]
+    full = _reachable(m, start, open_tiles=doors, shortcuts=True, avoid=lava)
+    for tile in full:
+        assert start in _reachable(m, tile, open_tiles=doors, shortcuts=True, avoid=lava), tile
+
+
+def test_cinderhold_gate_shortcut_cuts_the_way_back_to_the_bridge():
+    """Through the postern it is a long way round from the gatehouse shrine to the bridge; the main
+    gate, once raised, opens straight onto it."""
+    m = _cinder()
+    shrine = min(_spec(m, "save_statue"), key=lambda s: s.tz)
+    (gate,) = _spec(m, "gate")
+    (postern,) = [s for s in _spec(m, "door") if not s.props.get("key")]
+    here = (shrine.tx - 1, shrine.tz)
+    bridge = (gate.tx, gate.tz + 2)
+    long_way = _steps(m, here, bridge, [(postern.tx, postern.tz)])
+    short_way = _steps(m, here, bridge, [(postern.tx, postern.tz), (gate.tx, gate.tz)])
+    assert long_way > 2 * short_way, (long_way, short_way)

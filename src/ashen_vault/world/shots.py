@@ -45,3 +45,20 @@ def strikes(x, y, z, ex, ez, radius, span):
     """Whether a bolt at (x, y, z) touches a body of `radius` at (ex, ez) spanning `span` in height."""
     lo, hi = span
     return math.hypot(x - ex, z - ez) < radius + 0.3 and lo - BOLT_SIZE <= y <= hi + BOLT_SIZE
+
+
+def home(dx, dy, dz, x, y, z, tx, ty, tz, turn, dt):
+    """Steers a shot's velocity toward (tx, ty, tz), turning at most `turn` rad/s across the ground
+    and easing its climb to meet the target's height. Its speed across the ground stays the same."""
+    speed = math.hypot(dx, dz)
+    if speed < 1e-6:
+        return dx, dy, dz
+    have = math.atan2(dz, dx)
+    want = math.atan2(tz - z, tx - x)
+    diff = (want - have + math.pi) % (2 * math.pi) - math.pi
+    step = turn * dt
+    yaw = want if abs(diff) <= step else have + math.copysign(step, diff)
+    across = max(math.hypot(tx - x, tz - z), 0.5)
+    want_dy = (ty - y) / across * speed
+    dy += (want_dy - dy) * min(turn * dt, 1.0)
+    return math.cos(yaw) * speed, dy, math.sin(yaw) * speed

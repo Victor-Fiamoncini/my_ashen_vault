@@ -3,7 +3,8 @@
 [meta]     key = value lines
 [legend]   <char> = <floor|wall|water> key=value ...
            floors may add hurt=<hp per tick> flow=<dx>,<dz> slow=<speed multiplier>,
-           pit (walk in and fall) or chasm (needs a ledge or raft to cross)
+           pit (walk in and fall), lava (a glowing pit that sears) or chasm (needs a ledge or raft
+           to cross)
            any tile may add dark=<0..1>: the share of the map's ambient light it loses
 [grid]     rows of legend chars and entity markers
 [entities] <marker> = <kind> key=value ... (on=<legend char> picks the tile under it)
@@ -200,7 +201,8 @@ class MapLoader:
             walkable=True,
             floor=floor,
             ceil=ceil,
-            pit="pit" in p,
+            pit="pit" in p or "lava" in p,
+            lava="lava" in p,
             floor_tex=p.get("tex", "flagstone"),
             wall_tex=p.get("side", "stone_brick"),
             ceil_tex=p.get("ceil_tex", "rough_stone"),

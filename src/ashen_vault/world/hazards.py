@@ -1,6 +1,8 @@
-"""Level traps: floor spikes and swinging pendulum blades. Pure timing and hit logic, no rendering."""
+"""Level traps: floor spikes, swinging pendulum blades, crumbling floors, flame jets and magma vents,
+plus the fire columns and shockwaves bosses call up. Pure timing and hit logic, no rendering."""
 
 import math
+import random
 
 from ashen_vault.world.tile_map import Tile, TileMap
 
@@ -212,13 +214,15 @@ class Eruption:
     RADIUS = 1.0
     DAMAGE = 18
 
-    def __init__(self, x, z, floor=0.0, delay=0.0, damage=DAMAGE):
+    def __init__(self, x, z, floor=0.0, delay=0.0, damage=DAMAGE, origin=None):
         self.x = x
         self.z = z
         self.floor = floor
         self.t = -delay  # a later circle in a row waits its turn before it starts glowing
         self.damage = damage
         self.spent = False  # has it wounded someone yet
+        # (x, y, z) a lobbed magma bomb flies from: it arcs down while the circle glows.
+        self.origin = origin
 
     def update(self, dt):
         """Advances it; returns True on the frame the flame bursts up."""
@@ -244,6 +248,16 @@ class Eruption:
     def glow(self):
         """0..1 brightness of the warning circle; it brightens as the burst nears."""
         return min(max(self.t / self.WARN, 0.0), 1.0) if self.state == "warn" else 0.0
+
+    def bomb(self, arc=6.0):
+        """Where a lobbed bomb is in its flight, (x, y, z), or None when it is not in the air: it
+        leaves `origin` as the circle starts to glow and lands as the flame bursts."""
+        if self.origin is None or self.state != "warn":
+            return None
+        k = self.t / self.WARN
+        ox, oy, oz = self.origin
+        y = oy + (self.floor - oy) * k + arc * 4 * k * (1 - k)
+        return ox + (self.x - ox) * k, y, oz + (self.z - oz) * k
 
     @property
     def flame(self):
@@ -286,3 +300,131 @@ class Shockwave:
     @property
     def done(self):
         return self.t >= self.TIME
+
+
+# Unit steps along the four map directions, for things that point one way.
+DIRS = {"n": (0, -1), "s": (0, 1), "e": (1, 0), "w": (-1, 0)}
+
+
+class FlameJet:
+    """A nozzle low on the wall that roars a gout of fire along the floor in front of it. It hisses
+    and glows before it fires: wait for the gout to die, then run past."""
+
+    WARN = 0.7
+    BURN = 1.1
+    DAMAGE = 14
+    HALF_WIDTH = 0.75  # metres either side of the jet's line that the fire licks
+
+    def __init__(self, tx, tz, direction="e", length=3, every=3.6, phase=0.0, floor=0.0):
+        self.tx = tx
+        self.tz = tz
+        self.x, self.z = TileMap.center(tx, tz)
+        self.dx, self.dz = DIRS.get(direction, (1, 0))
+        self.length = max(int(length), 1)
+        self.period = max(every, self.WARN + self.BURN + 0.2)
+        self.floor = floor
+        self.t = phase % self.period
+        self.cooldown = 0.0
+
+    @property
+    def idle(self):
+        return self.period - self.WARN - self.BURN
+
+    @property
+    def state(self):
+        if self.t < self.idle:
+            return "idle"
+        if self.t < self.idle + self.WARN:
+            return "warn"
+        return "burn"
+
+    def update(self, dt):
+        """Advances the cycle; returns True on the frame the jet starts to roar."""
+        before = self.state
+        self.t = (self.t + dt) % self.period
+        self.cooldown = max(self.cooldown - dt, 0.0)
+        return before != "burn" and self.state == "burn"
+
+    @property
+    def reach(self):
+        """0..1 of its length the gout reaches now: it shoots out fast and shrinks back at the end."""
+        if self.state != "burn":
+            return 0.0
+        k = (self.t - self.idle - self.WARN) / self.BURN
+        return min(k / 0.15, 1.0) * min((1 - k) / 0.2, 1.0)
+
+    @property
+    def glow(self):
+        """0..1 brightness of the nozzle while it builds up to fire."""
+        if self.state == "warn":
+            return (self.t - self.idle) / self.WARN
+        return 1.0 if self.state == "burn" else 0.0
+
+    def _start(self):
+        """Where the gout leaves the nozzle: the back edge of its tile."""
+        return self.x - self.dx * TileMap.TILE / 2, self.z - self.dz * TileMap.TILE / 2
+
+    def covers(self, px, pz):
+        sx, sz = self._start()
+        along = (px - sx) * self.dx + (pz - sz) * self.dz
+        across = abs((px - sx) * self.dz - (pz - sz) * self.dx)
+        return 0 <= along <= self.length * TileMap.TILE * self.reach and across <= self.HALF_WIDTH
+
+    def hit(self, px, pz):
+        """Damage to a body at (px, pz) this frame, or 0."""
+        if self.cooldown > 0 or self.reach < 0.5 or not self.covers(px, pz):
+            return 0
+        self.cooldown = HIT_COOLDOWN
+        return self.DAMAGE
+
+
+class MagmaVent:
+    """A vent deep in the lava that spits molten bombs onto the ground around it. Each bomb is an
+    `Eruption` with an `origin`: it glows where it will land while it arcs down, then bursts.
+    `targets` are the (x, z, floor) spots it can reach; it aims at the player's spot when it can."""
+
+    FLIGHT = Eruption.WARN  # the bomb is in the air while its circle glows
+    DAMAGE = 16
+    HEIGHT = 2.0  # metres above its tile the bombs leave from
+
+    def __init__(self, tx, tz, targets, every=3.0, phase=0.0, count=2, floor=0.0, radius=8.0, seed=None):
+        self.tx = tx
+        self.tz = tz
+        self.x, self.z = TileMap.center(tx, tz)
+        self.floor = floor
+        self.targets = list(targets)
+        self.every = every
+        self.count = count
+        self.radius = radius
+        self.t = phase % every
+        self._rng = random.Random(seed if seed is not None else tx * 1000 + tz)
+
+    def update(self, dt, player_spot=None):
+        """Advances it; returns the Eruptions it lobs this frame (empty most frames). `player_spot` is
+        the (x, z, floor) the player stands on, if it is in reach."""
+        self.t += dt
+        if self.t < self.every or not self.targets:
+            return []
+        self.t -= self.every
+        out = []
+        spots = list(self.targets)
+        for i in range(self.count):
+            if i == 0 and player_spot is not None:
+                spot = player_spot
+            else:
+                spot = self._rng.choice(spots)
+            x, z, floor = spot
+            out.append(
+                Eruption(
+                    x,
+                    z,
+                    floor,
+                    delay=i * 0.3,
+                    damage=self.DAMAGE,
+                    origin=(self.x, self.floor + self.HEIGHT, self.z),
+                )
+            )
+        return out
+
+    def reaches(self, x, z):
+        return math.hypot(x - self.x, z - self.z) <= self.radius

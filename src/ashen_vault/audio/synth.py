@@ -169,6 +169,43 @@ def sounds():
         "pyre": gen(0.55, lambda t, p: (lowpass(0.25 + (1 - p) * 0.2) * 2.0 + noise() * 0.25) * env(p, 0.08)),
         # Venom sizzling, or mist breathed out (Veil of Mist).
         "hiss": gen(0.6, lambda t, p: noise() * 0.5 * math.sin(p * math.pi) * (0.6 + 0.4 * math.sin(t * 60))),
+        # A crack of thunder: a sharp snap, then a rolling rumble (Thunder Spear).
+        "thunder": gen(
+            0.9,
+            lambda t, p: (
+                noise() * 0.9 * max(1 - p * 8, 0.0)
+                + (lowpass(0.05) * 2.2 + math.sin(t * TAU * (55 + 20 * math.sin(t * 9))) * 0.3)
+                * (1 - p) ** 1.5
+            ),
+        ),
+        # Three glassy chimes, rising (Arcane Motes).
+        "motes": gen(
+            0.6,
+            lambda t, p: (
+                math.sin(t * TAU * (880, 1175, 1568)[min(math.floor(p * 3), 2)])
+                * math.sin(t * TAU * 6) ** 2
+                * 0.3
+                * (1 - p)
+            ),
+        ),
+        # A flame jet roaring out of its nozzle.
+        "jet": gen(
+            1.0, lambda t, p: (lowpass(0.35) * 1.8 + noise() * 0.3) * min(p / 0.08, 1.0) * (1 - p) ** 0.6
+        ),
+        # A magma vent coughing up a bomb: a deep gulp and a whoosh.
+        "lob": gen(
+            0.6, lambda t, p: (math.sin(t * TAU * (70 + p * 60)) * 0.6 + lowpass(0.1) * 1.2) * env(p, 0.05)
+        ),
+        # A gargoyle's breath: a long roar that swells and fades.
+        "breath": gen(1.2, lambda t, p: (lowpass(0.18) * 2.2 + noise() * 0.2) * math.sin(p * math.pi) ** 0.7),
+        # Iron grinding on stone, then a metallic shriek (the gargoyles waking).
+        "screech": gen(
+            1.1,
+            lambda t, p: (
+                (math.sin(t * TAU * (700 + 500 * p + 80 * math.sin(t * 50))) * 0.3 + noise() * 0.25 * (1 - p))
+                * env(p, 0.2)
+            ),
+        ),
     }
     return {name: wav(s) for name, s in out.items()}
 

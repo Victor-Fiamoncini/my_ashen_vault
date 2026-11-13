@@ -68,7 +68,13 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   `--at=14,41,-90 --script "interact wait:2.5 strafe_l:2"` (lower the drawbridge and cross),
   `--at=49,12,-90` (the Highland log slope), `--at=15,7,-90` (the Loom Mother),
   `--map harrowmere --at=6,18,180 --script "forward:1 interact"` (Corvane; below
-  `--level 5` they stay silent).
+  `--level 5` they stay silent), `--map harrowmere --at=25,4,-90` (the north road's gate),
+  `--map cinderhold --at=29,50,-90` (the long bridge, the fortress ahead), `--map cinderhold --at=28,30,180`
+  (the postern ledge and its flame jets), `--map cinderhold --at=18,17,180` (the foundry),
+  `--map cinderhold --at=5,24,0` (the smelter pits), `--map cinderhold --at=30,6,180 --level 10`
+  (the roof: the gargoyles wake at once).
+- `--level` only sets the level (for equipment requirements); HP and stats stay at level 1, so judge boss
+  balance headless (`World` with a `JungleGame`) rather than from a smoke fight.
 
 ## Layout
 
@@ -80,17 +86,19 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/ui/hud.py` | HUD, menus, dialogue boxes |
 | `src/ashen_vault/audio/synth.py` | Synthesized sound effects |
 | `src/ashen_vault/input.py` | Key bindings and the `--script` driver |
-| `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. `harrowmere` (the village), `sunken_keep` (the dungeon below the well, with the Undercroft below its cells and the Warden's Gallery above the boss door), `verdant_hollow` (the jungle through the cave at the end of the village's east trail: Mossmouth cave, the Root Caverns below the bog, the Canopy Walk to the boss) |
+| `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. `harrowmere` (the village), `sunken_keep` (the dungeon below the well, with the Undercroft below its cells and the Warden's Gallery above the boss door), `verdant_hollow` (the jungle through the cave at the end of the village's east trail: Mossmouth cave, the Root Caverns below the bog, the Canopy Walk to the boss), `cinderhold` (the lava fortress up the north road: the long bridge, the gatehouse and postern, the foundry and the smelter pits below it, the ashworks, the rampart, and the roof where the twin gargoyles perch) |
 | `src/ashen_vault/world/darkness.py` | Dark tiles: how your light and the fog close in, Lumen and the Veil of Mist |
 | `src/ashen_vault/world/doors.py` | One-way doors (`door from=`): which side lifts the bar |
-| `src/ashen_vault/world/hazards.py` | Dungeon traps: floor spikes, pendulum blades, crumbling floors; the Warden's fire eruptions and slam shockwaves |
+| `src/ashen_vault/world/hazards.py` | Dungeon traps: floor spikes, pendulum blades, crumbling floors, flame jets, magma vents (whose bombs are `Eruption`s with an `origin`); the bosses' fire eruptions and slam shockwaves |
+| `src/ashen_vault/world/elements.py` | Elements: lightning against `conductive` foes, fire against `fireproof` ones, which weapons burn |
+| `src/ashen_vault/render/forge_models.py` | The Cinderhold's models (golem, bowman, hound, the gargoyles, Stormbrand and Slagbreaker, arrows, thunder and motes, flame jets, spires); `models` imports it last and borrows its helpers |
 | `src/ashen_vault/world/terrain.py` | Terrain: rafts, planks, ledges, rotten floorboards, chain lifts, currents, thorns, chasm and river falls, hard landings, the log rack, spore pods (`World.terrain`) |
 | `src/ashen_vault/world/rest.py` | The shrine rest: timing and the pixelated ember fog pattern drawn while you pray |
 | `src/ashen_vault/ui/smallfont.py` | The small mixed-case pixel font used for in-game messages, prompts and the boss bar |
 | `src/ashen_vault/player/weapons.py` | Weapon categories, light/heavy/quick attacks, swing tempo and the secret attacks (`secret()`) |
 | `src/ashen_vault/world/shots.py` | Shots in 3D: spells follow the view's pitch, enemy shots aim at your chest, and a shot only hits a body it passes through |
 | `src/ashen_vault/player/guard.py` | Shield blocking: what a raised shield stops and what it costs in ST |
-| `src/ashen_vault/world/relics.py` | Boss relics (Ember and Verdant Sigils), their drop/taken flags and the two-sigil ending |
+| `src/ashen_vault/world/relics.py` | Boss relics (Ember, Verdant and Iron Sigils), their drop/taken flags, `boss_falls` (twins fall together) and the three-sigil ending |
 | `src/ashen_vault/dialogue.py` | NPC conversations and the shop list |
 | `tests/` | pytest suite; `conftest.py` has a small test map |
 | `docs/logo/make_logo.py` | Regenerates `docs/logo/ashen_vault.svg` |
@@ -105,7 +113,8 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   `tests/test_keep_world.py` builds a real `World` headless with a `FakeGame` (a no-op GPU that records
   messages, sounds and wounds), so world logic can be driven without a window.
   `tests/test_verdant_world.py` does the same for the jungle (spells, kindled fires, darkness,
-  shortcuts), with a `JungleGame` that also applies damage to enemies.
+  shortcuts), with a `JungleGame` that also applies damage to enemies, and `tests/test_cinderhold_world.py`
+  for the fortress (lava, jets, vents, elements, motes, the twins).
 - Internal resolution is 320x240 (`screen.py`); UI coordinates are in that space.
 - Map grids are whitespace-sensitive. Don't reformat `.map` files. Each grid character is one 2 m tile;
   an `[entities]` marker places a prop, enemy or hazard there, standing on the legend tile named by
@@ -115,8 +124,11 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   letters (`À`, `Ñ`...). Wall props (torches, banners, shackles, racks) hang on the
   adjacent wall and chests/altars turn to face the open side automatically, so they rarely need `yaw=`.
 - Floor legend entries can add hazards: `hurt=<hp per tick>` (thorns), `flow=<dx>,<dz>` (a current),
-  `slow=<multiplier>` (mud), `pit` (a hole you can walk into; you fall, are hurt and hauled out) and
-  `chasm` (only a raft, plank or ledge lets you onto it). Drops over 1.8 m cost HP, except into a `pit`.
+  `slow=<multiplier>` (mud), `pit` (a hole you can walk into; you fall, are hurt and hauled out), `lava` (a
+  pit that sears `LAVA_SHARE` of your max HP the moment you touch it and hauls you out; give it
+  `tex=lava`) and `chasm` (only a raft, plank or ledge lets you onto it). Floors with `tex=lava` are drawn
+  at full brightness and light their shores (`mesh_builder.lava_lights`), chasms included. Drops over
+  1.8 m cost HP, except into a `pit`.
   Any tile may add `dark=<0..1>`: the share of the map's ambient light it loses. Lights still shine
   there, and standing in one shrinks your own light and pulls the fog in (`world/darkness.py`);
   Lumen pushes both back.
@@ -128,12 +140,26 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   `bridge lever=id hinge=n|s|e|w deck=` (a drawbridge standing raised on its hinge side until its
   lever lets it down, for good), `log_chute to=tx,tz every= speed= logs=` (a log rack that only
   releases while someone climbs its slope) and `spore_pod every=`.
+  Hazard entities: `spikes`, `pendulum`, `crumble`, `flame_jet dir=n|s|e|w len= every= phase=` (a
+  nozzle on the wall behind its tile firing `len` tiles along `dir`) and `magma_vent radius= every=
+  count= phase=` (stands in a lava chasm; lobs bombs at open-sky solid ground within `radius` metres,
+  the first at you).
+  `[meta]` may set `model_range`: metres beyond which small models stop being drawn, short of the fog's
+  end, on a map that sees far; `LANDMARKS` (`spire`) are still drawn out to the fog.
 - Enemy behaviour flags in `ai/enemy_types.py`: `ambush` spawns dormant (the chest Mimic) until woken;
   `lurk` sits still until you come close (the Stump Mimic, the Bone Crawler); `once` stays dead;
   bosses set `dead_flag` and drop a relic. Any type picks special attacks from `moves` (see `MOVES` in
-  `ai/enemy.py`: `sweep`, `web`, `pounce`, `cinders`, `combo`, `slam`, `eruption`, `hook`). At half
+  `ai/enemy.py`: `sweep`, `web`, `pounce`, `cinders`, `combo`, `slam`, `eruption`, `hook`, `breath`
+  (a line of `Eruption`s raking toward you and past), `dive` (a swoop through where you stood)). At half
   HP a boss with a `brood` calls it and one with a `rage` kindles it (the Warden's burning blade);
   either way it enters its second phase (`Enemy.phase2`), fights faster and adds its `phase_moves`.
+  `perch` spawns a statue (`Enemy.perched`) that wakes when it sees you, or is struck. `twin=<type>`
+  pairs two bosses: waking one wakes the other (`World.rouse_twin`), they take turns with special moves
+  (`World.twin_busy`), the survivor enters phase two when the other falls (not at half HP), they share a
+  `dead_flag` and relic set only when both are dead (`relics.boss_falls`), and a shrine rest brings a
+  fallen twin back beside its living other at full HP. `conductive` foes take `LIGHTNING_MULT` from
+  lightning and are jolted (`staggers`); `fireproof` ones take half from fire and never burn. `shot=arrow`
+  draws a ranged foe's shots as arrows (and they fly faster).
   An enemy entity's `item=` is loot it drops when slain. `flammable` types (the jungle's plants) take
   more from Pyre and keep burning. Enemies carry lingering harm in `Enemy.status` (`poison` from Venom
   Dart, `burn` from Pyre), one bite a second (`status_tick`) that never staggers.
@@ -160,6 +186,9 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   own solvability test (counting planks, ledges and floorboards as footing, and decor as solid): every
   chest, lever and the boss must be reachable without barred doors, chained lifts or drawbridges, each
   of those must join two places already reachable, and every drop must have a way back.
+  `cinderhold.map` has one too (`test_cinderhold_is_solvable`, lava counted as impassable). Its tiles are
+  lowercase letters, digits and punctuation and its entity markers uppercase or Latin-1, so the two never
+  collide; keep it that way.
 - `game.message()` text may wrap spans in braces, e.g. `f"Obtained {{{item.name}}}."`: the HUD draws
   them in the highlight colour (`util.highlight_runs`). `tests/test_ui_logic.py` checks the small font
   has a glyph for every character used in game messages and names.
@@ -169,8 +198,8 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 - Persistent world state lives in the save's `flags` set, keyed `<kind>:<map>:<tx>,<tz>` (opened
   chests, broken barrels, revealed walls, slain mimics, kindled fires as `lit:`) or `loot:<key>` for
   dropped items. Bosses add
-  their `dead_flag` (`boss_dead`, `spider_dead`) and relics a `<relic>_taken` flag (`sigil_taken` for
-  the Ember Sigil).
+  their `dead_flag` (`boss_dead`, `spider_dead`, `gargoyles_dead`) and relics a `<relic>_taken` flag
+  (`sigil_taken` for the Ember Sigil).
 - Equipment (`player/inventory.py`): two hand slots (`right` = left mouse button, `left` = right
   button) holding a weapon, a shield, the readied spell (`SPELL`) or nothing (a fist), plus `body` and
   `hands` armor. `two_handed` weapons fill both hands. Items carry a `level` requirement: buying is
@@ -182,9 +211,12 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   viewmodel draws without depth testing, so draw what faces the camera last.
 - Secret attacks are listed in `weapons.secret()`; performing one adds a `secret:<category>` flag,
   which reveals its name in Belongings and the shop.
+- Weapons may carry an `element` (`"lightning"`, `"fire"`): `Game._strike` multiplies by
+  `elements.mult` and a fire weapon leaves `burn` on what it hits.
 - Spells are `player/spells.py` (`Spells.ALL`, their formulas) and are taught by `scroll_<id>` items;
   `Game._cast_spell` dispatches them. Venom Dart and Flame Bolt are bolts (`World.fire_bolt` with an
-  `effect`), Pyre is a short cone (`World.pyre`), Veil of Mist sets `Player.veil_t` (ordinary foes then
+  `effect`; Thunder Spear is a fast `effect="thunder"` bolt), Arcane Motes are three `homing`
+  projectiles (`World.motes`, steered by `shots.home`), Pyre is a short cone (`World.pyre`), Veil of Mist sets `Player.veil_t` (ordinary foes then
   notice you only very close; striking or casting anything else lifts it), Lumen sets `lumen_t`. A new
   spell also needs a HUD icon (`hud.spell_icon`) and colours in `models.SPELL_GLOW` / `SPELL_ORB`.
 - Shops are `dialogue.SHOPS` (Pell's goods, and Corvane's blades in the hut west of the square; Corvane

@@ -10,12 +10,20 @@ from ashen_vault.ai.enemy_types import EnemyTypes
 from ashen_vault.ai.spawns import spawn_enemies
 from ashen_vault.player.player import Player
 from ashen_vault.player.spells import Spells
-from ashen_vault.render import models
+from ashen_vault.render import forge_models, models
 from ashen_vault.render.mesh_builder import KINDLING, MeshBuilder
 from ashen_vault.util import rround
-from ashen_vault.world import collision, loot, relics, shots, terrain
+from ashen_vault.world import collision, elements, loot, relics, shots, terrain
 from ashen_vault.world.ash import AshCloud, death_phases
-from ashen_vault.world.hazards import CrumbleFloor, Eruption, Pendulum, Shockwave, SpikeTrap
+from ashen_vault.world.hazards import (
+    CrumbleFloor,
+    Eruption,
+    FlameJet,
+    MagmaVent,
+    Pendulum,
+    Shockwave,
+    SpikeTrap,
+)
 from ashen_vault.world.map_loader import MapLoader
 from ashen_vault.world.tile_map import TileMap
 
@@ -49,9 +57,11 @@ class Projectile:
     rgb: tuple
     source: str = ""
     # "web": slows whoever it hits; "venom": poisons it; "flame": kindles cold fires it passes;
-    # "flare": a spark of Pyre's fire that only shows.
+    # "flare": a spark of Pyre's fire that only shows; "thunder": a lightning spear; "mote": an arcane
+    # spark; "arrow": an iron bowman's arrow.
     effect: str | None = None
     dy: float = 0.0  # climb (or drop) per second: spells follow the view up and down
+    homing: bool = False  # steers itself toward the nearest foe it can see (Arcane Motes)
 
 
 INTERACT_RANGE = 2.6
@@ -86,6 +96,8 @@ BLOCKING_PROPS = (
     "bonfire",
     "giant_mushroom",
     "totem",
+    "anvil",
+    "chimney",
 )
 # Props that block only until they are broken or revealed.
 BREAKABLE_PROPS = ("barrel", "crate", "urn", "cocoon", "secret_wall")
@@ -103,11 +115,18 @@ WALL_PROPS = (
     "winch",
     "shelf_fungus",
 )
+# Props drawn as far as the fog lets you see, however far that is: they make a skyline.
+LANDMARKS = ("spire",)
 # Props that turn to face into the room.
 FACING_PROPS = ("chest", "altar", "table")
-HAZARD_KINDS = ("spikes", "pendulum", "crumble")
+HAZARD_KINDS = ("spikes", "pendulum", "crumble", "flame_jet", "magma_vent")
 FALL_DAMAGE = 25
 FALL_DEPTH = 1.5  # metres below the pit's rim before a fall counts
+LAVA_SHARE = 0.35  # share of your max HP a dip in lava burns away
+LAVA_MIN = 20
+MOTE_SIGHT = 14.0  # metres an arcane mote looks for a foe to steer toward
+BREATH_STEP = 1.2  # metres between the fire circles of a gargoyle's breath
+BREATH_PAST = 2.5  # metres the breath rakes on past where you stand
 MAIDEN_CYCLE = 3.0  # seconds the iron maiden's door stays in motion after use
 FROG_CROAK = 1.2  # seconds the stone frog's throat swells after a pat
 FROG_GOLD = 33  # coins the frog coughs up the first time it is patted
@@ -283,6 +302,28 @@ class World:
         if spec.kind == "spikes":
             return SpikeTrap(spec.tx, spec.tz, phase=phase)
         tile = self.map[spec.tx, spec.tz]
+        if spec.kind == "flame_jet":
+            return FlameJet(
+                spec.tx,
+                spec.tz,
+                direction=spec.props.get("dir", "e"),
+                length=int(spec.props.get("len", "3")),
+                every=float(spec.props.get("every", "3.6")),
+                phase=phase,
+                floor=tile.floor,
+            )
+        if spec.kind == "magma_vent":
+            radius = float(spec.props.get("radius", "8"))
+            return MagmaVent(
+                spec.tx,
+                spec.tz,
+                self._vent_targets(spec.tx, spec.tz, radius),
+                every=float(spec.props.get("every", "3")),
+                phase=phase,
+                count=int(spec.props.get("count", "2")),
+                floor=tile.floor,
+                radius=radius,
+            )
         pivot = tile.ceil if tile.ceil is not None else tile.floor + 4.0
         return Pendulum(
             spec.tx,
@@ -294,10 +335,32 @@ class World:
             phase=phase,
         )
 
+    def _vent_targets(self, tx, tz, radius):
+        """Open-sky solid ground a magma vent's bombs can land on: (x, z, floor) of each tile centre."""
+        out = []
+        cx, cz = TileMap.center(tx, tz)
+        for x_, z_, tile in self.map.each_tile():
+            x, z = TileMap.center(x_, z_)
+            if math.hypot(x - cx, z - cz) > radius:
+                continue
+            if tile.walkable and not tile.hazardous and not tile.needs_footing and tile.open_sky:
+                out.append((x, z, tile.floor))
+        return out
+
     def respawn_enemies(self):
-        """Shrine rest: every normal enemy comes back fresh. A living boss is left as it is."""
-        bosses = [e for e in self.enemies if e.type.boss and e.alive]
-        self.enemies = bosses + spawn_enemies(self.map, self.flags, bosses=False)
+        """Shrine rest: every normal enemy comes back fresh. A living boss is left as it is, unless it
+        is a twin whose other half has fallen: then the pair comes back fresh together."""
+        alive = {e.type.id for e in self.enemies if e.type.boss and e.alive}
+        bosses = [
+            e for e in self.enemies if e.type.boss and e.alive and (not e.type.twin or e.type.twin in alive)
+        ]
+        kept = {e.type.id for e in bosses}
+        twins = [
+            e
+            for e in spawn_enemies(self.map, self.flags)
+            if e.type.boss and e.type.twin and e.type.id not in kept
+        ]
+        self.enemies = bosses + twins + spawn_enemies(self.map, self.flags, bosses=False)
         self.projectiles = []
         self.eruptions = []
         self.shockwaves = []
@@ -407,6 +470,51 @@ class World:
             self.eruptions.append(Eruption(x, z, tile.floor, delay=delay, damage=damage))
         self.game.sfx("spell", 0.6)
 
+    def breath(self, enemy):
+        """A gargoyle's breath: a line of fire circles from its jaws toward you and on past, each
+        bursting a moment after the one before. Step sideways out of the line."""
+        player = self.player
+        dx, dz = player.x - enemy.x, player.z - enemy.z
+        d = math.hypot(dx, dz) or 1.0
+        ux, uz = dx / d, dz / d
+        damage = rround(enemy.type.damage * MOVES["breath"][2])
+        s, n = enemy.radius + 0.6, 0
+        while s <= d + BREATH_PAST:
+            x, z = enemy.x + ux * s, enemy.z + uz * s
+            tile = self.map.tile_at(x, z)
+            if tile.solid or not tile.walkable:
+                break
+            self.eruptions.append(Eruption(x, z, tile.floor, delay=n * 0.12, damage=damage))
+            s += BREATH_STEP
+            n += 1
+        self.game.sfx("breath", 0.9)
+
+    # --- twin bosses -------------------------------------------------------------
+
+    def _twins_of(self, enemy):
+        return [e for e in self.enemies if enemy.type.twin and e.type.id == enemy.type.twin]
+
+    def rouse_twin(self, enemy):
+        """One perched gargoyle wakes: its twin tears free of its perch as well."""
+        woke = False
+        for e in self._twins_of(enemy):
+            if e.perched:
+                e.rouse()
+                woke = True
+        if woke or not enemy.type.twin:
+            self.game.sfx("screech")
+            self.game.message("The iron gargoyles tear free of their perches!")
+
+    def twin_fallen(self, enemy):
+        return enemy.type.twin is not None and not any(e.alive for e in self._twins_of(enemy))
+
+    def twin_busy(self, enemy):
+        """Its twin is winding up or carrying out a special move: the pair takes turns."""
+        return any(
+            e.alive and e.state in ("windup", "attack") and e.attack_kind in MOVES
+            for e in self._twins_of(enemy)
+        )
+
     def hook(self, enemy, mult, pull):
         """A hooked chain: a light blow that drags you toward the thrower, unless a shield stops it."""
         if self.enemy_strike(enemy, mult) <= 0:
@@ -436,7 +544,7 @@ class World:
         web = kind == "web"
         y = self.enemy_y(enemy) + (enemy.type.hover or 1.2)
         player = self.player
-        speed = 7.5 if web else 6
+        speed = 7.5 if web else 11 if enemy.type.shot == "arrow" else 6
         dx, dy, dz = shots.toward(
             enemy.x, y, enemy.z, player.x, player.y + shots.AIM_HEIGHT, player.z, speed, spread
         )
@@ -457,7 +565,7 @@ class World:
                 hostile=True,
                 rgb=(230, 230, 220) if web else enemy.type.shot_rgb,
                 source=enemy.name,
-                effect="web" if web else None,
+                effect="web" if web else enemy.type.shot,
             )
         )
 
@@ -547,6 +655,19 @@ class World:
             if isinstance(h, CrumbleFloor):
                 self._update_crumble(h, dt, player.alive and (h.tx, h.tz) == (ptx, ptz))
                 continue
+            if isinstance(h, MagmaVent):
+                self._update_vent(h, dt)
+                continue
+            if isinstance(h, FlameJet):
+                if h.update(dt) and math.hypot(h.x - player.x, h.z - player.z) < 10:
+                    self.game.sfx("jet", 0.6)
+                if player.alive and abs(player.y - h.floor) < 1.6:
+                    dmg = h.hit(player.x, player.z)
+                    if dmg:
+                        self.game.hurt_player(
+                            max(rround(dmg - player.inventory.defense * 0.3), 1), "The flames"
+                        )
+                continue
             if h.update(dt) and near:
                 self.game.sfx("trap" if isinstance(h, SpikeTrap) else "swoosh", 0.5)
             if not player.alive:
@@ -561,6 +682,20 @@ class World:
                 dmg, px, pz = hit
                 self.game.hurt_player(dmg, "The pendulum")
                 self._knock_player(px, pz)
+
+    def _update_vent(self, h, dt):
+        """A magma vent lobs its bombs: the first at you when you stand on open ground in its reach."""
+        player = self.player
+        spot = None
+        if player.alive and h.reaches(player.x, player.z):
+            tile = self.map.tile_at(player.x, player.z)
+            if tile.walkable and not tile.hazardous and tile.open_sky:
+                spot = (player.x, player.z, tile.floor)
+        bombs = h.update(dt, spot)
+        if bombs:
+            self.eruptions.extend(bombs)
+            if math.hypot(h.x - player.x, h.z - player.z) < h.radius + 6:
+                self.game.sfx("lob", 0.6)
 
     def _update_fire(self, dt):
         """The Warden's fire columns and slam rings."""
@@ -592,6 +727,10 @@ class World:
         player = self.player
         tx, tz = TileMap.tile_coord(player.x), TileMap.tile_coord(player.z)
         tile = self.map[tx, tz]
+        if tile.lava:
+            if player.alive and self._safe is not None and player.y <= tile.floor + 0.3:
+                self._burn_in_lava()
+            return
         crumbling = any(isinstance(h, CrumbleFloor) and (h.tx, h.tz) == (tx, tz) for h in self.hazards)
         if not tile.pit and not crumbling:
             if abs(player.y - tile.floor) < 0.05:
@@ -604,6 +743,16 @@ class World:
             return
         self.game.hurt_player(FALL_DAMAGE, "The fall")
         self.game.message("You fall into the dark and claw your way back up.")
+        if player.alive:
+            player.place(*self._safe, player.yaw, self.map)
+
+    def _burn_in_lava(self):
+        """Lava sears a big share of your HP and you scramble back to the last solid ground."""
+        player = self.player
+        dmg = max(LAVA_MIN, rround(player.stats.max_hp * LAVA_SHARE))
+        self.game.hurt_player(dmg, "The lava")
+        self.game.sfx("hiss")
+        self.game.message("The lava sears you! You scramble back onto the stone.")
         if player.alive:
             player.place(*self._safe, player.yaw, self.map)
 
@@ -646,6 +795,8 @@ class World:
     def _update_projectiles(self, dt):
         player = self.player
         for pr_ in self.projectiles:
+            if pr_.homing:
+                self._steer(pr_, dt)
             pr_.x += pr_.dx * dt
             pr_.y += pr_.dy * dt
             pr_.z += pr_.dz * dt
@@ -691,7 +842,10 @@ class World:
                     None,
                 )
                 if target:
-                    self.game.damage_enemy(target, pr_.damage)
+                    element = elements.EFFECT_ELEMENT.get(pr_.effect)
+                    dmg = max(rround(pr_.damage * elements.mult(target.type, element)), 1)
+                    jolt = elements.staggers(target.type, element)
+                    self.game.damage_enemy(target, dmg, 99.0 if jolt else 1.0)
                     if pr_.effect == "venom" and target.alive:
                         target.afflict("poison", *Spells.venom_poison(self.player.stats.magic))
                         self.game.sfx("hiss", 0.6)
@@ -721,10 +875,52 @@ class World:
         out.sort(key=lambda e: math.hypot(e.x - player.x, e.z - player.z))
         return out[:limit] if limit else out
 
-    def fire_bolt(self, damage, effect="flame", rgb=(255, 160, 60)):
+    def _steer(self, pr_, dt):
+        """An arcane mote turns toward the nearest living foe it can see ahead of it."""
+        best, best_d = None, MOTE_SIGHT
+        for e in self.enemies:
+            if not e.alive or e.perched:
+                continue
+            d = math.hypot(e.x - pr_.x, e.z - pr_.z)
+            if d < best_d and self.can_see(pr_.x, pr_.z, e.x, e.z):
+                best, best_d = e, d
+        if best is None:
+            return
+        lo, hi = shots.body_span(best.type, self.enemy_y(best))
+        pr_.dx, pr_.dy, pr_.dz = shots.home(
+            pr_.dx, pr_.dy, pr_.dz, pr_.x, pr_.y, pr_.z, best.x, (lo + hi) / 2, best.z, Spells.MOTE_TURN, dt
+        )
+
+    def motes(self, damage):
+        """Arcane Motes: three slow sparks fanned out along the view, each seeking a foe of its own
+        accord. Returns them."""
         player = self.player
-        dx, dy, dz = shots.aim(player.yaw, player.pitch)
-        lead = 0.5 / shots.BOLT_SPEED  # starts half a metre out along the aim
+        out = []
+        for i in range(Spells.MOTES):
+            spread = (i - (Spells.MOTES - 1) / 2) * Spells.MOTE_SPREAD
+            dx, dy, dz = shots.aim(player.yaw + spread, player.pitch, Spells.MOTE_SPEED)
+            pr_ = Projectile(
+                x=player.x + dx * 0.08,
+                y=player.eye_y - shots.BOLT_DROP + dy * 0.08,
+                z=player.z + dz * 0.08,
+                dx=dx,
+                dy=dy,
+                dz=dz,
+                life=4.0,
+                damage=damage,
+                hostile=False,
+                rgb=(190, 120, 255),
+                effect="mote",
+                homing=True,
+            )
+            self.projectiles.append(pr_)
+            out.append(pr_)
+        return out
+
+    def fire_bolt(self, damage, effect="flame", rgb=(255, 160, 60), speed=shots.BOLT_SPEED):
+        player = self.player
+        dx, dy, dz = shots.aim(player.yaw, player.pitch, speed)
+        lead = 0.5 / speed  # starts half a metre out along the aim
         self.projectiles.append(
             Projectile(
                 x=player.x + dx * lead,
@@ -748,7 +944,8 @@ class World:
         targets = self.melee_targets(Spells.PYRE_REACH, cone=0.5)
         for e in targets:
             flammable = e.type.flammable
-            self.game.damage_enemy(e, Spells.pyre_damage(magic, gauge, flammable))
+            dmg = Spells.pyre_damage(magic, gauge, flammable)
+            self.game.damage_enemy(e, max(rround(dmg * elements.mult(e.type, "fire")), 1))
             if flammable and e.alive:
                 e.afflict("burn", *Spells.BURN)
         fx, fz = player.forward()
@@ -940,9 +1137,12 @@ class World:
         for mesh, tex in self._meshes:
             gpu.draw_world_batch(mesh, tex)
         gpu.set_float("isModel", 1.0)
-        far = self.meta.get("fog_range", [0, 40])[1] + 2
+        sight = self.meta.get("fog_range", [0, 40])[1] + 2
+        # Small models stop being drawn sooner than the fog's end on a map that sees far (the
+        # fortress from its bridge); landmarks are drawn as far as the eye can see.
+        far = min(float(self.meta.get("model_range", sight)), sight)
         for p in self.props:
-            if math.hypot(p.x - player.x, p.z - player.z) > far:
+            if math.hypot(p.x - player.x, p.z - player.z) > (sight if p.kind in LANDMARKS else far):
                 continue
             self._model_light(gpu, p.x, p.y + 1.0, p.z)
             with rig.entity(p.x, p.y, p.z, p.yaw):
@@ -1027,6 +1227,14 @@ class World:
                 self._model_light(gpu, h.x, y + 0.5, h.z)
                 with rig.at(h.x, y, h.z):
                     models.spikes(rig, h.height)
+            elif isinstance(h, FlameJet):
+                self._model_light(gpu, h.x, y + 0.5, h.z, flash=h.reach > 0)
+                with rig.at(h.x, y, h.z, ry=-math.atan2(h.dz, h.dx)):
+                    forge_models.flame_jet(rig, h.glow, h.reach, h.length * TileMap.TILE, self._time)
+            elif isinstance(h, MagmaVent):
+                gpu.model_light((1.6, 1.2, 1.0))
+                with rig.at(h.x, y, h.z):
+                    forge_models.magma_vent(rig, self._time + h.tx)
             else:
                 self._model_light(gpu, h.x, y + 1.5, h.z)
                 with rig.at(h.x, h.pivot_y, h.z, ry=0 if h.axis == "x" else -math.pi / 2):
@@ -1035,6 +1243,11 @@ class World:
             self._model_light(gpu, f.x, f.floor + 0.5, f.z)
             with rig.at(f.x, f.floor, f.z):
                 models.eruption(rig, f.glow, f.flame, self._time)
+            bomb = f.bomb()
+            if bomb:
+                gpu.model_light((1.6, 1.4, 1.2))
+                with rig.at(*bomb):
+                    forge_models.magma_bomb(rig, self._time)
         for w in self.shockwaves:
             gpu.model_light((1.6, 1.4, 1.2))
             with rig.at(w.x, w.floor, w.z):
@@ -1042,11 +1255,22 @@ class World:
         self._draw_ash(rig, gpu, far)
         for pr_ in self.projectiles:
             gpu.model_light((1.6, 1.4, 1.2))
+            if pr_.effect in ("arrow", "thunder"):  # these fly point first
+                heading = -math.atan2(pr_.dz, pr_.dx)
+                climb = math.atan2(pr_.dy, math.hypot(pr_.dx, pr_.dz))
+                with rig.at(pr_.x, pr_.y, pr_.z, ry=heading, rz=climb):
+                    if pr_.effect == "arrow":
+                        forge_models.arrow(rig, pr_.rgb)
+                    else:
+                        forge_models.thunder_spear(rig, self._time)
+                continue
             with rig.at(pr_.x, pr_.y, pr_.z, ry=self._time * 6):
                 if pr_.effect == "web":
                     models.web_shot(rig, self._time)
                 elif pr_.effect == "flare":
                     models.flare(rig, pr_.rgb, min(pr_.life / 0.45, 1.0))
+                elif pr_.effect == "mote":
+                    forge_models.mote(rig, self._time)
                 else:
                     models.bolt(rig, pr_.rgb)
 
@@ -1060,7 +1284,7 @@ class World:
             rig.part("cube", f.x, f.y, f.z, s, s, s, f.rgb, rx=f.spin, ry=f.spin * 0.7, glow=f.ember)
 
     def _model_light(self, gpu, x, y, z, flash=False, tint=None):
-        light = (2.0, 1.6, 1.6) if flash else [min(c, 1.6) for c in self.builder.light_at(x, y, z)]
+        light = (2.0, 1.6, 1.6) if flash else [min(c, 1.6) for c in self.builder.model_light_at(x, y, z)]
         if tint and not flash:
             pulse = 0.6 + 0.4 * math.sin(self._time * 6)
             light = [c * (1 - 0.5 * pulse) + t * pulse for c, t in zip(light, tint, strict=True)]
@@ -1183,8 +1407,18 @@ class World:
                 models.vine_door(rig, t)
             elif p.props.get("model") == "cave_mouth":
                 models.cave_mouth(rig, t)
+            elif p.props.get("model") == "road_gate":
+                forge_models.road_gate(rig)
             else:
                 models.rope(rig, t)
+        elif k == "spire":
+            forge_models.spire(rig, p.tx * 3 + p.tz, float(p.props.get("height", "12")))
+        elif k == "anvil":
+            forge_models.anvil(rig, t + p.tx)
+        elif k == "chimney":
+            forge_models.chimney(rig, t + p.tx, float(p.props.get("height", "2.6")))
+        elif k == "embers":
+            forge_models.embers_rain(rig, t, p.tx * 3 + p.tz)
 
 
 def maiden_door(t):

@@ -52,15 +52,61 @@ def for_npc(id_, game):
     return "Stranger", ["..."], None
 
 
+# Odrin on each sigil: how it feels in your hand, where to find it, and where it lies once its
+# keeper has fallen (the boss's dead flag) but nobody has picked it up.
+SIGIL_HELD = {
+    "ember_sigil": "The Ember Sigil! Warm as a hearthstone.",
+    "verdant_sigil": "Green glass with a leaf inside... the Verdant Sigil.",
+    "iron_sigil": "Black iron, cold as a grave... the Iron Sigil. Even the gargoyles could not keep it.",
+}
+SIGIL_HINT = {
+    "ember_sigil": "The Ember Sigil waits in the Warden's hall. Climb down the well in the square.",
+    "verdant_sigil": (
+        "The Verdant Sigil is in the hollow. Follow the green trail east of the square to the cave. "
+        "Take a light."
+    ),
+    "iron_sigil": (
+        "The Iron Sigil is held in the Cinderhold. Take the north road and cross the long bridge over the fire."
+    ),
+}
+SIGIL_FALLEN = {
+    "ember_sigil": (
+        "boss_dead",
+        "The Warden has fallen? Then the Ember Sigil should be lying in his hall. Bring it to me.",
+    ),
+    "verdant_sigil": (
+        "spider_dead",
+        "The thing in the hollow is dead? Then the Verdant Sigil lies in its nest. Fetch it.",
+    ),
+    "iron_sigil": (
+        "gargoyles_dead",
+        "The gargoyles are broken? Then the Iron Sigil lies up on the Cinderhold's roof. Fetch it.",
+    ),
+}
+
+
+def _sigil_lines(flags, held):
+    """For each sigil you still lack: where it lies if its keeper is dead, else how to find it."""
+    lines = []
+    for item in relics.ENDING_RELICS:
+        if item in held:
+            continue
+        flag, fallen = SIGIL_FALLEN[item]
+        lines.append(
+            fallen if flag in flags and relics.get(item).taken_flag not in flags else SIGIL_HINT[item]
+        )
+    return lines
+
+
 def odrin(game, flags, inv):
     held = relics.held(inv.has)
     if len(held) == len(relics.ENDING_RELICS):
         return (
             "Odrin",
             [
-                "Ember and leaf, both of them. I can feel the pair of them from here.",
+                "Ember, leaf and iron, all three of them. I can feel them from here.",
                 "Give them here. The bell will hold its note again.",
-                "Listen. The ground has gone quiet already, and the roots are still.",
+                "Listen. The ground has gone quiet already, the roots are still, and the forges are cooling.",
                 "Harrowmere owes you more than it can pay. Rest now, wanderer.",
             ],
             lambda g: g.finish_game(),
@@ -78,47 +124,29 @@ def odrin(game, flags, inv):
             [
                 "A traveller off the morning boat? Then the tide has not taken all our luck.",
                 "I keep the bell of Harrowmere. For three hundred years it has sung over the old keep below us.",
-                "Last month the bell cracked, and two things began to stir beneath the town.",
+                "Last month the bell cracked, and three things began to stir around the town.",
                 "Deep in the Sunken Keep the Ember Sigil sits in the Warden's hall. That is one.",
                 "The other is the Verdant Sigil. A green trail has crept out of the square's east side.",
                 "It ends at a cave, and beyond it a hollow has grown where no wood should be. Something nests there.",
-                "The bell needs both sigils to hold its note. Bring them back and the town will sleep again.",
+                "The last is the Iron Sigil. Look north at night: the old fortress on the ridge glows again.",
+                "They call it the Cinderhold. The north road and its long bridge lead there. Its forges are lit.",
+                "The bell needs all three sigils to hold its note. Bring them back and the town will sleep again.",
                 "Take these. They are all an old bell-keeper has.",
             ],
             after,
         )
-    if held == ["ember_sigil"]:
-        return (
-            "Odrin",
-            [
-                "The Ember Sigil! Warm as a hearthstone. Hold on to it a little longer.",
-                "The bell still needs its twin. Follow the green trail east of the square to the cave.",
-                "The Verdant Sigil waits somewhere in the hollow beyond it. Take a light. It is dark in there.",
-            ],
-            None,
-        )
-    if held == ["verdant_sigil"]:
-        return (
-            "Odrin",
-            [
-                "Green glass with a leaf inside... the Verdant Sigil. Keep it close.",
-                "Now the Ember Sigil. Climb down the well in the square and find the Warden's hall.",
-            ],
-            None,
-        )
-    lines = []
-    if "boss_dead" in flags and "sigil_taken" not in flags:
-        lines.append(
-            "The Warden has fallen? Then the Ember Sigil should be lying in his hall. Bring it to me."
-        )
-    if "spider_dead" in flags and relics.get("verdant_sigil").taken_flag not in flags:
-        lines.append("The thing in the hollow is dead? Then the Verdant Sigil lies in its nest. Fetch it.")
-    if lines:
-        return "Odrin", lines, None
+    lines = _sigil_lines(flags, held)
+    if held:
+        felt = [SIGIL_HELD[i] for i in held]
+        return "Odrin", [*felt, "Hold on to it a little longer. The bell still needs the rest.", *lines], None
+    dead = [SIGIL_FALLEN[i][1] for i in relics.ENDING_RELICS if SIGIL_FALLEN[i][1] in lines]
+    if dead:
+        return "Odrin", dead, None
     return (
         "Odrin",
         [
             "The well in the square leads down into the keep. The green trail east leads to the hollow's cave.",
+            "The north road climbs to the Cinderhold. Its bridge crosses a gorge of fire.",
             "Save your strength at the stone shrines. The old wardens built them for travellers like you.",
         ],
         None,
@@ -152,6 +180,9 @@ def hollis_lines(flags):
             "Mind the green trail to the east. The cave at its end opens on a wood that shouldn't be there."
         )
         lines.append("The flowers in there bite, and the trees walk. Don't stand still near either.")
+    if "gargoyles_dead" not in flags:
+        lines.append("The north road's open again. Folk say the fortress on the ridge has its forges lit.")
+        lines.append("Iron men walk its walls, and something on the roof watches the bridge. Bring a shield.")
     return lines
 
 

@@ -47,6 +47,12 @@ LIGHT_RADIUS = {"candles": "3", "shelf_fungus": "4", "giant_mushroom": "6", "bon
 KINDLING = ("brazier", "bonfire")
 DIRS = ((1, 0), (-1, 0), (0, 1), (0, -1))
 T = TileMap.TILE
+# Floors that shine by themselves: drawn at full brightness, and they light what is around them.
+GLOWING_FLOORS = ("lava",)
+LAVA_LIGHT = (1.0, 0.45, 0.15)
+LAVA_LIGHT_RADIUS = 6.0
+LAVA_LIGHT_SPACING = 3  # tiles between the lights a lava field casts
+MODEL_LIGHT_GRID = 0.5  # metres: models are lit from the nearest point of a grid this fine
 
 
 def _sub(a, b):
@@ -66,9 +72,10 @@ def _shine(l, rgb, x, y, z, nx, ny, nz):
     dx = l.x - x
     dy = l.y - y
     dz = l.z - z
-    d = math.sqrt(dx * dx + dy * dy + dz * dz)
-    if d >= l.radius:
+    d2 = dx * dx + dy * dy + dz * dz
+    if d2 >= l.radius * l.radius:
         return
+    d = math.sqrt(d2)
     f = (1.0 - d / l.radius) ** 2
     facing = 1.0 if d < 1e-3 else max((dx * nx + dy * ny + dz * nz) / d, 0.0) * 0.7 + 0.3
     k = f * facing * 1.4
@@ -83,6 +90,7 @@ class MeshBuilder:
         self.lights = list(lights)
         self.ambient = map_.meta.get("ambient", [0.2, 0.2, 0.2])
         self.batches = defaultdict(Batch)
+        self._model_light = {}  # light for models, by spot on a MODEL_LIGHT_GRID
 
     @staticmethod
     def light_for(map_, e):
@@ -110,6 +118,30 @@ class MeshBuilder:
             if e.kind in KINDLING and "unlit" in e.props and not (lit and lit(e)):
                 continue
             lights.append(MeshBuilder.light_for(map_, e))
+        return lights + MeshBuilder.lava_lights(map_)
+
+    @staticmethod
+    def lava_lights(map_):
+        """A glow along the shores of every lava field, where it lights something you walk on: one
+        light per patch of shore, spread at least LAVA_LIGHT_SPACING tiles apart, so a wide gorge
+        doesn't cost hundreds of lights nobody would see."""
+        lights = []
+        taken = []
+        for tx, tz, tile in map_.each_tile():
+            if tile.solid or tile.floor_tex not in GLOWING_FLOORS:
+                continue
+            shore = any(
+                (nb := map_[tx + dx, tz + dz]).walkable and not nb.hazardous and not nb.needs_footing
+                for dx in (-1, 0, 1)
+                for dz in (-1, 0, 1)
+            )
+            if not shore:
+                continue
+            if any(abs(tx - x) < LAVA_LIGHT_SPACING and abs(tz - z) < LAVA_LIGHT_SPACING for x, z in taken):
+                continue
+            taken.append((tx, tz))
+            x, z = TileMap.center(tx, tz)
+            lights.append(Light(x, tile.floor + 1.0, z, LAVA_LIGHT_RADIUS, list(LAVA_LIGHT)))
         return lights
 
     def light_at(self, x, y, z, nx=0.0, ny=1.0, nz=0.0):
@@ -122,10 +154,21 @@ class MeshBuilder:
             _shine(l, rgb, x, y, z, nx, ny, nz)
         return rgb
 
+    def model_light_at(self, x, y, z):
+        """Light falling on a model at (x, y, z), looked up on a coarse grid and remembered: models
+        are lit every frame, and the baked lights only change when a fire is kindled."""
+        g = MODEL_LIGHT_GRID
+        key = (round(x / g), round(y / g), round(z / g))
+        rgb = self._model_light.get(key)
+        if rgb is None:
+            rgb = self._model_light[key] = self.light_at(key[0] * g, key[1] * g, key[2] * g)
+        return rgb
+
     def add_light(self, light):
         """Adds a light after the build (a brazier kindled) by brightening only the vertices it
         reaches. Returns the textures whose batches changed and need uploading again."""
         self.lights.append(light)
+        self._model_light.clear()
         changed = set()
         r2 = light.radius * light.radius
         for tex, batch in self.batches.items():
@@ -153,7 +196,8 @@ class MeshBuilder:
     def _build_open(self, tx, tz, tile):
         x0 = tx * T
         z0 = tz * T
-        self._horizontal(tile.floor_tex, x0, z0, tile.floor, 1, 0.85 if tile.liquid else 1.0)
+        glow = tile.floor_tex in GLOWING_FLOORS
+        self._horizontal(tile.floor_tex, x0, z0, tile.floor, 1, 0.85 if tile.liquid else 1.0, glow=glow)
         if tile.ceil is not None:
             self._horizontal(tile.ceil_tex, x0, z0, tile.ceil, -1, 0.75)
 
@@ -184,8 +228,9 @@ class MeshBuilder:
                 continue
             self._wall(tile.wall_tex, tx, tz, dx, dz, nb.top, tile.top, face_out=True)
 
-    def _horizontal(self, tex, x0, z0, y, up, shade):
-        """Floor (up = 1) or ceiling (up = -1) of one tile, split into SEG squares."""
+    def _horizontal(self, tex, x0, z0, y, up, shade, glow=False):
+        """Floor (up = 1) or ceiling (up = -1) of one tile, split into SEG squares. A glowing floor
+        (lava) ignores the light and shows at full brightness."""
         n = rround(T / SEG)
         for i in range(n):
             for j in range(n):
@@ -193,7 +238,7 @@ class MeshBuilder:
                 az = z0 + j * SEG
                 pts = [(ax, y, az), (ax, y, az + SEG), (ax + SEG, y, az + SEG), (ax + SEG, y, az)]
                 uvs = [(p[0] / T, p[2] / T) for p in pts]
-                self._quad(tex, pts, uvs, (0.0, float(up), 0.0), shade)
+                self._quad(tex, pts, uvs, (0.0, float(up), 0.0), shade, glow=glow)
 
     def _wall(self, tex, tx, tz, dx, dz, y0, y1, face_out=False):
         """Vertical face on the edge of tile (tx, tz) toward (dx, dz). Faces into the tile unless face_out."""
@@ -224,7 +269,7 @@ class MeshBuilder:
                 uvs = [((p[0] + p[2]) / T, -p[1] / T) for p in pts]
                 self._quad(tex, pts, uvs, normal, shade, ao_floor=y0)
 
-    def _quad(self, tex, pts, uvs, normal, shade, ao_floor=None):
+    def _quad(self, tex, pts, uvs, normal, shade, ao_floor=None, glow=False):
         a, b, c = pts[0], pts[1], pts[2]
         if _dot(_cross(_sub(b, a), _sub(c, a)), normal) < 0:
             pts = pts[::-1]
@@ -236,7 +281,7 @@ class MeshBuilder:
             k = shade
             if ao_floor is not None:
                 k *= 0.7 + 0.3 * min((p[1] - ao_floor) / 0.8, 1.0)
-            raw = self.light_at(p[0], p[1], p[2], *normal)
+            raw = [1.0, 1.0, 1.0] if glow else self.light_at(p[0], p[1], p[2], *normal)
             colors.append([min(max(ch * k, 0.0), 1.0) for ch in raw])
             lit.append((k, *normal, raw))
         for i in (0, 1, 2, 0, 2, 3):

@@ -24,6 +24,10 @@ class Spells:
             Spell(
                 id="pyre", name="Pyre", cost=6, desc="Breathe a short gout of fire. Kindles cold braziers."
             ),
+            Spell(
+                id="thunder", name="Thunder Spear", cost=8, desc="Hurl a spear of lightning. Iron hates it."
+            ),
+            Spell(id="motes", name="Arcane Motes", cost=7, desc="Loose three seeking sparks at your foes."),
         ]
     }
     LUMEN_DURATION = 45.0
@@ -31,6 +35,11 @@ class Spells:
     PYRE_REACH = 3.2  # metres the gout of fire reaches
     FLAMMABLE_MULT = 1.5  # plant foes take this much more from fire
     BURN = (3.0, 4)  # seconds and HP per second that Pyre leaves a plant foe burning
+    THUNDER_SPEED = 16.0  # a thunder spear flies much faster than a flame bolt
+    MOTES = 3  # sparks per cast of Arcane Motes
+    MOTE_SPREAD = 0.35  # radians between them as they leave your hand
+    MOTE_SPEED = 6.0
+    MOTE_TURN = 3.2  # rad/s a mote can steer toward its mark
 
     @classmethod
     def get(cls, id_):
@@ -58,3 +67,12 @@ class Spells:
     def pyre_damage(magic, gauge, flammable=False):
         mult = Spells.FLAMMABLE_MULT if flammable else 1.0
         return Combat.damage(base=8, strength=magic * 2, gauge=gauge, defense=0, mult=mult)
+
+    @staticmethod
+    def thunder_damage(magic, gauge):
+        return Combat.damage(base=14, strength=magic * 2, gauge=gauge, defense=0)
+
+    @staticmethod
+    def mote_damage(magic, gauge):
+        """Each of the three sparks; all three landing beats a flame bolt."""
+        return Combat.damage(base=5, strength=magic, gauge=gauge, defense=0)
