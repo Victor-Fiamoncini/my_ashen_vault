@@ -21,7 +21,6 @@ class Player:
     TURN_SPEED = 1.7  # rad/s on keys
     LOOK_LIMIT = 0.9
     SWING_TIME = 0.45  # a light swing of a sword; see Attack.time and weapons.tempo
-    QUICK_FROM = 0.55  # a quick follow-up can cut in once a light swing is this far along
     HITSTOP = 0.05  # seconds a swing freezes when it connects
     WEBBED = 0.45  # speed multiplier while caught in silk
     SPORED = 0.6  # speed multiplier while choking on spores
@@ -47,7 +46,7 @@ class Player:
         self.attack = weapons.attack(self.inventory.weapon_item())
         self.charge_t = 0.0  # seconds the attack button has been held
         self.charge_hand = RIGHT  # which button is being held
-        self.queued_quick = False  # clicked again during a light swing
+        self.queued_quick = False  # double-clicked after the light blow had already landed
         self.hitstop_t = 0.0
         self.sprinting = False
         self.since_sprint = 99.0
@@ -336,23 +335,37 @@ class Player:
         self.guarding = False
         return a
 
-    def queue_quick(self, hand):
-        """A second click during a light swing of the same hand: a quick strike follows it."""
-        if self.swinging and self.swing_hand == hand and self.attack.kind == weapons.LIGHT:
+    def double_strike(self, hand):
+        """A second click within DOUBLE_CLICK of a light swing of the same hand: the weapon's quick attack.
+        If the light blow hasn't landed yet it is called off (its ST refunded) and the quick attack starts
+        at once, returning it; if it already landed the quick attack is queued to follow at once
+        (`chain_quick`), returning True. Otherwise (too slow, another hand, not a light swing) None."""
+        if not (self.swinging and self.swing_hand == hand and self.attack.kind == weapons.LIGHT):
+            return None
+        if self.swing_t > weapons.DOUBLE_CLICK:
+            return None
+        if self.swing_t >= self.swing_hit_at:
             self.queued_quick = True
             return True
-        return False
+        power = self.swing_power
+        self.stamina.value = min(self.stamina.value + self.attack.stamina, 1.0)
+        self.swing_t = None
+        a = self.start_swing(hand, weapons.QUICK, secrets=False)
+        if a:
+            self.swing_power = max(power, a.min_power)
+        return a
 
     def chain_quick(self):
-        """Cuts the light swing short with the queued quick strike once its blow has landed and it is
-        far enough along. Returns the quick Attack, or None."""
+        """Starts a queued quick attack once the light blow before it has landed. Returns it, or None."""
         if not (self.queued_quick and self.swinging and self.swing_t >= self.swing_hit_at):
             return None
-        if self.swing_t < self.swing_time * self.QUICK_FROM:
-            return None
         hand = self.swing_hand
+        power = self.swing_power
         self.swing_t = None
-        return self.start_swing(hand, weapons.QUICK)
+        a = self.start_swing(hand, weapons.QUICK, secrets=False)
+        if a:
+            self.swing_power = max(power, a.min_power)
+        return a
 
     def land_hit(self, target):
         """A swing connected with `target`: freezes it a moment and counts the combo."""

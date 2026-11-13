@@ -233,7 +233,7 @@ def test_every_attack_motion_has_a_pose():
 
     for moves in weapons.MOVESETS.values():
         for a in moves.values():
-            assert a.motion in models.MOTIONS or a.motion in ("jab", "hook"), a.motion
+            assert a.motion in models.MOTIONS or a.motion in ("jab", "hook", "onetwo"), a.motion
 
 
 def test_first_person_view_draws_every_hand_and_swing():

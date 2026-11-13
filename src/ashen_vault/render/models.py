@@ -2078,6 +2078,17 @@ MOTIONS = {
     "draw": ((-0.05, 0.0, -0.15, -0.25, -1.0), (0.15, 0.05, 0.25, 0.9, -1.0), (0.05, 0.12, 0.4, 1.4, -0.6)),
     "snare": ((-0.1, 0.25, 0.1, 0.6, 0.9), (0.1, 0.0, -0.1, -0.3, -1.7), (-0.15, -0.05, 0.0, -0.2, -0.6)),
     "leap": ((-0.05, 0.25, 0.0, 0.0, 1.0), (0.25, -0.25, -0.1, 0.0, -1.5), (0.2, -0.3, -0.1, 0.0, -1.6)),
+    # Double-click quick attacks.
+    "twin": ((-0.05, 0.12, 0.12, 0.9, 0.5), (0.12, 0.0, -0.15, -0.6, -1.2), (0.1, 0.1, 0.25, 0.9, -1.0)),
+    "pommel": ((-0.15, 0.05, -0.05, 0.0, 0.5), (0.25, 0.05, -0.1, 0.0, 0.7), (0.2, 0.03, -0.1, 0.0, 0.6)),
+    "doublelash": (
+        (-0.05, 0.15, 0.05, 0.4, 0.6),
+        (0.05, 0.05, -0.15, -0.4, -1.6),
+        (0.05, 0.1, 0.1, 0.3, -1.4),
+    ),
+    "rap": ((-0.12, 0.08, -0.05, 0.0, 0.3), (0.28, 0.02, -0.1, 0.0, -0.6), (0.22, 0.0, -0.1, 0.0, -0.7)),
+    "hook_cut": ((0.0, 0.1, -0.2, -0.6, 0.4), (0.2, 0.0, 0.1, 0.5, -1.1), (0.0, -0.05, 0.2, 0.8, -0.8)),
+    "drive": ((-0.15, 0.0, -0.05, 0.0, -0.5), (0.3, 0.0, -0.1, 0.0, -0.7), (0.25, -0.02, -0.1, 0.0, -0.7)),
 }
 
 
@@ -2270,7 +2281,7 @@ def _held_weapon(r, player, hand, bob, sprint, armor, both=False):
 
 
 def fist_view(r, player, hand, bob, armor):
-    """A bare hand: a jab straight forward, or a hook from the outside."""
+    """A bare hand: a jab straight forward, a hook from the outside, or the double-click's one-two."""
     side = 1 if hand == "right" else -1
     swinging = player.swing_t is not None and player.swing_hand == hand
     phase = player.swing_phase if swinging else None
@@ -2284,6 +2295,8 @@ def fist_view(r, player, hand, bob, armor):
         if motion == "hook":
             out = 0.3 * (1 - _ease(phase / max(hit_at, 1e-6))) if phase < hit_at else 0.0
             jab *= 0.6
+        elif motion == "onetwo":  # two snapping jabs in one swing
+            jab = 0.32 * abs(math.sin(phase * 2 * math.pi)) ** 0.7
     charge = player.charge_frac if (not swinging and player.charge_hand == hand) else 0.0
     pull = -0.1 * _ease(charge)
     wrist = (

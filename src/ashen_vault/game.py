@@ -43,8 +43,6 @@ from ashen_vault.world.world import World
 
 KIND_ORDER = ["weapon", "shield", "armor", "spell", "consumable", "scroll", "key"]
 HAND_BUTTON = {RIGHT: "attack", LEFT: "cast"}  # input actions: left mouse = Primary, right = Secondary
-PULSE_DELAY = 0.3  # seconds between the blows of a multi-pulse attack (the hammer's Aftershock)
-PULSE_DAMAGE = 0.6
 PAUSE_OPTIONS = ["Resume", "Controls", "Return to Title", "Quit"]
 # (x, y, width) of each ui.list_menu panel, shared by drawing and mouse hit-testing.
 PAUSE_LIST = (100, 80, 120)
@@ -395,7 +393,7 @@ class Game:
             self._resolve_swing()
         if self._hit_done and p.chain_quick():
             self._hit_done = False
-            self.sfx("swing", 0.5)
+            self.sfx("swoosh", 0.5)
         self._update_pulse(dt)
         wheel = inp.wheel()
         if wheel:
@@ -422,7 +420,7 @@ class Game:
 
     def _update_hands(self, dt):
         """Each mouse button works its slot (left button = Primary, right = Secondary): a weapon swings
-        (tap light, hold heavy, click again mid-swing for a quick strike), a shield is raised while
+        (tap light, hold heavy, double-click for its quick attack), a shield is raised while
         held, a spell is cast. A two-hander swings from Primary only; Secondary then does nothing.
         A scripted `attack` / `cast` taps that button, `attack:0.6` holds it."""
         p = self.player
@@ -444,10 +442,15 @@ class Game:
 
     def _update_weapon_button(self, hand, action, dt, down, pressed):
         p = self.player
-        if pressed and p.swinging and p.queue_quick(hand):
-            self._spent[action] = True  # this click was the quick follow-up, not a new swing
-            self._held[action] = False
-            return
+        if pressed and p.swinging:
+            quick = p.double_strike(hand)
+            if quick:  # this click was the second of a double-click, not a new swing
+                self._spent[action] = True
+                self._held[action] = False
+                if quick is not True:
+                    self._hit_done = False
+                    self.sfx("swoosh", 0.5)
+                return
         if down:
             if not self._spent[action] and not p.swinging and (p.charge_hand == hand or p.charge_t == 0):
                 p.charge_hand = hand
@@ -510,7 +513,7 @@ class Game:
         if targets:
             p.land_hit(targets[0])
         if a.pulses > 1:
-            self._pulse = [PULSE_DELAY, a, weapon, a.pulses - 1]
+            self._pulse = [a.pulse_gap, a, weapon, a.pulses - 1]
 
     def _strike(self, weapon, a, mult=1.0):
         """Deals one blow of attack `a` to everything in reach; returns who it hit."""
@@ -550,16 +553,20 @@ class Game:
         self.world.move_enemy(enemy, dx / d * step, dz / d * step)
 
     def _update_pulse(self, dt):
-        """The hammer's Aftershock: the ground answers the slam a moment later."""
+        """The later blows of a multi-pulse attack: the hammer's Aftershock (the ground answers the slam a
+        moment later) and the double-click doubles (Twin cut, One-two, Double crack)."""
         if not self._pulse:
             return
         self._pulse[0] -= dt
         if self._pulse[0] > 0:
             return
         _, a, weapon, left = self._pulse
-        self._pulse = [PULSE_DELAY, a, weapon, left - 1] if left > 1 else None
-        self.sfx("heavy", 0.6)
-        self._strike(weapon, a, PULSE_DAMAGE)
+        self._pulse = [a.pulse_gap, a, weapon, left - 1] if left > 1 else None
+        if a.heavy:
+            self.sfx("heavy", 0.6)
+        else:
+            self.sfx("swing", 0.5)
+        self._strike(weapon, a, a.pulse_damage)
 
     def blocked(self, block):
         """The world calls this when a raised shield meets a blow."""
@@ -1385,8 +1392,14 @@ class Game:
     def _item_detail(self, item):
         need = f"   Lv{item.level}" if item.level > 1 else ""
         if item.kind == "weapon":
-            kind = weapons.CATEGORY_NAMES[item.category] + (" (2H)" if item.two_handed else "")
-            return f"{kind}   ATK {item.power}   Reach {item.reach}{need}"
+            size = weapons.WEIGHT_NAMES[weapons.weight(item)]
+            kind = f"{size} {weapons.CATEGORY_NAMES[item.category]}" + (" 2H" if item.two_handed else "")
+            st = "/".join(  # light / heavy / quick, in % of the ST bar
+                str(rround(weapons.attack(item, k).stamina * 100))
+                for k in (weapons.LIGHT, weapons.HEAVY, weapons.QUICK)
+            )
+            need = f"  Lv{item.level}" if item.level > 1 else ""
+            return f"{kind}  ATK {item.power}  Rch {item.reach}  ST {st}{need}"
         if item.kind == "shield":
             return f"Shield   Block {rround(item.guard * 100)}%   Holds {item.stability}{need}"
         if item.kind == "armor":

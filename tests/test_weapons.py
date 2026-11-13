@@ -77,18 +77,82 @@ def test_sprint_drains_slower_than_before():
     assert Stamina.DRAIN_TIME >= 5.0
 
 
-def test_click_again_mid_swing_chains_a_quick_strike():
+def test_a_double_click_turns_the_light_swing_into_the_quick_attack():
+    p = armed("rusted_sword")
+    light = p.start_swing()
+    spent = 1 - p.stamina.value
+    assert math.isclose(spent, light.stamina)
+    p.update_timers(0.05)
+    assert p.double_strike("left") is None, "only the swinging hand"
+    quick = p.double_strike("right")
+    assert quick is not None and quick is not True and quick.kind == "quick"
+    assert quick.name == "Twin cut"
+    assert math.isclose(1 - p.stamina.value, quick.stamina), "the called-off light swing is refunded"
+    assert p.swing_t == 0.0 and p.swing_power >= quick.min_power
+    assert p.double_strike("right") is None, "a quick attack doesn't chain again"
+
+
+def test_a_slow_second_click_is_no_double_click():
     p = armed("rusted_sword")
     p.start_swing()
-    assert p.queue_quick("right")
-    assert not p.queue_quick("left"), "only the swinging hand chains"
-    assert p.chain_quick() is None, "not before the blow has landed"
-    while p.swing_t < p.swing_time * Player.QUICK_FROM:
+    while p.swing_t <= weapons.DOUBLE_CLICK:
+        p.update_timers(0.02)
+    assert p.double_strike("right") is None
+    assert p.attack.kind == "light"
+
+
+def test_a_double_click_after_the_blow_landed_queues_the_quick_attack():
+    p = armed("katana")
+    p.start_swing()
+    while p.swing_t < p.swing_hit_at:
         p.update_timers(0.01)
+    assert p.swing_t <= weapons.DOUBLE_CLICK
+    assert p.double_strike("right") is True
     quick = p.chain_quick()
-    assert quick is not None and quick.kind == "quick"
-    assert p.swing_power >= quick.min_power
-    assert not p.queue_quick("right"), "a quick strike doesn't chain again"
+    assert quick is not None and quick.kind == "quick" and quick.name == "Iaido flick"
+    assert p.chain_quick() is None
+
+
+def test_every_category_has_its_own_quick_attack():
+    names = {weapons.MOVESETS[c][weapons.QUICK].name for c in weapons.MOVESETS}
+    assert len(names) == len(weapons.MOVESETS)
+    for c, moves in weapons.MOVESETS.items():
+        q = moves[weapons.QUICK]
+        assert q.motion != moves[weapons.LIGHT].motion, c
+        if q.pulses > 1:
+            assert q.pulse_gap < 0.3 and q.pulse_damage == 1.0, c
+
+
+def test_weight_classes_scale_cost_damage_and_tempo():
+    hatchet, felling = Items.get("hatchet"), Items.get("felling_axe")
+    assert (weapons.weight(hatchet), weapons.weight(felling)) == ("light", "heavy")
+    for kind in (weapons.LIGHT, weapons.HEAVY, weapons.QUICK):
+        assert weapons.attack(hatchet, kind).stamina < weapons.attack(felling, kind).stamina
+    assert weapons.attack(hatchet, weapons.HEAVY).damage < weapons.attack(felling, weapons.HEAVY).damage
+    assert weapons.tempo(hatchet) < weapons.tempo(felling)
+    base = weapons.MOVESETS["sword"][weapons.HEAVY]
+    sizes = ["light", "medium", "heavy", "great"]
+    costs = [weapons.WEIGHTS[w][weapons.HEAVY][0] for w in sizes]
+    hits = [weapons.WEIGHTS[w][weapons.HEAVY][1] for w in sizes]
+    assert costs == sorted(costs) and hits == sorted(hits)
+    for w in sizes:
+        st = {k: weapons.WEIGHTS[w][k][0] for k in (weapons.LIGHT, weapons.HEAVY, weapons.QUICK)}
+        assert st[weapons.QUICK] <= st[weapons.LIGHT], "quick never costs more than light"
+        assert base.stamina * st[weapons.HEAVY] < 1.0
+    for item in ALL_WEAPONS:
+        assert item.weight in weapons.WEIGHTS, item.id
+        assert weapons.attack(item, weapons.HEAVY).stamina < 0.8, f"{item.id}: a heavy must be affordable"
+        if weapons.has_secret(item):
+            assert weapons.attack(item, weapons.SECRET).stamina < 1.0, item.id
+
+
+def test_the_heavier_class_of_a_category_costs_more_for_its_heavy():
+    claymore, zwei = Items.get("claymore"), Items.get("zweihander")
+    assert weapons.attack(claymore, weapons.HEAVY).stamina < weapons.attack(zwei, weapons.HEAVY).stamina
+    p = armed("zweihander")
+    p.charge_t = weapons.CHARGE_TIME
+    a = p.start_swing(kind=weapons.HEAVY)
+    assert math.isclose(1 - p.stamina.value, a.stamina)
 
 
 def test_hit_stop_holds_the_swing():

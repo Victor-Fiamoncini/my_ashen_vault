@@ -227,8 +227,14 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   a movement key (`tests/test_input.py`): `"back"` once did, and a raised shield walked you backward. Items carry a `level` requirement: buying is
   allowed, equipping is not (`Inventory.equip_error`). The first-person arms (`models.weapon_view`)
   take their sleeve and glove looks from `SLEEVES` / `GLOVES`, so new armor needs an entry there.
-- Every attack costs ST. A light swing can chain into a quick one (`Player.queue_quick` /
-  `chain_quick`); a weapon's `tempo` sets how long its swings take. Attack poses are keyframed in
+- Every attack costs ST. Each category's moveset (`weapons.MOVESETS`) is tuned for a medium weapon;
+  an item's `weight` (`light` / `medium` / `heavy` / `great`) scales each attack's ST, damage and poise
+  through `weapons.WEIGHTS` (`weapons.attack` returns the sized Attack) and adds `WEIGHT_TEMPO` to its
+  `tempo`, which sets how long its swings take. The quick attack is a double-click: a second click
+  within `weapons.DOUBLE_CLICK` of a light swing's start calls it off (refunding its ST) and starts the
+  quick one (`Player.double_strike`), or queues it if the blow already landed (`chain_quick`). In a
+  smoke run that is `attack wait:0.1 attack`. Quick moves that strike twice use `pulses` with a short
+  `pulse_gap`. Attack poses are keyframed in
   `models.MOTIONS` (wind, strike, follow) and the strike lands at the attack's `hit_at`. The
   viewmodel draws without depth testing, so draw what faces the camera last.
 - Secret attacks are listed in `weapons.secret()`; performing one adds a `secret:<category>` flag,

@@ -1,10 +1,11 @@
 """Weapon categories, their attacks and the secret moves hidden in some of them. Pure data, no raylib.
 
-Every weapon has a light attack (tap), a heavy one (hold, then release) and a quick one (click again
-while a light swing is still going). Some categories also hide a secret attack that only comes out
-in the right situation; see `secret()`."""
+Every weapon has a light attack (tap), a heavy one (hold, then release) and a quick one of its own
+(a fast double-click, see `DOUBLE_CLICK`). Some categories also hide a secret attack that only comes
+out in the right situation; see `secret()`. A weapon's `weight` class scales what each of its attacks
+costs and deals (`WEIGHTS`)."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 LIGHT, HEAVY, QUICK, SECRET = "light", "heavy", "quick", "secret"
 
@@ -27,6 +28,8 @@ class Attack:
     min_power: float = 0.0  # lowest ATK gauge the swing counts as (quick attacks never hit at nothing)
     pull: float = 0.0  # metres the target is dragged toward you
     pulses: int = 1  # how many times the blow lands (a second, weaker shockwave)
+    pulse_gap: float = 0.3  # seconds between the blows of a multi-pulse attack
+    pulse_damage: float = 0.6  # each later blow's share of the first
 
     @property
     def heavy(self):
@@ -39,6 +42,7 @@ SPRINT_GRACE = 0.4  # seconds after a sprint that still count as running into th
 REVENGE_GRACE = 1.0  # seconds after a blow lands on you (or your shield) that the Aftershock is ready
 COMBO_WINDOW = 2.0  # seconds between club hits on the same foe that keep the combo alive
 COMBO_HITS = 2  # club: hits already landed on one foe before the Skull-ringer comes out
+DOUBLE_CLICK = 0.3  # seconds after a light swing starts that a second click turns it into the quick attack
 
 
 def _light(name, motion, **kw):
@@ -62,22 +66,22 @@ MOVESETS = {
     "fists": {
         LIGHT: _light("Jab", "jab", stamina=0.05),
         HEAVY: _heavy("Hook", "hook", 0.26, damage=1.4, poise=1.5),
-        QUICK: _quick("Flurry", "jab"),
+        QUICK: _quick("One-two", "onetwo", damage=0.55, pulses=2, pulse_gap=0.12, pulse_damage=1.0),
     },
     "sword": {
         LIGHT: _light("Slash", "slash"),
         HEAVY: _heavy("Overhead chop", "chop", 0.39, damage=1.6, poise=1.5),
-        QUICK: _quick("Riposte stab", "stab", reach=1.1, cone=0.8),
+        QUICK: _quick("Twin cut", "twin", damage=0.55, pulses=2, pulse_gap=0.12, pulse_damage=1.0),
     },
     "greatsword": {
-        LIGHT: _light("Wide sweep", "sweep", cone=0.25, targets=3, stamina=0.12),
-        HEAVY: _heavy("Overhead cleave", "chop", 0.58, damage=2.0, poise=2.0),
-        QUICK: _quick("Pommel strike", "bash", reach=0.6, poise=1.5),
+        LIGHT: _light("Wide sweep", "sweep", cone=0.25, targets=3, stamina=0.09),
+        HEAVY: _heavy("Overhead cleave", "chop", 0.42, damage=2.0, poise=2.0),
+        QUICK: _quick("Pommel crack", "pommel", damage=0.8, reach=0.6, poise=2.2),
     },
     "katana": {
         LIGHT: _light("Quick slash", "slash"),
         HEAVY: _heavy("Lunging thrust", "thrust", 0.39, damage=1.7, reach=1.4, cone=0.8, lunge=1.0),
-        QUICK: _quick("Return cut", "flick", damage=0.8),
+        QUICK: _quick("Iaido flick", "flick", damage=0.9, cone=0.8, pierce_def=True),
         SECRET: _secret(
             "Sheathed Draw",
             "draw",
@@ -95,32 +99,34 @@ MOVESETS = {
     "whip": {
         LIGHT: _light("Crack", "lash", cone=0.85),
         HEAVY: _heavy("Wide lash", "sweep", 0.39, damage=1.2, cone=0.1, targets=4),
-        QUICK: _quick("Snap", "lash", cone=0.85),
+        QUICK: _quick(
+            "Double crack", "doublelash", damage=0.5, cone=0.85, pulses=2, pulse_gap=0.14, pulse_damage=1.0
+        ),
         SECRET: _secret("Snare", "snare", 0.4, damage=1.1, cone=0.85, poise=99, pull=1.2),
     },
     "mace": {
         LIGHT: _light("Bash", "slash", pierce_def=True, stamina=0.1),
         HEAVY: _heavy("Crush", "chop", 0.45, damage=1.8, poise=2.5, pierce_def=True),
-        QUICK: _quick("Rap", "bash", pierce_def=True),
+        QUICK: _quick("Hilt rap", "rap", poise=2.0, pierce_def=True),
     },
     "club": {
         LIGHT: _light("Clout", "bash", poise=1.3, stamina=0.09),
         HEAVY: _heavy("Overhand smash", "chop", 0.4, damage=1.7, poise=2.2),
-        QUICK: _quick("Knock", "bash", poise=1.2),
+        QUICK: _quick("Butt rap", "rap", poise=1.8),
         SECRET: _secret("Skull-ringer", "chop", 0.4, damage=2.0, poise=99, time=1.0, hit_at=0.4),
     },
     "axe": {
         LIGHT: _light("Hew", "hew", damage=1.1, stamina=0.1),
         HEAVY: _heavy("Splitting chop", "chop", 0.45, damage=1.8, poise=1.8),
-        QUICK: _quick("Hook cut", "slash"),
+        QUICK: _quick("Bearded hook", "hook_cut", pull=0.6),
         SECRET: _secret("Leaping Hew", "leap", 0.55, damage=2.2, poise=2.5, lunge=1.5, reach=1.1),
     },
     "hammer": {
-        LIGHT: _light("Smash", "chop", poise=1.5, stamina=0.12),
-        HEAVY: _heavy("Ground slam", "slam", 0.65, damage=1.5, reach=1.1, cone=-1, targets=8, poise=2.0),
-        QUICK: _quick("Haft jab", "stab", reach=0.7, poise=1.3),
+        LIGHT: _light("Smash", "chop", poise=1.5, stamina=0.09),
+        HEAVY: _heavy("Ground slam", "slam", 0.45, damage=1.5, reach=1.1, cone=-1, targets=8, poise=2.0),
+        QUICK: _quick("Haft drive", "drive", reach=0.7, poise=2.2),
         SECRET: _secret(
-            "Aftershock", "slam", 0.6, damage=1.6, reach=1.3, cone=-1, targets=8, poise=2.5, pulses=2
+            "Aftershock", "slam", 0.42, damage=1.6, reach=1.3, cone=-1, targets=8, poise=2.5, pulses=2
         ),
     },
 }
@@ -149,23 +155,62 @@ TEMPO = {
     "greatsword": 1.3,
     "hammer": 1.35,
 }
-TWO_HANDED_TEMPO = 0.1  # extra on top for weapons that fill both hands
+
+# Weight classes: the movesets above are tuned for a medium weapon of each category. Lighter ones cost
+# less ST and swing sooner; heavier ones cost more, hit harder and break poise better, and their heavy
+# attacks feel it most. Per attack kind: (stamina, damage, poise) multipliers.
+LIGHTWEIGHT, MEDIUM, HEAVYWEIGHT, GREAT = "light", "medium", "heavy", "great"
+WEIGHTS = {
+    LIGHTWEIGHT: {
+        LIGHT: (0.8, 1.0, 0.85),
+        HEAVY: (0.75, 0.95, 0.85),
+        QUICK: (0.8, 1.0, 0.85),
+        SECRET: (0.8, 1.0, 0.9),
+    },
+    MEDIUM: dict.fromkeys((LIGHT, HEAVY, QUICK, SECRET), (1.0, 1.0, 1.0)),
+    HEAVYWEIGHT: {
+        LIGHT: (1.2, 1.08, 1.2),
+        HEAVY: (1.3, 1.15, 1.3),
+        QUICK: (1.1, 1.05, 1.15),
+        SECRET: (1.25, 1.1, 1.25),
+    },
+    GREAT: {
+        LIGHT: (1.4, 1.15, 1.4),
+        HEAVY: (1.6, 1.3, 1.6),
+        QUICK: (1.2, 1.1, 1.3),
+        SECRET: (1.4, 1.2, 1.4),
+    },
+}
+WEIGHT_TEMPO = {LIGHTWEIGHT: -0.1, MEDIUM: 0.0, HEAVYWEIGHT: 0.1, GREAT: 0.2}
+WEIGHT_NAMES = {LIGHTWEIGHT: "Light", MEDIUM: "Medium", HEAVYWEIGHT: "Heavy", GREAT: "Great"}
 
 
 def moveset(item):
     return MOVESETS[item.category or "sword"]
 
 
+def weight(item):
+    return item.weight or MEDIUM
+
+
+def sized(item, a):
+    """Attack `a` as `item`'s weight class performs it."""
+    st, dmg, poise = WEIGHTS[weight(item)][a.kind]
+    if (st, dmg, poise) == (1.0, 1.0, 1.0):
+        return a
+    return replace(a, stamina=a.stamina * st, damage=a.damage * dmg, poise=a.poise * poise)
+
+
 def attack(item, kind=LIGHT):
-    """One of a weapon's attacks: light, heavy, quick or (if it has one) secret."""
+    """One of a weapon's attacks (light, heavy, quick or, if it has one, secret), sized to its weight."""
     if kind is True:  # attack(item, heavy=True) style callers
         kind = HEAVY
-    return moveset(item)[kind]
+    return sized(item, moveset(item)[kind])
 
 
 def tempo(item):
     """Swing-length multiplier for a weapon: bigger weapons swing slower."""
-    return TEMPO.get(item.category or "sword", 1.0) + (TWO_HANDED_TEMPO if item.two_handed else 0.0)
+    return TEMPO.get(item.category or "sword", 1.0) + WEIGHT_TEMPO[weight(item)]
 
 
 def has_secret(item):
@@ -208,4 +253,4 @@ def secret(item, kind, ctx):
             hit = ctx.since_hit <= REVENGE_GRACE
     elif kind == LIGHT and cat == "club":
         hit = ctx.combo >= COMBO_HITS
-    return moveset(item)[SECRET] if hit else None
+    return attack(item, SECRET) if hit else None
