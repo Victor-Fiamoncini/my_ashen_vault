@@ -62,8 +62,10 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 - The `smoke:` line includes the player's height (`y=`), handy for checking lifts.
 - Useful starts: `--at 4,24,90 --script "forward:0.9 wait:5 forward:0.6"` (the Cistern lift down to
   the Undercroft), `--at=11,26,90 --script "interact strafe_l:0.7 wait:5"` (free the shrine lift and
-  ride it up), `--at=23,13,0 --script "forward:0.7 wait:5"` (the lift up to the Warden's Gallery),
-  `--map harrowmere --at 40,14,0` (the jungle trail and its cave mouth), `--map verdant_hollow`
+  ride it up), `--at=23,13,0 --script "forward:0.7 wait:5"` (the cage lift up to the Warden's Gallery),
+  `--at=27,7,-90` (the Butcher in his slaughter hall north of the Gallery),
+  `--map harrowmere --at=32,14,-90` (the hedged jungle trail; `--at=41,18,-90` its dark end at the cave
+  mouth), `--map verdant_hollow`
   (Mossmouth, the dark cave you arrive in), `--at=15,31,180 --equip left=spell:pyre --script "cast"`
   (kindle Mossmouth's cold brazier), `--at=6,41,-90` (the Root Caverns), `--at=32,3,180` (the Canopy
   Walk), `--at=15,20,-90 --script interact` (the barred door, from its wrong side),
@@ -72,7 +74,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   `--at=15,7,-90` (the Ashen Warden in his hall), `--map harrowmere --at=16,4,-90 --script "wait:0.2
   interact"` (Odrin's dialogue box), `--map harrowmere --at=6,18,180 --script "forward:1 interact"` (Corvane; below
   `--level 5` they stay silent), `--map harrowmere --at=25,4,-90` (the north road's gate),
-  `--map cinderhold --at=29,50,-90` (the long bridge, the fortress ahead), `--map cinderhold --at=28,30,180`
+  `--map cinderhold --at=29,52,-90 --script "look_up:0.15"` (the long bridge and the fortress's skyline), `--map cinderhold --at=28,30,180`
   (the postern ledge and its flame jets), `--map cinderhold --at=18,17,180` (the foundry),
   `--map cinderhold --at=5,24,0` (the smelter pits), `--map cinderhold --at=30,6,180 --level 10`
   (the roof: the gargoyles wake at once).
@@ -89,12 +91,13 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/ui/hud.py` | HUD, menus, dialogue boxes |
 | `src/ashen_vault/audio/synth.py` | Synthesized sound effects |
 | `src/ashen_vault/input.py` | Key bindings and the `--script` driver |
-| `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. `harrowmere` (the village), `sunken_keep` (the dungeon below the well, with the Undercroft below its cells and the Warden's Gallery above the boss door), `verdant_hollow` (the jungle through the cave at the end of the village's east trail: Mossmouth cave, the Root Caverns below the bog, the Canopy Walk to the boss), `cinderhold` (the lava fortress up the north road: the long bridge, the gatehouse and postern, the foundry and the smelter pits below it, the ashworks, the rampart, and the roof where the twin gargoyles perch) |
+| `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. `harrowmere` (the village), `sunken_keep` (the dungeon below the well, with the Undercroft below its cells and the Warden's Gallery above the boss door, the Butcher's slaughter hall north of it), `verdant_hollow` (the jungle through the cave at the end of the village's east trail: Mossmouth cave, the Root Caverns below the bog, the Canopy Walk to the boss), `cinderhold` (the lava fortress up the north road: the long bridge, the gatehouse and postern, the foundry and the smelter pits below it, the ashworks, the rampart, and the roof where the twin gargoyles perch) |
+| `src/ashen_vault/world/sky.py`, `render/sky.py` | Skies (`[meta] sky = overcast\|jungle\|ember`): a gradient dome meeting the fog at the horizon, a sun and halo, drifting cloud banks and an overhead cap, horizon mist; dimmed by darkness and the Veil. Built pure in `world/sky.py`, drawn first each frame without fog or depth by `render/sky.py` |
 | `src/ashen_vault/world/darkness.py` | Dark tiles: how your light and the fog close in, Lumen and the Veil of Mist |
 | `src/ashen_vault/world/doors.py` | One-way doors (`door from=`): which side lifts the bar |
 | `src/ashen_vault/world/hazards.py` | Dungeon traps: floor spikes, pendulum blades, crumbling floors, flame jets, magma vents (whose bombs are `Eruption`s with an `origin`); the bosses' fire eruptions and slam shockwaves |
 | `src/ashen_vault/world/elements.py` | Elements: lightning against `conductive` foes, fire against `fireproof` ones, which weapons burn |
-| `src/ashen_vault/render/forge_models.py` | The Cinderhold's models (golem, bowman, hound, the gargoyles, Stormbrand and Slagbreaker, arrows, thunder and motes, flame jets, spires); `models` imports it last and borrows its helpers |
+| `src/ashen_vault/render/forge_models.py` | The Cinderhold's models (golem, bowman, hound, the gargoyles, Stormbrand and Slagbreaker, arrows, thunder and motes, flame jets, and the skyline: spires, bastions, smokestacks, the gatehouse, the keep, lavafalls); `models` imports it last and borrows its helpers |
 | `src/ashen_vault/world/terrain.py` | Terrain: rafts, planks, ledges, rotten floorboards, chain lifts, currents, thorns, chasm and river falls, hard landings, the log rack, spore pods (`World.terrain`) |
 | `src/ashen_vault/world/rest.py` | The shrine rest: timing and the pixelated ember fog pattern drawn while you pray |
 | `src/ashen_vault/ui/smallfont.py` | The small mixed-case pixel font for all game text: menus, dialogue, messages, prompts and the boss bar (`hud.text` draws with it) |
@@ -140,10 +143,11 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   there, and standing in one shrinks your own light and pulls the fog in (`world/darkness.py`);
   Lumen pushes both back.
   Terrain entities: `raft to=tx,tz speed= phase=`, `plank`, `ledge deck=`, `boards deck=` (rotten
-  floorboards that break for good), `lift top= [start=top] [lever=id] [speed=]` (a chain lift: its
+  floorboards that break for good), `lift top= [start=top] [lever=id] [speed=] [model=cage]` (a chain lift: its
   tile is a `chasm` shaft whose floor is the bottom stop and whose `ceil` clears `top`; it carries
   whoever stands on it to the other end, and comes when someone waits at a landing. With `lever=` it
-  stays chained until the matching lever is pulled, a shortcut opened from one side),
+  stays chained until the matching lever is pulled, a shortcut opened from one side. `model=cage` draws
+  the keep's barred jail cage, open on the sides that face a landing (`terrain.lift_doors`)),
   `bridge lever=id hinge=n|s|e|w deck=` (a drawbridge standing raised on its hinge side until its
   lever lets it down, for good), `log_chute to=tx,tz every= speed= logs=` (a log rack that only
   releases while someone climbs its slope) and `spore_pod every=`.
@@ -152,10 +156,14 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   count= phase=` (stands in a lava chasm; lobs bombs at open-sky solid ground within `radius` metres,
   the first at you).
   `[meta]` may set `model_range`: metres beyond which small models stop being drawn, short of the fog's
-  end, on a map that sees far; `LANDMARKS` (`spire`) are still drawn out to the fog.
+  end, on a map that sees far; `LANDMARKS` (`spire`, `keep`, `bastion`, `smokestack`, `gatehouse`,
+  `lavafall`) are still drawn out to the fog. They stand on tiles no one reaches (wall tops, the moat)
+  or above a passage's roof (`bastion base=`, `gatehouse`), and no two Cinderhold towers share a shape
+  (`test_cinderhold_skyline_has_no_two_towers_alike_and_stands_out_of_reach`).
 - Enemy behaviour flags in `ai/enemy_types.py`: `ambush` spawns dormant (the chest Mimic) until woken;
   `lurk` sits still until you come close (the Stump Mimic, the Bone Crawler); `once` stays dead;
-  bosses set `dead_flag` and drop a relic. Any type picks special attacks from `moves` (see `MOVES` in
+  bosses set `dead_flag` and drop a relic (the Butcher, a mini-boss, sets `butcher_dead` but has no
+  relic: his cleaver is an entity `item=`). Any type picks special attacks from `moves` (see `MOVES` in
   `ai/enemy.py`: `sweep`, `web`, `pounce`, `cinders`, `combo`, `slam`, `eruption`, `hook`, `breath`
   (a line of `Eruption`s raking toward you and past), `dive` (a swoop through where you stood)). At half
   HP a boss with a `brood` calls it and one with a `rage` kindles it (the Warden's burning blade);
@@ -179,8 +187,8 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   `aim_wrist(blade_direction, shoulder + elbow)` rather than a fixed angle, so it never folds back along
   the arm. `tests/test_render_logic.py` checks the wrist stays within 150 degrees of the forearm's line.
 - Props that fill their tile are listed in `world/world.py` (`BLOCKING_PROPS`, `BREAKABLE_PROPS`;
-  the keep adds `pillar`, `sarcophagus` and `bell`, the jungle `bonfire`, `giant_mushroom` and
-  `totem`). Decor that blocks nothing: `cage` and `roots` hang from the ceiling, `grate` sits in the
+  the keep adds `pillar`, `sarcophagus` and `headsman_block`, the jungle `bonfire`, `giant_mushroom` and
+  `totem`). Decor that blocks nothing: `cage`, `roots` and `meat_hooks` hang from the ceiling, `grate` sits in the
   floor, `mushrooms` dot it, and `cobweb`, `skull_niche`, `winch`, `lever` and `shelf_fungus` mount on
   the nearest wall (`WALL_PROPS`). `lever model=wood` is the jungle's wooden lever.
   Light comes from `mesh_builder.LIGHT_KINDS` (torches, braziers, fungus, bonfires, the glowing
@@ -209,7 +217,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 - Persistent world state lives in the save's `flags` set, keyed `<kind>:<map>:<tx>,<tz>` (opened
   chests, broken barrels, revealed walls, slain mimics, kindled fires as `lit:`) or `loot:<key>` for
   dropped items. Bosses add
-  their `dead_flag` (`boss_dead`, `spider_dead`, `gargoyles_dead`) and relics a `<relic>_taken` flag
+  their `dead_flag` (`boss_dead`, `spider_dead`, `gargoyles_dead`, `butcher_dead`) and relics a `<relic>_taken` flag
   (`sigil_taken` for the Ember Sigil).
 - Equipment (`player/inventory.py`): two hand slots, shown to players as **Primary** (`right` = left
   mouse button) and **Secondary** (`left` = right button) via `SLOT_NAMES`; never say "hand" in text the

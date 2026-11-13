@@ -72,7 +72,7 @@ FromSoftware, Inc.
     <td align="center"><sub>The Loom Mother</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/jungle_trail.png" alt="A green trail between vine hedges ending at a cave mouth, glowing toadstools at its lip"></td>
+    <td><img src="docs/screenshots/jungle_trail.png" alt="A narrow hedged trail under a darkening canopy, glowing toadstools at the cave mouth ahead"></td>
     <td><img src="docs/screenshots/mossmouth.png" alt="A brazier just kindled in the dark Mossmouth cave, a chest beside it"></td>
   </tr>
   <tr>
@@ -96,15 +96,15 @@ FromSoftware, Inc.
     <td align="center"><sub>Corvane's blades, for those who have proven themselves</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/undercroft_lift.png" alt="Riding a chain lift down a shaft toward a wall of skulls and bones"></td>
-    <td><img src="docs/screenshots/gallery.png" alt="The Warden's Gallery: a stone pillar, hanging roots, a bronze bell, a gibbet cage and a hooded Gaoler"></td>
+    <td><img src="docs/screenshots/undercroft_lift.png" alt="Riding a barred cage lift down a shaft toward a wall of skulls and bones"></td>
+    <td><img src="docs/screenshots/gallery.png" alt="The Butcher, a hooded brute with a cleaver, in his slaughter hall above the Warden's Gallery, meat hooks hanging behind him"></td>
   </tr>
   <tr>
-    <td align="center"><sub>Riding the lift down into the Undercroft</sub></td>
-    <td align="center"><sub>The Warden's Gallery, and a Gaoler with his hooked chain</sub></td>
+    <td align="center"><sub>Riding the cage lift down into the Undercroft</sub></td>
+    <td align="center"><sub>The Butcher, waiting in his slaughter hall</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/cinderhold_bridge.png" alt="A long stone bridge over a lava gorge leading to a black fortress with tall spires, slag hounds waiting on the span"></td>
+    <td><img src="docs/screenshots/cinderhold_bridge.png" alt="A long stone bridge leading to a black fortress under a smoky red sky: a turreted gatehouse, a drum bastion, a great keep, smelter stacks and a spire"></td>
     <td><img src="docs/screenshots/postern_ledge.png" alt="A narrow ledge along the fortress wall above lava, a magma bomb arcing toward a glowing landing circle and an iron bowman ahead"></td>
   </tr>
   <tr>
@@ -124,11 +124,14 @@ FromSoftware, Inc.
 ## Features
 
 - **PS1-style renderer**: 320×240 internal resolution, vertex snapping, affine texture warping,
-  15-bit color with ordered dithering, distance fog and baked vertex lighting.
+  15-bit color with ordered dithering, distance fog and baked vertex lighting, under skies of drifting
+  cloud with a sun glowing through them and mist along the horizon.
 - **Deliberate, weighty combat**: an ATK gauge that refills between swings, enemy wind-ups you can read
   and interrupt, and bosses with poise and attacks of their own: the Ashen Warden cleaves all around,
   leaps, flings embers, chains three cuts together and slams a shockwave through the floor, and at
-  half health his blade catches fire and he calls flame up from beneath your feet; the Loom Mother
+  half health his blade catches fire and he calls flame up from beneath your feet; above his hall the
+  Butcher swings a cleaver all around him, lunges and hacks, and at half health flies into a frenzy
+  of floor-shaking chops; the Loom Mother
   sweeps, spits webs, pounces and calls her brood; and on the Cinderhold's roof two iron gargoyles fight
   as a pair: Brand sweeps, claws, leaps and slams, Bellows hovers, rakes the roof with fiery breath and
   swoops straight through you. They take turns, and when one falls the other flies into a rage.
@@ -157,17 +160,18 @@ FromSoftware, Inc.
   (one of them only once you have proven yourself).
 - **A keep that fights back**: floor spikes, swinging pendulum blades and floors that crumble into the
   dark, plus barrels, crates and urns to smash for a few coins, and secrets for those who look closely.
-- **A keep that folds back on itself**: chain lifts sink to a skull-walled Undercroft below the cells
-  and climb to the Warden's Gallery above his door. Some lifts are chained fast until you free their
-  winch from the far side, opening shortcuts back to the shrine. Hooded Gaolers drag you in on hooked
+- **A keep that folds back on itself**: barred cage lifts sink to a skull-walled Undercroft below the
+  cells and climb to the Warden's Gallery above his door, where the Butcher waits among his hooks with a
+  cleaver worth taking. Some lifts are chained fast until you free their winch from the far side,
+  opening shortcuts back to the shrine. Hooded Gaolers drag you in on hooked
   chains, and not every heap of bones stays a heap.
 - **A jungle that fights back too**: a river with a ford, a drifting raft and rotting planks; thorn
   beds; a ravine crossed on crumbling ledges; a slope where a log rack rolls its logs at climbers;
   choking spore pods in a stilt cabin; and an abandoned woodcutters' camp to rummage through, whose
   cabin floor gives way into its cellar. Long drops hurt, and the hollow keeps a few secrets too.
 - **A fortress of iron and fire**: cross a long bridge over a lava gorge while vents in the lava lob
-  molten bombs at you and iron bowmen shoot from the walls, with the black towers of the Cinderhold
-  ahead. Inside, lava channels cut through the foundry, flame jets guard the corridors, slag hounds
+  molten bombs at you and iron bowmen shoot from the walls, with the Cinderhold's turreted gatehouse,
+  great keep and smoking stacks ahead and molten iron pouring from its walls into the gorge. Inside, lava channels cut through the foundry, flame jets guard the corridors, slag hounds
   prowl the dark smelter pits and forge golems hide an open firebox on their backs. A postern, a gate
   winch and a chained lift fold the fortress back onto its shrine.
 - **Dark places**: the hollow's caves and root caverns swallow your light. Only torches, glowing
@@ -294,6 +298,8 @@ The same list is in the game under **Controls** on the title and pause menus.
   budge, look for the winch lever at the other end.
 - When the Warden raises his blade in both hands, back away: the slam reaches all around him. Once his
   blade burns, keep moving off the glowing circles on the floor.
+- The Butcher is slow but hits hard. Wait out his wind-up, strike after the blow, and back off when
+  he raises the cleaver in both hands.
 - Not every wall is a wall, and not every chest is a chest. Not every stump is a stump, either.
 - In the jungle, keep moving on ledges and rotten planks, and wait in the notches of the log slope
   for each log to pass. Tree creatures turn slowly: get behind them, or set them alight.
@@ -360,7 +366,8 @@ it, so Claude Code, Codex, Cursor and Copilot all follow the same rules.
 | `src/ashen_vault/maps/*.map` | Plain-text tile maps (`[meta]`, `[legend]`, `[grid]`, `[entities]`) |
 | `src/ashen_vault/world/hazards.py`, `world/terrain.py` | Traps (spikes, blades, crumbling floors, flame jets, magma vents) and boss fire; terrain (lifts, river, ravine, ledges, logs, spores) |
 | `src/ashen_vault/world/elements.py` | Lightning against iron, fire against what was forged in it |
-| `src/ashen_vault/render/forge_models.py` | The Cinderhold's foes, the twin gargoyles, its weapons, shots and fortress dressing |
+| `src/ashen_vault/render/forge_models.py` | The Cinderhold's foes, the twin gargoyles, its weapons, shots, fortress dressing and skyline |
+| `src/ashen_vault/world/sky.py`, `render/sky.py` | Each map's sky (gradient, sun, clouds, mist), built as plain geometry and drawn behind the world |
 | `src/ashen_vault/dialogue.py` | NPC conversations |
 | `docs/logo/make_logo.py` | Generates the pixel-art logo SVG (its letters come from `ui/logofont.py`) |
 
@@ -399,13 +406,13 @@ the flame bolt shot is
 the Loom Mother is `uv run ashen-vault --map verdant_hollow --at=15,7,-90 --smoke 40 --shot loom_mother.png`,
 the lift ride is
 `uv run ashen-vault --map sunken_keep --at 4,24,90 --smoke 560 --script "forward:0.9 wait:5 forward:0.3" --shot undercroft_lift.png`,
-the gallery is `uv run ashen-vault --map sunken_keep --at=25,15,-60 --smoke 40 --shot gallery.png`,
-the jungle trail is `uv run ashen-vault --map harrowmere --at 38,14,0 --smoke 40 --shot jungle_trail.png`,
+the Butcher is `uv run ashen-vault --map sunken_keep --at=27,7,-90 --smoke 20 --shot gallery.png`,
+the jungle trail is `uv run ashen-vault --map harrowmere --at=41,18,-90 --smoke 40 --shot jungle_trail.png`,
 Mossmouth is
 `uv run ashen-vault --map verdant_hollow --at=15,31,180 --equip left=spell:pyre --script "wait:0.3 cast wait:3" --smoke 120 --shot mossmouth.png`,
 the canopy is `uv run ashen-vault --map verdant_hollow --at=31,3,180 --script "look_down:0.12" --smoke 40 --shot canopy_walk.png`,
 the Root Caverns are `uv run ashen-vault --map verdant_hollow --at=6,38,-100 --smoke 25 --shot root_caverns.png`,
-the long bridge is `uv run ashen-vault --map cinderhold --at=29,50,-90 --smoke 60 --shot cinderhold_bridge.png`,
+the long bridge is `uv run ashen-vault --map cinderhold --at=29,52,-90 --script "look_up:0.15" --smoke 60 --shot cinderhold_bridge.png`,
 the postern ledge is `uv run ashen-vault --map cinderhold --at=28,30,180 --smoke 190 --shot postern_ledge.png`,
 the foundry is `uv run ashen-vault --map cinderhold --at=18,17,180 --smoke 40 --shot foundry.png`,
 the gargoyles are
