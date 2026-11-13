@@ -18,6 +18,7 @@ from ashen_vault.player.spells import Spells
 from ashen_vault.render import models
 from ashen_vault.render.gpu import Gpu
 from ashen_vault.render.rig import Rig
+from ashen_vault.render.sky import SkyPass
 from ashen_vault.save.save_system import SaveSystem
 from ashen_vault.screen import (
     FOV,
@@ -84,6 +85,7 @@ class Game:
         pr.set_texture_filter(self._preview.texture, pr.TEXTURE_FILTER_POINT)
         self.gpu = Gpu()
         self._rig = Rig(self.gpu)
+        self._sky = SkyPass(self.gpu)
         self._audio = Audio()
         self._input = Input(self.opts.get("script"))
         self._saves = SaveSystem()
@@ -1167,6 +1169,10 @@ class Game:
         gpu.set_float("torchRadius", radius)
 
         pr.begin_mode_3d(self._camera)
+        cam = self._camera.position
+        dark = self._dark_k or 0.0
+        veil = self.player.veil_t > 0
+        self._sky.draw(meta, (cam.x, cam.y, cam.z), fog, fog_range, dark, veil, self._time)
         self.world.draw(self._rig, gpu)
         pr.end_mode_3d()
 

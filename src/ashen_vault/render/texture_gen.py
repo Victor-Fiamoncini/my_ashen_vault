@@ -44,6 +44,9 @@ def all_textures():
         "slag": slag(),
         "ash_road": ash_road(),
         "slate": slate(),
+        "clouds": clouds(),
+        "cloud_cap": cloud_cap(),
+        "mist": mist(),
         "white": solid(255, 255, 255),
     }
 
@@ -598,5 +601,51 @@ def slate():
             return tint([22, 22, 26], 0.9 + n * 0.2)
         k = 0.7 + hash_(ox // 16, row, 362) * 0.25 + (n - 0.5) * 0.3
         return tint([70, 74, 84], k)
+
+    return build(px)
+
+
+# A 4x4 ordered-dither matrix (0..15): the sky textures stipple their soft edges with it, the way
+# the PS1 faked transparency, since the shader keeps a texel only when its alpha is at least half.
+BAYER = (0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5)
+
+
+def _stipple(x, y, density):
+    """Opaque where `density` (0..1) beats this texel's dither threshold."""
+    return 255 if density > (BAYER[(y % 4) * 4 + x % 4] + 0.5) / 16 else 0
+
+
+def clouds():
+    """Banks of cloud, tileable left to right: billowing lumps that thin out toward the band's top
+    and bottom edges, brighter in their cores. The sky tints them (lit tops, dark undersides)."""
+
+    def px(x, y):
+        n = noise(x, y, 16, 402) * 0.55 + noise(x, y, 8, 403) * 0.3 + noise(x, y, 4, 404) * 0.15
+        edge = math.sin(math.pi * (y + 0.5) / SIZE)
+        density = (n - 0.45) * 7.0 * edge - (1.0 - edge) * 0.5
+        k = 0.82 + min(max(density, 0.0), 1.0) * 0.18
+        return [rround(255 * k)] * 3 + [_stipple(x, y, density)]
+
+    return build(px)
+
+
+def cloud_cap():
+    """The thin cloud overhead: loose wisps with stippled edges."""
+
+    def px(x, y):
+        n = noise(x, y, 16, 412) * 0.6 + noise(x, y, 4, 413) * 0.4
+        density = (n - 0.52) * 6.0
+        return [240, 240, 240, _stipple(x, y, density)]
+
+    return build(px)
+
+
+def mist():
+    """Horizon haze: long streaks, densest at the bottom and fading to nothing at the top."""
+
+    def px(x, y):
+        streak = noise(x, y // 4, 16, 422) * 0.7 + noise(x, y, 8, 423) * 0.3
+        density = (y / SIZE) * 1.15 * (0.55 + streak * 0.6)
+        return [255, 255, 255, _stipple(x, y, density)]
 
     return build(px)

@@ -3,6 +3,7 @@ name = Harrowmere
 ambient = 0.62 0.58 0.62
 fog = 0.42 0.46 0.55
 fog_range = 10 46
+sky = overcast
 torch = 0 0 0 0
 start = 15 20 -90
 default = ,

@@ -140,7 +140,7 @@ class MapLoader:
 
     @staticmethod
     def _coerce_meta(key, value):
-        if key in ("ambient", "fog", "fog_range", "start", "sky", "torch"):
+        if key in ("ambient", "fog", "fog_range", "start", "torch"):
             return [float(v) for v in value.split()]
         if key == "edge_top":
             return float(value)

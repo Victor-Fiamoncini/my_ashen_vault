@@ -142,6 +142,13 @@ class Gpu:
         self.set_color(mat, 255, 255, 255)
         rl.DrawMesh(mesh[0], mat, self._identity)
 
+    def draw_sky_batch(self, mesh, tex, matrix):
+        """A sky layer: baked vertex colours like the world, placed around the eye by `matrix`."""
+        self.set_float("isModel", 0.0)
+        mat = self.material(tex)
+        self.set_color(mat, 255, 255, 255)
+        rl.DrawMesh(mesh[0], mat, matrix)
+
     def model_light(self, rgb):
         """Models keep a floor of light so they never vanish into the dark."""
         self._model_light = [c + 0.12 for c in rgb]
