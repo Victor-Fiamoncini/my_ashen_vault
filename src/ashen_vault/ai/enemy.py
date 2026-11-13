@@ -18,6 +18,8 @@ MOVES = {
 SWEEP_REACH = 1.0  # extra reach of a sweep over the type's normal reach
 POUNCE_SPEED = 13.0  # m/s through the air
 POUNCE_TIME = 0.5  # longest a pounce can fly
+TRAIL_HOLD = 0.6  # seconds the boss bar's damage trail waits before draining
+TRAIL_RATE = 0.35  # fraction of max HP the trail drains per second
 
 
 def _wrap(a):
@@ -39,6 +41,8 @@ class Enemy:
         self.home_z = z
         self.yaw = yaw
         self.hp = type_.hp
+        self.trail_hp = float(type_.hp)  # lags behind hp after a hit: the boss bar's damage trail
+        self._trail_hold = 0.0
         self.marker = marker
         self._rng = rng or random.Random()
         self.loot = loot  # item dropped on death
@@ -85,6 +89,7 @@ class Enemy:
     def update(self, dt, world):
         self.anim_t += dt
         self.state_t += dt
+        self._update_trail(dt)
         if self.state in ("dead", "dormant"):
             return
         for m in self.cooldowns:
@@ -123,6 +128,13 @@ class Enemy:
             and self.state in ("chase", "recover")
         )
 
+    def _update_trail(self, dt):
+        """After a short hold, the damage trail drains down to the current HP."""
+        if self._trail_hold > 0:
+            self._trail_hold = max(self._trail_hold - dt, 0.0)
+            return
+        self.trail_hp = max(self.trail_hp - self.type.hp * TRAIL_RATE * dt, float(self.hp))
+
     def kill(self):
         if self.alive:
             self.hp = 0
@@ -135,6 +147,7 @@ class Enemy:
             return False
         was_dormant = self.dormant
         self.hp -= amount
+        self._trail_hold = TRAIL_HOLD
         if self.hp <= 0:
             self.hp = 0
             self._switch("dead")

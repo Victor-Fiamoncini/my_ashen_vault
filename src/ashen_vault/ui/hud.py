@@ -4,10 +4,13 @@ import itertools
 import math
 
 import pyray as pr
+import raylib as rl
+from raylib import ffi
 
 from ashen_vault.screen import H, W
-from ashen_vault.ui import tinyfont
-from ashen_vault.util import clamp, rround
+from ashen_vault.ui import smallfont, tinyfont
+from ashen_vault.util import clamp, highlight_runs, rround
+from ashen_vault.world import rest
 
 
 def color(r, g, b, a=255):
@@ -19,7 +22,8 @@ DIM = color(140, 130, 110)
 SHADOW = color(0, 0, 0, 200)
 PANEL = color(10, 8, 6, 210)
 BORDER = color(120, 100, 70)
-HIGHLIGHT = color(255, 220, 140)
+HIGHLIGHT_RGB = (255, 220, 140)
+HIGHLIGHT = color(*HIGHLIGHT_RGB)
 
 
 def measure(s, size=10):
@@ -74,6 +78,31 @@ def tiny(s, x, y, col=TEXT):
 
 def tiny_centered(s, cx, y, col=TEXT):
     tiny(s, cx - tinyfont.width(s) // 2, y, col)
+
+
+def small(s, x, y, col=TEXT):
+    """In-game message text in the small pixel font (see smallfont), with a 1 px drop shadow.
+    Returns the x just past the text."""
+    x, y = int(x), int(y)
+    runs = list(smallfont.rects(s, x, y))
+    shadow = color(0, 0, 0, rround(SHADOW.a * col.a / 255))
+    for rx, ry, rw, rh in runs:
+        pr.draw_rectangle(rx + 1, ry + 1, rw, rh, shadow)
+    for rx, ry, rw, rh in runs:
+        pr.draw_rectangle(rx, ry, rw, rh, col)
+    return x + smallfont.width(s) + smallfont.GAP
+
+
+def small_centered(s, cx, y, col=TEXT):
+    small(s, cx - smallfont.width(s) // 2, y, col)
+
+
+def small_marked_centered(s, cx, y, base, hi):
+    """Centred message whose `{...}` spans (item names, gold) are drawn in the `hi` colour."""
+    runs = highlight_runs(s)
+    x = cx - smallfont.width("".join(seg for seg, _ in runs)) // 2
+    for seg, marked in runs:
+        x = small(seg, x, y, hi if marked else base)
 
 
 def hud(game):
@@ -428,6 +457,9 @@ def compass(heading, cx, cy, r=17):
     )
 
 
+BOSS_BAR_W = 168
+
+
 def boss_bar(game):
     world = game.world
     if not world:
@@ -435,8 +467,27 @@ def boss_bar(game):
     boss = next((e for e in world.enemies if e.type.boss and e.alive and e.state != "idle"), None)
     if not boss:
         return
-    text_centered(boss.name, W // 2, 20, color(230, 180, 150))
-    bar(W // 2 - 80, 32, 160, 4, boss.hp / boss.type.hp, (170, 40, 30))
+    max_hp = boss.type.hp
+    bw, bh = BOSS_BAR_W, 5
+    x, y = W // 2 - bw // 2, 22
+    hud_box(x - 6, 8, bw + 12, 23)
+    small_centered(boss.name, W // 2, 11, HIGHLIGHT)
+    pr.draw_rectangle(x - 1, y - 1, bw + 2, bh + 2, color(0, 0, 0, 230))
+    pr.draw_rectangle(x, y, bw, bh, color(40, 14, 12))
+    trail = rround(bw * clamp(boss.trail_hp / max_hp, 0, 1))
+    fill = rround(bw * clamp(boss.hp / max_hp, 0, 1))
+    if trail > fill:
+        pr.draw_rectangle(x + fill, y, trail - fill, bh, color(235, 190, 110))
+    if boss.enraged:
+        pulse = 0.5 + 0.5 * math.sin(pr.get_time() * 8)
+        red = color(rround(150 + 60 * pulse), rround(20 + 10 * pulse), 20)
+    else:
+        red = color(170, 36, 28)
+    if fill > 0:
+        pr.draw_rectangle(x, y, fill, bh, red)
+        pr.draw_rectangle(x, y, fill, 1, color(230, 110, 90))
+    for q in (1, 2, 3):
+        pr.draw_rectangle(x + bw * q // 4, y, 1, bh, HUD_EDGE)
 
 
 def messages(game):
@@ -445,13 +496,14 @@ def messages(game):
         alpha = rround(clamp(255 * (5 - age), 0, 255)) if age > 4 else 255
         if alpha <= 0:
             continue
-        text_centered(msg, W // 2, H - 58 - (len(lines) - 1 - i) * 11, color(230, 220, 190, alpha))
+        y = H - 54 - (len(lines) - 1 - i) * smallfont.LINE
+        small_marked_centered(msg, W // 2, y, color(230, 220, 190, alpha), color(*HIGHLIGHT_RGB, alpha))
 
 
 def prompt(game):
     label = game.focus_label()
     if label:
-        text_centered(label, W // 2, 140, HIGHLIGHT)
+        small_centered(label, W // 2, 140, HIGHLIGHT)
 
 
 def flash(player):
@@ -511,3 +563,36 @@ def list_menu(title, x, y, w, rows, selected, footer=None):
             text(rs, x + w - 8 - measure(rs), y + 20 + i * 11, col)
     if footer:
         text(footer, x + 8, y + height - 13, DIM)
+
+
+_fog_tex = None
+
+
+def _fog_texture():
+    """An 80x60 RGBA texture the rest fog is written into each frame and drawn scaled 4x."""
+    global _fog_tex
+    if _fog_tex is None:
+        img = pr.gen_image_color(rest.COLS, rest.ROWS, pr.BLANK)
+        _fog_tex = pr.load_texture_from_image(img)
+        pr.unload_image(img)
+        pr.set_texture_filter(_fog_tex, pr.TEXTURE_FILTER_POINT)
+    return _fog_tex
+
+
+def rest_fog(seq, t):
+    """Shrine rest: chunky ember-and-ash fog rising over the view (see world.rest)."""
+    if not seq:
+        return
+    dens = seq.density
+    if dens <= 0:
+        return
+    tex = _fog_texture()
+    pixels = rest.fog_pixels(t, dens)
+    rl.UpdateTexture(tex, ffi.from_buffer(pixels))
+    pr.draw_texture_pro(
+        tex, pr.Rectangle(0, 0, rest.COLS, rest.ROWS), pr.Rectangle(0, 0, W, H), pr.Vector2(0, 0), 0, pr.WHITE
+    )
+    if dens >= 0.95:
+        small_centered(
+            "Resting...", W // 2, H // 2 - 4, color(*HIGHLIGHT_RGB, rround(255 * (dens - 0.95) * 20))
+        )

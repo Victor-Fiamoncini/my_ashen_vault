@@ -23,6 +23,14 @@ class SaveSystem:
         with open(self.path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
 
+    def load_spot(self):
+        """Where the last save was made: (map_name, x, z, yaw), or None."""
+        loaded = self.load()
+        if not loaded:
+            return None
+        map_name, player, _flags = loaded
+        return map_name, player.x, player.z, player.yaw
+
     def load(self):
         """Returns (map_name, player, flags) or None."""
         if not self.exists():

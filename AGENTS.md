@@ -67,6 +67,8 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. `harrowmere` (the village), `sunken_keep` (the dungeon below the well), `verdant_hollow` (the jungle behind the overgrown house) |
 | `src/ashen_vault/world/hazards.py` | Dungeon traps: floor spikes, pendulum blades, crumbling floors |
 | `src/ashen_vault/world/terrain.py` | Outdoor terrain: rafts, planks, ledges, rotten floorboards, currents, thorns, chasm and river falls, hard landings, the log rack, spore pods (`World.terrain`) |
+| `src/ashen_vault/world/rest.py` | The shrine rest: timing and the pixelated ember fog pattern drawn while you pray |
+| `src/ashen_vault/ui/smallfont.py` | The small mixed-case pixel font used for in-game messages, prompts and the boss bar |
 | `src/ashen_vault/world/relics.py` | Boss relics (Ember and Verdant Sigils), their drop/taken flags and the two-sigil ending |
 | `src/ashen_vault/dialogue.py` | NPC conversations and the shop list |
 | `tests/` | pytest suite; `conftest.py` has a small test map |
@@ -104,6 +106,12 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   anything cuts off a chest, door, lever, exit, altar or the iron maiden. `verdant_hollow.map` has its
   own solvability test (counting planks, ledges and floorboards as footing, and decor as solid): every
   chest and the boss must be reachable, and every drop must have a way back.
+- `game.message()` text may wrap spans in braces, e.g. `f"Obtained {{{item.name}}}."`: the HUD draws
+  them in the highlight colour (`util.highlight_runs`). `tests/test_ui_logic.py` checks the small font
+  has a glyph for every character used in game messages and names.
+- Praying at a shrine plays the `rest` scene; it heals, respawns normal enemies and saves while the fog
+  covers the screen. Dying keeps everything the player carries and every flag: you wake at the last
+  shrine (`Game._wake_at_shrine`) and only normal enemies (and a living boss's HP) come back.
 - Persistent world state lives in the save's `flags` set, keyed `<kind>:<map>:<tx>,<tz>` (opened
   chests, broken barrels, revealed walls, slain mimics) or `loot:<key>` for dropped items. Bosses add
   their `dead_flag` (`boss_dead`, `spider_dead`) and relics a `<relic>_taken` flag (`sigil_taken` for

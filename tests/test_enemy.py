@@ -452,3 +452,19 @@ def test_warden_embers_need_a_line_of_sight():
     boss._switch("chase")
     tick(boss, world, 0.3)
     assert boss.attack_kind != "cinders"
+
+
+def test_boss_bar_trail_holds_then_drains_to_hp():
+    from ashen_vault.ai.enemy import TRAIL_HOLD
+
+    boss = Enemy(EnemyTypes.get("ashen_warden"), 0, 0, rng=random.Random(1))
+    world = FakeWorld(30, 30)
+    world.visible = False
+    full = boss.type.hp
+    boss.take_hit(30)
+    assert boss.trail_hp == full
+    boss.update(TRAIL_HOLD * 0.9, world)
+    assert boss.trail_hp == full  # still holding
+    for _ in range(200):
+        boss.update(0.05, world)
+    assert boss.trail_hp == boss.hp

@@ -232,3 +232,30 @@ def test_save_keeps_quick_item_and_old_saves_default(tmp_path):
     del data["player"]["quick"]
     (tmp_path / "save.json").write_text(json.dumps(data))
     assert saves.load()[1].quick == "red_tonic"
+
+
+def test_load_spot_gives_the_saved_place(tmp_path):
+    saves = SaveSystem(str(tmp_path / "save.json"))
+    assert saves.load_spot() is None
+    player = Player()
+    player.x, player.z, player.yaw = 4.0, 9.5, 1.25
+    saves.save(map="sunken_keep", player=player, flags=set())
+    assert saves.load_spot() == ("sunken_keep", 4.0, 9.5, 1.25)
+
+
+def test_revive_restores_and_clears_effects():
+    p = Player()
+    p.inventory.add("warden_key")
+    p.stats.hurt(p.stats.max_hp)
+    p.stats.mp = 0
+    p.stamina.drain(10)
+    p.webbed_t = p.spore_t = p.hurt_t = 1.0
+    p.swing_t = 0.1
+    assert not p.alive
+    p.revive()
+    assert p.alive
+    assert p.stats.hp == p.stats.max_hp and p.stats.mp == p.stats.max_mp
+    assert p.stamina.value == 1.0 and not p.stamina.exhausted
+    assert p.webbed_t == p.spore_t == p.hurt_t == 0
+    assert not p.swinging
+    assert p.inventory.has("warden_key")

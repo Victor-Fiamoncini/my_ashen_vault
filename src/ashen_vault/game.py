@@ -22,6 +22,7 @@ from ashen_vault.screen import FOV, PREVIEW, H, W, centered_row_at, list_row_at
 from ashen_vault.ui import hud as ui
 from ashen_vault.util import clamp, rround
 from ashen_vault.world import relics
+from ashen_vault.world.rest import RestSequence
 from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.world import World
 
@@ -79,6 +80,9 @@ class Game:
         self._frames = 0
         self._running = True
         self._mouse_captured = None
+        self._cursor_at = None  # where the free cursor was when mouse look was last released
+        self._look_skip = 0  # frames of mouse delta to ignore after recapturing the cursor
+        self._rest = None
         self._hit_done = False
         self._attack_down = False  # attack button held last frame (tap = light, hold = heavy)
         self._step_phase = 0.0
@@ -149,6 +153,7 @@ class Game:
             "menu": lambda: self._update_menu(),
             "shop": lambda: self._update_shop(),
             "pause": lambda: self._update_pause(),
+            "rest": lambda: self._update_rest(dt),
             "controls": lambda: self._update_controls(),
             "dead": lambda: self._update_dead(dt),
             "ending": lambda: self._update_ending(),
@@ -162,8 +167,15 @@ class Game:
         self._mouse_captured = on
         if on:
             pr.disable_cursor()
+            if self._cursor_at is not None:
+                pr.set_mouse_position(*self._cursor_at)
+            # The first deltas after a recapture carry the cursor's travel while it was free
+            # (pause, belongings, shop); dropping them keeps the view exactly where it was.
+            self._look_skip = 2
         else:
+            pos = pr.get_mouse_position()
             pr.enable_cursor()
+            self._cursor_at = (int(pos.x), int(pos.y))
 
     # --- scenes: title / new game / travel ----------------------------------
 
@@ -287,8 +299,11 @@ class Game:
 
         if self._mouse_captured:
             md = pr.get_mouse_delta()
-            p.turn(md.x * 0.0032)
-            p.look(-md.y * 0.0032)
+            if self._look_skip > 0:
+                self._look_skip -= 1
+            else:
+                p.turn(md.x * 0.0032)
+                p.look(-md.y * 0.0032)
         moved = p.walk(
             self.world.map,
             self._axis("forward", "back"),
@@ -391,14 +406,14 @@ class Game:
             self.sfx("swoosh", 0.7)
             if gold:
                 self.sfx("pickup", 0.4)
-                self.message(f"You slit the cocoon. A few coins fall out. +{gold} gold")
+                self.message(f"You slit the cocoon. A few coins fall out. {{+{gold} gold}}")
             if item:
                 self.message("Something drops out of the torn silk.")
         elif prop.kind != "secret_wall":
             self.sfx("crack")
             if gold:
                 self.sfx("pickup", 0.4)
-                self.message(f"A few coins spill out. +{gold} gold")
+                self.message(f"A few coins spill out. {{+{gold} gold}}")
             if item:
                 self.message(f"Something rolls out of the broken {prop.kind}.")
         elif prop.props.get("model") == "vines":
@@ -493,7 +508,7 @@ class Game:
             if first:
                 self.player.equip_spell(item.spell)
             self.sfx("levelup")
-            self.message(f"You learned {Spells.get(item.spell).name}. Ready it from Belongings.")
+            self.message(f"You learned {{{Spells.get(item.spell).name}}}. Ready it from Belongings.")
         elif item.kind == "spell":
             self.player.equip_spell(item.spell)
             self.sfx("spell", 0.4)
@@ -549,20 +564,12 @@ class Game:
             self.sfx("door")
             self.message("Somewhere chains rattle, and iron grinds against stone.")
         elif k == "save_statue":
-            s = self.player.stats
-            s.heal(s.max_hp)
-            s.restore_mp(s.max_mp)
-            self.player.stamina.fill()
-            self.world.respawn_enemies()
-            self._saves.save(map=self.world.name, player=self.player, flags=self.flags)
-            self.sfx("save")
-            self.message("The shrine restores you. Your journey is recorded.")
-            self.message("Somewhere below, the fallen stir again.")
+            self._start_rest()
         elif k == "altar":
             item = Items.get(self.world.take_from_altar(prop))
             self.player.inventory.add(item.id)
             self.sfx("bell", 0.7)
-            self.message(f"Obtained {item.name}.")
+            self.message(f"Obtained {{{item.name}}}.")
             self.message("The statue's eyes gutter out as you lift the key.")
             self.message("Somewhere above, a great door awaits.")
         elif k == "iron_maiden":
@@ -578,7 +585,29 @@ class Game:
             relics.mark_taken(item.id, self.flags)
             self.world.remove_prop(prop)
             self.sfx("pickup")
-            self.message(f"Obtained {item.name}.")
+            self.message(f"Obtained {{{item.name}}}.")
+
+    # --- shrine rest ------------------------------------------------------------------
+
+    def _start_rest(self):
+        """Kneel at the shrine: ember fog rises over the screen, and while it hides everything the
+        shrine restores you, wakes the fallen and records the journey."""
+        self._rest = RestSequence()
+        self.scene = "rest"
+        self.player.charge_t = 0.0
+        self._attack_down = False
+        self.sfx("save")
+
+    def _update_rest(self, dt):
+        if self._rest.update(dt):
+            self.player.revive()
+            self.world.respawn_enemies()
+            self._saves.save(map=self.world.name, player=self.player, flags=self.flags)
+        if self._rest.done:
+            self._rest = None
+            self.scene = "play"
+            self.message("The shrine restores you. Your journey is recorded.")
+            self.message("Somewhere below, the fallen stir again.")
 
     def _pat_frog(self, prop):
         """A small joke by the river: the frog croaks, and the very first time it pays you for the pat."""
@@ -589,7 +618,7 @@ class Game:
         if gold:
             self.sfx("pickup", 0.5)
             self.message("The stone frog croaks. Something clinks in its mouth.")
-            self.message(f"It spits out {gold} gold.")
+            self.message(f"It spits out {{{gold} gold}}.")
         else:
             self.message("The stone frog croaks contentedly.")
 
@@ -619,9 +648,9 @@ class Game:
         self.player.inventory.gold += gold
         parts = []
         if item:
-            parts.append(f"{Items.get(item).name}{f' x{count}' if count > 1 else ''}")
+            parts.append(f"{{{Items.get(item).name}{f' x{count}' if count > 1 else ''}}}")
         if gold > 0:
-            parts.append(f"{gold} gold")
+            parts.append(f"{{{gold} gold}}")
         self.message(f"Found {' and '.join(parts)}.")
 
     def _open_door(self, prop):
@@ -716,7 +745,7 @@ class Game:
         item = stock[self._menu_index]
         if self.player.inventory.buy(item.id):
             self.sfx("pickup")
-            self.message(f"Bought {item.name}.")
+            self.message(f"Bought {{{item.name}}}.")
         else:
             self.message("You can't afford that.")
 
@@ -764,10 +793,25 @@ class Game:
         self.world.update(dt)
         if not (self._dead_t > 1.5 and self._advance()):
             return
-        if self._saves.exists():
-            self.continue_game()
-        else:
+        if not self._wake_at_shrine():
             self.show_title()
+
+    def _wake_at_shrine(self):
+        """Death keeps everything you found: inventory, gold, level, keys, sigils and opened chests
+        stay yours. You wake at the last shrine you prayed at, and only the fallen return (a living
+        boss at full strength). False when there is no shrine to wake at."""
+        spot = self._saves.load_spot()
+        if not spot:
+            return False
+        map_name, x, z, yaw = spot
+        self.player.revive()
+        self.messages.clear()
+        self._load_world(map_name)
+        self.player.place(x, z, yaw, self.world.map)
+        self._saves.save(map=self.world.name, player=self.player, flags=self.flags)
+        self._enter_play()
+        self.message("You wake beside the shrine.")
+        return True
 
     def finish_game(self):
         for item_id in relics.ENDING_RELICS:
@@ -830,7 +874,7 @@ class Game:
         self.world.draw(self._rig, gpu)
         pr.end_mode_3d()
 
-        if self.scene not in ("play", "dialogue", "menu", "shop") or not self.player.alive:
+        if self.scene not in ("play", "dialogue", "menu", "shop", "rest") or not self.player.alive:
             return
         p = self.player
         pr.begin_mode_3d(self._view_camera)
@@ -899,6 +943,9 @@ class Game:
             self._draw_menu()
         elif s == "shop":
             self._draw_shop()
+        elif s == "rest":
+            ui.hud(self)
+            ui.rest_fog(self._rest, self._time)
         elif s == "pause":
             ui.hud(self)
             pr.draw_rectangle(0, 0, W, H, ui.color(0, 0, 0, 120))

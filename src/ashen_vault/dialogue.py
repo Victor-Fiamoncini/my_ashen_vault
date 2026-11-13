@@ -50,7 +50,7 @@ def odrin(game, flags, inv):
             g.flags.add("quest")
             g.player.inventory.gold += 60
             g.player.inventory.add("red_tonic", 2)
-            g.message("Received 60 gold and 2 Red Tonics.")
+            g.message("Received {60 gold} and {2 Red Tonics}.")
 
         return (
             "Odrin",
@@ -141,7 +141,7 @@ def maeve(game, flags):
     def after(g):
         g.flags.add("maeve_gift")
         g.player.inventory.add("blue_moss", 2)
-        g.message("Received 2 Blue Moss.")
+        g.message("Received {2 Blue Moss}.")
 
     return (
         "Maeve",

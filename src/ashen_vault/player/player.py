@@ -55,6 +55,17 @@ class Player:
         self.pitch = 0.0
         self.y = map_.floor_at(x, z)
 
+    def revive(self):
+        """Back on your feet at a shrine: full HP, MP and ST, and every lingering effect cleared."""
+        s = self.stats
+        s.heal(s.max_hp)
+        s.restore_mp(s.max_mp)
+        self.stamina.fill()
+        self.hurt_t = self.lumen_t = self.webbed_t = self.spore_t = 0.0
+        self.swing_t = None
+        self.charge_t = 0.0
+        self.pitch = 0.0
+
     def forward(self):
         return math.cos(self.yaw), math.sin(self.yaw)
 
