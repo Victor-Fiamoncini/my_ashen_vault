@@ -23,6 +23,18 @@ def all_textures():
         "roof": roof(),
         "iron_bars": iron_bars(),
         "mossy_brick": mossy_brick(),
+        "vine_wall": vine_wall(),
+        "bark": bark(),
+        "leaf_litter": leaf_litter(),
+        "jungle_floor": jungle_floor(),
+        "canopy": canopy(),
+        "mud": mud(),
+        "bog": bog(),
+        "rapids": rapids(),
+        "thorns": thorns(),
+        "cliff_rock": cliff_rock(),
+        "ravine": ravine(),
+        "log_wall": log_wall(),
         "white": solid(255, 255, 255),
     }
 
@@ -246,5 +258,181 @@ def iron_bars():
         if x % 16 < 4 or y % 32 < 4:
             return [*tint([70, 68, 66], 0.8 + fbm(x, y, 121) * 0.4), 255]
         return (0, 0, 0, 0)
+
+    return build(px)
+
+
+# --- the Verdant Hollow ------------------------------------------------------
+
+
+def vine_wall():
+    """Dense leaves over dark gaps, crossed by hanging vine strands."""
+
+    def px(x, y):
+        n = fbm(x, y, 131)
+        leaf = noise(x, y, 4, 132)
+        k = 0.45 + n * 0.55
+        c = tint([52, 92, 40], k)
+        if leaf < 0.32:
+            c = tint([18, 30, 16], 0.8 + n * 0.4)
+        elif leaf > 0.72:
+            c = tint([86, 128, 52], 0.8 + n * 0.3)
+        for strand in (5, 22, 41, 57):
+            wobble = rround(math.sin(y * 0.25 + strand) * 2 + noise(strand, y, 8, 133) * 3)
+            if abs(x - strand - wobble) < 1.5:
+                return tint([92, 74, 42], 0.75 + hash_(x, y, 134) * 0.35)
+        return c
+
+    return build(px)
+
+
+def bark():
+    """Vertical ridged bark with dark furrows."""
+
+    def px(x, y):
+        ridge = noise(x, y // 4, 8, 141)
+        furrow = math.sin(x * 0.9 + noise(x, y, 16, 142) * 6)
+        k = 0.55 + ridge * 0.35 + (fbm(x, y, 143) - 0.5) * 0.3
+        if furrow > 0.75:
+            k *= 0.5
+        return tint([98, 70, 46], k)
+
+    return build(px)
+
+
+def leaf_litter():
+    """Brown forest floor strewn with olive and rust leaves."""
+
+    def px(x, y):
+        n = fbm(x, y, 151)
+        c = tint([70, 56, 36], 0.6 + n * 0.5)
+        cell = hash_(x // 3, y // 3, 152)
+        if cell > 0.82:
+            c = tint([104, 96, 44], 0.7 + n * 0.4)
+        elif cell < 0.12:
+            c = tint([118, 64, 34], 0.7 + n * 0.4)
+        return c
+
+    return build(px)
+
+
+def jungle_floor():
+    """Dark moss and fern over wet soil."""
+
+    def px(x, y):
+        n = fbm(x, y, 161)
+        if noise(x, y, 8, 162) < 0.35:
+            return tint([62, 50, 34], 0.6 + n * 0.5)
+        blade = 1.3 if hash_(x, y, 163) > 0.88 else 1.0
+        return tint([46, 82, 36], (0.55 + n * 0.5) * blade)
+
+    return build(px)
+
+
+def canopy():
+    """Leaf canopy seen from below, with a few pale gaps."""
+
+    def px(x, y):
+        n = fbm(x, y, 171)
+        if noise(x, y, 4, 172) > 0.8 and n > 0.55:
+            return tint([150, 170, 120], 0.8 + n * 0.3)
+        return tint([30, 56, 28], 0.5 + n * 0.6)
+
+    return build(px)
+
+
+def mud():
+    def px(x, y):
+        n = fbm(x, y, 181)
+        wet = 1.15 if noise(x, y, 8, 182) > 0.7 else 1.0
+        return tint([66, 52, 34], (0.6 + n * 0.45) * wet)
+
+    return build(px)
+
+
+def bog():
+    """Murky green water with floating scum."""
+
+    def px(x, y):
+        w = math.sin(x * 0.25 + noise(x, y, 8, 191) * 4) * math.sin(y * 0.18) * 0.1
+        n = fbm(x, y, 192)
+        if noise(x, y, 4, 193) > 0.74:
+            return tint([78, 96, 40], 0.8 + n * 0.3)
+        return tint([34, 54, 34], 0.8 + w + n * 0.25)
+
+    return build(px)
+
+
+def rapids():
+    """Fast shallow water: pale streaks of foam running down the current (+y)."""
+
+    def px(x, y):
+        streak = noise(x * 4 % SIZE, y, 8, 201)
+        n = fbm(x, y, 202)
+        if streak > 0.72:
+            return tint([190, 214, 206], 0.8 + n * 0.3)
+        return tint([46, 86, 92], 0.8 + n * 0.35 + math.sin(y * 0.5 + x * 0.1) * 0.08)
+
+    return build(px)
+
+
+def thorns():
+    """Leaf litter overgrown with a mat of dark briars and pale thorns."""
+
+    def px(x, y):
+        n = fbm(x, y, 211)
+        vine = abs(math.sin((x + noise(x, y, 8, 212) * 20) * 0.35)) < 0.18
+        vine2 = abs(math.sin((y + noise(x, y, 8, 213) * 20) * 0.3)) < 0.15
+        if hash_(x, y, 214) > 0.96:
+            return tint([220, 200, 160], 0.9 + n * 0.2)
+        if vine or vine2:
+            return tint([92, 40, 34], 0.7 + n * 0.4)
+        return tint([70, 58, 36], 0.55 + n * 0.35)
+
+    return build(px)
+
+
+def cliff_rock():
+    """Layered grey-brown rock in sloping strata, with moss in the cracks."""
+
+    def px(x, y):
+        n = fbm(x, y, 221)
+        band = math.sin((y + x * 0.25 + noise(x, y, 16, 222) * 10) * 0.45)
+        k = 0.6 + n * 0.35 + band * 0.08
+        if band > 0.88:
+            return tint([28, 26, 24], 0.9 + n * 0.2)  # a crack between strata
+        if band > 0.7 and hash_(x, y, 223) > 0.55:
+            return tint([66, 96, 46], 0.7 + n * 0.4)  # moss growing in it
+        return tint([108, 100, 88], k)
+
+    return build(px)
+
+
+def ravine():
+    """The chasm floor far below: dark scree half lost in mist."""
+
+    def px(x, y):
+        n = fbm(x, y, 231)
+        if hash_(x // 2, y // 2, 232) > 0.9:
+            return tint([70, 70, 66], 0.6 + n * 0.3)
+        return tint([26, 30, 28], 0.6 + n * 0.5)
+
+    return build(px)
+
+
+def log_wall():
+    """Stacked round logs of a woodsman's cabin, chinked with dried mud."""
+
+    def px(x, y):
+        row = y // 16
+        v = (y % 16) / 15.0
+        k = 0.55 + math.sin(v * math.pi) * 0.45  # each log is rounded, lit along its middle
+        grain = (noise(x, y, 4, 241 + row) - 0.5) * 0.25
+        if y % 16 in (0, 15):
+            return tint([78, 66, 48], 0.7 + fbm(x, y, 242) * 0.3)  # mud chinking
+        c = tint([110, 78, 48], k + grain)
+        if hash_(x // 8, row, 243) > 0.85 and abs(v - 0.5) < 0.2:
+            return tint([60, 92, 44], 0.7 + grain)  # moss on the weathered logs
+        return c
 
     return build(px)

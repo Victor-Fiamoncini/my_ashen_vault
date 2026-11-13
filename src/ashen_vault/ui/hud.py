@@ -455,9 +455,33 @@ def prompt(game):
 
 
 def flash(player):
+    if player.webbed_t > 0:
+        _web_overlay(clamp(player.webbed_t, 0, 1))
+    if player.spore_t > 0:
+        # A sickly yellow-green haze while you choke on spores.
+        pr.draw_rectangle(0, 0, W, H, color(150, 170, 60, rround(clamp(player.spore_t, 0, 1) * 70)))
     if player.hurt_t <= 0:
         return
     pr.draw_rectangle(0, 0, W, H, color(160, 0, 0, rround(clamp(player.hurt_t * 300, 0, 120))))
+
+
+def _web_overlay(k):
+    """Silk strands across the corners of the view while you are webbed; they fade as it wears off."""
+    c = color(230, 230, 220, rround(150 * k))
+    for cx, cy, sx, sy in ((0, 0, 1, 1), (W, 0, -1, 1), (0, H, 1, -1), (W, H, -1, -1)):
+        for i in range(5):
+            a = i * 0.32 + 0.15
+            pr.draw_line(cx, cy, cx + sx * rround(90 * math.cos(a)), cy + sy * rround(90 * math.sin(a)), c)
+        for ring in (24, 46, 70):
+            pts = [
+                (
+                    cx + sx * rround(ring * math.cos(i * 0.32 + 0.15)),
+                    cy + sy * rround(ring * math.sin(i * 0.32 + 0.15)),
+                )
+                for i in range(5)
+            ]
+            for (x0, y0), (x1, y1) in itertools.pairwise(pts):
+                pr.draw_line(x0, y0, x1, y1, c)
 
 
 def dialogue(speaker, line, page, pages):

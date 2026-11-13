@@ -190,6 +190,20 @@ class Items:
                 price=0,
                 desc="A warm stone disc. The bell-keeper is waiting for it.",
             ),
+            Item(
+                id="briar_key",
+                name="Briar Key",
+                kind="key",
+                price=0,
+                desc="Black wood, grown into the shape of a key rather than carved.",
+            ),
+            Item(
+                id="verdant_sigil",
+                name="Verdant Sigil",
+                kind="key",
+                price=0,
+                desc="A cool disc of green glass with a living leaf sealed inside. It hums.",
+            ),
         ]
     }
 

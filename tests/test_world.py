@@ -6,7 +6,7 @@ import os
 import pytest
 
 from ashen_vault import MAP_DIR
-from ashen_vault.world import collision
+from ashen_vault.world import collision, terrain
 from ashen_vault.world.hazards import CrumbleFloor
 from ashen_vault.world.map_loader import MapError, MapLoader
 from ashen_vault.world.tile_map import Tile, TileMap
@@ -165,3 +165,86 @@ def test_overrides_swap_and_restore_tiles(room):
     assert room.floor_at(*TileMap.center(2, 1)) == pytest.approx(2.5)
     room.set_override((2, 1), None)
     assert room[2, 1] is original
+
+
+def _spec(m, kind, **props):
+    return [s for s in m.entities if s.kind == kind and all(s.props.get(k) == v for k, v in props.items())]
+
+
+def test_harrowmere_has_the_overgrown_house_exit():
+    m = MapLoader.load_file(os.path.join(MAP_DIR, "harrowmere.map"))
+    (exit_,) = _spec(m, "exit", map="verdant_hollow")
+    assert (exit_.tx, exit_.tz) == (25, 11)
+    assert m[exit_.tx, exit_.tz].walkable
+    assert m[exit_.tx, exit_.tz - 1].solid  # the house behind the doorway
+    assert m[exit_.tx, exit_.tz + 1].walkable  # the grass in front of it
+
+
+def test_verdant_hollow_loads_with_start_exit_boss_and_enemies():
+    m = MapLoader.load_file(os.path.join(MAP_DIR, "verdant_hollow.map"))
+    assert m.meta["name"] == "The Verdant Hollow"
+    assert (m.width, m.depth) == (54, 30)
+    sx, sz = (int(v) for v in m.meta["start"][:2])
+    assert m[sx, sz].walkable
+    (back,) = _spec(m, "exit", map="harrowmere")
+    tx, tz, _ = (int(v) for v in back.props["at"].split(","))
+    town = MapLoader.load_file(os.path.join(MAP_DIR, "harrowmere.map"))
+    assert town[tx, tz].walkable
+    (house,) = _spec(town, "exit", map="verdant_hollow")
+    assert (tx, tz) == (house.tx, house.tz + 1)  # lands in front of the house
+    kinds = [s.kind for s in m.entities]
+    assert kinds.count("loom_mother") == 1
+    assert "snare_bloom" in kinds and "bark_husk" in kinds
+    assert "save_statue" in kinds
+    # The boss door needs a key that a chest on the map provides.
+    keys = {s.props["key"] for s in m.entities if s.kind == "door" and s.props.get("key")}
+    chest_items = {s.props.get("item") for s in m.entities if s.kind == "chest"}
+    assert keys and keys <= chest_items
+
+
+def _reachable(m, start, open_tiles=()):
+    """Tiles a walker can reach from `start`, honoring step heights; doors count as closed unless listed.
+    Fixed platforms (planks, ledges, floorboards) count as footing at their deck height."""
+    blocked = {(s.tx, s.tz) for s in m.entities if s.kind in ("door", "gate", "save_statue")}
+    blocked -= set(open_tiles)
+    decks = {
+        (TileMap.tile_coord(p.x), TileMap.tile_coord(p.z)): p.deck
+        for p in terrain.build_platforms(m)
+        if p.kind != "raft"
+    }
+
+    def floating(tx, tz):
+        return (tx, tz) in decks
+
+    seen = {start}
+    todo = [start]
+    while todo:
+        x, z = todo.pop()
+        for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            n = (x + dx, z + dz)
+            if n in seen or n in blocked:
+                continue
+            if collision.passable(m, *n, decks.get((x, z), m[x, z].floor), floating=floating):
+                seen.add(n)
+                todo.append(n)
+    return seen
+
+
+def test_verdant_hollow_is_solvable():
+    m = MapLoader.load_file(os.path.join(MAP_DIR, "verdant_hollow.map"))
+    start = tuple(int(v) for v in m.meta["start"][:2])
+    reach = _reachable(m, start)
+    at = {s.kind + ":" + (s.props.get("item") or s.props.get("id") or ""): (s.tx, s.tz) for s in m.entities}
+    assert at["chest:briar_key"] in reach
+    assert at["lever:hollow_lever"] in reach
+    (boss,) = _spec(m, "loom_mother")
+    assert (boss.tx, boss.tz) not in reach  # behind the locked door
+    doors = [(s.tx, s.tz) for s in m.entities if s.kind in ("door", "gate")]
+    opened = _reachable(m, start, open_tiles=doors)
+    assert (boss.tx, boss.tz) in opened
+    for s in m.entities:
+        if s.kind == "chest":
+            assert (s.tx, s.tz) in opened, s.props
+    # Every tile you can drop into, you can climb back out of.
+    for tile in opened:
+        assert start in _reachable(m, tile, open_tiles=doors), tile

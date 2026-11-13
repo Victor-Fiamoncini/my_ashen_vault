@@ -30,6 +30,9 @@ class Batch:
 
 
 SEG = 1.0  # max quad size in meters, keeps affine warping tolerable
+# Defaults for light-emitting entities; a map can override them with y= and color=.
+LIGHT_Y = {"light": "2.0", "candles": "0.6", "fungus": "0.7"}
+LIGHT_COLOR = {"fungus": "0.3,0.85,0.65"}
 DIRS = ((1, 0), (-1, 0), (0, 1), (0, -1))
 T = TileMap.TILE
 
@@ -57,17 +60,19 @@ class MeshBuilder:
     def lights_for(map_):
         lights = []
         for e in map_.entities:
-            if e.kind not in ("torch", "brazier", "light", "candles"):
+            if e.kind not in ("torch", "brazier", "light", "candles", "fungus"):
                 continue
             x, z = TileMap.center(e.tx, e.tz)
-            height = {"light": "2.0", "candles": "0.6"}.get(e.kind, "1.6")
+            height = LIGHT_Y.get(e.kind, "1.6")
             wall = map_.wall_yaw(e.tx, e.tz) if e.kind == "torch" else None
             if wall is not None:  # a sconce: the flame sits up against the wall
                 x -= math.cos(wall) * 0.6
                 z -= math.sin(wall) * 0.6
                 height = "1.9"
             y = map_[e.tx, e.tz].floor + float(e.props.get("y", height))
-            color = [float(c) for c in e.props.get("color", "1.0,0.62,0.32").split(",")]
+            color = [
+                float(c) for c in e.props.get("color", LIGHT_COLOR.get(e.kind, "1.0,0.62,0.32")).split(",")
+            ]
             radius = e.props.get("radius", "3" if e.kind == "candles" else "7")
             lights.append(Light(x, y, z, float(radius), color))
         return lights

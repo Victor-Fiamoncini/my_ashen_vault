@@ -1,6 +1,8 @@
 """NPC conversations. Each entry returns (speaker, lines, after) where `after`
 is an optional callable run with the game when the conversation closes."""
 
+from ashen_vault.world import relics
+
 SHOP = [
     "red_tonic",
     "blue_moss",
@@ -30,13 +32,14 @@ def for_npc(id_, game):
 
 
 def odrin(game, flags, inv):
-    if inv.has("ember_sigil"):
+    held = relics.held(inv.has)
+    if len(held) == len(relics.ENDING_RELICS):
         return (
             "Odrin",
             [
-                "That warmth... you carry the Ember Sigil.",
-                "Give it here. The bell will hold its note again.",
-                "Listen. The ground has gone quiet already.",
+                "Ember and leaf, both of them. I can feel the pair of them from here.",
+                "Give them here. The bell will hold its note again.",
+                "Listen. The ground has gone quiet already, and the roots are still.",
                 "Harrowmere owes you more than it can pay. Rest now, wanderer.",
             ],
             lambda g: g.finish_game(),
@@ -54,23 +57,47 @@ def odrin(game, flags, inv):
             [
                 "A traveller off the morning boat? Then the tide has not taken all our luck.",
                 "I keep the bell of Harrowmere. For three hundred years it has sung over the old keep below us.",
-                "Last month the bell cracked, and something under the well began to stir.",
-                "Deep in the Sunken Keep the Ember Sigil sits in the Warden's hall. It is what tunes the bell.",
-                "Bring the Sigil back and the keep will sleep again.",
+                "Last month the bell cracked, and two things began to stir beneath the town.",
+                "Deep in the Sunken Keep the Ember Sigil sits in the Warden's hall. That is one.",
+                "The other is the Verdant Sigil. Roots burst up through the house east of the square.",
+                "Beneath it a green hollow has grown, and something large nests at the bottom of it.",
+                "The bell needs both sigils to hold its note. Bring them back and the town will sleep again.",
                 "Take these. They are all an old bell-keeper has.",
             ],
             after,
         )
-    if "boss_dead" in flags:
+    if held == ["ember_sigil"]:
         return (
             "Odrin",
-            ["The Warden has fallen? Then the Sigil should be lying in his hall. Bring it to me."],
+            [
+                "The Ember Sigil! Warm as a hearthstone. Hold on to it a little longer.",
+                "The bell still needs its twin. Go through the overgrown house east of the square.",
+                "The Verdant Sigil waits somewhere in the hollow beneath it.",
+            ],
             None,
         )
+    if held == ["verdant_sigil"]:
+        return (
+            "Odrin",
+            [
+                "Green glass with a leaf inside... the Verdant Sigil. Keep it close.",
+                "Now the Ember Sigil. Climb down the well in the square and find the Warden's hall.",
+            ],
+            None,
+        )
+    lines = []
+    if "boss_dead" in flags and "sigil_taken" not in flags:
+        lines.append(
+            "The Warden has fallen? Then the Ember Sigil should be lying in his hall. Bring it to me."
+        )
+    if "spider_dead" in flags and relics.get("verdant_sigil").taken_flag not in flags:
+        lines.append("The thing in the hollow is dead? Then the Verdant Sigil lies in its nest. Fetch it.")
+    if lines:
+        return "Odrin", lines, None
     return (
         "Odrin",
         [
-            "The well in the square leads down into the keep.",
+            "The well in the square leads down into the keep. The overgrown house leads down into the hollow.",
             "Save your strength at the stone shrines. The old wardens built them for travellers like you.",
         ],
         None,
@@ -89,15 +116,22 @@ def pell_lines(flags):
 
 def hollis_lines(flags):
     if "lever:north_lever" in flags:
-        return [
+        lines = [
             "You opened the north gate? Then the stairs to the upper hall are clear.",
             "Watch for the floating embers up there. Keep moving and they'll miss.",
         ]
-    return [
-        "I'm meant to guard this well. Mostly I guard it from the inside.",
-        "Down there a portcullis seals the stairs going north. There's a lever in the east cells.",
-        "The cell door's locked, though. My brother dropped the key in the flooded cellar, west side.",
-    ]
+    else:
+        lines = [
+            "I'm meant to guard this well. Mostly I guard it from the inside.",
+            "Down there a portcullis seals the stairs going north. There's a lever in the east cells.",
+            "The cell door's locked, though. My brother dropped the key in the flooded cellar, west side.",
+        ]
+    if "spider_dead" not in flags:
+        lines.append(
+            "Mind the overgrown house to the east. Its door opens on a wood that shouldn't be there."
+        )
+        lines.append("The flowers in there bite, and the trees walk. Don't stand still near either.")
+    return lines
 
 
 def maeve(game, flags):

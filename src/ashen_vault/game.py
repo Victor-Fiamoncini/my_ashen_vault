@@ -21,6 +21,7 @@ from ashen_vault.save.save_system import SaveSystem
 from ashen_vault.screen import FOV, PREVIEW, H, W, centered_row_at, list_row_at
 from ashen_vault.ui import hud as ui
 from ashen_vault.util import clamp, rround
+from ashen_vault.world import relics
 from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.world import World
 
@@ -33,8 +34,9 @@ SHOP_LIST = (6, 6, 308)
 TITLE_Y, TITLE_STEP = 140, 14
 ENDING = [
     "The bell of Harrowmere rings again.",
-    "Its note rolls down through the well and into the drowned halls,",
-    "and the old keep settles back into sleep.",
+    "Its note rolls down the well into the drowned halls",
+    "and through the roots beneath the overgrown house.",
+    "The old keep and the green hollow sleep once more.",
     "",
     "Thank you for playing the Ashen Vault demo.",
 ]
@@ -294,8 +296,11 @@ class Game:
             dt,
             blocked=self.world.blocker,
             sprint=inp.down("sprint"),
+            floating=self.world.terrain.floating,
+            ground=self.world.terrain.floor,
         )
-        p.settle(self.world.map, dt)
+        self.world.update_terrain(dt)
+        p.settle(self.world.map, dt, floor=self.world.player_floor())
         if moved:
             self._footstep()
 
@@ -368,14 +373,17 @@ class Game:
             return
         self.sfx("hit")
         for target in targets:
+            back = target.hit_mult(p.x, p.z)
             dmg = Combat.damage(
                 base=weapon.power,
                 strength=p.stats.strength,
                 gauge=p.swing_power,
                 defense=4 if target.type.boss and not a.pierce_def else 0,
-                mult=a.damage,
+                mult=a.damage * back,
             )
-            self.damage_enemy(target, dmg, a.poise)
+            if back > 1:
+                self.message(f"You strike the {target.name}'s weak spot!")
+            self.damage_enemy(target, dmg, a.poise * back)
 
     def _break(self, prop):
         gold, item = self.world.break_prop(prop)
@@ -406,9 +414,16 @@ class Game:
             self.message(f"You reached level {self.player.stats.level}!")
         if not t.boss:
             return
-        self.flags.add("boss_dead")
-        self.world.drop_sigil(enemy.x, enemy.z)
-        self.message("The Warden crumbles into ash. Something glows where he fell.")
+        if t.brood:
+            for e in self.world.enemies:
+                if e.type.id == t.brood:
+                    e.kill()
+        if t.dead_flag:
+            self.flags.add(t.dead_flag)
+        if t.drop:
+            self.world.drop_relic(t.drop, enemy.x, enemy.z)
+        if t.epitaph:
+            self.message(t.epitaph)
 
     def hurt_player(self, dmg, source):
         if not self.player.alive:
@@ -547,8 +562,7 @@ class Game:
             item = Items.get(prop.props["item"])
             self.player.inventory.add(item.id)
             self.flags.add(prop.key)
-            if item.id == "ember_sigil":
-                self.flags.add("sigil_taken")
+            relics.mark_taken(item.id, self.flags)
             self.world.remove_prop(prop)
             self.sfx("pickup")
             self.message(f"Obtained {item.name}.")
@@ -730,7 +744,8 @@ class Game:
             self.show_title()
 
     def finish_game(self):
-        self.player.inventory.remove("ember_sigil")
+        for item_id in relics.ENDING_RELICS:
+            self.player.inventory.remove(item_id)
         self.flags.add("ending")
         self._audio.play("bell")
         self.scene = "ending"

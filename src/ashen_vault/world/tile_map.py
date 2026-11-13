@@ -16,6 +16,22 @@ class Tile:
     ceil_tex: str | None = None
     liquid: bool = False
     pit: bool = False  # falling in hurts and sends you back to solid ground
+    # Hazards: HP lost per tick while standing here, a current (m/s along x, z) that pushes
+    # bodies, a walk-speed multiplier (sucking mud), and a sheer chasm (a ravine) that only a
+    # ledge or a raft lets you onto.
+    hurt: int = 0
+    flow: tuple[float, float] | None = None
+    slow: float = 1.0
+    chasm: bool = False
+
+    @property
+    def hazardous(self):
+        return self.liquid or self.pit or self.chasm or self.hurt > 0 or self.flow is not None
+
+    @property
+    def needs_footing(self):
+        """Water and chasms: only somewhere to stand (a raft, a ledge) lets you onto them."""
+        return self.liquid or self.chasm
 
     @property
     def open_sky(self):
