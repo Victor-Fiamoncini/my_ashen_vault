@@ -11,8 +11,9 @@
 ---
 
 The bell of Harrowmere has cracked. Beneath the village well, the drowned halls of the Sunken Keep have
-begun to stir. Take up a rusted sword, descend into the dark, and bring back the Ember Sigil before the
-keep wakes for good.
+begun to stir, and behind an overgrown house the jungle of the Verdant Hollow has swallowed the old
+woodcutters' camp. Take up a rusted sword, bring back the Ember Sigil from the keep and the Verdant
+Sigil from the hollow, and let the bell sing again.
 
 ### Inspiration
 
@@ -52,6 +53,22 @@ FromSoftware, Inc.
     <td align="center"><sub>The Ashen Warden</sub></td>
     <td align="center"><sub>Belongings, with a spinning item preview</sub></td>
   </tr>
+  <tr>
+    <td><img src="docs/screenshots/verdant_hollow.png" alt="A vine-walled path under the canopy of the Verdant Hollow"></td>
+    <td><img src="docs/screenshots/bark_husk.png" alt="A Bark Husk, a weeping-willow tree creature, beside a thorn plant"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>The Verdant Hollow, behind Harrowmere's overgrown house</sub></td>
+    <td align="center"><sub>A Bark Husk: circle it and strike the glow in its back</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/log_rack.png" alt="The woodcutters' log rack at the top of the Highland slope"></td>
+    <td><img src="docs/screenshots/loom_mother.png" alt="The Loom Mother, a giant spider boss"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>The woodcutters' log rack, waiting for climbers</sub></td>
+    <td align="center"><sub>The Loom Mother</sub></td>
+  </tr>
 </table>
 
 ## Features
@@ -59,20 +76,26 @@ FromSoftware, Inc.
 - **PS1-style renderer**: 320×240 internal resolution, vertex snapping, affine texture warping,
   15-bit color with ordered dithering, distance fog and baked vertex lighting.
 - **Deliberate, weighty combat**: an ATK gauge that refills between swings, enemy wind-ups you can read
-  and interrupt, and a boss with poise.
+  and interrupt, and bosses with poise. The Loom Mother mixes leg sweeps, web spit and pounces, and
+  calls her brood when wounded.
 - **Weapons with their own movesets**: swords, greatswords, a katana, a whip, a mace and a war
   hammer. Tap to attack; hold to charge a heavy attack that costs stamina, from an overhead cleave
   to a lunging thrust or a ground slam that hits everything around you.
 - **Spells**: Flame Bolt, Mend and Lumen, paid for with MP once your focus has returned.
 - **Stamina**: sprinting drains a green stamina bar. Run it dry and you are winded until it recovers.
-- **Two hand-built areas**: the village of Harrowmere and the Sunken Keep, with locked doors, levers,
-  a flooded cellar, chests, a shop with spinning item previews and four villagers to talk to.
+- **Three hand-built areas**: the village of Harrowmere, the Sunken Keep below its well and the
+  Verdant Hollow behind its overgrown house, with locked doors, levers, a flooded cellar, chests, a
+  shop with spinning item previews and four villagers to talk to.
 - **A keep that fights back**: floor spikes, swinging pendulum blades and floors that crumble into the
   dark, plus barrels, crates and urns to smash for a few coins, and secrets for those who look closely.
+- **A jungle that fights back too**: a river with a ford, a drifting raft and rotting planks; thorn
+  beds; a ravine crossed on crumbling ledges; a slope where a log rack rolls its logs at climbers;
+  choking spore pods in a stilt cabin; and an abandoned cabin whose floor gives way into its cellar.
+  Long drops hurt.
 - **Everything procedural**: textures, low-poly models and sound effects are all generated at startup.
   The game itself ships no image or audio files.
-- **Save shrines**: pray at a stone shrine to heal and record your journey. The keep's fallen rise again
-  when you do; only the Warden stays dead.
+- **Save shrines**: pray at a stone shrine to heal and record your journey. The fallen rise again when
+  you do; only bosses and mimics stay dead.
 
 ## Installing
 
@@ -172,7 +195,9 @@ The same list is in the game under **Controls** on the title and pause menus.
   switches between quick items.
 - Traps keep a rhythm. Watch the spikes and blades for a moment before you cross, and don't stand
   still on cracked stone.
-- Not every wall is a wall, and not every chest is a chest.
+- Not every wall is a wall, and not every chest is a chest. Not every stump is a stump, either.
+- In the jungle, keep moving on ledges and rotten planks, and wait in the notches of the log slope
+  for each log to pass. Tree creatures turn slowly: get behind them.
 - Talk to everyone in Harrowmere before you descend. They have gifts and directions.
 
 ## Save file
@@ -224,6 +249,7 @@ it, so Claude Code, Codex, Cursor and Copilot all follow the same rules.
 | `src/ashen_vault/ui/hud.py` | HUD, compass, menus and dialogue boxes |
 | `src/ashen_vault/audio/synth.py` | Synthesized sound effects |
 | `src/ashen_vault/maps/*.map` | Plain-text tile maps (`[meta]`, `[legend]`, `[grid]`, `[entities]`) |
+| `src/ashen_vault/world/hazards.py`, `world/terrain.py` | Dungeon traps; outdoor terrain (river, ravine, ledges, logs, spores) |
 | `src/ashen_vault/dialogue.py` | NPC conversations |
 | `docs/logo/make_logo.py` | Generates the pixel-art logo SVG |
 
@@ -234,13 +260,15 @@ uv run ashen-vault --map sunken_keep --at 15,21,180 --smoke 100 --script "wait:1
 ```
 
 - `--map NAME` skips the title screen and starts on that map.
-- `--at TX,TZ,YAW` sets the start tile and heading in degrees.
+- `--at TX,TZ,YAW` sets the start tile and heading in degrees. Write a negative heading as
+  `--at=15,7,-90`, or it is read as a flag.
 - `--smoke N` runs N frames at a fixed timestep, writes a 3× screenshot and prints a state summary.
 - `--script "..."` drives input: `action` presses once, `action:1.5` holds for 1.5 s, `wait:1` pauses.
 - `--shot PATH` sets where `--smoke` writes its screenshot.
 
 The README screenshots were taken this way. For example, the flame bolt shot is
-`uv run ashen-vault --map sunken_keep --at 15,22,0 --smoke 30 --script "wait:0.3 cast" --shot flame_bolt.png`.
+`uv run ashen-vault --map sunken_keep --at 15,22,0 --smoke 30 --script "wait:0.3 cast" --shot flame_bolt.png`,
+and the Loom Mother is `uv run ashen-vault --map verdant_hollow --at=15,7,-90 --smoke 40 --shot loom_mother.png`.
 
 ## Contributing
 

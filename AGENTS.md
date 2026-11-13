@@ -50,6 +50,9 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 - Combat rolls are random, so HP in the `smoke:` line can vary between runs. Positions, scenes, flags
   and items are deterministic.
 - On Wayland, `GLFW: Error: 65548` warnings are harmless.
+- A negative heading must be written `--at=15,7,-90` (with `=`), or argparse reads it as a flag.
+- Useful starts: `--map harrowmere --at 25,13,-90` (the jungle doorway), `--map verdant_hollow` (the
+  grove), `--at=49,12,-90` (the Highland log slope), `--at=15,7,-90` (the Loom Mother).
 
 ## Layout
 
@@ -61,7 +64,10 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/ui/hud.py` | HUD, menus, dialogue boxes |
 | `src/ashen_vault/audio/synth.py` | Synthesized sound effects |
 | `src/ashen_vault/input.py` | Key bindings and the `--script` driver |
-| `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]` |
+| `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. `harrowmere` (the village), `sunken_keep` (the dungeon below the well), `verdant_hollow` (the jungle behind the overgrown house) |
+| `src/ashen_vault/world/hazards.py` | Dungeon traps: floor spikes, pendulum blades, crumbling floors |
+| `src/ashen_vault/world/terrain.py` | Outdoor terrain: rafts, planks, ledges, rotten floorboards, currents, thorns, chasm and river falls, hard landings, the log rack, spore pods (`World.terrain`) |
+| `src/ashen_vault/world/relics.py` | Boss relics (Ember and Verdant Sigils), their drop/taken flags and the two-sigil ending |
 | `src/ashen_vault/dialogue.py` | NPC conversations and the shop list |
 | `tests/` | pytest suite; `conftest.py` has a small test map |
 | `docs/logo/make_logo.py` | Regenerates `docs/logo/ashen_vault.svg` |
@@ -72,17 +78,30 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 - Use `util.rround` (round half away from zero) instead of built-in `round` in game math. The code was
   ported from Ruby and its numbers depend on that rounding.
 - Keep new logic in the raylib-free packages where possible and add tests for it. `world/world.py`
-  and `dialogue.py` are pure but still untested, which makes them good places to add coverage.
+  is pure but still mostly untested, which makes it a good place to add coverage.
 - Internal resolution is 320x240 (`screen.py`); UI coordinates are in that space.
 - Map grids are whitespace-sensitive. Don't reformat `.map` files. Each grid character is one 2 m tile;
   an `[entities]` marker places a prop, enemy or hazard there, standing on the legend tile named by
   `on=` (the map's `default` otherwise). Wall props (torches, banners, shackles, racks) hang on the
   adjacent wall and chests/altars turn to face the open side automatically, so they rarely need `yaw=`.
+- Floor legend entries can add hazards: `hurt=<hp per tick>` (thorns), `flow=<dx>,<dz>` (a current),
+  `slow=<multiplier>` (mud), `pit` (a hole you can walk into; you fall, are hurt and hauled out) and
+  `chasm` (only a raft, plank or ledge lets you onto it). Drops over 1.8 m cost HP, except into a `pit`.
+  Terrain entities: `raft to=tx,tz speed= phase=`, `plank`, `ledge deck=`, `boards deck=` (rotten
+  floorboards that break for good), `log_chute to=tx,tz every= speed= logs=` (a log rack that only
+  releases while someone climbs its slope) and `spore_pod every=`.
+- Enemy behaviour flags in `ai/enemy_types.py`: `ambush` spawns dormant (the chest Mimic) until woken;
+  `lurk` sits still until you come close (the Stump Mimic); `once` stays dead; bosses set `dead_flag`
+  and drop a relic.
 - Props that fill their tile are listed in `world/world.py` (`BLOCKING_PROPS`, `BREAKABLE_PROPS`).
   After placing props in `sunken_keep.map`, run `tests/test_world.py`: its reachability test fails if
-  anything cuts off a chest, door, lever, exit, altar or the iron maiden.
+  anything cuts off a chest, door, lever, exit, altar or the iron maiden. `verdant_hollow.map` has its
+  own solvability test (counting planks, ledges and floorboards as footing): every chest and the boss
+  must be reachable, and every drop must have a way back.
 - Persistent world state lives in the save's `flags` set, keyed `<kind>:<map>:<tx>,<tz>` (opened
-  chests, broken barrels, revealed walls, slain mimics) or `loot:<key>` for dropped items.
+  chests, broken barrels, revealed walls, slain mimics) or `loot:<key>` for dropped items. Bosses add
+  their `dead_flag` (`boss_dead`, `spider_dead`) and relics a `<relic>_taken` flag (`sigil_taken` for
+  the Ember Sigil).
 - Add dependencies with `uv add` (runtime) or `uv add --dev` (tooling), never by hand-editing
   `uv.lock`.
 
