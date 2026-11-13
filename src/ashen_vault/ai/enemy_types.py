@@ -172,7 +172,7 @@ class EnemyTypes:
                 exp=34,
                 gold=range(8, 19),
                 radius=0.75,
-                height=2.8,
+                height=3.0,
                 poise=10,
                 # A lumbering old tree: circle it and strike the glowing heart-fungus in its back.
                 turn_rate=1.3,
@@ -191,7 +191,7 @@ class EnemyTypes:
                 exp=22,
                 gold=range(10, 26),
                 radius=0.55,
-                height=1.1,
+                height=0.9,
                 poise=5,
                 lurk=True,
             ),
@@ -208,7 +208,7 @@ class EnemyTypes:
                 exp=140,
                 gold=range(100, 101),
                 radius=1.3,
-                height=1.9,
+                height=2.0,
                 boss=True,
                 drop="verdant_sigil",
                 dead_flag="spider_dead",
@@ -230,7 +230,7 @@ class EnemyTypes:
                 exp=4,
                 gold=range(0, 3),
                 radius=0.35,
-                height=0.5,
+                height=0.6,
             ),
         ]
     }

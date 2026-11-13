@@ -1,5 +1,7 @@
 """Headless checks for the raylib-free parts of the renderer."""
 
+import random
+
 from ashen_vault import map_path, screen
 from ashen_vault.render import rig, texture_gen
 from ashen_vault.render.mesh_builder import MeshBuilder
@@ -122,3 +124,68 @@ def test_jungle_props_and_relic_icons_draw():
     for id_ in Items.ALL:
         models.item(r, id_, 0.5)
     assert len(gpu.parts) > 100
+
+
+class _ExtentGpu:
+    """Tracks how high a model reaches (corner of every part) and whether anything still glows."""
+
+    def __init__(self):
+        self.top = -1e9
+        self.bottom = 1e9
+        self.glows = 0
+
+    def to_matrix(self, m):
+        return m
+
+    def draw_part(self, kind, m, rgb, tex="white", glow=False):
+        for cx in (-0.5, 0.5):
+            for cy in (-0.5, 0.5):
+                for cz in (-0.5, 0.5):
+                    y = m[4] * cx + m[5] * cy + m[6] * cz + m[7]
+                    self.top, self.bottom = max(self.top, y), min(self.bottom, y)
+        self.glows += glow
+
+
+JUNGLE_ENEMIES = ("snare_bloom", "bark_husk", "stump_mimic", "loom_mother", "loom_brood")
+
+
+def _extent(type_id, state, state_t):
+    from ashen_vault.ai.enemy import Enemy
+    from ashen_vault.ai.enemy_types import EnemyTypes
+    from ashen_vault.render import models
+
+    e = Enemy(EnemyTypes.get(type_id), 0, 0, rng=random.Random(0))
+    e.state, e.state_t, e.anim_t = state, state_t, 1.3
+    gpu = _ExtentGpu()
+    models.enemy(rig.Rig(gpu), e)
+    return e, gpu
+
+
+def test_death_fall_eases_from_alive_to_settled():
+    from ashen_vault.render import models
+
+    e, _ = _extent("loom_mother", "idle", 5.0)
+    assert models.death_fall(e) == 0.0
+    e.state, e.state_t = "dead", 0.0
+    assert models.death_fall(e) == 0.0
+    e.state_t = 0.3
+    assert 0.0 < models.death_fall(e) < 1.0
+    e.state_t = 5.0
+    assert models.death_fall(e) == 1.0
+
+
+def test_jungle_enemies_collapse_into_a_death_pose():
+    for type_id in JUNGLE_ENEMIES:
+        _, alive = _extent(type_id, "chase", 0.5)  # awake: a Stump Mimic at rest is already stump-sized
+        e, dead = _extent(type_id, "dead", 3.0)
+        # The body sinks into its death pose, and the ash dissolve's span (the type's height)
+        # covers it, so it crumbles from its real top rather than losing its top all at once.
+        assert dead.top < alive.top, type_id
+        assert dead.top <= e.type.height * 1.1, (type_id, dead.top, e.type.height)
+
+
+def test_dead_jungle_bosses_and_husks_stop_glowing():
+    for type_id in ("loom_mother", "bark_husk"):
+        _, alive = _extent(type_id, "idle", 0.5)
+        _, dead = _extent(type_id, "dead", 3.0)
+        assert alive.glows > 0 and dead.glows == 0, type_id

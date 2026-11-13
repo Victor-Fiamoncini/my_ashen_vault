@@ -49,6 +49,15 @@ def strike_angle(e):
     return 0
 
 
+def death_fall(e, time=0.6):
+    """0..1 how far a dying body has collapsed into its death pose (eased), 0 while alive. The ash
+    effect then bleaches and crumbles it where it lies."""
+    if e.state != "dead":
+        return 0.0
+    k = min(e.state_t / time, 1.0)
+    return k * k * (3 - 2 * k)
+
+
 def walk_cycle(e, t):
     return math.sin(t * 7) * 0.5 if e.state in ("chase", "idle") else 0
 
@@ -180,27 +189,29 @@ def jaw_open(e, t):
     if e.state == "recover":
         return 0.25 * min(e.state_t / e.type.recover, 1)
     if e.state == "dead":
-        return 0.9
+        return 0.9 - 0.4 * death_fall(e)  # the jaws go slack
     return 0.22 + math.sin(t * 2.3) * 0.12
 
 
 def snare_bloom(r, e, t):
     """Rooted carnivorous plant: a leafy base, a swaying stem and a fanged pod ringed with petals."""
     hurt = e.state == "hurt"
+    wilt = death_fall(e)
     gape = jaw_open(e, t)
     lunge = 0.35 if e.state == "windup" else (0.55 if e.state == "attack" else 0)
-    sway = math.sin(t * 1.7) * 0.12
+    sway = math.sin(t * 1.7) * 0.12 * (1 - wilt)
     # Root mound and broad leaves on the floor.
     r.part("sphere", 0, 0.08, 0, 0.9, 0.24, 0.9, (60, 50, 34))
     for i in range(5):
         a = i * 2 * math.pi / 5 + 0.3
         with r.at(math.cos(a) * 0.35, 0.12, math.sin(a) * 0.35, ry=-a, rz=-0.25):
             r.part("sphere", 0.28, 0, 0, 0.7, 0.07, 0.3, LEAF if i % 2 else DARK_LEAF)
-    # Stem: three segments that curl back on windup and whip forward on the strike.
+    # Stem: three segments that curl back on windup and whip forward on the strike. In death the
+    # stem wilts forward and the head hangs.
     bend = sway - lunge * 0.5
-    a1 = bend * 0.5
-    a2 = bend * 0.4 + lunge * 0.9
-    a3 = -0.7 - lunge * 0.4
+    a1 = bend * 0.5 - 0.45 * wilt
+    a2 = bend * 0.4 + lunge * 0.9 - 0.75 * wilt
+    a3 = -0.7 - lunge * 0.4 - 0.3 * wilt
     with r.at(0, 0, 0, s=1.2), r.at(0, 0.15, 0, rz=a1):
         r.part("cyl", 0, 0.3, 0, 0.16, 0.62, 0.16, (70, 110, 50))
         with r.at(0, 0.58, 0, rz=a2):
@@ -208,7 +219,7 @@ def snare_bloom(r, e, t):
             with r.at(0, 0.55, 0, rz=a3):
                 r.part("cyl", 0, 0.12, 0, 0.11, 0.26, 0.11, (80, 120, 54))
                 # Undo the stem's bends so the mouth faces forward, dipping a little as it lunges.
-                with r.at(0, 0.26, 0, rz=-(a1 + a2 + a3) - lunge * 0.4):
+                with r.at(0, 0.26, 0, rz=-(a1 + a2 + a3) - lunge * 0.4 - 1.1 * wilt):
                     _bloom_head(r, gape, hurt, t)
 
 
@@ -250,8 +261,10 @@ def bark_husk(r, e, t):
     hit = strike_angle(e)
     hurt = e.state == "hurt"
     moving = e.state in ("chase", "idle")
+    slump = death_fall(e, 0.8)
     bark = (240, 220, 200) if hurt else (128, 118, 92)
     lean = -0.35 if e.state == "windup" else (0.15 if hurt else -0.15)
+    lean -= 0.55 * slump  # topples forward over its roots as it dies
     with r.at(0, 0, 0, s=1.25):
         # Root skirt: roots fan out and writhe as it glides along.
         for i in range(9):
@@ -261,12 +274,12 @@ def bark_husk(r, e, t):
                 r.part("cube", 0.32, 0, 0, 0.7, 0.13, 0.13, DARK_BARK)
                 with r.at(0.65, 0, 0, rz=-0.5 - wr):
                     r.part("cube", 0.2, 0, 0, 0.42, 0.09, 0.09, DARK_BARK)
-        with r.at(0, 0.45, 0, rz=lean):
+        with r.at(0, 0.45 - 0.3 * slump, 0, rz=lean):
             # Tall, narrow trunk that twists as it rises.
             r.part("cyl", 0, 0.65, 0, 0.6, 1.3, 0.54, bark, tex="bark")
             with r.at(0, 1.25, 0, rz=-0.15, ry=0.25):
                 r.part("cyl", 0, 0.45, 0, 0.46, 0.9, 0.42, bark, tex="bark")
-                _husk_heart(r, t, hurt)
+                _husk_heart(r, t, hurt, dead=e.state == "dead")
                 _husk_mask(r, e)
                 _willow_crown(r, e, t)
             # Long arms: both rise together and come down in a double slam.
@@ -274,18 +287,19 @@ def bark_husk(r, e, t):
                 arm = hit if side > 0 else hit * 0.9
                 if moving:
                     arm = math.sin(t * 2.5 + side) * 0.12
+                arm += 0.5 * slump  # the arms fall slack and trail behind
                 with r.at(0, 1.95, side * 0.36, rx=side * 0.18, rz=arm):
                     _willow_arm(r, bark)
 
 
-def _husk_heart(r, t, hurt):
-    """A split down the back (-X) with the pulsing heart-fungus inside."""
-    pulse = 1 + math.sin(t * 3.1) * 0.12
+def _husk_heart(r, t, hurt, dead=False):
+    """A split down the back (-X) with the pulsing heart-fungus inside. It gutters out on death."""
+    pulse = 1 + math.sin(t * 3.1) * 0.12 * (not dead)
     r.part("cube", -0.21, 0.3, 0, 0.08, 1.0, 0.22, (16, 10, 8))
-    glow = (255, 255, 255) if hurt else (110, 240, 190)
-    r.part("sphere", -0.2, 0.35, 0, 0.2 * pulse, 0.55 * pulse, 0.24 * pulse, glow, glow=True)
+    glow = (255, 255, 255) if hurt else (60, 90, 76) if dead else (110, 240, 190)
+    r.part("sphere", -0.2, 0.35, 0, 0.2 * pulse, 0.55 * pulse, 0.24 * pulse, glow, glow=not dead)
     for y, z in ((0.0, 0.1), (0.7, -0.08), (-0.25, -0.1)):
-        r.part("sphere", -0.24, y, z, 0.12, 0.07, 0.12, (80, 220, 170), glow=True)
+        r.part("sphere", -0.24, y, z, 0.12, 0.07, 0.12, (80, 220, 170), glow=not dead)
     for y in (0.05, 0.4, 0.75):
         r.part("cube", -0.25, y, 0, 0.05, 0.06, 0.3, DARK_BARK)
 
@@ -295,9 +309,12 @@ def _husk_mask(r, e):
     mask = (214, 204, 178)
     r.part("cube", 0.24, 0.6, 0, 0.07, 0.72, 0.5, mask)
     r.part("cube", 0.25, 0.96, 0, 0.08, 0.08, 0.54, mask)
+    dead = e.state == "dead"  # the ember pupils go out
     for z in (-0.12, 0.12):
         r.part("cube", 0.28, 0.74, z, 0.03, 0.08, 0.14, (16, 10, 8))
-        r.part("cube", 0.295, 0.74, z, 0.02, 0.05, 0.05, (255, 120, 50), glow=True)
+        r.part(
+            "cube", 0.295, 0.74, z, 0.02, 0.05, 0.05, (60, 40, 30) if dead else (255, 120, 50), glow=not dead
+        )
     gape = 0.18 if e.state in ("windup", "attack") else 0.05
     r.part("cube", 0.28, 0.44, 0, 0.03, 0.16 + gape, 0.07, (16, 10, 8))
     # Twisted antler-like twigs above the mask.
@@ -337,11 +354,12 @@ def _willow_arm(r, bark):
 def stump_mimic(r, e, t):
     """Looks like a mossy tree stump until you come close; then the lid splits open on a fanged maw
     and stubby roots lift it off the ground."""
-    awake = e.state != "idle"
+    settle = death_fall(e, 0.5)
+    awake = e.state not in ("idle", "dead")
     hurt = e.state == "hurt"
     bark = (240, 220, 200) if hurt else BARK
     gape = jaw_open(e, t) if awake else 0.0
-    rise = 0.22 if awake else 0.0
+    rise = 0.22 if awake else 0.22 * (1 - settle) if e.state == "dead" else 0.0
     if awake:
         gait = walk_cycle(e, t) * 1.2
         for i in range(4):
@@ -406,6 +424,12 @@ def loom_mother(r, e, t):
     lift, spin, rear, amp = _spider_move(e, t, rear, amp)
     if e.state == "windup" and e.attack_kind in ("sweep", "summon"):
         gait = t * 16
+    curl = death_fall(e, 0.7)
+    if curl:
+        # Dead: the legs stop, fold up over the body, and it settles onto the floor, tipped back.
+        amp *= 1 - curl
+        lift -= 0.5 * curl
+        rear -= 0.2 * curl
     with r.at(0, lift, 0, s=1.15, ry=spin), r.at(-1.0, 0, 0, rz=rear), r.at(1.0, 0, 0):
         bob = math.sin(gait * 2) * 0.04 * amp
         with r.at(0, bob, 0):
@@ -413,7 +437,7 @@ def loom_mother(r, e, t):
         for side in (1, -1):
             for i in range(4):
                 phase = gait + i * math.pi / 2 + (math.pi / 2 if side < 0 else 0)
-                _spider_leg(r, i, side, phase, amp, body, band)
+                _spider_leg(r, i, side, phase, amp, body, band, curl)
 
 
 def _spider_move(e, t, rear, amp):
@@ -464,7 +488,10 @@ def _spider_body(r, e, t, body, fang):
     pale = (214, 200, 160)
     with r.at(-1.3, 1.3, 0, rz=0.22):
         r.part("sphere", 0, 0, 0, 2.3 * breathe, 1.7 * breathe, 2.0 * breathe, body)
-        r.part("sphere", 0.15, 0.68, 0, 1.1, 0.4, 0.85, (110, 140, 90), glow=True)
+        dead = e.state == "dead"  # the crest's glow dies with her
+        r.part(
+            "sphere", 0.15, 0.68, 0, 1.1, 0.4, 0.85, (70, 84, 62) if dead else (110, 140, 90), glow=not dead
+        )
         r.part("sphere", 0.42, 0.68, -0.2, 0.24, 0.3, 0.24, (40, 20, 24))
         r.part("sphere", 0.42, 0.68, 0.2, 0.24, 0.3, 0.24, (40, 20, 24))
         for k in range(3):
@@ -478,9 +505,10 @@ def _spider_body(r, e, t, body, fang):
     r.part("sphere", 0.3, 0.92, 0, 1.0, 0.62, 0.86, body)
     r.part("sphere", 0.32, 1.12, 0, 0.7, 0.3, 0.6, (64, 54, 66))
     # Eyes: two large and six small, all glowing.
-    eye = (255, 70, 50) if e.state == "windup" else (190, 255, 110)
+    dead = e.state == "dead"
+    eye = (40, 44, 36) if dead else (255, 70, 50) if e.state == "windup" else (190, 255, 110)
     for z in (-0.11, 0.11):
-        r.part("sphere", 0.76, 1.08, z, 0.14, 0.14, 0.14, eye, glow=True)
+        r.part("sphere", 0.76, 1.08, z, 0.14, 0.14, 0.14, eye, glow=not dead)
     for x, y, z in (
         (0.7, 1.2, -0.22),
         (0.7, 1.2, 0.22),
@@ -489,7 +517,7 @@ def _spider_body(r, e, t, body, fang):
         (0.78, 0.96, -0.2),
         (0.78, 0.96, 0.2),
     ):
-        r.part("sphere", x, y, z, 0.08, 0.08, 0.08, eye, glow=True)
+        r.part("sphere", x, y, z, 0.08, 0.08, 0.08, eye, glow=not dead)
     # Fangs spread during windup and snap together on the strike.
     for side in (1, -1):
         with r.at(0.74, 0.8, side * 0.14, rx=side * fang * 0.4):
@@ -501,8 +529,9 @@ def _spider_body(r, e, t, body, fang):
             r.part("cube", 0.2, 0, 0, 0.4, 0.07, 0.07, body)
 
 
-def _spider_leg(r, i, side, phase, amp, body, band):
-    """One leg, hip on the head-chest. Femur rises outward, tibia drops to a foot on the floor."""
+def _spider_leg(r, i, side, phase, amp, body, band, curl=0.0):
+    """One leg, hip on the head-chest. Femur rises outward, tibia drops to a foot on the floor.
+    `curl` (0..1) folds it up and in over the body, the way a dead spider's legs draw in."""
     hip_x = 0.55 - i * 0.22
     spread = (0.9, 0.35, -0.25, -0.8)[i]  # front legs reach forward, back legs trail
     swing = math.sin(phase) * 0.28 * amp
@@ -510,11 +539,11 @@ def _spider_leg(r, i, side, phase, amp, body, band):
     # The first frame turns local +X outward along the leg, the second raises the femur.
     with (
         r.at(hip_x, 0.92, side * 0.3, ry=-side * (math.pi / 2 - spread - swing)),
-        r.at(0, 0, 0, rz=0.8 + lift),
+        r.at(0, 0, 0, rz=0.8 + lift + 0.5 * curl),
     ):
         r.part("cube", 0.55, 0, 0, 1.1, 0.12, 0.12, body)
         r.part("cube", 1.02, 0, 0, 0.16, 0.14, 0.14, band)
-        with r.at(1.1, 0, 0, rz=-1.9 - lift * 0.5):
+        with r.at(1.1, 0, 0, rz=-1.9 - lift * 0.5 - 0.9 * curl):
             r.part("cube", 0.5, 0, 0, 1.0, 0.1, 0.1, body)
             r.part("cube", 1.0, 0, 0, 0.12, 0.12, 0.12, band)
             with r.at(1.0, 0, 0, rz=-0.25):
