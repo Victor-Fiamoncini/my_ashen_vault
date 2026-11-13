@@ -54,6 +54,13 @@ class Stamina:
         if self.value <= 0:
             self.exhausted = True
 
+    def spend(self, amount):
+        """Pays for a heavy attack; resets the rest delay like sprinting does."""
+        self.value = max(self.value - amount, 0.0)
+        self._rest_t = 0.0
+        if self.value <= 0:
+            self.exhausted = True
+
     def update(self, dt):
         """Call on frames without sprinting."""
         # Only the part of `dt` after the rest delay counts toward refilling.
@@ -77,6 +84,6 @@ class Combat:
         return 0.15 + 0.85 * (gauge**1.5)
 
     @staticmethod
-    def damage(base, strength, gauge, defense):
-        raw = (base + strength * 0.5) * Combat.power(gauge)
+    def damage(base, strength, gauge, defense, mult=1.0):
+        raw = (base + strength * 0.5) * Combat.power(gauge) * mult
         return max(rround(raw - defense * 0.5), 1)

@@ -58,8 +58,9 @@ class Enemy:
         elif s in ("recover", "hurt") and self.state_t >= (0.35 if s == "hurt" else self.type.recover):
             self._switch("chase")
 
-    def take_hit(self, amount):
-        """Applies damage and returns True if the hit was fatal."""
+    def take_hit(self, amount, poise_mult=1.0):
+        """Applies damage and returns True if the hit was fatal. Heavy blows (`poise_mult`)
+        stagger tougher foes."""
         if not self.alive:
             return False
         self.hp -= amount
@@ -67,7 +68,7 @@ class Enemy:
             self.hp = 0
             self._switch("dead")
             return True
-        if amount >= self.type.poise:
+        if amount * poise_mult >= self.type.poise:
             self._switch("hurt")
         return False
 

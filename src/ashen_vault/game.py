@@ -8,6 +8,7 @@ from raylib import ffi
 from ashen_vault import dialogue as dialogue_data
 from ashen_vault.audio.synth import Audio
 from ashen_vault.input import CONTROLS, Input
+from ashen_vault.player import weapons
 from ashen_vault.player.combat import Combat
 from ashen_vault.player.items import Items
 from ashen_vault.player.player import Player
@@ -76,6 +77,7 @@ class Game:
         self._running = True
         self._mouse_captured = None
         self._hit_done = False
+        self._attack_down = False  # attack button held last frame (tap = light, hold = heavy)
         self._step_phase = 0.0
         self._dialogue = None
         self._controls_from = None
@@ -297,10 +299,8 @@ class Game:
             self._footstep()
 
         p.update_timers(dt)
-        if inp.pressed("attack") and p.start_swing():
-            self._hit_done = False
-            self.sfx("swing", 0.6)
-        if p.swinging and not self._hit_done and p.swing_t >= Player.SWING_HIT_AT:
+        self._update_attack(dt)
+        if p.swinging and not self._hit_done and p.swing_t >= p.swing_hit_at:
             self._resolve_swing()
         if inp.pressed("cast"):
             self._cast_spell()
@@ -331,24 +331,55 @@ class Game:
         self._step_phase = phase
         self.sfx("step", 0.35)
 
+    def _update_attack(self, dt):
+        """Tap the attack button for a light attack; hold it to charge a heavy one, which lands on
+        release. A scripted `attack` taps, `attack:0.6` holds."""
+        p = self.player
+        inp = self._input
+        if inp.down("attack"):
+            if not p.swinging:
+                p.charge_t += dt
+            self._attack_down = True
+            return
+        released, self._attack_down = self._attack_down, False
+        if not (released or inp.pressed("attack")):
+            p.charge_t = 0.0
+            return
+        heavy = p.charge_t >= weapons.CHARGE_TIME
+        p.charge_t = 0.0
+        if not p.start_swing(heavy):
+            return
+        self._hit_done = False
+        if p.attack.heavy:
+            self.sfx("heavy", 0.7)
+        else:
+            self.sfx("swing", 0.6)
+            if heavy:
+                self.message("Too winded for a heavy attack.")
+
     def _resolve_swing(self):
         self._hit_done = True
-        weapon = self.player.inventory.weapon_item()
-        targets = self.world.melee_targets(weapon.reach)
+        p = self.player
+        weapon = p.inventory.weapon_item()
+        a = p.attack
+        if a.lunge:
+            p.nudge(self.world.map, a.lunge, blocked=self.world.blocker)
+        targets = self.world.melee_targets(weapon.reach * a.reach, a.cone, a.targets)
         if not targets:
             return
-        target = targets[0]
-        dmg = Combat.damage(
-            base=weapon.power,
-            strength=self.player.stats.strength,
-            gauge=self.player.swing_power,
-            defense=4 if target.type.boss else 0,
-        )
         self.sfx("hit")
-        self.damage_enemy(target, dmg)
+        for target in targets:
+            dmg = Combat.damage(
+                base=weapon.power,
+                strength=p.stats.strength,
+                gauge=p.swing_power,
+                defense=4 if target.type.boss and not a.pierce_def else 0,
+                mult=a.damage,
+            )
+            self.damage_enemy(target, dmg, a.poise)
 
-    def damage_enemy(self, enemy, dmg):
-        if not enemy.take_hit(dmg):
+    def damage_enemy(self, enemy, dmg, poise_mult=1.0):
+        if not enemy.take_hit(dmg, poise_mult):
             return
         self.sfx("enemy_die")
         t = enemy.type
@@ -709,7 +740,7 @@ class Game:
         gpu.set_float("isModel", 1.0)
         gpu.model_light([min(c + 0.15, 1.4) for c in self.world.builder.light_at(p.x, p.eye_y, p.z)])
         bob = math.sin(p.bob_t) * 0.02
-        models.sword_view(self._rig, p.swing_t, bob, p.inventory.weapon)
+        models.weapon_view(self._rig, p, bob)
         pr.end_mode_3d()
 
     def _selected_item(self):
@@ -842,15 +873,25 @@ class Game:
             pr.draw_rectangle_lines(10, 160, PREVIEW + 6, PREVIEW + 6, ui.HUD_EDGE)
             ui.text(item.name, 84, 162, ui.HIGHLIGHT)
             ui.text(detail, 84, 174, ui.DIM)
-            for i, l in enumerate(ui.wrap(item.desc, 224)[:3]):
-                ui.text(l, 84, 187 + i * 11)
+            lines = ui.wrap(item.desc, 224)
+            if item.kind == "weapon":
+                light, heavy = weapons.moveset(item)
+                lines = [f"{light.name} / Heavy: {heavy.name}", *lines]
+            for i, l in enumerate(lines[:3]):
+                ui.text(
+                    l,
+                    84,
+                    187 + i * 11,
+                    ui.color(240, 210, 90) if l is lines[0] and item.kind == "weapon" else ui.TEXT,
+                )
         msg = self.messages[-1] if self.messages else None
         fresh = msg is not None and msg[1] < 2.5
         ui.text(msg[0] if fresh else footer, 84, 221, ui.TEXT if fresh else ui.DIM)
 
     def _item_detail(self, item):
         if item.kind == "weapon":
-            return f"Weapon   ATK {item.power}   Reach {item.reach}"
+            kind = weapons.CATEGORY_NAMES[item.category]
+            return f"{kind}   ATK {item.power}   Reach {item.reach}"
         if item.kind == "armor":
             return f"Armor   DEF {item.power}"
         if item.kind == "consumable":

@@ -1,5 +1,6 @@
 import math
 
+from ashen_vault.player import weapons
 from ashen_vault.player.combat import Gauge, Stamina
 from ashen_vault.player.inventory import Inventory
 from ashen_vault.player.items import Items
@@ -36,6 +37,8 @@ class Player:
         self.lumen_t = 0.0
         self.swing_t = None
         self.swing_power = 0.0
+        self.attack = weapons.attack(self.inventory.weapon_item())
+        self.charge_t = 0.0  # seconds the attack button has been held
         self.sprinting = False
         self.attack_gauge = Gauge(self.inventory.weapon_item().speed)
         self.magic_gauge = Gauge(2.2)
@@ -147,16 +150,53 @@ class Player:
         if self.swing_t is None:
             return
         self.swing_t += dt
-        if self.swing_t > self.SWING_TIME:
+        if self.swing_t > self.swing_time:
             self.swing_t = None
 
     @property
     def swinging(self):
         return self.swing_t is not None
 
-    def start_swing(self):
+    def nudge(self, map_, dist, blocked=None):
+        """Steps straight ahead by `dist` metres, stopped by walls (a lunging attack)."""
+        fx, fz = self.forward()
+        steps = max(math.ceil(dist / 0.1), 1)  # small steps so it stops at a foe, never past it
+        for _ in range(steps):
+            self.x, self.z = collision.move(
+                map_,
+                self.x,
+                self.z,
+                fx * dist / steps,
+                fz * dist / steps,
+                radius=self.RADIUS,
+                blocked=blocked,
+            )
+
+    @property
+    def swing_time(self):
+        return self.SWING_TIME * (weapons.HEAVY_TIME if self.attack.heavy else 1.0)
+
+    @property
+    def swing_hit_at(self):
+        return self.SWING_HIT_AT * (weapons.HEAVY_TIME * 1.1 if self.attack.heavy else 1.0)
+
+    @property
+    def charge_frac(self):
+        """0..1 progress of a held attack towards a heavy one."""
+        return min(self.charge_t / weapons.CHARGE_TIME, 1.0)
+
+    def can_heavy(self):
+        heavy = weapons.attack(self.inventory.weapon_item(), heavy=True)
+        return not self.stamina.exhausted and self.stamina.value >= heavy.stamina
+
+    def start_swing(self, heavy=False):
+        """Starts a light or heavy attack. A heavy one costs ST; without enough, it is light."""
         if self.swinging:
             return False
+        heavy = heavy and self.can_heavy()
+        self.attack = weapons.attack(self.inventory.weapon_item(), heavy)
+        if heavy:
+            self.stamina.spend(self.attack.stamina)
         self.swing_power = self.attack_gauge.spend()
         self.swing_t = 0.0
         return True

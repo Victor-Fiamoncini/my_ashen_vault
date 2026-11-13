@@ -1,7 +1,18 @@
 """NPC conversations. Each entry returns (speaker, lines, after) where `after`
 is an optional callable run with the game when the conversation closes."""
 
-SHOP = ["red_tonic", "blue_moss", "scroll_mend", "ashblade", "ringmail"]
+SHOP = [
+    "red_tonic",
+    "blue_moss",
+    "scroll_mend",
+    "leather_whip",
+    "bastard_sword",
+    "mace",
+    "ashblade",
+    "katana",
+    "zweihander",
+    "ringmail",
+]
 
 
 def for_npc(id_, game):

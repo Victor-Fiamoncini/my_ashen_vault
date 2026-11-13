@@ -1,5 +1,6 @@
 """2D drawing at the 320x240 internal resolution."""
 
+import itertools
 import math
 
 import pyray as pr
@@ -198,7 +199,28 @@ def weapon_slot(player, cx, cy):
     gauge = player.attack_gauge
     ready = ready_slot(cx, cy, gauge, ATK_RGB, ATK_CHARGING_RGB, (48, 40, 20))
     weapon = player.inventory.weapon_item()
-    weapon_icon(weapon.id, cx, cy, pr.get_time(), 255 if ready else 110, ready)
+    weapon_icon(weapon, cx, cy, pr.get_time(), 255 if ready else 110, ready)
+    charge_ring(player, cx, cy)
+
+
+CHARGE_SHOW = 0.08  # ignore the first moments of a hold so plain taps never flash the ring
+HEAVY_RGB = (255, 140, 50)
+
+
+def charge_ring(player, cx, cy, r=SLOT_R):
+    """While the attack button is held: an orange ring that fills towards a heavy attack and
+    pulses once it is ready. Dim red when there is not enough ST for one."""
+    if player.swinging or player.charge_t < CHARGE_SHOW:
+        return
+    centre = pr.Vector2(cx, cy)
+    k = player.charge_frac
+    if not player.can_heavy():
+        pr.draw_ring(centre, r + 4, r + 5.5, 0, 360, 32, color(140, 40, 30, 200))
+        return
+    pr.draw_ring(centre, r + 4, r + 5.5, -90, -90 + 360 * k, 32, color(*HEAVY_RGB))
+    if k >= 1:
+        pulse = 0.5 + 0.5 * math.sin(player.charge_t * 18)
+        pr.draw_ring(centre, r + 4, r + 5.5, 0, 360, 32, color(255, 220, 150, rround(120 * pulse)))
 
 
 def spell_slot(player, cx, cy):
@@ -230,10 +252,12 @@ def item_icon(id_, cx, cy, t, alpha=255):
         pr.draw_circle(cx, cy, 2, color(200, 200, 200, a))
 
 
-def weapon_icon(id_, cx, cy, t, alpha=255, ready=False):
-    """Small weapon glyphs drawn from primitives; a glint runs up the blade while ready."""
+def weapon_icon(item, cx, cy, t, alpha=255, ready=False):
+    """Small weapon glyphs drawn from primitives, one per category; a glint runs up the
+    blade of edged weapons while ready."""
     a = int(alpha)
-    if id_ == "fists":
+    cat = item.category
+    if cat == "fists":
         skin = color(200, 150, 110, a)
         pr.draw_rectangle(cx - 4, cy - 1, 8, 5, skin)
         for i in range(4):
@@ -241,19 +265,50 @@ def weapon_icon(id_, cx, cy, t, alpha=255, ready=False):
             pr.draw_rectangle(cx - 4 + i * 2, cy - 4, 1, 1, color(240, 200, 160, a))
         pr.draw_rectangle(cx + 4, cy - 1, 2, 3, skin)
         return
-    if id_ == "ashblade":
-        blade = color(215, 215, 225, a)
-        hilt = color(60, 50, 60, a)
+    wood = color(110, 74, 44, a)
+    iron = color(150, 150, 160, a)
+    if cat == "mace":
+        pr.draw_line_ex(pr.Vector2(cx - 5, cy + 5), pr.Vector2(cx + 2, cy - 2), 2, wood)
+        pr.draw_circle(cx + 3, cy - 3, 3, iron)
+        for dx, dy in ((0, -3), (3, 0), (-3, 0), (0, 3)):
+            pr.draw_rectangle(cx + 3 + dx * 4 // 3, cy - 3 + dy * 4 // 3, 1, 1, color(210, 210, 220, a))
+        return
+    if cat == "hammer":
+        pr.draw_line_ex(pr.Vector2(cx - 5, cy + 6), pr.Vector2(cx + 3, cy - 2), 2, wood)
+        head = [pr.Vector2(cx - 1, cy - 6), pr.Vector2(cx + 7, cy + 2)]
+        pr.draw_line_ex(head[0], head[1], 5, iron)
+        pr.draw_line_ex(pr.Vector2(cx + 4, cy - 3), pr.Vector2(cx + 5, cy - 4), 2, color(200, 200, 210, a))
+        return
+    if cat == "whip":
+        pr.draw_line_ex(pr.Vector2(cx - 6, cy + 6), pr.Vector2(cx - 3, cy + 3), 2, color(80, 54, 34, a))
+        pts = [(-3, 3), (0, -1), (4, -4), (7, -3), (6, 1), (3, 2)]
+        for (x0, y0), (x1, y1) in itertools.pairwise(pts):
+            pr.draw_line_ex(
+                pr.Vector2(cx + x0, cy + y0), pr.Vector2(cx + x1, cy + y1), 1.5, color(150, 110, 70, a)
+            )
+        return
+    blade_rgb = {
+        "ashblade": (215, 215, 225),
+        "rusted_sword": (150, 132, 112),
+        "katana": (225, 228, 238),
+    }.get(item.id, (190, 192, 202))
+    blade = color(*blade_rgb, a)
+    hilt = color(60, 50, 60, a) if item.id == "ashblade" else color(110, 70, 40, a)
+    if item.id == "ashblade":
         glow = 0.5 + 0.5 * math.sin(t * 3)
         pr.draw_circle(cx + 1, cy - 1, 5, color(255, 120, 40, rround(a * 0.25 * glow)))
-    else:
-        blade = color(150, 132, 112, a)
-        hilt = color(110, 70, 40, a)
-    tip = pr.Vector2(cx + 6, cy - 6)
+    big = cat == "greatsword"
+    tip = pr.Vector2(cx + 7, cy - 7) if big or item.id == "bastard_sword" else pr.Vector2(cx + 6, cy - 6)
     base = pr.Vector2(cx - 3, cy + 3)
-    pr.draw_line_ex(base, tip, 2, blade)
-    pr.draw_line_ex(pr.Vector2(cx - 6, cy), pr.Vector2(cx, cy + 6), 2, hilt)
-    pr.draw_line_ex(pr.Vector2(cx - 3, cy + 3), pr.Vector2(cx - 6, cy + 6), 2, hilt)
+    if cat == "katana":
+        pr.draw_line_ex(base, pr.Vector2(cx + 2, cy - 3), 1.5, blade)
+        pr.draw_line_ex(pr.Vector2(cx + 2, cy - 3), pr.Vector2(cx + 7, cy - 6), 1.5, blade)
+        pr.draw_line_ex(pr.Vector2(cx - 3, cy + 3), pr.Vector2(cx - 6, cy + 6), 2, color(40, 30, 40, a))
+        pr.draw_circle(cx - 3, cy + 3, 1.5, color(200, 170, 70, a))
+    else:
+        pr.draw_line_ex(base, tip, 3 if big else 2, blade)
+        pr.draw_line_ex(pr.Vector2(cx - 6, cy), pr.Vector2(cx, cy + 6), 2, hilt)
+        pr.draw_line_ex(pr.Vector2(cx - 3, cy + 3), pr.Vector2(cx - 6, cy + 6), 2, hilt)
     if ready:
         k = (t * 0.6) % 1.5  # glint sweeps base -> tip, then rests
         if k < 1:

@@ -100,6 +100,12 @@ def sounds():
             ),
         ),
         "step": gen(0.08, lambda t, p: lowpass(0.3) * 0.5 * env(p, 0.05)),
+        "heavy": gen(
+            0.4,
+            lambda t, p: (
+                (lowpass(0.03 + p * 0.12) * 2.2 + math.sin(t * TAU * (90 - p * 40)) * 0.3) * env(p, 0.4)
+            ),
+        ),
     }
     return {name: wav(s) for name, s in out.items()}
 

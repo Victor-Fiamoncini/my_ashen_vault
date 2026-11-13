@@ -60,6 +60,9 @@ FromSoftware, Inc.
   15-bit color with ordered dithering, distance fog and baked vertex lighting.
 - **Deliberate, weighty combat**: an ATK gauge that refills between swings, enemy wind-ups you can read
   and interrupt, and a boss with poise.
+- **Weapons with their own movesets**: swords, greatswords, a katana, a whip, a mace and a war
+  hammer. Tap to attack; hold to charge a heavy attack that costs stamina, from an overhead cleave
+  to a lunging thrust or a ground slam that hits everything around you.
 - **Spells**: Flame Bolt, Mend and Lumen, paid for with MP once your focus has returned.
 - **Stamina**: sprinting drains a green stamina bar. Run it dry and you are winded until it recovers.
 - **Two hand-built areas**: the village of Harrowmere and the Sunken Keep, with locked doors, levers,
@@ -134,7 +137,7 @@ Without uv, plain pip works: `python3 -m venv .venv`, `.venv/bin/pip install -e 
 | Move / strafe | W S / A D (or arrow up/down) |
 | Sprint | Hold Shift |
 | Turn / look | Mouse |
-| Attack | Left mouse |
+| Attack / heavy attack | Left mouse / hold left mouse, then release |
 | Cast spell / change spell | Right mouse / mouse wheel |
 | Use, talk, open | E |
 | Belongings | Tab or I |
@@ -153,6 +156,9 @@ The same list is in the game under **Controls** on the title and pause menus.
   and flash before swinging.
 - Spells need your **focus** back as well as enough MP. The cyan ring around the spell icon refills after
   each cast and flashes when you can cast again.
+- Hold left mouse to charge a **heavy attack**: the orange ring around your weapon fills, then
+  release. It costs ST, and the ring turns red when you are too winded. Belongings and the shop show
+  each weapon's light and heavy attack.
 - Sprinting drains **ST** (green bar). Empty it and you can't sprint until it is about a third full.
 - Watch for enemies raising their weapons. A solid hit during the wind-up staggers most of them.
 - Every menu works with the mouse: point at a row to select it, click to use or buy, right-click to

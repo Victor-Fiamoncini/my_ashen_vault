@@ -36,6 +36,7 @@ CONTROLS = [
     ("Sprint", "Hold Shift"),
     ("Turn / look", "Mouse"),
     ("Attack", "Left mouse"),
+    ("Heavy attack", "Hold left mouse"),
     ("Cast spell", "Right mouse"),
     ("Change spell", "Mouse wheel"),
     ("Quick item", "Middle mouse"),

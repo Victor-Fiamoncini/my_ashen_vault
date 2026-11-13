@@ -282,7 +282,9 @@ class World:
 
     # --- player actions --------------------------------------------------------
 
-    def melee_targets(self, reach):
+    def melee_targets(self, reach, cone=0.6, limit=None):
+        """Living enemies a swing can hit, nearest first. `cone` is the minimum cosine between
+        facing and target (below 0 hits all around); `limit` caps how many."""
         player = self.player
         fx, fz = player.forward()
         out = []
@@ -295,11 +297,11 @@ class World:
             if d > reach + e.radius:
                 continue
             if d < e.radius + 0.2 or (
-                (dx * fx + dz * fz) / d > 0.6 and self.can_see(player.x, player.z, e.x, e.z)
+                (cone < 0 or (dx * fx + dz * fz) / d > cone) and self.can_see(player.x, player.z, e.x, e.z)
             ):
                 out.append(e)
         out.sort(key=lambda e: math.hypot(e.x - player.x, e.z - player.z))
-        return out
+        return out[:limit] if limit else out
 
     def fire_bolt(self, damage):
         player = self.player
