@@ -23,6 +23,7 @@ class Player:
     SWING_TIME = 0.45
     SWING_HIT_AT = 0.16
     WEBBED = 0.45  # speed multiplier while caught in silk
+    SPORED = 0.6  # speed multiplier while choking on spores
 
     def __init__(self, stats=None, inventory=None, spells=None):
         self.stats = stats or Stats()
@@ -37,6 +38,7 @@ class Player:
         self.hurt_t = 0.0
         self.lumen_t = 0.0
         self.webbed_t = 0.0  # seconds left caught in spider silk
+        self.spore_t = 0.0  # seconds left choking on spores
         self.swing_t = None
         self.swing_power = 0.0
         self.attack = weapons.attack(self.inventory.weapon_item())
@@ -107,10 +109,11 @@ class Player:
     def look(self, amount):
         self.pitch = clamp(self.pitch + amount, -self.LOOK_LIMIT, self.LOOK_LIMIT)
 
-    def walk(self, map_, fwd, strafe, dt, blocked=None, sprint=False, floating=None):
+    def walk(self, map_, fwd, strafe, dt, blocked=None, sprint=False, floating=None, ground=None):
         """fwd/strafe are -1..1 intents. Returns True if the player moved.
         Sprinting is faster but drains stamina; sucking mud (a tile's `slow`) holds you back.
-        `floating` lets you walk onto rafts and planks over water."""
+        `floating` lets you walk onto rafts, planks and ledges over water or a chasm, and `ground`
+        gives the height you stand at while on one."""
         self.sprinting = False
         if fwd == 0 and strafe == 0:
             return False
@@ -122,6 +125,8 @@ class Player:
         speed *= map_.tile_at(self.x, self.z).slow
         if self.webbed_t > 0:
             speed *= self.WEBBED
+        if self.spore_t > 0:
+            speed *= self.SPORED
         dx = (fx * fwd - fz * strafe) * speed * dt
         dz = (fz * fwd + fx * strafe) * speed * dt
         length = math.hypot(fwd, strafe)
@@ -130,7 +135,15 @@ class Player:
             dz /= length
         ox, oz = self.x, self.z
         self.x, self.z = collision.move(
-            map_, self.x, self.z, dx, dz, radius=self.RADIUS, blocked=blocked, floating=floating
+            map_,
+            self.x,
+            self.z,
+            dx,
+            dz,
+            radius=self.RADIUS,
+            blocked=blocked,
+            floating=floating,
+            ground=ground,
         )
         moved = math.hypot(self.x - ox, self.z - oz)
         self.bob_t += moved * 2.2
@@ -156,6 +169,7 @@ class Player:
         self.hurt_t = max(self.hurt_t - dt, 0)
         self.lumen_t = max(self.lumen_t - dt, 0)
         self.webbed_t = max(self.webbed_t - dt, 0)
+        self.spore_t = max(self.spore_t - dt, 0)
         if self.swing_t is None:
             return
         self.swing_t += dt

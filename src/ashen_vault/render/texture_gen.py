@@ -32,6 +32,9 @@ def all_textures():
         "bog": bog(),
         "rapids": rapids(),
         "thorns": thorns(),
+        "cliff_rock": cliff_rock(),
+        "ravine": ravine(),
+        "log_wall": log_wall(),
         "white": solid(255, 255, 255),
     }
 
@@ -385,5 +388,51 @@ def thorns():
         if vine or vine2:
             return tint([92, 40, 34], 0.7 + n * 0.4)
         return tint([70, 58, 36], 0.55 + n * 0.35)
+
+    return build(px)
+
+
+def cliff_rock():
+    """Layered grey-brown rock in sloping strata, with moss in the cracks."""
+
+    def px(x, y):
+        n = fbm(x, y, 221)
+        band = math.sin((y + x * 0.25 + noise(x, y, 16, 222) * 10) * 0.45)
+        k = 0.6 + n * 0.35 + band * 0.08
+        if band > 0.88:
+            return tint([28, 26, 24], 0.9 + n * 0.2)  # a crack between strata
+        if band > 0.7 and hash_(x, y, 223) > 0.55:
+            return tint([66, 96, 46], 0.7 + n * 0.4)  # moss growing in it
+        return tint([108, 100, 88], k)
+
+    return build(px)
+
+
+def ravine():
+    """The chasm floor far below: dark scree half lost in mist."""
+
+    def px(x, y):
+        n = fbm(x, y, 231)
+        if hash_(x // 2, y // 2, 232) > 0.9:
+            return tint([70, 70, 66], 0.6 + n * 0.3)
+        return tint([26, 30, 28], 0.6 + n * 0.5)
+
+    return build(px)
+
+
+def log_wall():
+    """Stacked round logs of a woodsman's cabin, chinked with dried mud."""
+
+    def px(x, y):
+        row = y // 16
+        v = (y % 16) / 15.0
+        k = 0.55 + math.sin(v * math.pi) * 0.45  # each log is rounded, lit along its middle
+        grain = (noise(x, y, 4, 241 + row) - 0.5) * 0.25
+        if y % 16 in (0, 15):
+            return tint([78, 66, 48], 0.7 + fbm(x, y, 242) * 0.3)  # mud chinking
+        c = tint([110, 78, 48], k + grain)
+        if hash_(x // 8, row, 243) > 0.85 and abs(v - 0.5) < 0.2:
+            return tint([60, 92, 44], 0.7 + grain)  # moss on the weathered logs
+        return c
 
     return build(px)

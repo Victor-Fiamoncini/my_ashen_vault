@@ -11,9 +11,12 @@ BODY_HEIGHT = 1.7
 def passable(map_, tx, tz, from_floor, blocked=None, floating=None):
     """Can a body standing at `from_floor` occupy tile (tx, tz)?
     `blocked` is an optional callable for dynamic blockers such as closed doors; `floating` says
-    whether something you can stand on (a raft, a plank) floats on a water tile."""
+    whether something you can stand on (a raft, a plank, a ledge) spans a water or chasm tile."""
     tile = map_[tx, tz]
-    if not tile.walkable and not (tile.liquid and floating and floating(tx, tz)):
+    if tile.needs_footing:
+        if not (floating and floating(tx, tz)):
+            return False
+    elif not tile.walkable:
         return False
     if tile.floor - from_floor > STEP_HEIGHT:
         return False
@@ -22,9 +25,10 @@ def passable(map_, tx, tz, from_floor, blocked=None, floating=None):
     return not (blocked and blocked(tx, tz))
 
 
-def move(map_, x, z, dx, dz, radius, blocked=None, floating=None):
-    """Moves a circle by (dx, dz), sliding along blocked tiles axis by axis. Returns (x, z)."""
-    from_floor = map_.floor_at(x, z)
+def move(map_, x, z, dx, dz, radius, blocked=None, floating=None, ground=None):
+    """Moves a circle by (dx, dz), sliding along blocked tiles axis by axis. Returns (x, z).
+    `ground(x, z)` gives the height you stand at when it is not the tile's floor (a ledge's deck)."""
+    from_floor = ground(x, z) if ground else map_.floor_at(x, z)
     x = _slide(map_, x, z, dx, 0, radius, from_floor, blocked, floating)[0]
     z = _slide(map_, x, z, 0, dz, radius, from_floor, blocked, floating)[1]
     return x, z

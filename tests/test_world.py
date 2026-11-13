@@ -5,7 +5,7 @@ import os
 import pytest
 
 from ashen_vault import MAP_DIR
-from ashen_vault.world import collision
+from ashen_vault.world import collision, hazards
 from ashen_vault.world.map_loader import MapError, MapLoader
 from ashen_vault.world.tile_map import TileMap
 from conftest import ROOM
@@ -110,7 +110,7 @@ def test_harrowmere_has_the_overgrown_house_exit():
 def test_verdant_hollow_loads_with_start_exit_boss_and_enemies():
     m = MapLoader.load_file(os.path.join(MAP_DIR, "verdant_hollow.map"))
     assert m.meta["name"] == "The Verdant Hollow"
-    assert (m.width, m.depth) == (32, 30)
+    assert (m.width, m.depth) == (54, 30)
     sx, sz = (int(v) for v in m.meta["start"][:2])
     assert m[sx, sz].walkable
     (back,) = _spec(m, "exit", map="harrowmere")
@@ -130,9 +130,19 @@ def test_verdant_hollow_loads_with_start_exit_boss_and_enemies():
 
 
 def _reachable(m, start, open_tiles=()):
-    """Tiles a walker can reach from `start`, honoring step heights; doors count as closed unless listed."""
+    """Tiles a walker can reach from `start`, honoring step heights; doors count as closed unless listed.
+    Fixed platforms (planks, ledges, floorboards) count as footing at their deck height."""
     blocked = {(s.tx, s.tz) for s in m.entities if s.kind in ("door", "gate", "save_statue")}
     blocked -= set(open_tiles)
+    decks = {
+        (TileMap.tile_coord(p.x), TileMap.tile_coord(p.z)): p.deck
+        for p in hazards.build_platforms(m)
+        if p.kind != "raft"
+    }
+
+    def floating(tx, tz):
+        return (tx, tz) in decks
+
     seen = {start}
     todo = [start]
     while todo:
@@ -141,7 +151,7 @@ def _reachable(m, start, open_tiles=()):
             n = (x + dx, z + dz)
             if n in seen or n in blocked:
                 continue
-            if collision.passable(m, *n, m[x, z].floor):
+            if collision.passable(m, *n, decks.get((x, z), m[x, z].floor), floating=floating):
                 seen.add(n)
                 todo.append(n)
     return seen

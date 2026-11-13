@@ -50,6 +50,16 @@ class Projectile:
 INTERACT_RANGE = 2.6
 WEB_TIME = 2.5  # seconds a web shot slows you
 THORN_SENSE = 3.4  # metres at which thorn plants bristle as you approach
+FALL_MESSAGES = {
+    "river": "The river drags you under and casts you back ashore.",
+    "ravine": "You plunge into the ravine, and claw your way back up battered.",
+}
+HAZARD_MESSAGES = {
+    "landed": "You land hard.",
+    "logs_first": "A rotten rope snaps above, and the woodpile starts to roll!",
+    "logs_last": "The last log tumbles down. The woodpile is spent.",
+    "spores": "Choking spores fill your lungs.",
+}
 
 NPC_LOOKS = {
     "odrin": {"robe": (70, 60, 90), "hair": (200, 200, 200)},
@@ -72,6 +82,7 @@ class World:
         self._time = 0.0
         self.blocker = self.blocked_tile
         self.hazards = hazards.Hazards(self.map)
+        self._piles = {(TileMap.tile_coord(c.x), TileMap.tile_coord(c.z)) for c in self.hazards.chutes}
         # Thorn floors grow spiked plants; each one's spikes rise (0..1) when stepped in.
         self._thorns = {(tx, tz): 0.0 for tx, tz, tile in self.map.each_tile() if tile.hurt}
         self._spawn_entities()
@@ -106,7 +117,7 @@ class World:
             x, z = TileMap.center(spec.tx, spec.tz)
             y = self.map[spec.tx, spec.tz].floor
             yaw = float(spec.props.get("yaw", "0")) * math.pi / 180
-            if not EnemyTypes.has(spec.kind) and spec.kind not in hazards.PLATFORM_KINDS:
+            if not EnemyTypes.has(spec.kind) and spec.kind not in hazards.HAZARD_KINDS:
                 key = f"{spec.kind}:{self.name}:{spec.tx},{spec.tz}"
                 prop = Prop(
                     kind=spec.kind,
@@ -159,7 +170,7 @@ class World:
                 return True
             if p.kind == "exit" and p.props.get("model") == "well":
                 return True
-        return False
+        return (tx, tz) in self._piles
 
     @property
     def player_x(self):
@@ -184,7 +195,9 @@ class World:
                 continue
             nx, nz = collision.separate(nx, nz, enemy.radius, other.x, other.z, other.radius)
         tile = self.map.tile_at(nx, nz)
-        if not tile.walkable or self.blocked_tile(TileMap.tile_coord(nx), TileMap.tile_coord(nz)):
+        if tile.needs_footing or not tile.walkable:
+            return
+        if self.blocked_tile(TileMap.tile_coord(nx), TileMap.tile_coord(nz)):
             return
         if abs(tile.floor - self.map.floor_at(enemy.x, enemy.z)) > collision.STEP_HEIGHT:
             return
@@ -240,10 +253,16 @@ class World:
         return self.hazards.floor(self.player.x, self.player.z)
 
     def update_hazards(self, dt):
-        """River, rafts, planks, currents and thorns acting on the player."""
-        if self.hazards.update(dt, self.player, self.game.hurt_player, blocked=self.blocker) == "fell":
+        """River, ravine, platforms, currents, thorns, logs and spores acting on the player."""
+        event = self.hazards.update(dt, self.player, self.game.hurt_player, blocked=self.blocker)
+        if event == "fell":
             self.game.sfx("hurt")
-            self.game.message("The river drags you under and casts you back ashore.")
+            self.game.message(FALL_MESSAGES[self.hazards.fell_into])
+        else:
+            if event in HAZARD_MESSAGES:
+                self.game.message(HAZARD_MESSAGES[event])
+            if event and event.startswith("logs_"):
+                self.game.sfx("heavy", 0.8)
 
     def enemy_y(self, enemy):
         return self.map.floor_at(enemy.x, enemy.z)
@@ -458,8 +477,33 @@ class World:
             with rig.at(pl.x, pl.deck - pl.sink + shake, pl.z):
                 if pl.kind == "raft":
                     models.raft(rig, self._time)
+                elif pl.kind == "ledge":
+                    models.ledge(rig, pl.creaking, int(pl.x * 3 + pl.z * 7))
+                elif pl.kind == "boards":
+                    models.boards(rig, pl.creaking, broken=not pl.afloat)
                 else:
                     models.plank(rig, pl.creaking)
+        for chute in self.hazards.chutes:
+            y = self.map.floor_at(chute.x, chute.z)
+            self._model_light(gpu, chute.x, y + 0.8, chute.z)
+            back = hazards.PILE_BACK
+            with rig.at(
+                chute.x - chute.ux * back, y, chute.z - chute.uz * back, ry=math.atan2(chute.ux, chute.uz)
+            ):
+                models.log_pile(rig, chute.stock, self._time, chute.t / chute.every if chute.active else 0.0)
+        for log in self.hazards.logs:
+            if math.hypot(log.x - player.x, log.z - player.z) > far:
+                continue
+            self._model_light(gpu, log.x, log.y + 0.5, log.z)
+            yaw = math.atan2(log.dx, log.dz)
+            with rig.at(log.x, log.y + hazards.LOG_R, log.z, ry=yaw):
+                models.rolling_log(rig, log.spin)
+        for pod in self.hazards.pods:
+            if math.hypot(pod.x - player.x, pod.z - player.z) > far:
+                continue
+            self._model_light(gpu, pod.x, pod.y + 0.5, pod.z)
+            with rig.at(pod.x, pod.y, pod.z):
+                models.spore_pod(rig, self._time, pod.cloud, pod.t / pod.every)
         for e in self.enemies:
             if math.hypot(e.x - player.x, e.z - player.z) > far:
                 continue

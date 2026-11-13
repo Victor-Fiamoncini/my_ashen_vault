@@ -25,38 +25,54 @@ M = floor tex=jungle_floor h=0.8 side=bark
 w = floor tex=rapids h=-0.3 side=mud flow=0,0.8 slow=0.8
 * = floor tex=thorns h=0 side=mud hurt=5
 % = floor tex=thorns h=0.4 side=bark hurt=5
+A = wall tex=cliff_rock top=9 cap=cliff_rock
+C = wall tex=log_wall top=6.6 cap=roof
+Q = wall tex=log_wall top=4.8 cap=roof
+g = floor tex=jungle_floor h=3.2 side=cliff_rock
+_ = floor tex=ravine h=-5 side=cliff_rock pit
+1 = floor tex=cliff_rock h=0.8 side=cliff_rock
+2 = floor tex=cliff_rock h=1.2 side=cliff_rock
+3 = floor tex=cliff_rock h=1.6 side=cliff_rock
+4 = floor tex=cliff_rock h=2.0 side=cliff_rock
+5 = floor tex=cliff_rock h=2.4 side=cliff_rock
+6 = floor tex=cliff_rock h=2.8 side=cliff_rock
+i = floor tex=wood_plank h=3.2 ceil=5.8 ceil_tex=wood_plank side=log_wall
+e = floor tex=mud h=0.8 ceil=5.8 ceil_tex=wood_plank side=log_wall
+u = floor tex=wood_plank h=1.6 ceil=4.2 ceil_tex=wood_plank side=log_wall
++ = floor tex=wood_plank h=0.8 side=wood_plank
+& = floor tex=wood_plank h=1.2 side=wood_plank
 
 [grid]
-################################
-#########T,,,,,,,,,,,T##########
-########B,f,,,,,,,,,f,B#########
-########,,,,,,,L,,,,,,,#########
-########,t,,,,,,,,,,,t,#########
-########,,,,,,,,,,,,,,,#########
-########B,f,,,,,,,,,f,B#########
-#########T,,,,,,,,,,,T##########
-##############,,,###############
-###############D################
-###########p.......c#####^^q^###
-######............h.#####^^^^###
-######P-F-#.l.......#####G######
-#-*-www-s-#####.h#######^^^^^ov#
-#*-*www-F-####p..#######^^j^^^^#
-#k-*~~~---#####..######NMMMMMMM#
-#-*-~~~--P#####rr######MMMMMBMU#
-#--sKKK-F-#####RR######MMMMMMMM#
-#*-*~~~---#####rr#####mm%%%%mmm#
-#-F-~~~--O#####.l#####mmBmmHmmm#
-#-**~~~-F-####p..#####mVmmmmmmm#
-#---~~Y---#####..#####t,,,W,,,n#
-#-P-~~~-*-#####..#####,,,,B,,,T#
-#~--~~~---#B,t,,,t,B##,,,,,,,,,#
-#####-F-s-#,W,,,,,,,##,,,,,,,,x#
-######.....,,,,,,,,T...#########
-###########,,,,,,,S,############
-###########,T,,,,,,,############
-###############E################
-################################
+######################################################
+#########T,,,,,,,,,,,T##########AgggCCCCCCCgggg!ggggA#
+########B,f,,,,,,,,,f,B#########AgggCiibbbCggggggg@gA#
+########,,,,,,,L,,,,,,,#########Ag!gCiibbz2y456gggggA#
+########,t,,,,,,,,,,,t,#########AgggC(iiiiCgggggggggA#
+########,,,,,,,,,,,,,,,#########AgggCiiiiiCgggggagggA#
+########B,f,,,,,,,,,f,B#########AgggCCCiCCCggggggJggA#
+#########T,,,,,,,,,,,T##########ggg@ggggggggggggggggA#
+##############,,,###############gg______________A6AAA#
+###############D################gg______________55AAA#
+###########p.......c#####^^q^###gd______________A4AAA#
+######............h.#####^^^^###gg______________A33AA#
+######P-F-#.l.......#####G######gg____________2722AAA#
+#-*-www-s-#####.h#######^^^^^ov#gg____________X___AAA#
+#*-*www-F-####p..#######^^j^^^^ggg____________X___AAA#
+#k-*~~~---#####..######NMMMMMMM#AA____________X___AAA#
+#-*-~~~--P#####rr######MMMMMBMU#AA____________X___AAA#
+#--sKKK-F-#####RR######MMMMMMMM#A1222222Z222272AAAAAA#
+#*-*~~~---#####rr#####mm%%%%mmm#AmAAAAAAAAAAAAAAAAAAA#
+#-F-~~~--O#####.l#####mmBmmHmmmmmmmm;mmmmmmmmmmm?mmmA#
+#-**~~~-F-####p..#####mVmmmmmmm#m:mmmm~~~~~~~~~mmHmmA#
+#---~~Y---#####..#####t,,,W,,,n#mmmmm~~~QQQQQQ~~mmmmA#
+#-P-~~~-*-#####..#####,,,,B,,,T#mmm?m~~~QuIuuQ~~m;mmA#
+#~--~~~---#B,t,,,t,B##,,,,,,,,,#mmmmmm+&uuuu$Q~~mmmmA#
+#####-F-s-#,W,,,,,,,##,,,,,,,,x#m:mmm~~~Q8uuIQ~~mmmmA#
+######.....,,,,,,,,T...#########mmmmm~~~QQQQQQ~~m:mmA#
+###########,,,,,,,S,############mmmmmm~~~~~~~~~mm9mmA#
+###########,T,,,,,,,############AAAAAAAAAAAAAAAAAAAAA#
+###############E######################################
+######################################################
 
 [entities]
 L = loom_mother yaw=90 on=,
@@ -65,7 +81,7 @@ G = gate lever=hollow_lever on=^
 v = lever id=hollow_lever on=^
 E = exit map=harrowmere at=25,12,90 label=Return_to_Harrowmere model=vine_door yaw=-90 on=.
 S = save_statue on=,
-k = chest item=briar_key on=-
+k = chest item=claymore on=-
 q = chest item=red_tonic count=3 gold=80 on=^
 c = chest item=blue_moss count=2 gold=30 on=.
 x = chest item=red_tonic count=2 on=,
@@ -89,3 +105,22 @@ F = fungus radius=5 on=-
 T = jungle_tree on=,
 U = jungle_tree on=M
 V = jungle_tree on=m
+b = boards deck=3.2 on=e
+z = chest item=briar_key on=e
+y = stump_mimic on=3
+X = ledge deck=1.2 on=_
+J = log_chute to=49,13 every=2.6 speed=4.5 logs=10 on=g
+I = spore_pod every=4.5 on=u
+Z = spore_pod every=3.6 on=2
+$ = chest item=red_tonic count=3 gold=90 on=u
+a = bark_husk on=g
+d = snare_bloom on=g
+; = snare_bloom on=m
+: = jungle_tree on=m
+! = jungle_tree on=g
+? = fungus radius=6 on=m
+@ = torch radius=7 on=g
+( = torch radius=6 on=i
+8 = torch radius=6 on=u
+9 = torch radius=7 on=m
+7 = torch radius=8 on=2

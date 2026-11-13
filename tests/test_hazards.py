@@ -1,3 +1,5 @@
+import math
+
 import pytest
 
 from ashen_vault.player.stats import Stats
@@ -169,9 +171,214 @@ def test_verdant_hollow_has_its_river():
 
     m = MapLoader.load_file(map_path("verdant_hollow"))
     h = hazards.Hazards(m)
-    assert {p.kind for p in h.platforms} == {"raft", "plank"}
+    assert {p.kind for p in h.platforms} == {"raft", "plank", "ledge", "boards"}
     for p in h.platforms:
         tx, tz = TileMap.tile_coord(p.x), TileMap.tile_coord(p.z)
-        assert m[tx, tz].liquid
+        assert m[tx, tz].needs_footing or p.kind == "boards"
     assert any(t.flow for _, _, t in m.each_tile())
     assert any(t.hurt for _, _, t in m.each_tile())
+
+
+HIGHLAND = """[meta]
+name = Highland
+start = 1 1 0
+
+[legend]
+# = wall
+. = floor h=0
+g = floor h=3.2
+3 = floor h=1.6
+_ = floor h=-5 pit
+e = floor h=0.8
+
+[grid]
+#########
+#..___..#
+#..___..#
+#gggeeg.#
+#g.....3#
+#########
+
+[entities]
+X = ledge deck=0 on=_
+b = boards deck=3.2 on=e
+J = log_chute to=1,4 every=1.0 speed=4 on=3
+P = spore_pod every=3 on=.
+"""
+
+
+def highland(grid_patch=None):
+    text = HIGHLAND
+    if grid_patch:
+        for old, new in grid_patch:
+            text = text.replace(old, new, 1)
+    m = MapLoader(text, name="highland").parse()
+    return m, hazards.Hazards(m)
+
+
+def test_pits_need_footing_and_ledges_span_them():
+    m, h = highland([("#..___..#\n#..", "#..X__..#\n#..")])
+    assert m[3, 1].pit and m[3, 1].hazardous and m[3, 1].needs_footing
+    assert not collision.passable(m, 4, 1, 0.0)
+    assert collision.passable(m, 3, 1, 0.0, floating=h.floating)
+    ledge = h.platforms[0]
+    assert ledge.kind == "ledge" and ledge.deck == 0.0
+    # Standing on the ledge you stand at its deck, so you can step back off onto the bank.
+    x, z = TileMap.center(3, 1)
+    assert h.floor(x, z) == 0.0
+    nx, _ = collision.move(m, x, z, -1.2, 0, 0.4, floating=h.floating, ground=h.floor)
+    assert nx < x - 1.0
+
+
+def test_a_ledge_crumbles_and_drops_you_into_the_ravine():
+    _m, h = highland([("#..___..#\n#..", "#..X__..#\n#..")])
+    body = Body(2, 1)
+    run(h, body, 0.1)  # stood on the bank: that is the safe ground
+    body.x, body.z = TileMap.center(3, 1)
+    hits, events = run(h, body, hazards.LEDGE_CREAK + 0.1)
+    assert "fell" in events and h.fell_into == "ravine"
+    assert hits[-1][1] == "The ravine"
+    assert (body.x, body.z) == TileMap.center(2, 1)
+    ledge = h.platforms[0]
+    assert ledge.sink > 0
+    run(h, Body(1, 4), hazards.LEDGE_GONE)
+    assert ledge.afloat and ledge.sink == 0
+
+
+def test_rotten_boards_break_for_good_and_you_land_hard():
+    _m, h = highland([("#gggeeg.#", "#gggbeg.#")])
+    body = Body(3, 3)
+    body.y = 3.2
+    run(h, body, 0.1)
+    body.x, body.z = TileMap.center(4, 3)
+    hits, events = run(h, body, hazards.BOARDS_CREAK + 0.1)
+    assert "landed" in events
+    (dmg, src) = hits[-1]
+    assert src == "The fall"
+    assert dmg == round((3.2 - 0.8 - hazards.FALL_SAFE) * hazards.FALL_PER_M)
+    boards = h.platforms[0]
+    run(h, Body(1, 4), 100)
+    assert not boards.afloat
+    assert boards.sink == pytest.approx(3.2 - 0.8 - 0.08)
+
+
+def test_small_drops_and_teleports_do_not_hurt():
+    _m, h = highland()
+    body = Body(7, 4)
+    body.y = 1.6
+    run(h, body, 0.1)
+    body.x -= 1.2  # step down 1.6 m onto the floor
+    assert TileMap.tile_coord(body.x) == 6
+    hits, _ = run(h, body, 0.1)
+    assert hits == []
+    body.x, body.z = TileMap.center(1, 3)
+    run(h, body, 0.1)
+    body.x, body.z = TileMap.center(1, 4)  # a 3.2 m drop, but 2 m away in one frame: a teleport
+    hits, _ = run(h, body, 0.05)
+    assert hits == []
+
+
+def test_rolling_logs_strike_once_and_shove_you_downhill():
+    _, h = highland([("#g.....3#", "#g.....J#")])
+    chute = h.chutes[0]
+    assert (chute.x, chute.z) == TileMap.center(7, 4)
+    body = Body(4, 4)
+    hits, events = run(h, body, 2.6)
+    assert ("A rolling log" in [s for _, s in hits]) and "log" in events
+    assert body.x < TileMap.center(4, 4)[0] - 1.0  # shoved along the lane
+    assert [s for _, s in hits].count("A rolling log") == 1
+
+
+def test_logs_miss_you_in_a_side_notch():
+    _, h = highland([("#g.....3#", "#g.....J#")])
+    body = Body(4, 3)  # a tile beside the lane
+    body.y = 0.8
+    h.chutes[0].t = 0.99
+    hits, _ = run(h, body, 2.0)
+    assert "A rolling log" not in [s for _, s in hits]
+    assert h.logs  # the log is still rolling along the lane
+
+
+def test_spore_clouds_choke_and_slow():
+    _m, h = highland([("#g.....3#", "#g..P..3#")])
+    body = Body(4, 4)
+    body.spore_t = 0.0
+    pod = h.pods[0]
+    assert pod.cloud == 0.0
+    hits, events = run(h, body, 0.1)
+    assert events[0] == "spores"
+    assert body.spore_t == pytest.approx(hazards.SPORE_LINGER)
+    assert hits == [(hazards.SPORE_DAMAGE, "Spores")]
+    run(h, body, hazards.SPORE_TIME)  # the cloud settles
+    assert pod.cloud is None
+    far = Body(1, 1)
+    far.spore_t = 0.0
+    pod.t = 0.0
+    hits, _ = run(h, far, 0.2)
+    assert hits == [] and far.spore_t == 0.0
+
+
+def test_spores_slow_the_player():
+    from ashen_vault.player.player import Player
+
+    m, _ = highland()
+    a, b = Player(), Player()
+    a.place(*TileMap.center(2, 4), 1.5708, m)
+    b.place(*TileMap.center(2, 4), 1.5708, m)
+    b.spore_t = 1.0
+    a.walk(m, 1, 0, 0.1)
+    b.walk(m, 1, 0, 0.1)
+    start = TileMap.center(2, 4)[1]
+    assert (b.z - start) == pytest.approx((a.z - start) * Player.SPORED)
+
+
+def test_walking_under_floorboards_in_the_cellar_keeps_you_on_the_cellar_floor():
+    # Regression: a deck above you used to count as footing, lifting you onto the boards (which then
+    # broke and dropped you for fall damage).
+    _, h = highland([("#gggeeg.#", "#gggbbg.#")])
+    body = Body(4, 3)
+    h.platforms[0].sunk_t = math.inf  # you broke the first board and fell through
+    body.y = 0.8
+    run(h, body, 0.1)
+    body.x, body.z = TileMap.center(5, 3)  # under the second, intact board
+    hits, events = run(h, body, 1.0)
+    assert hits == [] and events == [None] * len(events)
+    assert h.floor(body.x, body.z) == pytest.approx(0.8)
+    assert h.platforms[1].afloat
+
+
+def _lane():
+    _, h = highland([("#g.....3#", "#g.....J#")])
+    return h, h.chutes[0]
+
+
+def test_the_log_pile_waits_until_someone_climbs_the_slope():
+    h, chute = _lane()
+    hits, _ = run(h, Body(1, 1), 10)  # nowhere near the slope
+    assert chute.stock == hazards.LOG_STOCK and not h.logs and hits == []
+    assert not chute.on_slope(*TileMap.center(7, 4))  # the pile's own tile is not the slope
+    assert chute.on_slope(*TileMap.center(5, 4)) and chute.on_slope(*TileMap.center(5, 3))
+
+
+def test_the_pile_warns_you_then_runs_out():
+    h, chute = _lane()
+    body = Body(5, 3)  # in a notch beside the lane, so the logs miss
+    body.y = 0.8
+    _, events = run(h, body, hazards.LOG_WARN - 0.1)
+    assert not h.logs
+    _, events = run(h, body, 0.2)
+    assert "logs_first" in events and chute.stock == hazards.LOG_STOCK - 1
+    _, events = run(h, body, chute.every * hazards.LOG_STOCK)
+    assert "logs_last" in events and chute.stock == 0
+    run(h, body, 10)
+    assert not h.logs  # the last one rolled away and no more come
+
+
+def test_leaving_the_slope_stops_the_pile():
+    h, chute = _lane()
+    body = Body(5, 3)
+    run(h, body, hazards.LOG_WARN + 0.1)
+    left = chute.stock
+    body.x, body.z = TileMap.center(1, 1)
+    run(h, body, 20)
+    assert chute.stock == left

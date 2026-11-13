@@ -16,14 +16,20 @@ class Tile:
     ceil_tex: str | None = None
     liquid: bool = False
     # Hazards: HP lost per tick while standing here, a current (m/s along x, z) that pushes
-    # bodies, and a walk-speed multiplier (sucking mud).
+    # bodies, a walk-speed multiplier (sucking mud), and a sheer drop (a ravine) you fall into.
     hurt: int = 0
     flow: tuple[float, float] | None = None
     slow: float = 1.0
+    pit: bool = False
 
     @property
     def hazardous(self):
-        return self.liquid or self.hurt > 0 or self.flow is not None
+        return self.liquid or self.pit or self.hurt > 0 or self.flow is not None
+
+    @property
+    def needs_footing(self):
+        """Water and chasms: only somewhere to stand (a raft, a ledge) lets you onto them."""
+        return self.liquid or self.pit
 
     @property
     def open_sky(self):

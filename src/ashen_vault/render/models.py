@@ -3,6 +3,7 @@
 import math
 
 from ashen_vault.player.items import Items
+from ashen_vault.world import hazards
 
 BONE = (214, 204, 178)
 RUST = (120, 70, 44)
@@ -664,6 +665,136 @@ def plank(r, creak):
         r.part("cube", 0.5, 0.02, -0.3, 0.3, 0.04, 0.25, MOSS)
     for x, z in ((-0.85, -0.85), (0.85, -0.85), (-0.85, 0.85), (0.85, 0.85)):
         r.part("cyl", x, -0.4, z, 0.14, 0.9, 0.14, DARK_BARK)
+
+
+def ledge(r, creak, seed):
+    """A cracked shelf of rock jutting over the chasm, deck at y=0. It shudders as it gives way."""
+    rock = (104, 98, 86)
+    with r.at(0, 0, 0, rz=creak * 0.06, rx=-creak * 0.04):
+        r.part("cube", 0, -0.3, 0, 1.9, 0.6, 1.9, rock, tex="cliff_rock")
+        r.part("cone", 0.1, -1.1, 0.05, 1.5, 1.0, 1.5, (84, 78, 70), tex="cliff_rock", rx=math.pi)
+        r.part("cube", -0.4 + seed % 3 * 0.3, 0.02, 0.5, 0.5, 0.06, 0.4, MOSS)
+        # The crack widens as the ledge creaks.
+        r.part("cube", 0.2, 0.01, 0, 0.05 + creak * 0.08, 0.04, 1.8, (20, 18, 16), ry=0.3)
+        if creak > 0.2:
+            for k in range(3):
+                r.part(
+                    "cube",
+                    -0.7 + k * 0.6,
+                    -0.65 - creak * 0.4 * (k + 1),
+                    0.8 - k * 0.5,
+                    0.12,
+                    0.12,
+                    0.12,
+                    rock,
+                )
+
+
+def boards(r, creak, broken=False):
+    """Rotten cabin floorboards over a cellar, deck at y=0. Once broken they lie as a splintered heap."""
+    rot = (int(100 - 34 * creak), int(76 - 24 * creak), 46)
+    if broken:
+        for k in range(5):
+            r.part(
+                "cube", -0.6 + k * 0.3, 0.05 + (k % 2) * 0.08, 0.1 * (k - 2), 1.2, 0.08, 0.3, rot, ry=k * 0.9
+            )
+        return
+    for k in range(4):
+        sag = creak * 0.05 * (1 if k % 2 else -1)
+        r.part("cube", 0, -0.05 + sag, -0.72 + k * 0.48, 1.98, 0.1, 0.44, rot, tex="wood_plank")
+    r.part("cube", 0.4, 0.01, 0.2, 0.3, 0.02, 0.25, (40, 30, 22))  # a dark rot stain
+
+
+def rolling_log(r, spin):
+    """A felled trunk rolling downhill along its local x axis; centred on its axis."""
+    with r.at(0, 0, 0, rx=spin):
+        r.part("cyl", 0, 0, 0, 0.7, 1.7, 0.7, BARK, tex="bark", rz=math.pi / 2)
+        r.part("cyl", 0, 0.36, 0.0, 0.12, 0.5, 0.12, DARK_BARK)  # a snapped branch stub
+    for x in (-0.86, 0.86):
+        r.part("cyl", x, 0, 0, 0.6, 0.04, 0.6, (176, 140, 92), rz=math.pi / 2)  # pale cut ends
+
+
+def log_pile(r, stock, t, strain):
+    """A woodcutters' log rack at the top of a slope (+z is downhill): four corner posts on sill
+    beams, side rails and a lean-to plank roof, with a pyramid of felled logs (`stock` of
+    hazards.PILE_SLOTS) held in by a roped chock across the front. The rope shudders harder as the
+    next log works loose (`strain` 0..1); once the rack is spent the rope hangs cut and the chock
+    lies on the ground."""
+    timber = (104, 76, 50)
+    pale = (176, 140, 92)
+    # Sill beams the logs rest on, and the four corner posts.
+    for x in (-0.72, 0.72):
+        r.part("cube", x, 0.1, 0, 0.26, 0.2, 2.0, timber, tex="bark")
+    for x in (-0.98, 0.98):
+        for z in (-0.95, 0.95):
+            r.part("cube", x, 1.25, z, 0.18, 2.5, 0.18, DARK_BARK, tex="bark")
+        # Side rails keep the logs from spilling sideways, with a cross brace.
+        for y in (0.7, 1.5):
+            r.part("cube", x, y, 0, 0.1, 0.12, 1.9, timber)
+        r.part("cube", x, 1.25, 0, 0.08, 0.1, 2.5, timber, rx=0.75)
+    # Tie beams and a lean-to roof of rough planks, higher at the back.
+    for z in (-0.95, 0.95):
+        r.part("cube", 0, 2.45 if z < 0 else 2.2, z, 2.1, 0.16, 0.2, timber)
+    for k in range(5):
+        x = -0.84 + k * 0.42
+        r.part("cube", x, 2.42, 0, 0.4, 0.06, 2.4, (92, 68, 44), tex="wood_plank", rx=0.12, ry=(k - 2) * 0.01)
+    r.part("cube", 0.3, 2.47, -0.4, 0.5, 0.04, 0.4, MOSS, rx=0.12)
+
+    # The logs, bottom row first; the top one is next to go and rocks against the rope.
+    for k, (z, y) in enumerate(hazards.PILE_SLOTS[:stock]):
+        rock = math.sin(t * 30) * 0.05 * strain if k == stock - 1 else 0.0
+        with r.at(0, y, z + rock):
+            r.part("cyl", 0, 0, 0, 0.54, 1.8, 0.54, BARK, tex="bark", rz=math.pi / 2)
+            for x in (-0.91, 0.91):
+                r.part("cyl", x, 0, 0, 0.46, 0.03, 0.46, pale, rz=math.pi / 2)
+                r.part("cyl", x * 1.002, 0, 0, 0.12, 0.035, 0.12, (140, 104, 64), rz=math.pi / 2)
+
+    # The chock: a short log pegged across the front of the bottom row, lashed to the posts.
+    rope = (150, 132, 92)
+    if stock:
+        shake = math.sin(t * 24) * 0.03 * strain
+        r.part("cyl", 0, 0.32, 1.1, 0.3, 2.0, 0.3, DARK_BARK, tex="bark", rz=math.pi / 2)
+        for y in (0.55, 1.05):
+            r.part("cube", 0, y + shake, 1.03, 1.96, 0.04, 0.04, rope)
+        r.part("cube", 0, 1.5 + shake, 0.85, 0.04, 0.04, 0.5, rope, rx=0.9)
+    else:
+        r.part("cyl", 0.3, 0.15, 1.35, 0.3, 2.0, 0.3, DARK_BARK, tex="bark", rz=math.pi / 2, ry=0.4)
+        for x in (-0.98, 0.98):
+            r.part("cube", x, 0.75, 1.06, 0.04, 0.45, 0.04, rope, rz=0.15 * x)
+    # Wood chips and a forgotten axe beside the rack.
+    r.part("cube", -1.2, 0.03, -0.6, 0.3, 0.04, 0.2, pale, ry=0.6)
+    r.part("cube", -1.15, 0.03, 0.3, 0.2, 0.04, 0.14, pale, ry=-0.4)
+    r.part("cyl", 1.25, 0.35, -0.5, 0.06, 0.8, 0.06, (110, 80, 50), rz=0.6)
+    r.part("cube", 1.48, 0.66, -0.5, 0.08, 0.2, 0.26, IRON, rz=0.6)
+
+
+def spore_pod(r, t, cloud, phase):
+    """A swollen puffball that slowly fills, then bursts into a drifting cloud of spores."""
+    swell = 0.55 + 0.35 * (phase if cloud is None else 0.2)
+    r.part("cyl", 0, 0.15, 0, 0.18, 0.3, 0.18, (150, 140, 110))
+    r.part("sphere", 0, 0.3 + swell * 0.4, 0, swell, swell * 0.85, swell, (170, 162, 96))
+    for k in range(5):
+        a = k * 1.26
+        r.part(
+            "sphere",
+            math.cos(a) * swell * 0.4,
+            0.35 + swell * 0.6,
+            math.sin(a) * swell * 0.4,
+            0.12,
+            0.1,
+            0.12,
+            (120, 110, 60),
+        )
+    if cloud is None:
+        return
+    for k in range(10):
+        a = k * 2.4 + t * 0.6
+        d = 0.3 + cloud * (1.0 + (k % 3) * 0.3)
+        size = 0.4 + cloud * 0.8 * (1 - cloud * 0.5)
+        y = 0.6 + cloud * 1.2 + (k % 4) * 0.25
+        r.part(
+            "sphere", math.cos(a) * d, y, math.sin(a) * d, size, size * 0.8, size, (196, 206, 110), glow=True
+        )
 
 
 def thorn_plant(r, seed, t, rise):

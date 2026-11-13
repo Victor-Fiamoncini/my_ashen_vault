@@ -457,6 +457,9 @@ def prompt(game):
 def flash(player):
     if player.webbed_t > 0:
         _web_overlay(clamp(player.webbed_t, 0, 1))
+    if player.spore_t > 0:
+        # A sickly yellow-green haze while you choke on spores.
+        pr.draw_rectangle(0, 0, W, H, color(150, 170, 60, rround(clamp(player.spore_t, 0, 1) * 70)))
     if player.hurt_t <= 0:
         return
     pr.draw_rectangle(0, 0, W, H, color(160, 0, 0, rround(clamp(player.hurt_t * 300, 0, 120))))

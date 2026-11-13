@@ -296,6 +296,7 @@ class Game:
             blocked=self.world.blocker,
             sprint=inp.down("sprint"),
             floating=self.world.hazards.floating,
+            ground=self.world.hazards.floor,
         )
         self.world.update_hazards(dt)
         p.settle(self.world.map, dt, floor=self.world.player_floor())
