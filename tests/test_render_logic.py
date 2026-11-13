@@ -121,6 +121,11 @@ def test_jungle_props_and_relic_icons_draw():
     models.jungle_tree(r, 3, 0.5)
     models.fungus(r, 2, 0.5)
     models.vine_door(r, 0.5)
+    models.cocoon(r, 4)
+    models.cocoon(r, 4, broken=True)
+    models.frog_idol(r, 0.0)
+    models.frog_idol(r, 0.5)
+    models.secret_wall(r, 6.0, 0.3, tex="vine_wall")
     for id_ in Items.ALL:
         models.item(r, id_, 0.5)
     assert len(gpu.parts) > 100
@@ -174,18 +179,23 @@ def test_death_fall_eases_from_alive_to_settled():
     assert models.death_fall(e) == 1.0
 
 
-def test_jungle_enemies_collapse_into_a_death_pose():
-    for type_id in JUNGLE_ENEMIES:
+def test_every_enemy_collapses_into_a_death_pose():
+    from ashen_vault.ai.enemy_types import EnemyTypes
+
+    for type_id in EnemyTypes.ALL:
         _, alive = _extent(type_id, "chase", 0.5)  # awake: a Stump Mimic at rest is already stump-sized
         e, dead = _extent(type_id, "dead", 3.0)
-        # The body sinks into its death pose, and the ash dissolve's span (the type's height)
-        # covers it, so it crumbles from its real top rather than losing its top all at once.
+        # The body sinks into its death pose, and the ash dissolve's span covers it, so it crumbles
+        # from its real top rather than losing its top all at once.
         assert dead.top < alive.top, type_id
-        assert dead.top <= e.type.height * 1.1, (type_id, dead.top, e.type.height)
+        span_top = (e.type.hover + e.type.height / 2) if e.type.hover else e.type.height
+        assert dead.top <= span_top * 1.1, (type_id, dead.top, span_top)
+        # Nothing sinks further through the floor in death than it does alive (a husk's roots dig in).
+        assert dead.bottom >= min(alive.bottom, 0.0) - 0.15, (type_id, dead.bottom, alive.bottom)
 
 
-def test_dead_jungle_bosses_and_husks_stop_glowing():
-    for type_id in ("loom_mother", "bark_husk"):
+def test_dead_glowing_enemies_go_dark():
+    for type_id in ("loom_mother", "bark_husk", "ashen_warden", "mimic", "cinder_wisp"):
         _, alive = _extent(type_id, "idle", 0.5)
         _, dead = _extent(type_id, "dead", 3.0)
         assert alive.glows > 0 and dead.glows == 0, type_id

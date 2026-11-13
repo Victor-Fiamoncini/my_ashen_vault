@@ -411,3 +411,44 @@ def test_brood_is_small_fast_and_dies_with_its_mother():
     child = Enemy(brood, 0, 0)
     child.kill()
     assert not child.alive and child.hp == 0
+
+
+def warden(seed=3):
+    w = Enemy(EnemyTypes.get("ashen_warden"), 0.0, 0.0, rng=random.Random(seed))
+    w.cooldowns = dict.fromkeys(w.cooldowns, 0.0)
+    return w
+
+
+def test_warden_has_his_own_moves():
+    assert set(EnemyTypes.get("ashen_warden").moves) == {"sweep", "pounce", "cinders"}
+    assert "web" not in EnemyTypes.get("ashen_warden").moves  # silk is the spider's
+
+
+def test_warden_flings_embers_or_leaps_from_mid_range():
+    seen = set()
+    for seed in range(12):
+        boss = warden(seed)
+        world = FakeWorld(8.0, 0.0)
+        world.move_enemy = lambda *_: None
+        tick(boss, world, 0.1)
+        seen.add(boss.attack_kind)
+    assert seen == {"cinders", "pounce"}
+
+
+def test_warden_ember_fan_is_fired_as_cinders():
+    boss = warden()
+    boss.cooldowns["pounce"] = 99
+    world = FakeWorld(8.0, 0.0)
+    tick(boss, world, 1.2)
+    assert world.fired == ["cinders"]
+    assert boss.cooldowns["cinders"] > 0
+
+
+def test_warden_embers_need_a_line_of_sight():
+    boss = warden()
+    boss.cooldowns["pounce"] = 99
+    world = FakeWorld(8.0, 0.0)
+    world.visible = False
+    boss._switch("chase")
+    tick(boss, world, 0.3)
+    assert boss.attack_kind != "cinders"

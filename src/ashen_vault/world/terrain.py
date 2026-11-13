@@ -45,6 +45,11 @@ SPORE_R = 1.8  # cloud radius
 SPORE_LINGER = 1.2  # seconds the spores keep you sluggish after you leave the cloud
 SPORE_TICK = 0.8  # seconds between choking coughs
 SPORE_DAMAGE = 3
+HEARING = 14.0  # metres within which the player hears a pod burst or a platform give way
+
+# Sounds a platform makes (name, volume): when you first load it, and when it gives way.
+CREAK_SOUND = {"plank": ("crack", 0.25), "ledge": ("crack", 0.45), "boards": ("crack", 0.5)}
+BREAK_SOUND = {"plank": ("splash", 0.7), "ledge": ("door", 0.7), "boards": ("crack", 1.0)}
 
 # How each kind of platform rots: (seconds it bears you, seconds it stays gone, metres it drops).
 # None for "gone" means it never comes back; None for the drop means "down to the tile's floor".
@@ -353,6 +358,7 @@ class Terrain:
         self.under = None  # the platform the player stands on
         self.fell_into = None
         self.landed = 0  # metres of the last hard landing
+        self.sounds = []  # (name, volume) to play this frame; the World plays and clears them
 
     @property
     def logs(self):
@@ -401,15 +407,26 @@ class Terrain:
         "landed" after a hard landing, "log" when a log struck, "logs_first"/"logs_next"/"logs_last"
         when a log tips off a pile, "spores" when a cloud first engulfs, else None."""
         event = None
+        self.sounds = []
         under = self.support(body.x, body.z)
         for p in self.platforms:
+            was_afloat, was_loaded = p.afloat, p.load_t > 0
             p.update(dt, loaded=p is under)
+            if p.kind not in ROT:
+                continue
+            if was_afloat and not p.afloat:
+                self._hear(p.x, p.z, body, *BREAK_SOUND[p.kind])
+            elif not was_loaded and p.load_t > 0:
+                self._hear(p.x, p.z, body, *CREAK_SOUND[p.kind])
         if under is not None and under.afloat:
             body.x += under.dx
             body.z += under.dz
 
         for pod in self.pods:
+            before = pod.t
             pod.update(dt)
+            if pod.t < before:  # the cycle wrapped: it just burst
+                self._hear(pod.x, pod.z, body, "puff", 0.8)
         for chute in self.chutes:
             released = chute.update(dt, self.map.floor_at, climber=(body.x, body.z))
             if released:
@@ -476,8 +493,16 @@ class Terrain:
             hurt(SPORE_DAMAGE, "Spores")
         return "spores" if first else None
 
+    def _hear(self, x, z, body, name, volume):
+        """Queues a sound, quieter with distance and silent beyond HEARING."""
+        d = math.hypot(x - body.x, z - body.z)
+        if d < HEARING:
+            self.sounds.append((name, volume * (1 - d / HEARING * 0.7)))
+
     def _fall(self, body, hurt, into):
         self.fell_into = into
+        if into == "river":
+            self.sounds.append(("splash", 1.0))
         hurt(max(rround(body.stats.max_hp * FALL_FRAC), 6), "The river" if into == "river" else "The ravine")
         if self.safe is None:
             sx, sz = self.map.meta["start"][:2]

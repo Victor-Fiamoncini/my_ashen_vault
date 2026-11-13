@@ -387,13 +387,23 @@ class Game:
 
     def _break(self, prop):
         gold, item = self.world.break_prop(prop)
-        if prop.kind != "secret_wall":
+        if prop.kind == "cocoon":
+            self.sfx("swoosh", 0.7)
+            if gold:
+                self.sfx("pickup", 0.4)
+                self.message(f"You slit the cocoon. A few coins fall out. +{gold} gold")
+            if item:
+                self.message("Something drops out of the torn silk.")
+        elif prop.kind != "secret_wall":
             self.sfx("crack")
             if gold:
                 self.sfx("pickup", 0.4)
                 self.message(f"A few coins spill out. +{gold} gold")
             if item:
                 self.message(f"Something rolls out of the broken {prop.kind}.")
+        elif prop.props.get("model") == "vines":
+            self.sfx("swoosh", 0.9)
+            self.message("You hack through the vines. There is a hollow behind them!")
         else:
             self.sfx("door", 0.8)
             self.message("The wall was an illusion!")
@@ -514,6 +524,7 @@ class Game:
             "exit": f"[E] {(p.props.get('label') or 'Leave').replace('_', ' ')}",
             "pickup": "[E] Take",
             "iron_maiden": "[E] Step inside",
+            "frog_idol": "[E] Pat the stone frog",
             "altar": f"[E] Take the {Items.get(p.props.get('item', 'warden_key')).name}",
         }.get(p.kind)
 
@@ -556,6 +567,8 @@ class Game:
             self.message("Somewhere above, a great door awaits.")
         elif k == "iron_maiden":
             self._enter_maiden(prop)
+        elif k == "frog_idol":
+            self._pat_frog(prop)
         elif k == "exit":
             self._travel(prop.props["map"], prop.props["at"])
         elif k == "pickup":
@@ -566,6 +579,19 @@ class Game:
             self.world.remove_prop(prop)
             self.sfx("pickup")
             self.message(f"Obtained {item.name}.")
+
+    def _pat_frog(self, prop):
+        """A small joke by the river: the frog croaks, and the very first time it pays you for the pat."""
+        if prop.open_t > 0:
+            return
+        gold = self.world.pat_frog(prop)
+        self.sfx("croak")
+        if gold:
+            self.sfx("pickup", 0.5)
+            self.message("The stone frog croaks. Something clinks in its mouth.")
+            self.message(f"It spits out {gold} gold.")
+        else:
+            self.message("The stone frog croaks contentedly.")
 
     def _enter_maiden(self, prop):
         """A hidden kindness: the old spikes are blunt, and the embrace mends rather than kills.

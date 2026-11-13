@@ -406,3 +406,39 @@ def test_pit_traps_are_left_to_the_world():
     body.x = 8.3
     _, events = run(h2, body, 0.1)
     assert "landed" in events
+
+
+def test_platforms_creak_then_give_way_with_a_sound():
+    _, h = highland([("#..___..#\n#..", "#..X__..#\n#..")])
+    body = Body(2, 1)
+    run(h, body, 0.1)
+    body.x, body.z = TileMap.center(3, 1)
+    heard = []
+    for _ in range(round((terrain.LEDGE_CREAK + 0.1) / 0.05)):
+        h.update(0.05, body, lambda *_: None)
+        heard += [name for name, _ in h.sounds]
+    assert heard[:1] == ["crack"]  # the first step onto it
+    assert "door" in heard  # the rumble as it breaks away
+
+
+def test_bursting_pods_puff_only_within_earshot():
+    _, h = highland([("#g.....3#", "#g..P..3#")])
+    pod = h.pods[0]
+    pod.t = pod.every - 0.01
+    near = Body(4, 4)
+    near.spore_t = 0.0
+    h.update(0.05, near, lambda *_: None)
+    assert [n for n, _ in h.sounds] == ["puff"]
+    pod.t = pod.every - 0.01
+    far = Body(4, 4)
+    far.x += terrain.HEARING + 5
+    far.spore_t = 0.0
+    h.update(0.05, far, lambda *_: None)
+    assert h.sounds == []
+
+
+def test_falling_in_the_river_splashes(river):
+    _, h = river
+    body = Body(4, 1)
+    h.update(0.05, body, lambda *_: None)
+    assert ("splash", 1.0) in h.sounds

@@ -13,6 +13,7 @@ MOVES = {
     "web": (0.6, 5.0, 0.5),  # spits silk that slows you
     "pounce": (0.75, 7.0, 1.3),  # leaps at where you stood when it sprang
     "summon": (1.3, 0.0, 0.0),  # shrieks and calls its brood (once, at half HP)
+    "cinders": (0.9, 6.0, 0.45),  # flings a fan of three embers
 }
 SWEEP_REACH = 1.0  # extra reach of a sweep over the type's normal reach
 POUNCE_SPEED = 13.0  # m/s through the air
@@ -245,6 +246,8 @@ class Enemy:
             options.append("web")
         if "pounce" in ready and seen and 4.5 <= dist <= 11:
             options.append("pounce")
+        if "cinders" in ready and seen and 3.5 <= dist <= 14:
+            options.append("cinders")
         if not options:
             return None
         # Up close a sweep is only sometimes chosen, so the plain bite stays in the mix.
@@ -277,7 +280,7 @@ class Enemy:
             return self._pounce(world, dt)
         if not self._struck:
             self._struck = True
-            if kind in ("shot", "web"):
+            if kind in ("shot", "web", "cinders"):
                 world.enemy_fire(self, kind)
             elif kind == "summon":
                 world.summon(self, self.type.brood, 2)

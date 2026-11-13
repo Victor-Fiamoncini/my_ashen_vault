@@ -65,11 +65,21 @@ HAZARD_MESSAGES = {
 }
 
 # Props that fill their whole tile: nothing walks or flies through them.
-BLOCKING_PROPS = ("well", "save_statue", "npc", "iron_maiden", "altar", "table", "rack", "rubble")
+BLOCKING_PROPS = (
+    "well",
+    "save_statue",
+    "npc",
+    "iron_maiden",
+    "altar",
+    "table",
+    "rack",
+    "rubble",
+    "frog_idol",
+)
 # Props that block only until they are broken or revealed.
-BREAKABLE_PROPS = ("barrel", "crate", "urn", "secret_wall")
+BREAKABLE_PROPS = ("barrel", "crate", "urn", "cocoon", "secret_wall")
 # Containers among the breakables: smashing one may spill a little loot.
-SPILLING_PROPS = ("barrel", "crate", "urn")
+SPILLING_PROPS = ("barrel", "crate", "urn", "cocoon")
 # Props that hang on a wall when they stand beside one.
 WALL_PROPS = ("torch", "banner", "shackles", "rack")
 # Props that turn to face into the room.
@@ -78,6 +88,8 @@ HAZARD_KINDS = ("spikes", "pendulum", "crumble")
 FALL_DAMAGE = 25
 FALL_DEPTH = 1.5  # metres below the pit's rim before a fall counts
 MAIDEN_CYCLE = 3.0  # seconds the iron maiden's door stays in motion after use
+FROG_CROAK = 1.2  # seconds the stone frog's throat swells after a pat
+FROG_GOLD = 33  # coins the frog coughs up the first time it is patted
 
 NPC_LOOKS = {
     "odrin": {"robe": (70, 60, 90), "hair": (200, 200, 200)},
@@ -285,28 +297,39 @@ class World:
         self.game.hurt_player(dmg, enemy.name)
 
     def enemy_fire(self, enemy, kind="shot"):
+        if kind == "cinders":
+            # A fan of three embers: step sideways out of the spread, or between two of them.
+            for spread in (-0.28, 0.0, 0.28):
+                self._fire_one(enemy, kind, spread)
+            self.game.sfx("spell")
+            return
+        self._fire_one(enemy, kind)
+        self.game.sfx("spell")
+
+    def _fire_one(self, enemy, kind, spread=0.0):
         web = kind == "web"
         y = self.enemy_y(enemy) + (enemy.type.hover or 1.2)
-        dx = self.player.x - enemy.x
-        dz = self.player.z - enemy.z
-        d = math.hypot(dx, dz) or 1e-6
+        aim = math.atan2(self.player.z - enemy.z, self.player.x - enemy.x) + spread
+        dx, dz = math.cos(aim), math.sin(aim)
         speed = 7.5 if web else 6
+        damage = enemy.type.damage
+        if kind in ("web", "cinders"):
+            damage = rround(damage * MOVES[kind][2])
         self.projectiles.append(
             Projectile(
-                x=enemy.x + dx / d * enemy.radius,
+                x=enemy.x + dx * enemy.radius,
                 y=y,
-                z=enemy.z + dz / d * enemy.radius,
-                dx=dx / d * speed,
-                dz=dz / d * speed,
+                z=enemy.z + dz * enemy.radius,
+                dx=dx * speed,
+                dz=dz * speed,
                 life=4.0,
-                damage=rround(enemy.type.damage * MOVES["web"][2]) if web else enemy.type.damage,
+                damage=damage,
                 hostile=True,
                 rgb=(230, 230, 220) if web else enemy.type.shot_rgb,
                 source=enemy.name,
                 effect="web" if web else None,
             )
         )
-        self.game.sfx("spell")
 
     def summon(self, enemy, type_id, count):
         """A boss calls `count` of its brood, spread out around itself."""
@@ -330,6 +353,8 @@ class World:
     def update_terrain(self, dt):
         """River, ravine, platforms, currents, thorns, logs and spores acting on the player."""
         event = self.terrain.update(dt, self.player, self.game.hurt_player, blocked=self.blocker)
+        for name, volume in self.terrain.sounds:
+            self.game.sfx(name, volume)
         if event == "fell":
             self.game.sfx("hurt")
             self.game.message(FALL_MESSAGES[self.terrain.fell_into])
@@ -355,6 +380,8 @@ class World:
         for p in self.props:
             if p.kind == "iron_maiden":
                 self._update_maiden(p, dt)
+            elif p.kind == "frog_idol" and p.open_t > 0:
+                p.open_t = p.open_t + dt if p.open_t + dt < FROG_CROAK else 0.0
             elif 0 < p.open_t < 1.0:
                 p.open_t = min(p.open_t + dt * 0.8, 1.0)
         self._update_projectiles(dt)
@@ -563,7 +590,7 @@ class World:
 
     @staticmethod
     def _interactable(p):
-        if p.kind in ("npc", "save_statue", "exit", "pickup", "iron_maiden"):
+        if p.kind in ("npc", "save_statue", "exit", "pickup", "iron_maiden", "frog_idol"):
             return True
         if p.kind in ("chest", "lever", "door", "altar"):
             return p.open_t == 0
@@ -665,6 +692,16 @@ class World:
 
     def enter_maiden(self, p):
         p.open_t = 0.01
+
+    def pat_frog(self, p):
+        """The stone frog croaks. The first pat ever, it coughs up a few coins (once per save).
+        Returns the gold it gave."""
+        p.open_t = 0.01
+        if p.key in self.flags:
+            return 0
+        self.flags.add(p.key)
+        self.player.inventory.gold += FROG_GOLD
+        return FROG_GOLD
 
     def pull_lever(self, p):
         self.open_prop(p)
@@ -835,7 +872,13 @@ class World:
             models.barrel(rig, p.tx * 7 + p.tz, broken=p.open_t > 0)
         elif k == "secret_wall":
             tile = self.map[p.tx, p.tz]
-            models.secret_wall(rig, (tile.ceil or tile.floor + 4.0) - tile.floor, p.open_t)
+            top = float(p.props["top"]) if "top" in p.props else tile.ceil or tile.floor + 4.0
+            tex = "vine_wall" if p.props.get("model") == "vines" else "stone_brick"
+            models.secret_wall(rig, top - tile.floor, p.open_t, tex=tex)
+        elif k == "cocoon":
+            models.cocoon(rig, p.tx * 7 + p.tz * 3, broken=p.open_t > 0)
+        elif k == "frog_idol":
+            models.frog_idol(rig, p.open_t / FROG_CROAK if p.open_t > 0 else 0.0)
         elif k == "crate":
             models.crate(rig, p.tx * 5 + p.tz * 3, broken=p.open_t > 0)
         elif k == "bones":

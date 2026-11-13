@@ -98,7 +98,7 @@ def test_separate_pushes_apart():
 
 STATIC_BLOCKERS = (
     *("barrel", "crate", "urn", "iron_maiden", "save_statue", "well", "npc"),
-    *("altar", "table", "rack", "rubble"),
+    *("altar", "table", "rack", "rubble", "cocoon", "frog_idol"),
 )
 
 
@@ -205,7 +205,11 @@ def test_verdant_hollow_loads_with_start_exit_boss_and_enemies():
 def _reachable(m, start, open_tiles=()):
     """Tiles a walker can reach from `start`, honoring step heights; doors count as closed unless listed.
     Fixed platforms (planks, ledges, floorboards) count as footing at their deck height."""
-    blocked = {(s.tx, s.tz) for s in m.entities if s.kind in ("door", "gate", "save_statue")}
+    # Doors, gates and hidden walls block until opened; decor and breakables always count as
+    # solid, so a crate or a cocoon can never be what cuts a path off.
+    blocked = {
+        (s.tx, s.tz) for s in m.entities if s.kind in ("door", "gate", "secret_wall", *STATIC_BLOCKERS)
+    }
     blocked -= set(open_tiles)
     decks = {
         (TileMap.tile_coord(p.x), TileMap.tile_coord(p.z)): p.deck
@@ -239,9 +243,12 @@ def test_verdant_hollow_is_solvable():
     assert at["lever:hollow_lever"] in reach
     (boss,) = _spec(m, "loom_mother")
     assert (boss.tx, boss.tz) not in reach  # behind the locked door
-    doors = [(s.tx, s.tz) for s in m.entities if s.kind in ("door", "gate")]
+    doors = [(s.tx, s.tz) for s in m.entities if s.kind in ("door", "gate", "secret_wall")]
     opened = _reachable(m, start, open_tiles=doors)
     assert (boss.tx, boss.tz) in opened
+    # The cache behind the vine curtain only opens up once you cut through it.
+    (cache,) = [s for s in m.entities if s.kind == "chest" and s.props.get("gold") == "150"]
+    assert (cache.tx, cache.tz) not in reach and (cache.tx, cache.tz) in opened
     for s in m.entities:
         if s.kind == "chest":
             assert (s.tx, s.tz) in opened, s.props

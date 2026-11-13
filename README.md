@@ -76,8 +76,10 @@ FromSoftware, Inc.
 - **PS1-style renderer**: 320×240 internal resolution, vertex snapping, affine texture warping,
   15-bit color with ordered dithering, distance fog and baked vertex lighting.
 - **Deliberate, weighty combat**: an ATK gauge that refills between swings, enemy wind-ups you can read
-  and interrupt, and bosses with poise. The Loom Mother mixes leg sweeps, web spit and pounces, and
-  calls her brood when wounded.
+  and interrupt, and bosses with poise and attacks of their own: the Ashen Warden cleaves all around,
+  leaps and flings embers; the Loom Mother sweeps, spits webs, pounces and calls her brood.
+- **Deaths that linger**: every foe collapses in its own way (skeletons topple, slimes melt, the
+  spider curls its legs) and then burns away to drifting ash.
 - **Weapons with their own movesets**: swords, greatswords, a katana, a whip, a mace and a war
   hammer. Tap to attack; hold to charge a heavy attack that costs stamina, from an overhead cleave
   to a lunging thrust or a ground slam that hits everything around you.
@@ -90,8 +92,8 @@ FromSoftware, Inc.
   dark, plus barrels, crates and urns to smash for a few coins, and secrets for those who look closely.
 - **A jungle that fights back too**: a river with a ford, a drifting raft and rotting planks; thorn
   beds; a ravine crossed on crumbling ledges; a slope where a log rack rolls its logs at climbers;
-  choking spore pods in a stilt cabin; and an abandoned cabin whose floor gives way into its cellar.
-  Long drops hurt.
+  choking spore pods in a stilt cabin; and an abandoned woodcutters' camp to rummage through, whose
+  cabin floor gives way into its cellar. Long drops hurt, and the hollow keeps a few secrets too.
 - **Everything procedural**: textures, low-poly models and sound effects are all generated at startup.
   The game itself ships no image or audio files.
 - **Save shrines**: pray at a stone shrine to heal and record your journey. The fallen rise again when

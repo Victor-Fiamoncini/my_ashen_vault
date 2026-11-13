@@ -122,6 +122,17 @@ class Items:
                 desc="A block of iron on a long haft. Its heavy slams all around you.",
             ),
             Item(
+                id="felling_axe",
+                name="Felling Axe",
+                kind="weapon",
+                category="hammer",
+                price=0,
+                power=19,
+                reach=2.2,
+                speed=2.3,
+                desc="A woodcutter's axe, long lost to the hollow. Its heavy chops the ground all around.",
+            ),
+            Item(
                 id="padded_coat",
                 name="Padded Coat",
                 kind="armor",

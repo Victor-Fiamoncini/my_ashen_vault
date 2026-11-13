@@ -92,12 +92,18 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   releases while someone climbs its slope) and `spore_pod every=`.
 - Enemy behaviour flags in `ai/enemy_types.py`: `ambush` spawns dormant (the chest Mimic) until woken;
   `lurk` sits still until you come close (the Stump Mimic); `once` stays dead; bosses set `dead_flag`
-  and drop a relic.
+  and drop a relic, and pick special attacks from `moves` (see `MOVES` in `ai/enemy.py`: `sweep`,
+  `web`, `pounce`, `cinders`). An enemy entity's `item=` is loot it drops when slain.
+- An enemy type's `height` is the top of its body as it dies: the ash dissolve crumbles that span.
+  Every model has a death pose (eased by `models.death_fall`); `tests/test_render_logic.py` checks
+  that each one collapses, stays above the floor and fits its `height`, so update both together.
 - Props that fill their tile are listed in `world/world.py` (`BLOCKING_PROPS`, `BREAKABLE_PROPS`).
+  Breakables (`barrel`, `crate`, `urn`, `cocoon`) spill loot from `world/loot.py`; a `secret_wall`
+  dissolves when struck (`model=vines top=6` matches the jungle's vine walls).
   After placing props in `sunken_keep.map`, run `tests/test_world.py`: its reachability test fails if
   anything cuts off a chest, door, lever, exit, altar or the iron maiden. `verdant_hollow.map` has its
-  own solvability test (counting planks, ledges and floorboards as footing): every chest and the boss
-  must be reachable, and every drop must have a way back.
+  own solvability test (counting planks, ledges and floorboards as footing, and decor as solid): every
+  chest and the boss must be reachable, and every drop must have a way back.
 - Persistent world state lives in the save's `flags` set, keyed `<kind>:<map>:<tx>,<tz>` (opened
   chests, broken barrels, revealed walls, slain mimics) or `loot:<key>` for dropped items. Bosses add
   their `dead_flag` (`boss_dead`, `spider_dead`) and relics a `<relic>_taken` flag (`sigil_taken` for

@@ -63,12 +63,14 @@ def walk_cycle(e, t):
 
 
 def bone_walker(r, e, t):
+    """A walking skeleton with a rusted blade. Slain, its knees give and it topples onto its back."""
     swing = walk_cycle(e, t)
     hit = strike_angle(e)
-    lean = -0.3 if e.state == "hurt" else 0
-    with r.at(0, 0, 0, rz=lean):
+    fall = death_fall(e, 0.7)
+    lean = (-0.3 if e.state == "hurt" else 0) + 1.35 * fall
+    with r.at(-0.2 * fall, 0.12 * fall, 0, rz=lean):
         for side, a in ((-0.14, swing), (0.14, -swing)):
-            with r.at(0, 0.9, side, rz=a):
+            with r.at(0, 0.9, side, rz=a + 0.35 * fall):
                 r.part("cube", 0, -0.22, 0, 0.08, 0.45, 0.08, BONE)
                 r.part("cube", 0, -0.66, 0, 0.07, 0.45, 0.07, BONE)
                 r.part("cube", 0.06, -0.88, 0, 0.18, 0.05, 0.1, BONE)
@@ -77,14 +79,14 @@ def bone_walker(r, e, t):
         for i in range(4):
             r.part("cube", 0.02, 1.08 + i * 0.1, 0, 0.16, 0.03, 0.36 - i * 0.02, BONE)
         r.part("cube", 0, 1.42, 0, 0.14, 0.06, 0.46, BONE)
-        with r.at(0.02, 1.6, 0, rz=math.sin(t * 2) * 0.1):
+        with r.at(0.02, 1.6, 0, rz=math.sin(t * 2) * 0.1 * (1 - fall) - 0.5 * fall):
             r.part("sphere", 0, 0, 0, 0.26, 0.28, 0.24, BONE)
             r.part("cube", 0.11, -0.03, -0.05, 0.05, 0.06, 0.06, (30, 10, 10))
             r.part("cube", 0.11, -0.03, 0.05, 0.05, 0.06, 0.06, (30, 10, 10))
             r.part("cube", 0.08, -0.15, 0, 0.12, 0.06, 0.16, BONE)
         with r.at(0, 1.4, -0.27, rz=swing * 0.6):
             r.part("cube", 0, -0.3, 0, 0.06, 0.6, 0.06, BONE)
-        with r.at(0, 1.4, 0.27, rz=hit):
+        with r.at(0, 1.4, 0.27, rz=hit - 0.9 * fall):
             r.part("cube", 0, -0.3, 0, 0.06, 0.6, 0.06, BONE)
             with r.at(0.05, -0.6, 0, rz=1.4):
                 r.part("cube", 0.4, 0, 0, 0.8, 0.07, 0.03, RUST)
@@ -92,11 +94,14 @@ def bone_walker(r, e, t):
 
 
 def mire_slime(r, e, t):
+    """A heap of bog jelly. Slain, it slumps and spreads into a puddle."""
     squash = 1 + math.sin(t * (9 if e.state == "chase" else 4)) * 0.12
     if e.state == "windup":
         squash = 1.35
     if e.state == "attack":
         squash = 0.7
+    if e.state == "dead":
+        squash = 1 + 1.2 * death_fall(e, 0.8)
     green = (200, 220, 160) if e.state == "hurt" else (70, 120, 60)
     r.part("sphere", 0, 0.32 / squash, 0, 0.95 * squash, 0.7 / squash, 0.95 * squash, green)
     r.part("sphere", 0.05, 0.14, 0, 1.05 * squash, 0.28, 1.05 * squash, (50, 90, 44))
@@ -105,9 +110,12 @@ def mire_slime(r, e, t):
 
 
 def cinder_wisp(r, e, t):
-    bob = math.sin(t * 3) * 0.15
-    glow = (255, 230, 140) if e.state == "windup" else EMBER
-    with r.at(0, e.type.hover + bob, 0):
+    """A floating ember with a flame crown. Slain, it gutters out and sinks, cooling as it falls."""
+    fade = death_fall(e, 0.9)
+    bob = math.sin(t * 3) * 0.15 * (1 - fade)
+    lit = fade < 0.5
+    glow = (255, 230, 140) if e.state == "windup" else EMBER if lit else (120, 70, 50)
+    with r.at(0, e.type.hover + bob - 0.3 * fade, 0, s=1 - 0.35 * fade):
         r.part("sphere", 0, 0, 0, 0.45, 0.45, 0.45, glow)
         r.part("sphere", 0, 0, 0, 0.62, 0.3, 0.62, (180, 60, 30))
         for i in range(3):
@@ -121,17 +129,31 @@ def cinder_wisp(r, e, t):
                 0.1,
                 0.1,
                 (255, 200, 90),
-                glow=True,
+                glow=lit,
             )
-        r.part("cone", 0, 0.42, 0, 0.3, 0.45, 0.3, (255, 120, 40), glow=True)
+        r.part("cone", 0, 0.42, 0, 0.3, 0.45 * (1 - fade), 0.3, (255, 120, 40), glow=lit)
 
 
 def ashen_warden(r, e, t):
+    """The keep's armoured warden. Slain, he sinks to his knees, braced on his blade, and slumps."""
     swing = walk_cycle(e, t) * 0.7
     hit = strike_angle(e)
-    with r.at(0, 0, 0, s=1.35):
+    kneel = death_fall(e, 0.6)
+    slump = death_fall(e, 1.6)
+    dead = e.state == "dead"
+    # Boss moves share the spider's timing: a sweep coils then spins him round, a leap crouches
+    # then arcs him through the air. Embers: the free hand rises glowing, then flings forward.
+    lift, spin, _, _ = _spider_move(e, t, 0.0, 1.0)
+    cinders = e.attack_kind == "cinders" and e.state in ("windup", "attack")
+    k = min(e.state_t / max(e.windup_time, 1e-3), 1) if e.state == "windup" else 1.0
+    fling = (-1.9 * k if e.state == "windup" else -1.9 + 1.4 * min(e.state_t / 0.15, 1)) if cinders else 0.0
+    with (
+        r.at(0, lift * 0.8 - 0.42 * kneel, 0, s=1.35, ry=spin),
+        r.at(0, 0.95, 0, rz=-0.45 * slump),
+        r.at(0, -0.95, 0),
+    ):
         for side, a in ((-0.18, swing), (0.18, -swing)):
-            with r.at(0, 0.95, side, rz=a):
+            with r.at(0, 0.95, side, rz=a + 1.4 * kneel):
                 r.part("cube", 0, -0.45, 0, 0.2, 0.9, 0.18, ASH)
                 r.part("cube", 0.05, -0.92, 0, 0.32, 0.1, 0.2, (60, 58, 56))
         r.part("cube", 0, 1.0, 0, 0.36, 0.24, 0.5, (70, 66, 62))
@@ -139,13 +161,15 @@ def ashen_warden(r, e, t):
         r.part("cube", 0, 1.68, 0, 0.44, 0.14, 0.86, (76, 72, 68))
         with r.at(0.02, 1.88, 0):
             r.part("cube", 0, 0, 0, 0.3, 0.32, 0.28, (70, 66, 62))
-            r.part("cube", 0.15, 0.02, 0, 0.02, 0.05, 0.2, EMBER, glow=True)
+            r.part("cube", 0.15, 0.02, 0, 0.02, 0.05, 0.2, (70, 40, 30) if dead else EMBER, glow=not dead)
             r.part("cone", 0, 0.26, 0, 0.12, 0.3, 0.12, (60, 58, 56))
-        with r.at(0, 1.6, -0.47):
+        with r.at(0, 1.6, -0.47, rz=fling):
             r.part("cube", 0, -0.35, 0, 0.16, 0.7, 0.16, ASH)
-        with r.at(0, 1.6, 0.47, rz=hit):
+            if cinders and e.state == "windup":
+                r.part("sphere", 0, -0.75, 0, 0.3 * k, 0.3 * k, 0.3 * k, EMBER, glow=True)
+        with r.at(0, 1.6, 0.47, rz=hit - 0.5 * kneel):
             r.part("cube", 0, -0.35, 0, 0.16, 0.7, 0.16, ASH)
-            with r.at(0.05, -0.72, 0, rz=1.45):
+            with r.at(0.05, -0.72, 0, rz=1.45 - 1.0 * kneel):
                 r.part("cube", 0.6, 0, 0, 1.4, 0.08, 0.08, (60, 44, 30))
                 r.part("cube", 1.2, 0.0, 0, 0.36, 0.5, 0.05, IRON)
 
@@ -155,17 +179,33 @@ def mimic(r, e, t):
     if e.state == "dormant":
         chest(r, False)
         return
+    shut = death_fall(e, 0.4)
+    dead = e.state == "dead"
     gape = 0.9 + math.sin(t * 9) * 0.25
     if e.state == "windup":
         gape = 1.5
     elif e.state == "attack":
         gape = 0.15
+    elif dead:
+        gape = 0.9 * (1 - shut)  # the lid slams shut
     lunge = 0.35 if e.state == "attack" else 0.0
     step = math.sin(t * 14) * 0.08 if e.state == "chase" else 0.0
-    with r.at(lunge, 0.18, 0):
+    with r.at(lunge, 0.18 * (1 - shut), 0):
         for lx, lz in ((0.2, 0.32), (0.2, -0.32), (-0.2, 0.32), (-0.2, -0.32)):
             sway = step if (lx > 0) == (lz > 0) else -step
-            r.part("cube", lx + sway, -0.08, lz, 0.08, 0.3, 0.08, (60, 40, 34), rz=-0.3 if lx > 0 else 0.3)
+            leg = 0.3 * (1 - shut)  # the legs fold away under the chest
+            if leg > 0.01:
+                r.part(
+                    "cube",
+                    lx + sway,
+                    -leg / 2 + 0.07,
+                    lz,
+                    0.08,
+                    leg,
+                    0.08,
+                    (60, 40, 34),
+                    rz=-0.3 if lx > 0 else 0.3,
+                )
         r.part("cube", 0, 0.25, 0, 0.6, 0.5, 0.9, WHITE, tex="wood_plank")
         r.part("cube", 0, 0.26, 0, 0.62, 0.06, 0.92, IRON)
         r.part("cube", 0.02, 0.46, 0, 0.5, 0.08, 0.78, (90, 14, 20))  # maw
@@ -176,8 +216,9 @@ def mimic(r, e, t):
             r.part("cube", 0.3, 0.08, 0, 0.6, 0.16, 0.9, WHITE, tex="wood_plank")
             for i in range(6):
                 r.part("cone", 0.56, -0.05, -0.35 + i * 0.14, 0.07, 0.16, 0.07, BONE, rx=math.pi)
-            r.part("sphere", 0.45, 0.18, -0.22, 0.1, 0.1, 0.1, (255, 200, 60), glow=True)
-            r.part("sphere", 0.45, 0.18, 0.22, 0.1, 0.1, 0.1, (255, 200, 60), glow=True)
+            eye = (70, 50, 30) if dead else (255, 200, 60)
+            r.part("sphere", 0.45, 0.18, -0.22, 0.1, 0.1, 0.1, eye, glow=not dead)
+            r.part("sphere", 0.45, 0.18, 0.22, 0.1, 0.1, 0.1, eye, glow=not dead)
 
 
 def jaw_open(e, t):
@@ -287,7 +328,7 @@ def bark_husk(r, e, t):
                 arm = hit if side > 0 else hit * 0.9
                 if moving:
                     arm = math.sin(t * 2.5 + side) * 0.12
-                arm += 0.5 * slump  # the arms fall slack and trail behind
+                arm -= 0.9 * slump  # the arms fall forward and sprawl along the ground
                 with r.at(0, 1.95, side * 0.36, rx=side * 0.18, rz=arm):
                     _willow_arm(r, bark)
 
@@ -426,10 +467,9 @@ def loom_mother(r, e, t):
         gait = t * 16
     curl = death_fall(e, 0.7)
     if curl:
-        # Dead: the legs stop, fold up over the body, and it settles onto the floor, tipped back.
+        # Dead: the legs stop and fold up over the body, and it settles onto the floor.
         amp *= 1 - curl
-        lift -= 0.5 * curl
-        rear -= 0.2 * curl
+        lift -= 0.2 * curl
     with r.at(0, lift, 0, s=1.15, ry=spin), r.at(-1.0, 0, 0, rz=rear), r.at(1.0, 0, 0):
         bob = math.sin(gait * 2) * 0.04 * amp
         with r.at(0, bob, 0):
@@ -539,7 +579,7 @@ def _spider_leg(r, i, side, phase, amp, body, band, curl=0.0):
     # The first frame turns local +X outward along the leg, the second raises the femur.
     with (
         r.at(hip_x, 0.92, side * 0.3, ry=-side * (math.pi / 2 - spread - swing)),
-        r.at(0, 0, 0, rz=0.8 + lift + 0.5 * curl),
+        r.at(0, 0, 0, rz=0.8 + lift + 0.9 * curl),
     ):
         r.part("cube", 0.55, 0, 0, 1.1, 0.12, 0.12, body)
         r.part("cube", 1.02, 0, 0, 0.16, 0.14, 0.14, band)
@@ -940,13 +980,20 @@ def _barrel_wreck(r, ox, oz, seed):
         r.part("cube", 0.25, 0.18, -0.2, 0.06, 0.36, 0.12, WHITE, tex="wood_plank", rz=0.3)
 
 
-def secret_wall(r, height, open_t):
-    """An illusory wall: a full tile of brick that matches the real walls. Struck, it sinks and fades."""
+def secret_wall(r, height, open_t, tex="stone_brick"):
+    """An illusory wall: a full tile that matches the real walls (brick in the keep, a curtain of
+    vines in the jungle). Struck, it sinks and fades."""
     if open_t >= 1.0:
         return
     k = 1.0 - open_t
     h = height * k
-    r.part("cube", 0, h / 2, 0, 2.0 * (0.6 + 0.4 * k), h, 2.0 * (0.6 + 0.4 * k), WHITE, tex="stone_brick")
+    w = 2.0 * (0.6 + 0.4 * k)
+    # Stacked 2 m blocks, so the texture repeats every 2 m like the map's own walls do.
+    y = 0.0
+    while y < h - 1e-3:
+        seg = min(2.0 * k, h - y)
+        r.part("cube", 0, y + seg / 2, 0, w, seg, w, WHITE, tex=tex)
+        y += seg
 
 
 def crumble_slab(r, shake, drop, rise, t):
@@ -1008,6 +1055,48 @@ def chains(r, t, ceil_h):
                 r.part("cube", 0.14, end - 0.08, 0, 0.04, 0.12, 0.04, DARK_IRON)
             else:
                 r.part("cyl", 0, end - 0.08, 0, 0.2, 0.08, 0.2, DARK_IRON, rx=math.pi / 2)
+
+
+def cocoon(r, seed, broken=False):
+    """A silk-wrapped bundle, the Loom Mother's larder, lashed to the floor with strands.
+    Cut open, it is a torn husk with something's leftovers inside."""
+    silk = (222, 218, 204)
+    with r.at(0, 0, 0, ry=seed * 1.1):
+        if broken:
+            for k in range(4):
+                a = k * 1.6
+                r.part("sphere", math.cos(a) * 0.3, 0.12, math.sin(a) * 0.2, 0.5, 0.18, 0.3, silk, ry=a)
+            r.part("sphere", 0.05, 0.08, 0, 0.22, 0.2, 0.2, BONE)  # a small skull among the shreds
+            return
+        tilt = 0.25 + seed % 3 * 0.15
+        with r.at(0, 0.42, 0, rz=tilt):
+            r.part("sphere", 0, 0, 0, 0.62, 1.05, 0.58, silk)
+            for k in range(5):  # wound strands
+                r.part("cyl", 0, -0.4 + k * 0.2, 0, 0.64, 0.03, 0.6, (196, 192, 180), rz=0.25 * (k % 2 - 0.5))
+            r.part("sphere", 0.12, 0.38, 0.1, 0.12, 0.16, 0.12, (90, 70, 60))  # a shape pressing through
+        for k in range(3):  # anchor threads down to the floor
+            a = k * 2.1 + seed
+            r.part("cube", math.cos(a) * 0.45, 0.06, math.sin(a) * 0.45, 0.7, 0.02, 0.02, silk, ry=-a)
+
+
+def frog_idol(r, croak):
+    """A squat stone frog on a mossy rock by the water. Patted, its throat swells and it croaks."""
+    stone = (110, 116, 102)
+    swell = math.sin(min(croak, 1.0) * math.pi * 3) * 0.5 + 0.5 if croak > 0 else 0.0
+    r.part("sphere", 0, 0.18, 0, 1.1, 0.36, 0.95, (78, 82, 70), tex="rough_stone")
+    r.part("sphere", -0.1, 0.36, 0, 0.42, 0.12, 0.38, MOSS)
+    with r.at(0, 0.36, 0):
+        r.part("sphere", 0, 0.24, 0, 0.62, 0.42, 0.6, stone, tex="rough_stone")  # body
+        r.part("sphere", 0.2, 0.42, 0, 0.42, 0.3, 0.46, stone, tex="rough_stone")  # head
+        for z in (-0.16, 0.16):
+            r.part("sphere", 0.26, 0.58, z, 0.14, 0.14, 0.14, stone)  # eye bumps
+            r.part("sphere", 0.32, 0.6, z, 0.06, 0.06, 0.06, (30, 34, 26))
+            r.part("cube", 0.22, 0.04, z * 1.9, 0.3, 0.08, 0.14, stone, ry=z * 2)  # front feet
+            r.part("sphere", -0.18, 0.08, z * 2.2, 0.36, 0.14, 0.2, stone)  # haunches
+        r.part("cube", 0.4, 0.34, 0, 0.02, 0.02, 0.3, (30, 34, 26))  # wide stone smile
+        d = 0.12 + 0.2 * swell
+        r.part("sphere", 0.33, 0.25, 0, d, d * 0.9, d * 1.3, (150, 156, 132))  # throat sac
+        r.part("sphere", -0.05, 0.47, 0.1, 0.2, 0.05, 0.2, MOSS)
 
 
 def bones(r, seed):
@@ -1394,7 +1483,14 @@ BRASS = (150, 130, 80)
 STEEL = (190, 190, 200)
 
 # Rough length of each weapon model (grip to tip), used to fit previews.
-WEAPON_LEN = {"bastard_sword": 1.4, "claymore": 1.85, "zweihander": 2.1, "katana": 1.35, "war_hammer": 1.5}
+WEAPON_LEN = {
+    "bastard_sword": 1.4,
+    "claymore": 1.85,
+    "zweihander": 2.1,
+    "katana": 1.35,
+    "war_hammer": 1.5,
+    "felling_axe": 1.45,
+}
 
 
 def weapon(r, item_id, phase=None):
@@ -1409,6 +1505,8 @@ def weapon(r, item_id, phase=None):
         mace(r)
     elif item_id == "war_hammer":
         hammer(r)
+    elif item_id == "felling_axe":
+        felling_axe(r)
     else:
         sword(r, item_id)
 
@@ -1503,6 +1601,17 @@ def mace(r):
         with r.at(0, 0.55, 0, ry=i * math.pi / 4):
             r.part("cube", 0, 0, 0, 0.03, 0.2, 0.26, (120, 120, 130))
     r.part("cube", 0, 0.69, 0, 0.05, 0.07, 0.05, (120, 120, 130))
+
+
+def felling_axe(r):
+    """A woodcutter's long-hafted axe: a heavy wedge head, notched and patched with moss."""
+    r.part("cube", 0, 0.35, 0, 0.06, 1.25, 0.06, WOOD)
+    r.part("cube", 0, -0.2, 0, 0.075, 0.2, 0.075, LEATHER)
+    r.part("cube", 0, 1.02, 0.12, 0.08, 0.28, 0.32, (120, 116, 112))  # the wedge
+    r.part("cube", 0, 1.02, 0.31, 0.05, 0.4, 0.08, (175, 175, 180))  # bit, the cutting edge
+    r.part("cube", 0, 1.02, -0.1, 0.1, 0.18, 0.12, (96, 92, 90))  # poll
+    r.part("cube", 0.045, 1.08, 0.16, 0.01, 0.08, 0.1, MOSS)
+    r.part("cube", 0, 0.92, 0.0, 0.08, 0.06, 0.08, LEATHER)  # wedge binding
 
 
 def hammer(r):

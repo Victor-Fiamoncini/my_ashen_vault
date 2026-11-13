@@ -121,6 +121,25 @@ def sounds():
                 (lowpass(0.03 + p * 0.12) * 2.2 + math.sin(t * TAU * (90 - p * 40)) * 0.3) * env(p, 0.4)
             ),
         ),
+        # Something heavy dropping into water: a thump, then a hiss of spray that falls away.
+        "splash": gen(
+            0.6,
+            lambda t, p: (
+                (lowpass(0.25 - p * 0.2) * 1.8 * (1 - p) ** 2 + math.sin(t * TAU * (110 - p * 70)) * 0.35)
+                * env(p, 0.01)
+            ),
+        ),
+        # Two low, buzzing croaks from a stone frog.
+        "croak": gen(
+            0.55,
+            lambda t, p: (
+                math.sin(t * TAU * (95 + 30 * math.sin(t * TAU * 22)))
+                * (0.6 if (p < 0.4 or 0.55 < p < 0.95) else 0.0)
+                * env(p, 0.02)
+            ),
+        ),
+        # A soft cough of spores from a bursting pod.
+        "puff": gen(0.5, lambda t, p: lowpass(0.08 + (1 - p) * 0.1) * 1.6 * env(p, 0.15)),
     }
     return {name: wav(s) for name, s in out.items()}
 

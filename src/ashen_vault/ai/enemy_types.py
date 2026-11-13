@@ -16,7 +16,7 @@ class EnemyType:
     exp: int
     gold: range
     radius: float
-    height: float
+    height: float  # top of the body as it dies, in metres: the span the ash dissolve crumbles
     poise: int = 0
     ranged: bool = False
     hover: float | None = None
@@ -65,7 +65,7 @@ class EnemyTypes:
                 exp=14,
                 gold=range(4, 11),
                 radius=0.45,
-                height=1.8,
+                height=0.8,
                 poise=0,
             ),
             EnemyType(
@@ -81,7 +81,7 @@ class EnemyTypes:
                 exp=7,
                 gold=range(1, 6),
                 radius=0.5,
-                height=0.8,
+                height=0.4,
                 poise=0,
             ),
             EnemyType(
@@ -121,6 +121,9 @@ class EnemyTypes:
                 dead_flag="boss_dead",
                 epitaph="The Warden crumbles into ash. Something glows where he fell.",
                 poise=14,
+                # A cleave all around, a leaping slam, and a fan of embers flung from his hand.
+                moves=("sweep", "pounce", "cinders"),
+                shot_rgb=(255, 140, 50),
             ),
             EnemyType(
                 id="mimic",
@@ -135,7 +138,7 @@ class EnemyTypes:
                 exp=60,
                 gold=range(40, 61),
                 radius=0.55,
-                height=1.0,
+                height=0.8,
                 poise=10,
                 ambush=True,
                 once=True,
@@ -208,7 +211,7 @@ class EnemyTypes:
                 exp=140,
                 gold=range(100, 101),
                 radius=1.3,
-                height=2.0,
+                height=2.5,
                 boss=True,
                 drop="verdant_sigil",
                 dead_flag="spider_dead",
@@ -230,7 +233,7 @@ class EnemyTypes:
                 exp=4,
                 gold=range(0, 3),
                 radius=0.35,
-                height=0.6,
+                height=0.75,
             ),
         ]
     }
