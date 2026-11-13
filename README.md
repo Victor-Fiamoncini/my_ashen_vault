@@ -259,7 +259,7 @@ Without uv, plain pip works: `python3 -m venv .venv`, `.venv/bin/pip install -e 
 | Cast spell | The button of the slot holding the spell |
 | Equip, ready a spell | Belongings (Tab): 1 for Primary, 2 for Secondary, or Enter / click to choose |
 | Use, talk, open | E |
-| Belongings | Tab or I |
+| Belongings | Tab or I; A / D (or Left / Right) switch tabs |
 | Quick item / choose quick item | Middle mouse / mouse wheel |
 | Pause | Esc |
 | Menus | Up/Down, Enter, Esc, or point, click, right-click and scroll with the mouse |
@@ -285,6 +285,12 @@ The same list is in the game under **Controls** on the title and pause menus.
   found yet.
 - Sprinting and every swing drain **ST** (green bar). Empty it and you can neither sprint nor swing
   until it is about a third full. Holding a shield up slows its refill.
+- Your gear has weight. The **Load** line in Belongings shows it against what your STR can carry:
+  a Heavy or Overloaded load slows your stride and ST refill and makes every swing cost more.
+  Before you equip or buy, the stats show what would change: green is better, red is worse.
+- A great door guards each boss. Fall in there and only fog remains: the boss can come through it
+  after you, but stepping through yourself (E) starts the fight, and there is no leaving until one of
+  you falls.
 - Big weapons swing slowly and cost more ST, above all for heavies; katanas, whips and fists are quick.
 - Watch for enemies raising their weapons. A solid hit during the wind-up staggers most of them.
 - Every menu works with the mouse: point at a row to select it, click to use or buy, right-click to
@@ -364,11 +370,13 @@ it, so Claude Code, Codex, Cursor and Copilot all follow the same rules.
 | `src/ashen_vault/ui/hud.py` | HUD (vitals, compass, the Primary / quick item / Secondary cards, the gold counter), menus and dialogue boxes |
 | `src/ashen_vault/ui/tally.py` | How the gold counter holds a fresh "+N" and then counts it in |
 | `src/ashen_vault/ui/smallfont.py`, `ui/logofont.py`, `ui/tinyfont.py` | The pixel font for all game text, the logo's capitals for the title and big headings, and the HUD's tiny capitals and digits |
-| `src/ashen_vault/ui/belongings.py` | What the Belongings menu shows about the Primary and Secondary slots |
+| `src/ashen_vault/ui/belongings.py` | What the Belongings menu shows: its tabs and the Primary and Secondary slots |
 | `src/ashen_vault/audio/synth.py` | Synthesized sound effects |
 | `src/ashen_vault/maps/*.map` | Plain-text tile maps (`[meta]`, `[legend]`, `[grid]`, `[entities]`) |
 | `src/ashen_vault/world/hazards.py`, `world/terrain.py` | Traps (spikes, blades, crumbling floors, flame jets, magma vents) and boss fire; terrain (lifts, river, ravine, ledges, logs, spores) |
 | `src/ashen_vault/world/elements.py` | Lightning against iron, fire against what was forged in it |
+| `src/ashen_vault/world/arena.py` | Boss arenas: the great door that seals behind you, and the fog left after you fall |
+| `src/ashen_vault/player/burden.py`, `ui/compare.py` | Equipment load and what it costs you; what equipping an item would change |
 | `src/ashen_vault/render/forge_models.py` | The Cinderhold's foes, the twin gargoyles, its weapons, shots, fortress dressing and skyline |
 | `src/ashen_vault/render/shapes.py` | Extra low-poly shapes for models: pointed blades, lozenge bars and wedges |
 | `src/ashen_vault/world/sky.py`, `render/sky.py` | Each map's sky (gradient, sun, clouds, mist), built as plain geometry and drawn behind the world |

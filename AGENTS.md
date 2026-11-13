@@ -78,6 +78,8 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   (the postern ledge and its flame jets), `--map cinderhold --at=18,17,180` (the foundry),
   `--map cinderhold --at=5,24,0` (the smelter pits), `--map cinderhold --at=30,6,180 --level 10`
   (the roof: the gargoyles wake at once).
+- Boss doors: `--map sunken_keep --at=15,11,-90` faces the Warden's great door. The fog appears only
+  after dying in a sealed arena (or with its `fog:` flag set); `tests/test_arena.py` drives the flow.
 - `--level` only sets the level (for equipment requirements); HP and stats stay at level 1, so judge boss
   balance headless (`World` with a `JungleGame`) rather than from a smoke fight.
 
@@ -95,6 +97,10 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/world/sky.py`, `render/sky.py` | Skies (`[meta] sky = overcast\|jungle\|ember`): a gradient dome meeting the fog at the horizon, a sun and halo, drifting cloud banks and an overhead cap, horizon mist; dimmed by darkness and the Veil. Built pure in `world/sky.py`, drawn first each frame without fog or depth by `render/sky.py` |
 | `src/ashen_vault/world/darkness.py` | Dark tiles: how your light and the fog close in, Lumen and the Veil of Mist |
 | `src/ashen_vault/world/doors.py` | One-way doors (`door from=`): which side lifts the bar |
+| `src/ashen_vault/world/arena.py` | Boss arenas behind a `door boss=<dead_flag>`: the flood-filled lair, the fight that seals the great door, and the fog (`fog:<map>:<tx>,<tz>`) left after you die in there |
+| `src/ashen_vault/player/burden.py` | Equipment load: each item's `mass` against `capacity(STR)` gives a tier (Light / Medium / Heavy / Overloaded) scaling walk speed, ST refill and every ST cost |
+| `src/ashen_vault/ui/compare.py` | ATK / DEF / Block / Load now and after equipping an item: the Belongings stats panel and the shop show it before you equip or buy |
+| `src/ashen_vault/render/bounds.py` | Measures a model without drawing it (a recording GPU); `models.preview_frame` centres and fits every weapon in its preview with it |
 | `src/ashen_vault/world/hazards.py` | Dungeon traps: floor spikes, pendulum blades, crumbling floors, flame jets, magma vents (whose bombs are `Eruption`s with an `origin`); the bosses' fire eruptions and slam shockwaves |
 | `src/ashen_vault/world/elements.py` | Elements: lightning against `conductive` foes, fire against `fireproof` ones, which weapons burn |
 | `src/ashen_vault/render/forge_models.py` | The Cinderhold's models (golem, bowman, hound, the gargoyles, Stormbrand and Slagbreaker, arrows, thunder and motes, flame jets, and the skyline: spires, bastions, smokestacks, the gatehouse, the keep, lavafalls); `models` imports it last and borrows its helpers |
@@ -105,7 +111,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/ui/tinyfont.py` | The HUD's tiny fonts: 3x5 `GLYPHS` (the HP/MP/ST labels and numbers, `hud.tiny`) and 3x4 `MICRO` (card labels and the quick item's count, `hud.micro_centered`; only the characters they use) |
 | `src/ashen_vault/ui/tally.py` | `GoldTally`: the top-right gold counter's bookkeeping (a gain lingers as "+N", then rolls in; spending shows at once). `Game.update` feeds it |
 | `src/ashen_vault/ui/logofont.py` | The logo's 5x7 capitals, shared by `docs/logo/make_logo.py` and big headings (`hud.big`: the title, the death screen) |
-| `src/ashen_vault/ui/belongings.py` | Belongings as data: slot marks, the Equipped panel and the slot chooser (Primary / Secondary) |
+| `src/ashen_vault/ui/belongings.py` | Belongings as data: its tabs, slot marks, the Equipped panel and the slot chooser (Primary / Secondary) |
 | `src/ashen_vault/player/weapons.py` | Weapon categories, light/heavy/quick attacks, swing tempo and the secret attacks (`secret()`) |
 | `src/ashen_vault/world/shots.py` | Shots in 3D: spells follow the view's pitch, enemy shots aim at your chest, and a shot only hits a body it passes through |
 | `src/ashen_vault/player/guard.py` | Shield blocking: what a raised shield stops and what it costs in ST |
@@ -201,7 +207,11 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   to the baked mesh in place (`MeshBuilder.add_light`).
   Breakables (`barrel`, `crate`, `urn`, `cocoon`) spill loot from `world/loot.py`; a `secret_wall`
   dissolves when struck (`model=vines top=6` matches the jungle's vine walls; `model=web` is a sheet of
-  silk that blades can't cut and only fire burns). `door from=n|s|e|w` is barred on that side: it
+  silk that blades can't cut and only fire burns). `door boss=<dead_flag>` is a boss's great door
+  (`models.boss_door`): the arena behind it seals once you are inside with its boss awake, opens when
+  the boss dies, and after you die in there becomes a fog gate (`models.fog_gate`) the boss walks
+  through freely and you cross with interact. Each arena must stay closed behind its one door
+  (`tests/test_arena.py`). `door from=n|s|e|w` is barred on that side: it
   only opens from there.
   After placing props in `sunken_keep.map`, run `tests/test_world.py`: its reachability test fails if
   anything cuts off a chest, door, lever, exit, altar or the iron maiden, or if a chained lift is
@@ -231,6 +241,13 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   a movement key (`tests/test_input.py`): `"back"` once did, and a raised shield walked you backward. Items carry a `level` requirement: buying is
   allowed, equipping is not (`Inventory.equip_error`). The first-person arms (`models.weapon_view`)
   take their sleeve and glove looks from `SLEEVES` / `GLOVES`, so new armor needs an entry there.
+- Weapons, shields and armor carry a `mass` (kg). Their total sets the player's load tier
+  (`player/burden.py`, `Player.burden`): heavier gear walks slower, refills ST slower and pays more ST
+  for attacks, sprinting and blocking. New gear needs a `mass` (`tests/test_burden.py`).
+- Belongings is split into tabs (`belongings.TABS`: Items, Weapons, Armor, Spells, Unique), switched
+  with `tab_prev` / `tab_next` (A / D, Left / Right) or a click; `tab_of` files each item kind.
+- Shots stop at a blocking prop only below its top (`world.PROP_TOP`, `shots.clears`): a bolt flies
+  over tables, caskets and barrels. A low prop not listed there counts as full height.
 - Every attack costs ST. Each category's moveset (`weapons.MOVESETS`) is tuned for a medium weapon;
   an item's `weight` (`light` / `medium` / `heavy` / `great`) scales each attack's ST, damage and poise
   through `weapons.WEIGHTS` (`weapons.attack` returns the sized Attack) and adds `WEIGHT_TEMPO` to its
