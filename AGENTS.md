@@ -44,7 +44,9 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 - Always set `ASHEN_VAULT_SAVE` to a throwaway path so you never touch the player's real save
   (`~/.local/share/ashen_vault/save.json`).
 - `--script` steps: `action` presses once, `action:1.5` holds for 1.5 s, `wait:1` pauses. Actions are
-  the keys of `CONTROLS` in `src/ashen_vault/input.py`.
+  the keys of `KEYS` and `MOUSE` in `src/ashen_vault/input.py`, plus `wheel_up` / `wheel_down`.
+- `interact` uses whatever the player faces within reach, nearest first: an unopened chest in front of
+  another prop is opened first.
 - Combat rolls are random, so HP in the `smoke:` line can vary between runs. Positions, scenes, flags
   and items are deterministic.
 - On Wayland, `GLFW: Error: 65548` warnings are harmless.
@@ -72,7 +74,15 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 - Keep new logic in the raylib-free packages where possible and add tests for it. `world/world.py`
   and `dialogue.py` are pure but still untested, which makes them good places to add coverage.
 - Internal resolution is 320x240 (`screen.py`); UI coordinates are in that space.
-- Map grids are whitespace-sensitive. Don't reformat `.map` files.
+- Map grids are whitespace-sensitive. Don't reformat `.map` files. Each grid character is one 2 m tile;
+  an `[entities]` marker places a prop, enemy or hazard there, standing on the legend tile named by
+  `on=` (the map's `default` otherwise). Wall props (torches, banners, shackles, racks) hang on the
+  adjacent wall and chests/altars turn to face the open side automatically, so they rarely need `yaw=`.
+- Props that fill their tile are listed in `world/world.py` (`BLOCKING_PROPS`, `BREAKABLE_PROPS`).
+  After placing props in `sunken_keep.map`, run `tests/test_world.py`: its reachability test fails if
+  anything cuts off a chest, door, lever, exit, altar or the iron maiden.
+- Persistent world state lives in the save's `flags` set, keyed `<kind>:<map>:<tx>,<tz>` (opened
+  chests, broken barrels, revealed walls, slain mimics) or `loot:<key>` for dropped items.
 - Add dependencies with `uv add` (runtime) or `uv add --dev` (tooling), never by hand-editing
   `uv.lock`.
 

@@ -67,6 +67,8 @@ FromSoftware, Inc.
 - **Stamina**: sprinting drains a green stamina bar. Run it dry and you are winded until it recovers.
 - **Two hand-built areas**: the village of Harrowmere and the Sunken Keep, with locked doors, levers,
   a flooded cellar, chests, a shop with spinning item previews and four villagers to talk to.
+- **A keep that fights back**: floor spikes, swinging pendulum blades and floors that crumble into the
+  dark, plus barrels, crates and urns to smash for a few coins, and secrets for those who look closely.
 - **Everything procedural**: textures, low-poly models and sound effects are all generated at startup.
   The game itself ships no image or audio files.
 - **Save shrines**: pray at a stone shrine to heal and record your journey. The keep's fallen rise again
@@ -138,10 +140,11 @@ Without uv, plain pip works: `python3 -m venv .venv`, `.venv/bin/pip install -e 
 | Sprint | Hold Shift |
 | Turn / look | Mouse |
 | Attack / heavy attack | Left mouse / hold left mouse, then release |
-| Cast spell / change spell | Right mouse / mouse wheel |
+| Cast spell | Right mouse |
+| Choose spell | Belongings (Tab), then Enter or click on a spell |
 | Use, talk, open | E |
 | Belongings | Tab or I |
-| Quick item / choose quick item | Middle mouse / Shift + mouse wheel |
+| Quick item / choose quick item | Middle mouse / mouse wheel |
 | Pause | Esc |
 | Menus | Up/Down, Enter, Esc, or point, click, right-click and scroll with the mouse |
 
@@ -165,6 +168,11 @@ The same list is in the game under **Controls** on the title and pause menus.
   close.
 - In Belongings, press Enter (or click) on an equipped item (marked `(E)`) to take it off. With no weapon you fight
   bare-handed.
+- You ready one spell at a time: pick it from the spell rows in Belongings. The mouse wheel only
+  switches between quick items.
+- Traps keep a rhythm. Watch the spikes and blades for a moment before you cross, and don't stand
+  still on cracked stone.
+- Not every wall is a wall, and not every chest is a chest.
 - Talk to everyone in Harrowmere before you descend. They have gifts and directions.
 
 ## Save file
