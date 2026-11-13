@@ -12,8 +12,10 @@
 
 The bell of Harrowmere has cracked. Beneath the village well, the drowned halls of the Sunken Keep have
 begun to stir, and at the end of a green trail out of the square a cave opens on the jungle of the
-Verdant Hollow, which has swallowed the old woodcutters' camp. Take up a rusted sword, bring back the Ember Sigil from the keep and the Verdant
-Sigil from the hollow, and let the bell sing again.
+Verdant Hollow, which has swallowed the old woodcutters' camp. Up the north road, past a long bridge over
+a gorge of fire, the forges of the Cinderhold burn again, and two iron gargoyles keep watch from its roof.
+Take up a rusted sword, bring back the Ember Sigil from the keep, the Verdant Sigil from the hollow and the
+Iron Sigil from the Cinderhold, and let the bell sing again.
 
 ### Inspiration
 
@@ -101,6 +103,22 @@ FromSoftware, Inc.
     <td align="center"><sub>Riding the lift down into the Undercroft</sub></td>
     <td align="center"><sub>The Warden's Gallery, and a Gaoler with his hooked chain</sub></td>
   </tr>
+  <tr>
+    <td><img src="docs/screenshots/cinderhold_bridge.png" alt="A long stone bridge over a lava gorge leading to a black fortress with tall spires, slag hounds waiting on the span"></td>
+    <td><img src="docs/screenshots/postern_ledge.png" alt="A narrow ledge along the fortress wall above lava, a magma bomb arcing toward a glowing landing circle and an iron bowman ahead"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>The long bridge to the Cinderhold, up Harrowmere's north road</sub></td>
+    <td align="center"><sub>The postern ledge: a magma bomb about to land, a bowman waiting</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/foundry.png" alt="The torchlit foundry hall, a channel of lava across the floor and a forge golem beyond it"></td>
+    <td><img src="docs/screenshots/gargoyles.png" alt="Two iron gargoyles on the fortress roof, one hovering and spitting embers, under two boss health bars"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>The foundry, where a Forge Golem guards the lava channels</sub></td>
+    <td align="center"><sub>Brand and Bellows, the twin gargoyles on the roof</sub></td>
+  </tr>
 </table>
 
 ## Features
@@ -111,7 +129,9 @@ FromSoftware, Inc.
   and interrupt, and bosses with poise and attacks of their own: the Ashen Warden cleaves all around,
   leaps, flings embers, chains three cuts together and slams a shockwave through the floor, and at
   half health his blade catches fire and he calls flame up from beneath your feet; the Loom Mother
-  sweeps, spits webs, pounces and calls her brood.
+  sweeps, spits webs, pounces and calls her brood; and on the Cinderhold's roof two iron gargoyles fight
+  as a pair: Brand sweeps, claws, leaps and slams, Bellows hovers, rakes the roof with fiery breath and
+  swoops straight through you. They take turns, and when one falls the other flies into a rage.
 - **Deaths that linger**: every foe collapses in its own way (skeletons topple, slimes melt, the
   spider curls its legs) and then burns away to drifting ash.
 - **Weapons with their own movesets**: swords, greatswords, katanas, whips, maces, clubs, axes and a
@@ -123,13 +143,17 @@ FromSoftware, Inc.
 - **Armor you can see**: body armor and gauntlets change the sleeves and hands you see in first person.
 - **Spells**: Flame Bolt, Mend and Lumen, paid for with MP once your focus has returned, and three more
   hidden in the hollow: Venom Dart (a sting that keeps eating at its target), Veil of Mist (ordinary foes
-  overlook you until you strike) and Pyre (a short gout of fire that burns plants and kindles cold fires).
+  overlook you until you strike) and Pyre (a short gout of fire that burns plants and kindles cold fires),
+  and two in the Cinderhold: Thunder Spear (a fast bolt of lightning that bites iron and jolts it) and
+  Arcane Motes (three slow sparks that seek out foes on their own).
+- **Elements**: iron foes conduct lightning and shrug off fire. The Stormbrand sword carries lightning,
+  the Slagbreaker maul sets what it strikes alight.
 - **Stamina**: sprinting, swinging and blocking drain a green stamina bar. Run it dry and you are
   winded until it recovers.
-- **Three hand-built areas**: the village of Harrowmere, the Sunken Keep below its well and the
-  Verdant Hollow at the end of the green trail, with locked doors, levers, a flooded cellar, chests, a
-  shop with spinning item previews and five villagers to talk to (one of them only once you have
-  proven yourself).
+- **Four hand-built areas**: the village of Harrowmere, the Sunken Keep below its well, the
+  Verdant Hollow at the end of the green trail and the Cinderhold up the north road, with locked doors,
+  levers, a flooded cellar, chests, a shop with spinning item previews and five villagers to talk to
+  (one of them only once you have proven yourself).
 - **A keep that fights back**: floor spikes, swinging pendulum blades and floors that crumble into the
   dark, plus barrels, crates and urns to smash for a few coins, and secrets for those who look closely.
 - **A keep that folds back on itself**: chain lifts sink to a skull-walled Undercroft below the cells
@@ -140,6 +164,11 @@ FromSoftware, Inc.
   beds; a ravine crossed on crumbling ledges; a slope where a log rack rolls its logs at climbers;
   choking spore pods in a stilt cabin; and an abandoned woodcutters' camp to rummage through, whose
   cabin floor gives way into its cellar. Long drops hurt, and the hollow keeps a few secrets too.
+- **A fortress of iron and fire**: cross a long bridge over a lava gorge while vents in the lava lob
+  molten bombs at you and iron bowmen shoot from the walls, with the black towers of the Cinderhold
+  ahead. Inside, lava channels cut through the foundry, flame jets guard the corridors, slag hounds
+  prowl the dark smelter pits and forge golems hide an open firebox on their backs. A postern, a gate
+  winch and a chained lift fold the fortress back onto its shrine.
 - **Dark places**: the hollow's caves and root caverns swallow your light. Only torches, glowing
   toadstools and fires show the way, unless you burn Lumen or kindle the cold braziers and bonfires,
   which then stay lit for good.
@@ -265,6 +294,11 @@ The same list is in the game under **Controls** on the title and pause menus.
   for each log to pass. Tree creatures turn slowly: get behind them, or set them alight.
 - A door that won't open from your side is barred from the other. Find the way round.
 - Spells fly where you look: aim down at slimes.
+- Lava sears away a third of your health in a moment. Flame jets hiss and glow before they roar: wait for
+  the gout to die, then go. On the bridge, watch for glowing circles: a bomb is about to land there.
+- Iron things hate lightning. Get behind a forge golem and strike its open firebox.
+- The gargoyles take turns. Keep a chimney between you and Bellows's breath, and step sideways out of its
+  line of fire circles.
 - Talk to everyone in Harrowmere before you descend. They have gifts and directions.
 
 ## Save file
@@ -316,7 +350,9 @@ it, so Claude Code, Codex, Cursor and Copilot all follow the same rules.
 | `src/ashen_vault/ui/hud.py` | HUD, compass, menus and dialogue boxes |
 | `src/ashen_vault/audio/synth.py` | Synthesized sound effects |
 | `src/ashen_vault/maps/*.map` | Plain-text tile maps (`[meta]`, `[legend]`, `[grid]`, `[entities]`) |
-| `src/ashen_vault/world/hazards.py`, `world/terrain.py` | Dungeon traps and the Warden's fire; terrain (lifts, river, ravine, ledges, logs, spores) |
+| `src/ashen_vault/world/hazards.py`, `world/terrain.py` | Traps (spikes, blades, crumbling floors, flame jets, magma vents) and boss fire; terrain (lifts, river, ravine, ledges, logs, spores) |
+| `src/ashen_vault/world/elements.py` | Lightning against iron, fire against what was forged in it |
+| `src/ashen_vault/render/forge_models.py` | The Cinderhold's foes, the twin gargoyles, its weapons, shots and fortress dressing |
 | `src/ashen_vault/dialogue.py` | NPC conversations |
 | `docs/logo/make_logo.py` | Generates the pixel-art logo SVG |
 
@@ -335,7 +371,7 @@ uv run ashen-vault --map sunken_keep --at 15,21,180 --smoke 100 --script "wait:1
 - `--shot PATH` sets where `--smoke` writes its screenshot.
 - `--equip right=katana,left=buckler,body=brigandine,hands=iron_gauntlets` starts with that gear (`none`
   empties a slot, `left=spell` readies the spell there and `left=spell:pyre` learns and readies Pyre),
-  and `--level N` at that level.
+  and `--level N` at that level (for equipment requirements only: HP and stats stay at level 1).
 
 The README screenshots were taken this way. For example, the flame bolt shot is
 `uv run ashen-vault --map sunken_keep --at 15,22,0 --smoke 30 --script "wait:0.3 cast" --shot flame_bolt.png`,
@@ -348,6 +384,11 @@ Mossmouth is
 `uv run ashen-vault --map verdant_hollow --at=15,31,180 --equip left=spell:pyre --script "wait:0.3 cast wait:3" --smoke 120 --shot mossmouth.png`,
 the canopy is `uv run ashen-vault --map verdant_hollow --at=31,3,180 --script "look_down:0.12" --smoke 40 --shot canopy_walk.png`,
 the Root Caverns are `uv run ashen-vault --map verdant_hollow --at=6,38,-100 --smoke 25 --shot root_caverns.png`,
+the long bridge is `uv run ashen-vault --map cinderhold --at=29,50,-90 --smoke 60 --shot cinderhold_bridge.png`,
+the postern ledge is `uv run ashen-vault --map cinderhold --at=28,30,180 --smoke 190 --shot postern_ledge.png`,
+the foundry is `uv run ashen-vault --map cinderhold --at=18,17,180 --smoke 40 --shot foundry.png`,
+the gargoyles are
+`uv run ashen-vault --map cinderhold --at=30,6,180 --level 10 --equip right=stormbrand --smoke 200 --script "wait:1 attack wait:1" --shot gargoyles.png`,
 and the katana and shield shot is
 `uv run ashen-vault --map sunken_keep --at 15,22,0 --level 8 --equip right=katana,left=round_shield,body=brigandine,hands=iron_gauntlets --smoke 100 --shot combat.png`.
 
