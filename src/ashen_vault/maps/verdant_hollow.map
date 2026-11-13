@@ -19,9 +19,12 @@ R = floor tex=leaf_litter h=0.8 ceil=4.6 ceil_tex=canopy side=bark
 m = floor tex=jungle_floor h=0.4 side=bark
 M = floor tex=jungle_floor h=0.8 side=bark
 ^ = floor tex=leaf_litter h=1.2 side=bark
-- = floor tex=mud h=-0.2 side=mud
+- = floor tex=mud h=-0.2 side=mud slow=0.65
 = = floor tex=wood_plank h=0.05 side=wood_plank
-~ = water tex=bog h=-0.7 side=mud
+~ = water tex=bog h=-0.5 side=mud
+w = floor tex=rapids h=-0.3 side=mud flow=0,0.8 slow=0.8
+* = floor tex=thorns h=0 side=mud hurt=5
+% = floor tex=thorns h=0.4 side=bark hurt=5
 
 [grid]
 ################################
@@ -37,18 +40,18 @@ M = floor tex=jungle_floor h=0.8 side=bark
 ###########p.......c#####^^q^###
 ######............h.#####^^^^###
 ######P-F-#.l.......#####G######
-#~~~~~~=~~#####.h#######^^^^^ov#
-#k-P~~~=~~####p..#######^^j^^^^#
-#-F-~~~=~~#####..######NMMMMMMM#
-#-s-~~~=~~#####rr######MMMMMBMU#
-#~--====~~#####RR######MMMMMMMM#
-#~~~~===--#####rr#####mmmmmmmmm#
-#~~~~=~~-s#####.l#####mmBmmHmmm#
-#~~~~===~~####p..#####mVmmmmmmm#
-#~~~~~~=~~#####..#####t,,,,,,,n#
-#~~~~~~=~~#####..#####,,,,B,,,T#
-#~~~~~---~#B,t,,,t,B##,,,,,,,,,#
-#####-F-s-#,,,,,,,,,##,,,,,,,,x#
+#-*-www-s-#####.h#######^^^^^ov#
+#*-*www-F-####p..#######^^j^^^^#
+#k-*~~~---#####..######NMMMMMMM#
+#-*-~~~--P#####rr######MMMMMBMU#
+#--sKKK-F-#####RR######MMMMMMMM#
+#*-*~~~---#####rr#####mm%%%%mmm#
+#-F-~~~--O#####.l#####mmBmmHmmm#
+#-**~~~-F-####p..#####mVmmmmmmm#
+#---~~Y---#####..#####t,,,W,,,n#
+#-P-~~~-*-#####..#####,,,,B,,,T#
+#~--~~~---#B,t,,,t,B##,,,,,,,,,#
+#####-F-s-#,W,,,,,,,##,,,,,,,,x#
 ######.....,,,,,,,,T...#########
 ###########,,,,,,,S,############
 ###########,T,,,,,,,############
@@ -67,6 +70,10 @@ q = chest item=red_tonic count=3 gold=80 on=^
 c = chest item=blue_moss count=2 gold=30 on=.
 x = chest item=red_tonic count=2 on=,
 s = mire_slime on=-
+K = plank on=~
+Y = raft to=4,21 speed=1.1 on=~
+O = stump_mimic on=-
+W = stump_mimic on=,
 p = snare_bloom on=.
 P = snare_bloom on=-
 n = snare_bloom on=,

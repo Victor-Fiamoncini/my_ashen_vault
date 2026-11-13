@@ -22,6 +22,7 @@ class Player:
     LOOK_LIMIT = 0.9
     SWING_TIME = 0.45
     SWING_HIT_AT = 0.16
+    WEBBED = 0.45  # speed multiplier while caught in silk
 
     def __init__(self, stats=None, inventory=None, spells=None):
         self.stats = stats or Stats()
@@ -35,6 +36,7 @@ class Player:
         self.bob_t = 0.0
         self.hurt_t = 0.0
         self.lumen_t = 0.0
+        self.webbed_t = 0.0  # seconds left caught in spider silk
         self.swing_t = None
         self.swing_power = 0.0
         self.attack = weapons.attack(self.inventory.weapon_item())
@@ -105,9 +107,10 @@ class Player:
     def look(self, amount):
         self.pitch = clamp(self.pitch + amount, -self.LOOK_LIMIT, self.LOOK_LIMIT)
 
-    def walk(self, map_, fwd, strafe, dt, blocked=None, sprint=False):
+    def walk(self, map_, fwd, strafe, dt, blocked=None, sprint=False, floating=None):
         """fwd/strafe are -1..1 intents. Returns True if the player moved.
-        Sprinting is faster but drains stamina."""
+        Sprinting is faster but drains stamina; sucking mud (a tile's `slow`) holds you back.
+        `floating` lets you walk onto rafts and planks over water."""
         self.sprinting = False
         if fwd == 0 and strafe == 0:
             return False
@@ -116,6 +119,9 @@ class Player:
         sprint = sprint and self.stamina.can_sprint
         if sprint:
             speed *= self.SPRINT
+        speed *= map_.tile_at(self.x, self.z).slow
+        if self.webbed_t > 0:
+            speed *= self.WEBBED
         dx = (fx * fwd - fz * strafe) * speed * dt
         dz = (fz * fwd + fx * strafe) * speed * dt
         length = math.hypot(fwd, strafe)
@@ -123,7 +129,9 @@ class Player:
             dx /= length
             dz /= length
         ox, oz = self.x, self.z
-        self.x, self.z = collision.move(map_, self.x, self.z, dx, dz, radius=self.RADIUS, blocked=blocked)
+        self.x, self.z = collision.move(
+            map_, self.x, self.z, dx, dz, radius=self.RADIUS, blocked=blocked, floating=floating
+        )
         moved = math.hypot(self.x - ox, self.z - oz)
         self.bob_t += moved * 2.2
         self.sprinting = sprint and moved > 1e-4
@@ -131,9 +139,9 @@ class Player:
             self.stamina.drain(dt)
         return moved > 1e-4
 
-    def settle(self, map_, dt):
-        """Eases eye height onto the floor below (stairs, drops)."""
-        target = map_.floor_at(self.x, self.z)
+    def settle(self, map_, dt, floor=None):
+        """Eases eye height onto the floor below (stairs, drops), or onto `floor` (a raft deck)."""
+        target = map_.floor_at(self.x, self.z) if floor is None else floor
         self.y += (target - self.y) * min(dt * 10, 1)
         if abs(target - self.y) < 0.005:
             self.y = target
@@ -147,6 +155,7 @@ class Player:
         self.magic_gauge.update(dt)
         self.hurt_t = max(self.hurt_t - dt, 0)
         self.lumen_t = max(self.lumen_t - dt, 0)
+        self.webbed_t = max(self.webbed_t - dt, 0)
         if self.swing_t is None:
             return
         self.swing_t += dt

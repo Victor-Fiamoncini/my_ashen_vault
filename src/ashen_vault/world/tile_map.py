@@ -15,6 +15,15 @@ class Tile:
     wall_tex: str | None = None
     ceil_tex: str | None = None
     liquid: bool = False
+    # Hazards: HP lost per tick while standing here, a current (m/s along x, z) that pushes
+    # bodies, and a walk-speed multiplier (sucking mud).
+    hurt: int = 0
+    flow: tuple[float, float] | None = None
+    slow: float = 1.0
+
+    @property
+    def hazardous(self):
+        return self.liquid or self.hurt > 0 or self.flow is not None
 
     @property
     def open_sky(self):

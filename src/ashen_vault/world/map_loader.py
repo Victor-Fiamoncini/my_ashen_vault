@@ -2,6 +2,7 @@
 
 [meta]     key = value lines
 [legend]   <char> = <floor|wall|water> key=value ...
+           floors may add hurt=<hp per tick> flow=<dx>,<dz> slow=<speed multiplier>
 [grid]     rows of legend chars and entity markers
 [entities] <marker> = <kind> key=value ... (on=<legend char> picks the tile under it)
 """
@@ -135,6 +136,10 @@ class MapLoader:
                 wall_tex=p.get("side", "stone_brick"),
                 ceil_tex=p.get("ceil_tex", "rough_stone"),
             )
+        flow = None
+        if "flow" in p:
+            fx, fz = (float(v) for v in p["flow"].split(","))
+            flow = (fx, fz)
         return Tile(
             solid=False,
             walkable=True,
@@ -143,6 +148,9 @@ class MapLoader:
             floor_tex=p.get("tex", "flagstone"),
             wall_tex=p.get("side", "stone_brick"),
             ceil_tex=p.get("ceil_tex", "rough_stone"),
+            hurt=int(p.get("hurt", "0")),
+            flow=flow,
+            slow=float(p.get("slow", "1")),
         )
 
     def _parse_entities(self, lines):

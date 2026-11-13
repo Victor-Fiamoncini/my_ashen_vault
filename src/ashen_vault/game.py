@@ -295,8 +295,10 @@ class Game:
             dt,
             blocked=self.world.blocker,
             sprint=inp.down("sprint"),
+            floating=self.world.hazards.floating,
         )
-        p.settle(self.world.map, dt)
+        self.world.update_hazards(dt)
+        p.settle(self.world.map, dt, floor=self.world.player_floor())
         if moved:
             self._footstep()
 
@@ -371,14 +373,17 @@ class Game:
             return
         self.sfx("hit")
         for target in targets:
+            back = target.hit_mult(p.x, p.z)
             dmg = Combat.damage(
                 base=weapon.power,
                 strength=p.stats.strength,
                 gauge=p.swing_power,
                 defense=4 if target.type.boss and not a.pierce_def else 0,
-                mult=a.damage,
+                mult=a.damage * back,
             )
-            self.damage_enemy(target, dmg, a.poise)
+            if back > 1:
+                self.message(f"You strike the {target.name}'s weak spot!")
+            self.damage_enemy(target, dmg, a.poise * back)
 
     def damage_enemy(self, enemy, dmg, poise_mult=1.0):
         if not enemy.take_hit(dmg, poise_mult):
@@ -393,6 +398,10 @@ class Game:
             self.message(f"You reached level {self.player.stats.level}!")
         if not t.boss:
             return
+        if t.brood:
+            for e in self.world.enemies:
+                if e.type.id == t.brood:
+                    e.kill()
         if t.dead_flag:
             self.flags.add(t.dead_flag)
         if t.drop:

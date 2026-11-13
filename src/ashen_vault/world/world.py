@@ -5,13 +5,14 @@ import random
 from dataclasses import dataclass
 
 from ashen_vault import map_path
+from ashen_vault.ai.enemy import MOVES, Enemy
 from ashen_vault.ai.enemy_types import EnemyTypes
 from ashen_vault.ai.spawns import spawn_enemies
 from ashen_vault.player.player import Player
 from ashen_vault.render import models
 from ashen_vault.render.mesh_builder import MeshBuilder
 from ashen_vault.util import rround
-from ashen_vault.world import collision, relics
+from ashen_vault.world import collision, hazards, relics
 from ashen_vault.world.map_loader import MapLoader
 from ashen_vault.world.tile_map import TileMap
 
@@ -43,9 +44,12 @@ class Projectile:
     hostile: bool
     rgb: tuple
     source: str = ""
+    effect: str | None = None  # "web": slows whoever it hits
 
 
 INTERACT_RANGE = 2.6
+WEB_TIME = 2.5  # seconds a web shot slows you
+THORN_SENSE = 3.4  # metres at which thorn plants bristle as you approach
 
 NPC_LOOKS = {
     "odrin": {"robe": (70, 60, 90), "hair": (200, 200, 200)},
@@ -67,6 +71,9 @@ class World:
         self.projectiles = []
         self._time = 0.0
         self.blocker = self.blocked_tile
+        self.hazards = hazards.Hazards(self.map)
+        # Thorn floors grow spiked plants; each one's spikes rise (0..1) when stepped in.
+        self._thorns = {(tx, tz): 0.0 for tx, tz, tile in self.map.each_tile() if tile.hurt}
         self._spawn_entities()
 
     def unload(self):
@@ -99,7 +106,7 @@ class World:
             x, z = TileMap.center(spec.tx, spec.tz)
             y = self.map[spec.tx, spec.tz].floor
             yaw = float(spec.props.get("yaw", "0")) * math.pi / 180
-            if not EnemyTypes.has(spec.kind):
+            if not EnemyTypes.has(spec.kind) and spec.kind not in hazards.PLATFORM_KINDS:
                 key = f"{spec.kind}:{self.name}:{spec.tx},{spec.tz}"
                 prop = Prop(
                     kind=spec.kind,
@@ -184,33 +191,59 @@ class World:
         enemy.x = nx
         enemy.z = nz
 
-    def enemy_strike(self, enemy):
-        dmg = max(
-            rround(enemy.type.damage * (0.85 + random.random() * 0.3) - self.player.inventory.defense * 0.5),
-            1,
-        )
+    def enemy_strike(self, enemy, mult=1.0):
+        base = enemy.type.damage * mult * (0.85 + random.random() * 0.3)
+        dmg = max(rround(base - self.player.inventory.defense * 0.5), 1)
         self.game.hurt_player(dmg, enemy.name)
 
-    def enemy_fire(self, enemy):
+    def enemy_fire(self, enemy, kind="shot"):
+        web = kind == "web"
         y = self.enemy_y(enemy) + (enemy.type.hover or 1.2)
         dx = self.player.x - enemy.x
         dz = self.player.z - enemy.z
         d = math.hypot(dx, dz) or 1e-6
+        speed = 7.5 if web else 6
         self.projectiles.append(
             Projectile(
-                x=enemy.x,
+                x=enemy.x + dx / d * enemy.radius,
                 y=y,
-                z=enemy.z,
-                dx=dx / d * 6,
-                dz=dz / d * 6,
+                z=enemy.z + dz / d * enemy.radius,
+                dx=dx / d * speed,
+                dz=dz / d * speed,
                 life=4.0,
-                damage=enemy.type.damage,
+                damage=rround(enemy.type.damage * MOVES["web"][2]) if web else enemy.type.damage,
                 hostile=True,
-                rgb=enemy.type.shot_rgb,
+                rgb=(230, 230, 220) if web else enemy.type.shot_rgb,
                 source=enemy.name,
+                effect="web" if web else None,
             )
         )
         self.game.sfx("spell")
+
+    def summon(self, enemy, type_id, count):
+        """A boss calls `count` of its brood, spread out around itself."""
+        type_ = EnemyTypes.get(type_id)
+        for i in range(count):
+            a = enemy.yaw + math.pi / 2 + i * 2 * math.pi / count
+            x = enemy.x + math.cos(a) * (enemy.radius + 0.8)
+            z = enemy.z + math.sin(a) * (enemy.radius + 0.8)
+            tx, tz = TileMap.tile_coord(x), TileMap.tile_coord(z)
+            if not collision.passable(self.map, tx, tz, self.enemy_y(enemy), blocked=self.blocker):
+                x, z = enemy.x, enemy.z
+            child = Enemy(type_, x, z, yaw=a)
+            child.state = "chase"
+            self.enemies.append(child)
+        self.game.sfx("enemy_die", 0.5)
+        self.game.message(f"The {enemy.name} shrieks, and its brood answers.")
+
+    def player_floor(self):
+        return self.hazards.floor(self.player.x, self.player.z)
+
+    def update_hazards(self, dt):
+        """River, rafts, planks, currents and thorns acting on the player."""
+        if self.hazards.update(dt, self.player, self.game.hurt_player, blocked=self.blocker) == "fell":
+            self.game.sfx("hurt")
+            self.game.message("The river drags you under and casts you back ashore.")
 
     def enemy_y(self, enemy):
         return self.map.floor_at(enemy.x, enemy.z)
@@ -227,6 +260,22 @@ class World:
                 p.open_t = min(p.open_t + dt * 0.8, 1.0)
         self._update_projectiles(dt)
         self._push_player_out_of_bodies()
+        self._update_thorns(dt)
+
+    def _update_thorns(self, dt):
+        """Spikes stab up fully under your feet and bristle half-way as you come near."""
+        player = self.player
+        here = (TileMap.tile_coord(player.x), TileMap.tile_coord(player.z))
+        for key, rise in self._thorns.items():
+            x, z = TileMap.center(*key)
+            if key == here:
+                want = 1.0
+            elif math.hypot(x - player.x, z - player.z) < THORN_SENSE:
+                want = 0.55
+            else:
+                want = 0.0
+            step = dt * (9 if want > rise else 1.2)
+            self._thorns[key] = min(rise + step, want) if want > rise else max(rise - step, want)
 
     def _push_player_out_of_bodies(self):
         player = self.player
@@ -262,6 +311,9 @@ class World:
                     self.game.hurt_player(
                         max(rround(pr_.damage - player.inventory.defense * 0.3), 1), pr_.source or "Something"
                     )
+                    if pr_.effect == "web":
+                        player.webbed_t = WEB_TIME
+                        self.game.message("Sticky silk binds your legs!")
                     pr_.life = 0
             else:
                 target = next(
@@ -390,6 +442,24 @@ class World:
             self._model_light(gpu, p.x, p.y + 1.0, p.z)
             with rig.entity(p.x, p.y, p.z, p.yaw):
                 self._draw_prop(rig, p)
+        for (tx, tz), rise in self._thorns.items():
+            x, z = TileMap.center(tx, tz)
+            if math.hypot(x - player.x, z - player.z) > far:
+                continue
+            y = self.map[tx, tz].floor
+            self._model_light(gpu, x, y + 0.5, z)
+            with rig.at(x, y, z):
+                models.thorn_plant(rig, tx * 7 + tz * 3, self._time, rise)
+        for pl in self.hazards.platforms:
+            if math.hypot(pl.x - player.x, pl.z - player.z) > far:
+                continue
+            self._model_light(gpu, pl.x, pl.deck + 0.5, pl.z)
+            shake = math.sin(self._time * 40) * 0.03 * pl.creaking
+            with rig.at(pl.x, pl.deck - pl.sink + shake, pl.z):
+                if pl.kind == "raft":
+                    models.raft(rig, self._time)
+                else:
+                    models.plank(rig, pl.creaking)
         for e in self.enemies:
             if math.hypot(e.x - player.x, e.z - player.z) > far:
                 continue
@@ -401,7 +471,10 @@ class World:
         for pr_ in self.projectiles:
             gpu.model_light((1.6, 1.4, 1.2))
             with rig.at(pr_.x, pr_.y, pr_.z, ry=self._time * 6):
-                models.bolt(rig, pr_.rgb)
+                if pr_.effect == "web":
+                    models.web_shot(rig, self._time)
+                else:
+                    models.bolt(rig, pr_.rgb)
 
     def _model_light(self, gpu, x, y, z, flash=False):
         light = (2.0, 1.6, 1.6) if flash else [min(c, 1.6) for c in self.builder.light_at(x, y, z)]

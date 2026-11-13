@@ -16,6 +16,7 @@ DARK_LEAF = (34, 70, 30)
 BARK = (88, 64, 42)
 DARK_BARK = (58, 42, 30)
 SPIDER = (100, 80, 96)
+MOSS = (70, 110, 50)
 
 
 def enemy(r, e):
@@ -27,7 +28,9 @@ def enemy(r, e):
         "ashen_warden": ashen_warden,
         "snare_bloom": snare_bloom,
         "bark_husk": bark_husk,
+        "stump_mimic": stump_mimic,
         "loom_mother": loom_mother,
+        "loom_brood": loom_brood,
     }.get(e.type.id)
     if fn:
         fn(r, e, t)
@@ -209,51 +212,145 @@ def _bloom_head(r, gape, hurt, t):
 
 
 def bark_husk(r, e, t):
-    """Walking tree: root legs, a gnarled trunk with a hollow face, branch arms and a leafy crown."""
-    swing = walk_cycle(e, t) * 0.6
+    """A gaunt weeping-willow husk. It hunches forward on a skirt of writhing roots, with long arms
+    that drag on the ground and a pale carved mask under a curtain of hanging willow strands.
+    Down its back a split in the bark shows the glowing heart-fungus: the weak spot."""
     hit = strike_angle(e)
     hurt = e.state == "hurt"
-    bark = (240, 220, 200) if hurt else (170, 140, 112)
-    lean = -0.25 if hurt else (0.15 if e.state == "windup" else 0)
+    moving = e.state in ("chase", "idle")
+    bark = (240, 220, 200) if hurt else (128, 118, 92)
+    lean = -0.35 if e.state == "windup" else (0.15 if hurt else -0.15)
     with r.at(0, 0, 0, s=1.25):
-        # Root legs ending in splayed root feet.
-        for side, a in ((-0.2, swing), (0.2, -swing)):
-            with r.at(0, 0.75, side, rz=a):
-                r.part("cyl", 0, -0.35, 0, 0.26, 0.75, 0.26, DARK_BARK)
-                for k, (fx, fz) in enumerate(((0.25, 0.0), (-0.12, 0.14), (-0.1, -0.14))):
-                    r.part("cube", fx, -0.72, fz, 0.42, 0.08, 0.1, DARK_BARK, ry=k * 2.1)
-        with r.at(0, 0.7, 0, rz=lean):
-            # Trunk with knots and a twist.
-            r.part("cyl", 0, 0.55, 0, 0.62, 1.15, 0.58, bark, tex="bark")
-            r.part("cyl", 0, 1.15, 0, 0.5, 0.3, 0.5, bark, tex="bark", ry=0.4)
-            r.part("sphere", 0.26, 0.3, 0.18, 0.18, 0.22, 0.16, DARK_BARK)
-            r.part("sphere", -0.22, 0.75, -0.2, 0.2, 0.26, 0.18, DARK_BARK)
-            # Hollow face: dark sockets with ember eyes and a split mouth.
-            r.part("cube", 0.27, 0.95, 0, 0.08, 0.2, 0.36, (20, 14, 10))
-            r.part("cube", 0.3, 0.98, -0.09, 0.04, 0.07, 0.07, (255, 190, 60), glow=True)
-            r.part("cube", 0.3, 0.98, 0.09, 0.04, 0.07, 0.07, (255, 190, 60), glow=True)
-            gape = 0.12 if e.state in ("windup", "attack") else 0.05
-            r.part("cube", 0.29, 0.66, 0, 0.06, gape + 0.06, 0.24, (24, 16, 12))
-            # Crown of broken branches with clumps of leaves.
-            for i in range(5):
-                a = i * 2 * math.pi / 5
-                with r.at(0, 1.25, 0, ry=a, rz=0.5 + (i % 2) * 0.3):
-                    r.part("cube", 0, 0.3, 0, 0.09, 0.6, 0.09, DARK_BARK)
-                    r.part("sphere", 0, 0.62, 0, 0.42, 0.34, 0.42, LEAF if i % 2 else DARK_LEAF)
-            # Branch arms: the right one swings the strike.
-            with r.at(0, 1.0, -0.38, rx=-0.25, rz=swing * 0.5):
-                _branch_arm(r, bark)
-            with r.at(0, 1.0, 0.38, rx=0.25, rz=hit):
-                _branch_arm(r, bark)
+        # Root skirt: roots fan out and writhe as it glides along.
+        for i in range(9):
+            a = i * 2 * math.pi / 9
+            wr = math.sin(t * (5 if moving else 1.5) + i * 1.7) * (0.2 if moving else 0.06)
+            with r.at(math.cos(a) * 0.18, 0.5, math.sin(a) * 0.18, ry=-a, rz=-0.75 + wr):
+                r.part("cube", 0.32, 0, 0, 0.7, 0.13, 0.13, DARK_BARK)
+                with r.at(0.65, 0, 0, rz=-0.5 - wr):
+                    r.part("cube", 0.2, 0, 0, 0.42, 0.09, 0.09, DARK_BARK)
+        with r.at(0, 0.45, 0, rz=lean):
+            # Tall, narrow trunk that twists as it rises.
+            r.part("cyl", 0, 0.65, 0, 0.6, 1.3, 0.54, bark, tex="bark")
+            with r.at(0, 1.25, 0, rz=-0.15, ry=0.25):
+                r.part("cyl", 0, 0.45, 0, 0.46, 0.9, 0.42, bark, tex="bark")
+                _husk_heart(r, t, hurt)
+                _husk_mask(r, e)
+                _willow_crown(r, e, t)
+            # Long arms: both rise together and come down in a double slam.
+            for side in (1, -1):
+                arm = hit if side > 0 else hit * 0.9
+                if moving:
+                    arm = math.sin(t * 2.5 + side) * 0.12
+                with r.at(0, 1.95, side * 0.36, rx=side * 0.18, rz=arm):
+                    _willow_arm(r, bark)
 
 
-def _branch_arm(r, bark):
-    r.part("cyl", 0, -0.32, 0, 0.17, 0.66, 0.17, bark)
-    with r.at(0, -0.62, 0, rz=0.6):
-        r.part("cyl", 0, -0.3, 0, 0.13, 0.62, 0.13, bark)
-        for k in (-1, 0, 1):
-            with r.at(0, -0.6, k * 0.05, rx=k * 0.5, rz=0.2):
-                r.part("cone", 0, -0.18, 0, 0.07, 0.38, 0.07, DARK_BARK, rx=math.pi)
+def _husk_heart(r, t, hurt):
+    """A split down the back (-X) with the pulsing heart-fungus inside."""
+    pulse = 1 + math.sin(t * 3.1) * 0.12
+    r.part("cube", -0.21, 0.3, 0, 0.08, 1.0, 0.22, (16, 10, 8))
+    glow = (255, 255, 255) if hurt else (110, 240, 190)
+    r.part("sphere", -0.2, 0.35, 0, 0.2 * pulse, 0.55 * pulse, 0.24 * pulse, glow, glow=True)
+    for y, z in ((0.0, 0.1), (0.7, -0.08), (-0.25, -0.1)):
+        r.part("sphere", -0.24, y, z, 0.12, 0.07, 0.12, (80, 220, 170), glow=True)
+    for y in (0.05, 0.4, 0.75):
+        r.part("cube", -0.25, y, 0, 0.05, 0.06, 0.3, DARK_BARK)
+
+
+def _husk_mask(r, e):
+    """Pale carved mask: hollow eye slits with ember pupils and a long mouth slit."""
+    mask = (214, 204, 178)
+    r.part("cube", 0.24, 0.6, 0, 0.07, 0.72, 0.5, mask)
+    r.part("cube", 0.25, 0.96, 0, 0.08, 0.08, 0.54, mask)
+    for z in (-0.12, 0.12):
+        r.part("cube", 0.28, 0.74, z, 0.03, 0.08, 0.14, (16, 10, 8))
+        r.part("cube", 0.295, 0.74, z, 0.02, 0.05, 0.05, (255, 120, 50), glow=True)
+    gape = 0.18 if e.state in ("windup", "attack") else 0.05
+    r.part("cube", 0.28, 0.44, 0, 0.03, 0.16 + gape, 0.07, (16, 10, 8))
+    # Twisted antler-like twigs above the mask.
+    for side in (1, -1):
+        with r.at(0.1, 0.95, side * 0.12, rx=side * 0.6, rz=0.3):
+            r.part("cube", 0, 0.2, 0, 0.05, 0.4, 0.05, DARK_BARK)
+            r.part("cube", 0.06, 0.32, side * 0.05, 0.04, 0.2, 0.04, DARK_BARK, rx=side * 0.7)
+
+
+def _willow_crown(r, e, t):
+    """A dome of leaves with willow strands hanging all round. The strands part in front of the
+    mask, and they swing up when it winds up."""
+    flare = 0.5 if e.state == "windup" else 0.0
+    with r.at(0, 1.0, 0):
+        r.part("sphere", 0, 0.1, 0, 1.0, 0.4, 1.0, DARK_LEAF)
+        r.part("sphere", -0.1, 0.25, 0.1, 0.7, 0.3, 0.7, LEAF)
+        for k in range(16):
+            a = k * 2 * math.pi / 16
+            front = math.cos(a) > 0.4
+            length = 0.25 if front else 0.9 + (k * 7 % 5) * 0.18
+            sway = math.sin(t * 1.4 + k) * 0.08
+            with r.at(math.cos(a) * 0.45, 0, math.sin(a) * 0.45, ry=-a, rz=sway - flare):
+                r.part("cube", 0, -length / 2, 0, 0.05, length, 0.14, LEAF if k % 3 else MOSS)
+
+
+def _willow_arm(r, bark):
+    """Hangs from the shoulder: long upper arm, a knotted elbow and a forearm ending in twig claws."""
+    r.part("cyl", 0, -0.48, 0, 0.16, 0.96, 0.16, bark)
+    r.part("sphere", 0, -0.98, 0, 0.24, 0.24, 0.24, DARK_BARK)
+    with r.at(0, -0.98, 0, rz=0.35):
+        r.part("cyl", 0, -0.45, 0, 0.12, 0.9, 0.12, bark)
+        for k in range(4):
+            with r.at(0, -0.9, (k - 1.5) * 0.06, rx=(k - 1.5) * 0.35, rz=0.25):
+                r.part("cone", 0, -0.24, 0, 0.06, 0.5, 0.06, DARK_BARK, rx=math.pi)
+
+
+def stump_mimic(r, e, t):
+    """Looks like a mossy tree stump until you come close; then the lid splits open on a fanged maw
+    and stubby roots lift it off the ground."""
+    awake = e.state != "idle"
+    hurt = e.state == "hurt"
+    bark = (240, 220, 200) if hurt else BARK
+    gape = jaw_open(e, t) if awake else 0.0
+    rise = 0.22 if awake else 0.0
+    if awake:
+        gait = walk_cycle(e, t) * 1.2
+        for i in range(4):
+            a = i * math.pi / 2 + math.pi / 4
+            with r.at(
+                math.cos(a) * 0.38, rise + 0.12, math.sin(a) * 0.38, ry=-a, rz=-0.9 + gait * (i % 2 - 0.5)
+            ):
+                r.part("cyl", 0.1, -0.1, 0, 0.12, 0.4, 0.12, DARK_BARK)
+    else:
+        for i in range(4):
+            a = i * math.pi / 2 + 0.4
+            r.part("cube", math.cos(a) * 0.5, 0.06, math.sin(a) * 0.5, 0.5, 0.12, 0.14, DARK_BARK, ry=-a)
+    with r.at(0, rise, 0):
+        r.part("cyl", 0, 0.33, 0, 1.0, 0.66, 1.0, bark, tex="bark")
+        r.part("cyl", 0, 0.66, 0, 0.86, 0.04, 0.86, (26, 14, 10))
+        if awake:
+            r.part("sphere", 0.1, 0.66, 0, 0.5, 0.12, 0.5, (200, 60, 50), glow=gape > 0.6)
+            for k in range(7):
+                a = -1.3 + k * 0.43
+                r.part("cone", math.cos(a) * 0.4, 0.74, math.sin(a) * 0.4, 0.06, 0.16, 0.06, BONE)
+        # The lid hinges at the back and lifts at the front.
+        with r.at(-0.45, 0.68, 0, rz=gape * 0.8):
+            r.part("cyl", 0.45, 0.05, 0, 0.98, 0.1, 0.98, (160, 128, 92))
+            r.part("cyl", 0.45, 0.1, 0, 0.6, 0.02, 0.6, (120, 94, 66))
+            r.part("sphere", 0.2, 0.14, 0.25, 0.4, 0.12, 0.3, MOSS)
+            if awake:
+                for k in range(6):
+                    a = -1.1 + k * 0.44
+                    r.part(
+                        "cone",
+                        0.45 + math.cos(a) * 0.38,
+                        -0.05,
+                        math.sin(a) * 0.38,
+                        0.05,
+                        0.14,
+                        0.05,
+                        BONE,
+                        rx=math.pi,
+                    )
+                for z in (-0.16, 0.16):
+                    r.part("cube", 0.86, 0.0, z, 0.06, 0.07, 0.08, (255, 200, 70), glow=True)
 
 
 def loom_mother(r, e, t):
@@ -266,7 +363,7 @@ def loom_mother(r, e, t):
     amp = 1.0 if moving else 0.15
     # Rear up on windup, slam down on the strike.
     if e.state == "windup":
-        rear = 0.4 * min(e.state_t / e.type.windup, 1)
+        rear = 0.4 * min(e.state_t / e.windup_time, 1)
     elif e.state == "attack":
         rear = 0.4 - 0.55 * min(e.state_t / 0.15, 1)
     elif e.state == "recover":
@@ -274,7 +371,10 @@ def loom_mother(r, e, t):
     else:
         rear = 0
     fang = jaw_open(e, t)
-    with r.at(0, 0, 0, s=1.15), r.at(-1.0, 0, 0, rz=rear), r.at(1.0, 0, 0):
+    lift, spin, rear, amp = _spider_move(e, t, rear, amp)
+    if e.state == "windup" and e.attack_kind in ("sweep", "summon"):
+        gait = t * 16
+    with r.at(0, lift, 0, s=1.15, ry=spin), r.at(-1.0, 0, 0, rz=rear), r.at(1.0, 0, 0):
         bob = math.sin(gait * 2) * 0.04 * amp
         with r.at(0, bob, 0):
             _spider_body(r, e, t, body, fang)
@@ -282,6 +382,48 @@ def loom_mother(r, e, t):
             for i in range(4):
                 phase = gait + i * math.pi / 2 + (math.pi / 2 if side < 0 else 0)
                 _spider_leg(r, i, side, phase, amp, body, band)
+
+
+def _spider_move(e, t, rear, amp):
+    """Body lift, spin, rear and leg swing for a boss move, so each attack has its own tell:
+    a sweep coils and spins, a web shot tips the spinnerets up, a pounce crouches then flies,
+    and the summon rears up and trembles."""
+    kind = e.attack_kind
+    lift = spin = 0.0
+    k = min(e.state_t / max(e.windup_time, 1e-3), 1) if e.state == "windup" else 0.0
+    if kind == "sweep":
+        if e.state == "windup":
+            spin, lift, amp = -0.7 * k, -0.15 * k, 1.6
+        elif e.state == "attack":
+            spin = -0.7 + (2 * math.pi + 0.7) * min(e.state_t / 0.3, 1)
+            amp = 1.6
+    elif kind == "web":
+        if e.state == "windup":
+            rear = -0.35 * k
+        elif e.state == "attack":
+            rear = -0.35
+    elif kind == "pounce":
+        if e.state == "windup":
+            lift, rear = -0.35 * k, 0.15 * k
+        elif e.state == "attack":
+            lift, rear, amp = math.sin(min(e.state_t / 0.5, 1) * math.pi) * 1.3, 0.3, 0.3
+    elif kind == "summon" and e.state in ("windup", "attack"):
+        rear = 0.7 * (k if e.state == "windup" else 1) + math.sin(t * 40) * 0.04
+    return lift, spin, rear, amp
+
+
+def loom_brood(r, e, t):
+    """A hatchling of the Loom Mother: the same spider, small and quick."""
+    with r.at(0, 0, 0, s=0.3):
+        loom_mother(r, e, t)
+
+
+def web_shot(r, t):
+    """A wad of spun silk trailing loose strands."""
+    r.part("sphere", 0, 0, 0, 0.45, 0.45, 0.45, (236, 236, 226), glow=True)
+    for k in range(5):
+        a = k * 1.26 + t * 3
+        r.part("cube", -0.3, math.sin(a) * 0.15, math.cos(a) * 0.15, 0.7, 0.03, 0.03, (220, 220, 210))
 
 
 def _spider_body(r, e, t, body, fang):
@@ -496,6 +638,55 @@ def vine_door(r, t):
     # Roots crawling out over the threshold.
     for k, z in enumerate((-0.6, -0.1, 0.5)):
         r.part("cube", -0.45 + k * 0.1, 0.06, z, 0.9, 0.1, 0.1, (70, 52, 34), ry=0.3 - k * 0.3)
+
+
+def raft(r, t):
+    """Four lashed logs, deck on top at y=0."""
+    bob = math.sin(t * 1.6) * 0.03
+    with r.at(0, bob, 0, rx=math.sin(t * 1.1) * 0.02):
+        for z in (-0.68, -0.23, 0.23, 0.68):
+            r.part("cyl", 0, -0.12, z, 0.44, 1.85, 0.44, BARK, tex="bark", rz=math.pi / 2)
+        for x in (-0.6, 0.6):
+            r.part("cube", x, 0.08, 0, 0.12, 0.06, 1.85, (140, 112, 70))
+        r.part("cyl", 0.7, 0.5, 0.7, 0.08, 1.0, 0.08, DARK_BARK)
+        r.part("cube", 0.7, 1.0, 0.7, 0.12, 0.06, 0.12, (150, 120, 80))
+
+
+def plank(r, creak):
+    """Rotten boardwalk section over the water. It tilts and darkens as it gives way."""
+    tilt = creak * 0.12
+    rot = (int(96 - 30 * creak), int(84 - 20 * creak), 52)
+    with r.at(0, 0, 0, rz=tilt, rx=-tilt * 0.5):
+        for k, z in enumerate((-0.6, 0.0, 0.6)):
+            r.part(
+                "cube", 0, -0.05, z + (k - 1) * 0.02, 1.9, 0.1, 0.52, rot, tex="wood_plank", ry=(k - 1) * 0.04
+            )
+        r.part("cube", 0.5, 0.02, -0.3, 0.3, 0.04, 0.25, MOSS)
+    for x, z in ((-0.85, -0.85), (0.85, -0.85), (-0.85, 0.85), (0.85, 0.85)):
+        r.part("cyl", x, -0.4, z, 0.14, 0.9, 0.14, DARK_BARK)
+
+
+def thorn_plant(r, seed, t, rise):
+    """A spiked carnivorous plant that carpets a thorn floor: a rosette of fleshy, saw-edged leaves
+    around a sheaf of red spikes. The spikes stab upward (`rise` 0..1) when something steps in."""
+    flesh = (88, 58, 48)
+    for k in range(7):
+        a = k * 2 * math.pi / 7 + seed * 0.9
+        with r.at(math.cos(a) * 0.2, 0.05, math.sin(a) * 0.2, ry=-a, rz=0.25 + (k % 2) * 0.15):
+            r.part("sphere", 0.4, 0, 0, 0.85, 0.08, 0.3, (60, 92, 46) if k % 2 else (74, 84, 40))
+            for j in range(3):
+                r.part("cone", 0.2 + j * 0.25, 0.04, 0.15, 0.04, 0.12, 0.04, (200, 180, 140), rx=-0.9)
+    r.part("sphere", 0, 0.08, 0, 0.5, 0.18, 0.5, flesh)
+    jab = 0.25 + 0.75 * rise
+    for k in range(8):
+        a = k * 2.4 + seed
+        d = 0.12 + (k % 3) * 0.08
+        h = (0.55 + (k * 5 % 4) * 0.12) * jab
+        sway = math.sin(t * 1.3 + k) * 0.04 * (1 - rise)
+        tilt = 0.25 * (k % 3) / 2
+        with r.at(math.cos(a) * d, 0.1, math.sin(a) * d, ry=-a, rz=-tilt + sway):
+            r.part("cone", 0, h / 2, 0, 0.07, h, 0.07, (150, 40, 44))
+            r.part("cone", 0, h * 0.95, 0, 0.03, h * 0.18, 0.03, (236, 220, 180))
 
 
 def rope(r, t):

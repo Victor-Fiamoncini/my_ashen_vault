@@ -30,6 +30,16 @@ class EnemyType:
     bite_reach: float | None = None
     # Color of the projectiles a ranged enemy fires.
     shot_rgb: tuple = (255, 120, 40)
+    # Turning speed in rad/s; None turns instantly. Slow turners can be outflanked.
+    turn_rate: float | None = None
+    # Damage multiplier for blows landed from behind (a weak spot on the back).
+    back_mult: float = 1.0
+    # Ambushers sit still until you come within `sight`, then give chase for `GIVE_UP` metres.
+    ambush: bool = False
+    # Special attacks a boss mixes in (see Enemy.MOVES): "sweep", "web", "pounce".
+    moves: tuple = ()
+    # Enemy type a boss calls to its side once, when it drops to half HP.
+    brood: str | None = None
 
     @property
     def rooted(self):
@@ -132,18 +142,38 @@ class EnemyTypes:
             EnemyType(
                 id="bark_husk",
                 name="Bark Husk",
-                hp=60,
-                speed=1.0,
-                damage=14,
-                reach=2.4,
+                hp=70,
+                speed=1.1,
+                damage=16,
+                reach=2.6,
                 sight=10,
                 windup=0.95,
                 recover=1.3,
-                exp=30,
+                exp=34,
                 gold=range(8, 19),
-                radius=0.6,
-                height=2.5,
-                poise=9,
+                radius=0.75,
+                height=2.8,
+                poise=10,
+                # A lumbering old tree: circle it and strike the glowing heart-fungus in its back.
+                turn_rate=1.3,
+                back_mult=2.0,
+            ),
+            EnemyType(
+                id="stump_mimic",
+                name="Stump Mimic",
+                hp=34,
+                speed=1.9,
+                damage=12,
+                reach=1.8,
+                sight=2.8,
+                windup=0.4,
+                recover=1.0,
+                exp=22,
+                gold=range(10, 26),
+                radius=0.55,
+                height=1.1,
+                poise=5,
+                ambush=True,
             ),
             EnemyType(
                 id="loom_mother",
@@ -164,6 +194,23 @@ class EnemyTypes:
                 dead_flag="spider_dead",
                 epitaph="The Loom Mother curls up and is still. Something green glows in the silk.",
                 poise=16,
+                moves=("sweep", "web", "pounce"),
+                brood="loom_brood",
+            ),
+            EnemyType(
+                id="loom_brood",
+                name="Loom Brood",
+                hp=10,
+                speed=2.7,
+                damage=5,
+                reach=1.3,
+                sight=16,
+                windup=0.35,
+                recover=0.6,
+                exp=4,
+                gold=range(0, 3),
+                radius=0.35,
+                height=0.5,
             ),
         ]
     }

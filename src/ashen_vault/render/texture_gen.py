@@ -30,6 +30,8 @@ def all_textures():
         "canopy": canopy(),
         "mud": mud(),
         "bog": bog(),
+        "rapids": rapids(),
+        "thorns": thorns(),
         "white": solid(255, 255, 255),
     }
 
@@ -354,5 +356,34 @@ def bog():
         if noise(x, y, 4, 193) > 0.74:
             return tint([78, 96, 40], 0.8 + n * 0.3)
         return tint([34, 54, 34], 0.8 + w + n * 0.25)
+
+    return build(px)
+
+
+def rapids():
+    """Fast shallow water: pale streaks of foam running down the current (+y)."""
+
+    def px(x, y):
+        streak = noise(x * 4 % SIZE, y, 8, 201)
+        n = fbm(x, y, 202)
+        if streak > 0.72:
+            return tint([190, 214, 206], 0.8 + n * 0.3)
+        return tint([46, 86, 92], 0.8 + n * 0.35 + math.sin(y * 0.5 + x * 0.1) * 0.08)
+
+    return build(px)
+
+
+def thorns():
+    """Leaf litter overgrown with a mat of dark briars and pale thorns."""
+
+    def px(x, y):
+        n = fbm(x, y, 211)
+        vine = abs(math.sin((x + noise(x, y, 8, 212) * 20) * 0.35)) < 0.18
+        vine2 = abs(math.sin((y + noise(x, y, 8, 213) * 20) * 0.3)) < 0.15
+        if hash_(x, y, 214) > 0.96:
+            return tint([220, 200, 160], 0.9 + n * 0.2)
+        if vine or vine2:
+            return tint([92, 40, 34], 0.7 + n * 0.4)
+        return tint([70, 58, 36], 0.55 + n * 0.35)
 
     return build(px)
