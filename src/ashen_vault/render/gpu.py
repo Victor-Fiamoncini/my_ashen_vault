@@ -6,7 +6,7 @@ from array import array
 import raylib as rl
 from raylib import ffi
 
-from ashen_vault.render import texture_gen
+from ashen_vault.render import shapes, texture_gen
 
 SHADER_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "shaders")
 
@@ -122,6 +122,8 @@ class Gpu:
                 mesh = self._centered(rl.GenMeshCone(0.5, 1, 7))
             elif kind == "quad":
                 mesh = rl.GenMeshPlane(1, 1, 1, 1)
+            elif kind in shapes.SHAPES:
+                mesh = self._upload_shape(*shapes.SHAPES[kind]())[0]
             self._meshes[kind] = mesh
         return mesh
 
@@ -132,6 +134,17 @@ class Gpu:
         for i in range(count):
             mesh.vertices[i * 3 + 1] -= 0.5
         rl.UpdateMeshBuffer(mesh, 0, mesh.vertices, count * 12, 0)
+        return mesh
+
+    def _upload_shape(self, verts, normals, uvs):
+        """Uploads a triangle soup from render/shapes.py as a model primitive."""
+        mesh = ffi.new("Mesh *")
+        mesh.vertexCount = len(verts) // 3
+        mesh.triangleCount = len(verts) // 9
+        mesh.vertices = self._alloc("float *", array("f", verts).tobytes())
+        mesh.normals = self._alloc("float *", array("f", normals).tobytes())
+        mesh.texcoords = self._alloc("float *", array("f", uvs).tobytes())
+        rl.UploadMesh(mesh, False)
         return mesh
 
     # --- drawing -----------------------------------------------------------
