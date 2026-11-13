@@ -17,6 +17,7 @@ class EnemyType:
     gold: range
     radius: float
     height: float  # top of the body as it dies, in metres: the span the ash dissolve crumbles
+    tall: float  # top of the body standing, in metres: a spell flying over it misses
     poise: int = 0
     ranged: bool = False
     hover: float | None = None
@@ -66,6 +67,7 @@ class EnemyTypes:
                 gold=range(4, 11),
                 radius=0.45,
                 height=0.8,
+                tall=1.8,
                 poise=0,
             ),
             EnemyType(
@@ -82,6 +84,7 @@ class EnemyTypes:
                 gold=range(1, 6),
                 radius=0.5,
                 height=0.4,
+                tall=0.7,
                 poise=0,
             ),
             EnemyType(
@@ -98,6 +101,7 @@ class EnemyTypes:
                 gold=range(5, 13),
                 radius=0.35,
                 height=0.6,
+                tall=1.6,
                 ranged=True,
                 hover=1.3,
                 poise=0,
@@ -116,6 +120,7 @@ class EnemyTypes:
                 gold=range(60, 61),
                 radius=0.7,
                 height=2.6,
+                tall=2.6,
                 boss=True,
                 drop="ember_sigil",
                 dead_flag="boss_dead",
@@ -139,6 +144,7 @@ class EnemyTypes:
                 gold=range(40, 61),
                 radius=0.55,
                 height=0.8,
+                tall=0.9,
                 poise=10,
                 ambush=True,
                 once=True,
@@ -157,6 +163,7 @@ class EnemyTypes:
                 gold=range(3, 10),
                 radius=0.45,
                 height=1.6,
+                tall=1.8,
                 ranged=True,
                 bite_reach=2.2,
                 shot_rgb=(150, 210, 70),
@@ -176,6 +183,7 @@ class EnemyTypes:
                 gold=range(8, 19),
                 radius=0.75,
                 height=3.0,
+                tall=3.0,
                 poise=10,
                 # A lumbering old tree: circle it and strike the glowing heart-fungus in its back.
                 turn_rate=1.3,
@@ -195,6 +203,7 @@ class EnemyTypes:
                 gold=range(10, 26),
                 radius=0.55,
                 height=0.9,
+                tall=1.0,
                 poise=5,
                 lurk=True,
             ),
@@ -212,6 +221,7 @@ class EnemyTypes:
                 gold=range(100, 101),
                 radius=1.3,
                 height=2.5,
+                tall=1.8,
                 boss=True,
                 drop="verdant_sigil",
                 dead_flag="spider_dead",
@@ -234,6 +244,7 @@ class EnemyTypes:
                 gold=range(0, 3),
                 radius=0.35,
                 height=0.75,
+                tall=0.6,
             ),
         ]
     }

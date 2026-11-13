@@ -44,7 +44,8 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 - Always set `ASHEN_VAULT_SAVE` to a throwaway path so you never touch the player's real save
   (`~/.local/share/ashen_vault/save.json`).
 - `--script` steps: `action` presses once, `action:1.5` holds for 1.5 s, `wait:1` pauses. Actions are
-  the keys of `KEYS` and `MOUSE` in `src/ashen_vault/input.py`, plus `wheel_up` / `wheel_down`.
+  the keys of `KEYS` and `MOUSE` in `src/ashen_vault/input.py`, plus `wheel_up` / `wheel_down` and
+  `look_up` / `look_down` (hold them to tilt the view, 1.5 rad/s).
   `attack` is the left mouse button (the right hand) and `cast` the right one (the left hand): each
   swings, blocks or casts depending on what that hand holds.
 - `--equip right=katana,left=buckler,body=brigandine,hands=iron_gauntlets` starts with that gear (a slot
@@ -76,6 +77,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/world/rest.py` | The shrine rest: timing and the pixelated ember fog pattern drawn while you pray |
 | `src/ashen_vault/ui/smallfont.py` | The small mixed-case pixel font used for in-game messages, prompts and the boss bar |
 | `src/ashen_vault/player/weapons.py` | Weapon categories, light/heavy/quick attacks, swing tempo and the secret attacks (`secret()`) |
+| `src/ashen_vault/world/shots.py` | Shots in 3D: spells follow the view's pitch, enemy shots aim at your chest, and a shot only hits a body it passes through |
 | `src/ashen_vault/player/guard.py` | Shield blocking: what a raised shield stops and what it costs in ST |
 | `src/ashen_vault/world/relics.py` | Boss relics (Ember and Verdant Sigils), their drop/taken flags and the two-sigil ending |
 | `src/ashen_vault/dialogue.py` | NPC conversations and the shop list |
@@ -107,6 +109,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 - An enemy type's `height` is the top of its body as it dies: the ash dissolve crumbles that span.
   Every model has a death pose (eased by `models.death_fall`); `tests/test_render_logic.py` checks
   that each one collapses, stays above the floor and fits its `height`, so update both together.
+  Its `tall` is the top of the standing body: a spell bolt flying higher misses it (`world/shots.py`).
 - Props that fill their tile are listed in `world/world.py` (`BLOCKING_PROPS`, `BREAKABLE_PROPS`).
   Breakables (`barrel`, `crate`, `urn`, `cocoon`) spill loot from `world/loot.py`; a `secret_wall`
   dissolves when struck (`model=vines top=6` matches the jungle's vine walls).

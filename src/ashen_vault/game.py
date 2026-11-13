@@ -335,6 +335,8 @@ class Game:
             else:
                 p.turn(md.x * 0.0032)
                 p.look(-md.y * 0.0032)
+        # Scripted smoke runs tilt the view with held look_up / look_down steps.
+        p.look((inp.down("look_up") - inp.down("look_down")) * 1.5 * dt)
         moved = p.walk(
             self.world.map,
             self._axis("forward", "back"),

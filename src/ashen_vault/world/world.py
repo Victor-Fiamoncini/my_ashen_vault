@@ -12,7 +12,7 @@ from ashen_vault.player.player import Player
 from ashen_vault.render import models
 from ashen_vault.render.mesh_builder import MeshBuilder
 from ashen_vault.util import rround
-from ashen_vault.world import collision, loot, relics, terrain
+from ashen_vault.world import collision, loot, relics, shots, terrain
 from ashen_vault.world.ash import AshCloud, death_phases
 from ashen_vault.world.hazards import CrumbleFloor, Pendulum, SpikeTrap
 from ashen_vault.world.map_loader import MapLoader
@@ -48,6 +48,7 @@ class Projectile:
     rgb: tuple
     source: str = ""
     effect: str | None = None  # "web": slows whoever it hits
+    dy: float = 0.0  # climb (or drop) per second: spells follow the view up and down
 
 
 INTERACT_RANGE = 2.6
@@ -318,19 +319,23 @@ class World:
     def _fire_one(self, enemy, kind, spread=0.0):
         web = kind == "web"
         y = self.enemy_y(enemy) + (enemy.type.hover or 1.2)
-        aim = math.atan2(self.player.z - enemy.z, self.player.x - enemy.x) + spread
-        dx, dz = math.cos(aim), math.sin(aim)
+        player = self.player
         speed = 7.5 if web else 6
+        dx, dy, dz = shots.toward(
+            enemy.x, y, enemy.z, player.x, player.y + shots.AIM_HEIGHT, player.z, speed, spread
+        )
+        lead = enemy.radius / speed  # leaves from the edge of its body
         damage = enemy.type.damage
         if kind in ("web", "cinders"):
             damage = rround(damage * MOVES[kind][2])
         self.projectiles.append(
             Projectile(
-                x=enemy.x + dx * enemy.radius,
-                y=y,
-                z=enemy.z + dz * enemy.radius,
-                dx=dx * speed,
-                dz=dz * speed,
+                x=enemy.x + dx * lead,
+                y=y + dy * lead,
+                z=enemy.z + dz * lead,
+                dx=dx,
+                dy=dy,
+                dz=dz,
                 life=4.0,
                 damage=damage,
                 hostile=True,
@@ -507,6 +512,7 @@ class World:
         player = self.player
         for pr_ in self.projectiles:
             pr_.x += pr_.dx * dt
+            pr_.y += pr_.dy * dt
             pr_.z += pr_.dz * dt
             pr_.life -= dt
             tile = self.map.tile_at(pr_.x, pr_.z)
@@ -518,7 +524,9 @@ class World:
             ):
                 pr_.life = 0
             elif pr_.hostile:
-                if math.hypot(pr_.x - player.x, pr_.z - player.z) < 0.6:
+                if shots.strikes(
+                    pr_.x, pr_.y, pr_.z, player.x, player.z, shots.PLAYER_RADIUS, shots.player_span(player.y)
+                ):
                     self.strike_player(
                         max(rround(pr_.damage - player.inventory.defense * 0.3), 1),
                         pr_.source or "Something",
@@ -534,7 +542,10 @@ class World:
                     (
                         e
                         for e in self.enemies
-                        if e.alive and math.hypot(pr_.x - e.x, pr_.z - e.z) < e.radius + 0.3
+                        if e.alive
+                        and shots.strikes(
+                            pr_.x, pr_.y, pr_.z, e.x, e.z, e.radius, shots.body_span(e.type, self.enemy_y(e))
+                        )
                     ),
                     None,
                 )
@@ -568,14 +579,16 @@ class World:
 
     def fire_bolt(self, damage):
         player = self.player
-        fx, fz = player.forward()
+        dx, dy, dz = shots.aim(player.yaw, player.pitch)
+        lead = 0.5 / shots.BOLT_SPEED  # starts half a metre out along the aim
         self.projectiles.append(
             Projectile(
-                x=player.x + fx * 0.5,
-                y=player.eye_y - 0.25,
-                z=player.z + fz * 0.5,
-                dx=fx * 9,
-                dz=fz * 9,
+                x=player.x + dx * lead,
+                y=player.eye_y - shots.BOLT_DROP + dy * lead,
+                z=player.z + dz * lead,
+                dx=dx,
+                dy=dy,
+                dz=dz,
                 life=3.0,
                 damage=damage,
                 hostile=False,
