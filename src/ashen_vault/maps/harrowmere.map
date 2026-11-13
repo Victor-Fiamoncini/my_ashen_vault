@@ -20,6 +20,9 @@ i = floor tex=wood_plank h=0.2 ceil=3.4 ceil_tex=wood_plank side=wood_plank
 ~ = water tex=water h=-0.8 side=rough_stone
 A = wall tex=cliff_rock top=6 cap=grass
 G = wall tex=vine_wall top=3.4 cap=canopy
+V = wall tex=vine_wall top=5.5 cap=canopy
+w = floor tex=jungle_floor h=0 ceil=4.2 ceil_tex=canopy side=vine_wall dark=0.2
+y = floor tex=jungle_floor h=0 ceil=3.8 ceil_tex=canopy side=vine_wall dark=0.4
 v = floor tex=jungle_floor h=0
 c = floor tex=rough_stone h=0 ceil=3.4 ceil_tex=cliff_rock side=cliff_rock dark=0.45
 
@@ -30,20 +33,20 @@ R,,T,,,,,,,,HiiiiiiH,,,,,-,T,,,RAAAAAAAAAAAAAA
 R,,,,,,,,,,,HiiiBiiH,,,,,-,,,,,RAAAAAAAAAAAAAA
 R,,,,,,,,,,,HiiiiiiH,,,,,-,,,,,RAAAAAAAAAAAAAA
 R,,,,,,,,,,,HiLiiLiH,,,,,-,,,,,RAAAAAAAAAAAAAA
-R,,,,,,,,,,,HHHiiHHH,,,,,-,,,,,RAAAAAAAAAAAAAA
-R,,,,,,,,,,,,,,..,,,,,,,,,,,,,,RAAAAAAAAAAAAAA
-R,,HHHHHH,,,,,,..,,,,,,HHHHHH,,RAAAAAAAAAAAAAA
-R,,HiiiiH,,,,,,..,,,,,,HHHHHH,,RAAAAAAAAAAAAAA
-R,,HiMiii..............HHHHHH,,RAAAGGGGAAAAAAA
-R,,HiiiiH,,,,,,..,,,,,,HHHHHH,,RAGG,,j,GGAAAAA
-R,,HHHHHH,,,,,,..,,,,,,,,,,,,,,RG,v,m,v,,GGAAA
-R,,,,,,,,,,t........t,,,,,T,,,,vvvvuv,,vv,jGAA
-R,,T,,,,,,,.S........,,,,,,,,,,vvvvvvvjvvvxcKA
-R,,,,,,,,,,....W.....,,,,,,,,,,Rvv,,G,,vvmcAAA
-R,HHHHH,,,,.......g..,,,,,,,,,,RGG,,,j,,GAAAAA
-R,HiLiH,,,,..........,,,,,,,,,,RAAGGGGGGAAAAAA
-R,HiCii,,,,t........t,,,T,,,,,,RAAAAAAAAAAAAAA
-R,HiiiH,,,,,,,,..,,,,,,,,,,,,,,RAAAAAAAAAAAAAA
+R,,,,,,,,,,,HHHiiHHH,,,,,-,,,,,RVVVVVVVVAAAAAA
+R,,,,,,,,,,,,,,..,,,,,,,,,,,,,,RwUwvvwwVAAAAAA
+R,,HHHHHH,,,,,,..,,,,,,HHHHHH,,RwwwvvwwVAAAAAA
+R,,HiiiiH,,,,,,..,,,,,,HHHHHH,,RwwVVVwwVAAAAAA
+R,,HiMiii..............HHHHHH,,RwnVAVwwVAAAAAA
+R,,HiiiiH,,,,,,..,,,,,,HHHHHH,,RwwVAVwUVAAAAAA
+R,,HHHHHH,,,,,,..,,,,,,,,,,,,,,RvvVAVwwVAAAAAA
+R,,,,,,,,,,t........t,,,,,T,,,,vvvVAVwwVVVVVAA
+R,,T,,,,,,,.S........,,,,,,,,,,vvmVAVwwVVyxcKA
+R,,,,,,,,,,....W.....,,,,,,,,,,RVVVAVwwVVyyVAA
+R,HHHHH,,,,.......g..,,,,,,,,,,RAAAAVwnVVFyVAA
+R,HiLiH,,,,..........,,,,,,,,,,RAAAAVwwyyyyVAA
+R,HiCii,,,,t........t,,,T,,,,,,RAAAAVUwyzyyVAA
+R,HiiiH,,,,,,,,..,,,,,,,,,,,,,,RAAAAVVVVVVVVAA
 R,HHHHH,,,,,,,,..,,,,,,,,,,,,,,RAAAAAAAAAAAAAA
 R------------------------------RAAAAAAAAAAAAAA
 R~~~~~~~~~~~~~~pp~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
@@ -64,11 +67,16 @@ W = exit map=sunken_keep at=15,27,-90 label=Descend_the_well model=well on=.
 g = npc id=hollis yaw=180 on=.
 f = npc id=maeve yaw=-90 on=p
 C = npc id=corvane yaw=0 on=i
-// The jungle trail east of the square, ending at the cave mouth into the Verdant Hollow.
+// The jungle trail east of the square: a hedged path winding under a canopy that closes in and
+// darkens on the way to the cave mouth into the Verdant Hollow.
 K = exit map=verdant_hollow at=25,33,180 label=Enter_the_cave model=cave_mouth yaw=180 on=c
 u = torch radius=6 on=v
 j = jungle_tree on=v
 m = mushrooms on=v
 x = fungus radius=4 on=c
+U = torch radius=5 on=w
+n = mushrooms on=w
+F = fungus radius=4 on=y
+z = mushrooms on=y
 // The north road, out through the wall to the Cinderhold.
 N = exit map=cinderhold at=30,69,-90 label=Take_the_north_road model=road_gate yaw=-90 on=-

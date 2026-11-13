@@ -234,6 +234,28 @@ def test_harrowmere_has_the_jungle_cave():
     assert not _spec(m, "exit", model="vine_door")  # the overgrown house is shut
 
 
+def test_harrowmere_jungle_trail_is_a_narrow_path_darkening_under_the_canopy():
+    """From the gap in the town wall to the cave mouth the trail is a corridor: never more than two
+    tiles across, hedged in, and roofed by a canopy that grows darker toward the cave."""
+    m = MapLoader.load_file(os.path.join(MAP_DIR, "harrowmere.map"))
+    (exit_,) = _spec(m, "exit", map="verdant_hollow")
+    trail = {
+        (tx, tz)
+        for tz in range(m.depth)
+        for tx in range(32, exit_.tx)
+        if m[tx, tz].walkable and m[tx, tz].floor_tex == "jungle_floor"
+    }
+    assert (exit_.tx - 1, exit_.tz) in _reachable(m, (31, exit_.tz))
+    for tx, tz in trail:  # no open clearing: no 3x3 block of trail anywhere
+        assert not all((tx + dx, tz + dz) in trail for dx in range(3) for dz in range(3)), (tx, tz)
+    roofed = [m[t] for t in trail if not m[t].open_sky]
+    assert roofed and len(roofed) > len(trail) / 2  # mostly under the canopy...
+    assert len(roofed) < len(trail)  # ...with the sky still showing at the start
+    near = max(m[t].dark for t in trail if abs(t[0] - exit_.tx) + abs(t[1] - exit_.tz) <= 4)
+    far = min(m[t].dark for t in trail if t[0] <= 33)
+    assert near > far  # darker toward the cave
+
+
 def test_verdant_hollow_loads_with_start_exit_boss_and_enemies():
     m = MapLoader.load_file(os.path.join(MAP_DIR, "verdant_hollow.map"))
     assert m.meta["name"] == "The Verdant Hollow"
