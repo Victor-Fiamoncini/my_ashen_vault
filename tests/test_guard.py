@@ -1,3 +1,5 @@
+import math
+
 import pytest
 
 from ashen_vault.player import guard
@@ -84,6 +86,31 @@ def test_guarding_walks_slowly_without_sprinting(room):
     b.walk(room, 1, 0, 0.1, sprint=True)
     assert not b.sprinting
     assert (b.x - x) == pytest.approx((a.x - x) * guard.WALK)
+
+
+@pytest.mark.parametrize("fwd, strafe", [(-1, 0), (0, 1), (0, -1), (-1, 1)])
+def test_guarding_walks_every_way(room, fwd, strafe):
+    """A raised shield slows you but never pins you: back off and sidestep at guard.WALK pace."""
+    from ashen_vault.world.tile_map import TileMap
+
+    x, z = TileMap.center(1, 2)
+    a, b = shielded(), shielded()
+    for p in (a, b):
+        p.place(x, z, 0.0, room)
+    b.raise_guard(True)
+    assert a.walk(room, fwd, strafe, 0.05)
+    assert b.walk(room, fwd, strafe, 0.05)
+    moved_a = math.hypot(a.x - x, a.z - z)
+    moved_b = math.hypot(b.x - x, b.z - z)
+    assert moved_b == pytest.approx(moved_a * guard.WALK)
+
+
+def test_backpedal_and_strafe_outpace_most_foes(room):
+    from ashen_vault.ai.enemy_types import EnemyTypes
+
+    assert Player.BACK_SPEED >= 2.5
+    fast = [t for t in EnemyTypes.ALL.values() if t.speed > Player.WALK_SPEED]
+    assert len(fast) <= 1
 
 
 def test_world_routes_blows_through_the_shield():

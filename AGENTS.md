@@ -46,9 +46,11 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 - `--script` steps: `action` presses once, `action:1.5` holds for 1.5 s, `wait:1` pauses. Actions are
   the keys of `KEYS` and `MOUSE` in `src/ashen_vault/input.py`, plus `wheel_up` / `wheel_down` and
   `look_up` / `look_down` (hold them to tilt the view, 1.5 rad/s).
-  `attack` is the left mouse button (the right hand) and `cast` the right one (the left hand): each
-  swings, blocks or casts depending on what that hand holds.
-- `--equip right=katana,left=buckler,body=brigandine,hands=iron_gauntlets` starts with that gear (a slot
+  `attack` is the left mouse button (the Primary slot) and `cast` the right one (Secondary): each
+  swings, blocks or casts depending on what that slot holds (`Inventory.button_action`); with a
+  two-hander `cast` does nothing. `menu` then `slot1` / `slot2` equips the selected Belongings row.
+- `--equip right=katana,left=buckler,body=brigandine,hands=iron_gauntlets` (or `primary=` /
+  `secondary=` for `right=` / `left=`) starts with that gear (a slot
   set to `none` empties it; `left=spell` readies the spell there, `left=spell:pyre` learns Pyre and
   readies it) and `--level 6` at that level.
 - `interact` uses whatever the player faces within reach, nearest first: an unopened chest in front of
@@ -67,7 +69,8 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   Walk), `--at=15,20,-90 --script interact` (the barred door, from its wrong side),
   `--at=14,41,-90 --script "interact wait:2.5 strafe_l:2"` (lower the drawbridge and cross),
   `--at=49,12,-90` (the Highland log slope), `--at=15,7,-90` (the Loom Mother),
-  `--map harrowmere --at=6,18,180 --script "forward:1 interact"` (Corvane; below
+  `--at=15,7,-90` (the Ashen Warden in his hall), `--map harrowmere --at=16,4,-90 --script "wait:0.2
+  interact"` (Odrin's dialogue box), `--map harrowmere --at=6,18,180 --script "forward:1 interact"` (Corvane; below
   `--level 5` they stay silent), `--map harrowmere --at=25,4,-90` (the north road's gate),
   `--map cinderhold --at=29,50,-90` (the long bridge, the fortress ahead), `--map cinderhold --at=28,30,180`
   (the postern ledge and its flame jets), `--map cinderhold --at=18,17,180` (the foundry),
@@ -94,7 +97,9 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/render/forge_models.py` | The Cinderhold's models (golem, bowman, hound, the gargoyles, Stormbrand and Slagbreaker, arrows, thunder and motes, flame jets, spires); `models` imports it last and borrows its helpers |
 | `src/ashen_vault/world/terrain.py` | Terrain: rafts, planks, ledges, rotten floorboards, chain lifts, currents, thorns, chasm and river falls, hard landings, the log rack, spore pods (`World.terrain`) |
 | `src/ashen_vault/world/rest.py` | The shrine rest: timing and the pixelated ember fog pattern drawn while you pray |
-| `src/ashen_vault/ui/smallfont.py` | The small mixed-case pixel font used for in-game messages, prompts and the boss bar |
+| `src/ashen_vault/ui/smallfont.py` | The small mixed-case pixel font for all game text: menus, dialogue, messages, prompts and the boss bar (`hud.text` draws with it) |
+| `src/ashen_vault/ui/logofont.py` | The logo's 5x7 capitals, shared by `docs/logo/make_logo.py` and big headings (`hud.big`: the title, the death screen) |
+| `src/ashen_vault/ui/belongings.py` | Belongings as data: slot marks, the Equipped panel and the slot chooser (Primary / Secondary) |
 | `src/ashen_vault/player/weapons.py` | Weapon categories, light/heavy/quick attacks, swing tempo and the secret attacks (`secret()`) |
 | `src/ashen_vault/world/shots.py` | Shots in 3D: spells follow the view's pitch, enemy shots aim at your chest, and a shot only hits a body it passes through |
 | `src/ashen_vault/player/guard.py` | Shield blocking: what a raised shield stops and what it costs in ST |
@@ -167,6 +172,10 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   Every model has a death pose (eased by `models.death_fall`); `tests/test_render_logic.py` checks
   that each one collapses, stays above the floor and fits its `height`, so update both together.
   Its `tall` is the top of the standing body: a spell bolt flying higher misses it (`world/shots.py`).
+- Foes that wield a weapon chop overhead (`models.chop_angle`) and hold it in a fist (`models.held`,
+  `sword_parts`): give the arm an elbow (`elbow_bend`) and point the weapon with
+  `aim_wrist(blade_direction, shoulder + elbow)` rather than a fixed angle, so it never folds back along
+  the arm. `tests/test_render_logic.py` checks the wrist stays within 150 degrees of the forearm's line.
 - Props that fill their tile are listed in `world/world.py` (`BLOCKING_PROPS`, `BREAKABLE_PROPS`;
   the keep adds `pillar`, `sarcophagus` and `bell`, the jungle `bonfire`, `giant_mushroom` and
   `totem`). Decor that blocks nothing: `cage` and `roots` hang from the ceiling, `grate` sits in the
@@ -200,9 +209,12 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   dropped items. Bosses add
   their `dead_flag` (`boss_dead`, `spider_dead`, `gargoyles_dead`) and relics a `<relic>_taken` flag
   (`sigil_taken` for the Ember Sigil).
-- Equipment (`player/inventory.py`): two hand slots (`right` = left mouse button, `left` = right
-  button) holding a weapon, a shield, the readied spell (`SPELL`) or nothing (a fist), plus `body` and
-  `hands` armor. `two_handed` weapons fill both hands. Items carry a `level` requirement: buying is
+- Equipment (`player/inventory.py`): two hand slots, shown to players as **Primary** (`right` = left
+  mouse button) and **Secondary** (`left` = right button) via `SLOT_NAMES`; never say "hand" in text the
+  player sees. Each holds a weapon, a shield, the readied spell (`SPELL`) or nothing (a fist), plus
+  `body` and `hands` armor. `two_handed` weapons fill both slots and swing from Primary only. The HUD
+  draws the slots as cards (`hud.slot_card`, `quick_card`). A mouse action must never share a name with
+  a movement key (`tests/test_input.py`): `"back"` once did, and a raised shield walked you backward. Items carry a `level` requirement: buying is
   allowed, equipping is not (`Inventory.equip_error`). The first-person arms (`models.weapon_view`)
   take their sleeve and glove looks from `SLEEVES` / `GLOVES`, so new armor needs an entry there.
 - Every attack costs ST. A light swing can chain into a quick one (`Player.queue_quick` /
@@ -229,3 +241,5 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 - Work on the `development` branch; `master` only receives fast-forward merges from it.
 - Contributor workflow (PRs to `development`, DCO sign-off) is in CONTRIBUTING.md.
 - Commit only when asked. Don't commit `.idea/`, screenshots outside `docs/`, or coverage files.
+- The README screenshots show the HUD and fonts: after changing either, retake them with the commands
+  listed under README's Debug flags (each with a throwaway `ASHEN_VAULT_SAVE`).

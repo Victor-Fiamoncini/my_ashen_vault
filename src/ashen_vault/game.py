@@ -11,7 +11,7 @@ from ashen_vault.audio.synth import Audio
 from ashen_vault.input import CONTROLS, Input
 from ashen_vault.player import weapons
 from ashen_vault.player.combat import Combat
-from ashen_vault.player.inventory import LEFT, RIGHT, SPELL
+from ashen_vault.player.inventory import LEFT, PRIMARY, RIGHT, SECONDARY, SLOT_ALIASES, SLOT_NAMES, SPELL
 from ashen_vault.player.items import Item, Items
 from ashen_vault.player.player import Player
 from ashen_vault.player.spells import Spells
@@ -19,7 +19,19 @@ from ashen_vault.render import models
 from ashen_vault.render.gpu import Gpu
 from ashen_vault.render.rig import Rig
 from ashen_vault.save.save_system import SaveSystem
-from ashen_vault.screen import FOV, LIST_ROWS, PREVIEW, H, W, centered_row_at, list_row_at, scroll_into_view
+from ashen_vault.screen import (
+    FOV,
+    LIST_ROWS,
+    PREVIEW,
+    ROW_H,
+    ROW_TOP,
+    H,
+    W,
+    centered_row_at,
+    list_row_at,
+    scroll_into_view,
+)
+from ashen_vault.ui import belongings
 from ashen_vault.ui import hud as ui
 from ashen_vault.util import clamp, rround
 from ashen_vault.world import darkness, doors, elements, relics
@@ -28,7 +40,7 @@ from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.world import World
 
 KIND_ORDER = ["weapon", "shield", "armor", "spell", "consumable", "scroll", "key"]
-HAND_BUTTON = {RIGHT: "attack", LEFT: "cast"}  # input actions: left mouse = right hand, right = left
+HAND_BUTTON = {RIGHT: "attack", LEFT: "cast"}  # input actions: left mouse = Primary, right = Secondary
 PULSE_DELAY = 0.3  # seconds between the blows of a multi-pulse attack (the hammer's Aftershock)
 PULSE_DAMAGE = 0.6
 PAUSE_OPTIONS = ["Resume", "Controls", "Return to Title", "Quit"]
@@ -36,7 +48,9 @@ PAUSE_OPTIONS = ["Resume", "Controls", "Return to Title", "Quit"]
 PAUSE_LIST = (100, 80, 120)
 MENU_LIST = (6, 6, 170)
 SHOP_LIST = (6, 6, 308)
-PICK_LIST = (24, 60, 150)  # the "which hand?" chooser over Belongings
+PICK_LIST = (24, 60, 190)  # the "which slot?" chooser over Belongings
+EQUIPPED_PANEL = (182, 6, 132)  # Belongings: what Primary, Secondary, Body and Hands hold
+STATS_PANEL = (182, 80, 132)
 TITLE_Y, TITLE_STEP = 140, 14
 ENDING = [
     "The bell of Harrowmere rings again.",
@@ -257,7 +271,7 @@ class Game:
         return bool(self._input.pressed("click"))
 
     def _back(self):
-        return self._input.pressed("cancel") or self._input.pressed("back")
+        return self._input.pressed("cancel") or self._input.pressed("dismiss")
 
     def _advance(self):
         return self._input.pressed("confirm") or self._input.pressed("click")
@@ -280,6 +294,7 @@ class Game:
             p.stats.level = self.opts["level"]
         for pair in filter(None, (self.opts.get("equip") or "").split(",")):
             slot, _, id_ = pair.partition("=")
+            slot = SLOT_ALIASES.get(slot, slot)  # primary= / secondary= name the hand slots too
             if id_.startswith(f"{SPELL}:"):  # left=spell:pyre learns that spell and readies it
                 id_, _, spell = id_.partition(":")
                 if spell not in p.spells:
@@ -396,25 +411,22 @@ class Game:
         self.sfx("step", 0.35)
 
     def _update_hands(self, dt):
-        """Each mouse button works the hand it belongs to (left button = right hand): a weapon swings
+        """Each mouse button works its slot (left button = Primary, right = Secondary): a weapon swings
         (tap light, hold heavy, click again mid-swing for a quick strike), a shield is raised while
-        held, a spell is cast. With a two-hander the right mouse button swings a heavy at once.
+        held, a spell is cast. A two-hander swings from Primary only; Secondary then does nothing.
         A scripted `attack` / `cast` taps that button, `attack:0.6` holds it."""
         p = self.player
         inp = self._input
         guard_up = False
         for hand, action in HAND_BUTTON.items():
-            item = p.hand_item(hand)
+            does = p.inventory.button_action(hand)
             down, pressed = inp.down(action), inp.pressed(action)
-            if hand == LEFT and p.inventory.two_handing():
-                if pressed:
-                    self._swing(RIGHT, weapons.HEAVY)
-            elif item.kind == "shield":
+            if does == "guard":
                 guard_up = guard_up or down or pressed
-            elif item.kind == "spell":
+            elif does == "cast":
                 if pressed:
                     self._cast_spell()
-            else:
+            elif does == "swing":
                 self._update_weapon_button(hand, action, dt, down, pressed)
         was = p.guarding
         if p.raise_guard(guard_up) and not was:
@@ -712,7 +724,7 @@ class Game:
             return False
         if not inv.equip(id_, hand, level):
             return False
-        where = f" in your {hand} hand" if hand and item.kind != "armor" and not item.two_handed else ""
+        where = f" as {SLOT_NAMES[hand]}" if hand and item.kind != "armor" and not item.two_handed else ""
         self.message(f"Equipped {{{item.name}}}{where}.")
         return True
 
@@ -908,18 +920,16 @@ class Game:
         self.player.guarding = False
 
     def _open_pick(self, item):
-        """Asks which hand a one-handed weapon, a shield or a spell goes in."""
+        """Asks which slot (Primary or Secondary) a one-handed weapon, a shield or a spell goes in."""
         self._pick = item
         self._pick_index = 0
 
+    def _spell_name(self):
+        spell = self.player.current_spell()
+        return spell.name if spell else None
+
     def _pick_options(self):
-        item = self._pick
-        inv = self.player.inventory
-        held = SPELL if item.kind == "spell" else item.id
-        opts = [("Right hand", "L-click", RIGHT), ("Left hand", "R-click", LEFT)]
-        if inv.equipped(held):
-            opts.append(("Unequip", None, None))
-        return opts
+        return belongings.pick_options(self.player.inventory, self._pick, self._spell_name())
 
     def _update_pick(self):
         opts = self._pick_options()
@@ -930,14 +940,20 @@ class Game:
         clicked = self._menu_pointer(lambda px, py: list_row_at(*PICK_LIST, len(opts), px, py), pick=True)
         if not (clicked or self._input.pressed("confirm")):
             return
-        item, (_, _, hand) = self._pick, opts[self._pick_index]
+        item, (_, hand) = self._pick, opts[self._pick_index]
         self._pick = None
-        inv = self.player.inventory
         if hand is None:
-            inv.unequip(SPELL if item.kind == "spell" else item.id)
+            self.player.inventory.unequip(belongings.held_id(item))
             self.message(f"Unequipped {item.name}.")
         else:
-            self._equip(item, hand)
+            self._equip_in(item, hand)
+
+    def _equip_in(self, item, slot):
+        """Puts a weapon, shield or spell row into `slot` (a two-hander takes both)."""
+        if item.kind == "spell":
+            self.player.equip_spell(item.spell)
+            self.sfx("spell", 0.4)
+        self._equip(item, None if item.two_handed else slot)
 
     def _menu_items(self):
         """Belongings rows: carried items plus one row per known spell (choose it to ready it)."""
@@ -963,7 +979,14 @@ class Game:
             lambda px, py: list_row_at(*MENU_LIST, len(items), px, py, self._menu_top, LIST_ROWS)
         )
         if clicked or self._input.pressed("confirm"):
-            self._use_item(items[self._menu_index])
+            return self._use_item(items[self._menu_index])
+        item = items[self._menu_index]
+        for slot, action in ((PRIMARY, "slot1"), (SECONDARY, "slot2")):
+            if self._input.pressed(action):
+                if belongings.slottable(item):
+                    self._equip_in(item, slot)
+                else:
+                    self.message(f"The {item.name} doesn't go in a slot.")
 
     # --- shop ----------------------------------------------------------------------
 
@@ -1225,7 +1248,7 @@ class Game:
 
     def _draw_title(self):
         pr.draw_rectangle(0, 0, W, H, ui.color(0, 0, 0, 90))
-        ui.text_centered("ASHEN VAULT", W // 2, 56, ui.HIGHLIGHT, size=20)
+        ui.big("ASHEN VAULT", W // 2, 50, ui.HIGHLIGHT, px=3)
         ui.text_centered("beneath the silent bell", W // 2, 80, ui.DIM)
         for i, o in enumerate(self._title_options()):
             sel = i == self._menu_index
@@ -1235,11 +1258,10 @@ class Game:
 
     def _draw_menu(self):
         items = self._menu_items()
-        inv = self.player.inventory
         rows = [
             (
                 f"{i.name}{self._equipped_mark(i)}",
-                f"x{inv.count(i.id)}" if i.kind == "consumable" else self._level_mark(i),
+                self._menu_right(i),
                 i.level > self.player.stats.level,
             )
             for i in items
@@ -1247,52 +1269,71 @@ class Game:
         ui.list_menu(
             "Belongings", *MENU_LIST, rows, self._menu_index, first=self._menu_top, visible=LIST_ROWS
         )
-        s = self.player.stats
-        ui.panel(182, 6, 132, 144)
-        stats = [
-            ("Level", s.level),
-            ("EXP", f"{s.exp}/{s.next_level_exp}"),
-            ("HP", f"{s.hp}/{s.max_hp}"),
-            ("MP", f"{s.mp}/{s.max_mp}"),
-            ("STR", s.strength),
-            ("MAG", s.magic),
-            ("DEF", inv.defense),
-            ("ATK", self._swing_power(inv.weapon_item())),
-            ("Gold", inv.gold),
-        ]
-        for i, (k, v) in enumerate(stats):
-            ui.text(k, 190, 12 + i * 11, ui.DIM)
-            ui.text(str(v), 306 - ui.measure(str(v)), 12 + i * 11)
-        # Known spells with their MP cost (the HUD only shows the selected spell's icon).
-        pr.draw_line(188, 111, 308, 111, ui.BORDER)
-        for i, id_ in enumerate(self.player.spells[:3]):
-            spell = Spells.get(id_)
-            cost = f"{spell.cost} MP"
-            ui.text(spell.name, 190, 114 + i * 11)
-            ui.text(cost, 306 - ui.measure(cost), 114 + i * 11, ui.color(120, 150, 230))
-
+        self._draw_equipped()
+        self._draw_stats()
         item = items[self._menu_index] if self._menu_index < len(items) else None
         self._draw_item_panel(
-            item, self._item_detail(item) if item else "", "Enter/Click: use   Tab/R-click: close"
+            item,
+            self._item_detail(item) if item else "",
+            "1: Primary   2: Secondary   Enter: choose   Tab: close",
         )
         if self._pick:
-            rows = [(label, key) for label, key, _ in self._pick_options()]
+            x, y, w = PICK_LIST
+            rows = [(label,) for label, _ in self._pick_options()]
             ui.list_menu(f"Equip {self._pick.name}", *PICK_LIST, rows, self._pick_index)
+            for i, (_, slot) in enumerate(self._pick_options()):
+                if slot is not None:
+                    ui.mini_mouse(x + w - 13, y + ROW_TOP + i * ROW_H - 1, belongings.SLOT_BUTTONS[slot])
+
+    def _menu_right(self, item):
+        """A Belongings row's right column: how many, a spell's MP cost, or the level it needs."""
+        if item.kind == "consumable":
+            return f"x{self.player.inventory.count(item.id)}"
+        if item.kind == "spell":
+            return f"{Spells.get(item.spell).cost} MP"
+        return self._level_mark(item)
+
+    def _draw_equipped(self):
+        """What each slot holds: a mini mouse with its button lit for Primary and Secondary."""
+        x, y, w = EQUIPPED_PANEL
+        ui.panel(x, y, w, 20 + 4 * ROW_H + 3)
+        ui.text("Equipped", x + 8, y + 5, ui.HIGHLIGHT)
+        for i, (button, slot, name) in enumerate(
+            belongings.equipped_rows(self.player.inventory, self._spell_name())
+        ):
+            ry = y + ROW_TOP + i * ROW_H
+            if button:
+                ui.mini_mouse(x + 8, ry - 1, button)
+            else:
+                ui.tiny(slot.upper(), x + 6, ry + 2, ui.DIM)
+            ui.text(name, x + 30, ry, ui.DIM if name.startswith("(") or name == "-" else ui.TEXT)
+
+    def _draw_stats(self):
+        """Level, vitals and attributes in two columns, EXP across the bottom."""
+        s = self.player.stats
+        inv = self.player.inventory
+        x, y, w = STATS_PANEL
+        ui.panel(x, y, w, 5 * ROW_H + 10)
+        pairs = [
+            (("Lv", s.level), ("Gold", inv.gold)),
+            (("HP", f"{s.hp}/{s.max_hp}"), ("MP", f"{s.mp}/{s.max_mp}")),
+            (("STR", s.strength), ("MAG", s.magic)),
+            (("ATK", self._swing_power(inv.weapon_item())), ("DEF", inv.defense)),
+        ]
+        half = (w - 16) // 2
+        for i, row in enumerate(pairs):
+            for j, (k, v) in enumerate(row):
+                cx = x + 8 + j * (half + 4)
+                ui.text(k, cx, y + 6 + i * ROW_H, ui.DIM)
+                ui.text(str(v), cx + half - 4 - ui.measure(str(v)), y + 6 + i * ROW_H)
+        exp = f"{s.exp}/{s.next_level_exp}"
+        ui.text("EXP", x + 8, y + 6 + 4 * ROW_H, ui.DIM)
+        ui.text(exp, x + w - 8 - ui.measure(exp), y + 6 + 4 * ROW_H)
 
     def _equipped_mark(self, item):
-        """Row suffix: which hands hold the item (R, L or R+L), or E for worn armor."""
-        inv = self.player.inventory
-        if item.kind == "spell":
-            spell = self.player.current_spell()
-            if spell is None or spell.id != item.spell:
-                return ""
-            id_ = SPELL
-        else:
-            id_ = item.id
-        if item.kind == "armor":
-            return " (E)" if inv.equipped(id_) else ""
-        hands = "+".join(h for h, slot in (("R", RIGHT), ("L", LEFT)) if inv.slots[slot] == id_)
-        return f" ({hands})" if hands else ""
+        """Row suffix: which slots hold the item ([1], [2], [1+2]), or [Worn] for armor."""
+        spell = self.player.current_spell()
+        return belongings.slot_mark(self.player.inventory, item, spell.id if spell else None)
 
     def _level_mark(self, item):
         return f"Lv{item.level}" if item.level > 1 else None
@@ -1363,7 +1404,7 @@ class Game:
 
     def _draw_dead(self):
         pr.draw_rectangle(0, 0, W, H, ui.color(40, 0, 0, rround(min(self._dead_t * 120, 200))))
-        ui.text_centered("YOU HAVE FALLEN", W // 2, 100, ui.color(220, 80, 70), size=20)
+        ui.big("YOU HAVE FALLEN", W // 2, 96, ui.color(220, 80, 70), px=2)
         if self._dead_t > 1.5:
             hint = (
                 "Press Enter or click to wake at the last shrine" if self._saves.exists() else "Press Enter"

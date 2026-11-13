@@ -2,6 +2,8 @@
 
 import random
 
+import pytest
+
 from ashen_vault import map_path, screen
 from ashen_vault.render import rig, texture_gen
 from ashen_vault.render.mesh_builder import MeshBuilder
@@ -422,3 +424,62 @@ def test_a_perched_gargoyle_is_a_cold_grey_statue():
         assert perched.glows == 0 and awake.glows > 0, type_id
     # Bellows hovers once awake; perched, it squats on the parapet like Brand.
     assert awake.bottom > 0.3 and perched.bottom < 0.1
+
+
+def _off_forearm(wrist):
+    """Degrees between a held weapon and the forearm's line (0 = extending it, 180 = folded back)."""
+    import math
+
+    rel = (wrist + math.pi / 2 + math.pi) % (2 * math.pi) - math.pi
+    return abs(math.degrees(rel))
+
+
+def test_aim_wrist_points_the_weapon_and_takes_the_short_way():
+    import math
+
+    from ashen_vault.render import models
+
+    for direction in (-math.pi / 2, 0.0, 1.0, math.pi / 2):
+        for arm in (-2.0, 0.0, 1.5, 3.4):
+            w = models.aim_wrist(direction, arm)
+            assert -math.pi <= w <= math.pi
+            assert math.cos(arm + w) == pytest.approx(math.cos(direction))
+            assert math.sin(arm + w) == pytest.approx(math.sin(direction))
+
+
+def test_armed_foes_hold_weapons_out_from_the_fist_through_a_chop():
+    """The weapon stays out from the hand, never folded back along the arm (the old 'glued' look),
+    and the chop comes down from overhead in front rather than swinging up from behind."""
+    import random
+
+    from ashen_vault.ai.enemy import Enemy
+    from ashen_vault.ai.enemy_types import EnemyTypes
+    from ashen_vault.render import models
+
+    e = Enemy(EnemyTypes.get("bone_walker"), 0, 0, rng=random.Random(0))
+    for state in ("idle", "chase", "windup", "attack", "recover", "hurt"):
+        for t in (0.0, 0.05, 0.1, 0.2, 0.5, 2.0):
+            e.state, e.state_t = state, t
+            assert _off_forearm(models.wrist_angle(e)) <= 150, (state, t)
+    e.state, e.state_t = "windup", 5.0
+    raised = models.chop_angle(e)
+    e.state, e.state_t = "attack", 5.0
+    assert raised > models.chop_angle(e) > 0  # down from overhead, landing in front
+
+
+def test_the_wardens_blade_never_folds_back_in_any_move():
+    import random
+
+    from ashen_vault.ai.enemy import COMBO_GAP, Enemy
+    from ashen_vault.ai.enemy_types import EnemyTypes
+    from ashen_vault.render import models
+
+    type_ = EnemyTypes.get("ashen_warden")
+    for move in (None, *type_.moves, *type_.phase_moves, "kindle"):
+        for state in ("chase", "windup", "attack", "recover"):
+            for t in (0.0, 0.1, 0.3, COMBO_GAP * 1.2, COMBO_GAP * 2.5):
+                e = Enemy(type_, 0, 0, rng=random.Random(0))
+                e.state, e.state_t, e.attack_kind = state, t, move
+                hit, _, blade, elbow, *_ = models._warden_arms(e, 1.3)
+                wrist = models.aim_wrist(blade, hit + elbow)
+                assert _off_forearm(wrist) <= 150, (move, state, t)

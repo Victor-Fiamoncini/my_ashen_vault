@@ -124,6 +124,7 @@ def iron_bowman(r, e, t):
         with r.at(0, 1.42, -0.26, rz=bow_arm):
             r.part("cube", 0, -0.3, 0, 0.1, 0.6, 0.1, DARK)
             with r.at(0, -0.62, 0, rz=-bow_arm):
+                r.part("cube", 0, 0, 0, 0.11, 0.13, 0.13, DARK)  # the fist round the bow's grip
                 for i in range(5):  # the bow, a gentle curve of five staves
                     y = (i - 2) * 0.28
                     r.part(
@@ -136,6 +137,7 @@ def iron_bowman(r, e, t):
                     r.part("cube", 0.15 - pull / 2, 0, 0, 0.9, 0.03, 0.03, (120, 116, 120))
         with r.at(0, 1.42, 0.24, rz=-1.4 * draw if shooting else -swing * 0.4):
             r.part("cube", 0, -0.3, 0, 0.1, 0.6, 0.1, DARK)
+            r.part("cube", 0, -0.64, 0, 0.11, 0.12, 0.12, DARK)  # the drawing hand
 
 
 # --- the Slag Hound ----------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 """Original low-poly models assembled from primitives. All face +X."""
 
 import math
+from contextlib import contextmanager
 
 from ashen_vault.ai.enemy import COMBO_GAP
 from ashen_vault.player.items import Items
@@ -58,6 +59,91 @@ def strike_angle(e):
     return 0
 
 
+# Armed foes chop overhead: the sword arm rises up in front over the windup and comes down onto you.
+# Angles are radians in the arm's swing plane, about the shoulder from hanging straight down.
+CHOP_RAISED = 3.4  # the arm up over the head, a little behind it
+CHOP_LANDED = 0.9  # the arm out in front and down as the blow lands
+# Where a held weapon points (0 = straight ahead, pi/2 = up). The wrist is whatever turns the weapon
+# that way from the forearm (aim_wrist), so arm and blade turn together and the blade never folds
+# back along the arm.
+BLADE_REST = 0.26  # a guard: the point forward and a little raised
+BLADE_RAISED = 2.8  # held high, the blade lying back over the head
+BLADE_LANDED = -0.1  # the blow lands with the blade level with the target
+ELBOW_REST, ELBOW_COCKED, ELBOW_STRIKE = 0.3, 0.7, 0.1  # forearm bend forward at the elbow
+
+
+def _mix(a, b, k):
+    return a + (b - a) * k
+
+
+def _swing_pose(e, rest, cocked, strike):
+    """A value that eases from `rest` to `cocked` over the windup, snaps to `strike` as the blow
+    falls and settles back to `rest` while recovering."""
+    if e.state == "windup":
+        return _mix(rest, cocked, _ease(min(e.state_t / max(e.type.windup, 1e-3), 1)))
+    if e.state == "attack":
+        return _mix(cocked, strike, _ease(min(e.state_t / 0.2, 1)))
+    if e.state == "recover":
+        return _mix(strike, rest, _ease(min(e.state_t / max(e.type.recover, 1e-3), 1)))
+    return rest
+
+
+def chop_angle(e):
+    """The sword arm of an armed foe: raised overhead on the windup, brought down on the attack."""
+    return _swing_pose(e, 0.0, CHOP_RAISED, CHOP_LANDED)
+
+
+def blade_angle(e):
+    """Where an armed foe's weapon points through a chop (see BLADE_REST)."""
+    return _swing_pose(e, BLADE_REST, BLADE_RAISED, BLADE_LANDED)
+
+
+def elbow_bend(e):
+    """How far a sword arm bends at the elbow: more as it raises the blade, straight as it strikes."""
+    return _swing_pose(e, ELBOW_REST, ELBOW_COCKED, ELBOW_STRIKE)
+
+
+def wrist_angle(e):
+    """The wrist turn that points an armed foe's weapon along blade_angle through a chop."""
+    return aim_wrist(blade_angle(e), chop_angle(e) + elbow_bend(e))
+
+
+def aim_wrist(direction, arm):
+    """The wrist angle that points a held weapon along `direction` (radians in the swing plane, 0 =
+    forward, pi/2 = up) when the shoulder and elbow have turned the forearm by `arm` in total. It is
+    the equivalent angle nearest zero, so easing towards it never swings the long way round."""
+    w = direction - arm
+    return (w + math.pi) % (2 * math.pi) - math.pi
+
+
+@contextmanager
+def held(r, wrist, rgb, size=0.12, splay=0.0):
+    """Call at the tip of a forearm: draws the fist and yields the weapon's frame, turned by `wrist`
+    and then `splay` radians out to the +Z side (where the sword arms hang), so a blade held in front
+    still shows from the front instead of pointing straight at you. The grip runs along +X through
+    the fist (the origin), so a weapon drawn in that frame has its pommel behind the hand and its
+    blade or head beyond it."""
+    r.part("cube", 0, 0, 0, size, size * 1.15, size * 1.3, rgb)
+    with r.at(0, 0, 0, ry=-splay, rz=wrist):
+        yield
+
+
+def sword_parts(r, length, width, steel, grip=(60, 40, 28), guard=IRON, glow=False):
+    """A straight sword in a `held` frame: pommel and grip through the fist, a crossguard, then a
+    flat blade with a darker fuller, ending in a tapered point."""
+    r.part("sphere", -0.14, 0, 0, 0.07, 0.07, 0.07, guard)
+    r.part("cube", 0.01, 0, 0, 0.26, 0.05, 0.05, grip)
+    r.part("cube", 0.17, 0, 0, 0.05, 0.07, width * 2.4, guard)
+    blade = length - 0.14
+    r.part("cube", 0.2 + blade / 2, 0, 0, blade, width, 0.035, steel, glow=glow)
+    r.part("cube", 0.2 + blade / 2 - 0.05, 0, 0, blade - 0.1, width * 0.25, 0.045, _dim(steel), glow=glow)
+    r.part("cube", 0.2 + blade + 0.06, 0, 0, 0.12, width * 0.55, 0.03, steel, glow=glow)
+
+
+def _dim(rgb, k=0.7):
+    return tuple(rround(c * k) for c in rgb)
+
+
 def death_fall(e, time=0.6):
     """0..1 how far a dying body has collapsed into its death pose (eased), 0 while alive. The ash
     effect then bleaches and crumbles it where it lies."""
@@ -74,7 +160,6 @@ def walk_cycle(e, t):
 def bone_walker(r, e, t):
     """A walking skeleton with a rusted blade. Slain, its knees give and it topples onto its back."""
     swing = walk_cycle(e, t)
-    hit = strike_angle(e)
     fall = death_fall(e, 0.7)
     lean = (-0.3 if e.state == "hurt" else 0) + 1.35 * fall
     with r.at(-0.2 * fall, 0.12 * fall, 0, rz=lean):
@@ -95,11 +180,16 @@ def bone_walker(r, e, t):
             r.part("cube", 0.08, -0.15, 0, 0.12, 0.06, 0.16, BONE)
         with r.at(0, 1.4, -0.27, rz=swing * 0.6):
             r.part("cube", 0, -0.3, 0, 0.06, 0.6, 0.06, BONE)
-        with r.at(0, 1.4, 0.27, rz=hit - 0.9 * fall):
-            r.part("cube", 0, -0.3, 0, 0.06, 0.6, 0.06, BONE)
-            with r.at(0.05, -0.6, 0, rz=1.4):
-                r.part("cube", 0.4, 0, 0, 0.8, 0.07, 0.03, RUST)
-                r.part("cube", 0.0, 0, 0, 0.05, 0.05, 0.2, IRON)
+        # The sword arm: upper arm, a forearm bent at the elbow, and a bony fist round the hilt.
+        # Slain, the sword falls flat beside it (the body has tipped back by `lean`).
+        shoulder, elbow = chop_angle(e) - 0.5 * fall, elbow_bend(e) * (1 - fall)
+        wrist = aim_wrist(_mix(blade_angle(e), -lean, fall), shoulder + elbow)
+        with r.at(0, 1.4, 0.27, rz=shoulder):
+            r.part("cube", 0, -0.15, 0, 0.06, 0.32, 0.06, BONE)
+            with r.at(0, -0.3, 0, rz=elbow):
+                r.part("cube", 0, -0.15, 0, 0.05, 0.3, 0.05, BONE)
+                with r.at(0, -0.32, 0), held(r, wrist, BONE, size=0.08, splay=0.45):
+                    sword_parts(r, 0.8, 0.07, RUST, grip=(70, 50, 36))
 
 
 def mire_slime(r, e, t):
@@ -144,39 +234,53 @@ def cinder_wisp(r, e, t):
 
 
 def _warden_arms(e, t):
-    """(sword arm, free arm, blade tilt, twist, crouch, glowing sword) for the Warden's moves.
+    """(sword arm, free arm, blade direction, elbow, twist, crouch, glowing sword) for the Warden's
+    moves; the arms are chop_angle-style shoulder angles and the blade a blade_angle-style direction.
     Combo: three alternating cuts. Slam: both arms high, then down. Eruption: the blade is driven
     point-down into the floor. Kindle: the blade held straight up, trembling."""
-    hit = strike_angle(e)
+    hit, blade, elbow = chop_angle(e), blade_angle(e), elbow_bend(e)
     free = 0.0
-    blade = 1.45
     twist = crouch = 0.0
     glow = False
     kind = e.attack_kind
     k = min(e.state_t / max(e.windup_time, 1e-3), 1) if e.state == "windup" else 1.0
+    up = _ease(k)  # how far a windup has raised the blade
+    raised = (
+        _mix(0.0, CHOP_RAISED, up),
+        _mix(BLADE_REST, BLADE_RAISED, up),
+        _mix(ELBOW_REST, ELBOW_COCKED, up),
+    )
     if kind == "combo" and e.state == "attack":
         i = e.combo_swing
         u = (e.state_t - i * COMBO_GAP) / COMBO_GAP
-        hit = -2.0 * min(u / 0.35, 1) if u < 0.35 else -2.0 + 2.9 * min((u - 0.35) / 0.25, 1)
+        lift = _ease(min(u / 0.35, 1)) if u < 0.35 else 1 - _ease(min((u - 0.35) / 0.25, 1))
+        hit = _mix(CHOP_LANDED, CHOP_RAISED - 0.4, lift)
+        blade = _mix(BLADE_LANDED, BLADE_RAISED, lift)
+        elbow = _mix(ELBOW_STRIKE, ELBOW_COCKED, lift)
         twist = 0.35 if i % 2 == 0 else -0.35
     elif kind == "slam" and e.state in ("windup", "attack"):
         if e.state == "windup":
-            hit = free = -2.7 * k
+            hit, blade, elbow = raised
+            free = hit
             glow = True
         else:
-            hit = free = -2.7 + 3.5 * min(e.state_t / 0.12, 1)
-            crouch = -0.25 * min(e.state_t / 0.12, 1)
+            d = _ease(min(e.state_t / 0.12, 1))
+            hit = free = _mix(CHOP_RAISED, CHOP_LANDED, d)
+            blade, elbow = _mix(BLADE_RAISED, BLADE_LANDED, d), _mix(ELBOW_COCKED, ELBOW_STRIKE, d)
+            crouch = -0.25 * d
     elif kind == "eruption" and e.state in ("windup", "attack"):
         if e.state == "windup":
-            hit = -2.4 * k
+            hit, blade, elbow = raised
         else:
-            hit, blade, crouch = 1.1, 2.9, -0.2
+            # Arm thrust forward and down, the point stabbing straight into the floor.
+            hit, blade, elbow, crouch = 1.5, -math.pi / 2 + 0.35, 0.1, -0.2
         glow = True
     elif kind == "kindle" and e.state in ("windup", "attack"):
-        hit = -2.9 * k + math.sin(t * 40) * 0.05
-        blade = 1.45 + 1.4 * k
+        hit = _mix(0.0, math.pi - 0.1, up) + math.sin(t * 40) * 0.05
+        blade = _mix(BLADE_REST, math.pi / 2, up)
+        elbow = _mix(ELBOW_REST, 0.15, up)
         glow = True
-    return hit, free, blade, twist, crouch, glow
+    return hit, free, blade, elbow, twist, crouch, glow
 
 
 def ashen_warden(r, e, t):
@@ -189,7 +293,7 @@ def ashen_warden(r, e, t):
     # Boss moves share the spider's timing: a sweep coils then spins him round, a leap crouches
     # then arcs him through the air. Embers: the free hand rises glowing, then flings forward.
     lift, spin, _, _ = _spider_move(e, t, 0.0, 1.0)
-    hit, free, blade, twist, crouch, glow = _warden_arms(e, t)
+    hit, free, blade, elbow, twist, crouch, glow = _warden_arms(e, t)
     cinders = e.attack_kind == "cinders" and e.state in ("windup", "attack")
     k = min(e.state_t / max(e.windup_time, 1e-3), 1) if e.state == "windup" else 1.0
     if cinders:
@@ -216,13 +320,23 @@ def ashen_warden(r, e, t):
             r.part("cube", 0, -0.35, 0, 0.16, 0.7, 0.16, ASH)
             if cinders and e.state == "windup":
                 r.part("sphere", 0, -0.75, 0, 0.3 * k, 0.3 * k, 0.3 * k, EMBER, glow=True)
+        # The sword arm: a pauldron, upper arm, forearm bent at the elbow, and a gauntlet round the
+        # hilt. Slain, he leans on the sword, its point on the floor.
         with r.at(0, 1.6, 0.47, rz=hit - 0.5 * kneel):
-            r.part("cube", 0, -0.35, 0, 0.16, 0.7, 0.16, ASH)
-            with r.at(0.05, -0.72, 0, rz=blade - 1.0 * kneel):
-                r.part("cube", 0.6, 0, 0, 1.4, 0.08, 0.08, (60, 44, 30))
-                r.part("cube", 1.2, 0.0, 0, 0.36, 0.5, 0.05, steel, glow=burning or (glow and not dead))
-                if burning or (glow and not dead):
-                    _flame(r, 1.2, 0.2, 0, 0.12 + (0.06 if burning else 0.0), t)
+            r.part("cube", 0, -0.04, 0, 0.26, 0.16, 0.24, (76, 72, 68))
+            r.part("cube", 0, -0.19, 0, 0.17, 0.38, 0.17, ASH)
+            elbow = _mix(elbow, 0.2, kneel)
+            with r.at(0, -0.38, 0, rz=elbow):
+                r.part("cube", 0, -0.17, 0, 0.15, 0.36, 0.15, ASH)
+                # Slain, he leans on the sword, its point on the floor ahead (the body slumps forward by
+                # 0.45 * slump, so that is undone to keep the point where it rests).
+                point = _mix(blade, -0.42 + 0.45 * slump, kneel)
+                wrist = aim_wrist(point, hit - 0.5 * kneel + elbow)
+                with r.at(0, -0.38, 0), held(r, wrist, (70, 66, 62), size=0.17, splay=0.3):
+                    lit = burning or (glow and not dead)
+                    sword_parts(r, 1.55, 0.16, steel, grip=(54, 36, 26), guard=(70, 66, 62), glow=lit)
+                    if lit:
+                        _flame(r, 1.0, 0.0, 0, 0.12 + (0.06 if burning else 0.0), t)
 
 
 LEATHER = (84, 60, 44)
@@ -234,7 +348,6 @@ def gaoler(r, e, t):
     hand, a hooked chain in the other. The hook whirls overhead, then flies out at you.
     Slain, he drops to his knees and pitches forward onto his face."""
     swing = walk_cycle(e, t) * 0.6
-    hit = strike_angle(e)
     kneel = death_fall(e, 0.5)
     pitch = death_fall(e, 1.2)
     hooking = e.attack_kind == "hook" and e.state in ("windup", "attack")
@@ -258,13 +371,20 @@ def gaoler(r, e, t):
                 r.part("cube", 0.2, 0.02, -0.08, 0.04, 0.05, 0.06, (20, 14, 10))
                 r.part("cube", 0.2, 0.02, 0.08, 0.04, 0.05, 0.06, (20, 14, 10))
         # The cudgel arm.
-        with r.at(0, 1.65, 0.5, rz=(0.0 if hooking else hit) - 0.6 * kneel):
-            r.part("cube", 0, -0.4, 0, 0.2, 0.8, 0.2, skin)
-            with r.at(0.05, -0.8, 0, rz=1.4 - 2.9 * kneel):  # slain, the cudgel slips down
-                r.part("cyl", 0.45, 0, 0, 0.1, 0.9, 0.1, (90, 64, 40), rz=math.pi / 2)
-                r.part("cyl", 0.85, 0, 0, 0.2, 0.3, 0.2, (70, 50, 32), rz=math.pi / 2)
-                for i in range(3):
-                    r.part("cube", 0.85, 0.1 * (i - 1), 0.18, 0.06, 0.05, 0.05, IRON)
+        # Gripped at the end of its haft, the cudgel swings with the wrist; slain, it slips down.
+        shoulder = (0.0 if hooking else chop_angle(e)) - 0.6 * kneel
+        elbow = ELBOW_REST if hooking else elbow_bend(e)
+        wrist = aim_wrist(BLADE_REST, ELBOW_REST) if hooking else wrist_angle(e)
+        with r.at(0, 1.65, 0.5, rz=shoulder):
+            r.part("cube", 0, -0.2, 0, 0.22, 0.42, 0.22, skin)
+            with r.at(0, -0.4, 0, rz=elbow):
+                r.part("cube", 0, -0.2, 0, 0.19, 0.42, 0.19, skin)
+                slip = aim_wrist(-math.pi / 2, shoulder + elbow)
+                with r.at(0, -0.44, 0), held(r, _mix(wrist, slip, kneel), skin, size=0.18, splay=0.3):
+                    r.part("cyl", 0.4, 0, 0, 0.1, 0.95, 0.1, (90, 64, 40), rz=math.pi / 2)
+                    r.part("cyl", 0.85, 0, 0, 0.2, 0.3, 0.2, (70, 50, 32), rz=math.pi / 2)
+                    for i in range(3):
+                        r.part("cube", 0.85, 0.1 * (i - 1), 0.18, 0.06, 0.05, 0.05, IRON)
         # The chain arm: the hook circles overhead on the windup and flies out on the throw.
         if hooking and e.state == "windup":
             arm, whirl = -2.6, t * 14

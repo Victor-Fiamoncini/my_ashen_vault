@@ -19,12 +19,14 @@ KEYS = {
     "down": [rl.KEY_S, rl.KEY_DOWN],
     "confirm": [rl.KEY_ENTER, rl.KEY_E, rl.KEY_SPACE],
     "cancel": [rl.KEY_ESCAPE, rl.KEY_TAB, rl.KEY_BACKSPACE],
+    "slot1": [rl.KEY_ONE],  # Belongings: equip the selected row as Primary
+    "slot2": [rl.KEY_TWO],  # ... or as Secondary
 }
 MOUSE = {
-    "attack": rl.MOUSE_BUTTON_LEFT,  # the right hand
-    "cast": rl.MOUSE_BUTTON_RIGHT,  # the left hand
+    "attack": rl.MOUSE_BUTTON_LEFT,  # the Primary slot
+    "cast": rl.MOUSE_BUTTON_RIGHT,  # the Secondary slot
     "click": rl.MOUSE_BUTTON_LEFT,
-    "back": rl.MOUSE_BUTTON_RIGHT,
+    "dismiss": rl.MOUSE_BUTTON_RIGHT,  # closes menus; never a movement action
     "quick": rl.MOUSE_BUTTON_MIDDLE,
 }
 SCRIPT_WHEEL = {"wheel_up": 1, "wheel_down": -1}
@@ -35,14 +37,14 @@ CONTROLS = [
     ("Strafe", "A D"),
     ("Sprint", "Hold Shift"),
     ("Turn / look", "Mouse"),
-    ("Right hand", "Left mouse"),
-    ("Left hand", "Right mouse"),
+    ("Primary", "Left mouse"),
+    ("Secondary", "Right mouse"),
     ("Heavy attack", "Hold the button"),
     ("Quick attack", "Click again mid-swing"),
     ("Block", "Hold the shield's button"),
     ("Quick item", "Middle mouse"),
     ("Choose quick item", "Mouse wheel"),
-    ("Choose spell", "Belongings (Tab)"),
+    ("Equip, ready spells", "Belongings: 1 / 2"),
     ("Use, talk, open", "E"),
     ("Belongings", "Tab / I"),
     ("Pause", "Esc"),

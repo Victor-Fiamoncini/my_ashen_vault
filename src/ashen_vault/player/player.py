@@ -11,12 +11,12 @@ from ashen_vault.world import collision
 
 
 class Player:
-    """First-person body: deliberately slow, old-school dungeon-crawler movement."""
+    """First-person body: old-school dungeon-crawler movement, quick enough to step out of a blow."""
 
     RADIUS = 0.4
     EYE = 1.55
-    WALK_SPEED = 2.6
-    BACK_SPEED = 1.8
+    WALK_SPEED = 3.1  # forward and strafing
+    BACK_SPEED = 2.6
     SPRINT = 1.75  # speed multiplier while sprinting
     TURN_SPEED = 1.7  # rad/s on keys
     LOOK_LIMIT = 0.9
@@ -109,7 +109,8 @@ class Player:
         return self.current_spell()
 
     def equip_spell(self, id_):
-        """Readies a known spell for the right mouse button; False if it isn't known."""
+        """Makes a known spell the readied one (cast from whichever slot holds `SPELL`); False if it
+        isn't known."""
         if id_ not in self.spells:
             return False
         self.spell_index = self.spells.index(id_)

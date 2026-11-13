@@ -49,7 +49,7 @@ FromSoftware, Inc.
   </tr>
   <tr>
     <td><img src="docs/screenshots/warden.png" alt="The Ashen Warden boss in its hall"></td>
-    <td><img src="docs/screenshots/inventory.png" alt="The Belongings screen: a katana in the right hand, a shield in the left, worn armor and a rotating preview"></td>
+    <td><img src="docs/screenshots/inventory.png" alt="The Belongings screen: a katana in the Primary slot, a round shield in Secondary, worn armor, the Equipped panel and a rotating preview"></td>
   </tr>
   <tr>
     <td align="center"><sub>The Ashen Warden</sub></td>
@@ -137,9 +137,10 @@ FromSoftware, Inc.
 - **Weapons with their own movesets**: swords, greatswords, katanas, whips, maces, clubs, axes and a
   war hammer, each swinging at its own speed. Tap to attack, hold for a heavy attack, click again
   mid-swing for a quick follow-up. Every swing costs stamina, and some weapons hide a secret attack.
-- **Two hands**: hold a weapon, a shield or a spell in either hand; the left mouse button works the
-  right hand and the right button the left. Two-handed weapons fill both. A raised shield stops blows
-  from the front for stamina. The best gear needs a higher level.
+- **Two slots**: put a weapon, a shield or a spell in either slot; the left mouse button works
+  Primary and the right button Secondary. Two-handed weapons fill both and swing from the left button
+  only. A raised shield stops blows from the front for stamina, and you can still back off and sidestep
+  behind it. The best gear needs a higher level.
 - **Armor you can see**: body armor and gauntlets change the sleeves and hands you see in first person.
 - **Spells**: Flame Bolt, Mend and Lumen, paid for with MP once your focus has returned, and three more
   hidden in the hollow: Venom Dart (a sting that keeps eating at its target), Veil of Mist (ordinary foes
@@ -245,12 +246,12 @@ Without uv, plain pip works: `python3 -m venv .venv`, `.venv/bin/pip install -e 
 | Move / strafe | W S / A D (or arrow up/down) |
 | Sprint | Hold Shift |
 | Turn / look | Mouse |
-| Right hand / left hand | Left mouse / right mouse |
+| Primary / Secondary | Left mouse / right mouse |
 | Heavy attack | Hold the button, then release |
 | Quick attack | Click again while a light swing is still going |
-| Block | Hold the button of the hand with the shield |
-| Cast spell | The button of the hand holding the spell |
-| Choose spell | Belongings (Tab), then Enter or click on a spell |
+| Block | Hold the button of the slot with the shield |
+| Cast spell | The button of the slot holding the spell |
+| Equip, ready a spell | Belongings (Tab): 1 for Primary, 2 for Secondary, or Enter / click to choose |
 | Use, talk, open | E |
 | Belongings | Tab or I |
 | Quick item / choose quick item | Middle mouse / mouse wheel |
@@ -261,15 +262,16 @@ The same list is in the game under **Controls** on the title and pause menus.
 
 ## Tips
 
-- The HUD in the bottom right is drawn as a mouse: the left button shows what your right hand holds,
-  the right button your left hand, and the wheel your quick item. HP, MP, ST (with their numbers) and a
-  small compass share the bottom-left box. Spell MP costs are listed in Belongings and in the shop.
-- Your swing damage scales with the **ATK** gauge: the gold ring around your weapon. Wait for it to close
-  and flash before swinging.
-- Spells need your **focus** back as well as enough MP. The cyan ring around the spell icon refills after
+- Three cards in the bottom right show your slots: Primary (a mini mouse with its left button lit),
+  your quick item under the scroll wheel, and Secondary (the right button lit). HP, MP, ST (with their
+  numbers) and a small compass share the bottom-left box. Spell MP costs are listed in Belongings and
+  in the shop.
+- Your swing damage scales with the **ATK** gauge: the gold bar on your weapon's card. Wait for it to
+  fill and the card to flash before swinging.
+- Spells need your **focus** back as well as enough MP. The cyan bar on the spell's card refills after
   each cast and flashes when you can cast again.
-- Hold a button to charge a **heavy attack**: the orange ring around your weapon fills, then
-  release. Heavies cost more ST than light swings, and the ring turns red when you are too winded.
+- Hold a button to charge a **heavy attack**: an orange bar fills over the gauge, then release.
+  Heavies cost more ST than light swings, and the bar turns red when you are too winded.
   Belongings and the shop show each weapon's light and heavy attack, and `???` where a weapon hides
   a secret you have not found yet.
 - Sprinting and every swing drain **ST** (green bar). Empty it and you can neither sprint nor swing
@@ -278,9 +280,10 @@ The same list is in the game under **Controls** on the title and pause menus.
 - Watch for enemies raising their weapons. A solid hit during the wind-up staggers most of them.
 - Every menu works with the mouse: point at a row to select it, click to use or buy, right-click to
   close.
-- In Belongings, Enter (or a click) on a one-handed weapon, a shield or a spell asks which hand it goes
-  in. Rows show `(R)`, `(L)` or `(R+L)` for what your hands hold and `(E)` for worn armor. An empty
-  hand fights with its fist, harder in gauntlets.
+- In Belongings, press 1 or 2 on a weapon, a shield or a spell to put it in Primary or Secondary, or
+  Enter (or a click) to choose a slot. The Equipped panel shows what each slot holds; rows show `[1]`,
+  `[2]` or `[1+2]` for the slots holding them and `[Worn]` for armor. An empty slot fights with its
+  fist, harder in gauntlets.
 - You ready one spell at a time: pick it from the spell rows in Belongings. The mouse wheel only
   switches between quick items.
 - Traps keep a rhythm. Watch the spikes and blades for a moment before you cross, and don't stand
@@ -347,14 +350,16 @@ it, so Claude Code, Codex, Cursor and Copilot all follow the same rules.
 | `src/ashen_vault/world/`, `player/`, `ai/`, `save/` | Game logic with no raylib dependency, covered by `tests/` |
 | `src/ashen_vault/render/` | PS1 shaders, procedural textures, map mesh builder, matrix rig, low-poly models |
 | `src/ashen_vault/game.py` | Scenes and the main loop |
-| `src/ashen_vault/ui/hud.py` | HUD, compass, menus and dialogue boxes |
+| `src/ashen_vault/ui/hud.py` | HUD (vitals, compass, the Primary / quick item / Secondary cards), menus and dialogue boxes |
+| `src/ashen_vault/ui/smallfont.py`, `ui/logofont.py` | The pixel font for all game text, and the logo's capitals for the title and big headings |
+| `src/ashen_vault/ui/belongings.py` | What the Belongings menu shows about the Primary and Secondary slots |
 | `src/ashen_vault/audio/synth.py` | Synthesized sound effects |
 | `src/ashen_vault/maps/*.map` | Plain-text tile maps (`[meta]`, `[legend]`, `[grid]`, `[entities]`) |
 | `src/ashen_vault/world/hazards.py`, `world/terrain.py` | Traps (spikes, blades, crumbling floors, flame jets, magma vents) and boss fire; terrain (lifts, river, ravine, ledges, logs, spores) |
 | `src/ashen_vault/world/elements.py` | Lightning against iron, fire against what was forged in it |
 | `src/ashen_vault/render/forge_models.py` | The Cinderhold's foes, the twin gargoyles, its weapons, shots and fortress dressing |
 | `src/ashen_vault/dialogue.py` | NPC conversations |
-| `docs/logo/make_logo.py` | Generates the pixel-art logo SVG |
+| `docs/logo/make_logo.py` | Generates the pixel-art logo SVG (its letters come from `ui/logofont.py`) |
 
 ### Debug flags
 
@@ -369,11 +374,24 @@ uv run ashen-vault --map sunken_keep --at 15,21,180 --smoke 100 --script "wait:1
   (position, height `y=`, HP, flags, items, gear and every enemy's state).
 - `--script "..."` drives input: `action` presses once, `action:1.5` holds for 1.5 s, `wait:1` pauses.
 - `--shot PATH` sets where `--smoke` writes its screenshot.
-- `--equip right=katana,left=buckler,body=brigandine,hands=iron_gauntlets` starts with that gear (`none`
+- `--equip right=katana,left=buckler,body=brigandine,hands=iron_gauntlets` starts with that gear
+  (`primary=` / `secondary=` also name the `right` / `left` slots; `none`
   empties a slot, `left=spell` readies the spell there and `left=spell:pyre` learns and readies Pyre),
   and `--level N` at that level (for equipment requirements only: HP and stats stay at level 1).
 
-The README screenshots were taken this way. For example, the flame bolt shot is
+The README screenshots were taken this way, each with `ASHEN_VAULT_SAVE` pointing at a fresh throwaway
+file. The title is `uv run ashen-vault --smoke 60 --shot title.png` and the village
+`uv run ashen-vault --map harrowmere --smoke 40 --shot village.png`; Odrin is
+`uv run ashen-vault --map harrowmere --at=16,4,-90 --smoke 40 --script "wait:0.2 interact" --shot dialogue.png`,
+Belongings is
+`uv run ashen-vault --map harrowmere --level 6 --equip primary=katana,secondary=round_shield,body=brigandine,hands=chain_mitts --smoke 40 --script "wait:0.2 menu" --shot inventory.png`,
+Corvane's shop is
+`uv run ashen-vault --map harrowmere --at=6,18,180 --level 7 --smoke 200 --script "forward:1 interact wait:0.3 confirm wait:0.3 confirm wait:0.3 confirm wait:0.3 confirm" --shot corvane.png`,
+the Warden is `uv run ashen-vault --map sunken_keep --at=15,7,-90 --smoke 40 --shot warden.png`,
+the hollow's vine path is `uv run ashen-vault --map verdant_hollow --at=9,12,90 --smoke 40 --shot verdant_hollow.png`,
+the Bark Husk is `uv run ashen-vault --map verdant_hollow --at=26,17,-90 --smoke 60 --shot bark_husk.png`,
+the log rack is `uv run ashen-vault --map verdant_hollow --at=51,6,180 --smoke 40 --shot log_rack.png`,
+the flame bolt shot is
 `uv run ashen-vault --map sunken_keep --at 15,22,0 --smoke 30 --script "wait:0.3 cast" --shot flame_bolt.png`,
 the Loom Mother is `uv run ashen-vault --map verdant_hollow --at=15,7,-90 --smoke 40 --shot loom_mother.png`,
 the lift ride is
@@ -390,7 +408,7 @@ the foundry is `uv run ashen-vault --map cinderhold --at=18,17,180 --smoke 40 --
 the gargoyles are
 `uv run ashen-vault --map cinderhold --at=30,6,180 --level 10 --equip right=stormbrand --smoke 200 --script "wait:1 attack wait:1" --shot gargoyles.png`,
 and the katana and shield shot is
-`uv run ashen-vault --map sunken_keep --at 15,22,0 --level 8 --equip right=katana,left=round_shield,body=brigandine,hands=iron_gauntlets --smoke 100 --shot combat.png`.
+`uv run ashen-vault --map sunken_keep --at 15,22,0 --level 8 --equip primary=katana,secondary=round_shield,body=brigandine,hands=iron_gauntlets --smoke 100 --shot combat.png`.
 
 ## Contributing
 

@@ -2,6 +2,11 @@ from ashen_vault.player.items import Item, Items
 
 RIGHT, LEFT = "right", "left"  # the right hand is the left mouse button, the left hand the right one
 HANDS = (RIGHT, LEFT)
+# Players see slots, not hands: Primary is the left mouse button, Secondary the right one. The keys
+# stay "right" / "left" so saves and `--equip right=` keep working.
+PRIMARY, SECONDARY = RIGHT, LEFT
+SLOT_NAMES = {PRIMARY: "Primary", SECONDARY: "Secondary"}
+SLOT_ALIASES = {"primary": PRIMARY, "secondary": SECONDARY}
 ARMOR_SLOTS = ("body", "hands")
 SPELL = "spell"  # what a hand holds when it is ready to cast the selected spell
 
@@ -88,7 +93,7 @@ class Inventory:
 
     @staticmethod
     def default_hand(item):
-        """Where Enter puts an item: weapons in the right hand, shields and spells in the left."""
+        """Where an item goes by default: weapons in Primary, shields and spells in Secondary."""
         return RIGHT if item.kind == "weapon" else LEFT
 
     def equip_error(self, id_, level=None):
@@ -149,6 +154,15 @@ class Inventory:
         if held is None:
             return Items.FISTS
         return SPELL_HAND if held == SPELL else Items.get(held)
+
+    def button_action(self, hand):
+        """What the mouse button of `hand` does: "swing" (a weapon or fist), "guard" (a shield),
+        "cast" (the readied spell) or None. A two-hander swings only from Primary (the left button);
+        Secondary then does nothing."""
+        if hand == LEFT and self.two_handing():
+            return None
+        kind = self.hand_item(hand).kind
+        return {"shield": "guard", "spell": "cast"}.get(kind, "swing")
 
     def two_handing(self):
         return self.right is not None and self.right != SPELL and Items.get(self.right).two_handed

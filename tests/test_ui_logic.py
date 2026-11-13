@@ -83,6 +83,49 @@ def test_small_font_covers_every_game_message():
     assert not missing
 
 
+def _menu_texts():
+    """What menus, dialogue, the title, death and ending screens draw: every string literal with a
+    space in dialogue.py, the menu tables, and literal ui.text / ui.list_menu / footer strings."""
+    import ast
+
+    from ashen_vault import dialogue, game
+    from ashen_vault.input import CONTROLS
+
+    texts = [*game.ENDING, *game.PAUSE_OPTIONS, *dialogue.SHOP_NAMES.values()]
+    texts += [t for row in CONTROLS for t in row]
+    tree = ast.parse((SRC / "dialogue.py").read_text())
+    texts += [
+        n.value
+        for n in ast.walk(tree)
+        if isinstance(n, ast.Constant) and isinstance(n.value, str) and "\n" not in n.value  # not docstrings
+    ]
+    src = (SRC / "game.py").read_text()
+    texts += re.findall(r'ui\.(?:text|text_centered|list_menu)\(\s*f?"([^"{\n]*)', src)
+    texts += re.findall(r'"([^"{\n]*(?:Enter|Esc|Click|click)[^"{\n]*)"', src)
+    texts += ["> New Game <"]  # the title's cursor
+    return [t for t in texts if " " in t]
+
+
+def test_small_font_covers_every_menu_and_dialogue_line():
+    missing = {ch for t in _menu_texts() for ch in plain(t) if ch not in smallfont.GLYPHS}
+    assert not missing
+
+
+def test_logo_font_spells_the_headings():
+    from ashen_vault.ui import logofont
+
+    for s in ("ASHEN VAULT", "YOU HAVE FALLEN"):
+        assert all(ch == " " or ch in logofont.FONT for ch in s)
+    assert all(len(rows) == logofont.HEIGHT for rows in logofont.FONT.values())
+    assert all(len({len(r) for r in rows}) == 1 for rows in logofont.FONT.values())
+    assert set(logofont.FONT) >= set("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+    # Spaces advance like the SVG logo's (4 glyph pixels), letters by their width plus the gap.
+    assert logofont.width("A A", 2) == (5 + 1 + 3 + 1 + 5) * 2
+    assert logofont.width("", 3) == 0
+    assert list(logofont.rects(" ", 0, 0)) == []
+    assert len(list(logofont.rects("I", 0, 0, 3))) == sum(r.count("#") for r in logofont.FONT["I"])
+
+
 # --- shrine rest ----------------------------------------------------------------------
 
 
@@ -129,3 +172,25 @@ def test_fog_pixels():
     assert not any(empty)
     full = rest.fog_pixels(0.5, 1.0)
     assert all(full[i + 3] == 255 for i in range(0, len(full), 4))
+
+
+# --- HUD layout -----------------------------------------------------------------------
+
+
+def test_hud_boxes_fit_the_screen_without_overlapping():
+    """The vitals box and the three slot cards share the bottom row; messages and dialogue sit above
+    them, never over the cards (a taller HUD once pushed the dialogue box onto them)."""
+    from ashen_vault.screen import H, W
+    from ashen_vault.ui import hud, smallfont
+
+    cards_x = W - 4 - hud.CARDS_W
+    assert cards_x > 4 + hud.VITALS_W  # cards right of the vitals box
+    assert hud.CARDS_W == 3 * hud.CARD_W + 2 * hud.CARD_GAP
+    row_top = H - 4 - hud.HUD_BOX_H
+    assert hud.DIALOGUE_Y >= 0 and row_top >= hud.DIALOGUE_Y + hud.DIALOGUE_H
+    assert row_top >= hud.MESSAGE_Y + smallfont.HEIGHT
+    # Every slot label and the quick count fit their card in the tiny font.
+    from ashen_vault.ui import tinyfont
+
+    assert all(tinyfont.width(label) <= hud.CARD_W - 4 for label in hud.CARD_LABELS.values())
+    assert all(ch in tinyfont.GLYPHS for label in hud.CARD_LABELS.values() for ch in label)

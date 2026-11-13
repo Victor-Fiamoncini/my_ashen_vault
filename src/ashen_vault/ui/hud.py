@@ -7,9 +7,10 @@ import pyray as pr
 import raylib as rl
 from raylib import ffi
 
+from ashen_vault.player.inventory import LEFT, RIGHT
 from ashen_vault.screen import H, W
-from ashen_vault.ui import smallfont, tinyfont
-from ashen_vault.util import clamp, highlight_runs, rround
+from ashen_vault.ui import logofont, smallfont, tinyfont
+from ashen_vault.util import clamp, highlight_runs, plain, rround
 from ashen_vault.world import rest
 
 
@@ -26,18 +27,35 @@ HIGHLIGHT_RGB = (255, 220, 140)
 HIGHLIGHT = color(*HIGHLIGHT_RGB)
 
 
-def measure(s, size=10):
-    return pr.measure_text(s, size)
+def measure(s):
+    """Pixel width of `s` in the game's text font (smallfont), without `{}` markup."""
+    return smallfont.width(plain(s))
 
 
-def text(s, x, y, col=TEXT, size=10):
-    x, y = int(x), int(y)
-    pr.draw_text(s, x + 1, y + 1, size, SHADOW)
-    pr.draw_text(s, x, y, size, col)
+TEXT_DY = 1  # smallfont's caps are 6 px tall: one pixel down centres them on the old 10 px rows
 
 
-def text_centered(s, cx, y, col=TEXT, size=10):
-    text(s, cx - measure(s, size) // 2, y, col, size)
+def text(s, x, y, col=TEXT, hi=HIGHLIGHT):
+    """Menu and dialogue text: the same small pixel font as messages and prompts. `{...}` spans
+    (item names in a message) are drawn in `hi`."""
+    for seg, marked in highlight_runs(s):
+        x = small(seg, x, y + TEXT_DY, hi if marked else col)
+
+
+def text_centered(s, cx, y, col=TEXT):
+    text(s, cx - measure(s) // 2, y, col)
+
+
+def big(s, cx, y, col=TEXT, px=2):
+    """A heading in the logo's 5x7 capitals (see logofont), `px` pixels per glyph pixel, centred
+    on `cx`, with a drop shadow."""
+    x = cx - logofont.width(s, px) // 2
+    off = max(px // 2, 1)
+    runs = list(logofont.rects(s, x, int(y), px))
+    for rx, ry, rw, rh in runs:
+        pr.draw_rectangle(rx + off, ry + off, rw, rh, SHADOW)
+    for rx, ry, rw, rh in runs:
+        pr.draw_rectangle(rx, ry, rw, rh, col)
 
 
 def panel(x, y, w, h):
@@ -50,12 +68,12 @@ def bar(x, y, w, h, frac, rgb):
     pr.draw_rectangle(x, y, rround(w * clamp(frac, 0, 1)), h, color(*rgb))
 
 
-def wrap(s, width, size=10):
+def wrap(s, width):
     """Word-wraps `s` to `width` pixels."""
     lines = [""]
     for word in s.split():
         trial = word if not lines[-1] else f"{lines[-1]} {word}"
-        if measure(trial, size) > width and lines[-1]:
+        if measure(trial) > width and lines[-1]:
             lines.append(word)
         else:
             lines[-1] = trial
@@ -110,7 +128,7 @@ def hud(game):
     s = p.stats
 
     # Bottom left: the vitals and a small compass in one gold-edged box. It shares its height
-    # and bottom edge with the mouse on the right, so both boxes are vertically centred together.
+    # and bottom edge with the cards on the right.
     bx, by = 4, H - 4 - HUD_BOX_H
     hud_box(bx, by, VITALS_W, HUD_BOX_H)
     rows = by + (HUD_BOX_H - 19) // 2  # three 5 px rows, 7 px apart
@@ -128,8 +146,8 @@ def hud(game):
     )
     compass(p.heading, bx + VITALS_W - 18, by + HUD_BOX_H // 2 - 1, COMPASS_R)
 
-    # Bottom right: a mouse whose buttons show what they do.
-    mouse_hud(p, W - 4 - MOUSE_W, H - 4 - MOUSE_H)
+    # Bottom right: the Primary / quick item / Secondary cards.
+    cards_hud(p, W - 4 - CARDS_W, H - 4 - HUD_BOX_H)
 
     boss_bar(game)
     messages(game)
@@ -145,39 +163,26 @@ def vital(label, x, y, frac, label_rgb, bar_rgb, value=None):
         tiny(str(value), x + 50, y, DIM)
 
 
-SLOT_R = 7
-SLOT_PULSE = 0.35  # seconds a ring flashes after it fills
+SLOT_PULSE = 0.35  # seconds a card's edge flashes after its gauge fills
 FOCUS_RGB = (120, 220, 240)
 FOCUS_CHARGING_RGB = (50, 100, 120)
 ATK_RGB = (240, 210, 90)
 ATK_CHARGING_RGB = (150, 120, 50)
-
-
-def ready_slot(cx, cy, gauge, ready_rgb, charging_rgb, track_rgb, r=SLOT_R):
-    """Backing disc plus a ring that fills clockwise with `gauge` and flashes once when full."""
-    centre = pr.Vector2(cx, cy)
-    pr.draw_circle(cx, cy, r + 4, color(0, 0, 0, 200))
-    pr.draw_ring(centre, r + 1, r + 3, 0, 360, 32, color(*track_rgb))
-    ready = gauge.full
-    end = -90 + 360 * clamp(gauge.value, 0, 1)
-    pr.draw_ring(centre, r + 1, r + 3, -90, end, 32, color(*(ready_rgb if ready else charging_rgb)))
-    if ready and gauge.full_t < SLOT_PULSE:
-        k = gauge.full_t / SLOT_PULSE
-        grow = r + 3 + k * 4
-        pr.draw_ring(centre, grow - 1, grow, 0, 360, 32, color(255, 250, 230, rround(220 * (1 - k))))
-    return ready
-
+CHARGE_SHOW = 0.08  # ignore the first moments of a hold so plain taps never flash the bar
+HEAVY_RGB = (255, 140, 50)
+WINDED_RGB = (140, 40, 30)
 
 HUD_FILL = color(20, 16, 12, 215)
-HUD_EDGE = color(170, 135, 70)  # the gold trim shared by the vitals box and the mouse
+HUD_EDGE = color(170, 135, 70)  # the gold trim shared by the vitals box and the cards
 HUD_RADIUS = 3  # corner radius in pixels, shared by every HUD box, menu and window
-HUD_BOX_H = 38  # both bottom boxes share this height
+HUD_BOX_H = 44  # the vitals box and the three cards share this height
 VITALS_W = 104
 COMPASS_R = 12
-MOUSE_W = 70
-MOUSE_H = HUD_BOX_H
-MOUSE_SPLIT = 26  # height of the button row; the palm below holds the item count
-WHEEL_W = 10
+CARD_W = 44
+CARD_GAP = 2
+CARDS_W = 3 * CARD_W + 2 * CARD_GAP
+CARD_LABELS = {RIGHT: "PRIMARY", LEFT: "SECONDARY"}
+MESSAGE_Y = H - 8 - HUD_BOX_H - 9  # top of the newest message line, just above the bottom boxes
 
 
 def hud_box(x, y, w, h, fill=HUD_FILL, radius=HUD_RADIUS, edge=HUD_EDGE):
@@ -188,114 +193,120 @@ def hud_box(x, y, w, h, fill=HUD_FILL, radius=HUD_RADIUS, edge=HUD_EDGE):
     pr.draw_rectangle_rounded_lines_ex(rect, roundness, 4, 1, edge)
 
 
-def mouse_hud(player, x, y):
-    """A mouse whose buttons show what each hand holds: the right hand on the left button, the left
-    hand on the right one; the quick item on the wheel (middle click uses it, rolling picks another)."""
-    w, split = MOUSE_W, MOUSE_SPLIT
-    hud_box(x, y, w, MOUSE_H)
-    cx = x + w // 2
-    cy = y + split // 2 + 1
-    pr.draw_line(cx, y + 1, cx, y + split, HUD_EDGE)  # button divider
-    pr.draw_line(x + 3, y + split, x + w - 3, y + split, HUD_EDGE)
-    hand_slot(player, "right", x + 17, cy)
-    hand_slot(player, "left", x + w - 17, cy)
-    wheel_slot(player, cx, cy)
-
-    # Palm: L / R marks and how many of the quick item are left.
-    mark = color(120, 100, 64)
-    tiny("L", x + 8, y + split + 4, mark)
-    tiny("R", x + w - 11, y + split + 4, mark)
-    n = player.inventory.count(player.quick)
-    tiny_centered(f"X{n}", cx + 1, y + split + 4, TEXT if n else color(200, 80, 70))
+def mini_mouse(x, y, lit, dim=False):
+    """A 7x10 mouse with the `lit` button ("left" / "right" / None for the wheel) glowing."""
+    body = color(150, 140, 120, 120 if dim else 255)
+    pr.draw_rectangle_rounded(pr.Rectangle(x, y, 7, 10), 0.6, 4, body)
+    off = color(60, 54, 44)
+    on = color(*HIGHLIGHT_RGB) if not dim else color(120, 100, 64)
+    pr.draw_rectangle(x + 1, y + 1, 2, 3, on if lit == "left" else off)
+    pr.draw_rectangle(x + 4, y + 1, 2, 3, on if lit == "right" else off)
+    pr.draw_rectangle(x + 3, y + 1, 1, 3, color(30, 26, 20))
+    pr.draw_line(x + 1, y + 5, x + 6, y + 5, color(90, 80, 64))
 
 
-def wheel_slot(player, cx, cy):
-    """The wheel: the selected quick item (middle click) between up/down chevrons."""
-    item = player.quick_item()
-    n = player.inventory.count(item.id)
-    hud_box(cx - WHEEL_W // 2, cy - 11, WHEEL_W, 22, fill=color(0, 0, 0, 220), radius=2)
-    top = cy - 11
+def mini_wheel(cx, y):
+    """The scroll wheel between up/down arrows: rolling it picks the quick item."""
     chev = color(150, 120, 70)
-    pr.draw_triangle(pr.Vector2(cx, top + 2), pr.Vector2(cx - 2, top + 4), pr.Vector2(cx + 2, top + 4), chev)
-    pr.draw_triangle(
-        pr.Vector2(cx - 2, top + 18), pr.Vector2(cx, top + 20), pr.Vector2(cx + 2, top + 18), chev
-    )
-    item_icon(item.id, cx, cy, pr.get_time(), 255 if n else 90)
+    pr.draw_rectangle(cx - 2, y, 5, 10, color(30, 26, 20))
+    pr.draw_rectangle_lines(cx - 2, y, 5, 10, color(150, 140, 120))
+    for i in range(3):
+        pr.draw_line(cx - 1, y + 2 + i * 3, cx + 2, y + 2 + i * 3, color(110, 100, 84))
+    for side in (-7, 7):
+        ax = cx + side
+        pr.draw_triangle(pr.Vector2(ax, y), pr.Vector2(ax - 2, y + 3), pr.Vector2(ax + 2, y + 3), chev)
+        pr.draw_line(ax, y + 3, ax, y + 7, chev)
+        pr.draw_triangle(pr.Vector2(ax - 2, y + 7), pr.Vector2(ax, y + 10), pr.Vector2(ax + 2, y + 7), chev)
 
 
-def hand_slot(player, hand, cx, cy):
-    """One mouse button: whatever that hand holds, drawn by kind."""
+def cards_hud(player, x, y):
+    """Bottom right: the Primary card (left mouse button), the quick item on the wheel (middle click
+    uses it, rolling picks another) and the Secondary card (right mouse button)."""
+    slot_card(player, RIGHT, x, y)
+    quick_card(player, x + CARD_W + CARD_GAP, y)
+    slot_card(player, LEFT, x + 2 * (CARD_W + CARD_GAP), y)
+
+
+def gauge_bar(x, y, w, frac, rgb, track=(40, 34, 26)):
+    pr.draw_rectangle(x - 1, y - 1, w + 2, 5, color(0, 0, 0, 220))
+    pr.draw_rectangle(x, y, w, 3, color(*track))
+    pr.draw_rectangle(x, y, rround(w * clamp(frac, 0, 1)), 3, color(*rgb))
+
+
+def _card_flash(x, y, k):
+    """The edge flashes once when a gauge fills (k runs 0 -> 1 over SLOT_PULSE)."""
+    hud_box(x, y, CARD_W, HUD_BOX_H, fill=color(0, 0, 0, 0), edge=color(255, 250, 230, rround(230 * (1 - k))))
+
+
+def slot_card(player, hand, x, y):
+    """One equip slot: a mini mouse with its button lit, the slot's gauge as a bar, the held weapon,
+    shield or spell, and the slot's name."""
+    two_handed = hand == LEFT and player.inventory.two_handing()
+    hud_box(x, y, CARD_W, HUD_BOX_H)
+    mini_mouse(x + 4, y + 4, "left" if hand == RIGHT else "right", dim=two_handed)
+    bx, bw = x + 14, CARD_W - 18
+    cx, cy = x + CARD_W // 2, y + 25
     item = player.hand_item(hand)
-    if hand == "left" and player.inventory.two_handing():
-        return two_hand_slot(player, item, cx, cy)
-    if item.kind == "shield":
-        return shield_slot(player, item, cx, cy)
-    if item.kind == "spell":
-        return spell_slot(player, cx, cy)
-    return weapon_slot(player, hand, item, cx, cy)
+    t = pr.get_time()
+    pulse = None
+    if two_handed:
+        # The other half of a two-hander: only the left button swings it.
+        tiny("2H", bx + bw - tinyfont.width("2H"), y + 6, color(150, 120, 70))
+        weapon_icon(item, cx, cy, t, 70)
+    elif item.kind == "shield":
+        up = player.guarding
+        gauge_bar(bx, y + 7, bw, player.stamina.value if up else 0, STAMINA_RGB)
+        shield_icon(item, cx, cy, 110 if player.guard_break_t > 0 else 255, up)
+    elif item.kind == "spell":
+        spell = player.current_spell()
+        g = player.magic_gauge
+        gauge_bar(bx, y + 7, bw, g.value if spell else 0, FOCUS_RGB if g.full else FOCUS_CHARGING_RGB)
+        if spell:
+            spell_icon(spell.id, cx, cy, t, 255 if g.full else 110)
+            pulse = g
+        else:
+            pr.draw_ring(pr.Vector2(cx, cy), 4, 6, 0, 360, 24, color(60, 56, 48))
+    else:
+        g = player.gauge(hand)
+        gauge_bar(bx, y + 7, bw, g.value, ATK_RGB if g.full else ATK_CHARGING_RGB)
+        charge_bar(player, hand, bx, y + 7, bw)
+        weapon_icon(item, cx, cy, t, 255 if g.full else 110, g.full)
+        pulse = g
+    tiny_centered(CARD_LABELS[hand], cx + 1, y + HUD_BOX_H - 8, color(120, 100, 64) if two_handed else DIM)
+    if pulse is not None and pulse.full and pulse.full_t < SLOT_PULSE:
+        _card_flash(x, y, pulse.full_t / SLOT_PULSE)
 
 
-def weapon_slot(player, hand, weapon, cx, cy):
-    """A hand's weapon (or fist), ringed by its ATK gauge: swing when it glows for full damage."""
-    gauge = player.gauge(hand)
-    ready = ready_slot(cx, cy, gauge, ATK_RGB, ATK_CHARGING_RGB, (48, 40, 20))
-    weapon_icon(weapon, cx, cy, pr.get_time(), 255 if ready else 110, ready)
-    if player.charge_hand == hand:
-        charge_ring(player, cx, cy)
-
-
-def two_hand_slot(player, weapon, cx, cy):
-    """The right mouse button of a two-hander: an instant heavy, ringed orange while ST allows it."""
-    ok = player.can_heavy("right")
-    pr.draw_circle(cx, cy, SLOT_R + 4, color(0, 0, 0, 200))
-    ring = color(*HEAVY_RGB) if ok else color(140, 40, 30, 200)
-    pr.draw_ring(pr.Vector2(cx, cy), SLOT_R + 1, SLOT_R + 3, 0, 360, 32, ring)
-    weapon_icon(weapon, cx, cy, pr.get_time(), 200 if ok else 90)
-
-
-def shield_slot(player, shield, cx, cy):
-    """A shield, ringed by ST while it is raised (that is what blocking spends)."""
-    centre = pr.Vector2(cx, cy)
-    pr.draw_circle(cx, cy, SLOT_R + 4, color(0, 0, 0, 200))
-    pr.draw_ring(centre, SLOT_R + 1, SLOT_R + 3, 0, 360, 32, color(40, 50, 40))
-    up = player.guarding
-    if up:
-        end = -90 + 360 * clamp(player.stamina.value, 0, 1)
-        pr.draw_ring(centre, SLOT_R + 1, SLOT_R + 3, -90, end, 32, color(*STAMINA_RGB))
-    alpha = 110 if player.guard_break_t > 0 else 255
-    shield_icon(shield, cx, cy, alpha, up)
-
-
-CHARGE_SHOW = 0.08  # ignore the first moments of a hold so plain taps never flash the ring
-HEAVY_RGB = (255, 140, 50)
-
-
-def charge_ring(player, cx, cy, r=SLOT_R):
-    """While the attack button is held: an orange ring that fills towards a heavy attack and
-    pulses once it is ready. Dim red when there is not enough ST for one."""
-    if player.swinging or player.charge_t < CHARGE_SHOW:
+def charge_bar(player, hand, x, y, w):
+    """While the attack button is held: an orange bar fills over the gauge towards a heavy attack
+    and pulses once it is ready. Dim red when there is not enough ST for one."""
+    if player.charge_hand != hand or player.swinging or player.charge_t < CHARGE_SHOW:
         return
-    centre = pr.Vector2(cx, cy)
+    if not player.can_heavy(hand):
+        pr.draw_rectangle(x, y, w, 3, color(*WINDED_RGB))
+        return
     k = player.charge_frac
-    if not player.can_heavy():
-        pr.draw_ring(centre, r + 4, r + 5.5, 0, 360, 32, color(140, 40, 30, 200))
-        return
-    pr.draw_ring(centre, r + 4, r + 5.5, -90, -90 + 360 * k, 32, color(*HEAVY_RGB))
+    pr.draw_rectangle(x, y, rround(w * k), 3, color(*HEAVY_RGB))
     if k >= 1:
         pulse = 0.5 + 0.5 * math.sin(player.charge_t * 18)
-        pr.draw_ring(centre, r + 4, r + 5.5, 0, 360, 32, color(255, 220, 150, rround(120 * pulse)))
+        pr.draw_rectangle(x - 1, y - 1, w + 2, 5, color(255, 220, 150, rround(140 * pulse)))
 
 
-def spell_slot(player, cx, cy):
-    """The selected spell: an animated icon ringed by the focus (MAG) gauge."""
-    spell = player.current_spell()
-    if not spell:
-        r = SLOT_R
-        pr.draw_circle(cx, cy, r + 4, color(0, 0, 0, 200))
-        pr.draw_ring(pr.Vector2(cx, cy), r + 1, r + 3, 0, 360, 32, color(60, 56, 48))
-        return
-    ready = ready_slot(cx, cy, player.magic_gauge, FOCUS_RGB, FOCUS_CHARGING_RGB, (25, 40, 48))
-    spell_icon(spell.id, cx, cy, pr.get_time(), 255 if ready else 110)
+def quick_card(player, x, y):
+    """The selected quick item, drawn twice size under the scroll wheel, and how many are left."""
+    hud_box(x, y, CARD_W, HUD_BOX_H)
+    cx = x + CARD_W // 2
+    mini_wheel(cx, y + 4)
+    item = player.quick_item()
+    n = player.inventory.count(item.id)
+    pr.draw_rectangle(cx - 9, y + 16, 18, 18, color(0, 0, 0, 160))
+    pr.draw_rectangle_lines(cx - 9, y + 16, 18, 18, color(90, 74, 48))
+    pr.rl_push_matrix()
+    pr.rl_translatef(cx, y + 25, 0)
+    pr.rl_scalef(2, 2, 1)
+    item_icon(item.id, 0, 0, pr.get_time(), 255 if n else 90)
+    pr.rl_pop_matrix()
+    tiny_centered(f"X{n}", cx + 1, y + HUD_BOX_H - 8, TEXT if n else color(200, 80, 70))
 
 
 def item_icon(id_, cx, cy, t, alpha=255):
@@ -636,7 +647,7 @@ def messages(game):
         alpha = rround(clamp(255 * (5 - age), 0, 255)) if age > 4 else 255
         if alpha <= 0:
             continue
-        y = H - 54 - (len(lines) - 1 - i) * smallfont.LINE
+        y = MESSAGE_Y - (len(lines) - 1 - i) * smallfont.LINE
         small_marked_centered(msg, W // 2, y, color(230, 220, 190, alpha), color(*HIGHLIGHT_RGB, alpha))
 
 
@@ -676,12 +687,19 @@ def _web_overlay(k):
                 pr.draw_line(x0, y0, x1, y1, c)
 
 
+DIALOGUE_H = 56
+DIALOGUE_Y = H - 8 - HUD_BOX_H - DIALOGUE_H  # just above the bottom HUD boxes, never over them
+
+
 def dialogue(speaker, line, page, pages):
-    panel(10, 150, 300, 56)
-    text(speaker, 18, 155, HIGHLIGHT)
+    """The speaker's box, sitting just above the bottom HUD boxes so it never covers them."""
+    y = DIALOGUE_Y
+    panel(10, y, 300, DIALOGUE_H)
+    text(speaker, 18, y + 5, HIGHLIGHT)
     for i, l in enumerate(wrap(line, 284)):
-        text(l, 18, 168 + i * 11)
-    text(f"{page + 1}/{pages}", 284, 195, DIM)
+        text(l, 18, y + 18 + i * 11)
+    page_mark = f"{page + 1}/{pages}"
+    text(page_mark, 302 - measure(page_mark), y + 45, DIM)
 
 
 def list_menu(title, x, y, w, rows, selected, footer=None, first=0, visible=None):
