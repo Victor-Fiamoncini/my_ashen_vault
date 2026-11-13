@@ -6,11 +6,12 @@ import raylib as rl
 from raylib import ffi
 
 from ashen_vault import dialogue as dialogue_data
+from ashen_vault.ai.enemy import Enemy
 from ashen_vault.audio.synth import Audio
 from ashen_vault.input import CONTROLS, Input
 from ashen_vault.player import weapons
 from ashen_vault.player.combat import Combat
-from ashen_vault.player.items import Items
+from ashen_vault.player.items import Item, Items
 from ashen_vault.player.player import Player
 from ashen_vault.player.spells import Spells
 from ashen_vault.render import models
@@ -23,7 +24,7 @@ from ashen_vault.util import clamp, rround
 from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.world import World
 
-KIND_ORDER = ["weapon", "armor", "consumable", "scroll", "key"]
+KIND_ORDER = ["weapon", "armor", "spell", "consumable", "scroll", "key"]
 PAUSE_OPTIONS = ["Resume", "Controls", "Return to Title", "Quit"]
 # (x, y, width) of each ui.list_menu panel, shared by drawing and mouse hit-testing.
 PAUSE_LIST = (100, 80, 120)
@@ -306,11 +307,7 @@ class Game:
             self._cast_spell()
         wheel = inp.wheel()
         if wheel:
-            step = -1 if wheel > 0 else 1  # wheel down = next
-            if inp.down("sprint"):
-                self._cycle_quick(step)
-            else:
-                self._cycle_spell(step)
+            self._cycle_quick(-1 if wheel > 0 else 1)  # wheel down = next
         if inp.pressed("quick"):
             self._quick_use(p.quick)
         if inp.pressed("interact"):
@@ -364,6 +361,8 @@ class Game:
         a = p.attack
         if a.lunge:
             p.nudge(self.world.map, a.lunge, blocked=self.world.blocker)
+        for prop in self.world.strike_props(weapon.reach * a.reach, a.cone):
+            self._break(prop)
         targets = self.world.melee_targets(weapon.reach * a.reach, a.cone, a.targets)
         if not targets:
             return
@@ -378,11 +377,27 @@ class Game:
             )
             self.damage_enemy(target, dmg, a.poise)
 
+    def _break(self, prop):
+        gold, item = self.world.break_prop(prop)
+        if prop.kind != "secret_wall":
+            self.sfx("crack")
+            if gold:
+                self.sfx("pickup", 0.4)
+                self.message(f"A few coins spill out. +{gold} gold")
+            if item:
+                self.message(f"Something rolls out of the broken {prop.kind}.")
+        else:
+            self.sfx("door", 0.8)
+            self.message("The wall was an illusion!")
+
     def damage_enemy(self, enemy, dmg, poise_mult=1.0):
         if not enemy.take_hit(dmg, poise_mult):
             return
         self.sfx("enemy_die")
         t = enemy.type
+        if enemy.key:
+            self.flags.add(enemy.key)
+        self.world.drop_enemy_loot(enemy)
         gold = random.choice(t.gold)
         self.player.inventory.gold += gold
         self.message(f"{t.name} destroyed. {t.exp} EXP, {gold} gold.")
@@ -425,11 +440,6 @@ class Game:
             p.lumen_t = Spells.LUMEN_DURATION
             self.message("A pale light gathers around you.")
 
-    def _cycle_spell(self, step=1):
-        spell = self.player.cycle_spell(step)
-        if spell:
-            self.message(spell.name)
-
     def _cycle_quick(self, step=1):
         item = self.player.cycle_quick(step)
         if item:
@@ -452,10 +462,17 @@ class Game:
             self.message(f"Used {item.name}.")
         elif item.kind == "scroll":
             inv.remove(item.id)
+            first = not self.player.spells
             if item.spell not in self.player.spells:
                 self.player.spells.append(item.spell)
+            if first:
+                self.player.equip_spell(item.spell)
             self.sfx("levelup")
-            self.message(f"You learned {Spells.get(item.spell).name}.")
+            self.message(f"You learned {Spells.get(item.spell).name}. Ready it from Belongings.")
+        elif item.kind == "spell":
+            self.player.equip_spell(item.spell)
+            self.sfx("spell", 0.4)
+            self.message(f"{Spells.get(item.spell).name} is ready.")
         elif item.kind in ("weapon", "armor"):
             if inv.unequip(item.id):
                 self.message(f"Unequipped {item.name}.")
@@ -471,6 +488,8 @@ class Game:
         p = self.world.focus()
         if not p:
             return None
+        if isinstance(p, Enemy):
+            return "[E] Open chest"
         return {
             "npc": "[E] Talk",
             "chest": "[E] Open chest",
@@ -480,11 +499,17 @@ class Game:
             "exit": f"[E] {(p.props.get('label') or 'Leave').replace('_', ' ')}",
             "pickup": "[E] Take",
             "iron_maiden": "[E] Step inside",
+            "altar": f"[E] Take the {Items.get(p.props.get('item', 'warden_key')).name}",
         }.get(p.kind)
 
     def _interact(self):
         prop = self.world.focus()
         if not prop:
+            return
+        if isinstance(prop, Enemy):
+            prop.wake(self.player.x, self.player.z)
+            self.sfx("hurt", 0.6)
+            self.message("The chest lunges at you!")
             return
         k = prop.kind
         if k == "npc":
@@ -507,6 +532,13 @@ class Game:
             self.sfx("save")
             self.message("The shrine restores you. Your journey is recorded.")
             self.message("Somewhere below, the fallen stir again.")
+        elif k == "altar":
+            item = Items.get(self.world.take_from_altar(prop))
+            self.player.inventory.add(item.id)
+            self.sfx("bell", 0.7)
+            self.message(f"Obtained {item.name}.")
+            self.message("The statue's eyes gutter out as you lift the key.")
+            self.message("Somewhere above, a great door awaits.")
         elif k == "iron_maiden":
             self._enter_maiden(prop)
         elif k == "exit":
@@ -514,6 +546,7 @@ class Game:
         elif k == "pickup":
             item = Items.get(prop.props["item"])
             self.player.inventory.add(item.id)
+            self.flags.add(prop.key)
             if item.id == "ember_sigil":
                 self.flags.add("sigil_taken")
             self.world.remove_prop(prop)
@@ -592,7 +625,13 @@ class Game:
         self._mouse_look(False)
 
     def _menu_items(self):
-        return sorted(self.player.inventory.items(), key=lambda i: (KIND_ORDER.index(i.kind), i.name))
+        """Belongings rows: carried items plus one row per known spell (choose it to ready it)."""
+        spells = [
+            Item(id=f"spell_{s.id}", name=s.name, kind="spell", spell=s.id, desc=s.desc)
+            for s in (Spells.get(id_) for id_ in self.player.spells)
+        ]
+        rows = self.player.inventory.items() + spells
+        return sorted(rows, key=lambda i: (KIND_ORDER.index(i.kind), i.name))
 
     def _update_menu(self):
         items = self._menu_items()
@@ -845,7 +884,7 @@ class Game:
         inv = self.player.inventory
         rows = [
             (
-                f"{i.name}{' (E)' if inv.equipped(i.id) else ''}",
+                f"{i.name}{' (E)' if self._equipped_row(i) else ''}",
                 f"x{inv.count(i.id)}" if i.kind == "consumable" else None,
             )
             for i in items
@@ -879,6 +918,12 @@ class Game:
         self._draw_item_panel(
             item, self._item_detail(item) if item else "", "Enter/Click: use   Tab/R-click: close"
         )
+
+    def _equipped_row(self, item):
+        if item.kind == "spell":
+            spell = self.player.current_spell()
+            return spell is not None and spell.id == item.spell
+        return self.player.inventory.equipped(item.id)
 
     def _draw_item_panel(self, item, detail, footer):
         """Bottom panel shared by Belongings and the shop: spinning preview, name, details, description."""
@@ -917,6 +962,8 @@ class Game:
         if item.kind == "scroll":
             spell = Spells.get(item.spell)
             return f"Scroll   {spell.name}   {spell.cost} MP"
+        if item.kind == "spell":
+            return f"Spell   {Spells.get(item.spell).cost} MP"
         return "Key item"
 
     def _draw_shop(self):

@@ -22,6 +22,8 @@ class EnemyType:
     hover: float | None = None
     boss: bool = False
     drop: str | None = None
+    ambush: bool = False  # spawns dormant, disguised, until woken
+    once: bool = False  # stays dead: shrine rests don't bring it back
 
 
 class EnemyTypes:
@@ -95,6 +97,24 @@ class EnemyTypes:
                 boss=True,
                 drop="ember_sigil",
                 poise=14,
+            ),
+            EnemyType(
+                id="mimic",
+                name="Mimic",
+                hp=60,
+                speed=2.0,
+                damage=22,
+                reach=2.0,
+                sight=10,
+                windup=0.45,
+                recover=1.0,
+                exp=60,
+                gold=range(40, 61),
+                radius=0.55,
+                height=1.0,
+                poise=10,
+                ambush=True,
+                once=True,
             ),
         ]
     }

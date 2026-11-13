@@ -74,9 +74,17 @@ class Player:
         self.spell_index = (self.spell_index + step) % len(self.spells)
         return self.current_spell()
 
+    def equip_spell(self, id_):
+        """Readies a known spell for the right mouse button; False if it isn't known."""
+        if id_ not in self.spells:
+            return False
+        self.spell_index = self.spells.index(id_)
+        return True
+
     def quick_items(self):
-        """Consumables you carry, in a stable order."""
-        return sorted((i for i in self.inventory.items() if i.kind == "consumable"), key=lambda i: i.name)
+        """Every kind of consumable, carried or not, in a stable order: the wheel steps through them
+        all and the HUD greys out the ones you have none of."""
+        return sorted((i for i in Items.ALL.values() if i.kind == "consumable"), key=lambda i: i.name)
 
     def quick_item(self):
         """The selected quick item, even when you have none left (the HUD greys it out)."""
@@ -85,8 +93,7 @@ class Player:
     def cycle_quick(self, step=1):
         """Selects the next (or previous) consumable; None when there is nothing to switch to."""
         ids = [i.id for i in self.quick_items()]
-        others = [i for i in ids if i != self.quick]
-        if not others:
+        if len(ids) < 2 and self.quick in ids:
             return None
         if self.quick in ids:
             self.quick = ids[(ids.index(self.quick) + step) % len(ids)]
@@ -209,5 +216,6 @@ class Player:
             "stats": self.stats.to_h(),
             "inventory": self.inventory.to_h(),
             "spells": list(self.spells),
+            "spell": self.current_spell().id if self.spells else None,
             "quick": self.quick,
         }

@@ -161,7 +161,7 @@ def hud_box(x, y, w, h, fill=HUD_FILL, radius=HUD_RADIUS, edge=HUD_EDGE):
 
 def mouse_hud(player, x, y):
     """A mouse whose buttons show their actions: weapon on the left button, spell on the right,
-    the quick item on the wheel (middle click uses it, the wheel changes spell)."""
+    the quick item on the wheel (middle click uses it, rolling the wheel picks another)."""
     w, split = MOUSE_W, MOUSE_SPLIT
     hud_box(x, y, w, MOUSE_H)
     cx = x + w // 2

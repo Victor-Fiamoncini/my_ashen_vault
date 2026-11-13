@@ -186,19 +186,39 @@ def test_cycle_spell_wraps_both_ways():
     assert p.cycle_spell().id == "flame"
 
 
-def test_quick_item_cycles_consumables_only():
+def test_quick_item_cycles_every_consumable_carried_or_not():
     p = Player()
     assert p.quick_item().id == "red_tonic"
-    assert p.cycle_quick() is None, "no consumables carried"
-    p.inventory.add("red_tonic", 2)
-    p.inventory.add("blue_moss")
     assert [i.id for i in p.quick_items()] == ["blue_moss", "red_tonic"]
-    assert p.cycle_quick().id == "blue_moss"
+    assert p.cycle_quick().id == "blue_moss", "the wheel works even with empty pockets"
     assert p.cycle_quick().id == "red_tonic"
     assert p.cycle_quick(-1).id == "blue_moss"
-    p.inventory.remove("blue_moss")
+    p.inventory.add("red_tonic", 2)
     assert p.quick_item().id == "blue_moss", "an empty slot stays selected"
     assert p.cycle_quick().id == "red_tonic"
+
+
+def test_equip_spell_readies_only_known_spells():
+    p = Player()
+    p.spells += ["mend", "lumen"]
+    assert p.equip_spell("lumen")
+    assert p.current_spell().id == "lumen"
+    assert not p.equip_spell("nonsense")
+    assert p.current_spell().id == "lumen"
+
+
+def test_save_keeps_the_equipped_spell(tmp_path):
+    saves = SaveSystem(str(tmp_path / "save.json"))
+    player = Player()
+    player.spells.append("mend")
+    player.equip_spell("mend")
+    saves.save(map="harrowmere", player=player, flags=set())
+    assert saves.load()[1].current_spell().id == "mend"
+
+    data = json.loads((tmp_path / "save.json").read_text())
+    del data["player"]["spell"]  # saves from before spells were equipped
+    (tmp_path / "save.json").write_text(json.dumps(data))
+    assert saves.load()[1].current_spell().id == "flame"
 
 
 def test_save_keeps_quick_item_and_old_saves_default(tmp_path):

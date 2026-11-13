@@ -140,6 +140,7 @@ class MapLoader:
             walkable=True,
             floor=floor,
             ceil=ceil,
+            pit="pit" in p,
             floor_tex=p.get("tex", "flagstone"),
             wall_tex=p.get("side", "stone_brick"),
             ceil_tex=p.get("ceil_tex", "rough_stone"),

@@ -1,9 +1,13 @@
+import math
 import random
+
+import pytest
 
 from ashen_vault.ai.enemy import Enemy
 from ashen_vault.ai.enemy_types import EnemyTypes
 from ashen_vault.ai.spawns import spawn_enemies
 from ashen_vault.world.map_loader import MapLoader
+from conftest import ROOM
 
 
 class FakeWorld:
@@ -129,3 +133,45 @@ def test_spawn_enemies_respects_boss_rules():
     assert [e.type.id for e in fresh] == ["bone_walker"]
     assert fresh[0].hp == fresh[0].type.hp
     assert fresh[0].alive
+
+
+def mimic(x=0.0, z=0.0):
+    return Enemy(EnemyTypes.get("mimic"), x, z, rng=random.Random(1))
+
+
+def test_mimic_sleeps_as_a_chest_until_woken():
+    m = mimic()
+    world = FakeWorld(1.0, 0.0)  # right next to it, in plain sight
+    tick(m, world, 3.0)
+    assert m.dormant
+    assert (m.x, m.z) == (0.0, 0.0)
+    assert world.strikes == 0
+
+
+def test_woken_mimic_bites_at_once():
+    m = mimic()
+    world = FakeWorld(0.0, 1.5)
+    m.wake(world.player_x, world.player_z)
+    assert m.state == "windup"
+    assert m.yaw == pytest.approx(math.pi / 2)
+    tick(m, world, m.type.windup + 0.1)
+    assert world.strikes == 1
+
+
+def test_striking_a_dormant_mimic_wakes_it():
+    m = mimic()
+    assert not m.take_hit(1)  # too light to stagger it, but it notices
+    assert m.state == "chase"
+    m2 = mimic()
+    assert not m2.take_hit(30)
+    assert m2.state == "hurt"
+
+
+def test_slain_mimic_stays_dead_and_ambushers_spawn_dormant():
+    text = ROOM.replace("a = bone_walker yaw=90", "a = mimic item=ringmail")
+    m = MapLoader(text, name="room").parse()
+    [e] = spawn_enemies(m, set())
+    assert e.dormant
+    assert e.loot == "ringmail"
+    assert e.key == "slain:room:2,2"
+    assert spawn_enemies(m, {"slain:room:2,2"}) == []

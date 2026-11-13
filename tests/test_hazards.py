@@ -2,8 +2,8 @@ import math
 
 import pytest
 
-from ashen_vault.world.hazards import HIT_COOLDOWN, Pendulum, SpikeTrap
-from ashen_vault.world.tile_map import TileMap
+from ashen_vault.world.hazards import HIT_COOLDOWN, CrumbleFloor, Pendulum, SpikeTrap
+from ashen_vault.world.tile_map import Tile, TileMap
 
 
 def run(trap, seconds, step=1 / 60):
@@ -104,3 +104,37 @@ def test_hazard_cooldown_wears_off():
     p.update(HIT_COOLDOWN + 0.01)
     p.t = 0
     assert p.hit(x, z)
+
+
+def crumble():
+    pit = Tile(walkable=True, floor=-3.4, ceil=4.8, pit=True, floor_tex="dirt", wall_tex="stone_brick")
+    return CrumbleFloor(2, 1, 1.6, pit)
+
+
+def test_crumble_holds_until_stepped_on():
+    c = crumble()
+    assert c.update(5.0, player_on=False) is None
+    assert c.state == "solid"
+    assert c.rise == 1.0
+
+
+def test_crumble_shakes_falls_and_reforms():
+    c = crumble()
+    assert c.update(0.01, player_on=True) == "shaking"
+    assert 0 <= c.shake < 1
+    assert c.update(CrumbleFloor.SHAKE, player_on=False) == "fallen"
+    assert not c.standing
+    c.update(0.2)
+    assert c.drop > 0
+    assert c.update(CrumbleFloor.GONE) == "solid"
+    assert c.rise == pytest.approx(0.0)
+    c.update(CrumbleFloor.REFORM)
+    assert c.rise == pytest.approx(1.0)
+
+
+def test_crumble_solid_tile_stands_in_for_the_pit():
+    tile = crumble().solid_tile()
+    assert tile.walkable
+    assert not tile.pit
+    assert tile.floor == pytest.approx(1.6)
+    assert (tile.floor_tex, tile.wall_tex, tile.ceil) == ("dirt", "stone_brick", 4.8)

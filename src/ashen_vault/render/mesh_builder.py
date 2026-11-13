@@ -57,12 +57,19 @@ class MeshBuilder:
     def lights_for(map_):
         lights = []
         for e in map_.entities:
-            if e.kind not in ("torch", "brazier", "light"):
+            if e.kind not in ("torch", "brazier", "light", "candles"):
                 continue
             x, z = TileMap.center(e.tx, e.tz)
-            y = map_[e.tx, e.tz].floor + float(e.props.get("y", "2.0" if e.kind == "light" else "1.6"))
+            height = {"light": "2.0", "candles": "0.6"}.get(e.kind, "1.6")
+            wall = map_.wall_yaw(e.tx, e.tz) if e.kind == "torch" else None
+            if wall is not None:  # a sconce: the flame sits up against the wall
+                x -= math.cos(wall) * 0.6
+                z -= math.sin(wall) * 0.6
+                height = "1.9"
+            y = map_[e.tx, e.tz].floor + float(e.props.get("y", height))
             color = [float(c) for c in e.props.get("color", "1.0,0.62,0.32").split(",")]
-            lights.append(Light(x, y, z, float(e.props.get("radius", "7")), color))
+            radius = e.props.get("radius", "3" if e.kind == "candles" else "7")
+            lights.append(Light(x, y, z, float(radius), color))
         return lights
 
     def light_at(self, x, y, z, nx=0.0, ny=1.0, nz=0.0):

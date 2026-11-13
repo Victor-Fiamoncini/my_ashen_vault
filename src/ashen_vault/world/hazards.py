@@ -2,7 +2,7 @@
 
 import math
 
-from ashen_vault.world.tile_map import TileMap
+from ashen_vault.world.tile_map import Tile, TileMap
 
 HIT_COOLDOWN = 0.8  # seconds before the same trap can hurt the player again
 HEAD = 1.6  # height above the floor a body can be hit up to
@@ -131,3 +131,73 @@ class Pendulum:
         self.cooldown = HIT_COOLDOWN
         push = self.PUSH * self.direction
         return (self.DAMAGE, push, 0.0) if self.axis == "x" else (self.DAMAGE, 0.0, push)
+
+
+class CrumbleFloor:
+    """A slab bridging a pit. Step on it and it shakes, gives way, and some seconds later grows back."""
+
+    SHAKE = 1.0  # walking pace crosses a 2 m slab in ~0.77 s: keep moving and you make it
+    GONE = 4.0
+    REFORM = 0.5  # seconds the slab takes to rise back into place
+
+    def __init__(self, tx, tz, floor, base):
+        self.tx = tx
+        self.tz = tz
+        self.x, self.z = TileMap.center(tx, tz)
+        self.floor = floor
+        self.base = base  # the pit tile underneath
+        self.state = "solid"
+        self.t = self.REFORM  # already in place when the map loads
+
+    def solid_tile(self):
+        """The walkable stand-in for the pit tile while the slab holds."""
+        b = self.base
+        return Tile(
+            solid=False,
+            walkable=True,
+            floor=self.floor,
+            ceil=b.ceil,
+            floor_tex=b.floor_tex,
+            wall_tex=b.wall_tex,
+            ceil_tex=b.ceil_tex,
+        )
+
+    @property
+    def standing(self):
+        """True while something can stand on it."""
+        return self.state != "fallen"
+
+    def update(self, dt, player_on=False):
+        """Advances the slab; returns the new state on the frame it changes, else None."""
+        self.t += dt
+        if self.state == "solid":
+            if not player_on:
+                return None
+            return self._switch("shaking")
+        if self.state == "shaking" and self.t >= self.SHAKE:
+            return self._switch("fallen")
+        if self.state == "fallen" and self.t >= self.GONE:
+            return self._switch("solid")
+        return None
+
+    def _switch(self, state):
+        self.state = state
+        self.t = 0.0
+        return state
+
+    @property
+    def shake(self):
+        """0..1 tremble strength while shaking."""
+        return min(self.t / self.SHAKE, 1.0) if self.state == "shaking" else 0.0
+
+    @property
+    def rise(self):
+        """0..1 while a reformed slab grows back into place, 1 once settled."""
+        return min(self.t / self.REFORM, 1.0) if self.state == "solid" else 1.0
+
+    @property
+    def drop(self):
+        """How far the slab has fallen, for drawing: 0 in place, growing once it gives way."""
+        if self.state == "fallen":
+            return min(self.t * 6.0, 4.0)
+        return 0.0

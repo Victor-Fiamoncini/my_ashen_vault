@@ -19,38 +19,39 @@ _ = floor tex=flagstone h=1.2 ceil=4.6
 , = floor tex=flagstone h=0.4 ceil=3.8
 - = floor tex=dirt h=0 ceil=3.2 side=mossy_brick
 ~ = water tex=water h=-0.6 ceil=3.2 side=mossy_brick
+o = floor tex=dirt h=-3.4 ceil=4.8 side=stone_brick pit
 | = floor tex=flagstone h=0 ceil=4.4 side=stone_brick
 
 [grid]
 ################################
-##########7::::::::::7##########
-##########:b::::::::b:##########
-##########::!::::::!::##########
+##########7y:::::::::7##########
+##########:bg::::::gb:##########
+##########F:!::::::!:F##########
 ##########:::::w::::::##########
 ##########::::::::::::##########
-##########::!::::::!::##########
-##########:b::::::::b:##########
-##########&::::::::::h##########
+##########F:!::::::!:F##########
+##########:bg::::::gb:##########
+##########&:::::::::yh##########
 ###############D################
-########96=============6########
-########===x========x==k########
-########=l============l=########
-########6=============59########
+#Zoooo<#u6==l=H=H==l===B########
+#VXXXX=W===x========x==K########
+#QooooV#==========J====B########
+########6=A=l======l==59########
 ###############_################
 ###############;################
-#3~~~~~~4######,################
-#-~~--~~-######.########v...q###
+#3~~~~~~N######,################
+#-~~k-~~-######.########v.f.q###
 #-~~-c~~-######G########....$###
-#-~~--~~-##08....1..r###%....###
+#-~~--~~-##U8it..1..r###%e.e.###
 #--------##..a...%...#####C#####
-#-s----s-..t........t.........##
-#-~~~~~~-##..1....a..#####O#####
-#-~~~~~~-##80......%0###..a.m###
-#z------3######..#######(..%$###
-#############8....0#############
+#-s----s-.....................##
+#-~~~~~~-##e.1....a.e#####O#####
+#-~~~~~~-##80.j..tp%0###p.a.m###
+#z---d--3######..#######(e.%$###
+#############8...in#############
 #############t...S.|^L|P||+*|T##
-#############.....%#########||##
-###############E###IRL*|Y|^+|T##
+#############.>..i%#########||##
+###############E###IRL*|Y|^||T##
 ################################
 
 [entities]
@@ -58,7 +59,6 @@ b = brazier radius=10 on=:
 w = ashen_warden yaw=90 on=:
 D = door key=warden_key on==
 x = cinder_wisp on==
-k = chest item=warden_key on==
 l = torch radius=9 on==
 G = gate lever=north_lever
 c = chest item=cell_key on=-
@@ -96,5 +96,31 @@ I = iron_maiden on=|
 5 = bones on==
 3 = crate on=-
 4 = barrel on=-
-$ = shackles yaw=180
+$ = shackles
 ( = shackles
+W = secret_wall on==
+X = crumble floor=1.6 on=o
+Z = mimic item=ringmail on==
+Q = chest item=zweihander gold=60 on==
+V = light radius=6 on==
+u = barrel on==
+U = barrel
+n = barrel
+N = barrel on=-
+K = altar item=warden_key on==
+B = brazier radius=8 on==
+H = banner on==
+F = banner on=:
+> = banner
+J = table on==
+j = table
+A = rack on==
+f = rack
+g = candles on=:
+i = candles
+< = candles on==
+y = rubble on=:
+p = rubble
+d = rubble on=-
+e = urn
+k = urn on=-

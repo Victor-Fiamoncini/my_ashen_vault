@@ -17,7 +17,15 @@ def spawn_enemies(map_, flags, bosses=True):
         type_ = EnemyTypes.get(spec.kind)
         if type_.boss and (not bosses or "boss_dead" in flags):
             continue
+        key = f"slain:{map_.name}:{spec.tx},{spec.tz}" if type_.once else None
+        if key in flags:
+            continue
         x, z = TileMap.center(spec.tx, spec.tz)
-        yaw = float(spec.props.get("yaw", "0")) * math.pi / 180
-        enemies.append(Enemy(type_, x, z, yaw=yaw, marker=spec.marker))
+        if "yaw" in spec.props:
+            yaw = float(spec.props["yaw"]) * math.pi / 180
+        elif type_.ambush:
+            yaw = map_.open_facing(spec.tx, spec.tz)
+        else:
+            yaw = 0.0
+        enemies.append(Enemy(type_, x, z, yaw=yaw, marker=spec.marker, loot=spec.props.get("item"), key=key))
     return enemies

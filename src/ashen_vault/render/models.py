@@ -20,6 +20,7 @@ def enemy(r, e):
         "mire_slime": mire_slime,
         "cinder_wisp": cinder_wisp,
         "ashen_warden": ashen_warden,
+        "mimic": mimic,
     }.get(e.type.id)
     if fn:
         fn(r, e, t)
@@ -128,6 +129,36 @@ def ashen_warden(r, e, t):
                 r.part("cube", 1.2, 0.0, 0, 0.36, 0.5, 0.05, IRON)
 
 
+def mimic(r, e, t):
+    """A chest with teeth. Asleep it is a plain closed chest; awake it gapes, chews and scuttles."""
+    if e.state == "dormant":
+        chest(r, False)
+        return
+    gape = 0.9 + math.sin(t * 9) * 0.25
+    if e.state == "windup":
+        gape = 1.5
+    elif e.state == "attack":
+        gape = 0.15
+    lunge = 0.35 if e.state == "attack" else 0.0
+    step = math.sin(t * 14) * 0.08 if e.state == "chase" else 0.0
+    with r.at(lunge, 0.18, 0):
+        for lx, lz in ((0.2, 0.32), (0.2, -0.32), (-0.2, 0.32), (-0.2, -0.32)):
+            sway = step if (lx > 0) == (lz > 0) else -step
+            r.part("cube", lx + sway, -0.08, lz, 0.08, 0.3, 0.08, (60, 40, 34), rz=-0.3 if lx > 0 else 0.3)
+        r.part("cube", 0, 0.25, 0, 0.6, 0.5, 0.9, WHITE, tex="wood_plank")
+        r.part("cube", 0, 0.26, 0, 0.62, 0.06, 0.92, IRON)
+        r.part("cube", 0.02, 0.46, 0, 0.5, 0.08, 0.78, (90, 14, 20))  # maw
+        for i in range(6):
+            r.part("cone", 0.28, 0.54, -0.35 + i * 0.14, 0.07, 0.16, 0.07, BONE)
+        r.part("cube", 0.25, 0.5, 0, 0.5, 0.05, 0.16, (190, 50, 70), rz=-0.3 - gape * 0.2)  # tongue
+        with r.at(-0.3, 0.5, 0, rz=gape):
+            r.part("cube", 0.3, 0.08, 0, 0.6, 0.16, 0.9, WHITE, tex="wood_plank")
+            for i in range(6):
+                r.part("cone", 0.56, -0.05, -0.35 + i * 0.14, 0.07, 0.16, 0.07, BONE, rx=math.pi)
+            r.part("sphere", 0.45, 0.18, -0.22, 0.1, 0.1, 0.1, (255, 200, 60), glow=True)
+            r.part("sphere", 0.45, 0.18, 0.22, 0.1, 0.1, 0.1, (255, 200, 60), glow=True)
+
+
 def npc(r, robe, skin=SKIN, hair=(70, 54, 40), t=0):
     sway = math.sin(t * 1.5) * 0.03
     with r.at(0, 0, 0, rz=sway):
@@ -229,11 +260,15 @@ def bolt(r, rgb):
 DARK_IRON = (58, 56, 60)
 
 
-def barrel(r, seed):
-    """A squat banded cask; the seed nudges its spot, height and lean so rows don't look cloned."""
+def barrel(r, seed, broken=False):
+    """A squat banded cask; the seed nudges its spot, height and lean so rows don't look cloned.
+    A broken one is a ring of staves and a fallen hoop."""
     h = 0.95 + (seed % 3) * 0.08
     ox = ((seed * 37) % 7 - 3) * 0.08
     oz = ((seed * 53) % 7 - 3) * 0.08
+    if broken:
+        _barrel_wreck(r, ox, oz, seed)
+        return
     with r.at(ox, 0, oz, ry=seed * 0.7, rz=0.04 if seed % 4 == 0 else 0):
         r.part("cyl", 0, h / 2, 0, 0.78, h, 0.78, WHITE, tex="wood_plank")
         r.part("cyl", 0, h / 2, 0, 0.86, h * 0.55, 0.86, WHITE, tex="wood_plank")
@@ -246,9 +281,66 @@ def barrel(r, seed):
             r.part("cyl", 0, 0.35, 0, 0.6, 0.05, 0.6, DARK_IRON)
 
 
-def crate(r, seed):
-    """A plank crate with dark battens; sometimes a smaller one stacked on top."""
+def _barrel_wreck(r, ox, oz, seed):
+    with r.at(ox, 0, oz, ry=seed * 0.7):
+        r.part("cyl", 0, 0.03, 0, 0.84, 0.06, 0.84, DARK_IRON, rx=0.08)
+        r.part("cyl", 0, 0.03, 0, 0.66, 0.05, 0.66, (70, 48, 30))
+        for i in range(7):
+            a = i * 0.9 + seed
+            d = 0.45 + (i % 3) * 0.12
+            r.part(
+                "cube",
+                math.cos(a) * d,
+                0.04,
+                math.sin(a) * d,
+                0.5 - (i % 2) * 0.15,
+                0.04,
+                0.12,
+                WHITE,
+                tex="wood_plank",
+                ry=a * 1.3,
+            )
+        r.part("cube", 0.25, 0.18, -0.2, 0.06, 0.36, 0.12, WHITE, tex="wood_plank", rz=0.3)
+
+
+def secret_wall(r, height, open_t):
+    """An illusory wall: a full tile of brick that matches the real walls. Struck, it sinks and fades."""
+    if open_t >= 1.0:
+        return
+    k = 1.0 - open_t
+    h = height * k
+    r.part("cube", 0, h / 2, 0, 2.0 * (0.6 + 0.4 * k), h, 2.0 * (0.6 + 0.4 * k), WHITE, tex="stone_brick")
+
+
+def crumble_slab(r, shake, drop, rise, t):
+    """A cracked slab over a pit. It trembles before it falls, plunges, and grows back."""
+    if drop >= 4.0:
+        return
+    jx = math.sin(t * 61) * 0.05 * shake
+    jz = math.cos(t * 47) * 0.05 * shake
+    s = 1.0 - drop / 5.0
+    y = -drop - (1.0 - rise) * 0.6
+    with r.at(jx, y, jz, rx=drop * 0.12, rz=drop * 0.08, s=max(s, 0.1) * (0.5 + 0.5 * rise)):
+        r.part("cube", 0, -0.2, 0, 1.96, 0.4, 1.96, WHITE, tex="flagstone")
+        r.part("cube", 0.3, 0.005, -0.1, 1.2, 0.01, 0.04, (30, 26, 24), ry=0.6)  # cracks
+        r.part("cube", -0.4, 0.005, 0.3, 0.8, 0.01, 0.04, (30, 26, 24), ry=-0.9)
+        r.part("cone", 0, -0.7, 0, 1.2, 0.6, 1.2, WHITE, tex="rough_stone", rx=math.pi)
+
+
+def crate(r, seed, broken=False):
+    """A plank crate with dark battens; sometimes a smaller one stacked on top. Broken, it is a heap of
+    split planks with the lid lying askew."""
     with r.at(((seed * 29) % 5 - 2) * 0.1, 0, ((seed * 41) % 5 - 2) * 0.1, ry=(seed % 5) * 0.3):
+        if broken:
+            for i in range(6):
+                a = i * 1.1 + seed
+                d = 0.2 + (i % 3) * 0.15
+                r.part(
+                    "cube", math.cos(a) * d, 0.04 + (i % 2) * 0.05, math.sin(a) * d,
+                    0.8 - (i % 3) * 0.15, 0.05, 0.16, WHITE, tex="wood_plank", ry=a * 1.4, rz=(i % 2) * 0.15,
+                )  # fmt: skip
+            r.part("cube", -0.15, 0.12, 0.1, 0.85, 0.06, 0.85, WHITE, tex="wood_plank", ry=0.5, rz=0.2)
+            return
         _crate_box(r, 0.9)
         if seed % 2 == 0:
             with r.at(0.05, 0.9, -0.05, ry=0.5):
@@ -344,34 +436,248 @@ def pendulum(r, angle, length):
             r.part("cube", 0, -0.24, 0, 0.07, 0.04, 1.25, (235, 235, 245))
 
 
+# Iron maiden body profile, feet to shoulders: (bottom, top, width across).
+MAIDEN_PROFILE = (
+    (0.25, 0.65, 0.6),
+    (0.65, 1.15, 0.7),
+    (1.15, 1.55, 0.8),
+    (1.55, 1.95, 0.9),
+    (1.95, 2.2, 1.0),
+)
+MAIDEN_IRON = (66, 62, 64)
+MAIDEN_DARK = (40, 36, 38)
+
+
 def iron_maiden(r, door):
-    """An upright iron casket with a crude face; its door swings open (door 0..1) on spiked hinges.
-    Faces +X."""
-    r.part("cube", -0.1, 1.15, 0, 0.6, 2.3, 1.0, DARK_IRON)
-    r.part("cube", -0.1, 2.35, 0, 0.55, 0.22, 0.72, DARK_IRON)  # shoulders
-    r.part("cone", -0.1, 2.7, 0, 0.6, 0.5, 0.6, DARK_IRON)  # peaked hood
-    r.part("sphere", -0.1, 2.98, 0, 0.12, 0.12, 0.12, RUST)
-    r.part("cube", -0.1, 0.06, 0, 0.75, 0.12, 1.15, RUST)
-    r.part("cube", 0.11, 1.15, 0, 0.18, 2.1, 0.8, (24, 18, 18))  # dark interior
-    for y in (0.6, 1.0, 1.4, 1.8):
-        r.part("cone", 0.06, y, -0.2, 0.06, 0.18, 0.06, STEEL, rz=-math.pi / 2)
-        r.part("cone", 0.06, y, 0.2, 0.06, 0.18, 0.06, STEEL, rz=-math.pi / 2)
-    # The door hinges on the +Z edge and swings outward.
-    with r.at(0.22, 0, 0.5, ry=-door * 1.9), r.at(0, 0, -0.5):
-        r.part("cube", 0, 1.15, 0, 0.1, 2.2, 0.98, IRON)
-        for y in (0.2, 0.75, 1.4, 2.1):  # rusted bands, studded with rivets
-            r.part("cube", 0.03, y, 0, 0.08, 0.1, 1.0, RUST)
-            for z in (-0.4, 0.0, 0.4):
-                r.part("sphere", 0.08, y, z, 0.07, 0.07, 0.07, (140, 120, 100))
-        r.part("cube", 0.03, 1.15, 0.42, 0.08, 2.1, 0.08, RUST)
-        r.part("cube", 0.03, 1.15, -0.42, 0.08, 2.1, 0.08, RUST)
-        with r.at(0.07, 1.85, 0):  # face plate
-            r.part("sphere", 0, 0, 0, 0.12, 0.46, 0.36, (150, 140, 130))
-            r.part("cube", 0.04, 0.06, -0.08, 0.04, 0.04, 0.08, (12, 10, 10))
-            r.part("cube", 0.04, 0.06, 0.08, 0.04, 0.04, 0.08, (12, 10, 10))
-            r.part("cube", 0.04, -0.12, 0, 0.04, 0.03, 0.14, (12, 10, 10))
-        for y in (0.6, 1.0, 1.4):
-            r.part("cone", -0.12, y, 0, 0.06, 0.18, 0.06, STEEL, rz=math.pi / 2)
+    """A figure-shaped iron casket on a stone plinth: flared shoulders, a sculpted face, and two spiked
+    doors that part down the middle and swing outward (door 0..1). Faces +X."""
+    r.part("cube", 0, 0.12, 0, 1.15, 0.24, 1.35, WHITE, tex="rough_stone")
+    r.part("cube", 0, 0.255, 0, 1.0, 0.03, 1.2, (70, 64, 58))
+    # Back shell, hollow and dark inside, its inner wall bristling with spikes.
+    for y0, y1, w in MAIDEN_PROFILE:
+        h = y1 - y0
+        r.part("cyl", -0.14, (y0 + y1) / 2, 0, 0.6, h, w, MAIDEN_IRON)
+        r.part("cube", 0.02, (y0 + y1) / 2, 0, 0.3, h, w * 0.78, (20, 14, 14))
+        for z in (-w * 0.2, w * 0.2):
+            r.part("cone", -0.02, (y0 + y1) / 2, z, 0.07, 0.22, 0.07, STEEL, rz=-math.pi / 2)
+    r.part("cyl", -0.14, 2.26, 0, 0.45, 0.12, 0.5, MAIDEN_IRON)  # neck
+    with r.at(-0.12, 2.6, 0):  # the head, with its stern iron face
+        r.part("sphere", 0, 0, 0, 0.55, 0.62, 0.56, MAIDEN_IRON)
+        r.part("cone", -0.04, 0.38, 0, 0.42, 0.28, 0.46, MAIDEN_DARK)  # coif peak
+        r.part("cube", 0.24, 0.08, 0, 0.06, 0.06, 0.36, MAIDEN_DARK)  # brow
+        r.part("cube", 0.27, -0.03, 0, 0.06, 0.16, 0.06, (88, 82, 80))  # nose ridge
+        for z in (-0.1, 0.1):
+            r.part("cube", 0.255, 0.02, z, 0.03, 0.03, 0.09, (10, 8, 8))  # eye slits
+        r.part("cube", 0.25, -0.15, 0, 0.03, 0.025, 0.16, (10, 8, 8))  # mouth
+        r.part("cube", 0.22, -0.24, 0, 0.06, 0.05, 0.22, (100, 90, 84))  # chin
+    for side in (-1, 1):  # the two doors: hinged at the outer edges, meeting down the middle
+        with r.at(0.17, 0, side * 0.5, ry=-side * door * 1.75):
+            _maiden_door(r, side)
+    if door == 0:  # a chain and padlock bind the doors shut
+        r.part("cube", 0.25, 1.62, 0, 0.04, 0.05, 0.9, IRON)
+        r.part("cube", 0.28, 1.5, 0, 0.08, 0.16, 0.12, (110, 90, 50))
+        r.part("cube", 0.28, 1.6, 0, 0.04, 0.08, 0.07, IRON)
+
+
+def _maiden_door(r, side):
+    """One door half, in the hinge's frame: it reaches from the hinge (z=0) toward the middle."""
+    inward = -side
+    for i, (y0, y1, w) in enumerate(MAIDEN_PROFILE):
+        h = y1 - y0
+        half = w / 2
+        zc = inward * (0.5 - half / 2)  # the panel's middle, measured from the hinge line
+        r.part("cube", 0, (y0 + y1) / 2, zc, 0.08, h + 0.01, half, MAIDEN_IRON)
+        r.part("cube", 0.05, y1 - 0.03, zc, 0.04, 0.05, half + 0.01, RUST)  # band
+        r.part("sphere", 0.07, y1 - 0.03, zc + inward * half * 0.3, 0.06, 0.06, 0.06, (140, 120, 100))
+        if i % 2 == 0:  # rust weeping down from the band
+            r.part("cube", 0.045, (y0 + y1) / 2, zc - inward * half * 0.2, 0.01, h * 0.8, 0.05, RUST)
+        r.part("cone", -0.12, (y0 + y1) / 2, zc, 0.06, 0.2, 0.06, STEEL, rz=math.pi / 2)  # inner spike
+    for y in (0.9, 2.05):  # hinge knuckles at the outer edge
+        r.part("cyl", 0, y, inward * 0.02, 0.09, 0.2, 0.09, MAIDEN_DARK)
+
+
+FLAME = (255, 170, 60)
+FLAME_CORE = (255, 235, 150)
+STONE = (128, 124, 118)
+CLOTH_RED = (120, 30, 30)
+
+
+def _flame(r, x, y, z, size, t):
+    flicker = 1 + math.sin(t * 11 + x * 7 + z * 5) * 0.15
+    r.part("cone", x, y, z, size * flicker, size * 1.5 * flicker, size * flicker, FLAME, glow=True)
+    r.part("cone", x, y + 0.02, z, size * 0.5, size * 1.9 * flicker, size * 0.5, FLAME_CORE, glow=True)
+
+
+def sconce(r, t):
+    """A torch held out from the wall (at local -X) by an iron bracket."""
+    r.part("cube", -0.97, 1.7, 0, 0.05, 0.4, 0.22, DARK_IRON)  # wall plate
+    r.part("cube", -0.86, 1.62, 0, 0.22, 0.04, 0.05, DARK_IRON, rz=0.5)  # bracket arm
+    with r.at(-0.74, 1.66, 0, rz=-0.35):
+        r.part("cyl", 0, 0.12, 0, 0.07, 0.5, 0.07, (80, 56, 36))
+        r.part("cyl", 0, 0.36, 0, 0.13, 0.08, 0.13, DARK_IRON)  # cup
+        _flame(r, 0, 0.5, 0, 0.18, t)
+
+
+def banner(r, t, seed):
+    """A tattered banner hung from a pole on the wall at local -X."""
+    sway = math.sin(t * 0.7) * 0.03
+    r.part("cyl", -0.9, 2.55, 0, 0.05, 1.0, 0.05, (70, 50, 32), rx=math.pi / 2)
+    for end in (-0.5, 0.5):
+        r.part("sphere", -0.9, 2.55, end, 0.08, 0.08, 0.08, BRASS)
+    cloth = CLOTH_RED if seed % 2 == 0 else (40, 50, 80)
+    with r.at(-0.9, 2.5, 0, rz=sway):
+        r.part("cube", 0, -0.75, 0, 0.03, 1.5, 0.8, cloth)
+        for i, z in enumerate((-0.3, -0.1, 0.1, 0.3)):  # ragged hem
+            r.part("cube", 0, -1.55 - (i % 2) * 0.08, z, 0.03, 0.2 + (i % 2) * 0.12, 0.16, cloth)
+        r.part("cube", 0.02, -0.6, 0, 0.02, 0.5, 0.08, (200, 180, 140))  # pale sigil: a sword
+        r.part("cube", 0.02, -0.5, 0, 0.02, 0.06, 0.3, (200, 180, 140))
+        r.part("sphere", 0.02, -0.98, 0, 0.02, 0.16, 0.16, (200, 180, 140))
+
+
+def rack(r, seed):
+    """A weapon rack against the wall at local -X: spears and a sword leaning in a wooden frame."""
+    wood = (84, 58, 36)
+    for z in (-0.6, 0.6):
+        r.part("cube", -0.75, 0.75, z, 0.1, 1.5, 0.1, wood)
+    r.part("cube", -0.75, 1.35, 0, 0.1, 0.08, 1.3, wood)
+    r.part("cube", -0.6, 0.25, 0, 0.3, 0.08, 1.3, wood)
+    for z in (-0.4, -0.15, 0.1):
+        with r.at(-0.62, 0.95, z, rz=0.12):
+            r.part("cube", 0, 0, 0, 0.04, 1.6, 0.04, wood)
+            r.part("cone", 0, 0.9, 0, 0.08, 0.25, 0.04, STEEL)
+    if seed % 2 == 0:
+        with r.at(-0.62, 0.6, 0.4, rz=0.1):
+            sword(r, "rusted_sword")
+
+
+def table(r, t, seed):
+    """A rough plank table with a guttering candle and a plate or tankard."""
+    wood = (96, 66, 40)
+    r.part("cube", 0, 0.78, 0, 1.0, 0.08, 1.5, WHITE, tex="wood_plank")
+    for dx, dz in ((0.4, 0.62), (0.4, -0.62), (-0.4, 0.62), (-0.4, -0.62)):
+        r.part("cube", dx, 0.37, dz, 0.08, 0.74, 0.08, wood)
+    r.part("cyl", 0.1, 0.88, -0.4, 0.08, 0.14, 0.08, (220, 210, 180))
+    _flame(r, 0.1, 0.98, -0.4, 0.05, t)
+    if seed % 2:
+        r.part("cyl", -0.1, 0.83, 0.2, 0.36, 0.03, 0.36, (150, 150, 156))  # plate
+        r.part("sphere", -0.1, 0.87, 0.2, 0.14, 0.08, 0.14, (110, 80, 40))  # stale bread
+    else:
+        r.part("cyl", -0.15, 0.9, 0.25, 0.16, 0.2, 0.16, (110, 90, 60))  # tankard
+    r.part("cube", 0.6, 0.45, 0.2, 0.36, 0.06, 0.36, WHITE, tex="wood_plank")  # a stool
+    r.part("cube", 0.6, 0.22, 0.2, 0.06, 0.44, 0.06, wood)
+
+
+def candles(r, t, seed):
+    """A cluster of candles melted onto the floor."""
+    r.part("cyl", 0, 0.02, 0, 0.6, 0.04, 0.5, (210, 200, 170))  # wax puddle
+    for i in range(3 + seed % 3):
+        a = i * 2.1 + seed
+        d = 0.08 + (i % 3) * 0.1
+        h = 0.18 + ((i * 5 + seed) % 4) * 0.08
+        x, z = math.cos(a) * d, math.sin(a) * d
+        r.part("cyl", x, h / 2, z, 0.07, h, 0.07, (225, 215, 185))
+        _flame(r, x, h + 0.04, z, 0.04, t + i)
+
+
+def rubble(r, seed):
+    """Fallen masonry: a broken column drum and loose stones."""
+    with r.at(0, 0, 0, ry=seed * 0.8):
+        r.part("cyl", 0.2, 0.25, -0.1, 0.7, 0.5, 0.7, WHITE, tex="rough_stone", rz=1.5 if seed % 2 else 0)
+        for i in range(5):
+            a = i * 1.7 + seed
+            s = 0.18 + (i % 3) * 0.1
+            r.part(
+                "cube", math.cos(a) * 0.55, s / 2, math.sin(a) * 0.55, s, s, s * 1.2, WHITE,
+                tex="stone_brick", ry=a, rx=i * 0.3,
+            )  # fmt: skip
+
+
+def urn(r, seed, broken=False):
+    """A clay pot; smashed, a few curved shards."""
+    clay = (150, 92, 60) if seed % 2 else (126, 110, 90)
+    if broken:
+        for i in range(5):
+            a = i * 1.3 + seed
+            r.part("sphere", math.cos(a) * 0.3, 0.04, math.sin(a) * 0.3, 0.22, 0.06, 0.16, clay, ry=a)
+        r.part("cyl", 0, 0.06, 0, 0.3, 0.12, 0.3, clay)
+        return
+    with r.at(((seed * 13) % 5 - 2) * 0.1, 0, ((seed * 17) % 5 - 2) * 0.1):
+        r.part("sphere", 0, 0.35, 0, 0.6, 0.62, 0.6, clay)
+        r.part("cyl", 0, 0.7, 0, 0.3, 0.16, 0.3, clay)
+        r.part("cyl", 0, 0.79, 0, 0.38, 0.05, 0.38, clay)
+        r.part("cyl", 0, 0.4, 0, 0.62, 0.05, 0.62, tuple(c - 30 for c in clay))  # painted band
+
+
+def warden_altar(r, taken, t):
+    """A stepped altar before a stone statue of the Ashen Warden, who offers a floating key above his
+    cupped hands. Faces +X; the statue stands at the back of the tile."""
+    r.part("cube", 0, 0.08, 0, 1.95, 0.16, 1.95, WHITE, tex="rough_stone")  # dais
+    r.part("cube", -0.2, 0.24, 0, 1.5, 0.16, 1.6, WHITE, tex="rough_stone")
+    # The altar block with a cloth runner and candles.
+    r.part("cube", 0.45, 0.68, 0, 0.6, 0.72, 1.3, WHITE, tex="rough_stone")
+    r.part("cube", 0.45, 1.05, 0, 0.7, 0.06, 1.4, WHITE, tex="rough_stone")
+    r.part("cube", 0.45, 1.09, 0, 0.72, 0.02, 0.42, CLOTH_RED)
+    r.part("cube", 0.8, 0.85, 0, 0.02, 0.5, 0.42, CLOTH_RED)
+    for z in (-0.55, 0.55):
+        r.part("cyl", 0.55, 1.2, z, 0.08, 0.22, 0.08, (225, 215, 185))
+        _flame(r, 0.55, 1.34, z, 0.05, t + z)
+    _warden_statue(r, taken, t)
+    if not taken:  # the key hovers just above his offered hands
+        bob = math.sin(t * 1.6) * 0.04
+        with r.at(0.3, 2.02 + bob, 0, ry=t * 0.8):
+            r.part("sphere", 0, 0, 0, 0.16, 0.16, 0.16, (255, 150, 60), glow=True)
+            with r.at(0, 0, 0, s=0.32):
+                key(r, (150, 150, 160), 1.9)
+
+
+def _warden_statue(r, taken, t):
+    stone = STONE
+    dark = (96, 92, 88)
+    with r.at(-0.55, 0.32, 0, s=1.1):
+        r.part("cube", 0, 0.12, 0, 0.7, 0.24, 0.9, dark)  # plinth
+        for side in (-0.16, 0.16):  # legs in greaves
+            r.part("cube", 0, 0.6, side, 0.24, 0.75, 0.2, stone)
+        r.part("cube", 0, 1.05, 0, 0.32, 0.24, 0.5, dark)  # belt
+        r.part("cube", 0, 1.42, 0, 0.36, 0.55, 0.6, stone)  # breastplate
+        for side in (-1, 1):
+            r.part("sphere", 0, 1.72, side * 0.38, 0.36, 0.22, 0.32, dark)  # pauldrons
+            with r.at(0.05, 1.62, side * 0.36, rz=0.9):  # arms reaching forward to offer the key
+                r.part("cube", 0, -0.22, 0, 0.14, 0.45, 0.14, stone)
+                with r.at(0, -0.42, 0, rz=0.6):
+                    r.part("cube", 0, -0.18, 0, 0.12, 0.36, 0.12, stone)
+                    r.part("cube", 0.02, -0.38, -side * 0.04, 0.16, 0.08, 0.14, stone)  # cupped hand
+        with r.at(0, 1.92, 0):  # horned great helm
+            r.part("cube", 0, 0.12, 0, 0.32, 0.36, 0.3, stone)
+            r.part("cone", 0, 0.38, 0, 0.18, 0.2, 0.18, dark)
+            for side in (-1, 1):
+                r.part("cone", 0, 0.32, side * 0.24, 0.08, 0.36, 0.08, dark, rx=side * 0.9)
+            eye = (30, 26, 24) if taken else (255, 120, 40)
+            r.part("cube", 0.165, 0.14, 0, 0.02, 0.04, 0.2, eye, glow=not taken)
+        # A greatsword planted point-down at his side.
+        with r.at(0.12, 0.25, 0.62):
+            r.part("cube", 0, 0.7, 0, 0.04, 1.4, 0.14, (110, 108, 106))
+            r.part("cube", 0, 1.42, 0, 0.08, 0.06, 0.46, dark)
+            r.part("cube", 0, 1.62, 0, 0.06, 0.34, 0.06, dark)
+
+
+def spell_orb(r, id_, t):
+    """Inventory preview for a known spell: a glowing orb in the spell's colour."""
+    rgb = {"flame": (255, 120, 40), "mend": (120, 230, 140), "lumen": (210, 220, 255)}.get(id_, WHITE)
+    pulse = 1 + math.sin(t * 3) * 0.06
+    r.part("sphere", 0, 0, 0, 0.7 * pulse, 0.7 * pulse, 0.7 * pulse, rgb, glow=True)
+    for i in range(3):
+        a = t * 2 + i * 2.1
+        r.part(
+            "cube",
+            math.cos(a) * 0.6,
+            math.sin(t * 3 + i) * 0.2,
+            math.sin(a) * 0.6,
+            0.1,
+            0.1,
+            0.1,
+            rgb,
+            glow=True,
+        )
 
 
 HEAVY_CATEGORIES = ("greatsword", "hammer")
@@ -602,6 +908,8 @@ def item(r, id_, t):
     elif id_ in ("cell_key", "warden_key"):
         warden = id_ == "warden_key"
         key(r, (120, 120, 128) if warden else (150, 84, 50), 1.9 if warden else 1.6)
+    elif id_.startswith("spell_"):
+        spell_orb(r, id_.removeprefix("spell_"), t)
     elif id_ == "ember_sigil":
         glow = 1 + math.sin(t * 4) * 0.08
         with r.at(0, 0, 0, rz=math.pi / 2):

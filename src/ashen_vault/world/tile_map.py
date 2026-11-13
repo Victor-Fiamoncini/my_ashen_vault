@@ -15,6 +15,7 @@ class Tile:
     wall_tex: str | None = None
     ceil_tex: str | None = None
     liquid: bool = False
+    pit: bool = False  # falling in hurts and sends you back to solid ground
 
     @property
     def open_sky(self):
@@ -40,6 +41,7 @@ class TileMap:
         self.width = width
         self.depth = depth
         self._tiles = tiles
+        self._overrides = {}
         self.meta = meta
         self.entities = entities
         self._edge = Tile(
@@ -52,10 +54,49 @@ class TileMap:
         )
 
     def __getitem__(self, key):
+        tile = self._overrides.get(key)
+        if tile is not None:
+            return tile
         tx, tz = key
         if tx < 0 or tz < 0 or tx >= self.width or tz >= self.depth:
             return self._edge
         return self._tiles[tz * self.width + tx]
+
+    def set_override(self, key, tile):
+        """Swaps the tile at `key` (tx, tz) at runtime, e.g. a floor that crumbles; None restores it."""
+        if tile is None:
+            self._overrides.pop(key, None)
+        else:
+            self._overrides[key] = tile
+
+    # yaw for each direction, in the order ties are broken
+    FACINGS = (((1, 0), 0.0), ((0, 1), math.pi / 2), ((-1, 0), math.pi), ((0, -1), -math.pi / 2))
+
+    def open_facing(self, tx, tz, reach=3):
+        """Yaw pointing toward the most open direction from (tx, tz): how a chest set against a wall
+        or tucked into a corner should face."""
+        best_yaw, best = 0.0, -1
+        for (dx, dz), yaw in self.FACINGS:
+            n = 0
+            while n < reach and self._standable(tx + dx * (n + 1), tz + dz * (n + 1)):
+                n += 1
+            if n > best:
+                best_yaw, best = yaw, n
+        return best_yaw
+
+    WALL_CHECK = (((-1, 0), 0.0), ((1, 0), math.pi), ((0, -1), math.pi / 2), ((0, 1), -math.pi / 2))
+
+    def wall_yaw(self, tx, tz):
+        """Yaw facing out of the first solid wall beside (tx, tz), for things hung on walls
+        (sconces, banners, shackles); None if the tile stands free."""
+        for (dx, dz), yaw in self.WALL_CHECK:
+            if self[tx + dx, tz + dz].solid:
+                return yaw
+        return None
+
+    def _standable(self, tx, tz):
+        tile = self[tx, tz]
+        return tile.walkable and not tile.pit
 
     def each_tile(self):
         for tz in range(self.depth):

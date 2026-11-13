@@ -97,6 +97,13 @@ def sounds():
                 + math.sin(t * TAU * 70) * 0.4 * env(p, 0.02)
             ),
         ),
+        "crack": gen(
+            0.4,
+            lambda t, p: (
+                (noise() * (1.0 if (t * 37) % 1 < 0.3 else 0.2) + math.sin(t * TAU * (160 - p * 90)) * 0.3)
+                * env(p, 0.01)
+            ),
+        ),
         "swoosh": gen(0.45, lambda t, p: lowpass(0.04 + math.sin(p * math.pi) * 0.25) * 2.0 * env(p, 0.45)),
         "save": gen(
             1.2, lambda t, p: (math.sin(t * TAU * 392) + math.sin(t * TAU * 588)) * 0.18 * env(p, 0.2)

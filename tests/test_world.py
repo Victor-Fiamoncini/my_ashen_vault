@@ -1,4 +1,5 @@
 import glob
+import math
 import numbers
 import os
 
@@ -6,8 +7,9 @@ import pytest
 
 from ashen_vault import MAP_DIR
 from ashen_vault.world import collision
+from ashen_vault.world.hazards import CrumbleFloor
 from ashen_vault.world.map_loader import MapError, MapLoader
-from ashen_vault.world.tile_map import TileMap
+from ashen_vault.world.tile_map import Tile, TileMap
 from conftest import ROOM
 
 
@@ -94,13 +96,21 @@ def test_separate_pushes_apart():
     assert z == pytest.approx(0.0)
 
 
-STATIC_BLOCKERS = ("barrel", "crate", "iron_maiden", "save_statue", "well", "npc")
+STATIC_BLOCKERS = (
+    *("barrel", "crate", "urn", "iron_maiden", "save_statue", "well", "npc"),
+    *("altar", "table", "rack", "rubble"),
+)
 
 
 def test_sunken_keep_decor_never_cuts_off_anything():
     """Flood fill from the start (doors and gates count as open): every chest, door, lever,
     exit and the iron maiden must stay reachable, so no barrel plugs a corridor."""
     m = MapLoader.load_file(os.path.join(MAP_DIR, "sunken_keep.map"))
+    for e in m.entities:  # crumbling floors start solid
+        if e.kind == "crumble":
+            m.set_override(
+                (e.tx, e.tz), CrumbleFloor(e.tx, e.tz, float(e.props["floor"]), m[e.tx, e.tz]).solid_tile()
+            )
     solid = {(e.tx, e.tz) for e in m.entities if e.kind in STATIC_BLOCKERS}
     sx, sz = (int(v) for v in m.meta["start"][:2])
     seen = {(sx, sz)}
@@ -110,7 +120,7 @@ def test_sunken_keep_decor_never_cuts_off_anything():
         for nx, nz in ((tx + 1, tz), (tx - 1, tz), (tx, tz + 1), (tx, tz - 1)):
             if (nx, nz) in seen or (nx, nz) in solid:
                 continue
-            if not collision.passable(m, nx, nz, m[tx, tz].floor):
+            if not collision.passable(m, nx, nz, m[tx, tz].floor) or m[nx, nz].pit:
                 continue
             seen.add((nx, nz))
             todo.append((nx, nz))
@@ -118,7 +128,40 @@ def test_sunken_keep_decor_never_cuts_off_anything():
     def touched(tx, tz):
         return any((tx + dx, tz + dz) in seen for dx, dz in ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)))
 
-    targets = [e for e in m.entities if e.kind in ("chest", "door", "gate", "lever", "exit", "iron_maiden")]
-    assert any(e.kind == "iron_maiden" for e in targets)
+    kinds = ("chest", "door", "gate", "lever", "exit", "iron_maiden", "mimic", "barrel", "altar")
+    targets = [e for e in m.entities if e.kind in kinds]
+    assert {"iron_maiden", "mimic"} <= {e.kind for e in targets}
     for e in targets:
         assert touched(e.tx, e.tz), f"{e.kind} at {e.tx},{e.tz} is unreachable"
+
+
+def test_wall_yaw_faces_out_of_the_nearest_wall(room):
+    assert room.wall_yaw(1, 2) == pytest.approx(0.0)  # wall to the west: face east
+    assert room.wall_yaw(4, 2) == pytest.approx(math.pi)  # wall to the east
+    assert room.wall_yaw(2, 1) == pytest.approx(math.pi / 2)  # wall to the north
+    assert room.wall_yaw(2, 3) == pytest.approx(-math.pi / 2)  # wall to the south
+    assert room.wall_yaw(2, 2) is None  # the middle of the room touches no wall
+
+
+def test_open_facing_turns_away_from_walls(room):
+    # (1,1) is the room's NW corner: east runs 3 tiles to the raised step, south 2.
+    assert room.open_facing(1, 1) == pytest.approx(0.0)
+    m = MapLoader(ROOM.replace("#..,^#", "#.####", 1)).parse()
+    assert m.open_facing(1, 1) == pytest.approx(math.pi / 2)  # only south is open
+
+
+def test_open_facing_ignores_pits():
+    text = ROOM.replace("^ = floor h=1.5 ceil=3", "^ = floor h=-3 ceil=3 pit").replace("#..,^#", "#.^^^#", 1)
+    m = MapLoader(text).parse()
+    assert m[2, 1].pit
+    assert m.open_facing(1, 1) == pytest.approx(math.pi / 2)
+
+
+def test_overrides_swap_and_restore_tiles(room):
+    original = room[2, 1]
+    stand_in = Tile(walkable=True, floor=2.5)
+    room.set_override((2, 1), stand_in)
+    assert room[2, 1] is stand_in
+    assert room.floor_at(*TileMap.center(2, 1)) == pytest.approx(2.5)
+    room.set_override((2, 1), None)
+    assert room[2, 1] is original
