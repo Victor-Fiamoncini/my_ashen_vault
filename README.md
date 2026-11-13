@@ -47,7 +47,7 @@ FromSoftware, Inc.
   </tr>
   <tr>
     <td><img src="docs/screenshots/warden.png" alt="The Ashen Warden boss in its hall"></td>
-    <td><img src="docs/screenshots/inventory.png" alt="The Belongings screen with a rotating item preview"></td>
+    <td><img src="docs/screenshots/inventory.png" alt="The Belongings screen: a katana in the right hand, a shield in the left, worn armor and a rotating preview"></td>
   </tr>
   <tr>
     <td align="center"><sub>The Ashen Warden</sub></td>
@@ -68,6 +68,14 @@ FromSoftware, Inc.
   <tr>
     <td align="center"><sub>The woodcutters' log rack, waiting for climbers</sub></td>
     <td align="center"><sub>The Loom Mother</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/combat.png" alt="A katana in one hand and a round shield in the other, facing a bone walker"></td>
+    <td><img src="docs/screenshots/corvane.png" alt="Corvane's shop of curved blades"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Katana and shield, one in each hand</sub></td>
+    <td align="center"><sub>Corvane's blades, for those who have proven themselves</sub></td>
   </tr>
 </table>
 
@@ -285,7 +293,9 @@ uv run ashen-vault --map sunken_keep --at 15,21,180 --smoke 100 --script "wait:1
 
 The README screenshots were taken this way. For example, the flame bolt shot is
 `uv run ashen-vault --map sunken_keep --at 15,22,0 --smoke 30 --script "wait:0.3 cast" --shot flame_bolt.png`,
-and the Loom Mother is `uv run ashen-vault --map verdant_hollow --at=15,7,-90 --smoke 40 --shot loom_mother.png`.
+the Loom Mother is `uv run ashen-vault --map verdant_hollow --at=15,7,-90 --smoke 40 --shot loom_mother.png`,
+and the katana and shield shot is
+`uv run ashen-vault --map sunken_keep --at 15,22,0 --level 8 --equip right=katana,left=round_shield,body=brigandine,hands=iron_gauntlets --smoke 100 --shot combat.png`.
 
 ## Contributing
 
