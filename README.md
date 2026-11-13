@@ -11,8 +11,8 @@
 ---
 
 The bell of Harrowmere has cracked. Beneath the village well, the drowned halls of the Sunken Keep have
-begun to stir, and behind an overgrown house the jungle of the Verdant Hollow has swallowed the old
-woodcutters' camp. Take up a rusted sword, bring back the Ember Sigil from the keep and the Verdant
+begun to stir, and at the end of a green trail out of the square a cave opens on the jungle of the
+Verdant Hollow, which has swallowed the old woodcutters' camp. Take up a rusted sword, bring back the Ember Sigil from the keep and the Verdant
 Sigil from the hollow, and let the bell sing again.
 
 ### Inspiration
@@ -58,7 +58,7 @@ FromSoftware, Inc.
     <td><img src="docs/screenshots/bark_husk.png" alt="A Bark Husk, a weeping-willow tree creature, beside a thorn plant"></td>
   </tr>
   <tr>
-    <td align="center"><sub>The Verdant Hollow, behind Harrowmere's overgrown house</sub></td>
+    <td align="center"><sub>The Verdant Hollow, through the cave at the end of Harrowmere's green trail</sub></td>
     <td align="center"><sub>A Bark Husk: circle it and strike the glow in its back</sub></td>
   </tr>
   <tr>
@@ -68,6 +68,22 @@ FromSoftware, Inc.
   <tr>
     <td align="center"><sub>The woodcutters' log rack, waiting for climbers</sub></td>
     <td align="center"><sub>The Loom Mother</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/jungle_trail.png" alt="A green trail between vine hedges ending at a cave mouth, glowing toadstools at its lip"></td>
+    <td><img src="docs/screenshots/mossmouth.png" alt="A brazier just kindled in the dark Mossmouth cave, a chest beside it"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>The green trail out of Harrowmere, ending at the cave</sub></td>
+    <td align="center"><sub>Mossmouth: a cold brazier kindled with Pyre</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/canopy_walk.png" alt="A plank walkway lit by torches high in the treetops, a snare bloom waiting on it"></td>
+    <td><img src="docs/screenshots/root_caverns.png" alt="A bonfire throwing sparks in the dark Root Caverns, roots hanging from the ceiling"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>The Canopy Walk, the long way to the Loom Mother</sub></td>
+    <td align="center"><sub>A bonfire in the Root Caverns, under the bog</sub></td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/combat.png" alt="A katana in one hand and a round shield in the other, facing a bone walker"></td>
@@ -105,11 +121,13 @@ FromSoftware, Inc.
   right hand and the right button the left. Two-handed weapons fill both. A raised shield stops blows
   from the front for stamina. The best gear needs a higher level.
 - **Armor you can see**: body armor and gauntlets change the sleeves and hands you see in first person.
-- **Spells**: Flame Bolt, Mend and Lumen, paid for with MP once your focus has returned.
+- **Spells**: Flame Bolt, Mend and Lumen, paid for with MP once your focus has returned, and three more
+  hidden in the hollow: Venom Dart (a sting that keeps eating at its target), Veil of Mist (ordinary foes
+  overlook you until you strike) and Pyre (a short gout of fire that burns plants and kindles cold fires).
 - **Stamina**: sprinting, swinging and blocking drain a green stamina bar. Run it dry and you are
   winded until it recovers.
 - **Three hand-built areas**: the village of Harrowmere, the Sunken Keep below its well and the
-  Verdant Hollow behind its overgrown house, with locked doors, levers, a flooded cellar, chests, a
+  Verdant Hollow at the end of the green trail, with locked doors, levers, a flooded cellar, chests, a
   shop with spinning item previews and five villagers to talk to (one of them only once you have
   proven yourself).
 - **A keep that fights back**: floor spikes, swinging pendulum blades and floors that crumble into the
@@ -122,6 +140,12 @@ FromSoftware, Inc.
   beds; a ravine crossed on crumbling ledges; a slope where a log rack rolls its logs at climbers;
   choking spore pods in a stilt cabin; and an abandoned woodcutters' camp to rummage through, whose
   cabin floor gives way into its cellar. Long drops hurt, and the hollow keeps a few secrets too.
+- **Dark places**: the hollow's caves and root caverns swallow your light. Only torches, glowing
+  toadstools and fires show the way, unless you burn Lumen or kindle the cold braziers and bonfires,
+  which then stay lit for good.
+- **A hollow that folds back on itself**: the way to the Loom Mother runs the long way round, over a
+  canopy walk in the treetops. Barred doors, wooden-lever lifts and a drawbridge open shortcuts back to
+  the shrines once you reach their far side.
 - **Everything procedural**: textures, low-poly models and sound effects are all generated at startup.
   The game itself ships no image or audio files.
 - **Save shrines**: pray at a stone shrine to heal and record your journey. The fallen rise again when
@@ -238,7 +262,9 @@ The same list is in the game under **Controls** on the title and pause menus.
   blade burns, keep moving off the glowing circles on the floor.
 - Not every wall is a wall, and not every chest is a chest. Not every stump is a stump, either.
 - In the jungle, keep moving on ledges and rotten planks, and wait in the notches of the log slope
-  for each log to pass. Tree creatures turn slowly: get behind them.
+  for each log to pass. Tree creatures turn slowly: get behind them, or set them alight.
+- A door that won't open from your side is barred from the other. Find the way round.
+- Spells fly where you look: aim down at slimes.
 - Talk to everyone in Harrowmere before you descend. They have gifts and directions.
 
 ## Save file
@@ -308,7 +334,8 @@ uv run ashen-vault --map sunken_keep --at 15,21,180 --smoke 100 --script "wait:1
 - `--script "..."` drives input: `action` presses once, `action:1.5` holds for 1.5 s, `wait:1` pauses.
 - `--shot PATH` sets where `--smoke` writes its screenshot.
 - `--equip right=katana,left=buckler,body=brigandine,hands=iron_gauntlets` starts with that gear (`none`
-  empties a slot, `left=spell` readies the spell there), and `--level N` at that level.
+  empties a slot, `left=spell` readies the spell there and `left=spell:pyre` learns and readies Pyre),
+  and `--level N` at that level.
 
 The README screenshots were taken this way. For example, the flame bolt shot is
 `uv run ashen-vault --map sunken_keep --at 15,22,0 --smoke 30 --script "wait:0.3 cast" --shot flame_bolt.png`,
@@ -316,6 +343,11 @@ the Loom Mother is `uv run ashen-vault --map verdant_hollow --at=15,7,-90 --smok
 the lift ride is
 `uv run ashen-vault --map sunken_keep --at 4,24,90 --smoke 560 --script "forward:0.9 wait:5 forward:0.3" --shot undercroft_lift.png`,
 the gallery is `uv run ashen-vault --map sunken_keep --at=25,15,-60 --smoke 40 --shot gallery.png`,
+the jungle trail is `uv run ashen-vault --map harrowmere --at 38,14,0 --smoke 40 --shot jungle_trail.png`,
+Mossmouth is
+`uv run ashen-vault --map verdant_hollow --at=15,31,180 --equip left=spell:pyre --script "wait:0.3 cast wait:3" --smoke 120 --shot mossmouth.png`,
+the canopy is `uv run ashen-vault --map verdant_hollow --at=31,3,180 --script "look_down:0.12" --smoke 40 --shot canopy_walk.png`,
+the Root Caverns are `uv run ashen-vault --map verdant_hollow --at=6,38,-100 --smoke 25 --shot root_caverns.png`,
 and the katana and shield shot is
 `uv run ashen-vault --map sunken_keep --at 15,22,0 --level 8 --equip right=katana,left=round_shield,body=brigandine,hands=iron_gauntlets --smoke 100 --shot combat.png`.
 
