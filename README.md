@@ -60,12 +60,14 @@ FromSoftware, Inc.
   15-bit color with ordered dithering, distance fog and baked vertex lighting.
 - **Deliberate, weighty combat**: an ATK gauge that refills between swings, enemy wind-ups you can read
   and interrupt, and a boss with poise.
-- **Spells**: Flame Bolt, Mend and Lumen, cast from a MAG gauge.
+- **Spells**: Flame Bolt, Mend and Lumen, paid for with MP once your focus has returned.
+- **Stamina**: sprinting drains a green stamina bar. Run it dry and you are winded until it recovers.
 - **Two hand-built areas**: the village of Harrowmere and the Sunken Keep, with locked doors, levers,
-  a flooded cellar, chests, a shop and four villagers to talk to.
+  a flooded cellar, chests, a shop with spinning item previews and four villagers to talk to.
 - **Everything procedural**: textures, low-poly models and sound effects are all generated at startup.
   The game itself ships no image or audio files.
-- **Save shrines**: pray at a stone shrine to heal and record your journey.
+- **Save shrines**: pray at a stone shrine to heal and record your journey. The keep's fallen rise again
+  when you do; only the Warden stays dead.
 
 ## Installing
 
@@ -131,23 +133,31 @@ Without uv, plain pip works: `python3 -m venv .venv`, `.venv/bin/pip install -e 
 | --- | --- |
 | Move / strafe | W S / A D (or arrow up/down) |
 | Sprint | Hold Shift |
-| Turn / look | Arrow left/right, mouse, PgUp/PgDn |
-| Attack | Space / left mouse |
-| Cast spell / cycle spell | F or right mouse / R |
+| Turn / look | Mouse |
+| Attack | Left mouse |
+| Cast spell / change spell | Right mouse / mouse wheel |
 | Use, talk, open | E |
 | Belongings | Tab or I |
-| Quick Red Tonic / Blue Moss | 1 / 2 |
+| Quick item / choose quick item | Middle mouse / Shift + mouse wheel |
 | Pause | Esc |
+| Menus | Up/Down, Enter, Esc, or point, click, right-click and scroll with the mouse |
 
 The same list is in the game under **Controls** on the title and pause menus.
 
 ## Tips
 
-- Your swing damage scales with the **ATK** gauge (gold bar, bottom right). Wait for it to refill
-  before swinging. It doesn't refill while you sprint.
-- Spells need a full **MAG** gauge (cyan bar) as well as enough MP.
+- The HUD in the bottom right is drawn as a mouse: your weapon sits on the left button, your spell on the
+  right button and your quick item on the wheel. HP, MP, ST (with their numbers) and a small compass share
+  the bottom-left box. Spell MP costs are listed in Belongings and in the shop.
+- Your swing damage scales with the **ATK** gauge: the gold ring around your weapon. Wait for it to close
+  and flash before swinging.
+- Spells need your **focus** back as well as enough MP. The cyan ring around the spell icon refills after
+  each cast and flashes when you can cast again.
+- Sprinting drains **ST** (green bar). Empty it and you can't sprint until it is about a third full.
 - Watch for enemies raising their weapons. A solid hit during the wind-up staggers most of them.
-- In Belongings, press Enter on an equipped item (marked `(E)`) to take it off. With no weapon you fight
+- Every menu works with the mouse: point at a row to select it, click to use or buy, right-click to
+  close.
+- In Belongings, press Enter (or click) on an equipped item (marked `(E)`) to take it off. With no weapon you fight
   bare-handed.
 - Talk to everyone in Harrowmere before you descend. They have gifts and directions.
 

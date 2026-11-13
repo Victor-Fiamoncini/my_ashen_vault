@@ -1,6 +1,8 @@
+import json
+
 import pytest
 
-from ashen_vault.player.combat import Combat, Gauge
+from ashen_vault.player.combat import Combat, Gauge, Stamina
 from ashen_vault.player.inventory import Inventory
 from ashen_vault.player.items import Items
 from ashen_vault.player.player import Player
@@ -108,7 +110,7 @@ def test_save_path_env_override(monkeypatch, tmp_path):
     assert SaveSystem().path == str(tmp_path / "x.json")
 
 
-def test_sprint_is_faster_and_holds_attack_gauge(room):
+def test_sprint_is_faster_drains_stamina_and_keeps_attack_gauge_filling(room):
     x, z = TileMap.center(1, 2)
     walker = Player()
     runner = Player()
@@ -119,11 +121,94 @@ def test_sprint_is_faster_and_holds_attack_gauge(room):
     assert (runner.x - x) / (walker.x - x) == pytest.approx(Player.SPRINT, abs=1e-6)
     assert runner.sprinting
     assert not walker.sprinting
+    assert runner.stamina.value < 1.0
+    assert walker.stamina.value == pytest.approx(1.0)
 
     runner.attack_gauge.spend()
     runner.update_timers(0.5)
-    assert runner.attack_gauge.value == pytest.approx(0.0)
-    runner.walk(room, 0, 0, 0.1, sprint=True)
-    assert not runner.sprinting
-    runner.update_timers(0.5)
     assert runner.attack_gauge.value > 0
+
+
+def test_exhausted_player_moves_at_walking_speed(room):
+    x, z = TileMap.center(1, 2)
+    tired = Player()
+    tired.place(x, z, 0.0, room)
+    tired.stamina.drain(Stamina.DRAIN_TIME)
+    assert tired.stamina.exhausted
+    walker = Player()
+    walker.place(x, z, 0.0, room)
+    walker.walk(room, 1, 0, 0.1)
+    tired.walk(room, 1, 0, 0.1, sprint=True)
+    assert not tired.sprinting
+    assert tired.x == pytest.approx(walker.x)
+
+
+def test_stamina_exhaustion_and_recovery():
+    st = Stamina()
+    assert st.can_sprint
+    st.drain(Stamina.DRAIN_TIME / 2)
+    assert st.value == pytest.approx(0.5)
+    st.update(Stamina.REFILL_DELAY / 2)
+    assert st.value == pytest.approx(0.5)  # no refill before the rest delay
+    st.drain(Stamina.DRAIN_TIME)
+    assert st.value == 0
+    assert st.exhausted
+    assert not st.can_sprint
+    st.update(Stamina.REFILL_DELAY)
+    st.update(Stamina.REFILL_TIME * 0.2)
+    assert 0 < st.value < Stamina.RECOVER
+    assert st.exhausted
+    st.update(Stamina.REFILL_TIME * 0.2)
+    assert not st.exhausted
+    assert st.can_sprint
+    st.fill()
+    assert st.value == 1.0
+
+
+def test_gauge_full_t_tracks_time_since_full():
+    g = Gauge(1.0)
+    g.spend()
+    assert g.full_t == 0
+    g.update(1.0)
+    assert g.full
+    assert g.full_t == 0
+    g.update(0.25)
+    assert g.full_t == pytest.approx(0.25)
+
+
+def test_cycle_spell_wraps_both_ways():
+    p = Player()
+    assert p.cycle_spell() is None, "one spell: nothing to switch to"
+    p.spells += ["mend", "lumen"]
+    assert p.cycle_spell().id == "mend"
+    assert p.cycle_spell(-1).id == "flame"
+    assert p.cycle_spell(-1).id == "lumen"
+    assert p.cycle_spell().id == "flame"
+
+
+def test_quick_item_cycles_consumables_only():
+    p = Player()
+    assert p.quick_item().id == "red_tonic"
+    assert p.cycle_quick() is None, "no consumables carried"
+    p.inventory.add("red_tonic", 2)
+    p.inventory.add("blue_moss")
+    assert [i.id for i in p.quick_items()] == ["blue_moss", "red_tonic"]
+    assert p.cycle_quick().id == "blue_moss"
+    assert p.cycle_quick().id == "red_tonic"
+    assert p.cycle_quick(-1).id == "blue_moss"
+    p.inventory.remove("blue_moss")
+    assert p.quick_item().id == "blue_moss", "an empty slot stays selected"
+    assert p.cycle_quick().id == "red_tonic"
+
+
+def test_save_keeps_quick_item_and_old_saves_default(tmp_path):
+    saves = SaveSystem(str(tmp_path / "save.json"))
+    player = Player()
+    player.quick = "blue_moss"
+    saves.save(map="harrowmere", player=player, flags=set())
+    assert saves.load()[1].quick == "blue_moss"
+
+    data = json.loads((tmp_path / "save.json").read_text())
+    del data["player"]["quick"]
+    (tmp_path / "save.json").write_text(json.dumps(data))
+    assert saves.load()[1].quick == "red_tonic"

@@ -7,8 +7,11 @@ class Gauge:
     def __init__(self, refill_time):
         self.refill_time = refill_time
         self.value = 1.0
+        self.full_t = 10.0  # seconds since the gauge last became full (starts long settled)
 
     def update(self, dt):
+        if self.value >= 1.0:
+            self.full_t += dt
         self.value = min(self.value + dt / self.refill_time, 1.0)
         return self.value
 
@@ -20,10 +23,51 @@ class Gauge:
         """Empties the gauge and returns how full it was."""
         used = self.value
         self.value = 0.0
+        self.full_t = 0.0
         return used
 
     def fill(self):
         self.value = 1.0
+
+
+class Stamina:
+    """Sprint stamina. Drains while sprinting and refills after a short rest. Running it dry
+    leaves you exhausted: no sprinting until it recovers to RECOVER."""
+
+    DRAIN_TIME = 3.5  # seconds of sprint from full
+    REFILL_TIME = 2.5  # seconds to refill from empty
+    REFILL_DELAY = 0.5  # rest needed before it starts refilling
+    RECOVER = 0.3
+
+    def __init__(self):
+        self.value = 1.0
+        self.exhausted = False
+        self._rest_t = self.REFILL_DELAY
+
+    @property
+    def can_sprint(self):
+        return not self.exhausted and self.value > 0
+
+    def drain(self, dt):
+        self.value = max(self.value - dt / self.DRAIN_TIME, 0.0)
+        self._rest_t = 0.0
+        if self.value <= 0:
+            self.exhausted = True
+
+    def update(self, dt):
+        """Call on frames without sprinting."""
+        # Only the part of `dt` after the rest delay counts toward refilling.
+        rested = self._rest_t + dt - max(self._rest_t, self.REFILL_DELAY)
+        self._rest_t += dt
+        if rested <= 0:
+            return
+        self.value = min(self.value + rested / self.REFILL_TIME, 1.0)
+        if self.exhausted and self.value >= self.RECOVER:
+            self.exhausted = False
+
+    def fill(self):
+        self.value = 1.0
+        self.exhausted = False
 
 
 class Combat:

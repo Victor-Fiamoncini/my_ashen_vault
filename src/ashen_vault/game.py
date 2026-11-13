@@ -16,7 +16,7 @@ from ashen_vault.render import models
 from ashen_vault.render.gpu import Gpu
 from ashen_vault.render.rig import Rig
 from ashen_vault.save.save_system import SaveSystem
-from ashen_vault.screen import FOV, PREVIEW, H, W
+from ashen_vault.screen import FOV, PREVIEW, H, W, centered_row_at, list_row_at
 from ashen_vault.ui import hud as ui
 from ashen_vault.util import clamp, rround
 from ashen_vault.world.tile_map import TileMap
@@ -24,6 +24,11 @@ from ashen_vault.world.world import World
 
 KIND_ORDER = ["weapon", "armor", "consumable", "scroll", "key"]
 PAUSE_OPTIONS = ["Resume", "Controls", "Return to Title", "Quit"]
+# (x, y, width) of each ui.list_menu panel, shared by drawing and mouse hit-testing.
+PAUSE_LIST = (100, 80, 120)
+MENU_LIST = (6, 6, 170)
+SHOP_LIST = (6, 6, 308)
+TITLE_Y, TITLE_STEP = 140, 14
 ENDING = [
     "The bell of Harrowmere rings again.",
     "Its note rolls down through the well and into the drowned halls,",
@@ -173,7 +178,10 @@ class Game:
     def _update_title(self):
         opts = self._title_options()
         self._menu_nav(len(opts))
-        if not self._input.pressed("confirm"):
+        clicked = self._menu_pointer(
+            lambda px, py: centered_row_at(W // 2, TITLE_Y, TITLE_STEP, len(opts), 50, px, py)
+        )
+        if not (clicked or self._input.pressed("confirm")):
             return
         choice = opts[self._menu_index]
         if choice == "Continue":
@@ -188,10 +196,34 @@ class Game:
             self._running = False
 
     def _menu_nav(self, n):
-        if self._input.pressed("up"):
+        wheel = self._input.wheel()
+        if self._input.pressed("up") or wheel > 0:
             self._menu_index = (self._menu_index - 1) % n
-        if self._input.pressed("down"):
+        if self._input.pressed("down") or wheel < 0:
             self._menu_index = (self._menu_index + 1) % n
+
+    def _menu_pointer(self, hit):
+        """Mouse over a menu. `hit(px, py)` maps a 320x240 point to a row index or None.
+        Moving onto a row selects it; a left click on a row selects it and returns True."""
+        ptr = self._input.pointer()
+        if ptr is None:
+            return False
+        px, py, moved = ptr
+        i = hit(px, py)
+        if i is None:
+            return False
+        if moved:
+            self._menu_index = i
+        if self._input.pressed("click"):
+            self._menu_index = i
+            return True
+        return False
+
+    def _back(self):
+        return self._input.pressed("cancel") or self._input.pressed("back")
+
+    def _advance(self):
+        return self._input.pressed("confirm") or self._input.pressed("click")
 
     def new_game(self, map_name, at=None):
         self.flags = set()
@@ -252,8 +284,6 @@ class Game:
             md = pr.get_mouse_delta()
             p.turn(md.x * 0.0032)
             p.look(-md.y * 0.0032)
-        p.turn(self._axis("turn_r", "turn_l") * Player.TURN_SPEED * dt)
-        p.look(self._axis("look_up", "look_down") * 1.2 * dt)
         moved = p.walk(
             self.world.map,
             self._axis("forward", "back"),
@@ -274,12 +304,15 @@ class Game:
             self._resolve_swing()
         if inp.pressed("cast"):
             self._cast_spell()
-        if inp.pressed("cycle"):
-            self._cycle_spell()
-        if inp.pressed("quick1"):
-            self._quick_use("red_tonic")
-        if inp.pressed("quick2"):
-            self._quick_use("blue_moss")
+        wheel = inp.wheel()
+        if wheel:
+            step = -1 if wheel > 0 else 1  # wheel down = next
+            if inp.down("sprint"):
+                self._cycle_quick(step)
+            else:
+                self._cycle_spell(step)
+        if inp.pressed("quick"):
+            self._quick_use(p.quick)
         if inp.pressed("interact"):
             self._interact()
 
@@ -361,12 +394,15 @@ class Game:
             p.lumen_t = Spells.LUMEN_DURATION
             self.message("A pale light gathers around you.")
 
-    def _cycle_spell(self):
-        p = self.player
-        if len(p.spells) < 2:
-            return
-        p.spell_index = (p.spell_index + 1) % len(p.spells)
-        self.message(p.current_spell().name)
+    def _cycle_spell(self, step=1):
+        spell = self.player.cycle_spell(step)
+        if spell:
+            self.message(spell.name)
+
+    def _cycle_quick(self, step=1):
+        item = self.player.cycle_quick(step)
+        if item:
+            self.message(f"{item.name} x{self.player.inventory.count(item.id)}")
 
     def _quick_use(self, id_):
         if not self.player.inventory.has(id_):
@@ -433,9 +469,12 @@ class Game:
             s = self.player.stats
             s.heal(s.max_hp)
             s.restore_mp(s.max_mp)
+            self.player.stamina.fill()
+            self.world.respawn_enemies()
             self._saves.save(map=self.world.name, player=self.player, flags=self.flags)
             self.sfx("save")
             self.message("The shrine restores you. Your journey is recorded.")
+            self.message("Somewhere below, the fallen stir again.")
         elif k == "exit":
             self._travel(prop.props["map"], prop.props["at"])
         elif k == "pickup":
@@ -486,7 +525,7 @@ class Game:
 
     def _update_dialogue(self):
         inp = self._input
-        if not (inp.pressed("confirm") or inp.pressed("interact") or inp.pressed("cancel")):
+        if not (self._advance() or inp.pressed("interact") or self._back()):
             return
         d = self._dialogue
         d["page"] += 1
@@ -508,13 +547,14 @@ class Game:
 
     def _update_menu(self):
         items = self._menu_items()
-        if self._input.pressed("cancel"):
+        if self._back():
             return self._enter_play()
         if not items:
             return
         self._menu_nav(len(items))
         self._menu_index = clamp(self._menu_index, 0, len(items) - 1)
-        if self._input.pressed("confirm"):
+        clicked = self._menu_pointer(lambda px, py: list_row_at(*MENU_LIST, len(items), px, py))
+        if clicked or self._input.pressed("confirm"):
             self._use_item(items[self._menu_index])
 
     # --- shop ----------------------------------------------------------------------
@@ -538,11 +578,12 @@ class Game:
 
     def _update_shop(self):
         stock = self._shop_stock()
-        if self._input.pressed("cancel") or not stock:
+        if self._back() or not stock:
             return self._enter_play()
         self._menu_nav(len(stock))
         self._menu_index = clamp(self._menu_index, 0, len(stock) - 1)
-        if not self._input.pressed("confirm"):
+        clicked = self._menu_pointer(lambda px, py: list_row_at(*SHOP_LIST, len(stock), px, py))
+        if not (clicked or self._input.pressed("confirm")):
             return
         item = stock[self._menu_index]
         if self.player.inventory.buy(item.id):
@@ -559,10 +600,11 @@ class Game:
         self._mouse_look(False)
 
     def _update_pause(self):
-        if self._input.pressed("cancel"):
+        if self._back():
             return self._enter_play()
         self._menu_nav(len(PAUSE_OPTIONS))
-        if not self._input.pressed("confirm"):
+        clicked = self._menu_pointer(lambda px, py: list_row_at(*PAUSE_LIST, len(PAUSE_OPTIONS), px, py))
+        if not (clicked or self._input.pressed("confirm")):
             return
         choice = PAUSE_OPTIONS[self._menu_index]
         if choice == "Resume":
@@ -580,19 +622,19 @@ class Game:
         self.scene = "controls"
 
     def _update_controls(self):
-        if self._input.pressed("cancel") or self._input.pressed("confirm"):
+        if self._back() or self._advance():
             self.scene = self._controls_from
 
     def _draw_controls(self):
         if self._controls_from == "pause":
             ui.hud(self)
         pr.draw_rectangle(0, 0, W, H, ui.color(0, 0, 0, 120))
-        ui.list_menu("Controls", 30, 26, 260, CONTROLS, -1, footer="Esc / Enter: back")
+        ui.list_menu("Controls", 20, 14, 280, CONTROLS, -1, footer="Esc / Enter / Click: back")
 
     def _update_dead(self, dt):
         self._dead_t += dt
         self.world.update(dt)
-        if not (self._dead_t > 1.5 and self._input.pressed("confirm")):
+        if not (self._dead_t > 1.5 and self._advance()):
             return
         if self._saves.exists():
             self.continue_game()
@@ -609,14 +651,14 @@ class Game:
 
     def _update_ending(self):
         self._ending_t += pr.get_frame_time()
-        if self._ending_t > 2 and self._input.pressed("confirm"):
+        if self._ending_t > 2 and self._advance():
             self.show_title()
 
     # --- rendering ---------------------------------------------------------------
 
     def render(self):
-        if self.scene == "menu":
-            self._render_preview()
+        if self.scene in ("menu", "shop"):
+            self._render_preview(self._selected_item())
         pr.begin_texture_mode(self._target)
         fog = self.world.meta.get("fog", [0, 0, 0])
         pr.clear_background(ui.color(*(rround(c * 255) for c in fog)))
@@ -670,10 +712,13 @@ class Game:
         models.sword_view(self._rig, p.swing_t, bob, p.inventory.weapon)
         pr.end_mode_3d()
 
-    def _render_preview(self):
-        """Spins the selected inventory item in its own little PS1-styled viewport."""
-        items = self._menu_items()
-        item = items[self._menu_index] if self._menu_index < len(items) else None
+    def _selected_item(self):
+        """The highlighted row of the inventory or shop list, or None."""
+        items = self._menu_items() if self.scene == "menu" else self._shop_stock()
+        return items[self._menu_index] if self._menu_index < len(items) else None
+
+    def _render_preview(self, item):
+        """Spins `item` in its own little PS1-styled viewport."""
         gpu = self.gpu
         pr.begin_texture_mode(self._preview)
         pr.clear_background(ui.color(16, 12, 9))
@@ -728,7 +773,7 @@ class Game:
         elif s == "pause":
             ui.hud(self)
             pr.draw_rectangle(0, 0, W, H, ui.color(0, 0, 0, 120))
-            ui.list_menu("Paused", 100, 80, 120, [(o,) for o in PAUSE_OPTIONS], self._menu_index)
+            ui.list_menu("Paused", *PAUSE_LIST, [(o,) for o in PAUSE_OPTIONS], self._menu_index)
         elif s == "controls":
             self._draw_controls()
         elif s == "dead":
@@ -742,7 +787,9 @@ class Game:
         ui.text_centered("beneath the silent bell", W // 2, 80, ui.DIM)
         for i, o in enumerate(self._title_options()):
             sel = i == self._menu_index
-            ui.text_centered(f"> {o} <" if sel else o, W // 2, 140 + i * 14, ui.HIGHLIGHT if sel else ui.TEXT)
+            ui.text_centered(
+                f"> {o} <" if sel else o, W // 2, TITLE_Y + i * TITLE_STEP, ui.HIGHLIGHT if sel else ui.TEXT
+            )
 
     def _draw_menu(self):
         items = self._menu_items()
@@ -754,7 +801,7 @@ class Game:
             )
             for i in items
         ]
-        ui.list_menu("Belongings", 6, 6, 170, rows, self._menu_index)
+        ui.list_menu("Belongings", *MENU_LIST, rows, self._menu_index)
         s = self.player.stats
         ui.panel(182, 6, 132, 144)
         stats = [
@@ -771,27 +818,35 @@ class Game:
         for i, (k, v) in enumerate(stats):
             ui.text(k, 190, 12 + i * 11, ui.DIM)
             ui.text(str(v), 306 - ui.measure(str(v)), 12 + i * 11)
-        spells = [Spells.get(id_).name for id_ in self.player.spells]
-        ui.text("Spells", 190, 114, ui.DIM)
-        for i, l in enumerate(ui.wrap(", ".join(spells), 116)[:2]):
-            ui.text(l, 190, 125 + i * 11)
+        # Known spells with their MP cost (the HUD only shows the selected spell's icon).
+        pr.draw_line(188, 111, 308, 111, ui.BORDER)
+        for i, id_ in enumerate(self.player.spells[:3]):
+            spell = Spells.get(id_)
+            cost = f"{spell.cost} MP"
+            ui.text(spell.name, 190, 114 + i * 11)
+            ui.text(cost, 306 - ui.measure(cost), 114 + i * 11, ui.color(120, 150, 230))
 
-        ui.panel(6, 156, 308, 78)
         item = items[self._menu_index] if self._menu_index < len(items) else None
+        self._draw_item_panel(
+            item, self._item_detail(item) if item else "", "Enter/Click: use   Tab/R-click: close"
+        )
+
+    def _draw_item_panel(self, item, detail, footer):
+        """Bottom panel shared by Belongings and the shop: spinning preview, name, details, description."""
+        ui.panel(6, 156, 308, 78)
         if item:
             pr.draw_rectangle(10, 160, PREVIEW + 6, PREVIEW + 6, pr.BLACK)
             pr.draw_texture_rec(
                 self._preview.texture, pr.Rectangle(0, 0, PREVIEW, -PREVIEW), pr.Vector2(13, 163), pr.WHITE
             )
-            pr.draw_rectangle_lines(10, 160, PREVIEW + 6, PREVIEW + 6, ui.BORDER)
+            pr.draw_rectangle_lines(10, 160, PREVIEW + 6, PREVIEW + 6, ui.HUD_EDGE)
             ui.text(item.name, 84, 162, ui.HIGHLIGHT)
-            ui.text(self._item_detail(item), 84, 174, ui.DIM)
+            ui.text(detail, 84, 174, ui.DIM)
             for i, l in enumerate(ui.wrap(item.desc, 224)[:3]):
                 ui.text(l, 84, 187 + i * 11)
         msg = self.messages[-1] if self.messages else None
         fresh = msg is not None and msg[1] < 2.5
-        footer = msg[0] if fresh else "Enter: use/equip/unequip   Tab: close"
-        ui.text(footer, 84, 221, ui.TEXT if fresh else ui.DIM)
+        ui.text(msg[0] if fresh else footer, 84, 221, ui.TEXT if fresh else ui.DIM)
 
     def _item_detail(self, item):
         if item.kind == "weapon":
@@ -801,31 +856,27 @@ class Game:
         if item.kind == "consumable":
             return f"Consumable   x{self.player.inventory.count(item.id)}"
         if item.kind == "scroll":
-            return f"Scroll   {Spells.get(item.spell).name}"
+            spell = Spells.get(item.spell)
+            return f"Scroll   {spell.name}   {spell.cost} MP"
         return "Key item"
 
     def _draw_shop(self):
-        ui.hud(self)
+        pr.draw_rectangle(0, 0, W, H, ui.color(0, 0, 0, 120))
         stock = self._shop_stock()
         gold = self.player.inventory.gold
         rows = [(i.name, f"{i.price}g", i.price > gold) for i in stock]
-        ui.list_menu(
-            f"Pell's Goods  (you have {gold}g)",
-            40,
-            30,
-            240,
-            rows,
-            self._menu_index,
-            footer="Enter: buy   Esc: leave",
-        )
-        if self._menu_index < len(stock):
-            ui.text_centered(stock[self._menu_index].desc, W // 2, 140)
+        ui.list_menu(f"Pell's Goods  (you have {gold}g)", *SHOP_LIST, rows, self._menu_index)
+        item = self._selected_item()
+        detail = f"{self._item_detail(item)}   {item.price}g" if item else ""
+        self._draw_item_panel(item, detail, "Enter/Click: buy   Esc/R-click: leave")
 
     def _draw_dead(self):
         pr.draw_rectangle(0, 0, W, H, ui.color(40, 0, 0, rround(min(self._dead_t * 120, 200))))
         ui.text_centered("YOU HAVE FALLEN", W // 2, 100, ui.color(220, 80, 70), size=20)
         if self._dead_t > 1.5:
-            hint = "Press Enter to wake at the last shrine" if self._saves.exists() else "Press Enter"
+            hint = (
+                "Press Enter or click to wake at the last shrine" if self._saves.exists() else "Press Enter"
+            )
             ui.text_centered(hint, W // 2, 130, ui.DIM)
 
     def _draw_ending(self):

@@ -2,6 +2,8 @@ import random
 
 from ashen_vault.ai.enemy import Enemy
 from ashen_vault.ai.enemy_types import EnemyTypes
+from ashen_vault.ai.spawns import spawn_enemies
+from ashen_vault.world.map_loader import MapLoader
 
 
 class FakeWorld:
@@ -96,3 +98,32 @@ def test_ranged_enemy_fires():
     w = FakeWorld(6.0, 0.0)
     tick(e, w, 1.5)
     assert w.shots == 1
+
+
+BOSS_ROOM = """[meta]
+name = Boss Room
+start = 1 1 0
+
+[legend]
+# = wall tex=stone_brick top=3
+. = floor h=0 ceil=3
+
+[grid]
+#####
+#a.b#
+#####
+
+[entities]
+a = bone_walker yaw=90
+b = ashen_warden
+"""
+
+
+def test_spawn_enemies_respects_boss_rules():
+    map_ = MapLoader(BOSS_ROOM, name="boss_room").parse()
+    assert [e.type.id for e in spawn_enemies(map_, set())] == ["bone_walker", "ashen_warden"]
+    assert [e.type.id for e in spawn_enemies(map_, {"boss_dead"})] == ["bone_walker"]
+    fresh = spawn_enemies(map_, set(), bosses=False)
+    assert [e.type.id for e in fresh] == ["bone_walker"]
+    assert fresh[0].hp == fresh[0].type.hp
+    assert fresh[0].alive

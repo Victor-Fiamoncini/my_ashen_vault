@@ -5,6 +5,7 @@ import math
 import pyray as pr
 
 from ashen_vault.screen import H, W
+from ashen_vault.ui import tinyfont
 from ashen_vault.util import clamp, rround
 
 
@@ -35,8 +36,8 @@ def text_centered(s, cx, y, col=TEXT, size=10):
 
 
 def panel(x, y, w, h):
-    pr.draw_rectangle(x, y, w, h, PANEL)
-    pr.draw_rectangle_lines(x, y, w, h, BORDER)
+    """A menu or dialogue window: the HUD's gold-edged box with a darker fill."""
+    hud_box(x, y, w, h, fill=PANEL)
 
 
 def bar(x, y, w, h, frac, rgb):
@@ -56,30 +57,49 @@ def wrap(s, width, size=10):
     return lines
 
 
+STAMINA_RGB = (70, 170, 80)
+STAMINA_TIRED_RGB = (40, 85, 45)
+
+
+def tiny(s, x, y, col=TEXT):
+    """3x5 pixel text with a 1 px drop shadow (see tinyfont)."""
+    x, y = int(x), int(y)
+    runs = list(tinyfont.rects(s, x, y))
+    for rx, ry, rw, rh in runs:
+        pr.draw_rectangle(rx + 1, ry + 1, rw, rh, SHADOW)
+    for rx, ry, rw, rh in runs:
+        pr.draw_rectangle(rx, ry, rw, rh, col)
+
+
+def tiny_centered(s, cx, y, col=TEXT):
+    tiny(s, cx - tinyfont.width(s) // 2, y, col)
+
+
 def hud(game):
     p = game.player
     s = p.stats
 
-    # Vitals: a small block in the bottom-left corner.
-    pr.draw_rectangle(4, H - 31, 108, 27, color(0, 0, 0, 110))
-    text("HP", 8, H - 28, color(230, 120, 110))
-    bar(26, H - 26, 54, 4, s.hp / s.max_hp, (190, 40, 40))
-    text(str(s.hp), 84, H - 28, DIM)
-    text("MP", 8, H - 16, color(120, 150, 230))
-    bar(26, H - 14, 54, 4, s.mp / s.max_mp, (50, 80, 200))
-    text(str(s.mp), 84, H - 16, DIM)
+    # Bottom left: the vitals and a small compass in one gold-edged box. It shares its height
+    # and bottom edge with the mouse on the right, so both boxes are vertically centred together.
+    bx, by = 4, H - 4 - HUD_BOX_H
+    hud_box(bx, by, VITALS_W, HUD_BOX_H)
+    rows = by + (HUD_BOX_H - 19) // 2  # three 5 px rows, 7 px apart
+    vital("HP", bx + 6, rows, s.hp / s.max_hp, (230, 120, 110), (190, 40, 40), s.hp)
+    vital("MP", bx + 6, rows + 7, s.mp / s.max_mp, (120, 150, 230), (50, 80, 200), s.mp)
+    st = p.stamina
+    vital(
+        "ST",
+        bx + 6,
+        rows + 14,
+        st.value,
+        (130, 200, 130),
+        STAMINA_TIRED_RGB if st.exhausted else STAMINA_RGB,
+        rround(st.value * 100),
+    )
+    compass(p.heading, bx + VITALS_W - 18, by + HUD_BOX_H // 2 - 1, COMPASS_R)
 
-    # Gauges flank the compass ball in the bottom-right corner.
-    cx = W - 25
-    cy = H - 25
-    gauge(cx - 31, cy - 12, p.attack_gauge.value, (240, 210, 90), (150, 120, 50))
-    gauge(cx - 25, cy - 12, p.magic_gauge.value, (120, 220, 240), (60, 110, 130))
-    compass(p.heading, cx, cy)
-    spell = p.current_spell()
-    label = f"{spell.name} {spell.cost}" if spell else "No spell"
-    text(label, W - 8 - measure(label), cy - 34, DIM if spell else color(90, 84, 72))
-    if p.sprinting:
-        text("SPRINT", 8, H - 42, DIM)
+    # Bottom right: a mouse whose buttons show what they do.
+    mouse_hud(p, W - 4 - MOUSE_W, H - 4 - MOUSE_H)
 
     boss_bar(game)
     messages(game)
@@ -87,11 +107,209 @@ def hud(game):
     flash(p)
 
 
-def gauge(x, y, frac, full_rgb, fill_rgb):
-    """Thin vertical gauge that brightens when full (gold = ATK, cyan = MAG)."""
-    pr.draw_rectangle(x - 1, y - 1, 5, 26, color(0, 0, 0, 220))
-    fill = rround(24 * clamp(frac, 0, 1))
-    pr.draw_rectangle(x, y + 24 - fill, 3, fill, color(*(full_rgb if frac >= 1 else fill_rgb)))
+def vital(label, x, y, frac, label_rgb, bar_rgb, value=None):
+    """One compact row: label, a short bar, and an optional number."""
+    tiny(label, x, y, color(*label_rgb))
+    bar(x + 10, y + 1, 36, 3, frac, bar_rgb)
+    if value is not None:
+        tiny(str(value), x + 50, y, DIM)
+
+
+SLOT_R = 7
+SLOT_PULSE = 0.35  # seconds a ring flashes after it fills
+FOCUS_RGB = (120, 220, 240)
+FOCUS_CHARGING_RGB = (50, 100, 120)
+ATK_RGB = (240, 210, 90)
+ATK_CHARGING_RGB = (150, 120, 50)
+
+
+def ready_slot(cx, cy, gauge, ready_rgb, charging_rgb, track_rgb, r=SLOT_R):
+    """Backing disc plus a ring that fills clockwise with `gauge` and flashes once when full."""
+    centre = pr.Vector2(cx, cy)
+    pr.draw_circle(cx, cy, r + 4, color(0, 0, 0, 200))
+    pr.draw_ring(centre, r + 1, r + 3, 0, 360, 32, color(*track_rgb))
+    ready = gauge.full
+    end = -90 + 360 * clamp(gauge.value, 0, 1)
+    pr.draw_ring(centre, r + 1, r + 3, -90, end, 32, color(*(ready_rgb if ready else charging_rgb)))
+    if ready and gauge.full_t < SLOT_PULSE:
+        k = gauge.full_t / SLOT_PULSE
+        grow = r + 3 + k * 4
+        pr.draw_ring(centre, grow - 1, grow, 0, 360, 32, color(255, 250, 230, rround(220 * (1 - k))))
+    return ready
+
+
+HUD_FILL = color(20, 16, 12, 215)
+HUD_EDGE = color(170, 135, 70)  # the gold trim shared by the vitals box and the mouse
+HUD_RADIUS = 3  # corner radius in pixels, shared by every HUD box, menu and window
+HUD_BOX_H = 38  # both bottom boxes share this height
+VITALS_W = 104
+COMPASS_R = 12
+MOUSE_W = 70
+MOUSE_H = HUD_BOX_H
+MOUSE_SPLIT = 26  # height of the button row; the palm below holds the item count
+WHEEL_W = 10
+
+
+def hud_box(x, y, w, h, fill=HUD_FILL, radius=HUD_RADIUS, edge=HUD_EDGE):
+    """A box with gold trim and `radius`-pixel corners, whatever its size."""
+    rect = pr.Rectangle(x, y, w, h)
+    roundness = min(2 * radius / min(w, h), 1)
+    pr.draw_rectangle_rounded(rect, roundness, 4, fill)
+    pr.draw_rectangle_rounded_lines_ex(rect, roundness, 4, 1, edge)
+
+
+def mouse_hud(player, x, y):
+    """A mouse whose buttons show their actions: weapon on the left button, spell on the right,
+    the quick item on the wheel (middle click uses it, the wheel changes spell)."""
+    w, split = MOUSE_W, MOUSE_SPLIT
+    hud_box(x, y, w, MOUSE_H)
+    cx = x + w // 2
+    cy = y + split // 2 + 1
+    pr.draw_line(cx, y + 1, cx, y + split, HUD_EDGE)  # button divider
+    pr.draw_line(x + 3, y + split, x + w - 3, y + split, HUD_EDGE)
+    weapon_slot(player, x + 17, cy)
+    spell_slot(player, x + w - 17, cy)
+    wheel_slot(player, cx, cy)
+
+    # Palm: L / R marks and how many of the quick item are left.
+    mark = color(120, 100, 64)
+    tiny("L", x + 8, y + split + 4, mark)
+    tiny("R", x + w - 11, y + split + 4, mark)
+    n = player.inventory.count(player.quick)
+    tiny_centered(f"X{n}", cx + 1, y + split + 4, TEXT if n else color(200, 80, 70))
+
+
+def wheel_slot(player, cx, cy):
+    """The wheel: the selected quick item (middle click) between up/down chevrons."""
+    item = player.quick_item()
+    n = player.inventory.count(item.id)
+    hud_box(cx - WHEEL_W // 2, cy - 11, WHEEL_W, 22, fill=color(0, 0, 0, 220), radius=2)
+    top = cy - 11
+    chev = color(150, 120, 70)
+    pr.draw_triangle(pr.Vector2(cx, top + 2), pr.Vector2(cx - 2, top + 4), pr.Vector2(cx + 2, top + 4), chev)
+    pr.draw_triangle(
+        pr.Vector2(cx - 2, top + 18), pr.Vector2(cx, top + 20), pr.Vector2(cx + 2, top + 18), chev
+    )
+    item_icon(item.id, cx, cy, pr.get_time(), 255 if n else 90)
+
+
+def weapon_slot(player, cx, cy):
+    """The equipped weapon, ringed by the ATK gauge: swing when it glows for full damage."""
+    gauge = player.attack_gauge
+    ready = ready_slot(cx, cy, gauge, ATK_RGB, ATK_CHARGING_RGB, (48, 40, 20))
+    weapon = player.inventory.weapon_item()
+    weapon_icon(weapon.id, cx, cy, pr.get_time(), 255 if ready else 110, ready)
+
+
+def spell_slot(player, cx, cy):
+    """The selected spell: an animated icon ringed by the focus (MAG) gauge."""
+    spell = player.current_spell()
+    if not spell:
+        r = SLOT_R
+        pr.draw_circle(cx, cy, r + 4, color(0, 0, 0, 200))
+        pr.draw_ring(pr.Vector2(cx, cy), r + 1, r + 3, 0, 360, 32, color(60, 56, 48))
+        return
+    ready = ready_slot(cx, cy, player.magic_gauge, FOCUS_RGB, FOCUS_CHARGING_RGB, (25, 40, 48))
+    spell_icon(spell.id, cx, cy, pr.get_time(), 255 if ready else 110)
+
+
+def item_icon(id_, cx, cy, t, alpha=255):
+    """Tiny quick-item glyphs for the mouse wheel."""
+    a = int(alpha)
+    if id_ == "red_tonic":
+        pr.draw_rectangle(cx - 1, cy - 4, 2, 2, color(120, 90, 60, a))
+        pr.draw_circle(cx, cy, 2.5, color(170, 30, 30, a))
+        shine = rround(a * (0.5 + 0.5 * math.sin(t * 4)))
+        pr.draw_rectangle(cx - 1, cy - 1, 1, 1, color(255, 160, 150, shine))
+    elif id_ == "blue_moss":
+        glow = 0.6 + 0.4 * math.sin(t * 3)
+        pr.draw_circle(cx, cy, 3.5, color(60, 140, 190, rround(a * 0.3 * glow)))
+        pr.draw_circle(cx - 1, cy + 1, 1.5, color(60, 140, 190, a))
+        pr.draw_circle(cx + 1, cy - 1, 1.5, color(90, 170, 210, a))
+    else:
+        pr.draw_circle(cx, cy, 2, color(200, 200, 200, a))
+
+
+def weapon_icon(id_, cx, cy, t, alpha=255, ready=False):
+    """Small weapon glyphs drawn from primitives; a glint runs up the blade while ready."""
+    a = int(alpha)
+    if id_ == "fists":
+        skin = color(200, 150, 110, a)
+        pr.draw_rectangle(cx - 4, cy - 1, 8, 5, skin)
+        for i in range(4):
+            pr.draw_rectangle(cx - 4 + i * 2, cy - 4, 2, 3, skin)
+            pr.draw_rectangle(cx - 4 + i * 2, cy - 4, 1, 1, color(240, 200, 160, a))
+        pr.draw_rectangle(cx + 4, cy - 1, 2, 3, skin)
+        return
+    if id_ == "ashblade":
+        blade = color(215, 215, 225, a)
+        hilt = color(60, 50, 60, a)
+        glow = 0.5 + 0.5 * math.sin(t * 3)
+        pr.draw_circle(cx + 1, cy - 1, 5, color(255, 120, 40, rround(a * 0.25 * glow)))
+    else:
+        blade = color(150, 132, 112, a)
+        hilt = color(110, 70, 40, a)
+    tip = pr.Vector2(cx + 6, cy - 6)
+    base = pr.Vector2(cx - 3, cy + 3)
+    pr.draw_line_ex(base, tip, 2, blade)
+    pr.draw_line_ex(pr.Vector2(cx - 6, cy), pr.Vector2(cx, cy + 6), 2, hilt)
+    pr.draw_line_ex(pr.Vector2(cx - 3, cy + 3), pr.Vector2(cx - 6, cy + 6), 2, hilt)
+    if ready:
+        k = (t * 0.6) % 1.5  # glint sweeps base -> tip, then rests
+        if k < 1:
+            gx = rround(cx - 2 + k * 8)
+            gy = rround(cy + 2 - k * 8)
+            pr.draw_rectangle(gx, gy, 1, 1, color(255, 255, 240, a))
+
+
+def spell_icon(id_, cx, cy, t, alpha=255):
+    """Small animated glyphs drawn from primitives, so they stay crisp at 320x240."""
+    a = int(alpha)
+    if id_ == "flame":
+        sway = math.sin(t * 9) * 1.2
+        lick = math.sin(t * 13) * 1.0 + 1.0
+        pr.draw_circle(cx, cy + 2, 4.5, color(200, 60, 20, a))
+        pr.draw_triangle(
+            pr.Vector2(cx + sway, cy - 7 - lick),
+            pr.Vector2(cx - 4.5, cy + 2),
+            pr.Vector2(cx + 4.5, cy + 2),
+            color(230, 110, 30, a),
+        )
+        pr.draw_circle(cx, cy + 3, 2.5, color(255, 220, 90, a))
+        pr.draw_triangle(
+            pr.Vector2(cx - sway * 0.6, cy - 3 - lick * 0.5),
+            pr.Vector2(cx - 2.5, cy + 3),
+            pr.Vector2(cx + 2.5, cy + 3),
+            color(255, 220, 90, a),
+        )
+    elif id_ == "mend":
+        pulse = 1 + 0.15 * math.sin(t * 4)
+        arm = rround(6 * pulse)
+        thick = 2
+        pr.draw_rectangle(cx - thick, cy - arm, thick * 2, arm * 2, color(90, 200, 110, a))
+        pr.draw_rectangle(cx - arm, cy - thick, arm * 2, thick * 2, color(90, 200, 110, a))
+        for i in range(3):
+            k = (t * 0.8 + i / 3) % 1
+            sx = cx + rround(math.sin(i * 2.1 + t) * 5)
+            sy = cy + 6 - rround(k * 13)
+            pr.draw_rectangle(sx, sy, 1, 1, color(200, 255, 200, rround(a * (1 - k))))
+    elif id_ == "lumen":
+        spin = t * 1.2
+        for i in range(6):
+            ang = spin + i * math.pi / 3
+            c, s_ = math.cos(ang), math.sin(ang)
+            pr.draw_line(
+                rround(cx + c * 5),
+                rround(cy + s_ * 5),
+                rround(cx + c * 8),
+                rround(cy + s_ * 8),
+                color(240, 230, 170, rround(a * 0.8)),
+            )
+        glow = 3.5 + 0.6 * math.sin(t * 3)
+        pr.draw_circle(cx, cy, glow + 1.5, color(240, 220, 140, rround(a * 0.35)))
+        pr.draw_circle(cx, cy, glow, color(255, 250, 220, a))
+    else:
+        pr.draw_circle(cx, cy, 4, color(200, 200, 200, a))
 
 
 COMPASS_TILT = 0.5  # how far we look down onto the ball (radians)
@@ -139,13 +357,19 @@ def compass(heading, cx, cy, r=17):
         px, py, depth = project(az, 0)
         if depth < -0.05:
             continue
-        alpha = rround(clamp(60 + depth * 260, 0, 255))
-        rgb = (200, 30, 24) if label == "N" else (36, 24, 12)
-        pr.draw_text(label, rround(px) - measure(label) // 2, rround(py) - 5, 10, color(*rgb, alpha))
+        alpha = rround(clamp(40 + depth * 400, 0, 255))
+        rgb = (190, 20, 16) if label == "N" else (30, 18, 8)
+        runs = list(tinyfont.rects(label, rround(px) - 1, rround(py) - 2))
+        halo = color(245, 230, 190, rround(alpha * 0.8))  # pale outline keeps 3x5 letters legible
+        for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+            for rx, ry, rw, rh in runs:
+                pr.draw_rectangle(rx + dx, ry + dy, rw, rh, halo)
+        for rx, ry, rw, rh in runs:
+            pr.draw_rectangle(rx, ry, rw, rh, color(*rgb, alpha))
 
     # Fixed pointer under the ball marks the facing.
     pr.draw_triangle(
-        pr.Vector2(cx, cy + r), pr.Vector2(cx - 3, cy + r + 5), pr.Vector2(cx + 3, cy + r + 5), HIGHLIGHT
+        pr.Vector2(cx, cy + r), pr.Vector2(cx - 2, cy + r + 3), pr.Vector2(cx + 2, cy + r + 3), HIGHLIGHT
     )
 
 

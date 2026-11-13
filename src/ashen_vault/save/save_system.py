@@ -44,6 +44,7 @@ class SaveSystem:
             player.x = p["x"]
             player.z = p["z"]
             player.yaw = p["yaw"]
+            player.quick = p.get("quick", player.quick)
             return data["map"], player, set(data["flags"])
         except (ValueError, KeyError, TypeError, AttributeError):
             return None

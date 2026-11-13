@@ -1,7 +1,8 @@
 import math
 
-from ashen_vault.player.combat import Gauge
+from ashen_vault.player.combat import Gauge, Stamina
 from ashen_vault.player.inventory import Inventory
+from ashen_vault.player.items import Items
 from ashen_vault.player.spells import Spells
 from ashen_vault.player.stats import Stats
 from ashen_vault.util import clamp
@@ -26,6 +27,7 @@ class Player:
         self.inventory = inventory or Inventory()
         self.spells = spells if spells is not None else ["flame"]
         self.spell_index = 0
+        self.quick = "red_tonic"  # consumable on the middle mouse button
         self.x = self.z = self.y = 0.0
         self.yaw = 0.0
         self.pitch = 0.0
@@ -37,6 +39,7 @@ class Player:
         self.sprinting = False
         self.attack_gauge = Gauge(self.inventory.weapon_item().speed)
         self.magic_gauge = Gauge(2.2)
+        self.stamina = Stamina()
 
     def place(self, x, z, yaw, map_):
         self.x = x
@@ -61,6 +64,33 @@ class Player:
             return None
         return Spells.get(self.spells[self.spell_index % len(self.spells)])
 
+    def cycle_spell(self, step=1):
+        """Selects the next (or previous) known spell; None when there is nothing to switch to."""
+        if len(self.spells) < 2:
+            return None
+        self.spell_index = (self.spell_index + step) % len(self.spells)
+        return self.current_spell()
+
+    def quick_items(self):
+        """Consumables you carry, in a stable order."""
+        return sorted((i for i in self.inventory.items() if i.kind == "consumable"), key=lambda i: i.name)
+
+    def quick_item(self):
+        """The selected quick item, even when you have none left (the HUD greys it out)."""
+        return Items.get(self.quick)
+
+    def cycle_quick(self, step=1):
+        """Selects the next (or previous) consumable; None when there is nothing to switch to."""
+        ids = [i.id for i in self.quick_items()]
+        others = [i for i in ids if i != self.quick]
+        if not others:
+            return None
+        if self.quick in ids:
+            self.quick = ids[(ids.index(self.quick) + step) % len(ids)]
+        else:
+            self.quick = ids[0 if step > 0 else -1]
+        return self.quick_item()
+
     @property
     def heading(self):
         """Compass heading in degrees, north (-Z) = 0."""
@@ -74,12 +104,13 @@ class Player:
 
     def walk(self, map_, fwd, strafe, dt, blocked=None, sprint=False):
         """fwd/strafe are -1..1 intents. Returns True if the player moved.
-        Sprinting is faster but holds the ATK gauge from refilling."""
+        Sprinting is faster but drains stamina."""
         self.sprinting = False
         if fwd == 0 and strafe == 0:
             return False
         fx, fz = self.forward()
         speed = self.BACK_SPEED if fwd < 0 else self.WALK_SPEED
+        sprint = sprint and self.stamina.can_sprint
         if sprint:
             speed *= self.SPRINT
         dx = (fx * fwd - fz * strafe) * speed * dt
@@ -93,6 +124,8 @@ class Player:
         moved = math.hypot(self.x - ox, self.z - oz)
         self.bob_t += moved * 2.2
         self.sprinting = sprint and moved > 1e-4
+        if self.sprinting:
+            self.stamina.drain(dt)
         return moved > 1e-4
 
     def settle(self, map_, dt):
@@ -104,8 +137,10 @@ class Player:
 
     def update_timers(self, dt):
         self.attack_gauge.refill_time = self.inventory.weapon_item().speed
-        if not (self.swinging or self.sprinting):
+        if not self.swinging:
             self.attack_gauge.update(dt)
+        if not self.sprinting:
+            self.stamina.update(dt)
         self.magic_gauge.update(dt)
         self.hurt_t = max(self.hurt_t - dt, 0)
         self.lumen_t = max(self.lumen_t - dt, 0)
@@ -134,4 +169,5 @@ class Player:
             "stats": self.stats.to_h(),
             "inventory": self.inventory.to_h(),
             "spells": list(self.spells),
+            "quick": self.quick,
         }

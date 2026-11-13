@@ -5,8 +5,8 @@ import random
 from dataclasses import dataclass
 
 from ashen_vault import map_path
-from ashen_vault.ai.enemy import Enemy
 from ashen_vault.ai.enemy_types import EnemyTypes
+from ashen_vault.ai.spawns import spawn_enemies
 from ashen_vault.player.player import Player
 from ashen_vault.render import models
 from ashen_vault.render.mesh_builder import MeshBuilder
@@ -93,16 +93,12 @@ class World:
     # --- setup ---------------------------------------------------------------
 
     def _spawn_entities(self):
+        self.enemies = spawn_enemies(self.map, self.flags)
         for spec in self.map.entities:
             x, z = TileMap.center(spec.tx, spec.tz)
             y = self.map[spec.tx, spec.tz].floor
             yaw = float(spec.props.get("yaw", "0")) * math.pi / 180
-            if EnemyTypes.has(spec.kind):
-                type_ = EnemyTypes.get(spec.kind)
-                if type_.boss and "boss_dead" in self.flags:
-                    continue
-                self.enemies.append(Enemy(type_, x, z, yaw=yaw, marker=spec.marker))
-            else:
+            if not EnemyTypes.has(spec.kind):
                 key = f"{spec.kind}:{self.name}:{spec.tx},{spec.tz}"
                 prop = Prop(
                     kind=spec.kind,
@@ -130,6 +126,12 @@ class World:
             and "sigil_taken" not in self.flags
         ):
             self.drop_sigil(*TileMap.center(15, 4))
+
+    def respawn_enemies(self):
+        """Shrine rest: every normal enemy comes back fresh. A living boss is left as it is."""
+        bosses = [e for e in self.enemies if e.type.boss and e.alive]
+        self.enemies = bosses + spawn_enemies(self.map, self.flags, bosses=False)
+        self.projectiles = []
 
     def _opened(self, prop):
         if prop.kind in ("door", "chest", "lever"):
