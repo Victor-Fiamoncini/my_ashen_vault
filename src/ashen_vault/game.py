@@ -463,7 +463,7 @@ class Game:
                 inv.equip(item.id)
                 self.message(f"Equipped {item.name}.")
         else:
-            self.message(item.desc)
+            self.message("Not usable from here.")
 
     def focus_label(self):
         if self.scene != "play" or not self.world:
@@ -479,6 +479,7 @@ class Game:
             "save_statue": "[E] Pray at the shrine",
             "exit": f"[E] {(p.props.get('label') or 'Leave').replace('_', ' ')}",
             "pickup": "[E] Take",
+            "iron_maiden": "[E] Step inside",
         }.get(p.kind)
 
     def _interact(self):
@@ -506,6 +507,8 @@ class Game:
             self.sfx("save")
             self.message("The shrine restores you. Your journey is recorded.")
             self.message("Somewhere below, the fallen stir again.")
+        elif k == "iron_maiden":
+            self._enter_maiden(prop)
         elif k == "exit":
             self._travel(prop.props["map"], prop.props["at"])
         elif k == "pickup":
@@ -516,6 +519,21 @@ class Game:
             self.world.remove_prop(prop)
             self.sfx("pickup")
             self.message(f"Obtained {item.name}.")
+
+    def _enter_maiden(self, prop):
+        """A hidden kindness: the old spikes are blunt, and the embrace mends rather than kills.
+        Unlike the shrine it neither records the journey nor wakes the fallen."""
+        if prop.open_t > 0:
+            return
+        s = self.player.stats
+        s.heal(s.max_hp)
+        s.restore_mp(s.max_mp)
+        self.player.stamina.fill()
+        self.world.enter_maiden(prop)
+        self.sfx("door", 0.8)
+        self.sfx("save", 0.7)
+        self.message("The spikes are blunt with age. The iron embraces you gently.")
+        self.message("You step out whole again.")
 
     def _open_chest(self, prop):
         self.world.open_prop(prop)

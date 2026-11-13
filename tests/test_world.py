@@ -92,3 +92,33 @@ def test_separate_pushes_apart():
     x, z = collision.separate(0.0, 0.0, 0.5, 0.5, 0.0, 0.5)
     assert x == pytest.approx(-0.5)
     assert z == pytest.approx(0.0)
+
+
+STATIC_BLOCKERS = ("barrel", "crate", "iron_maiden", "save_statue", "well", "npc")
+
+
+def test_sunken_keep_decor_never_cuts_off_anything():
+    """Flood fill from the start (doors and gates count as open): every chest, door, lever,
+    exit and the iron maiden must stay reachable, so no barrel plugs a corridor."""
+    m = MapLoader.load_file(os.path.join(MAP_DIR, "sunken_keep.map"))
+    solid = {(e.tx, e.tz) for e in m.entities if e.kind in STATIC_BLOCKERS}
+    sx, sz = (int(v) for v in m.meta["start"][:2])
+    seen = {(sx, sz)}
+    todo = [(sx, sz)]
+    while todo:
+        tx, tz = todo.pop()
+        for nx, nz in ((tx + 1, tz), (tx - 1, tz), (tx, tz + 1), (tx, tz - 1)):
+            if (nx, nz) in seen or (nx, nz) in solid:
+                continue
+            if not collision.passable(m, nx, nz, m[tx, tz].floor):
+                continue
+            seen.add((nx, nz))
+            todo.append((nx, nz))
+
+    def touched(tx, tz):
+        return any((tx + dx, tz + dz) in seen for dx, dz in ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)))
+
+    targets = [e for e in m.entities if e.kind in ("chest", "door", "gate", "lever", "exit", "iron_maiden")]
+    assert any(e.kind == "iron_maiden" for e in targets)
+    for e in targets:
+        assert touched(e.tx, e.tz), f"{e.kind} at {e.tx},{e.tz} is unreachable"

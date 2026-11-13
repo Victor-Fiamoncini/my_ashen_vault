@@ -90,6 +90,14 @@ def sounds():
             lambda t, p: (math.sin(t * TAU * (180 - p * 140)) * 0.5 + noise() * 0.3 * (1 - p)) * env(p, 0.01),
         ),
         "levelup": gen(0.9, levelup),
+        "trap": gen(
+            0.35,
+            lambda t, p: (
+                (noise() * 0.5 * (1 - p) + math.sin(t * TAU * (900 - p * 600)) * 0.25) * env(p, 0.01)
+                + math.sin(t * TAU * 70) * 0.4 * env(p, 0.02)
+            ),
+        ),
+        "swoosh": gen(0.45, lambda t, p: lowpass(0.04 + math.sin(p * math.pi) * 0.25) * 2.0 * env(p, 0.45)),
         "save": gen(
             1.2, lambda t, p: (math.sin(t * TAU * 392) + math.sin(t * TAU * 588)) * 0.18 * env(p, 0.2)
         ),

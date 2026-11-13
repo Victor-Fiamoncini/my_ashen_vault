@@ -224,6 +224,156 @@ def bolt(r, rgb):
     r.part("sphere", 0, 0, 0, 0.5, 0.18, 0.18, (255, 230, 160), glow=True)
 
 
+# --- dungeon dressing --------------------------------------------------------
+
+DARK_IRON = (58, 56, 60)
+
+
+def barrel(r, seed):
+    """A squat banded cask; the seed nudges its spot, height and lean so rows don't look cloned."""
+    h = 0.95 + (seed % 3) * 0.08
+    ox = ((seed * 37) % 7 - 3) * 0.08
+    oz = ((seed * 53) % 7 - 3) * 0.08
+    with r.at(ox, 0, oz, ry=seed * 0.7, rz=0.04 if seed % 4 == 0 else 0):
+        r.part("cyl", 0, h / 2, 0, 0.78, h, 0.78, WHITE, tex="wood_plank")
+        r.part("cyl", 0, h / 2, 0, 0.86, h * 0.55, 0.86, WHITE, tex="wood_plank")
+        for y in (0.12, h - 0.12):
+            r.part("cyl", 0, y, 0, 0.82, 0.06, 0.82, DARK_IRON)
+        r.part("cyl", 0, h + 0.01, 0, 0.7, 0.02, 0.7, (70, 48, 30))
+    if seed % 3 == 0:  # a second, smaller cask beside it
+        with r.at(ox - 0.55, 0, oz + 0.45, ry=seed):
+            r.part("cyl", 0, 0.35, 0, 0.55, 0.7, 0.55, WHITE, tex="wood_plank")
+            r.part("cyl", 0, 0.35, 0, 0.6, 0.05, 0.6, DARK_IRON)
+
+
+def crate(r, seed):
+    """A plank crate with dark battens; sometimes a smaller one stacked on top."""
+    with r.at(((seed * 29) % 5 - 2) * 0.1, 0, ((seed * 41) % 5 - 2) * 0.1, ry=(seed % 5) * 0.3):
+        _crate_box(r, 0.9)
+        if seed % 2 == 0:
+            with r.at(0.05, 0.9, -0.05, ry=0.5):
+                _crate_box(r, 0.6)
+
+
+def _crate_box(r, s):
+    r.part("cube", 0, s / 2, 0, s, s, s, WHITE, tex="wood_plank")
+    edge = (60, 40, 26)
+    for dx, dz in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
+        r.part("cube", dx * s / 2, s / 2, dz * s / 2, 0.08, s + 0.02, 0.08, edge)
+    r.part("cube", 0, s / 2, 0, s + 0.02, 0.08, s + 0.02, edge)
+
+
+def chains(r, t, ceil_h):
+    """Two lengths of chain hanging from the ceiling, swaying slowly; one ends in a hook."""
+    for side, phase, ending in ((-0.35, 0.0, "hook"), (0.3, 1.7, "cuff")):
+        links = max(int((ceil_h - 1.2) / 0.16), 4)
+        sway = math.sin(t * 0.9 + phase) * 0.05
+        with r.at(0, ceil_h, side, rx=sway, rz=sway * 0.6):
+            for i in range(links):
+                ry = 0 if i % 2 == 0 else math.pi / 2
+                r.part("cube", 0, -0.08 - i * 0.16, 0, 0.03, 0.18, 0.09, IRON, ry=ry)
+            end = -0.08 - links * 0.16
+            if ending == "hook":
+                r.part("cube", 0, end - 0.05, 0, 0.04, 0.16, 0.04, DARK_IRON)
+                r.part("cube", 0.07, end - 0.13, 0, 0.16, 0.04, 0.04, DARK_IRON)
+                r.part("cube", 0.14, end - 0.08, 0, 0.04, 0.12, 0.04, DARK_IRON)
+            else:
+                r.part("cyl", 0, end - 0.08, 0, 0.2, 0.08, 0.2, DARK_IRON, rx=math.pi / 2)
+
+
+def bones(r, seed):
+    """A skull and a scatter of long bones on the floor."""
+    with r.at(0, 0, 0, ry=seed * 0.9):
+        with r.at(0.3, 0.12, -0.2, ry=seed * 0.4, rz=0.3):
+            r.part("sphere", 0, 0, 0, 0.24, 0.22, 0.22, BONE)
+            r.part("cube", 0.09, -0.02, -0.05, 0.05, 0.05, 0.05, (30, 22, 18))
+            r.part("cube", 0.09, -0.02, 0.05, 0.05, 0.05, 0.05, (30, 22, 18))
+        for i in range(3 + seed % 3):
+            a = i * 2.3 + seed
+            x = math.cos(a) * 0.35
+            z = math.sin(a) * 0.35
+            r.part("cube", x, 0.04, z, 0.5, 0.06, 0.06, BONE, ry=a * 1.7)
+            r.part(
+                "sphere",
+                x + math.cos(a * 1.7) * 0.25,
+                0.05,
+                z - math.sin(a * 1.7) * 0.25,
+                0.1,
+                0.1,
+                0.1,
+                BONE,
+            )
+        r.part("cube", -0.25, 0.05, 0.25, 0.3, 0.05, 0.28, (200, 190, 165), ry=0.4)  # ribs
+
+
+def shackles(r):
+    """Iron manacles pinned to the wall; the prop faces +X, so the wall is at -X."""
+    r.part("cube", -0.95, 1.7, 0, 0.06, 0.3, 0.9, DARK_IRON)
+    for side in (-0.3, 0.3):
+        for i in range(4):
+            ry = 0 if i % 2 == 0 else math.pi / 2
+            r.part("cube", -0.9, 1.55 - i * 0.13, side, 0.03, 0.15, 0.08, IRON, ry=ry)
+        r.part("cyl", -0.86, 1.0, side, 0.18, 0.08, 0.18, IRON, rz=math.pi / 2)
+
+
+def spikes(r, height):
+    """A floor plate with a grid of spikes raised by `height` (0..1)."""
+    r.part("cube", 0, 0.02, 0, 1.9, 0.04, 1.9, DARK_IRON)
+    for i in range(5):
+        for j in range(5):
+            r.part("cube", -0.72 + i * 0.36, 0.045, -0.72 + j * 0.36, 0.12, 0.01, 0.12, (20, 18, 18))
+    if height <= 0:
+        return
+    tall = 0.9 * height
+    for i in range(5):
+        for j in range(5):
+            jitter = ((i * 7 + j * 3) % 4) * 0.04
+            r.part("cone", -0.72 + i * 0.36, tall / 2, -0.72 + j * 0.36, 0.11, tall + jitter, 0.11, STEEL)
+
+
+def pendulum(r, angle, length):
+    """A crescent blade on a rod. The origin is the ceiling pivot; it swings along +X."""
+    r.part("cube", 0, -0.08, 0, 0.5, 0.16, 0.5, DARK_IRON)
+    with r.at(0, 0, 0, rz=angle):
+        r.part("cube", 0, -length / 2, 0, 0.07, length, 0.07, IRON)
+        with r.at(0, -length, 0):  # a broad crescent spanning the corridor, edge leading the swing
+            r.part("cube", 0, 0.08, 0, 0.14, 0.3, 0.4, DARK_IRON)
+            r.part("cube", 0, -0.1, 0, 0.06, 0.26, 1.3, STEEL)
+            r.part("cube", 0, 0.02, -0.75, 0.06, 0.18, 0.4, STEEL, rx=-0.5)
+            r.part("cube", 0, 0.02, 0.75, 0.06, 0.18, 0.4, STEEL, rx=0.5)
+            r.part("cube", 0, -0.24, 0, 0.07, 0.04, 1.25, (235, 235, 245))
+
+
+def iron_maiden(r, door):
+    """An upright iron casket with a crude face; its door swings open (door 0..1) on spiked hinges.
+    Faces +X."""
+    r.part("cube", -0.1, 1.15, 0, 0.6, 2.3, 1.0, DARK_IRON)
+    r.part("cube", -0.1, 2.35, 0, 0.55, 0.22, 0.72, DARK_IRON)  # shoulders
+    r.part("cone", -0.1, 2.7, 0, 0.6, 0.5, 0.6, DARK_IRON)  # peaked hood
+    r.part("sphere", -0.1, 2.98, 0, 0.12, 0.12, 0.12, RUST)
+    r.part("cube", -0.1, 0.06, 0, 0.75, 0.12, 1.15, RUST)
+    r.part("cube", 0.11, 1.15, 0, 0.18, 2.1, 0.8, (24, 18, 18))  # dark interior
+    for y in (0.6, 1.0, 1.4, 1.8):
+        r.part("cone", 0.06, y, -0.2, 0.06, 0.18, 0.06, STEEL, rz=-math.pi / 2)
+        r.part("cone", 0.06, y, 0.2, 0.06, 0.18, 0.06, STEEL, rz=-math.pi / 2)
+    # The door hinges on the +Z edge and swings outward.
+    with r.at(0.22, 0, 0.5, ry=-door * 1.9), r.at(0, 0, -0.5):
+        r.part("cube", 0, 1.15, 0, 0.1, 2.2, 0.98, IRON)
+        for y in (0.2, 0.75, 1.4, 2.1):  # rusted bands, studded with rivets
+            r.part("cube", 0.03, y, 0, 0.08, 0.1, 1.0, RUST)
+            for z in (-0.4, 0.0, 0.4):
+                r.part("sphere", 0.08, y, z, 0.07, 0.07, 0.07, (140, 120, 100))
+        r.part("cube", 0.03, 1.15, 0.42, 0.08, 2.1, 0.08, RUST)
+        r.part("cube", 0.03, 1.15, -0.42, 0.08, 2.1, 0.08, RUST)
+        with r.at(0.07, 1.85, 0):  # face plate
+            r.part("sphere", 0, 0, 0, 0.12, 0.46, 0.36, (150, 140, 130))
+            r.part("cube", 0.04, 0.06, -0.08, 0.04, 0.04, 0.08, (12, 10, 10))
+            r.part("cube", 0.04, 0.06, 0.08, 0.04, 0.04, 0.08, (12, 10, 10))
+            r.part("cube", 0.04, -0.12, 0, 0.04, 0.03, 0.14, (12, 10, 10))
+        for y in (0.6, 1.0, 1.4):
+            r.part("cone", -0.12, y, 0, 0.06, 0.18, 0.06, STEEL, rz=math.pi / 2)
+
+
 HEAVY_CATEGORIES = ("greatsword", "hammer")
 
 

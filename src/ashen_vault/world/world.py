@@ -13,6 +13,7 @@ from ashen_vault.render.mesh_builder import MeshBuilder
 from ashen_vault.util import rround
 from ashen_vault.world import collision
 from ashen_vault.world.ash import AshCloud, death_phases
+from ashen_vault.world.hazards import Pendulum, SpikeTrap
 from ashen_vault.world.map_loader import MapLoader
 from ashen_vault.world.tile_map import TileMap
 
@@ -47,6 +48,11 @@ class Projectile:
 
 INTERACT_RANGE = 2.6
 
+# Props that fill their whole tile: nothing walks or flies through them.
+BLOCKING_PROPS = ("well", "save_statue", "npc", "barrel", "crate", "iron_maiden")
+HAZARD_KINDS = ("spikes", "pendulum")
+MAIDEN_CYCLE = 3.0  # seconds the iron maiden's door stays in motion after use
+
 NPC_LOOKS = {
     "odrin": {"robe": (70, 60, 90), "hair": (200, 200, 200)},
     "pell": {"robe": (120, 90, 40)},
@@ -65,6 +71,7 @@ class World:
         self.props = []
         self.enemies = []
         self.projectiles = []
+        self.hazards = []
         self.ash = AshCloud()
         self._time = 0.0
         self.blocker = self.blocked_tile
@@ -100,7 +107,9 @@ class World:
             x, z = TileMap.center(spec.tx, spec.tz)
             y = self.map[spec.tx, spec.tz].floor
             yaw = float(spec.props.get("yaw", "0")) * math.pi / 180
-            if not EnemyTypes.has(spec.kind):
+            if spec.kind in HAZARD_KINDS:
+                self.hazards.append(self._make_hazard(spec))
+            elif not EnemyTypes.has(spec.kind):
                 key = f"{spec.kind}:{self.name}:{spec.tx},{spec.tz}"
                 prop = Prop(
                     kind=spec.kind,
@@ -129,6 +138,22 @@ class World:
         ):
             self.drop_sigil(*TileMap.center(15, 4))
 
+    def _make_hazard(self, spec):
+        phase = float(spec.props.get("phase", "0"))
+        if spec.kind == "spikes":
+            return SpikeTrap(spec.tx, spec.tz, phase=phase)
+        tile = self.map[spec.tx, spec.tz]
+        pivot = tile.ceil if tile.ceil is not None else tile.floor + 4.0
+        return Pendulum(
+            spec.tx,
+            spec.tz,
+            axis=self._door_axis(spec.tx, spec.tz),
+            pivot_y=pivot,
+            length=pivot - tile.floor - 1.1,
+            floor=tile.floor,
+            phase=phase,
+        )
+
     def respawn_enemies(self):
         """Shrine rest: every normal enemy comes back fresh. A living boss is left as it is."""
         bosses = [e for e in self.enemies if e.type.boss and e.alive]
@@ -154,7 +179,7 @@ class World:
                 continue
             if p.kind in ("door", "gate") and p.open_t < 0.9:
                 return True
-            if p.kind in ("well", "save_statue", "npc"):
+            if p.kind in BLOCKING_PROPS:
                 return True
             if p.kind == "exit" and p.props.get("model") == "well":
                 return True
@@ -231,10 +256,40 @@ class World:
         self.enemies = [e for e in self.enemies if not e.gone]
         self.ash.update(dt)
         for p in self.props:
-            if 0 < p.open_t < 1.0:
+            if p.kind == "iron_maiden":
+                self._update_maiden(p, dt)
+            elif 0 < p.open_t < 1.0:
                 p.open_t = min(p.open_t + dt * 0.8, 1.0)
         self._update_projectiles(dt)
+        self._update_hazards(dt)
         self._push_player_out_of_bodies()
+
+    def _update_hazards(self, dt):
+        player = self.player
+        for h in self.hazards:
+            near = math.hypot(h.x - player.x, h.z - player.z) < 7
+            if h.update(dt) and near:
+                self.game.sfx("trap" if isinstance(h, SpikeTrap) else "swoosh", 0.5)
+            if not player.alive:
+                continue
+            if isinstance(h, SpikeTrap):
+                dmg = h.hit(player.x, player.z)
+                if dmg:
+                    self.game.hurt_player(dmg, "The spikes")
+                continue
+            hit = h.hit(player.x, player.z)
+            if hit:
+                dmg, px, pz = hit
+                self.game.hurt_player(dmg, "The pendulum")
+                self._knock_player(px, pz)
+
+    def _knock_player(self, dx, dz):
+        """Shoves the player in small steps so walls stop the push."""
+        player = self.player
+        for _ in range(8):
+            player.x, player.z = collision.move(
+                self.map, player.x, player.z, dx / 8, dz / 8, radius=Player.RADIUS, blocked=self.blocker
+            )
 
     def body_span(self, enemy):
         """(base y, height) of an enemy's body in world space, for the ash dissolve."""
@@ -357,7 +412,7 @@ class World:
 
     @staticmethod
     def _interactable(p):
-        if p.kind in ("npc", "save_statue", "exit", "pickup"):
+        if p.kind in ("npc", "save_statue", "exit", "pickup", "iron_maiden"):
             return True
         if p.kind in ("chest", "lever", "door"):
             return p.open_t == 0
@@ -388,6 +443,18 @@ class World:
     def remove_prop(self, p):
         if p in self.props:
             self.props.remove(p)
+
+    @staticmethod
+    def _update_maiden(p, dt):
+        """The maiden's door swings open, holds a moment, then clanks shut again."""
+        if p.open_t <= 0:
+            return
+        p.open_t += dt
+        if p.open_t >= MAIDEN_CYCLE:
+            p.open_t = 0.0
+
+    def enter_maiden(self, p):
+        p.open_t = 0.01
 
     def pull_lever(self, p):
         self.open_prop(p)
@@ -426,6 +493,18 @@ class World:
             if dying:
                 gpu.set_float("ashen", 0.0)
                 gpu.set_float("dissolve", 0.0)
+        for h in self.hazards:
+            if math.hypot(h.x - player.x, h.z - player.z) > far:
+                continue
+            y = self.map[h.tx, h.tz].floor
+            if isinstance(h, SpikeTrap):
+                self._model_light(gpu, h.x, y + 0.5, h.z)
+                with rig.at(h.x, y, h.z):
+                    models.spikes(rig, h.height)
+            else:
+                self._model_light(gpu, h.x, y + 1.5, h.z)
+                with rig.at(h.x, h.pivot_y, h.z, ry=0 if h.axis == "x" else -math.pi / 2):
+                    models.pendulum(rig, h.angle, h.length)
         self._draw_ash(rig, gpu, far)
         for pr_ in self.projectiles:
             gpu.model_light((1.6, 1.4, 1.2))
@@ -471,8 +550,32 @@ class World:
             models.npc(
                 rig, look.get("robe", (110, 110, 110)), hair=look.get("hair", (70, 54, 40)), t=t + p.tx
             )
+        elif k == "barrel":
+            models.barrel(rig, p.tx * 7 + p.tz)
+        elif k == "crate":
+            models.crate(rig, p.tx * 5 + p.tz * 3)
+        elif k == "bones":
+            models.bones(rig, p.tx * 3 + p.tz * 11)
+        elif k == "chains":
+            tile = self.map[p.tx, p.tz]
+            models.chains(rig, t + p.tx, (tile.ceil or tile.floor + 3.2) - tile.floor)
+        elif k == "shackles":
+            models.shackles(rig)
+        elif k == "iron_maiden":
+            models.iron_maiden(rig, maiden_door(p.open_t))
         elif k == "exit":
             if p.props.get("model") == "well":
                 models.well(rig)
             else:
                 models.rope(rig, t)
+
+
+def maiden_door(t):
+    """0..1 door opening for the iron maiden `t` seconds into its cycle: open, hold, shut."""
+    if t <= 0:
+        return 0.0
+    if t < 0.6:
+        return t / 0.6
+    if t < MAIDEN_CYCLE - 0.6:
+        return 1.0
+    return max((MAIDEN_CYCLE - t) / 0.6, 0.0)
