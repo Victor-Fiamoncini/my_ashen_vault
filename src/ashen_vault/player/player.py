@@ -1,8 +1,8 @@
 import math
 
-from ashen_vault.player import weapons
+from ashen_vault.player import guard, weapons
 from ashen_vault.player.combat import Gauge, Stamina
-from ashen_vault.player.inventory import Inventory
+from ashen_vault.player.inventory import HANDS, RIGHT, Inventory
 from ashen_vault.player.items import Items
 from ashen_vault.player.spells import Spells
 from ashen_vault.player.stats import Stats
@@ -20,8 +20,9 @@ class Player:
     SPRINT = 1.75  # speed multiplier while sprinting
     TURN_SPEED = 1.7  # rad/s on keys
     LOOK_LIMIT = 0.9
-    SWING_TIME = 0.45
-    SWING_HIT_AT = 0.16
+    SWING_TIME = 0.45  # a light swing of a sword; see Attack.time and weapons.tempo
+    QUICK_FROM = 0.55  # a quick follow-up can cut in once a light swing is this far along
+    HITSTOP = 0.05  # seconds a swing freezes when it connects
     WEBBED = 0.45  # speed multiplier while caught in silk
     SPORED = 0.6  # speed multiplier while choking on spores
 
@@ -41,12 +42,25 @@ class Player:
         self.spore_t = 0.0  # seconds left choking on spores
         self.swing_t = None
         self.swing_power = 0.0
+        self.swing_hand = RIGHT
         self.attack = weapons.attack(self.inventory.weapon_item())
         self.charge_t = 0.0  # seconds the attack button has been held
+        self.charge_hand = RIGHT  # which button is being held
+        self.queued_quick = False  # clicked again during a light swing
+        self.hitstop_t = 0.0
         self.sprinting = False
-        self.attack_gauge = Gauge(self.inventory.weapon_item().speed)
+        self.since_sprint = 99.0
+        self.still_t = 0.0
+        self.gauges = {h: Gauge(self.hand_weapon(h).speed or 1.0) for h in HANDS}
         self.magic_gauge = Gauge(2.2)
         self.stamina = Stamina()
+        self.guarding = False
+        self.guard_break_t = 0.0
+        self.since_block = 99.0  # since your shield last stopped a blow
+        self.since_hit = 99.0  # since any blow last landed on you or your shield
+        self.combo_target = None  # the foe your last blows landed on, and how many in a row
+        self.combo_n = 0
+        self.combo_t = 99.0
 
     def place(self, x, z, yaw, map_):
         self.x = x
@@ -64,6 +78,10 @@ class Player:
         self.hurt_t = self.lumen_t = self.webbed_t = self.spore_t = 0.0
         self.swing_t = None
         self.charge_t = 0.0
+        self.queued_quick = False
+        self.guarding = False
+        self.guard_break_t = self.hitstop_t = 0.0
+        self.combo_n = 0
         self.pitch = 0.0
 
     def forward(self):
@@ -137,7 +155,9 @@ class Player:
             return False
         fx, fz = self.forward()
         speed = self.BACK_SPEED if fwd < 0 else self.WALK_SPEED
-        sprint = sprint and self.stamina.can_sprint
+        sprint = sprint and self.stamina.can_sprint and not self.guarding
+        if self.guarding:
+            speed *= guard.WALK
         if sprint:
             speed *= self.SPRINT
         speed *= map_.tile_at(self.x, self.z).slow
@@ -164,6 +184,8 @@ class Player:
             ground=ground,
         )
         moved = math.hypot(self.x - ox, self.z - oz)
+        if moved > 1e-4:
+            self.still_t = 0.0
         self.bob_t += moved * 2.2
         self.sprinting = sprint and moved > 1e-4
         if self.sprinting:
@@ -178,11 +200,20 @@ class Player:
             self.y = target
 
     def update_timers(self, dt):
-        self.attack_gauge.refill_time = self.inventory.weapon_item().speed
-        if not self.swinging:
-            self.attack_gauge.update(dt)
+        for h, gauge in self.gauges.items():
+            gauge.refill_time = self.hand_weapon(h).speed or 1.0
+            if not (self.swinging and self.swing_hand == h):
+                gauge.update(dt)
         if not self.sprinting:
-            self.stamina.update(dt)
+            self.stamina.update(dt, guard.REFILL if self.guarding else 1.0)
+        self.since_sprint = 0.0 if self.sprinting else self.since_sprint + dt
+        self.still_t += dt
+        self.since_block += dt
+        self.since_hit += dt
+        self.combo_t += dt
+        if self.combo_t > weapons.COMBO_WINDOW:
+            self.combo_n = 0
+        self.guard_break_t = max(self.guard_break_t - dt, 0)
         self.magic_gauge.update(dt)
         self.hurt_t = max(self.hurt_t - dt, 0)
         self.lumen_t = max(self.lumen_t - dt, 0)
@@ -190,9 +221,31 @@ class Player:
         self.spore_t = max(self.spore_t - dt, 0)
         if self.swing_t is None:
             return
+        if self.hitstop_t > 0:  # the blade bites: hold the swing a moment
+            self.hitstop_t = max(self.hitstop_t - dt, 0)
+            return
         self.swing_t += dt
         if self.swing_t > self.swing_time:
             self.swing_t = None
+            self.queued_quick = False
+
+    # --- hands -------------------------------------------------------------------------
+
+    def hand_item(self, hand):
+        return self.inventory.hand_item(hand)
+
+    def hand_weapon(self, hand):
+        """The weapon `hand` attacks with (its fist when it holds none); shields and spells too."""
+        return self.inventory.hand_item(hand)
+
+    @property
+    def attack_gauge(self):
+        """The ATK gauge of the right hand (the left mouse button)."""
+        return self.gauges[RIGHT]
+
+    def gauge(self, hand):
+        """A hand's ATK gauge; a two-hander shares the right hand's."""
+        return self.gauges[RIGHT if self.inventory.two_handing() else hand]
 
     @property
     def swinging(self):
@@ -214,33 +267,124 @@ class Player:
             )
 
     @property
+    def swing_weapon(self):
+        return self.hand_weapon(self.swing_hand)
+
+    @property
     def swing_time(self):
-        return self.SWING_TIME * (weapons.HEAVY_TIME if self.attack.heavy else 1.0)
+        return self.SWING_TIME * self.attack.time * weapons.tempo(self.swing_weapon)
 
     @property
     def swing_hit_at(self):
-        return self.SWING_HIT_AT * (weapons.HEAVY_TIME * 1.1 if self.attack.heavy else 1.0)
+        return self.swing_time * self.attack.hit_at
+
+    @property
+    def swing_phase(self):
+        """0..1 progress of the current swing, or None."""
+        if self.swing_t is None:
+            return None
+        return min(self.swing_t / self.swing_time, 1.0)
 
     @property
     def charge_frac(self):
         """0..1 progress of a held attack towards a heavy one."""
         return min(self.charge_t / weapons.CHARGE_TIME, 1.0)
 
-    def can_heavy(self):
-        heavy = weapons.attack(self.inventory.weapon_item(), heavy=True)
+    def can_heavy(self, hand=RIGHT):
+        heavy = weapons.attack(self.hand_weapon(hand), weapons.HEAVY)
         return not self.stamina.exhausted and self.stamina.value >= heavy.stamina
 
-    def start_swing(self, heavy=False):
-        """Starts a light or heavy attack. A heavy one costs ST; without enough, it is light."""
-        if self.swinging:
-            return False
-        heavy = heavy and self.can_heavy()
-        self.attack = weapons.attack(self.inventory.weapon_item(), heavy)
-        if heavy:
-            self.stamina.spend(self.attack.stamina)
-        self.swing_power = self.attack_gauge.spend()
+    def context(self):
+        """What secrets look at as a swing starts."""
+        return weapons.Context(
+            sprinting=self.sprinting,
+            since_sprint=self.since_sprint,
+            still_t=self.still_t,
+            charge_t=self.charge_t,
+            combo=self.combo_n,
+            since_hit=self.since_hit,
+        )
+
+    def start_swing(self, hand=RIGHT, kind=weapons.LIGHT, secrets=True):
+        """Starts an attack with `hand`. Every attack costs ST: too winded and you can't swing at all,
+        and a heavy you can't pay for comes out light. A light or heavy may turn into the weapon's
+        secret attack (see weapons.secret). Returns the Attack, or None."""
+        if self.swinging or self.guard_break_t > 0 or self.stamina.exhausted:
+            return None
+        item = self.hand_weapon(hand)
+        if item.kind != "weapon":
+            return None
+        if kind == weapons.HEAVY and not self.can_heavy(hand):
+            kind = weapons.LIGHT
+        a = weapons.attack(item, kind)
+        hidden = weapons.secret(item, kind, self.context()) if secrets else None
+        if hidden and self.stamina.value >= hidden.stamina:
+            a = hidden
+            self.combo_n = 0
+        self.stamina.spend(min(a.stamina, self.stamina.value))
+        self.attack = a
+        self.swing_hand = hand
+        self.swing_power = max(self.gauge(hand).spend(), a.min_power)
         self.swing_t = 0.0
-        return True
+        self.hitstop_t = 0.0
+        self.queued_quick = False
+        self.guarding = False
+        return a
+
+    def queue_quick(self, hand):
+        """A second click during a light swing of the same hand: a quick strike follows it."""
+        if self.swinging and self.swing_hand == hand and self.attack.kind == weapons.LIGHT:
+            self.queued_quick = True
+            return True
+        return False
+
+    def chain_quick(self):
+        """Cuts the light swing short with the queued quick strike once its blow has landed and it is
+        far enough along. Returns the quick Attack, or None."""
+        if not (self.queued_quick and self.swinging and self.swing_t >= self.swing_hit_at):
+            return None
+        if self.swing_t < self.swing_time * self.QUICK_FROM:
+            return None
+        hand = self.swing_hand
+        self.swing_t = None
+        return self.start_swing(hand, weapons.QUICK)
+
+    def land_hit(self, target):
+        """A swing connected with `target`: freezes it a moment and counts the combo."""
+        self.hitstop_t = self.HITSTOP * weapons.tempo(self.swing_weapon)
+        if target is self.combo_target and self.combo_t <= weapons.COMBO_WINDOW:
+            self.combo_n += 1
+        else:
+            self.combo_target = target
+            self.combo_n = 1
+        self.combo_t = 0.0
+
+    # --- guard -----------------------------------------------------------------------
+
+    def raise_guard(self, up):
+        """Holds the shield up (or lowers it). Not while swinging or reeling from a broken guard."""
+        self.guarding = bool(
+            up and self.inventory.shield_hand() and not self.swinging and self.guard_break_t <= 0
+        )
+        return self.guarding
+
+    def take_blow(self, dmg, ax, az):
+        """A blow of `dmg` from (ax, az): the raised shield blocks what it can. Returns the damage that
+        lands and the Block (None when not guarding)."""
+        self.since_hit = 0.0
+        if not self.guarding:
+            return dmg, None
+        shield = self.hand_item(self.inventory.shield_hand())
+        fx, fz = self.forward()
+        b = guard.block(dmg, guard.facing_cos(self.x, self.z, fx, fz, ax, az), shield, self.stamina.value)
+        if b.stamina:
+            self.stamina.spend(b.stamina)
+        if b.broken:
+            self.guarding = False
+            self.guard_break_t = guard.BREAK_TIME
+        elif b.blocked:
+            self.since_block = 0.0
+        return b.taken, b
 
     def to_h(self):
         return {

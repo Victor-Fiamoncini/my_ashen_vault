@@ -3,18 +3,37 @@ is an optional callable run with the game when the conversation closes."""
 
 from ashen_vault.world import relics
 
-SHOP = [
-    "red_tonic",
-    "blue_moss",
-    "scroll_mend",
-    "leather_whip",
-    "bastard_sword",
-    "mace",
-    "ashblade",
-    "katana",
-    "zweihander",
-    "ringmail",
-]
+SHOPS = {
+    "pell": [
+        "red_tonic",
+        "blue_moss",
+        "scroll_mend",
+        "leather_gloves",
+        "oak_cudgel",
+        "buckler",
+        "hatchet",
+        "leather_whip",
+        "round_shield",
+        "bastard_sword",
+        "mace",
+        "chain_mitts",
+        "ringmail",
+        "spiked_club",
+        "ashblade",
+        "lamellar_vest",
+        "thornlash",
+        "kite_shield",
+        "iron_gauntlets",
+        "bearded_axe",
+        "brigandine",
+        "zweihander",
+        "tower_shield",
+        "blackened_plate",
+    ],
+    "corvane": ["katana", "moonless_tachi", "nodachi"],
+}
+SHOP_NAMES = {"pell": "Pell's Goods", "corvane": "Corvane's Blades"}
+CORVANE_LEVEL = 5  # the swordsmith won't speak to anyone greener than this
 
 
 def for_npc(id_, game):
@@ -23,11 +42,13 @@ def for_npc(id_, game):
     if id_ == "odrin":
         return odrin(game, flags, inv)
     if id_ == "pell":
-        return "Pell", pell_lines(flags), lambda g: g.open_shop()
+        return "Pell", pell_lines(flags), lambda g: g.open_shop("pell")
     if id_ == "hollis":
         return "Hollis", hollis_lines(flags), None
     if id_ == "maeve":
         return maeve(game, flags)
+    if id_ == "corvane":
+        return corvane(game.player.stats.level, flags)
     return "Stranger", ["..."], None
 
 
@@ -149,6 +170,37 @@ def maeve(game, flags):
             "You smell of dust and lamp oil. Going under, are you?",
             "My father told me the keep sank in a single night, with its knights still at their posts.",
             "Here, take some moss from the cliffs. Chew it when your spirit runs thin.",
+        ],
+        after,
+    )
+
+
+def corvane(level, flags):
+    """A swordsmith from across the sea who lives apart from the town. Below CORVANE_LEVEL they will
+    not even look up; after that they sell the curved blades of their homeland."""
+    if level < CORVANE_LEVEL:
+        return (
+            "Hooded figure",
+            [
+                "...",
+                "(They turn back to the whetstone. You are beneath their notice.)",
+            ],
+            None,
+        )
+    if "met_corvane" in flags:
+        return "Corvane", ["You again. The steel is where it was. Choose."], lambda g: g.open_shop("corvane")
+
+    def after(g):
+        g.flags.add("met_corvane")
+        g.open_shop("corvane")
+
+    return (
+        "Corvane",
+        [
+            "So. The one who walks in the keep and comes back up the well.",
+            "I am Corvane. I left my island with three blades and a debt. The debt is paid.",
+            "The blades are not for anyone with a purse. They are for hands that have learned to wait.",
+            "A word, since you have earned one: hold the draw. Stand still, and let the blade decide.",
         ],
         after,
     )

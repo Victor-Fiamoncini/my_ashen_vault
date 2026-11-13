@@ -10,7 +10,7 @@ class FakeGame:
             self.player.inventory.add(i)
         self.finished = False
         self.messages = []
-        self.shop_opened = False
+        self.shop_opened = None
 
     def finish_game(self):
         self.finished = True
@@ -20,8 +20,8 @@ class FakeGame:
     def message(self, text):
         self.messages.append(text)
 
-    def open_shop(self):
-        self.shop_opened = True
+    def open_shop(self, shop_id):
+        self.shop_opened = shop_id
 
 
 def talk(id_, game):
@@ -103,7 +103,7 @@ def test_hollis_hints_at_the_overgrown_house_until_the_spider_dies():
 def test_pell_greets_once_then_opens_the_shop():
     g = FakeGame()
     speaker, first = talk("pell", g)
-    assert speaker == "Pell" and g.shop_opened
+    assert speaker == "Pell" and g.shop_opened == "pell"
     assert "met_pell" in g.flags
     _, second = talk("pell", g)
     assert second != first
@@ -120,3 +120,27 @@ def test_maeve_gives_moss_once():
 def test_unknown_npc_is_a_silent_stranger():
     speaker, _ = talk("nobody", FakeGame())
     assert speaker == "Stranger"
+
+
+def test_corvane_ignores_the_green_then_sells_blades():
+    g = FakeGame()
+    speaker, _ = talk("corvane", g)
+    assert speaker == "Hooded figure"
+    assert g.shop_opened is None and "met_corvane" not in g.flags
+    g.player.stats.level = dialogue.CORVANE_LEVEL
+    speaker, first = talk("corvane", g)
+    assert speaker == "Corvane" and g.shop_opened == "corvane"
+    assert "met_corvane" in g.flags
+    g.shop_opened = None
+    _, second = talk("corvane", g)
+    assert second != first and g.shop_opened == "corvane"
+
+
+def test_katanas_moved_from_pell_to_corvane():
+    from ashen_vault.player.items import Items
+
+    assert "katana" not in dialogue.SHOPS["pell"]
+    assert all(Items.get(i).category == "katana" for i in dialogue.SHOPS["corvane"])
+    for shop in dialogue.SHOPS.values():
+        assert all(i in Items.ALL for i in shop)
+    assert set(dialogue.SHOPS) == set(dialogue.SHOP_NAMES)

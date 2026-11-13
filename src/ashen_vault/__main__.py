@@ -1,4 +1,5 @@
-"""Usage: python -m ashen_vault [--map NAME] [--at TX,TZ,YAW] [--smoke FRAMES] [--shot PATH] [--script STEPS]"""
+"""Usage: python -m ashen_vault [--map NAME] [--at TX,TZ,YAW] [--smoke FRAMES] [--shot PATH] [--script STEPS]
+[--equip SLOT=ID,...] [--level N]"""
 
 import argparse
 import os
@@ -15,6 +16,10 @@ def main(argv=None):
     ap.add_argument("--smoke", type=int, help="Run this many frames, save a screenshot, exit")
     ap.add_argument("--shot", help="Screenshot path for --smoke")
     ap.add_argument("--script", help="Scripted input, e.g. 'forward:1.5 attack wait:1'")
+    ap.add_argument(
+        "--equip", help="Debug: start with gear, e.g. 'right=katana,left=buckler,hands=chain_mitts'"
+    )
+    ap.add_argument("--level", type=int, help="Debug: start at this character level")
     args = ap.parse_args(argv)
 
     from ashen_vault.game import Game

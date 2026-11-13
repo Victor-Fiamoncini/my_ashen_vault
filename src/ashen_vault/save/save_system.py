@@ -40,14 +40,7 @@ class SaveSystem:
                 data = json.load(f)
             p = data["player"]
             inv = p["inventory"]
-            inventory = Inventory.from_h(
-                {
-                    "counts": {str(k): v for k, v in inv["counts"].items()},
-                    "weapon": inv.get("weapon"),
-                    "armor": inv.get("armor"),
-                    "gold": inv.get("gold"),
-                }
-            )
+            inventory = Inventory.from_h({**inv, "counts": {str(k): v for k, v in inv["counts"].items()}})
             player = Player(stats=Stats.from_h(p["stats"]), inventory=inventory, spells=p["spells"])
             player.x = p["x"]
             player.z = p["z"]

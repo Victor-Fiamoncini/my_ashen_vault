@@ -3,7 +3,7 @@ import json
 import pytest
 
 from ashen_vault.player.combat import Combat, Gauge, Stamina
-from ashen_vault.player.inventory import Inventory
+from ashen_vault.player.inventory import SPELL, Inventory
 from ashen_vault.player.items import Items
 from ashen_vault.player.player import Player
 from ashen_vault.player.stats import Stats
@@ -58,16 +58,70 @@ def test_unequip_falls_back_to_fists_and_no_armor():
     assert not inv.unequip("red_tonic")
     assert inv.unequip("rusted_sword")
     assert inv.unequip("padded_coat")
-    assert inv.weapon is None
-    assert inv.weapon_item() == Items.FISTS
+    assert inv.right is None
+    assert inv.hand_item("right") == Items.FISTS
     assert inv.defense == 0
     assert inv.has("rusted_sword"), "unequipping keeps the item"
     assert inv.equip("rusted_sword")
     assert inv.equipped("rusted_sword")
 
-    restored = Inventory.from_h(Inventory(weapon=None, armor=None).to_h())
-    assert restored.weapon is None
-    assert restored.armor is None
+    restored = Inventory.from_h(Inventory(right=None, left=None, body=None).to_h())
+    assert restored.right is None and restored.left is None
+    assert restored.body is None
+
+
+def test_hands_hold_weapons_shields_and_the_spell():
+    inv = Inventory()
+    assert inv.right == "rusted_sword" and inv.left == SPELL
+    assert inv.hand_item("left").kind == "spell"
+    inv.add("buckler")
+    assert inv.equip("buckler")
+    assert inv.left == "buckler" and inv.shield_hand() == "left"
+    # One sword can't be in both hands; it moves.
+    assert inv.equip("rusted_sword", "left")
+    assert inv.left == "rusted_sword" and inv.right is None
+    inv.add("rusted_sword")
+    assert inv.equip("rusted_sword", "right")
+    assert inv.right == inv.left == "rusted_sword", "carrying two lets you dual-wield"
+    assert inv.equip(SPELL, "right")
+    assert inv.right == SPELL
+
+
+def test_two_handers_fill_both_hands():
+    inv = Inventory()
+    inv.add("claymore")
+    inv.add("buckler")
+    assert inv.equip("claymore", "left")
+    assert inv.right == inv.left == "claymore" and inv.two_handing()
+    assert inv.equip("buckler")
+    assert inv.left == "buckler" and inv.right is None, "a shield takes the two-hander off"
+    assert Inventory(right="claymore").left == "claymore"
+
+
+def test_level_gates_equipment():
+    inv = Inventory()
+    inv.add("katana")
+    assert inv.equip_error("katana", level=1) == "level"
+    assert not inv.equip("katana", level=4)
+    assert inv.equip("katana", level=5)
+    assert inv.equip_error("red_tonic") == "missing"
+    inv.add("red_tonic")
+    assert inv.equip_error("red_tonic") == "kind"
+
+
+def test_body_armor_and_gauntlets_add_up():
+    inv = Inventory()
+    inv.add("iron_gauntlets")
+    assert inv.equip("iron_gauntlets")
+    assert inv.hands == "iron_gauntlets" and inv.body == "padded_coat"
+    assert inv.defense == Items.get("padded_coat").power + Items.get("iron_gauntlets").power
+
+
+def test_old_saves_put_the_weapon_right_and_the_spell_left():
+    inv = Inventory.from_h({"counts": {"ashblade": 1}, "weapon": "ashblade", "armor": None, "gold": 5})
+    assert inv.right == "ashblade" and inv.left == SPELL and inv.body is None
+    again = Inventory.from_h(inv.to_h())
+    assert again.slots == inv.slots and again.gold == 5
 
 
 def test_inventory_remove():
@@ -259,3 +313,20 @@ def test_revive_restores_and_clears_effects():
     assert p.webbed_t == p.spore_t == p.hurt_t == 0
     assert not p.swinging
     assert p.inventory.has("warden_key")
+
+
+def test_save_keeps_both_hands_and_armor(tmp_path):
+    saves = SaveSystem(str(tmp_path / "s.json"))
+    player = Player()
+    inv = player.inventory
+    for id_ in ("claymore", "iron_gauntlets", "brigandine"):
+        inv.add(id_)
+        inv.equip(id_)
+    saves.save(map="harrowmere", player=player, flags=set())
+    _, loaded, _ = saves.load()
+    assert loaded.inventory.slots == {
+        "right": "claymore",
+        "left": "claymore",
+        "body": "brigandine",
+        "hands": "iron_gauntlets",
+    }

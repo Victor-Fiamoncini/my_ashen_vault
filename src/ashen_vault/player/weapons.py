@@ -1,58 +1,128 @@
-"""Weapon categories and their light / heavy attacks. Pure data, no raylib."""
+"""Weapon categories, their attacks and the secret moves hidden in some of them. Pure data, no raylib.
+
+Every weapon has a light attack (tap), a heavy one (hold, then release) and a quick one (click again
+while a light swing is still going). Some categories also hide a secret attack that only comes out
+in the right situation; see `secret()`."""
 
 from dataclasses import dataclass
+
+LIGHT, HEAVY, QUICK, SECRET = "light", "heavy", "quick", "secret"
 
 
 @dataclass(frozen=True)
 class Attack:
     name: str
-    motion: str  # animation key: slash | sweep | chop | thrust | lash | slam | jab | hook
+    motion: str  # animation key, see render/models.py MOTIONS
+    kind: str = LIGHT
     damage: float = 1.0  # multiplier on Combat.damage
     reach: float = 1.0  # multiplier on the weapon's reach
     cone: float = 0.6  # min cos(angle) between facing and target; below 0 hits all around
     targets: int = 1  # most enemies one swing can hit
     poise: float = 1.0  # multiplier on the stagger check against enemy poise
-    stamina: float = 0.0  # ST spent (0..1)
+    stamina: float = 0.08  # ST spent (0..1)
     lunge: float = 0.0  # metres stepped forward as the hit lands
     pierce_def: bool = False  # ignores enemy defence
+    time: float = 1.0  # swing length, as a multiple of Player.SWING_TIME (before the weapon's tempo)
+    hit_at: float = 0.4  # fraction of the swing at which the blow lands
+    min_power: float = 0.0  # lowest ATK gauge the swing counts as (quick attacks never hit at nothing)
+    pull: float = 0.0  # metres the target is dragged toward you
+    pulses: int = 1  # how many times the blow lands (a second, weaker shockwave)
 
     @property
     def heavy(self):
-        return self.stamina > 0
+        return self.kind in (HEAVY, SECRET)
 
 
-CHARGE_TIME = 0.35  # seconds LMB must be held for a heavy attack
-HEAVY_TIME = 1.5  # heavy swings take this much longer than light ones
+CHARGE_TIME = 0.35  # seconds a button must be held for a heavy attack
+DRAW_HOLD = 1.2  # katana: seconds held perfectly still for the Sheathed Draw
+SPRINT_GRACE = 0.4  # seconds after a sprint that still count as running into the swing
+REVENGE_GRACE = 1.0  # seconds after a blow lands on you (or your shield) that the Aftershock is ready
+COMBO_WINDOW = 2.0  # seconds between club hits on the same foe that keep the combo alive
+COMBO_HITS = 2  # club: hits already landed on one foe before the Skull-ringer comes out
+
+
+def _light(name, motion, **kw):
+    return Attack(name, motion, LIGHT, **kw)
+
+
+def _heavy(name, motion, stamina, **kw):
+    return Attack(name, motion, HEAVY, stamina=stamina, **{"time": 1.5, "hit_at": 0.45, **kw})
+
+
+def _quick(name, motion, **kw):
+    base = {"damage": 0.7, "stamina": 0.05, "time": 0.6, "hit_at": 0.35, "min_power": 0.5}
+    return Attack(name, motion, QUICK, **{**base, **kw})
+
+
+def _secret(name, motion, stamina, **kw):
+    return Attack(name, motion, SECRET, stamina=stamina, **{"time": 1.4, "hit_at": 0.45, **kw})
+
 
 MOVESETS = {
-    "fists": (
-        Attack("Jab", "jab"),
-        Attack("Hook", "hook", damage=1.4, poise=1.5, stamina=0.2),
-    ),
-    "sword": (
-        Attack("Slash", "slash"),
-        Attack("Overhead chop", "chop", damage=1.6, poise=1.5, stamina=0.3),
-    ),
-    "greatsword": (
-        Attack("Wide sweep", "sweep", cone=0.25, targets=3),
-        Attack("Overhead cleave", "chop", damage=2.0, poise=2.0, stamina=0.45),
-    ),
-    "katana": (
-        Attack("Quick slash", "slash"),
-        Attack("Lunging thrust", "thrust", damage=1.7, reach=1.4, cone=0.8, lunge=1.0, stamina=0.3),
-    ),
-    "whip": (
-        Attack("Crack", "lash", cone=0.85),
-        Attack("Wide lash", "sweep", damage=1.2, cone=0.1, targets=4, stamina=0.3),
-    ),
-    "mace": (
-        Attack("Bash", "slash", pierce_def=True),
-        Attack("Crush", "chop", damage=1.8, poise=2.5, pierce_def=True, stamina=0.35),
-    ),
-    "hammer": (
-        Attack("Smash", "chop", poise=1.5),
-        Attack("Ground slam", "slam", damage=1.5, reach=1.1, cone=-1, targets=8, poise=2.0, stamina=0.5),
-    ),
+    "fists": {
+        LIGHT: _light("Jab", "jab", stamina=0.05),
+        HEAVY: _heavy("Hook", "hook", 0.26, damage=1.4, poise=1.5),
+        QUICK: _quick("Flurry", "jab"),
+    },
+    "sword": {
+        LIGHT: _light("Slash", "slash"),
+        HEAVY: _heavy("Overhead chop", "chop", 0.39, damage=1.6, poise=1.5),
+        QUICK: _quick("Riposte stab", "stab", reach=1.1, cone=0.8),
+    },
+    "greatsword": {
+        LIGHT: _light("Wide sweep", "sweep", cone=0.25, targets=3, stamina=0.12),
+        HEAVY: _heavy("Overhead cleave", "chop", 0.58, damage=2.0, poise=2.0),
+        QUICK: _quick("Pommel strike", "bash", reach=0.6, poise=1.5),
+    },
+    "katana": {
+        LIGHT: _light("Quick slash", "slash"),
+        HEAVY: _heavy("Lunging thrust", "thrust", 0.39, damage=1.7, reach=1.4, cone=0.8, lunge=1.0),
+        QUICK: _quick("Return cut", "flick", damage=0.8),
+        SECRET: _secret(
+            "Sheathed Draw",
+            "draw",
+            0.45,
+            damage=2.4,
+            reach=1.2,
+            cone=0.2,
+            targets=3,
+            poise=2.0,
+            pierce_def=True,
+            time=0.9,
+            hit_at=0.3,
+        ),
+    },
+    "whip": {
+        LIGHT: _light("Crack", "lash", cone=0.85),
+        HEAVY: _heavy("Wide lash", "sweep", 0.39, damage=1.2, cone=0.1, targets=4),
+        QUICK: _quick("Snap", "lash", cone=0.85),
+        SECRET: _secret("Snare", "snare", 0.4, damage=1.1, cone=0.85, poise=99, pull=1.2),
+    },
+    "mace": {
+        LIGHT: _light("Bash", "slash", pierce_def=True, stamina=0.1),
+        HEAVY: _heavy("Crush", "chop", 0.45, damage=1.8, poise=2.5, pierce_def=True),
+        QUICK: _quick("Rap", "bash", pierce_def=True),
+    },
+    "club": {
+        LIGHT: _light("Clout", "bash", poise=1.3, stamina=0.09),
+        HEAVY: _heavy("Overhand smash", "chop", 0.4, damage=1.7, poise=2.2),
+        QUICK: _quick("Knock", "bash", poise=1.2),
+        SECRET: _secret("Skull-ringer", "chop", 0.4, damage=2.0, poise=99, time=1.0, hit_at=0.4),
+    },
+    "axe": {
+        LIGHT: _light("Hew", "hew", damage=1.1, stamina=0.1),
+        HEAVY: _heavy("Splitting chop", "chop", 0.45, damage=1.8, poise=1.8),
+        QUICK: _quick("Hook cut", "slash"),
+        SECRET: _secret("Leaping Hew", "leap", 0.55, damage=2.2, poise=2.5, lunge=1.5, reach=1.1),
+    },
+    "hammer": {
+        LIGHT: _light("Smash", "chop", poise=1.5, stamina=0.12),
+        HEAVY: _heavy("Ground slam", "slam", 0.65, damage=1.5, reach=1.1, cone=-1, targets=8, poise=2.0),
+        QUICK: _quick("Haft jab", "stab", reach=0.7, poise=1.3),
+        SECRET: _secret(
+            "Aftershock", "slam", 0.6, damage=1.6, reach=1.3, cone=-1, targets=8, poise=2.5, pulses=2
+        ),
+    },
 }
 
 CATEGORY_NAMES = {
@@ -62,14 +132,80 @@ CATEGORY_NAMES = {
     "katana": "Katana",
     "whip": "Whip",
     "mace": "Mace",
+    "club": "Club",
+    "axe": "Axe",
     "hammer": "Hammer",
 }
+
+# How long a category's swings take: light blades are quick, big iron is slow.
+TEMPO = {
+    "fists": 0.8,
+    "katana": 0.8,
+    "whip": 0.85,
+    "sword": 1.0,
+    "club": 1.0,
+    "mace": 1.05,
+    "axe": 1.05,
+    "greatsword": 1.3,
+    "hammer": 1.35,
+}
+TWO_HANDED_TEMPO = 0.1  # extra on top for weapons that fill both hands
 
 
 def moveset(item):
     return MOVESETS[item.category or "sword"]
 
 
-def attack(item, heavy=False):
-    """The light or heavy attack of a weapon item."""
-    return moveset(item)[1 if heavy else 0]
+def attack(item, kind=LIGHT):
+    """One of a weapon's attacks: light, heavy, quick or (if it has one) secret."""
+    if kind is True:  # attack(item, heavy=True) style callers
+        kind = HEAVY
+    return moveset(item)[kind]
+
+
+def tempo(item):
+    """Swing-length multiplier for a weapon: bigger weapons swing slower."""
+    return TEMPO.get(item.category or "sword", 1.0) + (TWO_HANDED_TEMPO if item.two_handed else 0.0)
+
+
+def has_secret(item):
+    return SECRET in moveset(item)
+
+
+@dataclass(frozen=True)
+class Context:
+    """What the player was doing as the attack started; secrets look at it."""
+
+    sprinting: bool = False
+    since_sprint: float = 99.0  # seconds since you last sprinted (0 while sprinting)
+    still_t: float = 0.0  # seconds since you last moved
+    charge_t: float = 0.0  # seconds the button was held
+    combo: int = 0  # hits already landed in a row on the foe in front of you
+    since_hit: float = 99.0  # seconds since a blow last landed on you or your shield
+
+
+def secret(item, kind, ctx):
+    """The secret attack this swing turns into, or None.
+
+    - Katana, Sheathed Draw: hold a heavy perfectly still for DRAW_HOLD seconds.
+    - Whip, Snare: a heavy while sprinting.
+    - Axe, Leaping Hew: a heavy straight out of a sprint (SPRINT_GRACE).
+    - Club, Skull-ringer: the third light blow in a row on the same foe.
+    - Hammer, Aftershock: a heavy straight after a blow lands on you (REVENGE_GRACE).
+    """
+    if not has_secret(item):
+        return None
+    cat = item.category
+    hit = None
+    if kind == HEAVY:
+        if cat == "katana":
+            hit = ctx.charge_t >= DRAW_HOLD and ctx.still_t >= ctx.charge_t
+        elif cat == "whip":
+            hit = ctx.sprinting or ctx.since_sprint <= 0.15
+        elif cat == "axe":
+            hit = ctx.since_sprint <= SPRINT_GRACE
+        elif cat == "hammer":
+            hit = ctx.since_hit <= REVENGE_GRACE
+    elif kind == LIGHT and cat == "club":
+        hit = ctx.combo >= COMBO_HITS
+    return moveset(item)[SECRET] if hit else None

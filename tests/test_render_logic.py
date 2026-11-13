@@ -199,3 +199,68 @@ def test_dead_glowing_enemies_go_dark():
         _, alive = _extent(type_id, "idle", 0.5)
         _, dead = _extent(type_id, "dead", 3.0)
         assert alive.glows > 0 and dead.glows == 0, type_id
+
+
+def test_long_lists_scroll():
+    assert screen.scroll_into_view(0, 3, 30) == 0
+    assert screen.scroll_into_view(0, 12, 30) == 12 - screen.LIST_ROWS + 1
+    assert screen.scroll_into_view(5, 3, 30) == 3
+    assert screen.scroll_into_view(19, 29, 30) == 30 - screen.LIST_ROWS
+    assert screen.scroll_into_view(4, 2, 5) == 0
+    # Scrolled by 10: the first visible row is item 10; rows past the visible window miss.
+    assert screen.list_row_at(40, 30, 240, 30, 50, 50, first=10, visible=11) == 10
+    assert screen.list_row_at(40, 30, 240, 30, 50, 50 + 11 * 11, first=10, visible=11) is None
+
+
+def test_motions_start_and_end_at_rest_and_land_on_the_blow():
+    from ashen_vault.render import models
+
+    for motion, (_, strike, _) in models.MOTIONS.items():
+        assert models._motion(motion, 0.0) == models.REST, motion
+        assert all(abs(v) < 1e-9 for v in models._motion(motion, 1.0)), motion
+        hit = models._motion(motion, 0.45, hit_at=0.45)
+        assert all(abs(a - b) < 1e-9 for a, b in zip(hit, strike, strict=True)), motion
+
+
+def test_every_attack_motion_has_a_pose():
+    from ashen_vault.player import weapons
+    from ashen_vault.render import models
+
+    for moves in weapons.MOVESETS.values():
+        for a in moves.values():
+            assert a.motion in models.MOTIONS or a.motion in ("jab", "hook"), a.motion
+
+
+def test_first_person_view_draws_every_hand_and_swing():
+    from ashen_vault.player import weapons
+    from ashen_vault.player.inventory import SPELL, Inventory
+    from ashen_vault.player.items import Items
+    from ashen_vault.player.player import Player
+    from ashen_vault.render import models
+
+    held = [i.id for i in Items.ALL.values() if i.kind in ("weapon", "shield")]
+    for body in (None, "ringmail", "blackened_plate"):
+        for gloves in (None, "iron_gauntlets", "chain_mitts"):
+            for id_ in [*held, None]:
+                inv = Inventory(right=None, left=SPELL, body=body, hands=gloves)
+                if id_:
+                    inv.add(id_)
+                    inv.equip(id_)
+                p = Player(inventory=inv)
+                p.spells = ["flame"]
+                for kind in (weapons.LIGHT, weapons.HEAVY, None):
+                    p.swing_t = None
+                    p.guarding = kind is None
+                    hand = "right"
+                    if kind and p.hand_item(hand).kind == "weapon":
+                        p.start_swing(hand, kind)
+                        p.swing_t = p.swing_time * 0.5
+                    gpu = _RecordingGpu()
+                    models.weapon_view(rig.Rig(gpu), p, 0.0, t=1.0)
+                    assert len(gpu.parts) >= 6, (id_, body, gloves, kind)
+    # Holding a katana heavy settles into the draw stance without errors.
+    p = Player(inventory=Inventory(right="katana"))
+    p.charge_t = 1.0
+    gpu = _RecordingGpu()
+    models.weapon_view(rig.Rig(gpu), p, 0.0)
+    assert gpu.parts

@@ -15,38 +15,158 @@ from ashen_vault.world.map_loader import MapLoader
 from ashen_vault.world.world import World
 
 
-def armed(weapon_id):
-    return Player(inventory=Inventory(weapon=weapon_id))
+def armed(weapon_id, level=99):
+    p = Player(inventory=Inventory(right=weapon_id))
+    p.stats.level = level
+    return p
 
 
-def test_every_weapon_has_a_light_and_heavy_attack():
-    weapons_ = [i for i in Items.ALL.values() if i.kind == "weapon"] + [Items.FISTS]
-    assert len(weapons_) >= 10
-    for item in weapons_:
+ALL_WEAPONS = [i for i in Items.ALL.values() if i.kind == "weapon"] + [Items.FISTS]
+
+
+def test_every_weapon_has_light_heavy_and_quick_attacks_that_cost_stamina():
+    assert len(ALL_WEAPONS) >= 17
+    for item in ALL_WEAPONS:
         assert item.category in weapons.CATEGORY_NAMES, item.id
-        light, heavy = weapons.moveset(item)
-        assert weapons.attack(item) is light
-        assert weapons.attack(item, heavy=True) is heavy
+        assert item.category in weapons.TEMPO, item.id
+        light = weapons.attack(item)
+        heavy = weapons.attack(item, weapons.HEAVY)
+        quick = weapons.attack(item, weapons.QUICK)
+        assert (light.kind, heavy.kind, quick.kind) == ("light", "heavy", "quick")
         assert not light.heavy and heavy.heavy, item.id
         assert heavy.damage > light.damage or heavy.targets > light.targets or heavy.cone < 0
+        assert 0 < quick.stamina <= light.stamina < heavy.stamina, item.id
+        assert quick.time < light.time < heavy.time, item.id
+        assert quick.min_power > 0
+
+
+def test_bigger_weapons_swing_slower():
+    p_katana, p_sword, p_zwei = armed("katana"), armed("rusted_sword"), armed("zweihander")
+    for p in (p_katana, p_sword, p_zwei):
+        assert p.start_swing()
+    assert p_katana.swing_time < p_sword.swing_time < p_zwei.swing_time
+    assert weapons.tempo(Items.get("nodachi")) > weapons.tempo(Items.get("katana"))
 
 
 def test_heavy_swing_spends_stamina_and_lasts_longer():
     p = armed("claymore")
-    assert p.start_swing(heavy=True)
-    assert p.attack.name == "Overhead cleave"
+    light = armed("claymore")
+    assert p.start_swing(kind=weapons.HEAVY).name == "Overhead cleave"
     assert math.isclose(p.stamina.value, 1 - p.attack.stamina)
-    assert p.swing_time > Player.SWING_TIME
-    assert p.swing_hit_at > Player.SWING_HIT_AT
+    light.start_swing()
+    assert light.stamina.value < 1.0, "light attacks cost stamina too"
+    assert p.swing_time > light.swing_time
+    assert p.swing_hit_at > light.swing_hit_at
 
 
-def test_winded_heavy_falls_back_to_light():
+def test_winded_heavy_falls_back_to_light_and_exhaustion_stops_swings():
     p = armed("war_hammer")
-    p.stamina.value = 0.2  # a ground slam costs 0.5
+    p.stamina.value = 0.2  # a ground slam costs more than that
     assert not p.can_heavy()
-    assert p.start_swing(heavy=True)
-    assert p.attack.name == "Smash"
-    assert p.stamina.value == 0.2
+    assert p.start_swing(kind=weapons.HEAVY).name == "Smash"
+    assert p.stamina.value < 0.2
+    tired = armed("rusted_sword")
+    tired.stamina.drain(99)
+    assert tired.stamina.exhausted
+    assert tired.start_swing() is None
+
+
+def test_sprint_drains_slower_than_before():
+    from ashen_vault.player.combat import Stamina
+
+    assert Stamina.DRAIN_TIME >= 5.0
+
+
+def test_click_again_mid_swing_chains_a_quick_strike():
+    p = armed("rusted_sword")
+    p.start_swing()
+    assert p.queue_quick("right")
+    assert not p.queue_quick("left"), "only the swinging hand chains"
+    assert p.chain_quick() is None, "not before the blow has landed"
+    while p.swing_t < p.swing_time * Player.QUICK_FROM:
+        p.update_timers(0.01)
+    quick = p.chain_quick()
+    assert quick is not None and quick.kind == "quick"
+    assert p.swing_power >= quick.min_power
+    assert not p.queue_quick("right"), "a quick strike doesn't chain again"
+
+
+def test_hit_stop_holds_the_swing():
+    p = armed("war_hammer")
+    p.start_swing()
+    p.update_timers(0.1)
+    t = p.swing_t
+    p.land_hit(object())
+    p.update_timers(0.01)
+    assert p.swing_t == t
+
+
+def ctx(**kw):
+    return weapons.Context(**kw)
+
+
+def test_secret_attacks_need_their_moment():
+    katana, whip, axe, club, hammer, sword = (
+        Items.get(i)
+        for i in ("katana", "leather_whip", "felling_axe", "oak_cudgel", "war_hammer", "ashblade")
+    )
+    H, L = weapons.HEAVY, weapons.LIGHT
+    assert weapons.secret(katana, H, ctx(charge_t=1.3, still_t=2.0)).name == "Sheathed Draw"
+    assert weapons.secret(katana, H, ctx(charge_t=1.3, still_t=0.5)) is None, "moved during the draw"
+    assert weapons.secret(katana, H, ctx(charge_t=0.5, still_t=2.0)) is None
+    assert weapons.secret(whip, H, ctx(sprinting=True, since_sprint=0)).name == "Snare"
+    assert weapons.secret(whip, H, ctx()) is None
+    assert weapons.secret(axe, H, ctx(since_sprint=0.3)).name == "Leaping Hew"
+    assert weapons.secret(axe, H, ctx(since_sprint=1.0)) is None
+    assert weapons.secret(club, L, ctx(combo=2)).name == "Skull-ringer"
+    assert weapons.secret(club, L, ctx(combo=1)) is None
+    assert weapons.secret(club, H, ctx(combo=5)) is None
+    assert weapons.secret(hammer, H, ctx(since_hit=0.5)).name == "Aftershock"
+    assert weapons.secret(hammer, H, ctx()) is None
+    assert weapons.secret(sword, H, ctx(sprinting=True, since_hit=0, charge_t=5, still_t=9)) is None
+    for item in ALL_WEAPONS:
+        if weapons.has_secret(item):
+            s = weapons.attack(item, weapons.SECRET)
+            assert s.kind == "secret" and s.heavy and s.stamina > 0
+
+
+def test_player_unleashes_the_club_secret_on_the_third_blow():
+    p = armed("oak_cudgel")
+    foe = object()
+    for _ in range(2):
+        p.start_swing()
+        p.land_hit(foe)
+        p.swing_t = None
+        p.stamina.fill()
+    assert p.start_swing().name == "Skull-ringer"
+    assert p.combo_n == 0
+
+
+def test_hammer_answers_a_blow_with_the_aftershock():
+    p = armed("war_hammer")
+    p.charge_t = weapons.CHARGE_TIME
+    assert p.start_swing(kind=weapons.HEAVY).name == "Ground slam"
+    p.swing_t = None
+    p.stamina.fill()
+    p.take_blow(5, 3, 0)
+    p.charge_t = weapons.CHARGE_TIME
+    assert p.start_swing(kind=weapons.HEAVY).name == "Aftershock"
+
+
+def test_shields_and_spells_never_swing():
+    p = Player(inventory=Inventory(right="rusted_sword"))
+    p.inventory.add("buckler")
+    p.inventory.equip("buckler", "right")
+    assert p.start_swing("right") is None
+    assert p.start_swing("left") is None, "the left hand holds the spell"
+    assert p.stamina.value == 1.0 and not p.swinging
+
+
+def test_katana_draw_from_a_still_hold():
+    p = armed("katana")
+    p.update_timers(1.5)
+    p.charge_t = 1.3
+    assert p.start_swing(kind=weapons.HEAVY).name == "Sheathed Draw"
 
 
 def test_damage_multiplier():

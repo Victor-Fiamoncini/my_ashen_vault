@@ -35,11 +35,11 @@ R,,HHHHHH,,,,,,..,,,,,,,,,,,,,,R
 R,,,,,,,,,,t........t,,,,,T,,,,R
 R,,T,,,,,,,.S........,,,,,,,,,,R
 R,,,,,,,,,,....W.....,,,,,,,,,,R
-R,,,,,,,,,,.......g..,,,,,,,,,,R
-R,,,,,,,,,,..........,,,,,,,,,,R
-R,,,,,,,,,,t........t,,,T,,,,,,R
-R,,,,,,,,,,,,,,..,,,,,,,,,,,,,,R
-R,,,,,,,,,,,,,,..,,,,,,,,,,,,,,R
+R,HHHHH,,,,.......g..,,,,,,,,,,R
+R,HiLiH,,,,..........,,,,,,,,,,R
+R,HiCii,,,,t........t,,,T,,,,,,R
+R,HiiiH,,,,,,,,..,,,,,,,,,,,,,,R
+R,HHHHH,,,,,,,,..,,,,,,,,,,,,,,R
 R------------------------------R
 R~~~~~~~~~~~~~~pp~~~~~~~~~~~~~~R
 R~~~~~~~~~~~~~~pp~~~~~~~~~~~~~~R
@@ -59,3 +59,4 @@ W = exit map=sunken_keep at=15,27,-90 label=Descend_the_well model=well on=.
 g = npc id=hollis yaw=180 on=.
 f = npc id=maeve yaw=-90 on=p
 V = exit map=verdant_hollow at=15,27,-90 label=Enter_the_overgrown_house model=vine_door yaw=90 on=p
+C = npc id=corvane yaw=0 on=i

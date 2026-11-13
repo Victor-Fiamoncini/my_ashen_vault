@@ -189,16 +189,16 @@ def hud_box(x, y, w, h, fill=HUD_FILL, radius=HUD_RADIUS, edge=HUD_EDGE):
 
 
 def mouse_hud(player, x, y):
-    """A mouse whose buttons show their actions: weapon on the left button, spell on the right,
-    the quick item on the wheel (middle click uses it, rolling the wheel picks another)."""
+    """A mouse whose buttons show what each hand holds: the right hand on the left button, the left
+    hand on the right one; the quick item on the wheel (middle click uses it, rolling picks another)."""
     w, split = MOUSE_W, MOUSE_SPLIT
     hud_box(x, y, w, MOUSE_H)
     cx = x + w // 2
     cy = y + split // 2 + 1
     pr.draw_line(cx, y + 1, cx, y + split, HUD_EDGE)  # button divider
     pr.draw_line(x + 3, y + split, x + w - 3, y + split, HUD_EDGE)
-    weapon_slot(player, x + 17, cy)
-    spell_slot(player, x + w - 17, cy)
+    hand_slot(player, "right", x + 17, cy)
+    hand_slot(player, "left", x + w - 17, cy)
     wheel_slot(player, cx, cy)
 
     # Palm: L / R marks and how many of the quick item are left.
@@ -223,13 +223,47 @@ def wheel_slot(player, cx, cy):
     item_icon(item.id, cx, cy, pr.get_time(), 255 if n else 90)
 
 
-def weapon_slot(player, cx, cy):
-    """The equipped weapon, ringed by the ATK gauge: swing when it glows for full damage."""
-    gauge = player.attack_gauge
+def hand_slot(player, hand, cx, cy):
+    """One mouse button: whatever that hand holds, drawn by kind."""
+    item = player.hand_item(hand)
+    if hand == "left" and player.inventory.two_handing():
+        return two_hand_slot(player, item, cx, cy)
+    if item.kind == "shield":
+        return shield_slot(player, item, cx, cy)
+    if item.kind == "spell":
+        return spell_slot(player, cx, cy)
+    return weapon_slot(player, hand, item, cx, cy)
+
+
+def weapon_slot(player, hand, weapon, cx, cy):
+    """A hand's weapon (or fist), ringed by its ATK gauge: swing when it glows for full damage."""
+    gauge = player.gauge(hand)
     ready = ready_slot(cx, cy, gauge, ATK_RGB, ATK_CHARGING_RGB, (48, 40, 20))
-    weapon = player.inventory.weapon_item()
     weapon_icon(weapon, cx, cy, pr.get_time(), 255 if ready else 110, ready)
-    charge_ring(player, cx, cy)
+    if player.charge_hand == hand:
+        charge_ring(player, cx, cy)
+
+
+def two_hand_slot(player, weapon, cx, cy):
+    """The right mouse button of a two-hander: an instant heavy, ringed orange while ST allows it."""
+    ok = player.can_heavy("right")
+    pr.draw_circle(cx, cy, SLOT_R + 4, color(0, 0, 0, 200))
+    ring = color(*HEAVY_RGB) if ok else color(140, 40, 30, 200)
+    pr.draw_ring(pr.Vector2(cx, cy), SLOT_R + 1, SLOT_R + 3, 0, 360, 32, ring)
+    weapon_icon(weapon, cx, cy, pr.get_time(), 200 if ok else 90)
+
+
+def shield_slot(player, shield, cx, cy):
+    """A shield, ringed by ST while it is raised (that is what blocking spends)."""
+    centre = pr.Vector2(cx, cy)
+    pr.draw_circle(cx, cy, SLOT_R + 4, color(0, 0, 0, 200))
+    pr.draw_ring(centre, SLOT_R + 1, SLOT_R + 3, 0, 360, 32, color(40, 50, 40))
+    up = player.guarding
+    if up:
+        end = -90 + 360 * clamp(player.stamina.value, 0, 1)
+        pr.draw_ring(centre, SLOT_R + 1, SLOT_R + 3, -90, end, 32, color(*STAMINA_RGB))
+    alpha = 110 if player.guard_break_t > 0 else 255
+    shield_icon(shield, cx, cy, alpha, up)
 
 
 CHARGE_SHOW = 0.08  # ignore the first moments of a hold so plain taps never flash the ring
@@ -308,6 +342,20 @@ def weapon_icon(item, cx, cy, t, alpha=255, ready=False):
         pr.draw_line_ex(head[0], head[1], 5, iron)
         pr.draw_line_ex(pr.Vector2(cx + 4, cy - 3), pr.Vector2(cx + 5, cy - 4), 2, color(200, 200, 210, a))
         return
+    if cat == "club":
+        pr.draw_line_ex(pr.Vector2(cx - 5, cy + 5), pr.Vector2(cx + 4, cy - 4), 3, wood)
+        pr.draw_circle(cx + 3, cy - 3, 3, color(130, 90, 56, a))
+        if item.id == "spiked_club":
+            for dx, dy in ((2, -7), (7, -2), (6, -6), (0, -4)):
+                pr.draw_rectangle(cx + dx, cy + dy, 1, 1, iron)
+        return
+    if cat == "axe":
+        two = item.two_handed
+        pr.draw_line_ex(pr.Vector2(cx - 5, cy + 6), pr.Vector2(cx + 3, cy - 5), 2, wood)
+        head = [pr.Vector2(cx + 1, cy - 6), pr.Vector2(cx + 7, cy - 2 if two else cy - 3)]
+        pr.draw_line_ex(head[0], head[1], 4 if two else 3, iron)
+        pr.draw_line_ex(pr.Vector2(cx + 5, cy - 6), pr.Vector2(cx + 8, cy - 1), 1, color(220, 220, 230, a))
+        return
     if cat == "whip":
         pr.draw_line_ex(pr.Vector2(cx - 6, cy + 6), pr.Vector2(cx - 3, cy + 3), 2, color(80, 54, 34, a))
         pts = [(-3, 3), (0, -1), (4, -4), (7, -3), (6, 1), (3, 2)]
@@ -320,6 +368,8 @@ def weapon_icon(item, cx, cy, t, alpha=255, ready=False):
         "ashblade": (215, 215, 225),
         "rusted_sword": (150, 132, 112),
         "katana": (225, 228, 238),
+        "moonless_tachi": (120, 120, 140),
+        "nodachi": (230, 232, 240),
     }.get(item.id, (190, 192, 202))
     blade = color(*blade_rgb, a)
     hilt = color(60, 50, 60, a) if item.id == "ashblade" else color(110, 70, 40, a)
@@ -344,6 +394,32 @@ def weapon_icon(item, cx, cy, t, alpha=255, ready=False):
             gx = rround(cx - 2 + k * 8)
             gy = rround(cy + 2 - k * 8)
             pr.draw_rectangle(gx, gy, 1, 1, color(255, 255, 240, a))
+
+
+def shield_icon(item, cx, cy, alpha=255, raised=False):
+    """Shield glyphs: a round boss for the buckler and round shield, a kite or a tall slab."""
+    a = int(alpha)
+    wood = color(120, 84, 50, a)
+    iron = color(160, 160, 170, a)
+    lift = -1 if raised else 0
+    if item.id == "tower_shield":
+        pr.draw_rectangle(cx - 4, cy - 6 + lift, 9, 13, wood)
+        pr.draw_rectangle_lines(cx - 4, cy - 6 + lift, 9, 13, iron)
+        pr.draw_line(cx, cy - 5 + lift, cx, cy + 6 + lift, color(90, 60, 36, a))
+    elif item.id == "kite_shield":
+        top = cy - 6 + lift
+        pr.draw_triangle(
+            pr.Vector2(cx - 5, top + 3), pr.Vector2(cx, top + 13), pr.Vector2(cx + 5, top + 3), wood
+        )
+        pr.draw_rectangle(cx - 5, top, 11, 4, wood)
+        pr.draw_line(cx - 5, top, cx + 5, top, iron)
+        pr.draw_line(cx, top + 1, cx, top + 10, color(170, 40, 36, a))
+    else:
+        big = item.id == "round_shield"
+        r = 6 if big else 4
+        pr.draw_circle(cx, cy + lift, r, wood if big else iron)
+        pr.draw_circle_lines(cx, cy + lift, r, iron)
+        pr.draw_circle(cx, cy + lift, 2, color(200, 200, 210, a))
 
 
 def spell_icon(id_, cx, cy, t, alpha=255):
@@ -544,23 +620,34 @@ def dialogue(speaker, line, page, pages):
     text(f"{page + 1}/{pages}", 284, 195, DIM)
 
 
-def list_menu(title, x, y, w, rows, selected, footer=None):
-    """rows are tuples (label, right=None, dim=False)."""
-    height = 22 + max(len(rows), 1) * 11 + (12 if footer else 0)
+def list_menu(title, x, y, w, rows, selected, footer=None, first=0, visible=None):
+    """rows are tuples (label, right=None, dim=False). A long list shows `visible` rows from `first`,
+    with arrows on the title line when there is more above or below."""
+    shown = rows[first : first + visible] if visible else rows
+    height = 22 + max(len(shown), 1) * 11 + (12 if footer else 0)
     panel(x, y, w, height)
     text(title, x + 8, y + 5, HIGHLIGHT)
+    if visible and first > 0:
+        pr.draw_triangle(
+            pr.Vector2(x + w - 12, y + 6), pr.Vector2(x + w - 15, y + 11), pr.Vector2(x + w - 9, y + 11), DIM
+        )
+    if visible and first + visible < len(rows):
+        pr.draw_triangle(
+            pr.Vector2(x + w - 25, y + 6), pr.Vector2(x + w - 22, y + 11), pr.Vector2(x + w - 19, y + 6), DIM
+        )
     if not rows:
         text("(empty)", x + 12, y + 20, DIM)
-    for i, row in enumerate(rows):
+    for j, row in enumerate(shown):
+        i = first + j if visible else j
         label = row[0]
         right = row[1] if len(row) > 1 else None
         dim = row[2] if len(row) > 2 else False
         col = HIGHLIGHT if i == selected else (DIM if dim else TEXT)
-        text(">" if i == selected else " ", x + 4, y + 20 + i * 11, col)
-        text(label, x + 12, y + 20 + i * 11, col)
+        text(">" if i == selected else " ", x + 4, y + 20 + j * 11, col)
+        text(label, x + 12, y + 20 + j * 11, col)
         if right is not None:
             rs = str(right)
-            text(rs, x + w - 8 - measure(rs), y + 20 + i * 11, col)
+            text(rs, x + w - 8 - measure(rs), y + 20 + j * 11, col)
     if footer:
         text(footer, x + 8, y + height - 13, DIM)
 

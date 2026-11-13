@@ -21,8 +21,8 @@ KEYS = {
     "cancel": [rl.KEY_ESCAPE, rl.KEY_TAB, rl.KEY_BACKSPACE],
 }
 MOUSE = {
-    "attack": rl.MOUSE_BUTTON_LEFT,
-    "cast": rl.MOUSE_BUTTON_RIGHT,
+    "attack": rl.MOUSE_BUTTON_LEFT,  # the right hand
+    "cast": rl.MOUSE_BUTTON_RIGHT,  # the left hand
     "click": rl.MOUSE_BUTTON_LEFT,
     "back": rl.MOUSE_BUTTON_RIGHT,
     "quick": rl.MOUSE_BUTTON_MIDDLE,
@@ -35,9 +35,11 @@ CONTROLS = [
     ("Strafe", "A D"),
     ("Sprint", "Hold Shift"),
     ("Turn / look", "Mouse"),
-    ("Attack", "Left mouse"),
-    ("Heavy attack", "Hold left mouse"),
-    ("Cast spell", "Right mouse"),
+    ("Right hand", "Left mouse"),
+    ("Left hand", "Right mouse"),
+    ("Heavy attack", "Hold the button"),
+    ("Quick attack", "Click again mid-swing"),
+    ("Block", "Hold the shield's button"),
     ("Quick item", "Middle mouse"),
     ("Choose quick item", "Mouse wheel"),
     ("Choose spell", "Belongings (Tab)"),

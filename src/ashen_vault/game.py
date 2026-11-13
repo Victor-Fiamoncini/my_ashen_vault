@@ -11,6 +11,7 @@ from ashen_vault.audio.synth import Audio
 from ashen_vault.input import CONTROLS, Input
 from ashen_vault.player import weapons
 from ashen_vault.player.combat import Combat
+from ashen_vault.player.inventory import LEFT, RIGHT, SPELL
 from ashen_vault.player.items import Item, Items
 from ashen_vault.player.player import Player
 from ashen_vault.player.spells import Spells
@@ -18,7 +19,7 @@ from ashen_vault.render import models
 from ashen_vault.render.gpu import Gpu
 from ashen_vault.render.rig import Rig
 from ashen_vault.save.save_system import SaveSystem
-from ashen_vault.screen import FOV, PREVIEW, H, W, centered_row_at, list_row_at
+from ashen_vault.screen import FOV, LIST_ROWS, PREVIEW, H, W, centered_row_at, list_row_at, scroll_into_view
 from ashen_vault.ui import hud as ui
 from ashen_vault.util import clamp, rround
 from ashen_vault.world import relics
@@ -26,12 +27,16 @@ from ashen_vault.world.rest import RestSequence
 from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.world import World
 
-KIND_ORDER = ["weapon", "armor", "spell", "consumable", "scroll", "key"]
+KIND_ORDER = ["weapon", "shield", "armor", "spell", "consumable", "scroll", "key"]
+HAND_BUTTON = {RIGHT: "attack", LEFT: "cast"}  # input actions: left mouse = right hand, right = left
+PULSE_DELAY = 0.3  # seconds between the blows of a multi-pulse attack (the hammer's Aftershock)
+PULSE_DAMAGE = 0.6
 PAUSE_OPTIONS = ["Resume", "Controls", "Return to Title", "Quit"]
 # (x, y, width) of each ui.list_menu panel, shared by drawing and mouse hit-testing.
 PAUSE_LIST = (100, 80, 120)
 MENU_LIST = (6, 6, 170)
 SHOP_LIST = (6, 6, 308)
+PICK_LIST = (24, 60, 150)  # the "which hand?" chooser over Belongings
 TITLE_Y, TITLE_STEP = 140, 14
 ENDING = [
     "The bell of Harrowmere rings again.",
@@ -84,7 +89,13 @@ class Game:
         self._look_skip = 0  # frames of mouse delta to ignore after recapturing the cursor
         self._rest = None
         self._hit_done = False
-        self._attack_down = False  # attack button held last frame (tap = light, hold = heavy)
+        self._held = {"attack": False, "cast": False}  # hand buttons held last frame (tap / hold)
+        self._spent = {"attack": False, "cast": False}  # this press already queued a quick strike
+        self._pulse = None  # [seconds left, attack, weapon] of a pending second shockwave
+        self._menu_top = 0  # first row shown by a scrolling list
+        self._pick = None  # item waiting for a hand in the Belongings chooser
+        self._pick_index = 0
+        self._shop_id = "pell"
         self._step_phase = 0.0
         self._dialogue = None
         self._controls_from = None
@@ -137,6 +148,7 @@ class Game:
             f"smoke: {self._frames} frames, fps={pr.get_fps()}, map={self.world.name if self.world else None}, "
             f"pos={round(p.x, 2)},{round(p.z, 2)} hp={p.stats.hp} lv={p.stats.level} exp={p.stats.exp} "
             f"gold={inv.gold} scene={self.scene} flags={','.join(sorted(self.flags))} items={inv.counts} "
+            f"equip={inv.slots} st={round(p.stamina.value, 2)} attack={p.attack.name} "
             f"enemies={enemies} shot={shot}",
             flush=True,
         )
@@ -213,13 +225,17 @@ class Game:
             self._running = False
 
     def _menu_nav(self, n):
+        self._menu_index = self._step_index(self._menu_index, n)
+
+    def _step_index(self, i, n):
         wheel = self._input.wheel()
         if self._input.pressed("up") or wheel > 0:
-            self._menu_index = (self._menu_index - 1) % n
+            i = (i - 1) % n
         if self._input.pressed("down") or wheel < 0:
-            self._menu_index = (self._menu_index + 1) % n
+            i = (i + 1) % n
+        return i
 
-    def _menu_pointer(self, hit):
+    def _menu_pointer(self, hit, pick=False):
         """Mouse over a menu. `hit(px, py)` maps a 320x240 point to a row index or None.
         Moving onto a row selects it; a left click on a row selects it and returns True."""
         ptr = self._input.pointer()
@@ -229,12 +245,12 @@ class Game:
         i = hit(px, py)
         if i is None:
             return False
-        if moved:
-            self._menu_index = i
-        if self._input.pressed("click"):
-            self._menu_index = i
-            return True
-        return False
+        if moved or self._input.pressed("click"):
+            if pick:
+                self._pick_index = i
+            else:
+                self._menu_index = i
+        return bool(self._input.pressed("click"))
 
     def _back(self):
         return self._input.pressed("cancel") or self._input.pressed("back")
@@ -249,7 +265,22 @@ class Game:
         self._load_world(map_name)
         x, z, yaw = self._spot(at) if at else self.world.start_position()
         self.player.place(x, z, yaw, self.world.map)
+        self._debug_setup()
         self._enter_play()
+
+    def _debug_setup(self):
+        """--level and --equip (slot=id pairs) for smoke runs; gear is added to the pack first."""
+        p = self.player
+        if self.opts.get("level"):
+            p.stats.level = self.opts["level"]
+        for pair in filter(None, (self.opts.get("equip") or "").split(",")):
+            slot, _, id_ = pair.partition("=")
+            if id_ in ("", "none"):
+                p.inventory.slots[slot] = None
+                continue
+            if id_ != SPELL:
+                p.inventory.add(id_)
+            p.inventory.equip(id_, slot if slot in (RIGHT, LEFT) else None)
 
     def continue_game(self):
         loaded = self._saves.load()
@@ -320,11 +351,13 @@ class Game:
             self._footstep()
 
         p.update_timers(dt)
-        self._update_attack(dt)
+        self._update_hands(dt)
         if p.swinging and not self._hit_done and p.swing_t >= p.swing_hit_at:
             self._resolve_swing()
-        if inp.pressed("cast"):
-            self._cast_spell()
+        if self._hit_done and p.chain_quick():
+            self._hit_done = False
+            self.sfx("swing", 0.5)
+        self._update_pulse(dt)
         wheel = inp.wheel()
         if wheel:
             self._cycle_quick(-1 if wheel > 0 else 1)  # wheel down = next
@@ -348,57 +381,153 @@ class Game:
         self._step_phase = phase
         self.sfx("step", 0.35)
 
-    def _update_attack(self, dt):
-        """Tap the attack button for a light attack; hold it to charge a heavy one, which lands on
-        release. A scripted `attack` taps, `attack:0.6` holds."""
+    def _update_hands(self, dt):
+        """Each mouse button works the hand it belongs to (left button = right hand): a weapon swings
+        (tap light, hold heavy, click again mid-swing for a quick strike), a shield is raised while
+        held, a spell is cast. With a two-hander the right mouse button swings a heavy at once.
+        A scripted `attack` / `cast` taps that button, `attack:0.6` holds it."""
         p = self.player
         inp = self._input
-        if inp.down("attack"):
-            if not p.swinging:
+        guard_up = False
+        for hand, action in HAND_BUTTON.items():
+            item = p.hand_item(hand)
+            down, pressed = inp.down(action), inp.pressed(action)
+            if hand == LEFT and p.inventory.two_handing():
+                if pressed:
+                    self._swing(RIGHT, weapons.HEAVY)
+            elif item.kind == "shield":
+                guard_up = guard_up or down or pressed
+            elif item.kind == "spell":
+                if pressed:
+                    self._cast_spell()
+            else:
+                self._update_weapon_button(hand, action, dt, down, pressed)
+        was = p.guarding
+        if p.raise_guard(guard_up) and not was:
+            self.sfx("step", 0.5)
+
+    def _update_weapon_button(self, hand, action, dt, down, pressed):
+        p = self.player
+        if pressed and p.swinging and p.queue_quick(hand):
+            self._spent[action] = True  # this click was the quick follow-up, not a new swing
+            self._held[action] = False
+            return
+        if down:
+            if not self._spent[action] and not p.swinging and (p.charge_hand == hand or p.charge_t == 0):
+                p.charge_hand = hand
                 p.charge_t += dt
-            self._attack_down = True
+            self._held[action] = True
             return
-        released, self._attack_down = self._attack_down, False
-        if not (released or inp.pressed("attack")):
+        released, self._held[action] = self._held[action], False
+        if self._spent[action]:
+            self._spent[action] = False
+            return
+        if not (released or pressed):
+            if p.charge_hand == hand:
+                p.charge_t = 0.0
+            return
+        heavy = p.charge_hand == hand and p.charge_t >= weapons.CHARGE_TIME
+        self._swing(hand, weapons.HEAVY if heavy else weapons.LIGHT)
+        if p.charge_hand == hand:
             p.charge_t = 0.0
+
+    def _swing(self, hand, kind):
+        p = self.player
+        if p.swinging:
             return
-        heavy = p.charge_t >= weapons.CHARGE_TIME
-        p.charge_t = 0.0
-        if not p.start_swing(heavy):
+        if p.stamina.exhausted:
+            self.message("Too winded to swing.")
+            return
+        a = p.start_swing(hand, kind)
+        if not a:
             return
         self._hit_done = False
-        if p.attack.heavy:
+        if a.kind == weapons.SECRET:
+            self.sfx("heavy", 0.9)
+            self.sfx("swoosh", 0.6)
+            self.message(f"{{{a.name}}}!")
+            self.flags.add(f"secret:{p.swing_weapon.category}")
+        elif a.heavy:
             self.sfx("heavy", 0.7)
         else:
             self.sfx("swing", 0.6)
-            if heavy:
+            if kind == weapons.HEAVY:
                 self.message("Too winded for a heavy attack.")
+
+    def _swing_power(self, weapon):
+        """A weapon's ATK; bare fists hit harder in gauntlets."""
+        if weapon.category != "fists":
+            return weapon.power
+        gloves = self.player.inventory.hands_item()
+        return weapon.power + 2 * ((gloves.power or 0) if gloves else 0)
 
     def _resolve_swing(self):
         self._hit_done = True
         p = self.player
-        weapon = p.inventory.weapon_item()
+        weapon = p.swing_weapon
         a = p.attack
         if a.lunge:
             p.nudge(self.world.map, a.lunge, blocked=self.world.blocker)
         for prop in self.world.strike_props(weapon.reach * a.reach, a.cone):
             self._break(prop)
+        targets = self._strike(weapon, a)
+        if targets:
+            p.land_hit(targets[0])
+        if a.pulses > 1:
+            self._pulse = [PULSE_DELAY, a, weapon, a.pulses - 1]
+
+    def _strike(self, weapon, a, mult=1.0):
+        """Deals one blow of attack `a` to everything in reach; returns who it hit."""
+        p = self.player
         targets = self.world.melee_targets(weapon.reach * a.reach, a.cone, a.targets)
         if not targets:
-            return
+            return targets
         self.sfx("hit")
         for target in targets:
             back = target.hit_mult(p.x, p.z)
             dmg = Combat.damage(
-                base=weapon.power,
+                base=self._swing_power(weapon),
                 strength=p.stats.strength,
                 gauge=p.swing_power,
                 defense=4 if target.type.boss and not a.pierce_def else 0,
-                mult=a.damage * back,
+                mult=a.damage * back * mult,
             )
             if back > 1:
                 self.message(f"You strike the {target.name}'s weak spot!")
             self.damage_enemy(target, dmg, a.poise * back)
+            if a.pull and target.alive:
+                self._pull(target, a.pull)
+        return targets
+
+    def _pull(self, enemy, dist):
+        """The whip's Snare: drags `enemy` up to `dist` metres toward you, stopping short of you."""
+        p = self.player
+        dx, dz = p.x - enemy.x, p.z - enemy.z
+        d = math.hypot(dx, dz)
+        step = min(dist, d - enemy.radius - p.RADIUS - 0.3)
+        if step <= 0:
+            return
+        self.world.move_enemy(enemy, dx / d * step, dz / d * step)
+
+    def _update_pulse(self, dt):
+        """The hammer's Aftershock: the ground answers the slam a moment later."""
+        if not self._pulse:
+            return
+        self._pulse[0] -= dt
+        if self._pulse[0] > 0:
+            return
+        _, a, weapon, left = self._pulse
+        self._pulse = [PULSE_DELAY, a, weapon, left - 1] if left > 1 else None
+        self.sfx("heavy", 0.6)
+        self._strike(weapon, a, PULSE_DAMAGE)
+
+    def blocked(self, block):
+        """The world calls this when a raised shield meets a blow."""
+        if block.broken:
+            self.sfx("crack", 0.9)
+            self.message("Your guard breaks!")
+        else:
+            self.sfx("hit", 0.5)
 
     def _break(self, prop):
         gold, item = self.world.break_prop(prop)
@@ -512,15 +641,36 @@ class Game:
         elif item.kind == "spell":
             self.player.equip_spell(item.spell)
             self.sfx("spell", 0.4)
-            self.message(f"{Spells.get(item.spell).name} is ready.")
-        elif item.kind in ("weapon", "armor"):
-            if inv.unequip(item.id):
-                self.message(f"Unequipped {item.name}.")
+            if inv.equipped(SPELL):
+                self.message(f"{Spells.get(item.spell).name} is ready.")
             else:
-                inv.equip(item.id)
-                self.message(f"Equipped {item.name}.")
+                self._open_pick(item)
+        elif item.kind in ("weapon", "shield", "armor"):
+            if item.kind == "armor" or item.two_handed:
+                if inv.unequip(item.id):
+                    self.message(f"Unequipped {item.name}.")
+                else:
+                    self._equip(item)
+            else:
+                self._open_pick(item)
         else:
             self.message("Not usable from here.")
+
+    def _equip(self, item, hand=None):
+        """Equips `item` (a spell row puts the readied spell in `hand`), unless your level is too low."""
+        inv = self.player.inventory
+        level = self.player.stats.level
+        id_ = SPELL if item.kind == "spell" else item.id
+        if inv.equip_error(id_, level) == "level":
+            verb = "wear" if item.kind == "armor" else "wield"
+            self.sfx("hurt", 0.3)
+            self.message(f"You need level {item.level} to {verb} the {item.name}.")
+            return False
+        if not inv.equip(id_, hand, level):
+            return False
+        where = f" in your {hand} hand" if hand and item.kind != "armor" and not item.two_handed else ""
+        self.message(f"Equipped {{{item.name}}}{where}.")
+        return True
 
     def focus_label(self):
         if self.scene != "play" or not self.world:
@@ -595,7 +745,8 @@ class Game:
         self._rest = RestSequence()
         self.scene = "rest"
         self.player.charge_t = 0.0
-        self._attack_down = False
+        self._held = {"attack": False, "cast": False}
+        self.player.guarding = False
         self.sfx("save")
 
     def _update_rest(self, dt):
@@ -691,7 +842,42 @@ class Game:
     def _open_menu(self):
         self.scene = "menu"
         self._menu_index = 0
+        self._menu_top = 0
+        self._pick = None
         self._mouse_look(False)
+        self.player.guarding = False
+
+    def _open_pick(self, item):
+        """Asks which hand a one-handed weapon, a shield or a spell goes in."""
+        self._pick = item
+        self._pick_index = 0
+
+    def _pick_options(self):
+        item = self._pick
+        inv = self.player.inventory
+        held = SPELL if item.kind == "spell" else item.id
+        opts = [("Right hand", "L-click", RIGHT), ("Left hand", "R-click", LEFT)]
+        if inv.equipped(held):
+            opts.append(("Unequip", None, None))
+        return opts
+
+    def _update_pick(self):
+        opts = self._pick_options()
+        if self._back():
+            self._pick = None
+            return
+        self._pick_index = self._step_index(self._pick_index, len(opts))
+        clicked = self._menu_pointer(lambda px, py: list_row_at(*PICK_LIST, len(opts), px, py), pick=True)
+        if not (clicked or self._input.pressed("confirm")):
+            return
+        item, (_, _, hand) = self._pick, opts[self._pick_index]
+        self._pick = None
+        inv = self.player.inventory
+        if hand is None:
+            inv.unequip(SPELL if item.kind == "spell" else item.id)
+            self.message(f"Unequipped {item.name}.")
+        else:
+            self._equip(item, hand)
 
     def _menu_items(self):
         """Belongings rows: carried items plus one row per known spell (choose it to ready it)."""
@@ -703,6 +889,8 @@ class Game:
         return sorted(rows, key=lambda i: (KIND_ORDER.index(i.kind), i.name))
 
     def _update_menu(self):
+        if self._pick:
+            return self._update_pick()
         items = self._menu_items()
         if self._back():
             return self._enter_play()
@@ -710,25 +898,31 @@ class Game:
             return
         self._menu_nav(len(items))
         self._menu_index = clamp(self._menu_index, 0, len(items) - 1)
-        clicked = self._menu_pointer(lambda px, py: list_row_at(*MENU_LIST, len(items), px, py))
+        self._menu_top = scroll_into_view(self._menu_top, self._menu_index, len(items))
+        clicked = self._menu_pointer(
+            lambda px, py: list_row_at(*MENU_LIST, len(items), px, py, self._menu_top, LIST_ROWS)
+        )
         if clicked or self._input.pressed("confirm"):
             self._use_item(items[self._menu_index])
 
     # --- shop ----------------------------------------------------------------------
 
-    def open_shop(self):
+    def open_shop(self, shop_id="pell"):
         self.scene = "shop"
+        self._shop_id = shop_id
         self._menu_index = 0
+        self._menu_top = 0
         self._mouse_look(False)
+        self.player.guarding = False
 
     def _shop_stock(self):
         p = self.player
         out = []
-        for id_ in dialogue_data.SHOP:
+        for id_ in dialogue_data.SHOPS[self._shop_id]:
             item = Items.get(id_)
             if item.kind == "scroll" and (item.spell in p.spells or p.inventory.has(id_)):
                 continue
-            if item.kind in ("weapon", "armor") and p.inventory.has(id_):
+            if item.kind in ("weapon", "shield", "armor") and p.inventory.has(id_):
                 continue
             out.append(item)
         return out
@@ -739,13 +933,18 @@ class Game:
             return self._enter_play()
         self._menu_nav(len(stock))
         self._menu_index = clamp(self._menu_index, 0, len(stock) - 1)
-        clicked = self._menu_pointer(lambda px, py: list_row_at(*SHOP_LIST, len(stock), px, py))
+        self._menu_top = scroll_into_view(self._menu_top, self._menu_index, len(stock))
+        clicked = self._menu_pointer(
+            lambda px, py: list_row_at(*SHOP_LIST, len(stock), px, py, self._menu_top, LIST_ROWS)
+        )
         if not (clicked or self._input.pressed("confirm")):
             return
         item = stock[self._menu_index]
         if self.player.inventory.buy(item.id):
             self.sfx("pickup")
             self.message(f"Bought {{{item.name}}}.")
+            if item.level > self.player.stats.level:
+                self.message(f"You will need level {item.level} to use it.")
         else:
             self.message("You can't afford that.")
 
@@ -882,7 +1081,7 @@ class Game:
         gpu.set_float("isModel", 1.0)
         gpu.model_light([min(c + 0.15, 1.4) for c in self.world.builder.light_at(p.x, p.eye_y, p.z)])
         bob = math.sin(p.bob_t) * 0.02
-        models.weapon_view(self._rig, p, bob)
+        models.weapon_view(self._rig, p, bob, self._time)
         pr.end_mode_3d()
 
     def _selected_item(self):
@@ -926,7 +1125,8 @@ class Game:
         cp = math.cos(p.pitch)
         eye = p.eye_y
         cam.position = (p.x, eye, p.z)
-        cam.target = (p.x + fx * cp, eye + math.sin(p.pitch), p.z + fz * cp)
+        dip = p.hitstop_t * 0.8  # a blow that bites jolts the view down a touch
+        cam.target = (p.x + fx * cp, eye + math.sin(p.pitch) - dip, p.z + fz * cp)
 
     def _render_ui(self):
         s = self.scene
@@ -972,12 +1172,15 @@ class Game:
         inv = self.player.inventory
         rows = [
             (
-                f"{i.name}{' (E)' if self._equipped_row(i) else ''}",
-                f"x{inv.count(i.id)}" if i.kind == "consumable" else None,
+                f"{i.name}{self._equipped_mark(i)}",
+                f"x{inv.count(i.id)}" if i.kind == "consumable" else self._level_mark(i),
+                i.level > self.player.stats.level,
             )
             for i in items
         ]
-        ui.list_menu("Belongings", *MENU_LIST, rows, self._menu_index)
+        ui.list_menu(
+            "Belongings", *MENU_LIST, rows, self._menu_index, first=self._menu_top, visible=LIST_ROWS
+        )
         s = self.player.stats
         ui.panel(182, 6, 132, 144)
         stats = [
@@ -988,7 +1191,7 @@ class Game:
             ("STR", s.strength),
             ("MAG", s.magic),
             ("DEF", inv.defense),
-            ("Weapon", inv.weapon_item().power),
+            ("ATK", self._swing_power(inv.weapon_item())),
             ("Gold", inv.gold),
         ]
         for i, (k, v) in enumerate(stats):
@@ -1006,12 +1209,27 @@ class Game:
         self._draw_item_panel(
             item, self._item_detail(item) if item else "", "Enter/Click: use   Tab/R-click: close"
         )
+        if self._pick:
+            rows = [(label, key) for label, key, _ in self._pick_options()]
+            ui.list_menu(f"Equip {self._pick.name}", *PICK_LIST, rows, self._pick_index)
 
-    def _equipped_row(self, item):
+    def _equipped_mark(self, item):
+        """Row suffix: which hands hold the item (R, L or R+L), or E for worn armor."""
+        inv = self.player.inventory
         if item.kind == "spell":
             spell = self.player.current_spell()
-            return spell is not None and spell.id == item.spell
-        return self.player.inventory.equipped(item.id)
+            if spell is None or spell.id != item.spell:
+                return ""
+            id_ = SPELL
+        else:
+            id_ = item.id
+        if item.kind == "armor":
+            return " (E)" if inv.equipped(id_) else ""
+        hands = "+".join(h for h, slot in (("R", RIGHT), ("L", LEFT)) if inv.slots[slot] == id_)
+        return f" ({hands})" if hands else ""
+
+    def _level_mark(self, item):
+        return f"Lv{item.level}" if item.level > 1 else None
 
     def _draw_item_panel(self, item, detail, footer):
         """Bottom panel shared by Belongings and the shop: spinning preview, name, details, description."""
@@ -1026,8 +1244,12 @@ class Game:
             ui.text(detail, 84, 174, ui.DIM)
             lines = ui.wrap(item.desc, 224)
             if item.kind == "weapon":
-                light, heavy = weapons.moveset(item)
-                lines = [f"{light.name} / Heavy: {heavy.name}", *lines]
+                moves = weapons.moveset(item)
+                head = f"{moves[weapons.LIGHT].name} / Heavy: {moves[weapons.HEAVY].name}"
+                if weapons.has_secret(item):
+                    known = f"secret:{item.category}" in self.flags
+                    head += f" / {moves[weapons.SECRET].name if known else '???'}"
+                lines = [head, *lines]
             for i, l in enumerate(lines[:3]):
                 ui.text(
                     l,
@@ -1040,11 +1262,15 @@ class Game:
         ui.text(msg[0] if fresh else footer, 84, 221, ui.TEXT if fresh else ui.DIM)
 
     def _item_detail(self, item):
+        need = f"   Lv{item.level}" if item.level > 1 else ""
         if item.kind == "weapon":
-            kind = weapons.CATEGORY_NAMES[item.category]
-            return f"{kind}   ATK {item.power}   Reach {item.reach}"
+            kind = weapons.CATEGORY_NAMES[item.category] + (" (2H)" if item.two_handed else "")
+            return f"{kind}   ATK {item.power}   Reach {item.reach}{need}"
+        if item.kind == "shield":
+            return f"Shield   Block {rround(item.guard * 100)}%   Holds {item.stability}{need}"
         if item.kind == "armor":
-            return f"Armor   DEF {item.power}"
+            slot = "Gauntlets" if item.slot == "hands" else "Armor"
+            return f"{slot}   DEF {item.power}{need}"
         if item.kind == "consumable":
             return f"Consumable   x{self.player.inventory.count(item.id)}"
         if item.kind == "scroll":
@@ -1058,8 +1284,13 @@ class Game:
         pr.draw_rectangle(0, 0, W, H, ui.color(0, 0, 0, 120))
         stock = self._shop_stock()
         gold = self.player.inventory.gold
-        rows = [(i.name, f"{i.price}g", i.price > gold) for i in stock]
-        ui.list_menu(f"Pell's Goods  (you have {gold}g)", *SHOP_LIST, rows, self._menu_index)
+        level = self.player.stats.level
+        rows = [
+            (i.name, f"{f'Lv{i.level}  ' if i.level > level else ''}{i.price}g", i.price > gold)
+            for i in stock
+        ]
+        title = f"{dialogue_data.SHOP_NAMES[self._shop_id]}  (you have {gold}g)"
+        ui.list_menu(title, *SHOP_LIST, rows, self._menu_index, first=self._menu_top, visible=LIST_ROWS)
         item = self._selected_item()
         detail = f"{self._item_detail(item)}   {item.price}g" if item else ""
         self._draw_item_panel(item, detail, "Enter/Click: buy   Esc/R-click: leave")

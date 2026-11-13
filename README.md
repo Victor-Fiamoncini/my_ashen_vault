@@ -80,14 +80,20 @@ FromSoftware, Inc.
   leaps and flings embers; the Loom Mother sweeps, spits webs, pounces and calls her brood.
 - **Deaths that linger**: every foe collapses in its own way (skeletons topple, slimes melt, the
   spider curls its legs) and then burns away to drifting ash.
-- **Weapons with their own movesets**: swords, greatswords, a katana, a whip, a mace and a war
-  hammer. Tap to attack; hold to charge a heavy attack that costs stamina, from an overhead cleave
-  to a lunging thrust or a ground slam that hits everything around you.
+- **Weapons with their own movesets**: swords, greatswords, katanas, whips, maces, clubs, axes and a
+  war hammer, each swinging at its own speed. Tap to attack, hold for a heavy attack, click again
+  mid-swing for a quick follow-up. Every swing costs stamina, and some weapons hide a secret attack.
+- **Two hands**: hold a weapon, a shield or a spell in either hand; the left mouse button works the
+  right hand and the right button the left. Two-handed weapons fill both. A raised shield stops blows
+  from the front for stamina. The best gear needs a higher level.
+- **Armor you can see**: body armor and gauntlets change the sleeves and hands you see in first person.
 - **Spells**: Flame Bolt, Mend and Lumen, paid for with MP once your focus has returned.
-- **Stamina**: sprinting drains a green stamina bar. Run it dry and you are winded until it recovers.
+- **Stamina**: sprinting, swinging and blocking drain a green stamina bar. Run it dry and you are
+  winded until it recovers.
 - **Three hand-built areas**: the village of Harrowmere, the Sunken Keep below its well and the
   Verdant Hollow behind its overgrown house, with locked doors, levers, a flooded cellar, chests, a
-  shop with spinning item previews and four villagers to talk to.
+  shop with spinning item previews and five villagers to talk to (one of them only once you have
+  proven yourself).
 - **A keep that fights back**: floor spikes, swinging pendulum blades and floors that crumble into the
   dark, plus barrels, crates and urns to smash for a few coins, and secrets for those who look closely.
 - **A jungle that fights back too**: a river with a ford, a drifting raft and rotting planks; thorn
@@ -164,8 +170,11 @@ Without uv, plain pip works: `python3 -m venv .venv`, `.venv/bin/pip install -e 
 | Move / strafe | W S / A D (or arrow up/down) |
 | Sprint | Hold Shift |
 | Turn / look | Mouse |
-| Attack / heavy attack | Left mouse / hold left mouse, then release |
-| Cast spell | Right mouse |
+| Right hand / left hand | Left mouse / right mouse |
+| Heavy attack | Hold the button, then release |
+| Quick attack | Click again while a light swing is still going |
+| Block | Hold the button of the hand with the shield |
+| Cast spell | The button of the hand holding the spell |
 | Choose spell | Belongings (Tab), then Enter or click on a spell |
 | Use, talk, open | E |
 | Belongings | Tab or I |
@@ -177,22 +186,26 @@ The same list is in the game under **Controls** on the title and pause menus.
 
 ## Tips
 
-- The HUD in the bottom right is drawn as a mouse: your weapon sits on the left button, your spell on the
-  right button and your quick item on the wheel. HP, MP, ST (with their numbers) and a small compass share
-  the bottom-left box. Spell MP costs are listed in Belongings and in the shop.
+- The HUD in the bottom right is drawn as a mouse: the left button shows what your right hand holds,
+  the right button your left hand, and the wheel your quick item. HP, MP, ST (with their numbers) and a
+  small compass share the bottom-left box. Spell MP costs are listed in Belongings and in the shop.
 - Your swing damage scales with the **ATK** gauge: the gold ring around your weapon. Wait for it to close
   and flash before swinging.
 - Spells need your **focus** back as well as enough MP. The cyan ring around the spell icon refills after
   each cast and flashes when you can cast again.
-- Hold left mouse to charge a **heavy attack**: the orange ring around your weapon fills, then
-  release. It costs ST, and the ring turns red when you are too winded. Belongings and the shop show
-  each weapon's light and heavy attack.
-- Sprinting drains **ST** (green bar). Empty it and you can't sprint until it is about a third full.
+- Hold a button to charge a **heavy attack**: the orange ring around your weapon fills, then
+  release. Heavies cost more ST than light swings, and the ring turns red when you are too winded.
+  Belongings and the shop show each weapon's light and heavy attack, and `???` where a weapon hides
+  a secret you have not found yet.
+- Sprinting and every swing drain **ST** (green bar). Empty it and you can neither sprint nor swing
+  until it is about a third full. Holding a shield up slows its refill.
+- Big weapons swing slowly; katanas, whips and fists are quick.
 - Watch for enemies raising their weapons. A solid hit during the wind-up staggers most of them.
 - Every menu works with the mouse: point at a row to select it, click to use or buy, right-click to
   close.
-- In Belongings, press Enter (or click) on an equipped item (marked `(E)`) to take it off. With no weapon you fight
-  bare-handed.
+- In Belongings, Enter (or a click) on a one-handed weapon, a shield or a spell asks which hand it goes
+  in. Rows show `(R)`, `(L)` or `(R+L)` for what your hands hold and `(E)` for worn armor. An empty
+  hand fights with its fist, harder in gauntlets.
 - You ready one spell at a time: pick it from the spell rows in Belongings. The mouse wheel only
   switches between quick items.
 - Traps keep a rhythm. Watch the spikes and blades for a moment before you cross, and don't stand
@@ -267,6 +280,8 @@ uv run ashen-vault --map sunken_keep --at 15,21,180 --smoke 100 --script "wait:1
 - `--smoke N` runs N frames at a fixed timestep, writes a 3× screenshot and prints a state summary.
 - `--script "..."` drives input: `action` presses once, `action:1.5` holds for 1.5 s, `wait:1` pauses.
 - `--shot PATH` sets where `--smoke` writes its screenshot.
+- `--equip right=katana,left=buckler,body=brigandine,hands=iron_gauntlets` starts with that gear (`none`
+  empties a slot, `left=spell` readies the spell there), and `--level N` at that level.
 
 The README screenshots were taken this way. For example, the flame bolt shot is
 `uv run ashen-vault --map sunken_keep --at 15,22,0 --smoke 30 --script "wait:0.3 cast" --shot flame_bolt.png`,

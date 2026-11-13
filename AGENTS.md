@@ -45,6 +45,10 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   (`~/.local/share/ashen_vault/save.json`).
 - `--script` steps: `action` presses once, `action:1.5` holds for 1.5 s, `wait:1` pauses. Actions are
   the keys of `KEYS` and `MOUSE` in `src/ashen_vault/input.py`, plus `wheel_up` / `wheel_down`.
+  `attack` is the left mouse button (the right hand) and `cast` the right one (the left hand): each
+  swings, blocks or casts depending on what that hand holds.
+- `--equip right=katana,left=buckler,body=brigandine,hands=iron_gauntlets` starts with that gear (a slot
+  set to `none` empties it; `left=spell` readies the spell there) and `--level 6` at that level.
 - `interact` uses whatever the player faces within reach, nearest first: an unopened chest in front of
   another prop is opened first.
 - Combat rolls are random, so HP in the `smoke:` line can vary between runs. Positions, scenes, flags
@@ -52,7 +56,9 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 - On Wayland, `GLFW: Error: 65548` warnings are harmless.
 - A negative heading must be written `--at=15,7,-90` (with `=`), or argparse reads it as a flag.
 - Useful starts: `--map harrowmere --at 25,13,-90` (the jungle doorway), `--map verdant_hollow` (the
-  grove), `--at=49,12,-90` (the Highland log slope), `--at=15,7,-90` (the Loom Mother).
+  grove), `--at=49,12,-90` (the Highland log slope), `--at=15,7,-90` (the Loom Mother),
+  `--map harrowmere --at=6,18,180 --script "forward:1 interact"` (Corvane; below
+  `--level 5` they stay silent).
 
 ## Layout
 
@@ -69,6 +75,8 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/world/terrain.py` | Outdoor terrain: rafts, planks, ledges, rotten floorboards, currents, thorns, chasm and river falls, hard landings, the log rack, spore pods (`World.terrain`) |
 | `src/ashen_vault/world/rest.py` | The shrine rest: timing and the pixelated ember fog pattern drawn while you pray |
 | `src/ashen_vault/ui/smallfont.py` | The small mixed-case pixel font used for in-game messages, prompts and the boss bar |
+| `src/ashen_vault/player/weapons.py` | Weapon categories, light/heavy/quick attacks, swing tempo and the secret attacks (`secret()`) |
+| `src/ashen_vault/player/guard.py` | Shield blocking: what a raised shield stops and what it costs in ST |
 | `src/ashen_vault/world/relics.py` | Boss relics (Ember and Verdant Sigils), their drop/taken flags and the two-sigil ending |
 | `src/ashen_vault/dialogue.py` | NPC conversations and the shop list |
 | `tests/` | pytest suite; `conftest.py` has a small test map |
@@ -116,6 +124,19 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   chests, broken barrels, revealed walls, slain mimics) or `loot:<key>` for dropped items. Bosses add
   their `dead_flag` (`boss_dead`, `spider_dead`) and relics a `<relic>_taken` flag (`sigil_taken` for
   the Ember Sigil).
+- Equipment (`player/inventory.py`): two hand slots (`right` = left mouse button, `left` = right
+  button) holding a weapon, a shield, the readied spell (`SPELL`) or nothing (a fist), plus `body` and
+  `hands` armor. `two_handed` weapons fill both hands. Items carry a `level` requirement: buying is
+  allowed, equipping is not (`Inventory.equip_error`). The first-person arms (`models.weapon_view`)
+  take their sleeve and glove looks from `SLEEVES` / `GLOVES`, so new armor needs an entry there.
+- Every attack costs ST. A light swing can chain into a quick one (`Player.queue_quick` /
+  `chain_quick`); a weapon's `tempo` sets how long its swings take. Attack poses are keyframed in
+  `models.MOTIONS` (wind, strike, follow) and the strike lands at the attack's `hit_at`. The
+  viewmodel draws without depth testing, so draw what faces the camera last.
+- Secret attacks are listed in `weapons.secret()`; performing one adds a `secret:<category>` flag,
+  which reveals its name in Belongings and the shop.
+- Shops are `dialogue.SHOPS` (Pell's goods, and Corvane's blades in the hut west of the square; Corvane
+  won't talk below `CORVANE_LEVEL`).
 - Add dependencies with `uv add` (runtime) or `uv add --dev` (tooling), never by hand-editing
   `uv.lock`.
 

@@ -34,7 +34,7 @@ class Stamina:
     """Sprint stamina. Drains while sprinting and refills after a short rest. Running it dry
     leaves you exhausted: no sprinting until it recovers to RECOVER."""
 
-    DRAIN_TIME = 3.5  # seconds of sprint from full
+    DRAIN_TIME = 6.0  # seconds of sprint from full
     REFILL_TIME = 2.5  # seconds to refill from empty
     REFILL_DELAY = 0.5  # rest needed before it starts refilling
     RECOVER = 0.3
@@ -55,20 +55,20 @@ class Stamina:
             self.exhausted = True
 
     def spend(self, amount):
-        """Pays for a heavy attack; resets the rest delay like sprinting does."""
+        """Pays for an attack or a blocked blow; resets the rest delay like sprinting does."""
         self.value = max(self.value - amount, 0.0)
         self._rest_t = 0.0
         if self.value <= 0:
             self.exhausted = True
 
-    def update(self, dt):
-        """Call on frames without sprinting."""
+    def update(self, dt, rate=1.0):
+        """Call on frames without sprinting. `rate` slows the refill (a raised shield)."""
         # Only the part of `dt` after the rest delay counts toward refilling.
         rested = self._rest_t + dt - max(self._rest_t, self.REFILL_DELAY)
         self._rest_t += dt
         if rested <= 0:
             return
-        self.value = min(self.value + rested / self.REFILL_TIME, 1.0)
+        self.value = min(self.value + rested * rate / self.REFILL_TIME, 1.0)
         if self.exhausted and self.value >= self.RECOVER:
             self.exhausted = False
 

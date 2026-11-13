@@ -96,6 +96,7 @@ NPC_LOOKS = {
     "pell": {"robe": (120, 90, 40)},
     "hollis": {"robe": (80, 84, 90), "hair": (40, 30, 22)},
     "maeve": {"robe": (60, 90, 100), "hair": (140, 70, 40)},
+    "corvane": {"robe": (40, 40, 56), "hair": (150, 150, 150), "hood": True, "blade": True},
 }
 
 
@@ -294,7 +295,15 @@ class World:
     def enemy_strike(self, enemy, mult=1.0):
         base = enemy.type.damage * mult * (0.85 + random.random() * 0.3)
         dmg = max(rround(base - self.player.inventory.defense * 0.5), 1)
-        self.game.hurt_player(dmg, enemy.name)
+        self.strike_player(dmg, enemy.name, enemy.x, enemy.z)
+
+    def strike_player(self, dmg, source, ax, az):
+        """A blow from (ax, az): a raised shield takes what it can before the rest lands."""
+        taken, block = self.player.take_blow(dmg, ax, az)
+        if block is not None and block.blocked:
+            self.game.blocked(block)
+        if taken > 0:
+            self.game.hurt_player(taken, source)
 
     def enemy_fire(self, enemy, kind="shot"):
         if kind == "cinders":
@@ -510,8 +519,11 @@ class World:
                 pr_.life = 0
             elif pr_.hostile:
                 if math.hypot(pr_.x - player.x, pr_.z - player.z) < 0.6:
-                    self.game.hurt_player(
-                        max(rround(pr_.damage - player.inventory.defense * 0.3), 1), pr_.source or "Something"
+                    self.strike_player(
+                        max(rround(pr_.damage - player.inventory.defense * 0.3), 1),
+                        pr_.source or "Something",
+                        pr_.x - pr_.dx,
+                        pr_.z - pr_.dz,
                     )
                     if pr_.effect == "web":
                         player.webbed_t = WEB_TIME
@@ -866,7 +878,12 @@ class World:
         elif k == "npc":
             look = NPC_LOOKS.get(p.props.get("id"), {})
             models.npc(
-                rig, look.get("robe", (110, 110, 110)), hair=look.get("hair", (70, 54, 40)), t=t + p.tx
+                rig,
+                look.get("robe", (110, 110, 110)),
+                hair=look.get("hair", (70, 54, 40)),
+                t=t + p.tx,
+                hood=look.get("hood", False),
+                blade=look.get("blade", False),
             )
         elif k == "barrel":
             models.barrel(rig, p.tx * 7 + p.tz, broken=p.open_t > 0)
