@@ -23,6 +23,10 @@ class FakeWorld:
         self.fired = []
         self.struck = []
         self.summoned = []
+        self.raged = 0
+        self.slams = 0
+        self.eruptions = 0
+        self.hooks = []
 
     def can_see(self, *_):
         return self.visible
@@ -41,6 +45,18 @@ class FakeWorld:
 
     def summon(self, enemy, type_id, count):
         self.summoned.append((type_id, count))
+
+    def boss_rage(self, _enemy):
+        self.raged += 1
+
+    def slam(self, _enemy):
+        self.slams += 1
+
+    def eruption(self, _enemy):
+        self.eruptions += 1
+
+    def hook(self, _enemy, mult, pull):
+        self.hooks.append((mult, pull))
 
 
 def tick(enemy, world, seconds, dt=0.05):
@@ -420,8 +436,149 @@ def warden(seed=3):
 
 
 def test_warden_has_his_own_moves():
-    assert set(EnemyTypes.get("ashen_warden").moves) == {"sweep", "pounce", "cinders"}
-    assert "web" not in EnemyTypes.get("ashen_warden").moves  # silk is the spider's
+    t = EnemyTypes.get("ashen_warden")
+    assert set(t.moves) == {"sweep", "pounce", "cinders", "combo", "slam"}
+    assert t.phase_moves == ("eruption",) and t.rage
+    assert "web" not in t.moves  # silk is the spider's
+
+
+def only(boss, move):
+    """Leaves just `move` ready to use."""
+    boss.cooldowns = {m: (0.0 if m == move else 99.0) for m in boss.cooldowns}
+    boss._rng = random.Random(0)
+    boss._rng.random = lambda: 0.9  # never skip a close-range special for a plain blow
+    return boss
+
+
+def test_warden_combo_strikes_three_times_up_close():
+    boss = only(warden(), "combo")
+    world = FakeWorld(2.0, 0.0)
+    world.move_enemy = lambda *_: None
+    tick(boss, world, 0.1)
+    assert boss.attack_kind == "combo"
+    tick(boss, world, 2.0)
+    assert len(world.struck) == 3
+    assert world.struck[2] > world.struck[0]  # the last cut hits hardest
+
+
+def test_backing_out_of_a_combo_breaks_the_chain():
+    boss = only(warden(), "combo")
+    world = FakeWorld(2.0, 0.0)
+    world.move_enemy = lambda *_: None
+    tick(boss, world, 0.75)  # through the windup: the first cut lands
+    world.player_x = 6.0  # step back out of reach
+    tick(boss, world, 1.5)
+    assert len(world.struck) == 1
+
+
+def test_circling_a_combo_dodges_the_later_cuts():
+    boss = only(warden(), "combo")
+    world = FakeWorld(2.0, 0.0)
+    world.move_enemy = lambda *_: None
+    tick(boss, world, 0.75)
+    world.player_x, world.player_z = -2.0, 0.3  # duck round behind him
+    tick(boss, world, 1.5)
+    assert len(world.struck) < 3
+
+
+def test_warden_slam_shakes_the_floor_and_hits_from_behind():
+    boss = only(warden(), "slam")
+    world = FakeWorld(2.0, 0.0)
+    world.move_enemy = lambda *_: None
+    tick(boss, world, 0.1)
+    assert boss.attack_kind == "slam"
+    world.player_x, world.player_z = -3.0, 0.0  # behind him, but inside the shockwave
+    tick(boss, world, 1.3)
+    assert world.slams == 1 and len(world.struck) == 1
+
+
+def test_backing_off_a_slam_escapes_the_shockwave():
+    boss = only(warden(), "slam")
+    world = FakeWorld(2.0, 0.0)
+    world.move_enemy = lambda *_: None
+    tick(boss, world, 0.1)
+    world.player_x = 5.0
+    tick(boss, world, 1.3)
+    assert world.slams == 1 and world.struck == []
+
+
+def test_warden_kindles_his_rage_once_at_half_hp():
+    boss = warden()
+    boss.cooldowns = dict.fromkeys(boss.cooldowns, 99.0)
+    world = FakeWorld(2.0, 0.0)
+    boss.state = "chase"
+    assert not boss.enraged and "eruption" not in boss.cooldowns
+    boss.take_hit(boss.type.hp // 2 + 1, poise_mult=0)
+    tick(boss, world, 2.0)
+    assert world.raged == 1 and world.summoned == []
+    assert boss.enraged and "eruption" in boss.cooldowns
+    tick(boss, world, 3.0)
+    assert world.raged == 1
+
+
+def test_eruptions_only_come_in_the_second_phase():
+    boss = warden()
+    world = FakeWorld(6.0, 0.0)
+    world.move_enemy = lambda *_: None
+    boss.phase2 = True
+    boss.cooldowns = dict.fromkeys(boss.cooldowns, 99.0)
+    boss.cooldowns["eruption"] = 0.0
+    tick(boss, world, 0.1)
+    assert boss.attack_kind == "eruption"
+    tick(boss, world, 1.5)
+    assert world.eruptions == 1
+
+
+def test_bosses_without_a_rage_or_brood_never_turn():
+    m = Enemy(EnemyTypes.get("mimic"), 0, 0, rng=random.Random(1))
+    m.state = "chase"
+    m.take_hit(40, poise_mult=0)
+    tick(m, FakeWorld(1.5, 0.0), 1.0)
+    assert not m.enraged
+
+
+def gaoler():
+    g = Enemy(EnemyTypes.get("gaoler"), 0.0, 0.0, rng=random.Random(2))
+    g.cooldowns = dict.fromkeys(g.cooldowns, 0.0)
+    return g
+
+
+def test_gaoler_hooks_you_from_mid_range():
+    g = gaoler()
+    world = FakeWorld(5.0, 0.0)
+    world.move_enemy = lambda *_: None
+    tick(g, world, 0.1)
+    assert g.attack_kind == "hook"
+    tick(g, world, 1.2)
+    assert world.hooks == [(0.4, 2.5)]
+
+
+def test_gaoler_hook_misses_if_you_slip_aside():
+    g = gaoler()
+    world = FakeWorld(5.0, 0.0)
+    world.move_enemy = lambda *_: None
+    tick(g, world, 0.7)  # he has stopped turning to track you
+    world.player_x, world.player_z = 0.0, 5.0  # sidestep far round as he throws
+    tick(g, world, 0.8)
+    assert world.hooks == []
+
+
+def test_gaoler_clubs_you_up_close():
+    g = gaoler()
+    world = FakeWorld(1.8, 0.0)
+    world.move_enemy = lambda *_: None
+    tick(g, world, 1.5)
+    assert world.hooks == [] and world.strikes == 1
+
+
+def test_bone_crawler_lies_still_until_you_come_close():
+    c = Enemy(EnemyTypes.get("bone_crawler"), 0.0, 0.0, rng=random.Random(1))
+    world = FakeWorld(6.0, 0.0)
+    tick(c, world, 2.0)
+    assert c.state == "idle" and (c.x, c.z) == (0.0, 0.0)
+    world.player_x = 2.5
+    tick(c, world, 0.2)
+    assert c.state in ("chase", "windup")
 
 
 def test_warden_flings_embers_or_leaps_from_mid_range():

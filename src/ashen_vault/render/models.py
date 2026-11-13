@@ -2,7 +2,9 @@
 
 import math
 
+from ashen_vault.ai.enemy import COMBO_GAP
 from ashen_vault.player.items import Items
+from ashen_vault.util import rround
 from ashen_vault.world import terrain
 
 BONE = (214, 204, 178)
@@ -33,6 +35,8 @@ def enemy(r, e):
         "stump_mimic": stump_mimic,
         "loom_mother": loom_mother,
         "loom_brood": loom_brood,
+        "gaoler": gaoler,
+        "bone_crawler": bone_crawler,
     }.get(e.type.id)
     if fn:
         fn(r, e, t)
@@ -134,21 +138,61 @@ def cinder_wisp(r, e, t):
         r.part("cone", 0, 0.42, 0, 0.3, 0.45 * (1 - fade), 0.3, (255, 120, 40), glow=lit)
 
 
-def ashen_warden(r, e, t):
-    """The keep's armoured warden. Slain, he sinks to his knees, braced on his blade, and slumps."""
-    swing = walk_cycle(e, t) * 0.7
+def _warden_arms(e, t):
+    """(sword arm, free arm, blade tilt, twist, crouch, glowing sword) for the Warden's moves.
+    Combo: three alternating cuts. Slam: both arms high, then down. Eruption: the blade is driven
+    point-down into the floor. Kindle: the blade held straight up, trembling."""
     hit = strike_angle(e)
+    free = 0.0
+    blade = 1.45
+    twist = crouch = 0.0
+    glow = False
+    kind = e.attack_kind
+    k = min(e.state_t / max(e.windup_time, 1e-3), 1) if e.state == "windup" else 1.0
+    if kind == "combo" and e.state == "attack":
+        i = e.combo_swing
+        u = (e.state_t - i * COMBO_GAP) / COMBO_GAP
+        hit = -2.0 * min(u / 0.35, 1) if u < 0.35 else -2.0 + 2.9 * min((u - 0.35) / 0.25, 1)
+        twist = 0.35 if i % 2 == 0 else -0.35
+    elif kind == "slam" and e.state in ("windup", "attack"):
+        if e.state == "windup":
+            hit = free = -2.7 * k
+            glow = True
+        else:
+            hit = free = -2.7 + 3.5 * min(e.state_t / 0.12, 1)
+            crouch = -0.25 * min(e.state_t / 0.12, 1)
+    elif kind == "eruption" and e.state in ("windup", "attack"):
+        if e.state == "windup":
+            hit = -2.4 * k
+        else:
+            hit, blade, crouch = 1.1, 2.9, -0.2
+        glow = True
+    elif kind == "kindle" and e.state in ("windup", "attack"):
+        hit = -2.9 * k + math.sin(t * 40) * 0.05
+        blade = 1.45 + 1.4 * k
+        glow = True
+    return hit, free, blade, twist, crouch, glow
+
+
+def ashen_warden(r, e, t):
+    """The keep's armoured warden. Slain, he sinks to his knees, braced on his blade, and slumps.
+    In his second phase his blade burns."""
+    swing = walk_cycle(e, t) * 0.7
     kneel = death_fall(e, 0.6)
     slump = death_fall(e, 1.6)
     dead = e.state == "dead"
     # Boss moves share the spider's timing: a sweep coils then spins him round, a leap crouches
     # then arcs him through the air. Embers: the free hand rises glowing, then flings forward.
     lift, spin, _, _ = _spider_move(e, t, 0.0, 1.0)
+    hit, free, blade, twist, crouch, glow = _warden_arms(e, t)
     cinders = e.attack_kind == "cinders" and e.state in ("windup", "attack")
     k = min(e.state_t / max(e.windup_time, 1e-3), 1) if e.state == "windup" else 1.0
-    fling = (-1.9 * k if e.state == "windup" else -1.9 + 1.4 * min(e.state_t / 0.15, 1)) if cinders else 0.0
+    if cinders:
+        free = -1.9 * k if e.state == "windup" else -1.9 + 1.4 * min(e.state_t / 0.15, 1)
+    burning = e.phase2 and not dead
+    steel = EMBER if burning else IRON
     with (
-        r.at(0, lift * 0.8 - 0.42 * kneel, 0, s=1.35, ry=spin),
+        r.at(0, lift * 0.8 + crouch - 0.42 * kneel, 0, s=1.35, ry=spin + twist),
         r.at(0, 0.95, 0, rz=-0.45 * slump),
         r.at(0, -0.95, 0),
     ):
@@ -163,15 +207,119 @@ def ashen_warden(r, e, t):
             r.part("cube", 0, 0, 0, 0.3, 0.32, 0.28, (70, 66, 62))
             r.part("cube", 0.15, 0.02, 0, 0.02, 0.05, 0.2, (70, 40, 30) if dead else EMBER, glow=not dead)
             r.part("cone", 0, 0.26, 0, 0.12, 0.3, 0.12, (60, 58, 56))
-        with r.at(0, 1.6, -0.47, rz=fling):
+        with r.at(0, 1.6, -0.47, rz=free):
             r.part("cube", 0, -0.35, 0, 0.16, 0.7, 0.16, ASH)
             if cinders and e.state == "windup":
                 r.part("sphere", 0, -0.75, 0, 0.3 * k, 0.3 * k, 0.3 * k, EMBER, glow=True)
         with r.at(0, 1.6, 0.47, rz=hit - 0.5 * kneel):
             r.part("cube", 0, -0.35, 0, 0.16, 0.7, 0.16, ASH)
-            with r.at(0.05, -0.72, 0, rz=1.45 - 1.0 * kneel):
+            with r.at(0.05, -0.72, 0, rz=blade - 1.0 * kneel):
                 r.part("cube", 0.6, 0, 0, 1.4, 0.08, 0.08, (60, 44, 30))
-                r.part("cube", 1.2, 0.0, 0, 0.36, 0.5, 0.05, IRON)
+                r.part("cube", 1.2, 0.0, 0, 0.36, 0.5, 0.05, steel, glow=burning or (glow and not dead))
+                if burning or (glow and not dead):
+                    _flame(r, 1.2, 0.2, 0, 0.12 + (0.06 if burning else 0.0), t)
+
+
+LEATHER = (84, 60, 44)
+SACKCLOTH = (124, 108, 82)
+
+
+def gaoler(r, e, t):
+    """A hulking, hunched jailer in a sackcloth hood and a stained leather apron: a cudgel in one
+    hand, a hooked chain in the other. The hook whirls overhead, then flies out at you.
+    Slain, he drops to his knees and pitches forward onto his face."""
+    swing = walk_cycle(e, t) * 0.6
+    hit = strike_angle(e)
+    kneel = death_fall(e, 0.5)
+    pitch = death_fall(e, 1.2)
+    hooking = e.attack_kind == "hook" and e.state in ("windup", "attack")
+    k = min(e.state_t / max(e.windup_time, 1e-3), 1) if e.state == "windup" else 1.0
+    skin = (240, 220, 200) if e.state == "hurt" else (150, 120, 100)
+    with r.at(0, 0.45 - 0.4 * kneel, 0, rz=-1.25 * pitch), r.at(0, -0.45, 0):
+        for side, a in ((-0.22, swing), (0.22, -swing)):
+            with r.at(0, 0.85, side, rz=a - 1.5 * kneel):
+                r.part("cube", 0, -0.42, 0, 0.26, 0.84, 0.24, LEATHER)
+                r.part("cube", 0.06, -0.84, 0, 0.36, 0.12, 0.26, (50, 40, 32))
+        with r.at(0, 0.9, 0, rz=-0.25):  # the hunch
+            r.part("cube", 0.02, 0.45, 0, 0.62, 0.9, 0.8, skin)
+            r.part("cube", 0.2, 0.3, 0, 0.3, 0.95, 0.66, LEATHER)  # apron
+            r.part("cube", 0.36, 0.35, 0.1, 0.02, 0.2, 0.18, (90, 30, 26))  # old stains
+            r.part("cube", 0, 0.75, 0, 0.66, 0.1, 0.84, (60, 46, 36))  # belt of keys
+            for i in range(3):
+                r.part("cube", 0.2, 0.62, -0.3 + i * 0.12, 0.03, 0.16, 0.05, BRASS)
+            with r.at(0.2, 1.05, 0):  # hooded head, thrust forward
+                r.part("sphere", 0, 0, 0, 0.42, 0.44, 0.4, SACKCLOTH)
+                r.part("cone", -0.05, 0.25, 0, 0.3, 0.3, 0.3, SACKCLOTH)
+                r.part("cube", 0.2, 0.02, -0.08, 0.04, 0.05, 0.06, (20, 14, 10))
+                r.part("cube", 0.2, 0.02, 0.08, 0.04, 0.05, 0.06, (20, 14, 10))
+        # The cudgel arm.
+        with r.at(0, 1.65, 0.5, rz=(0.0 if hooking else hit) - 0.6 * kneel):
+            r.part("cube", 0, -0.4, 0, 0.2, 0.8, 0.2, skin)
+            with r.at(0.05, -0.8, 0, rz=1.4 - 2.9 * kneel):  # slain, the cudgel slips down
+                r.part("cyl", 0.45, 0, 0, 0.1, 0.9, 0.1, (90, 64, 40), rz=math.pi / 2)
+                r.part("cyl", 0.85, 0, 0, 0.2, 0.3, 0.2, (70, 50, 32), rz=math.pi / 2)
+                for i in range(3):
+                    r.part("cube", 0.85, 0.1 * (i - 1), 0.18, 0.06, 0.05, 0.05, IRON)
+        # The chain arm: the hook circles overhead on the windup and flies out on the throw.
+        if hooking and e.state == "windup":
+            arm, whirl = -2.6, t * 14
+        elif hooking:
+            arm, whirl = -2.6 + 3.4 * min(e.state_t / 0.12, 1), None
+        else:
+            arm, whirl = swing * 0.5 - 0.3 * kneel, None
+        with r.at(0, 1.65, -0.5, rz=arm):
+            r.part("cube", 0, -0.4, 0, 0.2, 0.8, 0.2, skin)
+            if whirl is not None:
+                with r.at(0, -0.85, 0, rx=whirl):
+                    for i in range(5):
+                        r.part("cube", 0, 0, 0.15 + i * 0.15, 0.05, 0.05, 0.12, IRON, rx=i * 1.2)
+                    r.part("cone", 0, 0, 0.95, 0.18, 0.3, 0.06, STEEL, rx=math.pi / 2)
+            elif hooking:
+                reach = 6.0 * min(e.state_t / 0.12, 1) * k
+                with r.at(0, -0.85, 0, rz=math.pi / 2 - arm):  # the chain flies level, straight out
+                    n = max(int(reach / 0.25), 1)
+                    for i in range(n):
+                        r.part("cube", 0, -(i + 0.5) * reach / n, 0, 0.05, 0.14, 0.05, IRON, ry=i * 1.2)
+                    r.part("cone", 0, -reach, 0, 0.2, 0.32, 0.06, STEEL, rx=math.pi)
+            else:
+                for i in range(5):  # the chain hangs loose, the hook trailing on the floor
+                    r.part("cube", 0, -0.9 - i * 0.14, 0, 0.05, 0.12, 0.05, IRON, ry=i * 1.2)
+                r.part("cone", 0.05, -1.62, 0, 0.18, 0.3, 0.06, STEEL, rz=math.pi)
+
+
+def bone_crawler(r, e, t):
+    """A ribcage scuttling on long finger-bones, skull slung low in front. At rest it is only a heap
+    of bones; slain, it falls apart into one again."""
+    seed = int(abs(e.home_x * 3 + e.home_z * 7))
+    fall = death_fall(e, 0.5)
+    if e.state == "idle" or fall >= 1.0:
+        bones(r, seed)
+        return
+    gait = math.sin(t * 16) * 0.35 if e.state == "chase" else math.sin(t * 3) * 0.08
+    rear = 0.0
+    if e.state == "windup":
+        rear = -0.5 * min(e.state_t / e.type.windup, 1)
+    elif e.state == "attack":
+        rear = 0.3
+    bone = (255, 240, 220) if e.state == "hurt" else BONE
+    rise = 0.32 * (1 - fall)
+    with r.at(0, rise, 0, rz=rear * (1 - fall)):
+        for i in range(4):  # the ribcage
+            r.part("cube", -0.15 + i * 0.1, 0.06, 0, 0.05, 0.16, 0.5 - abs(i - 1.5) * 0.06, bone, rx=0.2)
+        r.part("cube", 0, 0.12, 0, 0.56, 0.06, 0.06, bone)  # spine
+        with r.at(0.38, 0.0, 0, rz=-0.2):
+            r.part("sphere", 0, 0, 0, 0.26, 0.22, 0.22, bone)
+            r.part("cube", 0.11, 0.0, -0.05, 0.05, 0.05, 0.05, (255, 120, 60), glow=fall < 0.5)
+            r.part("cube", 0.11, 0.0, 0.05, 0.05, 0.05, 0.05, (255, 120, 60), glow=fall < 0.5)
+            jaw = 0.5 if e.state == "windup" else 0.1
+            r.part("cube", 0.06, -0.12, 0, 0.16, 0.04, 0.14, bone, rz=jaw)
+        for i in range(6):  # finger-bone legs
+            side = 1 if i % 2 else -1
+            x = -0.2 + (i // 2) * 0.2
+            step = gait * (1 if (i // 2 + i) % 2 else -1)
+            with r.at(x, 0, side * 0.2, rx=side * (0.9 + 0.6 * fall), ry=step):
+                r.part("cube", 0, 0, side * 0.18, 0.04, 0.04, 0.36, bone)
+                r.part("cube", 0, -0.14, side * 0.36, 0.04, 0.3, 0.04, bone, rx=-side * 0.3)
 
 
 def mimic(r, e, t):
@@ -648,11 +796,88 @@ def save_statue(r, t):
         r.part("cube", 0, 0, 0, 0.3, 0.4, 0.3, (120, 200, 255), rx=0.6, rz=0.6, glow=True)
 
 
-def lever(r, pulled):
-    r.part("cube", 0, 0.5, 0, 0.3, 1.0, 0.3, WHITE, tex="rough_stone")
-    with r.at(0.16, 0.8, 0, rz=-0.8 if pulled else 0.8):
-        r.part("cube", 0, 0.3, 0, 0.06, 0.6, 0.06, IRON)
-        r.part("sphere", 0, 0.62, 0, 0.12, 0.12, 0.12, (140, 30, 30))
+OAK = (96, 66, 40)
+
+
+def lever(r, k, wall=True):
+    """A winch lever: an iron-banded oak beam pivoting in a notched iron quadrant on a dressed-stone
+    block, with a toothed wheel beside it whose chain runs up into the wall. `k` (0..1) is how far
+    it has been hauled: the beam swings from up-and-back to down-and-forward and the wheel turns.
+    Mounted on a wall at local -X, or free-standing."""
+    with r.at(0, 0, 0, s=1.2):
+        _lever(r, k, wall)
+
+
+def _lever(r, k, wall):
+    bx = -0.5 if wall else -0.15
+    r.part("cube", bx, 0.45, 0, 0.55, 0.9, 0.8, WHITE, tex="rough_stone")
+    r.part("cube", bx, 0.93, 0, 0.62, 0.06, 0.86, (110, 106, 100))  # capstone
+    px, py = bx + 0.32, 1.05  # the pivot
+    for i in range(7):  # the notched quadrant
+        a = -1.0 + i * (2.0 / 6)
+        r.part(
+            "cube", px + math.sin(a) * 0.36, py + math.cos(a) * 0.36, 0.12, 0.06, 0.1, 0.05, DARK_IRON, rz=-a
+        )
+        r.part(
+            "cube", px + math.sin(a) * 0.36, py + math.cos(a) * 0.36, -0.12, 0.06, 0.1, 0.05, DARK_IRON, rz=-a
+        )
+    r.part("cyl", px, py, 0, 0.12, 0.34, 0.12, DARK_IRON, rx=math.pi / 2)  # axle
+    with r.at(px, py, 0, rz=0.95 - 1.9 * k):
+        r.part("cube", 0, 0.45, 0, 0.13, 0.95, 0.13, OAK)
+        for y in (0.15, 0.62):  # iron bands, riveted
+            r.part("cube", 0, y, 0, 0.13, 0.06, 0.13, IRON)
+            r.part("cube", 0.07, y, 0, 0.02, 0.03, 0.03, BRASS)
+        r.part("cube", 0, 0.88, 0, 0.09, 0.08, 0.09, IRON)
+        r.part("cube", 0, 0.95, 0, 0.06, 0.06, 0.36, IRON)  # the cross-grip
+        r.part("cyl", 0, 1.02, 0, 0.18, 0.04, 0.18, IRON, rx=math.pi / 2)  # ring pommel
+    # The toothed wheel turns as the beam is hauled.
+    with r.at(bx + 0.1, py, -0.42, rz=-k * 3.0):
+        r.part("cyl", 0, 0, 0, 0.5, 0.08, 0.5, DARK_IRON, rx=math.pi / 2)
+        for i in range(8):
+            a = i * math.pi / 4
+            r.part("cube", math.cos(a) * 0.27, math.sin(a) * 0.27, 0, 0.08, 0.08, 0.06, IRON, rz=a)
+        r.part("cube", 0, 0, 0.05, 0.42, 0.05, 0.03, OAK)
+        r.part("cube", 0, 0, 0.05, 0.05, 0.42, 0.03, OAK)
+    # Its chain runs up into the wall (or into a ring on the block); slack once hauled.
+    top = 2.2 if wall else 1.0
+    cx = bx - 0.18 if wall else bx + 0.1
+    links = max(int((top - py) / 0.14), 1) if wall else 0
+    for i in range(links):
+        y = py + 0.25 + i * 0.14
+        sag = math.sin(i / max(links - 1, 1) * math.pi) * 0.12 * k
+        r.part("cube", cx + sag, y, -0.42, 0.03, 0.15, 0.07, IRON, ry=0 if i % 2 else math.pi / 2)
+    if wall:
+        r.part("cube", -0.8, top, -0.42, 0.06, 0.18, 0.18, DARK_IRON)  # where it vanishes into the wall
+
+
+def lift(r, t, moving, chain_h):
+    """A chain lift: an oak deck in an iron frame, hung from four chains that run up to a pulley
+    beam under the shaft's ceiling. Riding, the chains shiver."""
+    r.part("cube", 0, -0.08, 0, 1.92, 0.14, 1.92, WHITE, tex="wood_plank")
+    for sx, sz in ((1, 0), (-1, 0), (0, 1), (0, -1)):  # the iron frame
+        r.part("cube", sx * 0.94, -0.05, sz * 0.94, 0.1 if sx else 1.98, 0.18, 0.1 if sz else 1.98, DARK_IRON)
+    for z in (-0.5, 0.0, 0.5):  # the cross straps
+        r.part("cube", 0, 0.005, z, 1.86, 0.02, 0.08, IRON)
+    shiver = math.sin(t * 30) * 0.01 if moving else 0.0
+    link = 0.45
+    links = min(max(int(chain_h / link), 1), 40)
+    for cx, cz in ((0.85, 0.85), (0.85, -0.85), (-0.85, 0.85), (-0.85, -0.85)):
+        r.part("cube", cx, 0.1, cz, 0.14, 0.2, 0.14, DARK_IRON)  # the shackle
+        for i in range(links):
+            r.part(
+                "cube",
+                cx + shiver,
+                0.2 + (i + 0.5) * link,
+                cz,
+                0.04,
+                link,
+                0.1,
+                IRON,
+                ry=0 if i % 2 else 1.57,
+            )
+    r.part("cube", 0, chain_h, 0, 1.9, 0.25, 0.3, OAK)  # the pulley beam
+    for cx in (-0.85, 0.85):
+        r.part("cyl", cx, chain_h - 0.2, 0, 0.35, 0.12, 0.35, DARK_IRON, rx=math.pi / 2)
 
 
 def pickup(r, t):
@@ -1262,9 +1487,21 @@ def banner(r, t, seed):
         r.part("cube", 0, -0.75, 0, 0.03, 1.5, 0.8, cloth)
         for i, z in enumerate((-0.3, -0.1, 0.1, 0.3)):  # ragged hem
             r.part("cube", 0, -1.55 - (i % 2) * 0.08, z, 0.03, 0.2 + (i % 2) * 0.12, 0.16, cloth)
-        r.part("cube", 0.02, -0.6, 0, 0.02, 0.5, 0.08, (200, 180, 140))  # pale sigil: a sword
-        r.part("cube", 0.02, -0.5, 0, 0.02, 0.06, 0.3, (200, 180, 140))
-        r.part("sphere", 0.02, -0.98, 0, 0.02, 0.16, 0.16, (200, 180, 140))
+        ember_crest(r, (200, 180, 140))
+
+
+def ember_crest(r, rgb):
+    """The keep's crest, stitched on its banners: a teardrop flame (the ember) held inside a ring,
+    with three sparks rising above it. Drawn flat on the cloth (its face is +X)."""
+    cy = -0.82
+    r.part("sphere", 0.02, cy - 0.06, 0, 0.02, 0.17, 0.17, rgb)  # the flame's round belly
+    r.part("cone", 0.02, cy + 0.08, 0, 0.02, 0.3, 0.17, rgb)  # and its pointed tongue
+    r.part("sphere", 0.025, cy - 0.06, 0, 0.02, 0.07, 0.07, (40, 30, 30))  # its dark heart
+    for i in range(12):  # the ring
+        a = i * math.pi / 6
+        r.part("cube", 0.02, cy + math.cos(a) * 0.27, math.sin(a) * 0.27, 0.02, 0.05, 0.15, rgb, rx=a)
+    for z, y in ((-0.16, -0.38), (0.0, -0.32), (0.16, -0.38)):  # sparks
+        r.part("cube", 0.02, y, z, 0.02, 0.06, 0.06, rgb, rx=0.785)
 
 
 def rack(r, seed):
@@ -2067,3 +2304,165 @@ def key(r, rgb, size):
         r.part("cube", 0, -0.08, 0, 0.06, 0.6, 0.06, rgb)
         r.part("cube", 0, -0.3, 0.08, 0.05, 0.06, 0.12, rgb)
         r.part("cube", 0, -0.18, 0.07, 0.05, 0.05, 0.1, rgb)
+
+
+def eruption(r, glow, flame, t):
+    """The Warden's fire from below: a glowing ring of cracks on the floor, then a column of flame."""
+    if glow > 0:
+        for i in range(8):
+            a = i * math.pi / 4 + t * 0.5
+            r.part(
+                "cube", math.cos(a) * 0.8, 0.03, math.sin(a) * 0.8, 0.5, 0.03, 0.08,
+                (255, rround(80 + 120 * glow), 30), ry=-a + math.pi / 2, glow=True,
+            )  # fmt: skip
+        r.part("cyl", 0, 0.02, 0, 0.6 * glow, 0.02, 0.6 * glow, EMBER, glow=True)
+    if flame > 0:
+        h = 2.6 * flame
+        r.part("cone", 0, h / 2, 0, 1.4, h, 1.4, (255, 120, 40), glow=True)
+        r.part("cone", 0, h * 0.45, 0, 0.8, h * 1.1, 0.8, (255, 220, 130), glow=True)
+
+
+def shockwave_ring(r, k, radius):
+    """A slam's ring of dust and embers running out across the floor."""
+    d = radius * k
+    size = 0.35 * (1 - k) + 0.08
+    for i in range(16):
+        a = i * math.pi / 8
+        rgb = EMBER if i % 2 else (150, 130, 110)
+        r.part("cube", math.cos(a) * d, 0.1 + 0.2 * (1 - k), math.sin(a) * d, size, size, size, rgb,
+               ry=a, glow=i % 2 == 1)  # fmt: skip
+
+
+STONE = (120, 116, 110)
+
+
+def pillar(r, seed, height):
+    """A square-based stone column up to the ceiling, its capital cracked and a chunk fallen."""
+    r.part("cube", 0, 0.2, 0, 1.2, 0.4, 1.2, WHITE, tex="stone_brick")
+    r.part("cyl", 0, height / 2, 0, 0.85, height - 0.6, 0.85, WHITE, tex="rough_stone")
+    r.part("cube", 0, height - 0.2, 0, 1.2, 0.4, 1.2, WHITE, tex="stone_brick", ry=0.05 * (seed % 3))
+    a = seed * 1.3
+    r.part("cube", math.cos(a) * 0.75, 0.12, math.sin(a) * 0.75, 0.3, 0.24, 0.28, STONE, ry=a)
+
+
+def sarcophagus(r, seed):
+    """A stone coffin with a carved effigy on its lid, which someone has shoved a little ajar."""
+    r.part("cube", 0, 0.4, 0, 0.9, 0.8, 1.9, WHITE, tex="rough_stone")
+    r.part("cube", 0, 0.1, 0, 1.0, 0.2, 2.0, WHITE, tex="stone_brick")
+    shift = 0.12 + (seed % 3) * 0.06
+    with r.at(shift, 0.86, 0, ry=0.08 * (1 if seed % 2 else -1)):
+        r.part("cube", 0, 0, 0, 0.96, 0.12, 1.96, WHITE, tex="rough_stone")
+        r.part("sphere", 0, 0.12, -0.65, 0.3, 0.18, 0.3, STONE)  # the effigy's head
+        r.part("cube", 0, 0.1, 0.05, 0.4, 0.12, 1.0, STONE)
+        r.part("cube", 0, 0.18, -0.05, 0.08, 0.06, 0.6, STONE)  # hands folded on a sword
+    r.part("cube", -0.48 + shift, 0.75, 0, 0.04, 0.06, 1.6, (20, 18, 16))  # the dark gap
+
+
+def cage(r, t, seed, ceil_h):
+    """A gibbet cage hanging on a chain from the ceiling, a skull wedged in its bars."""
+    sway = math.sin(t * 0.6 + seed) * 0.06
+    bottom = 1.0
+    with r.at(0, ceil_h, 0, rz=sway, rx=sway * 0.5):
+        drop = ceil_h - bottom - 1.4
+        links = max(int(drop / 0.2), 1)
+        for i in range(links):
+            r.part("cube", 0, -0.1 - i * 0.2, 0, 0.03, 0.22, 0.08, IRON, ry=0 if i % 2 else 1.57)
+        with r.at(0, -drop - 1.4, 0):
+            r.part("cyl", 0, 0.0, 0, 0.8, 0.05, 0.8, DARK_IRON)
+            r.part("cyl", 0, 1.3, 0, 0.8, 0.05, 0.8, DARK_IRON)
+            r.part("cone", 0, 1.38, 0, 0.8, 0.2, 0.8, DARK_IRON)
+            for i in range(8):
+                a = i * math.pi / 4
+                r.part("cube", math.cos(a) * 0.38, 0.65, math.sin(a) * 0.38, 0.03, 1.3, 0.03, IRON)
+            r.part("sphere", 0.1, 0.13, 0.05, 0.22, 0.2, 0.2, BONE)
+            r.part("cube", 0.0, 0.05, -0.1, 0.4, 0.05, 0.05, BONE, ry=0.6)
+
+
+def cobweb(r, seed):
+    """Old webs strung across the upper corner of the wall at local -X."""
+    silk = (200, 198, 190)
+    with r.at(-0.97, 2.6, 0.95 if seed % 2 else -0.95, ry=0 if seed % 2 else math.pi):
+        for i in range(5):
+            a = -0.1 - i * 0.35
+            r.part(
+                "cube", 0, math.sin(a) * 0.45, -math.cos(a) * 0.45, 0.005, 0.9, 0.01, silk, rx=a + math.pi / 2
+            )
+        for k in (0.25, 0.5, 0.72):
+            for i in range(4):
+                a = -0.27 - i * 0.35
+                r.part("cube", 0, math.sin(a) * k, -math.cos(a) * k, 0.005, 0.01, 0.35 * k, silk, rx=a)
+
+
+def skull_niche(r, t, seed):
+    """A recess in the wall at local -X, packed with skulls, a candle guttering among them."""
+    r.part("cube", -0.97, 1.3, 0, 0.08, 0.8, 1.0, (24, 20, 18))
+    r.part("cube", -0.9, 1.75, 0, 0.16, 0.12, 1.2, WHITE, tex="rough_stone")  # lintel
+    r.part("cube", -0.9, 0.86, 0, 0.18, 0.1, 1.2, WHITE, tex="rough_stone")  # sill
+    for i in range(3 + seed % 2):
+        z = -0.32 + i * 0.22
+        y = 1.05 + (0.22 if i % 2 else 0)
+        r.part("sphere", -0.86, y, z, 0.2, 0.18, 0.18, BONE)
+        r.part("cube", -0.77, y, z - 0.04, 0.03, 0.04, 0.04, (30, 22, 18))
+        r.part("cube", -0.77, y, z + 0.04, 0.03, 0.04, 0.04, (30, 22, 18))
+    r.part("cyl", -0.86, 1.03, 0.36, 0.06, 0.2, 0.06, (225, 215, 185))
+    _flame(r, -0.86, 1.17, 0.36, 0.04, t)
+
+
+def grate(r, t):
+    """An iron drain grate set in the floor, cold mist curling up out of the dark below."""
+    r.part("cube", 0, 0.005, 0, 1.0, 0.01, 1.0, (10, 10, 12))
+    r.part("cube", 0, 0.02, 0, 1.06, 0.03, 0.08, DARK_IRON)
+    for i in range(5):
+        r.part("cube", -0.4 + i * 0.2, 0.02, 0, 0.05, 0.03, 1.0, DARK_IRON)
+    for i in range(3):
+        k = (t * 0.3 + i / 3) % 1.0
+        s = 0.12 + 0.2 * k
+        r.part("cube", (i - 1) * 0.25, 0.05 + k * 0.9, math.sin(t + i) * 0.15, s, s * 0.5, s, (90, 96, 100))
+
+
+def roots(r, t, seed, ceil_h):
+    """Pale roots pushed down through the ceiling, hanging in tangles."""
+    for i in range(4 + seed % 3):
+        a = i * 1.9 + seed
+        x, z = math.cos(a) * (0.3 + (i % 3) * 0.2), math.sin(a) * (0.3 + (i % 3) * 0.2)
+        length = 0.8 + ((i * 7 + seed) % 5) * 0.2
+        sway = math.sin(t * 0.5 + i) * 0.04
+        with r.at(x, ceil_h, z, rx=sway, rz=-sway):
+            for k in range(3):
+                seg = length / 3
+                r.part("cube", (k % 2) * 0.04, -seg * (k + 0.5), 0, 0.06 - k * 0.012, seg, 0.06 - k * 0.012,
+                       (170, 150, 116), rz=0.15 * (1 if k % 2 else -1))  # fmt: skip
+
+
+def winch(r, t, turning):
+    """The windlass that works a lift, bolted to the wall at local -X: a chain drum between two
+    timber posts and a crank. It turns while the lift moves."""
+    for z in (-0.55, 0.55):
+        r.part("cube", -0.75, 0.6, z, 0.18, 1.2, 0.16, OAK)
+    spin = t * 4 if turning else 0.0
+    with r.at(-0.75, 0.95, 0, rx=spin):
+        r.part("cyl", 0, 0, 0, 0.4, 0.95, 0.4, OAK, rx=math.pi / 2)
+        for i in range(5):
+            r.part("cyl", 0, 0, -0.36 + i * 0.18, 0.44, 0.05, 0.44, IRON, rx=math.pi / 2)
+        r.part("cube", 0, 0.25, 0.7, 0.05, 0.5, 0.05, IRON)  # crank
+        r.part("cube", 0.1, 0.5, 0.7, 0.2, 0.05, 0.05, OAK)
+    for i in range(int(1.6 / 0.15)):  # the chain running up from the drum
+        r.part("cube", -0.75, 1.2 + i * 0.15, 0.0, 0.03, 0.16, 0.08, IRON, ry=0 if i % 2 else 1.57)
+
+
+BRONZE = (150, 108, 56)
+
+
+def bell(r, t, seed):
+    """A great bronze bell in a timber frame, green with age; it stirs in a draught."""
+    for z in (-0.8, 0.8):
+        r.part("cube", 0, 1.3, z, 0.2, 2.6, 0.2, OAK)
+    r.part("cube", 0, 2.6, 0, 0.26, 0.24, 1.9, OAK)
+    with r.at(0, 2.45, 0, rz=math.sin(t * 0.8 + seed) * 0.04):
+        r.part("cube", 0, -0.08, 0, 0.16, 0.16, 0.3, DARK_IRON)  # the crown it hangs by
+        r.part("sphere", 0, -0.45, 0, 0.8, 0.6, 0.8, BRONZE)  # shoulder
+        r.part("cyl", 0, -0.75, 0, 0.82, 0.6, 0.82, BRONZE)  # waist
+        r.part("cyl", 0, -1.1, 0, 1.0, 0.25, 1.0, BRONZE)  # flaring skirt
+        r.part("cyl", 0, -1.25, 0, 1.15, 0.1, 1.15, (90, 120, 96))  # verdigris lip
+        r.part("cyl", 0, -0.62, 0, 0.84, 0.05, 0.84, (110, 80, 44))  # a cast band
+        r.part("sphere", 0, -1.25, 0, 0.2, 0.2, 0.2, DARK_IRON)  # clapper

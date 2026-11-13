@@ -6,6 +6,7 @@ fog_range = 4 20
 torch = 9 0.75 0.62 0.48
 start = 15 27 -90
 default = .
+entity_floor = auto
 edge_top = 6
 
 [legend]
@@ -21,45 +22,49 @@ _ = floor tex=flagstone h=1.2 ceil=4.6
 ~ = water tex=water h=-0.6 ceil=3.2 side=mossy_brick
 o = floor tex=dirt h=-3.4 ceil=4.8 side=stone_brick pit
 | = floor tex=flagstone h=0 ceil=4.4 side=stone_brick
+" = floor tex=flagstone h=-6 ceil=-2.6 side=stone_brick
+@ = wall tex=ossuary top=6
+? = floor tex=flagstone h=-6 ceil=3.6 side=stone_brick chasm
+/ = floor tex=flagstone h=7.6 ceil=11 side=stone_brick
+` = floor tex=flagstone h=1.6 ceil=11 side=stone_brick chasm
+] = floor tex=flagstone h=0 ceil=11 side=stone_brick chasm
 
 [grid]
 ################################
-##########7y:::::::::7##########
-##########:bg::::::gb:##########
-##########F:!::::::!:F##########
+##########0p:::::::::0##########
+##########:bi::::::ib:##########
+##########>:1::::::1:>##########
 ##########:::::w::::::##########
-##########::::::::::::##########
-##########F:!::::::!:F##########
-##########:bg::::::gb:##########
-##########&:::::::::yh##########
-###############D################
-#Zoooo<#u6==l=H=H==l===B########
-#VXXXX=W===x========x==K########
-#QooooV#==========J====B########
-########6=A=l======l==59########
-###############_################
-###############;################
-#3~~~~~~N######,################
-#-~~k-~~-######.########v.f.q###
+##########:::k::::k:::##########
+##########>:1::::::1:>##########
+##########:bi::::::ib:##########
+##########%:::::::::ph##########
+###############D#########&///7H#
+#Zooooi#08==t=>=>==t===B#//k///#
+#LXXXX=W===x=!======x==K#///V/7#
+#QooooL#========<=J====B#//L/!t#
+########8=A=t======t==N=U//k/5/#
+###############_#########N</3//#
+###############;#########/F/%e&#
+#8~~~~~~0######,#########n######
+#-~~e-~~-######.########v.f.q###
 #-~~-c~~-######G########....$###
-#-~~--~~-##U8it..1..r###%e.e.###
-#--------##..a...%...#####C#####
-#-s----s-.....................##
-#-~~~~~~-##e.1....a.e#####O#####
+#-~~--~~-##08it..1..r###%e.e.###
+#----<---##&.a...%...#####C#####
+#-s-!--s-...g...........g.....##
+#-~~~~~~7##e.1....a.e#####O#####
 #-~~~~~~-##80.j..tp%0###p.a.m###
-#z---d--3######..#######(e.%$###
-#############8...in#############
-#############t...S.|^L|P||+*|T##
-#############.>..i%#########||##
-###############E###IRL*|Y|^||T##
-################################
-
+#z---p--8######..#######(e.%$###
+@@@#4#@@@@@@#N7..i0#############
+@&7""<"7"3!"9....S.|^L|P||+*|T##
+@y"L"6g6"L"d#t>..i%#########|&##
+@%73"i7"5"7e@##E###IRL*|Y|^||T##
+@@@@@@@@@@@@@###################
 [entities]
 b = brazier radius=10 on=:
 w = ashen_warden yaw=90 on=:
 D = door key=warden_key on==
 x = cinder_wisp on==
-l = torch radius=9 on==
 G = gate lever=north_lever
 c = chest item=cell_key on=-
 s = mire_slime on=-
@@ -81,46 +86,48 @@ E = exit map=harrowmere at=15,16,-90 label=Climb_the_rope model=rope
 P = pendulum on=|
 Y = pendulum phase=1.6 on=|
 T = torch radius=7 on=|
-L = light radius=6 on=|
+L = light radius=6
 R = chest item=red_tonic count=3 gold=150 on=|
 I = iron_maiden on=|
 0 = barrel
 8 = crate
 1 = chains
 % = bones
-7 = barrel on=:
-! = chains on=:
-& = bones on=:
-9 = barrel on==
-6 = crate on==
-5 = bones on==
-3 = crate on=-
-4 = barrel on=-
 $ = shackles
 ( = shackles
 W = secret_wall on==
 X = crumble floor=1.6 on=o
 Z = mimic item=ringmail on==
 Q = chest item=zweihander gold=60 on==
-V = light radius=6 on==
-u = barrel on==
-U = barrel
-n = barrel
-N = barrel on=-
 K = altar item=warden_key on==
 B = brazier radius=8 on==
-H = banner on==
-F = banner on=:
 > = banner
 J = table on==
 j = table
 A = rack on==
 f = rack
-g = candles on=:
 i = candles
-< = candles on==
-y = rubble on=:
 p = rubble
-d = rubble on=-
 e = urn
-k = urn on=-
+// The Undercroft, below the cell block: lifts down from the cells and up to the shrine.
+4 = lift top=0 on=?
+9 = lift top=0 lever=crypt_winch on=?
+d = lever id=crypt_winch
+y = chest item=kite_shield gold=40
+5 = gaoler
+3 = bone_crawler
+6 = sarcophagus
+7 = skull_niche
+& = cobweb
+g = grate
+< = roots
+! = cage
+N = winch
+// The Warden's Gallery, above the antechamber: a lift up from beside the boss door, and one
+// down to the lever room, chained fast until its winch is freed.
+U = lift top=7.6 on=`
+n = lift top=7.6 start=top lever=belfry_winch on=]
+F = lever id=belfry_winch
+H = chest item=chain_mitts gold=80
+k = pillar
+V = bell

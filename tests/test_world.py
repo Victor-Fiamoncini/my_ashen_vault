@@ -99,31 +99,61 @@ def test_separate_pushes_apart():
 STATIC_BLOCKERS = (
     *("barrel", "crate", "urn", "iron_maiden", "save_statue", "well", "npc"),
     *("altar", "table", "rack", "rubble", "cocoon", "frog_idol"),
+    *("pillar", "sarcophagus", "bell"),
 )
 
 
-def test_sunken_keep_decor_never_cuts_off_anything():
-    """Flood fill from the start (doors and gates count as open): every chest, door, lever,
-    exit and the iron maiden must stay reachable, so no barrel plugs a corridor."""
+def _keep_reach(m, lifts):
+    """Flood fill over the keep from its start (doors and gates count as open). Each lift in
+    `lifts` links the landings at its two ends; a lift chained fast is just a hole in the floor."""
+    solid = {(e.tx, e.tz) for e in m.entities if e.kind in STATIC_BLOCKERS}
+    links = {}
+    for p in lifts:
+        sx, sz = TileMap.tile_coord(p.x), TileMap.tile_coord(p.z)
+        sides = [(sx + dx, sz + dz) for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1))]
+        ends = [
+            [t for t in sides if not m[t].solid and abs(m[t].floor - h) <= collision.STEP_HEIGHT]
+            for h in (p.low, p.high)
+        ]
+        assert all(ends), f"lift at {sx},{sz} needs a landing at each end"
+        for a in ends[0]:
+            links.setdefault(a, []).extend(ends[1])
+        for b in ends[1]:
+            links.setdefault(b, []).extend(ends[0])
+    sx, sz = (int(v) for v in m.meta["start"][:2])
+    seen = {(sx, sz)}
+    todo = [(sx, sz)]
+    while todo:
+        tx, tz = todo.pop()
+        steps = [(tx + 1, tz), (tx - 1, tz), (tx, tz + 1), (tx, tz - 1)]
+        for nx, nz in steps + links.get((tx, tz), []):
+            if (nx, nz) in seen or (nx, nz) in solid:
+                continue
+            ridden = (nx, nz) in links.get((tx, tz), [])
+            if not ridden and (not collision.passable(m, nx, nz, m[tx, tz].floor) or m[nx, nz].pit):
+                continue
+            seen.add((nx, nz))
+            todo.append((nx, nz))
+    return seen
+
+
+def _keep():
     m = MapLoader.load_file(os.path.join(MAP_DIR, "sunken_keep.map"))
     for e in m.entities:  # crumbling floors start solid
         if e.kind == "crumble":
             m.set_override(
                 (e.tx, e.tz), CrumbleFloor(e.tx, e.tz, float(e.props["floor"]), m[e.tx, e.tz]).solid_tile()
             )
-    solid = {(e.tx, e.tz) for e in m.entities if e.kind in STATIC_BLOCKERS}
-    sx, sz = (int(v) for v in m.meta["start"][:2])
-    seen = {(sx, sz)}
-    todo = [(sx, sz)]
-    while todo:
-        tx, tz = todo.pop()
-        for nx, nz in ((tx + 1, tz), (tx - 1, tz), (tx, tz + 1), (tx, tz - 1)):
-            if (nx, nz) in seen or (nx, nz) in solid:
-                continue
-            if not collision.passable(m, nx, nz, m[tx, tz].floor) or m[nx, nz].pit:
-                continue
-            seen.add((nx, nz))
-            todo.append((nx, nz))
+    return m
+
+
+def test_sunken_keep_decor_never_cuts_off_anything():
+    """Flood fill from the start (doors and gates count as open, lifts chained fast count as
+    shut): every chest, door, lever, exit and the iron maiden must stay reachable, so no barrel
+    plugs a corridor and no shortcut is ever needed."""
+    m = _keep()
+    lifts = [p for p in terrain.build_platforms(m) if p.kind == "lift"]
+    seen = _keep_reach(m, [p for p in lifts if not p.locked])
 
     def touched(tx, tz):
         return any((tx + dx, tz + dz) in seen for dx, dz in ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)))
@@ -133,6 +163,25 @@ def test_sunken_keep_decor_never_cuts_off_anything():
     assert {"iron_maiden", "mimic"} <= {e.kind for e in targets}
     for e in targets:
         assert touched(e.tx, e.tz), f"{e.kind} at {e.tx},{e.tz} is unreachable"
+    # Both ends of every chained lift can be reached, so freeing it really is a shortcut.
+    for p in lifts:
+        sx, sz = TileMap.tile_coord(p.x), TileMap.tile_coord(p.z)
+        near = {(sx + dx, sz + dz) for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1))} & seen
+        assert {round(m[t].floor, 1) for t in near} >= {p.low, p.high}, (sx, sz)
+
+
+def test_sunken_keep_lifts_reach_the_undercroft_and_the_gallery():
+    m = _keep()
+    lifts = {p.lever: p for p in terrain.build_platforms(m) if p.kind == "lift"}
+    assert set(lifts) == {None, "crypt_winch", "belfry_winch"}
+    levers = {e.props["id"] for e in m.entities if e.kind == "lever"}
+    assert {"crypt_winch", "belfry_winch"} <= levers  # every chained lift has its winch
+    free = [p for p in terrain.build_platforms(m) if p.kind == "lift" and not p.locked]
+    seen = _keep_reach(m, free)
+    assert any(m[t].floor == -6.0 for t in seen)  # the Undercroft
+    assert any(m[t].floor == 7.6 for t in seen)  # the Gallery
+    no_lifts = _keep_reach(m, [])
+    assert not any(m[t].floor in (-6.0, 7.6) for t in no_lifts)
 
 
 def test_wall_yaw_faces_out_of_the_nearest_wall(room):
@@ -255,3 +304,52 @@ def test_verdant_hollow_is_solvable():
     # Every tile you can drop into, you can climb back out of.
     for tile in opened:
         assert start in _reachable(m, tile, open_tiles=doors), tile
+
+
+AUTO = """[meta]
+name = Auto
+start = 1 1 0
+default = .
+{auto}
+
+[legend]
+# = wall
+. = floor h=0
+_ = floor h=-4
+o = floor h=-6 pit
+
+[grid]
+#######
+#..#__#
+#.b#b_#
+#####c#
+#__ooo#
+#######
+
+[entities]
+b = barrel
+c = crate
+"""
+
+
+def test_entities_take_their_neighbours_floor_when_asked():
+    m = MapLoader(AUTO.replace("{auto}", "entity_floor = auto"), name="auto").parse()
+    assert m[2, 2].floor == 0.0  # among the room's floor
+    assert m[4, 2].floor == -4.0  # boxed in by walls and a crate, but beside the low floor
+    assert m[5, 3].floor == -4.0  # safe floor wins over the pit below it
+    plain = MapLoader(AUTO.replace("{auto}", ""), name="plain").parse()
+    assert plain[4, 2].floor == 0.0 and plain[5, 3].floor == 0.0  # the old rule: the default
+
+
+def test_an_entity_walled_in_on_every_side_keeps_the_default():
+    text = AUTO.replace("{auto}", "entity_floor = auto")
+    text = text.replace("#..#__#\n#.b#b_#\n#####c#", "#..####\n#.b#b##\n#####b#")
+    m = MapLoader(text, name="walled").parse()
+    assert m[4, 2].floor == 0.0
+    assert m[5, 3].floor == -6.0  # only a pit beside it: a hazard is better than nothing
+
+
+def test_auto_floor_looks_past_the_edge_of_the_grid():
+    text = AUTO.replace("{auto}", "entity_floor = auto").replace("#######\n#..#__#", "##b####\n#..#__#", 1)
+    m = MapLoader(text, name="edge").parse()
+    assert m[2, 0].floor == 0.0  # nothing above it, the room below it

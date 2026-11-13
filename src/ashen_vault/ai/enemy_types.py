@@ -39,10 +39,15 @@ class EnemyType:
     back_mult: float = 1.0
     # Lurkers sit still until you come within `sight`, then give chase for `GIVE_UP` metres.
     lurk: bool = False
-    # Special attacks a boss mixes in (see Enemy.MOVES): "sweep", "web", "pounce".
+    # Special attacks mixed in (see enemy.MOVES): "sweep", "web", "pounce", "cinders", "combo",
+    # "slam", "eruption", "hook".
     moves: tuple = ()
     # Enemy type a boss calls to its side once, when it drops to half HP.
     brood: str | None = None
+    # A boss without a brood that flies into a rage at half HP instead: the message shown.
+    rage: str | None = None
+    # Moves a boss only adds to its mix once it reaches its second phase.
+    phase_moves: tuple = ()
 
     @property
     def rooted(self):
@@ -126,8 +131,12 @@ class EnemyTypes:
                 dead_flag="boss_dead",
                 epitaph="The Warden crumbles into ash. Something glows where he fell.",
                 poise=14,
-                # A cleave all around, a leaping slam, and a fan of embers flung from his hand.
-                moves=("sweep", "pounce", "cinders"),
+                # A cleave all around, a leaping slam, a fan of embers flung from his hand, a
+                # three-swing chain and a shockwave slam; at half HP his blade catches fire and he
+                # starts calling fire up from the floor.
+                moves=("sweep", "pounce", "cinders", "combo", "slam"),
+                phase_moves=("eruption",),
+                rage="The Warden's blade catches fire!",
                 shot_rgb=(255, 140, 50),
             ),
             EnemyType(
@@ -245,6 +254,43 @@ class EnemyTypes:
                 radius=0.35,
                 height=0.75,
                 tall=0.6,
+            ),
+            EnemyType(
+                id="gaoler",
+                name="Gaoler",
+                hp=55,
+                speed=1.3,
+                damage=13,
+                reach=2.2,
+                sight=11,
+                windup=0.8,
+                recover=1.2,
+                exp=38,
+                gold=range(12, 25),
+                radius=0.6,
+                height=2.1,
+                tall=2.2,
+                poise=8,
+                # A hulking jailer who hauls you in on a hooked chain, then clubs you.
+                moves=("hook",),
+            ),
+            EnemyType(
+                id="bone_crawler",
+                name="Bone Crawler",
+                hp=18,
+                speed=2.8,
+                damage=7,
+                reach=1.4,
+                sight=3.2,
+                windup=0.35,
+                recover=0.7,
+                exp=11,
+                gold=range(2, 8),
+                radius=0.45,
+                height=0.55,
+                tall=0.6,
+                # Lies as a heap of bones until you walk up to it, then skitters after you.
+                lurk=True,
             ),
         ]
     }

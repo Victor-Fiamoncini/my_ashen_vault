@@ -192,10 +192,11 @@ class Player:
             self.stamina.drain(dt)
         return moved > 1e-4
 
-    def settle(self, map_, dt, floor=None):
-        """Eases eye height onto the floor below (stairs, drops), or onto `floor` (a raft deck)."""
+    def settle(self, map_, dt, floor=None, snap=False):
+        """Eases eye height onto the floor below (stairs, drops), or onto `floor` (a raft deck).
+        `snap` keeps you exactly on it (riding a lift, so the deck never rises through your view)."""
         target = map_.floor_at(self.x, self.z) if floor is None else floor
-        self.y += (target - self.y) * min(dt * 10, 1)
+        self.y += (target - self.y) * (1 if snap else min(dt * 10, 1))
         if abs(target - self.y) < 0.005:
             self.y = target
 

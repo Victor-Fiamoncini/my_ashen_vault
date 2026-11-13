@@ -35,6 +35,7 @@ def all_textures():
         "cliff_rock": cliff_rock(),
         "ravine": ravine(),
         "log_wall": log_wall(),
+        "ossuary": ossuary(),
         "white": solid(255, 255, 255),
     }
 
@@ -434,5 +435,40 @@ def log_wall():
         if hash_(x // 8, row, 243) > 0.85 and abs(v - 0.5) < 0.2:
             return tint([60, 92, 44], 0.7 + grain)  # moss on the weathered logs
         return c
+
+    return build(px)
+
+
+def ossuary():
+    """A charnel wall: courses of small skulls between courses of long bones stacked end-on,
+    all grey-yellow with age, packed in dark mortar."""
+
+    def px(x, y):
+        n = fbm(x, y, 51)
+        course = y // 8
+        if course % 2 == 0:  # a course of skulls
+            off = 4 if course % 4 == 0 else 0
+            cx = (x + off) % 8 - 3.5
+            cy = y % 8 - 3.5
+            if (cx / 3.4) ** 2 + (cy / 3.2) ** 2 > 1.0:
+                return tint([34, 31, 28], 0.8 + n * 0.4)
+            if cy in (-1.5, -0.5) and abs(cx) in (1.5, 2.5):
+                return tint([22, 18, 15], 1.0)  # deep eye sockets
+            if cy == 1.5 and abs(cx) <= 0.5:
+                return tint([40, 34, 28], 1.0)  # the nose hole
+            if cy == 2.5 and abs(cx) <= 2.5 and (x % 2 == 0):
+                return tint([50, 44, 36], 1.0)  # gaps between the teeth
+            k = hash_((x + off) // 8, course, 9)
+            return tint([150, 138, 112], 0.6 + k * 0.3 + (n - 0.5) * 0.3 - max(cy, 0) * 0.04)
+        # A course of long bones seen end-on and side-on: pale bars with knobbed ends.
+        seg = hash_(x // 16, course, 4)
+        start = rround(seg * 6)
+        local = (x - start) % 16
+        if y % 8 in (0, 7) or local in (0, 15):
+            return tint([34, 31, 28], 0.8 + n * 0.4)
+        knob = local in (1, 2, 13, 14)
+        if not knob and y % 8 in (1, 6):
+            return tint([34, 31, 28], 0.8 + n * 0.4)
+        return tint([140, 128, 104], 0.62 + hash_(x // 16, course, 7) * 0.25 + (n - 0.5) * 0.3)
 
     return build(px)

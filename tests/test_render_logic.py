@@ -264,3 +264,76 @@ def test_first_person_view_draws_every_hand_and_swing():
     gpu = _RecordingGpu()
     models.weapon_view(rig.Rig(gpu), p, 0.0)
     assert gpu.parts
+
+
+def test_every_special_move_has_a_pose():
+    import random
+
+    from ashen_vault.ai.enemy import COMBO_GAP, MOVES, Enemy
+    from ashen_vault.ai.enemy_types import EnemyTypes
+    from ashen_vault.render import models
+
+    for type_ in EnemyTypes.ALL.values():
+        for move in (*type_.moves, *type_.phase_moves, "kindle"):
+            for state, t in (("windup", 0.3), ("attack", 0.05), ("attack", COMBO_GAP * 2.2)):
+                gpu = _RecordingGpu()
+                e = Enemy(type_, 0, 0, rng=random.Random(0))
+                e.state, e.state_t, e.anim_t, e.attack_kind = state, t, 1.3, move
+                e.phase2 = move in type_.phase_moves
+                models.enemy(rig.Rig(gpu), e)
+                assert len(gpu.parts) >= 4, (type_.id, move, state)
+                if type_.id in ("ashen_warden", "gaoler"):
+                    assert min(y for _, y in gpu.parts) > -0.3, (type_.id, move, state)
+        assert set(type_.moves) <= set(MOVES), type_.id
+
+
+def test_the_wardens_blade_burns_in_his_second_phase():
+    import random
+
+    from ashen_vault.ai.enemy import Enemy
+    from ashen_vault.ai.enemy_types import EnemyTypes
+    from ashen_vault.render import models
+
+    e = Enemy(EnemyTypes.get("ashen_warden"), 0, 0, rng=random.Random(0))
+    e.state, e.anim_t = "chase", 1.0
+    calm, burning = _ExtentGpu(), _ExtentGpu()
+    models.enemy(rig.Rig(calm), e)
+    e.phase2 = True
+    models.enemy(rig.Rig(burning), e)
+    assert burning.glows > calm.glows
+
+
+def test_keep_props_lift_lever_and_fire_draw():
+    from ashen_vault.render import models
+
+    gpu = _RecordingGpu()
+    r = rig.Rig(gpu)
+    for k in (0.0, 0.5, 1.0):
+        models.lever(r, k, wall=True)
+        models.lever(r, k, wall=False)
+    models.lift(r, 0.5, True, 6.0)
+    models.lift(r, 0.5, False, 60.0)  # a very tall shaft caps its chain links
+    models.ember_crest(r, (200, 180, 140))
+    models.banner(r, 0.5, 2)
+    models.pillar(r, 3, 4.9)
+    models.sarcophagus(r, 2)
+    models.cage(r, 0.5, 1, 3.4)
+    models.cobweb(r, 1)
+    models.cobweb(r, 2)
+    models.skull_niche(r, 0.5, 3)
+    models.grate(r, 0.5)
+    models.roots(r, 0.5, 2, 3.4)
+    models.winch(r, 0.5, True)
+    models.winch(r, 0.5, False)
+    models.bell(r, 0.5, 1)
+    models.eruption(r, 0.6, 0.0, 0.5)
+    models.eruption(r, 0.0, 0.8, 0.5)
+    models.shockwave_ring(r, 0.4, 4.0)
+    assert len(gpu.parts) > 300
+
+
+def test_ossuary_texture_is_built():
+    from ashen_vault.render import texture_gen
+
+    tex = texture_gen.all_textures()
+    assert "ossuary" in tex and len(tex["ossuary"]) == len(tex["stone_brick"])

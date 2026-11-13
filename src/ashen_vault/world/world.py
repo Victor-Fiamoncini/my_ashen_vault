@@ -5,7 +5,7 @@ import random
 from dataclasses import dataclass
 
 from ashen_vault import map_path
-from ashen_vault.ai.enemy import MOVES, Enemy
+from ashen_vault.ai.enemy import MOVES, SLAM_RADIUS, Enemy
 from ashen_vault.ai.enemy_types import EnemyTypes
 from ashen_vault.ai.spawns import spawn_enemies
 from ashen_vault.player.player import Player
@@ -14,7 +14,7 @@ from ashen_vault.render.mesh_builder import MeshBuilder
 from ashen_vault.util import rround
 from ashen_vault.world import collision, loot, relics, shots, terrain
 from ashen_vault.world.ash import AshCloud, death_phases
-from ashen_vault.world.hazards import CrumbleFloor, Pendulum, SpikeTrap
+from ashen_vault.world.hazards import CrumbleFloor, Eruption, Pendulum, Shockwave, SpikeTrap
 from ashen_vault.world.map_loader import MapLoader
 from ashen_vault.world.tile_map import TileMap
 
@@ -63,6 +63,7 @@ HAZARD_MESSAGES = {
     "logs_first": "A rotten rope snaps above, and the woodpile starts to roll!",
     "logs_last": "The last log tumbles down. The woodpile is spent.",
     "spores": "Choking spores fill your lungs.",
+    "lift_locked": "The lift's chain is locked fast. Somewhere a winch holds it.",
 }
 
 # Props that fill their whole tile: nothing walks or flies through them.
@@ -76,13 +77,16 @@ BLOCKING_PROPS = (
     "rack",
     "rubble",
     "frog_idol",
+    "pillar",
+    "sarcophagus",
+    "bell",
 )
 # Props that block only until they are broken or revealed.
 BREAKABLE_PROPS = ("barrel", "crate", "urn", "cocoon", "secret_wall")
 # Containers among the breakables: smashing one may spill a little loot.
 SPILLING_PROPS = ("barrel", "crate", "urn", "cocoon")
 # Props that hang on a wall when they stand beside one.
-WALL_PROPS = ("torch", "banner", "shackles", "rack")
+WALL_PROPS = ("torch", "banner", "shackles", "rack", "lever", "cobweb", "skull_niche", "winch")
 # Props that turn to face into the room.
 FACING_PROPS = ("chest", "altar", "table")
 HAZARD_KINDS = ("spikes", "pendulum", "crumble")
@@ -112,11 +116,16 @@ class World:
         self.enemies = []
         self.projectiles = []
         self.hazards = []
+        self.eruptions = []  # fire columns the Warden calls up
+        self.shockwaves = []  # rings sent out by his slam (only for show)
         self._safe = None  # centre of the last solid tile the player stood on
         self.ash = AshCloud()
         self._time = 0.0
         self.blocker = self.blocked_tile
         self.terrain = terrain.Terrain(self.map)
+        for p in self.terrain.platforms:
+            if p.lever and f"lever:{p.lever}" in game.flags:
+                p.locked = False
         self._piles = {(TileMap.tile_coord(c.x), TileMap.tile_coord(c.z)) for c in self.terrain.chutes}
         # Thorn floors grow spiked plants; each one's spikes rise (0..1) when stepped in.
         self._thorns = {(tx, tz): 0.0 for tx, tz, tile in self.map.each_tile() if tile.hurt}
@@ -233,6 +242,8 @@ class World:
         bosses = [e for e in self.enemies if e.type.boss and e.alive]
         self.enemies = bosses + spawn_enemies(self.map, self.flags, bosses=False)
         self.projectiles = []
+        self.eruptions = []
+        self.shockwaves = []
 
     def _opened(self, prop):
         if prop.kind in ("door", "chest", "lever", "altar", *BREAKABLE_PROPS):
@@ -294,17 +305,60 @@ class World:
         enemy.z = nz
 
     def enemy_strike(self, enemy, mult=1.0):
+        """Returns how much of the blow got through a raised shield."""
         base = enemy.type.damage * mult * (0.85 + random.random() * 0.3)
         dmg = max(rround(base - self.player.inventory.defense * 0.5), 1)
-        self.strike_player(dmg, enemy.name, enemy.x, enemy.z)
+        return self.strike_player(dmg, enemy.name, enemy.x, enemy.z)
 
     def strike_player(self, dmg, source, ax, az):
-        """A blow from (ax, az): a raised shield takes what it can before the rest lands."""
+        """A blow from (ax, az): a raised shield takes what it can before the rest lands.
+        Returns the damage that got through."""
         taken, block = self.player.take_blow(dmg, ax, az)
         if block is not None and block.blocked:
             self.game.blocked(block)
         if taken > 0:
             self.game.hurt_player(taken, source)
+        return taken
+
+    def boss_rage(self, enemy):
+        """A boss enters its second phase."""
+        self.game.sfx("eruption", 0.9)
+        self.game.message(enemy.type.rage)
+
+    def slam(self, enemy):
+        """The shockwave of a slam: a ring that runs out along the floor."""
+        self.shockwaves.append(Shockwave(enemy.x, enemy.z, self.enemy_y(enemy), SLAM_RADIUS))
+        self.game.sfx("quake")
+
+    def eruption(self, enemy):
+        """Fire wells up under the player, then on either side of them a moment later."""
+        player = self.player
+        damage = rround(enemy.type.damage * MOVES["eruption"][2])
+        ax = math.atan2(player.z - enemy.z, player.x - enemy.x) + math.pi / 2
+        spots = [(player.x, player.z, 0.0)]
+        for side in (-1.6, 1.6):
+            spots.append((player.x + math.cos(ax) * side, player.z + math.sin(ax) * side, 0.35))
+        for x, z, delay in spots:
+            tile = self.map.tile_at(x, z)
+            if tile.solid or not tile.walkable:
+                continue
+            self.eruptions.append(Eruption(x, z, tile.floor, delay=delay, damage=damage))
+        self.game.sfx("spell", 0.6)
+
+    def hook(self, enemy, mult, pull):
+        """A hooked chain: a light blow that drags you toward the thrower, unless a shield stops it."""
+        if self.enemy_strike(enemy, mult) <= 0:
+            return
+        player = self.player
+        if abs(player.y - self.enemy_y(enemy)) > collision.STEP_HEIGHT:
+            return  # out of his reach above or below (riding a lift): the chain only bites
+        dx, dz = enemy.x - player.x, enemy.z - player.z
+        d = math.hypot(dx, dz)
+        room = d - enemy.radius - Player.RADIUS - 0.3  # never drags you into its body
+        step = min(pull, room)
+        if d > 0 and step > 0:
+            self._knock_player(dx / d * step, dz / d * step)
+            self.game.message(f"The {enemy.name}'s hook drags you in!")
 
     def enemy_fire(self, enemy, kind="shot"):
         if kind == "cinders":
@@ -400,6 +454,7 @@ class World:
                 p.open_t = min(p.open_t + dt * 0.8, 1.0)
         self._update_projectiles(dt)
         self._update_hazards(dt)
+        self._update_fire(dt)
         self._check_fall()
         self._push_player_out_of_bodies()
         self._update_thorns(dt)
@@ -441,6 +496,21 @@ class World:
                 dmg, px, pz = hit
                 self.game.hurt_player(dmg, "The pendulum")
                 self._knock_player(px, pz)
+
+    def _update_fire(self, dt):
+        """The Warden's fire columns and slam rings."""
+        player = self.player
+        for f in self.eruptions:
+            if f.update(dt):
+                self.game.sfx("eruption", 0.6)
+            if player.alive:
+                dmg = f.hit(player.x, player.z)
+                if dmg:
+                    self.game.hurt_player(max(rround(dmg - player.inventory.defense * 0.3), 1), "The fire")
+        self.eruptions = [f for f in self.eruptions if not f.done]
+        for w in self.shockwaves:
+            w.update(dt)
+        self.shockwaves = [w for w in self.shockwaves if not w.done]
 
     def _update_crumble(self, h, dt, player_on):
         change = h.update(dt, player_on)
@@ -734,6 +804,10 @@ class World:
         for g in self.props:
             if g.kind == "gate" and g.props.get("lever") == p.props.get("id"):
                 g.open_t = 0.01
+        for lift in self.terrain.platforms:
+            if lift.lever and lift.lever == p.props.get("id"):
+                lift.locked = False
+                self.game.sfx("chain", 0.8)
 
     # --- rendering ---------------------------------------------------------------
 
@@ -763,7 +837,10 @@ class World:
             self._model_light(gpu, pl.x, pl.deck + 0.5, pl.z)
             shake = math.sin(self._time * 40) * 0.03 * pl.creaking
             with rig.at(pl.x, pl.deck - pl.sink + shake, pl.z):
-                if pl.kind == "raft":
+                if pl.kind == "lift":
+                    tile = self.map[TileMap.tile_coord(pl.x), TileMap.tile_coord(pl.z)]
+                    models.lift(rig, self._time, pl.moving, (tile.ceil or pl.high + 3.0) - pl.deck)
+                elif pl.kind == "raft":
                     models.raft(rig, self._time)
                 elif pl.kind == "ledge":
                     models.ledge(rig, pl.creaking, int(pl.x * 3 + pl.z * 7))
@@ -824,6 +901,14 @@ class World:
                 self._model_light(gpu, h.x, y + 1.5, h.z)
                 with rig.at(h.x, h.pivot_y, h.z, ry=0 if h.axis == "x" else -math.pi / 2):
                     models.pendulum(rig, h.angle, h.length)
+        for f in self.eruptions:
+            self._model_light(gpu, f.x, f.floor + 0.5, f.z)
+            with rig.at(f.x, f.floor, f.z):
+                models.eruption(rig, f.glow, f.flame, self._time)
+        for w in self.shockwaves:
+            gpu.model_light((1.6, 1.4, 1.2))
+            with rig.at(w.x, w.floor, w.z):
+                models.shockwave_ring(rig, w.progress, w.radius)
         self._draw_ash(rig, gpu, far)
         for pr_ in self.projectiles:
             gpu.model_light((1.6, 1.4, 1.2))
@@ -845,6 +930,11 @@ class World:
     def _model_light(self, gpu, x, y, z, flash=False):
         light = (2.0, 1.6, 1.6) if flash else [min(c, 1.6) for c in self.builder.light_at(x, y, z)]
         gpu.model_light(light)
+
+    def _ceil_h(self, p):
+        """Height of the ceiling above a prop's floor (3.2 m under open sky)."""
+        tile = self.map[p.tx, p.tz]
+        return (tile.ceil or tile.floor + 3.2) - tile.floor
 
     def _draw_prop(self, rig, p):
         t = self._time
@@ -877,7 +967,28 @@ class World:
         elif k == "gate":
             models.door(rig, p.open_t, p.axis, tex="iron_bars")
         elif k == "lever":
-            models.lever(rig, p.open_t > 0)
+            models.lever(rig, p.open_t, p.wall)
+        elif k == "pillar":
+            models.pillar(rig, p.tx * 3 + p.tz, self._ceil_h(p))
+        elif k == "sarcophagus":
+            models.sarcophagus(rig, p.tx * 5 + p.tz)
+        elif k == "cage":
+            models.cage(rig, t, p.tx * 3 + p.tz, self._ceil_h(p))
+        elif k == "cobweb":
+            models.cobweb(rig, p.tx * 7 + p.tz)
+        elif k == "skull_niche":
+            models.skull_niche(rig, t + p.tx, p.tx + p.tz)
+        elif k == "grate":
+            models.grate(rig, t + p.tx)
+        elif k == "roots":
+            models.roots(rig, t, p.tx * 5 + p.tz * 3, self._ceil_h(p))
+        elif k == "winch":
+            turning = any(
+                pl.moving and math.hypot(pl.x - p.x, pl.z - p.z) < 4 for pl in self.terrain.platforms
+            )
+            models.winch(rig, t, turning)
+        elif k == "bell":
+            models.bell(rig, t, p.tx + p.tz)
         elif k == "save_statue":
             models.save_statue(rig, t)
         elif k == "tree":

@@ -442,3 +442,138 @@ def test_falling_in_the_river_splashes(river):
     body = Body(4, 1)
     h.update(0.05, body, lambda *_: None)
     assert ("splash", 1.0) in h.sounds
+
+
+SHAFT = """[meta]
+name = Shaft
+start = 1 1 0
+
+[legend]
+# = wall top=12
+. = floor h=0 ceil=4
+_ = floor h=-6 ceil=-2.6
+| = floor h=-6 ceil=4 chasm
+
+[grid]
+#####
+#.L_#
+#####
+
+[entities]
+L = lift top=0 {extra} on=|
+"""
+
+
+def shaft(extra=""):
+    m = MapLoader(SHAFT.replace("{extra}", extra), name="shaft").parse()
+    return m, terrain.Terrain(m)
+
+
+def step_to(h, body, tx, tz, seconds=0.2):
+    body.x, body.z = TileMap.center(tx, tz)
+    return run(h, body, seconds)
+
+
+def ride(h, body, seconds, dt=0.05):
+    """Runs the terrain and keeps the body's height on its footing, as the game's settle does."""
+    hits, events = [], []
+    for _ in range(round(seconds / dt)):
+        events.append(h.update(dt, body, lambda dmg, src: hits.append((dmg, src))))
+        body.y = h.floor(body.x, body.z)
+    return hits, events
+
+
+def test_a_lift_rests_at_the_bottom_until_ridden():
+    _m, h = shaft()
+    (lift,) = h.platforms
+    assert lift.kind == "lift" and lift.at == "low" and lift.deck == -6.0 and lift.high == 0.0
+    assert not lift.locked and not lift.moving
+
+
+def test_riding_a_lift_up_and_down_without_a_hard_landing():
+    _m, h = shaft()
+    (lift,) = h.platforms
+    body = Body(3, 1)
+    body.y = -6.0
+    ride(h, body, 0.2)
+    body.x, body.z = TileMap.center(2, 1)
+    ride(h, body, terrain.LIFT_DELAY / 2)
+    assert lift.at == "low"  # it waits a moment before it sets off
+    hits, events = ride(h, body, terrain.LIFT_DELAY + 6 / terrain.LIFT_SPEED + 0.5)
+    assert lift.at == "high" and lift.deck == 0.0 and body.y == 0.0
+    assert hits == [] and "landed" not in events
+    # Step off at the top, then back on: it takes you down again, gently.
+    body.x, body.z = TileMap.center(1, 1)
+    ride(h, body, 0.5)
+    assert lift.at == "high"
+    body.x, body.z = TileMap.center(2, 1)
+    hits, events = ride(h, body, terrain.LIFT_DELAY + 6 / terrain.LIFT_SPEED + 0.5)
+    assert lift.at == "low" and body.y == -6.0 and hits == [] and "landed" not in events
+
+
+def test_a_lift_comes_when_you_wait_at_its_landing():
+    _m, h = shaft()
+    (lift,) = h.platforms
+    body = Body(1, 1)  # at the top, the lift is down below
+    ride(h, body, terrain.LIFT_CALL + 0.2)
+    assert lift.moving
+    ride(h, body, 6 / terrain.LIFT_SPEED + 0.2)
+    assert lift.at == "high"
+
+
+def test_an_empty_shaft_is_no_footing_and_a_raised_lift_no_way_in():
+    m, h = shaft()
+    (lift,) = h.platforms
+    top = Body(1, 1)
+    run(h, top, 0.1)
+    assert not h.floating(2, 1)  # the lift is 6 m below: you cannot step into the shaft
+    lift.deck, lift.at = 0.0, "high"
+    assert h.floating(2, 1)
+    # From the bottom landing, a lift raised above you does not let you walk in underneath.
+    h2 = terrain.Terrain(m)
+    (lift2,) = h2.platforms
+    lift2.deck, lift2.at = 0.0, "high"
+    bottom = Body(3, 1)
+    bottom.y = -6.0
+    run(h2, bottom, 0.1)
+    assert not h2.floating(2, 1)
+
+
+def test_a_locked_lift_stays_put_and_says_so_once():
+    _m, h = shaft("lever=winch")
+    (lift,) = h.platforms
+    assert lift.locked and lift.lever == "winch"
+    body = Body(1, 1)  # calling from the top
+    _hits, events = ride(h, body, 3.0)
+    assert events.count("lift_locked") == 1 and lift.at == "low"
+    lift.locked = False
+    ride(h, body, terrain.LIFT_CALL + 0.2)
+    assert lift.moving
+
+
+def test_a_lift_can_start_at_the_top():
+    _m, h = shaft("start=top speed=3")
+    (lift,) = h.platforms
+    assert lift.at == "high" and lift.deck == 0.0 and lift.speed == 3.0
+
+
+def test_a_lift_clanks_as_it_starts_and_stops():
+    _m, h = shaft()
+    body = Body(1, 1)
+    sounds = []
+    for _ in range(round((terrain.LIFT_CALL + 6 / terrain.LIFT_SPEED + 0.5) / 0.05)):
+        h.update(0.05, body, lambda *_: None)
+        sounds += [name for name, _v in h.sounds]
+    assert sounds == ["chain", "clunk"]
+
+
+def test_a_lift_ignores_someone_beside_its_shaft_at_neither_landing():
+    text = SHAFT.replace("{extra}", "").replace("#####\n#.L_#\n#####", "#####\n#.L_#\n##,##")
+    text = text.replace("| = floor", ", = floor h=-3 ceil=4\n| = floor")
+    m = MapLoader(text, name="ledge").parse()
+    h = terrain.Terrain(m)
+    (lift,) = h.platforms
+    body = Body(2, 2)  # a ledge half-way down, beside the shaft
+    body.y = -3.0
+    ride(h, body, terrain.LIFT_CALL + 1.0)
+    assert lift.at == "low" and not lift.moving

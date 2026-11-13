@@ -56,7 +56,11 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   and items are deterministic.
 - On Wayland, `GLFW: Error: 65548` warnings are harmless.
 - A negative heading must be written `--at=15,7,-90` (with `=`), or argparse reads it as a flag.
-- Useful starts: `--map harrowmere --at 25,13,-90` (the jungle doorway), `--map verdant_hollow` (the
+- The `smoke:` line includes the player's height (`y=`), handy for checking lifts.
+- Useful starts: `--at 4,24,90 --script "forward:0.9 wait:5 forward:0.6"` (the Cistern lift down to
+  the Undercroft), `--at=11,26,90 --script "interact strafe_l:0.7 wait:5"` (free the shrine lift and
+  ride it up), `--at=23,13,0 --script "forward:0.7 wait:5"` (the lift up to the Warden's Gallery),
+  `--map harrowmere --at 25,13,-90` (the jungle doorway), `--map verdant_hollow` (the
   grove), `--at=49,12,-90` (the Highland log slope), `--at=15,7,-90` (the Loom Mother),
   `--map harrowmere --at=6,18,180 --script "forward:1 interact"` (Corvane; below
   `--level 5` they stay silent).
@@ -71,9 +75,9 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/ui/hud.py` | HUD, menus, dialogue boxes |
 | `src/ashen_vault/audio/synth.py` | Synthesized sound effects |
 | `src/ashen_vault/input.py` | Key bindings and the `--script` driver |
-| `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. `harrowmere` (the village), `sunken_keep` (the dungeon below the well), `verdant_hollow` (the jungle behind the overgrown house) |
-| `src/ashen_vault/world/hazards.py` | Dungeon traps: floor spikes, pendulum blades, crumbling floors |
-| `src/ashen_vault/world/terrain.py` | Outdoor terrain: rafts, planks, ledges, rotten floorboards, currents, thorns, chasm and river falls, hard landings, the log rack, spore pods (`World.terrain`) |
+| `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. `harrowmere` (the village), `sunken_keep` (the dungeon below the well, with the Undercroft below its cells and the Warden's Gallery above the boss door), `verdant_hollow` (the jungle behind the overgrown house) |
+| `src/ashen_vault/world/hazards.py` | Dungeon traps: floor spikes, pendulum blades, crumbling floors; the Warden's fire eruptions and slam shockwaves |
+| `src/ashen_vault/world/terrain.py` | Terrain: rafts, planks, ledges, rotten floorboards, chain lifts, currents, thorns, chasm and river falls, hard landings, the log rack, spore pods (`World.terrain`) |
 | `src/ashen_vault/world/rest.py` | The shrine rest: timing and the pixelated ember fog pattern drawn while you pray |
 | `src/ashen_vault/ui/smallfont.py` | The small mixed-case pixel font used for in-game messages, prompts and the boss bar |
 | `src/ashen_vault/player/weapons.py` | Weapon categories, light/heavy/quick attacks, swing tempo and the secret attacks (`secret()`) |
@@ -90,31 +94,45 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 - Use `util.rround` (round half away from zero) instead of built-in `round` in game math. The code was
   ported from Ruby and its numbers depend on that rounding.
 - Keep new logic in the raylib-free packages where possible and add tests for it. `world/world.py`
-  is pure but still mostly untested, which makes it a good place to add coverage.
+  is pure but still mostly untested, which makes it a good place to add coverage:
+  `tests/test_keep_world.py` builds a real `World` headless with a `FakeGame` (a no-op GPU that records
+  messages, sounds and wounds), so world logic can be driven without a window.
 - Internal resolution is 320x240 (`screen.py`); UI coordinates are in that space.
 - Map grids are whitespace-sensitive. Don't reformat `.map` files. Each grid character is one 2 m tile;
   an `[entities]` marker places a prop, enemy or hazard there, standing on the legend tile named by
-  `on=` (the map's `default` otherwise). Wall props (torches, banners, shackles, racks) hang on the
+  `on=` (the map's `default` otherwise). With `entity_floor = auto` in `[meta]` (the keep uses it), a
+  marker without `on=` stands on the floor most of its neighbours share, so one marker serves every
+  level. Wall props (torches, banners, shackles, racks) hang on the
   adjacent wall and chests/altars turn to face the open side automatically, so they rarely need `yaw=`.
 - Floor legend entries can add hazards: `hurt=<hp per tick>` (thorns), `flow=<dx>,<dz>` (a current),
   `slow=<multiplier>` (mud), `pit` (a hole you can walk into; you fall, are hurt and hauled out) and
   `chasm` (only a raft, plank or ledge lets you onto it). Drops over 1.8 m cost HP, except into a `pit`.
   Terrain entities: `raft to=tx,tz speed= phase=`, `plank`, `ledge deck=`, `boards deck=` (rotten
-  floorboards that break for good), `log_chute to=tx,tz every= speed= logs=` (a log rack that only
+  floorboards that break for good), `lift top= [start=top] [lever=id] [speed=]` (a chain lift: its
+  tile is a `chasm` shaft whose floor is the bottom stop and whose `ceil` clears `top`; it carries
+  whoever stands on it to the other end, and comes when someone waits at a landing. With `lever=` it
+  stays chained until the matching lever is pulled, a shortcut opened from one side), `log_chute to=tx,tz every= speed= logs=` (a log rack that only
   releases while someone climbs its slope) and `spore_pod every=`.
 - Enemy behaviour flags in `ai/enemy_types.py`: `ambush` spawns dormant (the chest Mimic) until woken;
-  `lurk` sits still until you come close (the Stump Mimic); `once` stays dead; bosses set `dead_flag`
-  and drop a relic, and pick special attacks from `moves` (see `MOVES` in `ai/enemy.py`: `sweep`,
-  `web`, `pounce`, `cinders`). An enemy entity's `item=` is loot it drops when slain.
+  `lurk` sits still until you come close (the Stump Mimic, the Bone Crawler); `once` stays dead;
+  bosses set `dead_flag` and drop a relic. Any type picks special attacks from `moves` (see `MOVES` in
+  `ai/enemy.py`: `sweep`, `web`, `pounce`, `cinders`, `combo`, `slam`, `eruption`, `hook`). At half
+  HP a boss with a `brood` calls it and one with a `rage` kindles it (the Warden's burning blade);
+  either way it enters its second phase (`Enemy.phase2`), fights faster and adds its `phase_moves`.
+  An enemy entity's `item=` is loot it drops when slain.
 - An enemy type's `height` is the top of its body as it dies: the ash dissolve crumbles that span.
   Every model has a death pose (eased by `models.death_fall`); `tests/test_render_logic.py` checks
   that each one collapses, stays above the floor and fits its `height`, so update both together.
   Its `tall` is the top of the standing body: a spell bolt flying higher misses it (`world/shots.py`).
-- Props that fill their tile are listed in `world/world.py` (`BLOCKING_PROPS`, `BREAKABLE_PROPS`).
+- Props that fill their tile are listed in `world/world.py` (`BLOCKING_PROPS`, `BREAKABLE_PROPS`;
+  the keep adds `pillar`, `sarcophagus` and `bell`). Decor that blocks nothing: `cage` and `roots`
+  hang from the ceiling, `grate` sits in the floor, and `cobweb`, `skull_niche`, `winch` and `lever`
+  mount on the nearest wall (`WALL_PROPS`).
   Breakables (`barrel`, `crate`, `urn`, `cocoon`) spill loot from `world/loot.py`; a `secret_wall`
   dissolves when struck (`model=vines top=6` matches the jungle's vine walls).
   After placing props in `sunken_keep.map`, run `tests/test_world.py`: its reachability test fails if
-  anything cuts off a chest, door, lever, exit, altar or the iron maiden. `verdant_hollow.map` has its
+  anything cuts off a chest, door, lever, exit, altar or the iron maiden, or if a chained lift is
+  needed to get anywhere (shortcuts must stay optional). `verdant_hollow.map` has its
   own solvability test (counting planks, ledges and floorboards as footing, and decor as solid): every
   chest and the boss must be reachable, and every drop must have a way back.
 - `game.message()` text may wrap spans in braces, e.g. `f"Obtained {{{item.name}}}."`: the HUD draws

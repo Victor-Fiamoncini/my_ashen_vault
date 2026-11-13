@@ -138,6 +138,31 @@ def sounds():
                 * env(p, 0.02)
             ),
         ),
+        # A slam: a deep thud with a rumble of stone after it.
+        "quake": gen(
+            0.8,
+            lambda t, p: (
+                (math.sin(t * TAU * (60 - p * 30)) * 0.8 + lowpass(0.04) * 2.0 * (1 - p)) * env(p, 0.01)
+            ),
+        ),
+        # Fire roaring up from the floor.
+        "eruption": gen(
+            0.9, lambda t, p: (lowpass(0.2 + p * 0.1) * 1.6 + noise() * 0.2) * math.sin(p * math.pi) ** 0.5
+        ),
+        # A chain paying out over a winch: quick metallic ticks.
+        "chain": gen(
+            0.7,
+            lambda t, p: (
+                (math.sin(t * TAU * 1400) * 0.25 + noise() * 0.35)
+                * (1.0 if (t * 18) % 1 < 0.25 else 0.1)
+                * env(p, 0.05)
+            ),
+        ),
+        # A heavy platform settling into place.
+        "clunk": gen(
+            0.35,
+            lambda t, p: (math.sin(t * TAU * (95 - p * 40)) * 0.7 + lowpass(0.1) * 0.8) * env(p, 0.01),
+        ),
         # A soft cough of spores from a bursting pod.
         "puff": gen(0.5, lambda t, p: lowpass(0.08 + (1 - p) * 0.1) * 1.6 * env(p, 0.15)),
     }

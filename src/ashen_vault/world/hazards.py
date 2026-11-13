@@ -201,3 +201,88 @@ class CrumbleFloor:
         if self.state == "fallen":
             return min(self.t * 6.0, 4.0)
         return 0.0
+
+
+class Eruption:
+    """A column of fire the Warden calls up through the floor: a glowing circle warns where it will
+    burst, then flame roars up for a moment. Each burst wounds once."""
+
+    WARN = 0.9
+    BURN = 0.55
+    RADIUS = 1.0
+    DAMAGE = 18
+
+    def __init__(self, x, z, floor=0.0, delay=0.0, damage=DAMAGE):
+        self.x = x
+        self.z = z
+        self.floor = floor
+        self.t = -delay  # a later circle in a row waits its turn before it starts glowing
+        self.damage = damage
+        self.spent = False  # has it wounded someone yet
+
+    def update(self, dt):
+        """Advances it; returns True on the frame the flame bursts up."""
+        before = self.state
+        self.t += dt
+        return before != "burst" and self.state == "burst"
+
+    @property
+    def state(self):
+        if self.t < 0:
+            return "waiting"
+        if self.t < self.WARN:
+            return "warn"
+        if self.t < self.WARN + self.BURN:
+            return "burst"
+        return "done"
+
+    @property
+    def done(self):
+        return self.state == "done"
+
+    @property
+    def glow(self):
+        """0..1 brightness of the warning circle; it brightens as the burst nears."""
+        return min(max(self.t / self.WARN, 0.0), 1.0) if self.state == "warn" else 0.0
+
+    @property
+    def flame(self):
+        """0..1 height of the flame column: shoots up, then dies away."""
+        if self.state != "burst":
+            return 0.0
+        k = (self.t - self.WARN) / self.BURN
+        return min(k / 0.2, 1.0) * (1 - max(k - 0.6, 0.0) / 0.4)
+
+    def hit(self, px, pz):
+        """Damage to a body at (px, pz) this frame, or 0."""
+        if self.state != "burst" or self.spent:
+            return 0
+        if math.hypot(px - self.x, pz - self.z) > self.RADIUS:
+            return 0
+        self.spent = True
+        return self.damage
+
+
+class Shockwave:
+    """The ring of dust and embers a slam sends along the floor. Only for show: the slam's damage is
+    dealt when it lands."""
+
+    TIME = 0.6
+
+    def __init__(self, x, z, floor, radius):
+        self.x = x
+        self.z = z
+        self.floor = floor
+        self.radius = radius
+        self.t = 0.0
+
+    def update(self, dt):
+        self.t += dt
+
+    @property
+    def progress(self):
+        return min(self.t / self.TIME, 1.0)
+
+    @property
+    def done(self):
+        return self.t >= self.TIME

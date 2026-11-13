@@ -146,7 +146,7 @@ class Game:
         enemies = ",".join(f"{e.type.id}:{e.state}:{e.hp}" for e in self.world.enemies) if self.world else ""
         print(
             f"smoke: {self._frames} frames, fps={pr.get_fps()}, map={self.world.name if self.world else None}, "
-            f"pos={round(p.x, 2)},{round(p.z, 2)} hp={p.stats.hp} lv={p.stats.level} exp={p.stats.exp} "
+            f"pos={round(p.x, 2)},{round(p.z, 2)} y={round(p.y, 2)} hp={p.stats.hp} lv={p.stats.level} exp={p.stats.exp} "
             f"gold={inv.gold} scene={self.scene} flags={','.join(sorted(self.flags))} items={inv.counts} "
             f"equip={inv.slots} st={round(p.stamina.value, 2)} attack={p.attack.name} "
             f"enemies={enemies} shot={shot}",
@@ -348,7 +348,8 @@ class Game:
             ground=self.world.terrain.floor,
         )
         self.world.update_terrain(dt)
-        p.settle(self.world.map, dt, floor=self.world.player_floor())
+        under = self.world.terrain.under
+        p.settle(self.world.map, dt, floor=self.world.player_floor(), snap=under is not None and under.moving)
         if moved:
             self._footstep()
 

@@ -1,5 +1,5 @@
 """Terrain hazards: platforms you stand on over water or a chasm (drifting rafts, rotting planks,
-crumbling ledges, rotten floorboards), river currents, thorn floors, rolling logs, spore pods, falls
+crumbling ledges, rotten floorboards, chain lifts up and down a shaft), river currents, thorn floors, rolling logs, spore pods, falls
 into deep water or a ravine, and hard landings from high drops.
 Pure logic; the World feeds it the player and draws it."""
 
@@ -10,7 +10,7 @@ from ashen_vault.util import rround
 from ashen_vault.world import collision
 from ashen_vault.world.tile_map import TileMap
 
-PLATFORM_KINDS = ("raft", "plank", "ledge", "boards")
+PLATFORM_KINDS = ("raft", "plank", "ledge", "boards", "lift")
 TERRAIN_KINDS = (*PLATFORM_KINDS, "log_chute", "spore_pod")
 HALF = 0.95  # half the side of a platform's square deck, in metres
 GRACE = 0.15  # how far past the deck's edge you still count as standing on it
@@ -45,10 +45,15 @@ SPORE_R = 1.8  # cloud radius
 SPORE_LINGER = 1.2  # seconds the spores keep you sluggish after you leave the cloud
 SPORE_TICK = 0.8  # seconds between choking coughs
 SPORE_DAMAGE = 3
+LIFT_SPEED = 1.6  # m/s a lift climbs or sinks at
+LIFT_DELAY = 0.7  # seconds you stand on a resting lift before it sets off
+LIFT_CALL = 1.0  # seconds you wait at an empty landing before the lift comes for you
+CALL_REACH = 3.0  # metres from the shaft's centre that count as waiting at its landing
 HEARING = 14.0  # metres within which the player hears a pod burst or a platform give way
 
 # Sounds a platform makes (name, volume): when you first load it, and when it gives way.
 CREAK_SOUND = {"plank": ("crack", 0.25), "ledge": ("crack", 0.45), "boards": ("crack", 0.5)}
+LIFT_SOUND = {"lift_start": ("chain", 0.9), "lift_stop": ("clunk", 0.9)}
 BREAK_SOUND = {"plank": ("splash", 0.7), "ledge": ("door", 0.7), "boards": ("crack", 1.0)}
 
 # How each kind of platform rots: (seconds it bears you, seconds it stays gone, metres it drops).
@@ -78,14 +83,27 @@ class Platform:
     bottom: float = 0.0  # floor of the tile below
     dx: float = 0.0  # movement over the last update
     dz: float = 0.0
+    dy: float = 0.0
+    # A lift rides between `low` and `high` in its shaft. `at` is "low"/"high" while it rests there,
+    # None while it moves; `going` is +1 up, -1 down. A `locked` lift waits for its lever.
+    low: float = 0.0
+    high: float = 0.0
+    at: str | None = None
+    going: int = 0
+    wait: float = 0.0
+    locked: bool = False
+    lever: str | None = None
+    nagged: bool = False  # already said it is locked, until you step off
+    hold: bool = False  # just arrived: whoever rode it must step off before it goes again
 
     @property
     def afloat(self):
         return self.sunk_t <= 0
 
     def covers(self, x, z):
-        """Is (x, z) standing on the deck? A little lenient, so stepping on from a bank is safe."""
-        reach = HALF + GRACE
+        """Is (x, z) standing on the deck? A little lenient, so stepping on from a bank is safe.
+        A lift fills its shaft exactly: standing at the landing's brink is not riding it."""
+        reach = TileMap.TILE / 2 if self.kind == "lift" else HALF + GRACE
         return self.afloat and abs(x - self.x) < reach and abs(z - self.z) < reach
 
     def floats_on(self, tx, tz):
@@ -117,14 +135,58 @@ class Platform:
             k = min(k, self.sunk_t / 0.6)
         return depth * k * k
 
-    def update(self, dt, loaded):
-        ox, oz = self.x, self.z
+    def update(self, dt, loaded, call=None):
+        """Moves the platform. `call` is the end ("low"/"high") someone waits at for a lift.
+        Returns a lift event ("lift_start", "lift_stop", "lift_locked") or None."""
+        ox, oz, oy = self.x, self.z, self.deck
+        event = None
         if self.kind == "raft":
             self._drift(dt)
+        elif self.kind == "lift":
+            event = self._lift(dt, loaded, call)
         else:
             self._rot(dt, loaded)
         self.dx = self.x - ox
         self.dz = self.z - oz
+        self.dy = self.deck - oy
+        return event
+
+    @property
+    def moving(self):
+        return self.kind == "lift" and self.at is None
+
+    def _lift(self, dt, loaded, call):
+        """Rides the shaft. Stand on it and it carries you to the other end; wait at the far landing
+        and it comes for you. A locked lift does neither, and says so once."""
+        if self.at is None:
+            self.deck += self.going * self.speed * dt
+            if self.deck >= self.high or self.deck <= self.low:
+                self.deck = min(max(self.deck, self.low), self.high)
+                self.at = "high" if self.going > 0 else "low"
+                self.going = 0
+                self.wait = 0.0
+                self.hold = True
+                return "lift_stop"
+            return None
+        if not loaded:
+            self.hold = False
+        other = "low" if self.at == "high" else "high"
+        wanted = (loaded and not self.hold) or call == other
+        if not wanted:
+            self.wait = 0.0
+            self.nagged = False
+            return None
+        if self.locked:
+            if self.nagged:
+                return None
+            self.nagged = True
+            return "lift_locked"
+        self.wait += dt
+        if self.wait < (LIFT_DELAY if loaded else LIFT_CALL):
+            return None
+        self.at = None
+        self.going = 1 if other == "high" else -1
+        return "lift_start"
 
     def _drift(self, dt):
         """Ferries back and forth between its two landings, pausing at each."""
@@ -285,7 +347,15 @@ def build_platforms(map_):
         x, z = TileMap.center(spec.tx, spec.tz)
         bottom = map_[spec.tx, spec.tz].floor
         p = Platform(kind=spec.kind, x=x, z=z, deck=_deck(map_, spec), ax=x, az=z, bx=x, bz=z, bottom=bottom)
-        if spec.kind == "raft":
+        if spec.kind == "lift":
+            p.low = bottom
+            p.high = float(spec.props.get("top", str(bottom)))
+            p.at = "high" if spec.props.get("start") == "top" else "low"
+            p.deck = p.high if p.at == "high" else p.low
+            p.speed = float(spec.props.get("speed", str(LIFT_SPEED)))
+            p.lever = spec.props.get("lever")
+            p.locked = p.lever is not None
+        elif spec.kind == "raft":
             tx, tz = _coords(spec.props.get("to"), spec.tx, spec.tz)
             p.bx, p.bz = TileMap.center(tx, tz)
             p.speed = float(spec.props.get("speed", "1.0"))
@@ -365,7 +435,14 @@ class Terrain:
         return [log for chute in self.chutes for log in chute.logs]
 
     def floating(self, tx, tz):
-        return any(p.floats_on(tx, tz) for p in self.platforms)
+        """Can you step onto tile (tx, tz) over water or a chasm? Only where a deck is, and for a
+        lift only when its deck is level with you: an empty shaft is a sheer drop or a dead end."""
+        return any(p.floats_on(tx, tz) and self._level(p) for p in self.platforms)
+
+    def _level(self, p):
+        if p.kind != "lift" or self._ground is None:
+            return True
+        return abs(p.deck - self._ground) <= collision.STEP_HEIGHT
 
     def support(self, x, z):
         """The platform under (x, z) that you could be standing on: one you can step onto from the
@@ -376,6 +453,16 @@ class Terrain:
                 continue
             if self._ground is None or p.deck - p.sink - self._ground <= collision.STEP_HEIGHT:
                 return p
+        return None
+
+    def _calls(self, p, body):
+        """Which end of a lift's shaft ("low"/"high") the body waits at, if any."""
+        if p.covers(body.x, body.z) or math.hypot(body.x - p.x, body.z - p.z) > CALL_REACH:
+            return None
+        ground = self.map.floor_at(body.x, body.z)
+        for end, h in (("low", p.low), ("high", p.high)):
+            if abs(ground - h) <= collision.STEP_HEIGHT:
+                return end
         return None
 
     def floor(self, x, z):
@@ -411,6 +498,13 @@ class Terrain:
         under = self.support(body.x, body.z)
         for p in self.platforms:
             was_afloat, was_loaded = p.afloat, p.load_t > 0
+            if p.kind == "lift":
+                lift_event = p.update(dt, loaded=p is under, call=self._calls(p, body))
+                if lift_event == "lift_locked":
+                    event = lift_event
+                elif lift_event:
+                    self._hear(p.x, p.z, body, *LIFT_SOUND[lift_event])
+                continue
             p.update(dt, loaded=p is under)
             if p.kind not in ROT:
                 continue
@@ -421,6 +515,8 @@ class Terrain:
         if under is not None and under.afloat:
             body.x += under.dx
             body.z += under.dz
+            if under.kind == "lift" and self._ground is not None:
+                self._ground += under.dy  # a ride, not a fall
 
         for pod in self.pods:
             before = pod.t

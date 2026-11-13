@@ -6,11 +6,15 @@
            pit (walk in and fall) or chasm (needs a ledge or raft to cross)
 [grid]     rows of legend chars and entity markers
 [entities] <marker> = <kind> key=value ... (on=<legend char> picks the tile under it)
+
+With `entity_floor = auto` in [meta], an entity without `on=` stands on the floor most of its four
+neighbours share (hazards such as pits only when nothing else is there), rather than on `default`.
 """
 
 import os
 import re
 import shlex
+from collections import Counter
 
 from ashen_vault.world.tile_map import EntitySpec, Tile, TileMap
 
@@ -46,6 +50,8 @@ class MapLoader:
 
         width = max(len(r) for r in rows)
         default_char = meta.get("default", ".")
+        auto = meta.get("entity_floor") == "auto"
+        floors = self._auto_floors(rows, legend, specs) if auto else {}
         tiles = []
         entities = []
         for tz, row in enumerate(rows):
@@ -56,7 +62,7 @@ class MapLoader:
                     entities.append(
                         EntitySpec(kind=spec["kind"], tx=tx, tz=tz, props=spec["props"], marker=ch)
                     )
-                    ch = spec["props"].get("on", default_char)
+                    ch = spec["props"].get("on") or floors.get((tx, tz), default_char)
                 if ch == " " and " " not in legend:
                     ch = default_char
                 tile = legend.get(ch)
@@ -66,6 +72,47 @@ class MapLoader:
         return TileMap(
             name=self.name, width=width, depth=len(rows), tiles=tiles, meta=meta, entities=entities
         )
+
+    @staticmethod
+    def _auto_floors(rows, legend, specs):
+        """Floor chars for entities without `on=`: whatever most of their four neighbours stand on.
+        Neighbours that are entities count with their own floor once that is known, so a prop
+        boxed in by walls and other props still finds the room's floor. Hazardous floors (pits,
+        water) only win when nothing else touches the cell."""
+        known = {}
+        pending = []
+        for tz, row in enumerate(rows):
+            for tx, ch in enumerate(row):
+                if ch in specs:
+                    on = specs[ch]["props"].get("on")
+                    if on:
+                        known[tx, tz] = on
+                    else:
+                        pending.append((tx, tz))
+        resolved = {}
+        while pending:
+            left = []
+            for tx, tz in pending:
+                safe, risky = Counter(), Counter()
+                for dx, dz in ((0, -1), (0, 1), (-1, 0), (1, 0)):
+                    x, z = tx + dx, tz + dz
+                    if not (0 <= z < len(rows) and 0 <= x < len(rows[z])):
+                        continue
+                    ch = known.get((x, z), rows[z][x])
+                    tile = None if ch in specs and (x, z) not in known else legend.get(ch)
+                    if tile is None or not tile.walkable:
+                        continue
+                    (risky if tile.hazardous else safe)[ch] += 1
+                best = safe or risky
+                if best:
+                    resolved[tx, tz] = best.most_common(1)[0][0]
+                else:
+                    left.append((tx, tz))
+            if len(left) == len(pending):
+                break  # walled in by walls alone: they keep the map's default
+            known.update(resolved)
+            pending = left
+        return resolved
 
     def _split_sections(self):
         sections = {}

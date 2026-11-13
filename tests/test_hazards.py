@@ -138,3 +138,30 @@ def test_crumble_solid_tile_stands_in_for_the_pit():
     assert not tile.pit
     assert tile.floor == pytest.approx(1.6)
     assert (tile.floor_tex, tile.wall_tex, tile.ceil) == ("dirt", "stone_brick", 4.8)
+
+
+def test_eruption_warns_then_bursts_once():
+    from ashen_vault.world.hazards import Eruption
+
+    f = Eruption(1.0, 1.0, delay=0.3)
+    assert f.state == "waiting" and f.hit(1.0, 1.0) == 0
+    f.update(0.3 + Eruption.WARN / 2)
+    assert f.state == "warn" and 0 < f.glow < 1 and f.flame == 0
+    assert f.hit(1.0, 1.0) == 0
+    assert f.update(Eruption.WARN)  # it bursts this frame
+    assert f.flame > 0
+    assert f.hit(3.0, 1.0) == 0  # out of the circle
+    assert f.hit(1.5, 1.0) == Eruption.DAMAGE
+    assert f.hit(1.5, 1.0) == 0  # one wound per burst
+    f.update(Eruption.BURN)
+    assert f.done and f.flame == 0
+
+
+def test_shockwave_runs_out_and_fades():
+    from ashen_vault.world.hazards import Shockwave
+
+    w = Shockwave(0, 0, 0, 4.0)
+    w.update(Shockwave.TIME / 2)
+    assert 0 < w.progress < 1 and not w.done
+    w.update(Shockwave.TIME)
+    assert w.progress == 1 and w.done

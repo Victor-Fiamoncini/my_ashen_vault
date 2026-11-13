@@ -14,7 +14,18 @@ MOVES = {
     "pounce": (0.75, 7.0, 1.3),  # leaps at where you stood when it sprang
     "summon": (1.3, 0.0, 0.0),  # shrieks and calls its brood (once, at half HP)
     "cinders": (0.9, 6.0, 0.45),  # flings a fan of three embers
+    "kindle": (1.2, 0.0, 0.0),  # raises his blade and sets it alight (once, at half HP)
+    "combo": (0.6, 5.0, 0.6),  # three swings in a row; back off to break the chain
+    "slam": (1.0, 7.0, 1.1),  # an overhead slam whose shockwave hits all around
+    "eruption": (1.1, 8.0, 0.9),  # plants the blade: fire bursts up under you (second phase)
+    "hook": (0.8, 6.0, 0.4),  # a hooked chain that drags you in
 }
+COMBO_SWINGS = 3
+COMBO_GAP = 0.45  # seconds between the swings of a combo
+COMBO_TURN = 2.0  # rad/s he can turn while chaining swings
+SLAM_RADIUS = 4.0  # the slam's shockwave reaches this far, from any side
+HOOK_RANGE = (3.0, 7.0)  # distances a hook is thrown from
+HOOK_PULL = 2.5  # metres a hook drags you toward the thrower
 SWEEP_REACH = 1.0  # extra reach of a sweep over the type's normal reach
 POUNCE_SPEED = 13.0  # m/s through the air
 POUNCE_TIME = 0.5  # longest a pounce can fly
@@ -30,7 +41,8 @@ class Enemy:
     """Enemy state machine. `world` must provide:
     player_x, player_z, player_alive, can_see(ax, az, bx, bz),
     move_enemy(enemy, dx, dz), enemy_strike(enemy, mult), enemy_fire(enemy, kind),
-    and for bosses with a brood, summon(enemy, type_id, count)
+    for bosses with a brood, summon(enemy, type_id, count); for bosses with a rage, boss_rage(enemy),
+    slam(enemy) and eruption(enemy); for hook throwers, hook(enemy, mult, pull)
     """
 
     def __init__(self, type_, x, z, yaw=0.0, marker=None, rng=None, loot=None, key=None):
@@ -56,7 +68,7 @@ class Enemy:
         self.attack_kind = None
         # Boss moves start part-way cooled down so a fight doesn't open with all of them.
         self.cooldowns = {m: MOVES[m][1] * 0.4 for m in type_.moves}
-        self.summoned = False
+        self.phase2 = False  # past half HP: called its brood or kindled its rage
         self._target = None  # where a pounce is headed
 
     @property
@@ -95,10 +107,12 @@ class Enemy:
         for m in self.cooldowns:
             self.cooldowns[m] = max(self.cooldowns[m] - dt, 0.0)
         dist = math.hypot(world.player_x - self.x, world.player_z - self.z)
-        if self._should_summon():
-            self.summoned = True
+        if self._should_turn():
+            self.phase2 = True
+            for m in self.type.phase_moves:
+                self.cooldowns[m] = MOVES[m][1] * 0.3
             self.face(world.player_x, world.player_z)
-            return self._begin_windup("summon")
+            return self._begin_windup("summon" if self.type.brood else "kindle")
         s = self.state
         if s == "idle":
             self._idle(dt, world, dist)
@@ -117,13 +131,14 @@ class Enemy:
 
     @property
     def enraged(self):
-        """A boss that has called its brood fights harder: quicker moves, shorter cooldowns."""
-        return self.summoned
+        """A boss in its second phase fights harder: quicker moves, shorter cooldowns."""
+        return self.phase2
 
-    def _should_summon(self):
+    def _should_turn(self):
+        """Half HP: a boss with a brood calls it, one with a rage kindles it. Once only."""
         return (
-            self.type.brood is not None
-            and not self.summoned
+            (self.type.brood is not None or self.type.rage is not None)
+            and not self.phase2
             and self.hp <= self.type.hp / 2
             and self.state in ("chase", "recover")
         )
@@ -261,11 +276,21 @@ class Enemy:
             options.append("pounce")
         if "cinders" in ready and seen and 3.5 <= dist <= 14:
             options.append("cinders")
+        if "combo" in ready and dist <= reach + 0.3:
+            options.append("combo")
+        if "slam" in ready and dist <= SLAM_RADIUS * 0.75:
+            options.append("slam")
+        if "eruption" in ready and seen and 2.5 <= dist <= 12:
+            options.append("eruption")
+        if "hook" in ready and seen and HOOK_RANGE[0] <= dist <= HOOK_RANGE[1]:
+            options.append("hook")
         if not options:
             return None
-        # Up close a sweep is only sometimes chosen, so the plain bite stays in the mix.
-        if options == ["sweep"] and self._rng.random() < 0.5:
-            self.cooldowns["sweep"] = 1.0
+        # Up close a special is only sometimes chosen, so the plain blow stays in the mix.
+        close = {"sweep", "combo", "slam"}
+        if set(options) <= close and self._rng.random() < 0.5:
+            for m in options:
+                self.cooldowns[m] = 1.0
             return None
         move = self._rng.choice(options)
         self.cooldowns[move] = MOVES[move][1] * (0.7 if self.enraged else 1.0)
@@ -291,18 +316,52 @@ class Enemy:
         kind = self.attack_kind
         if kind == "pounce":
             return self._pounce(world, dt)
+        if kind == "combo":
+            return self._combo(world, dist, dt)
         if not self._struck:
             self._struck = True
             if kind in ("shot", "web", "cinders"):
                 world.enemy_fire(self, kind)
             elif kind == "summon":
                 world.summon(self, self.type.brood, 2)
+            elif kind == "kindle":
+                world.boss_rage(self)
+            elif kind == "slam":
+                world.slam(self)
+                if dist <= SLAM_RADIUS:
+                    world.enemy_strike(self, MOVES["slam"][2])
+            elif kind == "eruption":
+                world.eruption(self)
+            elif kind == "hook":
+                if dist <= HOOK_RANGE[1] + 0.5 and self._facing(world.player_x, world.player_z):
+                    world.hook(self, MOVES["hook"][2], HOOK_PULL)
             elif kind == "sweep":
                 if dist <= self.type.reach + SWEEP_REACH:
                     world.enemy_strike(self, MOVES["sweep"][2])
             elif dist <= self._strike_reach() + 0.3 and self._facing(world.player_x, world.player_z):
                 world.enemy_strike(self)
-        if self.state_t >= (0.35 if kind == "sweep" else 0.2):
+        if self.state_t >= {"sweep": 0.35, "slam": 0.45, "kindle": 0.6, "eruption": 0.5}.get(kind, 0.2):
+            self._switch("recover")
+
+    @property
+    def combo_swing(self):
+        """Which swing (0, 1, 2) of a combo is under way."""
+        return min(int(self.state_t / COMBO_GAP), COMBO_SWINGS - 1)
+
+    def _combo(self, world, dist, dt):
+        """Three swings, COMBO_GAP apart. Each must reach you and face you, so stepping back or
+        round him breaks the chain; the last one hits hardest. He turns only slowly between swings."""
+        want = math.atan2(world.player_z - self.z, world.player_x - self.x)
+        diff = _wrap(want - self.yaw)
+        step = COMBO_TURN * dt
+        self.yaw = want if abs(diff) <= step else self.yaw + math.copysign(step, diff)
+        due = min(int(self.state_t / COMBO_GAP) + 1, COMBO_SWINGS)
+        while int(self._struck) < due:
+            self._struck += 1
+            if dist <= self.type.reach + 0.3 and self._facing(world.player_x, world.player_z):
+                last = self._struck == COMBO_SWINGS
+                world.enemy_strike(self, MOVES["combo"][2] * (1.4 if last else 1.0))
+        if self.state_t >= COMBO_GAP * (COMBO_SWINGS - 1) + 0.25:
             self._switch("recover")
 
     def _pounce(self, world, dt):
