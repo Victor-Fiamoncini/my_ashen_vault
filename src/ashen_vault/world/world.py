@@ -9,8 +9,9 @@ from ashen_vault.ai.enemy import MOVES, SLAM_RADIUS, Enemy
 from ashen_vault.ai.enemy_types import EnemyTypes
 from ashen_vault.ai.spawns import spawn_enemies
 from ashen_vault.player.player import Player
+from ashen_vault.player.spells import Spells
 from ashen_vault.render import models
-from ashen_vault.render.mesh_builder import MeshBuilder
+from ashen_vault.render.mesh_builder import KINDLING, MeshBuilder
 from ashen_vault.util import rround
 from ashen_vault.world import collision, loot, relics, shots, terrain
 from ashen_vault.world.ash import AshCloud, death_phases
@@ -47,7 +48,9 @@ class Projectile:
     hostile: bool
     rgb: tuple
     source: str = ""
-    effect: str | None = None  # "web": slows whoever it hits
+    # "web": slows whoever it hits; "venom": poisons it; "flame": kindles cold fires it passes;
+    # "flare": a spark of Pyre's fire that only shows.
+    effect: str | None = None
     dy: float = 0.0  # climb (or drop) per second: spells follow the view up and down
 
 
@@ -80,13 +83,26 @@ BLOCKING_PROPS = (
     "pillar",
     "sarcophagus",
     "bell",
+    "bonfire",
+    "giant_mushroom",
+    "totem",
 )
 # Props that block only until they are broken or revealed.
 BREAKABLE_PROPS = ("barrel", "crate", "urn", "cocoon", "secret_wall")
 # Containers among the breakables: smashing one may spill a little loot.
 SPILLING_PROPS = ("barrel", "crate", "urn", "cocoon")
 # Props that hang on a wall when they stand beside one.
-WALL_PROPS = ("torch", "banner", "shackles", "rack", "lever", "cobweb", "skull_niche", "winch")
+WALL_PROPS = (
+    "torch",
+    "banner",
+    "shackles",
+    "rack",
+    "lever",
+    "cobweb",
+    "skull_niche",
+    "winch",
+    "shelf_fungus",
+)
 # Props that turn to face into the room.
 FACING_PROPS = ("chest", "altar", "table")
 HAZARD_KINDS = ("spikes", "pendulum", "crumble")
@@ -95,6 +111,10 @@ FALL_DEPTH = 1.5  # metres below the pit's rim before a fall counts
 MAIDEN_CYCLE = 3.0  # seconds the iron maiden's door stays in motion after use
 FROG_CROAK = 1.2  # seconds the stone frog's throat swells after a pat
 FROG_GOLD = 33  # coins the frog coughs up the first time it is patted
+# Turns that put a drawbridge model's hinge (its local -X edge) on the named side of its tile.
+BRIDGE_YAW = {"w": 0.0, "e": math.pi, "n": -math.pi / 2, "s": math.pi / 2}
+STATUS_TINT = {"poison": (0.45, 1.1, 0.3), "burn": (1.5, 0.7, 0.25)}
+KINDLE_REACH = 1.2  # a flame bolt passing this close to a cold brazier sets it alight
 
 NPC_LOOKS = {
     "odrin": {"robe": (70, 60, 90), "hair": (200, 200, 200)},
@@ -110,8 +130,8 @@ class World:
         self.game = game
         self.name = name
         self.map = MapLoader.load_file(map_path(name))
-        self.builder = MeshBuilder(self.map, lights=MeshBuilder.lights_for(self.map)).build()
-        self._meshes = [(game.gpu.upload_batch(batch), tex) for tex, batch in self.builder.batches.items()]
+        self._meshes = []
+        self._bake()
         self.props = []
         self.enemies = []
         self.projectiles = []
@@ -126,15 +146,52 @@ class World:
         for p in self.terrain.platforms:
             if p.lever and f"lever:{p.lever}" in game.flags:
                 p.locked = False
+                p.lowered = 1.0  # a drawbridge let down on an earlier visit is still down
+        # Which way each drawbridge hangs from: its `hinge=` side, as a turn of the model.
+        self._bridge_hinge = {
+            (s.tx, s.tz): BRIDGE_YAW.get(s.props.get("hinge"), 0.0)
+            for s in self.map.entities
+            if s.kind == "bridge"
+        }
         self._piles = {(TileMap.tile_coord(c.x), TileMap.tile_coord(c.z)) for c in self.terrain.chutes}
         # Thorn floors grow spiked plants; each one's spikes rise (0..1) when stepped in.
         self._thorns = {(tx, tz): 0.0 for tx, tz, tile in self.map.each_tile() if tile.hurt}
         self._spawn_entities()
 
+    def _bake(self):
+        """Builds the map's mesh with its light baked in, and uploads it (again, after a fire is lit)."""
+        self.unload()
+        lights = MeshBuilder.lights_for(
+            self.map, lit=lambda spec: self._lit_key(spec.tx, spec.tz) in self.flags
+        )
+        self.builder = MeshBuilder(self.map, lights=lights).build()
+        self._meshes = [(self.game.gpu.upload_batch(b), tex) for tex, b in self.builder.batches.items()]
+
     def unload(self):
         for mesh, _ in self._meshes:
             self.game.gpu.unload_mesh(mesh)
         self._meshes = []
+
+    def _lit_key(self, tx, tz):
+        return f"lit:{self.name}:{tx},{tz}"
+
+    def is_lit(self, p):
+        """A brazier or bonfire burns unless it stands cold (`unlit`) and nothing has kindled it."""
+        return "unlit" not in p.props or self._lit_key(p.tx, p.tz) in self.flags
+
+    def kindle(self, p):
+        """Sets a cold brazier or bonfire alight for good. Returns False if it already burns."""
+        if p.kind not in KINDLING or self.is_lit(p):
+            return False
+        self.flags.add(self._lit_key(p.tx, p.tz))
+        spec = next(e for e in self.map.entities if (e.tx, e.tz) == (p.tx, p.tz) and e.kind == p.kind)
+        for tex in self.builder.add_light(MeshBuilder.light_for(self.map, spec)):
+            i = next(i for i, (_, t) in enumerate(self._meshes) if t == tex)
+            self.game.gpu.unload_mesh(self._meshes[i][0])
+            self._meshes[i] = (self.game.gpu.upload_batch(self.builder.batches[tex]), tex)
+        self.game.sfx("pyre", 0.8)
+        self.game.message("The fire catches, and the dark draws back.")
+        return True
 
     @property
     def meta(self):
@@ -279,6 +336,11 @@ class World:
     @property
     def player_z(self):
         return self.player.z
+
+    @property
+    def player_hidden(self):
+        """Wrapped in a Veil of Mist: ordinary foes overlook you unless you come very close."""
+        return self.player.veil_t > 0
 
     @property
     def player_alive(self):
@@ -441,6 +503,9 @@ class World:
         self._time += dt
         for e in self.enemies:
             e.update(dt, self)
+            harm = e.status_tick(dt)
+            if harm:
+                self.game.damage_enemy(e, harm, stagger=False)
             if not e.alive:
                 self._shed_ash(e, dt)
         self.enemies = [e for e in self.enemies if not e.gone]
@@ -585,6 +650,10 @@ class World:
             pr_.y += pr_.dy * dt
             pr_.z += pr_.dz * dt
             pr_.life -= dt
+            if pr_.effect == "flame":
+                for p in self.props:
+                    if p.kind in KINDLING and math.hypot(p.x - pr_.x, p.z - pr_.z) < KINDLE_REACH:
+                        self.kindle(p)
             tile = self.map.tile_at(pr_.x, pr_.z)
             if (
                 tile.solid
@@ -593,6 +662,8 @@ class World:
                 or self.blocked_tile(TileMap.tile_coord(pr_.x), TileMap.tile_coord(pr_.z))
             ):
                 pr_.life = 0
+            elif pr_.effect == "flare":
+                continue
             elif pr_.hostile:
                 if shots.strikes(
                     pr_.x, pr_.y, pr_.z, player.x, player.z, shots.PLAYER_RADIUS, shots.player_span(player.y)
@@ -621,6 +692,9 @@ class World:
                 )
                 if target:
                     self.game.damage_enemy(target, pr_.damage)
+                    if pr_.effect == "venom" and target.alive:
+                        target.afflict("poison", *Spells.venom_poison(self.player.stats.magic))
+                        self.game.sfx("hiss", 0.6)
                     pr_.life = 0
         self.projectiles = [p for p in self.projectiles if p.life > 0]
 
@@ -647,7 +721,7 @@ class World:
         out.sort(key=lambda e: math.hypot(e.x - player.x, e.z - player.z))
         return out[:limit] if limit else out
 
-    def fire_bolt(self, damage):
+    def fire_bolt(self, damage, effect="flame", rgb=(255, 160, 60)):
         player = self.player
         dx, dy, dz = shots.aim(player.yaw, player.pitch)
         lead = 0.5 / shots.BOLT_SPEED  # starts half a metre out along the aim
@@ -662,9 +736,60 @@ class World:
                 life=3.0,
                 damage=damage,
                 hostile=False,
-                rgb=(255, 160, 60),
+                rgb=rgb,
+                effect=effect,
             )
         )
+
+    def pyre(self, magic, gauge):
+        """A short gout of fire in front of you: it burns the foes it reaches (plants catch and keep
+        burning), kindles cold braziers and burns away webs. Returns how many foes it struck."""
+        player = self.player
+        targets = self.melee_targets(Spells.PYRE_REACH, cone=0.5)
+        for e in targets:
+            flammable = e.type.flammable
+            self.game.damage_enemy(e, Spells.pyre_damage(magic, gauge, flammable))
+            if flammable and e.alive:
+                e.afflict("burn", *Spells.BURN)
+        fx, fz = player.forward()
+        for p in list(self.props):
+            dx, dz = p.x - player.x, p.z - player.z
+            d = math.hypot(dx, dz) or 1e-6
+            if d > Spells.PYRE_REACH + TileMap.TILE / 2 or (dx * fx + dz * fz) / d < 0.4:
+                continue
+            if p.kind in KINDLING:
+                self.kindle(p)
+            elif self._web(p) and p.open_t == 0:
+                self.flags.add(p.key)
+                p.open_t = 0.01
+                self.game.message("The web shrivels in the flame.")
+        dx, dy, dz = shots.aim(player.yaw, player.pitch)
+        rng = random.Random(int(self._time * 1000))
+        for i in range(12):  # a ragged spray of flame that only shows
+            spread = (i / 11 - 0.5) * 0.9 + rng.uniform(-0.08, 0.08)
+            ca, sa = math.cos(spread), math.sin(spread)
+            sx, sz = dx * ca - dz * sa, dx * sa + dz * ca
+            speed = rng.uniform(5.0, 9.0)
+            self.projectiles.append(
+                Projectile(
+                    x=player.x + sx * 0.5,
+                    y=player.eye_y - shots.BOLT_DROP + rng.uniform(-0.15, 0.2),
+                    z=player.z + sz * 0.5,
+                    dx=sx * speed,
+                    dy=dy * speed + rng.uniform(0.0, 1.2),
+                    dz=sz * speed,
+                    life=rng.uniform(0.25, 0.45),
+                    damage=0,
+                    hostile=False,
+                    rgb=(255, rng.randint(80, 200), 40),
+                    effect="flare",
+                )
+            )
+        return len(targets)
+
+    @staticmethod
+    def _web(p):
+        return p.kind == "secret_wall" and p.props.get("model") == "web"
 
     def focus(self):
         """Closest interactable prop in front of the player. A dormant mimic counts: it looks like a chest."""
@@ -683,13 +808,12 @@ class World:
                 best, best_d = p, d
         return best
 
-    @staticmethod
-    def _interactable(p):
+    def _interactable(self, p):
         if p.kind in ("npc", "save_statue", "exit", "pickup", "iron_maiden", "frog_idol"):
             return True
         if p.kind in ("chest", "lever", "door", "altar"):
             return p.open_t == 0
-        return False
+        return p.kind in KINDLING and not self.is_lit(p)  # a cold fire: you can look at its ashes
 
     def open_prop(self, p):
         p.open_t = 0.01
@@ -732,8 +856,8 @@ class World:
         fx, fz = player.forward()
         out = []
         for p in self.props:
-            if p.kind not in BREAKABLE_PROPS or p.open_t > 0:
-                continue
+            if p.kind not in BREAKABLE_PROPS or p.open_t > 0 or self._web(p):
+                continue  # a web wall shrugs off blades: only fire clears it
             dx = p.x - player.x
             dz = p.z - player.z
             d = math.hypot(dx, dz) or 1e-6
@@ -846,6 +970,10 @@ class World:
                     models.ledge(rig, pl.creaking, int(pl.x * 3 + pl.z * 7))
                 elif pl.kind == "boards":
                     models.boards(rig, pl.creaking, broken=not pl.afloat)
+                elif pl.kind == "bridge":
+                    hinge = self._bridge_hinge.get((TileMap.tile_coord(pl.x), TileMap.tile_coord(pl.z)), 0.0)
+                    with rig.at(0, 0, 0, ry=hinge):
+                        models.bridge(rig, pl.lowered)
                 else:
                     models.plank(rig, pl.creaking)
         for chute in self.terrain.chutes:
@@ -873,7 +1001,9 @@ class World:
             if math.hypot(e.x - player.x, e.z - player.z) > far:
                 continue
             y = self.enemy_y(e)
-            self._model_light(gpu, e.x, y + 1.0, e.z, flash=e.state == "hurt")
+            self._model_light(
+                gpu, e.x, y + 1.0, e.z, flash=e.state == "hurt", tint=STATUS_TINT.get(e.afflicted)
+            )
             dying = not e.alive
             if dying:
                 ashen, dissolve = death_phases(e.death_progress)
@@ -915,6 +1045,8 @@ class World:
             with rig.at(pr_.x, pr_.y, pr_.z, ry=self._time * 6):
                 if pr_.effect == "web":
                     models.web_shot(rig, self._time)
+                elif pr_.effect == "flare":
+                    models.flare(rig, pr_.rgb, min(pr_.life / 0.45, 1.0))
                 else:
                     models.bolt(rig, pr_.rgb)
 
@@ -927,8 +1059,11 @@ class World:
             s = f.size * (0.3 + 0.7 * f.fade)
             rig.part("cube", f.x, f.y, f.z, s, s, s, f.rgb, rx=f.spin, ry=f.spin * 0.7, glow=f.ember)
 
-    def _model_light(self, gpu, x, y, z, flash=False):
+    def _model_light(self, gpu, x, y, z, flash=False, tint=None):
         light = (2.0, 1.6, 1.6) if flash else [min(c, 1.6) for c in self.builder.light_at(x, y, z)]
+        if tint and not flash:
+            pulse = 0.6 + 0.4 * math.sin(self._time * 6)
+            light = [c * (1 - 0.5 * pulse) + t * pulse for c, t in zip(light, tint, strict=True)]
         gpu.model_light(light)
 
     def _ceil_h(self, p):
@@ -959,7 +1094,17 @@ class World:
         elif k == "altar":
             models.warden_altar(rig, p.open_t > 0, t)
         elif k == "brazier":
-            models.brazier(rig, t)
+            models.brazier(rig, t, lit=self.is_lit(p))
+        elif k == "bonfire":
+            models.bonfire(rig, t + p.tx, lit=self.is_lit(p))
+        elif k == "giant_mushroom":
+            models.giant_mushroom(rig, p.tx * 5 + p.tz * 3, t)
+        elif k == "shelf_fungus":
+            models.shelf_fungus(rig, p.tx * 3 + p.tz * 7, t)
+        elif k == "mushrooms":
+            models.mushrooms(rig, p.tx * 7 + p.tz * 5)
+        elif k == "totem":
+            models.totem(rig, p.tx * 3 + p.tz, t)
         elif k == "chest":
             models.chest(rig, p.open_t > 0)
         elif k == "door":
@@ -967,7 +1112,7 @@ class World:
         elif k == "gate":
             models.door(rig, p.open_t, p.axis, tex="iron_bars")
         elif k == "lever":
-            models.lever(rig, p.open_t, p.wall)
+            models.lever(rig, p.open_t, p.wall, wood=p.props.get("model") == "wood")
         elif k == "pillar":
             models.pillar(rig, p.tx * 3 + p.tz, self._ceil_h(p))
         elif k == "sarcophagus":
@@ -1014,7 +1159,7 @@ class World:
         elif k == "secret_wall":
             tile = self.map[p.tx, p.tz]
             top = float(p.props["top"]) if "top" in p.props else tile.ceil or tile.floor + 4.0
-            tex = "vine_wall" if p.props.get("model") == "vines" else "stone_brick"
+            tex = {"vines": "vine_wall", "web": "web_wall"}.get(p.props.get("model"), "stone_brick")
             models.secret_wall(rig, top - tile.floor, p.open_t, tex=tex)
         elif k == "cocoon":
             models.cocoon(rig, p.tx * 7 + p.tz * 3, broken=p.open_t > 0)
@@ -1036,6 +1181,8 @@ class World:
                 models.well(rig)
             elif p.props.get("model") == "vine_door":
                 models.vine_door(rig, t)
+            elif p.props.get("model") == "cave_mouth":
+                models.cave_mouth(rig, t)
             else:
                 models.rope(rig, t)
 

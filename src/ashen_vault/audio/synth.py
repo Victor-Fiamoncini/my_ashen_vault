@@ -165,6 +165,10 @@ def sounds():
         ),
         # A soft cough of spores from a bursting pod.
         "puff": gen(0.5, lambda t, p: lowpass(0.08 + (1 - p) * 0.1) * 1.6 * env(p, 0.15)),
+        # A short roar of breath-fire (Pyre), or a brazier catching.
+        "pyre": gen(0.55, lambda t, p: (lowpass(0.25 + (1 - p) * 0.2) * 2.0 + noise() * 0.25) * env(p, 0.08)),
+        # Venom sizzling, or mist breathed out (Veil of Mist).
+        "hiss": gen(0.6, lambda t, p: noise() * 0.5 * math.sin(p * math.pi) * (0.6 + 0.4 * math.sin(t * 60))),
     }
     return {name: wav(s) for name, s in out.items()}
 

@@ -4,6 +4,7 @@
 [legend]   <char> = <floor|wall|water> key=value ...
            floors may add hurt=<hp per tick> flow=<dx>,<dz> slow=<speed multiplier>,
            pit (walk in and fall) or chasm (needs a ledge or raft to cross)
+           any tile may add dark=<0..1>: the share of the map's ambient light it loses
 [grid]     rows of legend chars and entity markers
 [entities] <marker> = <kind> key=value ... (on=<legend char> picks the tile under it)
 
@@ -159,8 +160,14 @@ class MapLoader:
             legend[ch] = self._build_tile(kind, self._kv(pairs))
         return legend
 
+    @classmethod
+    def _build_tile(cls, kind, p):
+        tile = cls._tile_of_kind(kind, p)
+        tile.dark = min(max(float(p.get("dark", "0")), 0.0), 1.0)
+        return tile
+
     @staticmethod
-    def _build_tile(kind, p):
+    def _tile_of_kind(kind, p):
         floor = float(p.get("h", "0"))
         ceil = float(p["ceil"]) if "ceil" in p else None
         if kind == "wall":

@@ -775,9 +775,14 @@ def door(r, open_t, axis, tex="door_wood"):
         r.part("cube", 0, 1.25 + lift, 0, 0.18, 2.5, 2.0, WHITE, tex=tex)
 
 
-def brazier(r, t):
+def brazier(r, t, lit=True):
     r.part("cyl", 0, 0.45, 0, 0.12, 0.9, 0.12, IRON)
     r.part("cyl", 0, 0.95, 0, 0.6, 0.2, 0.6, IRON)
+    if not lit:  # a cold bowl of grey ash and charred sticks
+        r.part("cyl", 0, 1.06, 0, 0.5, 0.06, 0.5, ASH)
+        for k in range(3):
+            r.part("cube", 0, 1.1, 0, 0.42, 0.05, 0.05, (40, 32, 26), ry=k * 1.05)
+        return
     flicker = 1 + math.sin(t * 13) * 0.12
     r.part("cone", 0, 1.2, 0, 0.4 * flicker, 0.45 * flicker, 0.4 * flicker, (255, 150, 50), glow=True)
     r.part("cone", 0, 1.2, 0, 0.22, 0.6 * flicker, 0.22, (255, 230, 140), glow=True)
@@ -799,13 +804,60 @@ def save_statue(r, t):
 OAK = (96, 66, 40)
 
 
-def lever(r, k, wall=True):
+def lever(r, k, wall=True, wood=False):
     """A winch lever: an iron-banded oak beam pivoting in a notched iron quadrant on a dressed-stone
     block, with a toothed wheel beside it whose chain runs up into the wall. `k` (0..1) is how far
     it has been hauled: the beam swings from up-and-back to down-and-forward and the wheel turns.
     Mounted on a wall at local -X, or free-standing."""
     with r.at(0, 0, 0, s=1.2):
-        _lever(r, k, wall)
+        if wood:
+            _wood_lever(r, k, wall)
+        else:
+            _lever(r, k, wall)
+
+
+def _wood_lever(r, k, wall):
+    """The jungle's lever: a rough beam on a wooden axle through a split-log post, with a pegged
+    timber quadrant and vine lashings, and a rope that runs up from its spindle into the wall."""
+    bx = -0.5 if wall else -0.15
+    rope = (170, 150, 100)
+    r.part("cyl", bx, 0.12, 0, 0.7, 0.24, 0.7, BARK, tex="bark")  # the stump it stands on
+    for z in (-0.16, 0.16):  # the two halves of the split post
+        r.part("cube", bx, 0.68, z, 0.3, 1.0, 0.12, (110, 80, 50), tex="bark")
+    r.part("cube", bx, 1.18, 0, 0.34, 0.08, 0.46, DARK_BARK)  # a cap lashed across the top
+    for y in (0.45, 0.9):
+        r.part("cube", bx, y, 0, 0.32, 0.06, 0.48, (70, 110, 46))  # vine bindings
+    px, py = bx + 0.3, 1.0
+    for i in range(5):  # pegs in an arc mark the beam's travel
+        a = -0.9 + i * 0.45
+        r.part(
+            "cyl",
+            px + math.sin(a) * 0.4,
+            py + math.cos(a) * 0.4,
+            0.2,
+            0.05,
+            0.12,
+            0.05,
+            (150, 116, 76),
+            rx=math.pi / 2,
+        )
+    r.part("cyl", px, py, 0, 0.14, 0.5, 0.14, (124, 92, 58), rx=math.pi / 2)  # the axle
+    with r.at(px, py, 0, rz=0.95 - 1.9 * k):
+        r.part("cube", 0, 0.5, 0, 0.14, 1.05, 0.12, (126, 92, 58), tex="bark")
+        r.part("cube", 0, 0.62, 0, 0.16, 0.08, 0.14, (70, 110, 46))  # vine grip wraps
+        r.part("cube", 0, 0.78, 0, 0.16, 0.08, 0.14, (70, 110, 46))
+        r.part("cube", 0, 1.05, 0, 0.1, 0.1, 0.32, (110, 80, 50))  # cross handle
+    # The spindle winds the rope as the beam is hauled.
+    with r.at(bx + 0.05, py, -0.36, rz=-k * 3.0):
+        r.part("cyl", 0, 0, 0, 0.32, 0.22, 0.32, (124, 92, 58), rx=math.pi / 2)
+        r.part("cyl", 0, 0, 0, 0.24, 0.24, 0.24, rope, rx=math.pi / 2)
+    top = 2.2 if wall else 1.4
+    cx = bx - 0.16 if wall else bx + 0.05
+    length = top - py
+    sag = 0.1 * k
+    r.part("cube", cx + sag, py + length / 2, -0.36, 0.04, length, 0.04, rope)
+    if wall:
+        r.part("cube", -0.8, top, -0.36, 0.08, 0.14, 0.14, DARK_BARK)  # a peg where it enters the wall
 
 
 def _lever(r, k, wall):
@@ -933,6 +985,161 @@ def fungus(r, seed, t):
         r.part("cyl", x, h / 2, z, 0.08, h, 0.08, (190, 200, 170))
         d = (0.42 - k * 0.06) * pulse
         r.part("sphere", x, h, z, d, d * 0.45, d, (80, 220, 170), glow=True)
+
+
+def bonfire(r, t, lit=True):
+    """A ring of rough stones round a stack of crossed logs: blazing, or cold grey ash once dead."""
+    for i in range(9):
+        a = i * math.tau / 9
+        d = 0.24 + (i * 7 % 3) * 0.04
+        r.part(
+            "sphere",
+            math.cos(a) * 0.62,
+            0.1,
+            math.sin(a) * 0.62,
+            d * 1.2,
+            d,
+            d,
+            (92, 88, 80),
+            tex="rough_stone",
+        )
+    r.part("cyl", 0, 0.03, 0, 1.0, 0.06, 1.0, ASH if not lit else (60, 40, 30))
+    char = (34, 26, 20) if not lit else (70, 46, 28)
+    for k in range(4):  # the logs, leaning in to a point
+        a = k * math.pi / 2 + 0.4
+        with r.at(math.cos(a) * 0.22, 0.28, math.sin(a) * 0.22, ry=-a, rz=0.9):
+            r.part("cyl", 0, 0, 0, 0.12, 0.75, 0.12, char, tex="bark")
+    if not lit:
+        return
+    for k in range(3):
+        flick = 1 + math.sin(t * (9 + k * 3) + k) * 0.15
+        h = (0.9 - k * 0.2) * flick
+        r.part(
+            "cone",
+            (k - 1) * 0.12,
+            0.35 + h / 2,
+            (k % 2) * 0.08,
+            0.36 - k * 0.07,
+            h,
+            0.36 - k * 0.07,
+            EMBER,
+            glow=True,
+        )
+    r.part("cone", 0, 0.55, 0, 0.2, 0.7 * (1 + math.sin(t * 15) * 0.1), 0.2, (255, 230, 140), glow=True)
+    for k in range(3):  # sparks drifting up
+        u = (t * 0.7 + k / 3) % 1
+        r.part(
+            "cube",
+            math.sin(k * 2 + t) * 0.2,
+            0.9 + u * 1.4,
+            math.cos(k * 3 + t) * 0.2,
+            0.04,
+            0.04,
+            0.04,
+            EMBER,
+            glow=True,
+        )
+
+
+def giant_mushroom(r, seed, t):
+    """A toadstool taller than a man: a pale fibrous stem, a ragged skirt and a broad cap that
+    glows violet from the gills."""
+    h = 2.3 + (seed % 3) * 0.25
+    lean = ((seed % 5) - 2) * 0.04
+    with r.at(0, 0, 0, rz=lean):
+        r.part("cyl", 0, h / 2, 0, 0.42, h, 0.42, (200, 190, 170))
+        r.part("cyl", 0, 0.15, 0, 0.6, 0.3, 0.6, (170, 160, 140))  # swollen foot
+        r.part("cyl", 0, h * 0.7, 0, 0.62, 0.08, 0.62, (220, 210, 196))  # the skirt
+        pulse = 1 + math.sin(t * 1.1 + seed) * 0.05
+        r.part("sphere", 0, h + 0.1, 0, 2.4, 0.7, 2.4, (120, 70, 140))
+        r.part("cyl", 0, h - 0.05, 0, 2.1 * pulse, 0.08, 2.1 * pulse, (170, 120, 255), glow=True)  # gills
+        for k in range(5):  # pale spots on the cap
+            a = k * 1.3 + seed
+            r.part(
+                "sphere", math.cos(a) * 0.6, h + 0.38, math.sin(a) * 0.6, 0.22, 0.08, 0.22, (230, 220, 240)
+            )
+
+
+def shelf_fungus(r, seed, t):
+    """Bracket fungi stepping up the wall at local -X, their undersides glowing teal."""
+    pulse = 1 + math.sin(t * 0.9 + seed) * 0.08
+    for k in range(4):
+        y = 0.7 + k * 0.42 + (seed + k) % 3 * 0.08
+        z = ((seed * 3 + k * 5) % 7 - 3) * 0.14
+        w = 0.6 - k * 0.08
+        r.part("sphere", -0.86, y, z, w * 0.75, 0.12, w, (150, 120, 84))
+        r.part("cyl", -0.86, y - 0.06, z, w * 0.6 * pulse, 0.03, w * 0.8 * pulse, (90, 230, 210), glow=True)
+
+
+def mushrooms(r, seed):
+    """A small clump of brown and red caps in the leaf litter. They don't glow."""
+    for k in range(5):
+        a = k * 2.4 + seed
+        d = 0.18 + (k * 13 + seed) % 4 * 0.06
+        x, z = math.cos(a) * (0.15 + k * 0.08), math.sin(a) * (0.15 + k * 0.08)
+        h = 0.12 + (k + seed) % 3 * 0.08
+        r.part("cyl", x, h / 2, z, 0.05, h, 0.05, (220, 210, 190))
+        cap = (150, 40, 30) if (k + seed) % 3 == 0 else (130, 92, 56)
+        r.part("sphere", x, h, z, d, d * 0.5, d, cap)
+
+
+def totem(r, seed, t):
+    """A carved post: stacked faces with staring painted eyes, crowned by a ring of feathers."""
+    wood = (104, 76, 50)
+    r.part("cyl", 0, 1.2, 0, 0.5, 2.4, 0.5, wood, tex="bark")
+    for k in range(3):
+        y = 0.5 + k * 0.72
+        r.part("cube", 0.24, y, 0, 0.1, 0.5, 0.5, (88, 62, 40))  # the face plank
+        for z in (-0.12, 0.12):
+            r.part("cube", 0.3, y + 0.08, z, 0.03, 0.08, 0.1, (230, 220, 190))
+            r.part("cube", 0.31, y + 0.08, z, 0.03, 0.05, 0.04, (30, 24, 20))
+        r.part("cube", 0.3, y - 0.12, 0, 0.03, 0.06, 0.3, (170, 50, 40) if k % 2 == 0 else (60, 120, 140))
+        r.part("cube", 0.3, y + 0.2, 0, 0.03, 0.04, 0.4, (200, 170, 60))
+    sway = math.sin(t * 1.4 + seed) * 0.08
+    for k in range(6):
+        a = k * math.tau / 6
+        with r.at(math.cos(a) * 0.2, 2.45, math.sin(a) * 0.2, ry=-a, rz=-0.4 + sway):
+            r.part("cube", 0.15, 0.2, 0, 0.06, 0.45, 0.12, (180, 60, 40) if k % 2 else (230, 220, 200))
+
+
+def cave_mouth(r, t):
+    """A cleft in the rock on the -X edge: a rough arch of boulders over a black opening, hung with
+    roots and moss. Cold air seems to breathe out of it."""
+    rock = (110, 104, 94)
+    r.part("cube", -0.95, 1.3, 0, 0.1, 2.6, 1.6, (6, 6, 8))  # the dark beyond
+    for z in (-0.95, 0.95):
+        r.part("cube", -0.8, 1.2, z, 0.5, 2.4, 0.45, rock, tex="cliff_rock", rz=0.05 * z)
+    r.part("cube", -0.8, 2.55, 0, 0.6, 0.5, 2.3, rock, tex="cliff_rock", rx=0.08)
+    for k, (y, z, d) in enumerate(((0.3, -0.7, 0.55), (0.25, 0.8, 0.5), (2.8, 0.5, 0.6), (2.75, -0.6, 0.5))):
+        r.part("sphere", -0.6, y, z, d, d * 0.8, d, rock, tex="cliff_rock")
+        r.part("cube", -0.55, y + d * 0.35, z, d * 0.7, 0.06, d * 0.7, MOSS if k % 2 else (56, 92, 44))
+    for k in range(7):  # roots trailing over the lip
+        z = -0.75 + k * 0.25
+        length = 0.4 + (k * 29 % 5) * 0.16
+        sway = math.sin(t * 0.8 + k) * 0.03
+        r.part("cube", -0.6, 2.3 - length / 2, z + sway, 0.05, length, 0.05, (80, 60, 40))
+
+
+def bridge(r, lowered):
+    """A drawbridge of lashed timbers, hinged on the -X edge of its tile. Raised, it stands upright
+    against the far bank; `lowered` (0..1) swings it down flat across the gap (deck at y=0)."""
+    k = _ease_in(lowered)
+    with r.at(-1.0, 0, 0, rz=(1 - k) * math.pi / 2):
+        for i in range(5):
+            r.part("cube", 1.0, -0.06, -0.8 + i * 0.4, 2.0, 0.12, 0.36, (112, 82, 52), tex="wood_plank")
+        for z in (-0.95, 0.95):  # side beams, lashed with rope
+            r.part("cube", 1.0, -0.14, z, 2.0, 0.16, 0.12, DARK_BARK)
+            for x in (0.3, 1.0, 1.7):
+                r.part("cube", x, -0.12, z, 0.08, 0.2, 0.16, (170, 150, 100))
+    # Hinge posts and the ropes that haul it, on the near bank.
+    for z in (-1.0, 1.0):
+        r.part("cyl", -1.0, 0.6, z, 0.16, 1.4, 0.16, DARK_BARK, tex="bark")
+        reach = 2.0 * math.cos((1 - k) * math.pi / 2)
+        top = 2.0 * math.sin((1 - k) * math.pi / 2)
+        length = math.hypot(reach, 1.3 - top) or 0.01
+        ang = math.atan2(1.3 - top, reach)
+        with r.at(-1.0, 1.3, z, rz=-ang):
+            r.part("cube", length / 2, 0, 0, length, 0.03, 0.03, (170, 150, 100))
 
 
 def vine_door(r, t):
@@ -1157,6 +1364,13 @@ def rope(r, t):
         r.part("cyl", 0, -1.6, 0, 0.07, 3.2, 0.07, (150, 120, 80))
         r.part("cube", 0, -3.0, 0, 0.16, 0.12, 0.16, (130, 100, 70))
     r.part("cyl", 0, 0.05, 0, 1.0, 0.1, 1.0, (40, 40, 44))
+
+
+def flare(r, rgb, k):
+    """A tongue of Pyre's fire: a ragged glowing blob that swells, then gutters as `k` runs to 0."""
+    size = 0.15 + 0.35 * math.sin(min(k, 1.0) * math.pi) ** 0.5
+    r.part("sphere", 0, 0, 0, size, size * 1.3, size, rgb, glow=True)
+    r.part("cone", 0, size * 0.6, 0, size * 0.6, size * 1.4, size * 0.6, (255, 220, 120), glow=True)
 
 
 def bolt(r, rgb):
@@ -1630,9 +1844,19 @@ def _warden_statue(r, taken, t):
             r.part("cube", 0, 1.62, 0, 0.06, 0.34, 0.06, dark)
 
 
+SPELL_ORB = {
+    "flame": (255, 120, 40),
+    "mend": (120, 230, 140),
+    "lumen": (210, 220, 255),
+    "venom": (120, 210, 60),
+    "veil": (200, 210, 215),
+    "pyre": (255, 90, 30),
+}
+
+
 def spell_orb(r, id_, t):
     """Inventory preview for a known spell: a glowing orb in the spell's colour."""
-    rgb = {"flame": (255, 120, 40), "mend": (120, 230, 140), "lumen": (210, 220, 255)}.get(id_, WHITE)
+    rgb = SPELL_ORB.get(id_, WHITE)
     pulse = 1 + math.sin(t * 3) * 0.06
     r.part("sphere", 0, 0, 0, 0.7 * pulse, 0.7 * pulse, 0.7 * pulse, rgb, glow=True)
     for i in range(3):
@@ -1946,7 +2170,14 @@ def spell_hand_view(r, player, bob, side, armor, t):
             r.part("sphere", 0.02, 0.1, 0, 0.09 * pulse, 0.09 * pulse, 0.09 * pulse, glow, glow=True)
 
 
-SPELL_GLOW = {"flame": EMBER, "mend": (130, 230, 130), "lumen": (235, 235, 180)}
+SPELL_GLOW = {
+    "flame": EMBER,
+    "mend": (130, 230, 130),
+    "lumen": (235, 235, 180),
+    "venom": (130, 220, 70),
+    "veil": (205, 215, 220),
+    "pyre": (255, 110, 40),
+}
 
 
 WOOD = (90, 60, 38)
@@ -2231,8 +2462,8 @@ def item(r, id_, t):
         ):
             r.part("sphere", x, y, z, d, d * 0.8, d, (60, 140, 190), glow=True)
         r.part("cyl", 0, -0.32, 0, 0.6, 0.06, 0.6, (70, 60, 44))
-    elif id_ in ("scroll_mend", "scroll_lumen"):
-        ribbon = (170, 40, 40) if id_ == "scroll_mend" else (210, 200, 120)
+    elif id_ in SCROLL_RIBBON:
+        ribbon = SCROLL_RIBBON[id_]
         with r.at(0, 0, 0, rx=math.pi / 2):
             r.part("cyl", 0, 0, 0, 0.3, 0.9, 0.3, (210, 196, 160))
             r.part("cyl", 0, 0, 0, 0.32, 0.1, 0.32, ribbon)
@@ -2258,6 +2489,15 @@ def item(r, id_, t):
             r.part("cyl", 0, 0, 0, 0.36 * glow, 0.14, 0.36 * glow, EMBER, glow=True)
     else:
         r.part("cube", 0, 0, 0, 0.5, 0.5, 0.5, (130, 100, 70))
+
+
+SCROLL_RIBBON = {
+    "scroll_mend": (170, 40, 40),
+    "scroll_lumen": (210, 200, 120),
+    "scroll_venom": (90, 150, 50),
+    "scroll_veil": (150, 160, 170),
+    "scroll_pyre": (220, 90, 30),
+}
 
 
 def garment(r, id_):

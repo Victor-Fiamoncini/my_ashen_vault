@@ -171,7 +171,7 @@ def test_verdant_hollow_has_its_river():
 
     m = MapLoader.load_file(map_path("verdant_hollow"))
     h = terrain.Terrain(m)
-    assert {p.kind for p in h.platforms} == {"raft", "plank", "ledge", "boards"}
+    assert {p.kind for p in h.platforms} == {"raft", "plank", "ledge", "boards", "lift", "bridge"}
     for p in h.platforms:
         tx, tz = TileMap.tile_coord(p.x), TileMap.tile_coord(p.z)
         assert m[tx, tz].needs_footing or p.kind == "boards"
@@ -577,3 +577,45 @@ def test_a_lift_ignores_someone_beside_its_shaft_at_neither_landing():
     body.y = -3.0
     ride(h, body, terrain.LIFT_CALL + 1.0)
     assert lift.at == "low" and not lift.moving
+
+
+BRIDGE = """[meta]
+name = Bridge
+start = 1 1 0
+
+[legend]
+# = wall
+. = floor h=0
+_ = floor h=-6 chasm
+
+[grid]
+#####
+#.b.#
+#####
+
+[entities]
+b = bridge lever=gap deck=0 on=_
+"""
+
+
+def test_a_drawbridge_bears_no_weight_until_its_lever_lowers_it():
+    m = MapLoader(BRIDGE).parse()
+    (bridge,) = terrain.build_platforms(m)
+    assert bridge.locked and bridge.lowered == 0.0
+    assert not bridge.afloat and not bridge.floats_on(2, 1)
+    for _ in range(100):  # chained, it stays up
+        bridge.update(0.05, loaded=False)
+    assert bridge.lowered == 0.0
+    bridge.locked = False
+    events = [bridge.update(0.1, loaded=False) for _ in range(20)]
+    assert events.count("bridge_down") == 1
+    assert bridge.lowered == 1.0 and bridge.afloat and bridge.floats_on(2, 1)
+
+
+def test_a_drawbridge_never_rots_under_you():
+    m = MapLoader(BRIDGE.replace(" lever=gap", "")).parse()
+    (bridge,) = terrain.build_platforms(m)
+    assert not bridge.locked and bridge.afloat
+    for _ in range(400):
+        bridge.update(0.05, loaded=True)
+    assert bridge.afloat and bridge.sink == 0.0

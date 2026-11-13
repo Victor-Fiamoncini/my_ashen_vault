@@ -80,8 +80,8 @@ def odrin(game, flags, inv):
                 "I keep the bell of Harrowmere. For three hundred years it has sung over the old keep below us.",
                 "Last month the bell cracked, and two things began to stir beneath the town.",
                 "Deep in the Sunken Keep the Ember Sigil sits in the Warden's hall. That is one.",
-                "The other is the Verdant Sigil. Roots burst up through the house east of the square.",
-                "Beneath it a green hollow has grown, and something large nests at the bottom of it.",
+                "The other is the Verdant Sigil. A green trail has crept out of the square's east side.",
+                "It ends at a cave, and beyond it a hollow has grown where no wood should be. Something nests there.",
                 "The bell needs both sigils to hold its note. Bring them back and the town will sleep again.",
                 "Take these. They are all an old bell-keeper has.",
             ],
@@ -92,8 +92,8 @@ def odrin(game, flags, inv):
             "Odrin",
             [
                 "The Ember Sigil! Warm as a hearthstone. Hold on to it a little longer.",
-                "The bell still needs its twin. Go through the overgrown house east of the square.",
-                "The Verdant Sigil waits somewhere in the hollow beneath it.",
+                "The bell still needs its twin. Follow the green trail east of the square to the cave.",
+                "The Verdant Sigil waits somewhere in the hollow beyond it. Take a light. It is dark in there.",
             ],
             None,
         )
@@ -118,7 +118,7 @@ def odrin(game, flags, inv):
     return (
         "Odrin",
         [
-            "The well in the square leads down into the keep. The overgrown house leads down into the hollow.",
+            "The well in the square leads down into the keep. The green trail east leads to the hollow's cave.",
             "Save your strength at the stone shrines. The old wardens built them for travellers like you.",
         ],
         None,
@@ -149,7 +149,7 @@ def hollis_lines(flags):
         ]
     if "spider_dead" not in flags:
         lines.append(
-            "Mind the overgrown house to the east. Its door opens on a wood that shouldn't be there."
+            "Mind the green trail to the east. The cave at its end opens on a wood that shouldn't be there."
         )
         lines.append("The flowers in there bite, and the trees walk. Don't stand still near either.")
     return lines

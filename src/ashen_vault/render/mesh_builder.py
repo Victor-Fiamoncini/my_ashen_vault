@@ -23,6 +23,8 @@ class Batch:
     verts: list = field(default_factory=list)
     uvs: list = field(default_factory=list)
     colors: list = field(default_factory=list)
+    # Per vertex, what a light added later needs: shade factor, normal and the unclamped light.
+    lit: list = field(default_factory=list)
 
     @property
     def vertex_count(self):
@@ -30,9 +32,19 @@ class Batch:
 
 
 SEG = 1.0  # max quad size in meters, keeps affine warping tolerable
-# Defaults for light-emitting entities; a map can override them with y= and color=.
-LIGHT_Y = {"light": "2.0", "candles": "0.6", "fungus": "0.7"}
-LIGHT_COLOR = {"fungus": "0.3,0.85,0.65"}
+# Light-emitting entities and their defaults; a map can override them with y=, color= and radius=.
+LIGHT_KINDS = ("torch", "brazier", "light", "candles", "fungus", "bonfire", "giant_mushroom", "shelf_fungus")
+LIGHT_Y = {"light": "2.0", "candles": "0.6", "fungus": "0.7", "bonfire": "0.9", "giant_mushroom": "2.2"}
+LIGHT_Y_WALL = {"shelf_fungus": "1.4"}
+LIGHT_COLOR = {
+    "fungus": "0.3,0.85,0.65",
+    "giant_mushroom": "0.55,0.35,0.85",
+    "shelf_fungus": "0.25,0.7,0.75",
+    "bonfire": "1.0,0.55,0.25",
+}
+LIGHT_RADIUS = {"candles": "3", "shelf_fungus": "4", "giant_mushroom": "6", "bonfire": "9"}
+# Fires that can stand cold (`unlit`) until something kindles them.
+KINDLING = ("brazier", "bonfire")
 DIRS = ((1, 0), (-1, 0), (0, 1), (0, -1))
 T = TileMap.TILE
 
@@ -49,6 +61,22 @@ def _cross(a, b):
     return (a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0])
 
 
+def _shine(l, rgb, x, y, z, nx, ny, nz):
+    """Adds light `l`'s share at a point (with normal n) to `rgb`, in place."""
+    dx = l.x - x
+    dy = l.y - y
+    dz = l.z - z
+    d = math.sqrt(dx * dx + dy * dy + dz * dz)
+    if d >= l.radius:
+        return
+    f = (1.0 - d / l.radius) ** 2
+    facing = 1.0 if d < 1e-3 else max((dx * nx + dy * ny + dz * nz) / d, 0.0) * 0.7 + 0.3
+    k = f * facing * 1.4
+    rgb[0] += l.color[0] * k
+    rgb[1] += l.color[1] * k
+    rgb[2] += l.color[2] * k
+
+
 class MeshBuilder:
     def __init__(self, map_, lights=()):
         self.map = map_
@@ -57,43 +85,62 @@ class MeshBuilder:
         self.batches = defaultdict(Batch)
 
     @staticmethod
-    def lights_for(map_):
+    def light_for(map_, e):
+        """The Light an emitting entity casts (see LIGHT_KINDS), ignoring whether it is lit."""
+        x, z = TileMap.center(e.tx, e.tz)
+        height = LIGHT_Y.get(e.kind, "1.6")
+        wall = map_.wall_yaw(e.tx, e.tz) if e.kind in ("torch", "shelf_fungus") else None
+        if wall is not None:  # a sconce or a bracket fungus: the light sits up against the wall
+            x -= math.cos(wall) * 0.6
+            z -= math.sin(wall) * 0.6
+            height = LIGHT_Y_WALL.get(e.kind, "1.9")
+        y = map_[e.tx, e.tz].floor + float(e.props.get("y", height))
+        color = [float(c) for c in e.props.get("color", LIGHT_COLOR.get(e.kind, "1.0,0.62,0.32")).split(",")]
+        radius = e.props.get("radius", LIGHT_RADIUS.get(e.kind, "7"))
+        return Light(x, y, z, float(radius), color)
+
+    @staticmethod
+    def lights_for(map_, lit=None):
+        """Lights from the map's entities. A cold (`unlit`) brazier or bonfire only counts once
+        `lit(spec)` says it has been kindled."""
         lights = []
         for e in map_.entities:
-            if e.kind not in ("torch", "brazier", "light", "candles", "fungus"):
+            if e.kind not in LIGHT_KINDS:
                 continue
-            x, z = TileMap.center(e.tx, e.tz)
-            height = LIGHT_Y.get(e.kind, "1.6")
-            wall = map_.wall_yaw(e.tx, e.tz) if e.kind == "torch" else None
-            if wall is not None:  # a sconce: the flame sits up against the wall
-                x -= math.cos(wall) * 0.6
-                z -= math.sin(wall) * 0.6
-                height = "1.9"
-            y = map_[e.tx, e.tz].floor + float(e.props.get("y", height))
-            color = [
-                float(c) for c in e.props.get("color", LIGHT_COLOR.get(e.kind, "1.0,0.62,0.32")).split(",")
-            ]
-            radius = e.props.get("radius", "3" if e.kind == "candles" else "7")
-            lights.append(Light(x, y, z, float(radius), color))
+            if e.kind in KINDLING and "unlit" in e.props and not (lit and lit(e)):
+                continue
+            lights.append(MeshBuilder.light_for(map_, e))
         return lights
 
     def light_at(self, x, y, z, nx=0.0, ny=1.0, nz=0.0):
-        """Light reaching a point, without shadows. Used for models too."""
-        r, g, b = self.ambient
+        """Light reaching a point, without shadows. Used for models too. A dark tile keeps only part
+        of the ambient light; the point is nudged along its normal so a wall face takes the
+        darkness of the tile it faces."""
+        keep = 1.0 - self.map.tile_at(x + nx * 0.05, z + nz * 0.05).dark
+        rgb = [c * keep for c in self.ambient]
         for l in self.lights:
-            dx = l.x - x
-            dy = l.y - y
-            dz = l.z - z
-            d = math.sqrt(dx * dx + dy * dy + dz * dz)
-            if d >= l.radius:
-                continue
-            f = (1.0 - d / l.radius) ** 2
-            facing = 1.0 if d < 1e-3 else max((dx * nx + dy * ny + dz * nz) / d, 0.0) * 0.7 + 0.3
-            k = f * facing * 1.4
-            r += l.color[0] * k
-            g += l.color[1] * k
-            b += l.color[2] * k
-        return [r, g, b]
+            _shine(l, rgb, x, y, z, nx, ny, nz)
+        return rgb
+
+    def add_light(self, light):
+        """Adds a light after the build (a brazier kindled) by brightening only the vertices it
+        reaches. Returns the textures whose batches changed and need uploading again."""
+        self.lights.append(light)
+        changed = set()
+        r2 = light.radius * light.radius
+        for tex, batch in self.batches.items():
+            verts, colors, lit = batch.verts, batch.colors, batch.lit
+            touched = False
+            for i, (k, nx, ny, nz, raw) in enumerate(lit):
+                x, y, z = verts[i * 3], verts[i * 3 + 1], verts[i * 3 + 2]
+                if (light.x - x) ** 2 + (light.y - y) ** 2 + (light.z - z) ** 2 >= r2:
+                    continue
+                _shine(light, raw, x, y, z, nx, ny, nz)
+                colors[i * 3 : i * 3 + 3] = [min(max(ch * k, 0.0), 1.0) for ch in raw]
+                touched = True
+            if touched:
+                changed.add(tex)
+        return changed
 
     def build(self):
         for tx, tz, tile in self.map.each_tile():
@@ -184,12 +231,16 @@ class MeshBuilder:
             uvs = uvs[::-1]
         batch = self.batches[tex]
         colors = []
+        lit = []
         for p in pts:
             k = shade
             if ao_floor is not None:
                 k *= 0.7 + 0.3 * min((p[1] - ao_floor) / 0.8, 1.0)
-            colors.append([min(max(ch * k, 0.0), 1.0) for ch in self.light_at(p[0], p[1], p[2], *normal)])
+            raw = self.light_at(p[0], p[1], p[2], *normal)
+            colors.append([min(max(ch * k, 0.0), 1.0) for ch in raw])
+            lit.append((k, *normal, raw))
         for i in (0, 1, 2, 0, 2, 3):
             batch.verts.extend(pts[i])
             batch.uvs.extend(uvs[i])
             batch.colors.extend(colors[i])
+            batch.lit.append((lit[i][0], *lit[i][1:4], list(lit[i][4])))

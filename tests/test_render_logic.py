@@ -337,3 +337,45 @@ def test_ossuary_texture_is_built():
 
     tex = texture_gen.all_textures()
     assert "ossuary" in tex and len(tex["ossuary"]) == len(tex["stone_brick"])
+
+
+def test_jungle_fires_mushrooms_bridge_and_wooden_lever_draw():
+    from ashen_vault.render import models
+
+    gpu = _RecordingGpu()
+    r = rig.Rig(gpu)
+    for lit in (True, False):
+        models.brazier(r, 0.5, lit=lit)
+        models.bonfire(r, 0.5, lit=lit)
+    for k in (0.0, 0.5, 1.0):
+        models.lever(r, k, wall=True, wood=True)
+        models.lever(r, k, wall=False, wood=True)
+        models.bridge(r, k)
+        models.flare(r, (255, 140, 40), k)
+    models.giant_mushroom(r, 3, 0.5)
+    models.shelf_fungus(r, 2, 0.5)
+    models.mushrooms(r, 4)
+    models.totem(r, 1, 0.5)
+    models.cave_mouth(r, 0.5)
+    models.secret_wall(r, 1.4, 0.0, tex="web_wall")
+    for id_ in ("venom", "veil", "pyre"):
+        models.spell_orb(r, id_, 0.5)
+    assert len(gpu.parts) > 300
+
+
+def test_a_cold_fire_draws_no_flame():
+    from ashen_vault.render import models
+
+    for draw in (models.brazier, models.bonfire):
+        cold, burning = _ExtentGpu(), _ExtentGpu()
+        draw(rig.Rig(cold), 0.5, lit=False)
+        draw(rig.Rig(burning), 0.5, lit=True)
+        assert cold.glows == 0 and burning.glows > 0
+
+
+def test_web_wall_texture_has_holes_to_see_through():
+    from ashen_vault.render import texture_gen
+
+    tex = texture_gen.web_wall()
+    alphas = tex[3::4]
+    assert 0 in alphas and 255 in alphas

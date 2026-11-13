@@ -22,7 +22,7 @@ from ashen_vault.save.save_system import SaveSystem
 from ashen_vault.screen import FOV, LIST_ROWS, PREVIEW, H, W, centered_row_at, list_row_at, scroll_into_view
 from ashen_vault.ui import hud as ui
 from ashen_vault.util import clamp, rround
-from ashen_vault.world import relics
+from ashen_vault.world import darkness, doors, relics
 from ashen_vault.world.rest import RestSequence
 from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.world import World
@@ -41,7 +41,7 @@ TITLE_Y, TITLE_STEP = 140, 14
 ENDING = [
     "The bell of Harrowmere rings again.",
     "Its note rolls down the well into the drowned halls",
-    "and through the roots beneath the overgrown house.",
+    "and through the roots of the cave in the green hollow.",
     "The old keep and the green hollow sleep once more.",
     "",
     "Thank you for playing the Ashen Vault demo.",
@@ -101,6 +101,7 @@ class Game:
         self._controls_from = None
         self._dead_t = 0.0
         self._ending_t = 0.0
+        self._dark_k = None  # how dark it looks where you stand (eased, so cave mouths don't pop)
         if self.opts.get("map"):
             self.new_game(self.opts["map"], at=self.opts.get("at"))
         else:
@@ -158,6 +159,9 @@ class Game:
         for m in self.messages:
             m[1] += dt
         self.messages = [m for m in self.messages if m[1] <= 5]
+        if self.world:
+            target = self.world.map.tile_at(self.player.x, self.player.z).dark
+            self._dark_k = target if self._dark_k is None else darkness.ease_toward(self._dark_k, target, dt)
         handler = {
             "title": lambda: self._update_title(),
             "play": lambda: self._update_play(dt),
@@ -269,12 +273,18 @@ class Game:
         self._enter_play()
 
     def _debug_setup(self):
-        """--level and --equip (slot=id pairs) for smoke runs; gear is added to the pack first."""
+        """--level and --equip (slot=id pairs) for smoke runs; gear is added to the pack first, and
+        `spell:<id>` teaches that spell and readies it."""
         p = self.player
         if self.opts.get("level"):
             p.stats.level = self.opts["level"]
         for pair in filter(None, (self.opts.get("equip") or "").split(",")):
             slot, _, id_ = pair.partition("=")
+            if id_.startswith(f"{SPELL}:"):  # left=spell:pyre learns that spell and readies it
+                id_, _, spell = id_.partition(":")
+                if spell not in p.spells:
+                    p.spells.append(spell)
+                p.equip_spell(spell)
             if id_ in ("", "none"):
                 p.inventory.slots[slot] = None
                 continue
@@ -307,6 +317,7 @@ class Game:
         if self.world:
             self.world.unload()
         self.world = World(self, name)
+        self._dark_k = None
 
     def _travel(self, map_name, at):
         self._load_world(map_name)
@@ -555,8 +566,8 @@ class Game:
             self.sfx("door", 0.8)
             self.message("The wall was an illusion!")
 
-    def damage_enemy(self, enemy, dmg, poise_mult=1.0):
-        if not enemy.take_hit(dmg, poise_mult):
+    def damage_enemy(self, enemy, dmg, poise_mult=1.0, stagger=True):
+        if not enemy.take_hit(dmg, poise_mult, stagger=stagger):
             return
         self.sfx("enemy_die")
         t = enemy.type
@@ -602,6 +613,8 @@ class Game:
             return self.message("Not enough MP.")
         gauge = p.magic_gauge.spend()
         self.sfx("spell")
+        if spell.id != "veil":
+            p.veil_t = 0.0  # any other spell lights you up through the mist
         if spell.id == "flame":
             self.world.fire_bolt(Spells.flame_damage(p.stats.magic, gauge))
         elif spell.id == "mend":
@@ -611,6 +624,17 @@ class Game:
         elif spell.id == "lumen":
             p.lumen_t = Spells.LUMEN_DURATION
             self.message("A pale light gathers around you.")
+        elif spell.id == "venom":
+            self.world.fire_bolt(
+                Spells.venom_damage(p.stats.magic, gauge), effect="venom", rgb=(130, 220, 60)
+            )
+        elif spell.id == "veil":
+            p.veil_t = Spells.VEIL_DURATION
+            self.sfx("hiss", 0.8)
+            self.message("Mist curls up around you. Foes lose sight of you.")
+        elif spell.id == "pyre":
+            self.sfx("pyre")
+            self.world.pyre(p.stats.magic, gauge)
 
     def _cycle_quick(self, step=1):
         item = self.player.cycle_quick(step)
@@ -693,6 +717,8 @@ class Game:
             "pickup": "[E] Take",
             "iron_maiden": "[E] Step inside",
             "frog_idol": "[E] Pat the stone frog",
+            "brazier": "[E] Look at the cold brazier",
+            "bonfire": "[E] Look at the cold ashes",
             "altar": f"[E] Take the {Items.get(p.props.get('item', 'warden_key')).name}",
         }.get(p.kind)
 
@@ -715,7 +741,12 @@ class Game:
         elif k == "lever":
             self.world.pull_lever(prop)
             self.sfx("door")
-            self.message("Somewhere chains rattle, and iron grinds against stone.")
+            if prop.props.get("model") == "wood":
+                self.message("Ropes groan through the timbers, and something heavy shifts.")
+            else:
+                self.message("Somewhere chains rattle, and iron grinds against stone.")
+        elif k in ("brazier", "bonfire"):
+            self.message("Cold ashes. It wants a flame.")
         elif k == "save_statue":
             self._start_rest()
         elif k == "altar":
@@ -808,13 +839,22 @@ class Game:
         self.message(f"Found {' and '.join(parts)}.")
 
     def _open_door(self, prop):
+        if not doors.opens_from(prop.props.get("from"), prop.x, prop.z, self.player.x, self.player.z):
+            self.sfx("clunk", 0.6)
+            self.message("It is barred from the other side.")
+            return
         key = prop.props.get("key")
         if key and not self.player.inventory.has(key):
             self.message(f"It is locked. You need the {Items.get(key).name}.")
             return
         self.world.open_prop(prop)
         self.sfx("door")
-        self.message(f"The {Items.get(key).name} turns in the lock." if key else "The door grinds open.")
+        if key:
+            self.message(f"The {Items.get(key).name} turns in the lock.")
+        elif prop.props.get("from"):
+            self.message("You lift the bar. The way back lies open.")
+        else:
+            self.message("The door grinds open.")
 
     def message(self, text):
         self.messages.append([text, 0.0])
@@ -1035,9 +1075,16 @@ class Game:
         if self.scene in ("menu", "shop"):
             self._render_preview(self._selected_item())
         pr.begin_texture_mode(self._target)
-        fog = self.world.meta.get("fog", [0, 0, 0])
+        meta = self.world.meta
+        fog, fog_range = darkness.fog_for(
+            meta.get("fog", [0, 0, 0]),
+            meta.get("fog_range", [4, 30]),
+            self._dark_k or 0.0,
+            veil=self.player.veil_t > 0,
+            lumen=self.player.lumen_t > 0,
+        )
         pr.clear_background(ui.color(*(rround(c * 255) for c in fog)))
-        self._render_world(fog)
+        self._render_world(fog, fog_range)
         self._render_ui()
         pr.end_texture_mode()
 
@@ -1058,17 +1105,16 @@ class Game:
         )
         pr.end_drawing()
 
-    def _render_world(self, fog):
+    def _render_world(self, fog, fog_range):
         self._setup_camera()
         meta = self.world.meta
         gpu = self.gpu
         gpu.set_vec2("snapRes", (W // 2, H // 2))
         gpu.set_vec3("fogColor", fog)
-        gpu.set_vec2("fogRange", meta.get("fog_range", [4, 30]))
-        radius, *torch = meta.get("torch", [0, 0, 0, 0])
-        if self.player.lumen_t > 0:
-            radius = max(radius, 0) + 9
-            torch = [0.6, 0.65, 0.75]
+        gpu.set_vec2("fogRange", fog_range)
+        radius, torch = darkness.player_light(
+            meta.get("torch", [0, 0, 0, 0]), self._dark_k or 0.0, self.player.lumen_t > 0
+        )
         gpu.set_vec3("torchColor", torch)
         gpu.set_float("torchRadius", radius)
 

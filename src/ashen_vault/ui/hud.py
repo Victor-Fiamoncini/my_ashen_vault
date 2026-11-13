@@ -468,6 +468,41 @@ def spell_icon(id_, cx, cy, t, alpha=255):
         glow = 3.5 + 0.6 * math.sin(t * 3)
         pr.draw_circle(cx, cy, glow + 1.5, color(240, 220, 140, rround(a * 0.35)))
         pr.draw_circle(cx, cy, glow, color(255, 250, 220, a))
+    elif id_ == "venom":
+        # A fang dripping green venom; the drop swells, falls and forms again.
+        pr.draw_triangle(
+            pr.Vector2(cx - 4, cy - 7),
+            pr.Vector2(cx, cy + 1),
+            pr.Vector2(cx + 4, cy - 7),
+            color(225, 220, 200, a),
+        )
+        k = (t * 0.9) % 1
+        dy = rround(k * k * 8)
+        size = 1.5 + min(k * 4, 1) * 1.5
+        pr.draw_circle(cx, cy + 2 + dy, size, color(110, 200, 60, rround(a * (1 - k * 0.6))))
+        pr.draw_circle(cx, cy + 1 + dy, size * 0.45, color(200, 255, 140, rround(a * (1 - k * 0.6))))
+    elif id_ == "veil":
+        # Pale wisps curling round each other.
+        for i in range(3):
+            ang = t * 1.6 + i * 2.1
+            for j in range(4):
+                b = ang - j * 0.35
+                rad = 3 + i * 1.6
+                pr.draw_circle(
+                    rround(cx + math.cos(b) * rad),
+                    rround(cy + math.sin(b) * rad * 0.6),
+                    2.0 - j * 0.4,
+                    color(205, 215, 220, rround(a * (0.8 - j * 0.18))),
+                )
+    elif id_ == "pyre":
+        # A fan of three tongues of flame.
+        for i, ang in enumerate((-0.6, 0.0, 0.6)):
+            lick = 7 + math.sin(t * 11 + i * 1.7) * 1.5
+            tip = pr.Vector2(cx + math.sin(ang) * lick, cy + 5 - math.cos(ang) * lick)
+            pr.draw_triangle(
+                tip, pr.Vector2(cx - 2, cy + 5), pr.Vector2(cx + 2, cy + 5), color(230, 90, 30, a)
+            )
+        pr.draw_circle(cx, cy + 5, 2.5, color(255, 210, 90, a))
     else:
         pr.draw_circle(cx, cy, 4, color(200, 200, 200, a))
 

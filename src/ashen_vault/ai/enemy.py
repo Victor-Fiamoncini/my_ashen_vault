@@ -31,6 +31,9 @@ POUNCE_SPEED = 13.0  # m/s through the air
 POUNCE_TIME = 0.5  # longest a pounce can fly
 TRAIL_HOLD = 0.6  # seconds the boss bar's damage trail waits before draining
 TRAIL_RATE = 0.35  # fraction of max HP the trail drains per second
+VEIL_NOTICE = 1.8  # a foe notices you through a Veil of Mist only this close
+VEIL_LOSE = 4.0  # a chaser loses you in the mist beyond this
+STATUS_TICK = 1.0  # seconds between the bites of poison or fire
 
 
 def _wrap(a):
@@ -70,6 +73,8 @@ class Enemy:
         self.cooldowns = {m: MOVES[m][1] * 0.4 for m in type_.moves}
         self.phase2 = False  # past half HP: called its brood or kindled its rage
         self._target = None  # where a pounce is headed
+        # Lingering harm: kind ("poison", "burn") -> [seconds left, HP per tick, time to next tick].
+        self.status = {}
 
     @property
     def alive(self):
@@ -155,9 +160,41 @@ class Enemy:
             self.hp = 0
             self._switch("dead")
 
-    def take_hit(self, amount, poise_mult=1.0):
+    def afflict(self, kind, seconds, per_tick):
+        """Poisons or sets fire to the enemy. A fresh dose renews the longer time and the harder bite."""
+        if not self.alive:
+            return
+        old = self.status.get(kind)
+        if old:
+            old[0] = max(old[0], seconds)
+            old[1] = max(old[1], per_tick)
+        else:
+            self.status[kind] = [seconds, per_tick, STATUS_TICK]
+
+    @property
+    def afflicted(self):
+        """The status to show: fire over poison, or None."""
+        return "burn" if "burn" in self.status else "poison" if "poison" in self.status else None
+
+    def status_tick(self, dt):
+        """Advances poison and fire; returns the HP they take this frame (apply it without a stagger)."""
+        if not self.alive:
+            self.status.clear()
+            return 0
+        dmg = 0
+        for kind, st in list(self.status.items()):
+            st[2] -= dt
+            if st[2] <= 0:
+                st[2] += STATUS_TICK
+                dmg += st[1]
+            st[0] -= dt
+            if st[0] <= 0:
+                del self.status[kind]
+        return dmg
+
+    def take_hit(self, amount, poise_mult=1.0, stagger=True):
         """Applies damage and returns True if the hit was fatal. Heavy blows (`poise_mult`)
-        stagger tougher foes."""
+        stagger tougher foes; lingering harm (`stagger=False`) never does."""
         if not self.alive:
             return False
         was_dormant = self.dormant
@@ -167,7 +204,7 @@ class Enemy:
             self.hp = 0
             self._switch("dead")
             return True
-        if amount * poise_mult >= self.type.poise:
+        if stagger and amount * poise_mult >= self.type.poise:
             self._switch("hurt")
         elif was_dormant:
             self._switch("chase")
@@ -209,10 +246,15 @@ class Enemy:
         if state not in ("windup", "attack"):
             self.attack_kind = None
 
+    def _veiled(self, world, dist, reach):
+        """You are lost in a Veil of Mist beyond `reach`. Bosses see through it."""
+        return getattr(world, "player_hidden", False) and not self.type.boss and dist > reach
+
     def _notices(self, world, dist):
         return (
             world.player_alive
             and dist <= self.type.sight
+            and not self._veiled(world, dist, VEIL_NOTICE)
             and world.can_see(self.x, self.z, world.player_x, world.player_z)
         )
 
@@ -238,7 +280,7 @@ class Enemy:
         if not world.player_alive:
             return self._switch("idle")
         give_up = GIVE_UP if self.type.lurk else self.type.sight * 1.5
-        if dist > give_up:
+        if dist > give_up or self._veiled(world, dist, VEIL_LOSE):
             return self._switch("idle")
         self.face(world.player_x, world.player_z, dt)
         t = self.type

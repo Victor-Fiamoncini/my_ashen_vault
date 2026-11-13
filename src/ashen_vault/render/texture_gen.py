@@ -36,6 +36,7 @@ def all_textures():
         "ravine": ravine(),
         "log_wall": log_wall(),
         "ossuary": ossuary(),
+        "web_wall": web_wall(),
         "white": solid(255, 255, 255),
     }
 
@@ -283,6 +284,23 @@ def vine_wall():
             if abs(x - strand - wobble) < 1.5:
                 return tint([92, 74, 42], 0.75 + hash_(x, y, 134) * 0.35)
         return c
+
+    return build(px)
+
+
+def web_wall():
+    """A thick sheet of old silk: matted grey-white strands with a few dark tears to see through."""
+
+    def px(x, y):
+        n = fbm(x, y, 151)
+        if noise(x, y, 8, 152) < 0.22:
+            return (0, 0, 0, 0)
+        k = 0.55 + n * 0.45
+        for i, (a, b) in enumerate(((0.9, 3), (-0.7, 17), (0.25, 40), (-1.4, 52))):
+            # Strands at a slant across the sheet; they wrap so the texture tiles.
+            if abs((x * a + y - b) % SIZE) < 1.2 + i % 2:
+                return [*tint([232, 230, 222], 0.85 + hash_(x, y, 153) * 0.15), 255]
+        return [*tint([176, 174, 166], k), 255]
 
     return build(px)
 

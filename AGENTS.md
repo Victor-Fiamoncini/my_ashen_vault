@@ -49,7 +49,8 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   `attack` is the left mouse button (the right hand) and `cast` the right one (the left hand): each
   swings, blocks or casts depending on what that hand holds.
 - `--equip right=katana,left=buckler,body=brigandine,hands=iron_gauntlets` starts with that gear (a slot
-  set to `none` empties it; `left=spell` readies the spell there) and `--level 6` at that level.
+  set to `none` empties it; `left=spell` readies the spell there, `left=spell:pyre` learns Pyre and
+  readies it) and `--level 6` at that level.
 - `interact` uses whatever the player faces within reach, nearest first: an unopened chest in front of
   another prop is opened first.
 - Combat rolls are random, so HP in the `smoke:` line can vary between runs. Positions, scenes, flags
@@ -60,8 +61,12 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 - Useful starts: `--at 4,24,90 --script "forward:0.9 wait:5 forward:0.6"` (the Cistern lift down to
   the Undercroft), `--at=11,26,90 --script "interact strafe_l:0.7 wait:5"` (free the shrine lift and
   ride it up), `--at=23,13,0 --script "forward:0.7 wait:5"` (the lift up to the Warden's Gallery),
-  `--map harrowmere --at 25,13,-90` (the jungle doorway), `--map verdant_hollow` (the
-  grove), `--at=49,12,-90` (the Highland log slope), `--at=15,7,-90` (the Loom Mother),
+  `--map harrowmere --at 40,14,0` (the jungle trail and its cave mouth), `--map verdant_hollow`
+  (Mossmouth, the dark cave you arrive in), `--at=15,31,180 --equip left=spell:pyre --script "cast"`
+  (kindle Mossmouth's cold brazier), `--at=6,41,-90` (the Root Caverns), `--at=32,3,180` (the Canopy
+  Walk), `--at=15,20,-90 --script interact` (the barred door, from its wrong side),
+  `--at=14,41,-90 --script "interact wait:2.5 strafe_l:2"` (lower the drawbridge and cross),
+  `--at=49,12,-90` (the Highland log slope), `--at=15,7,-90` (the Loom Mother),
   `--map harrowmere --at=6,18,180 --script "forward:1 interact"` (Corvane; below
   `--level 5` they stay silent).
 
@@ -75,7 +80,9 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/ui/hud.py` | HUD, menus, dialogue boxes |
 | `src/ashen_vault/audio/synth.py` | Synthesized sound effects |
 | `src/ashen_vault/input.py` | Key bindings and the `--script` driver |
-| `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. `harrowmere` (the village), `sunken_keep` (the dungeon below the well, with the Undercroft below its cells and the Warden's Gallery above the boss door), `verdant_hollow` (the jungle behind the overgrown house) |
+| `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. `harrowmere` (the village), `sunken_keep` (the dungeon below the well, with the Undercroft below its cells and the Warden's Gallery above the boss door), `verdant_hollow` (the jungle through the cave at the end of the village's east trail: Mossmouth cave, the Root Caverns below the bog, the Canopy Walk to the boss) |
+| `src/ashen_vault/world/darkness.py` | Dark tiles: how your light and the fog close in, Lumen and the Veil of Mist |
+| `src/ashen_vault/world/doors.py` | One-way doors (`door from=`): which side lifts the bar |
 | `src/ashen_vault/world/hazards.py` | Dungeon traps: floor spikes, pendulum blades, crumbling floors; the Warden's fire eruptions and slam shockwaves |
 | `src/ashen_vault/world/terrain.py` | Terrain: rafts, planks, ledges, rotten floorboards, chain lifts, currents, thorns, chasm and river falls, hard landings, the log rack, spore pods (`World.terrain`) |
 | `src/ashen_vault/world/rest.py` | The shrine rest: timing and the pixelated ember fog pattern drawn while you pray |
@@ -97,21 +104,29 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   is pure but still mostly untested, which makes it a good place to add coverage:
   `tests/test_keep_world.py` builds a real `World` headless with a `FakeGame` (a no-op GPU that records
   messages, sounds and wounds), so world logic can be driven without a window.
+  `tests/test_verdant_world.py` does the same for the jungle (spells, kindled fires, darkness,
+  shortcuts), with a `JungleGame` that also applies damage to enemies.
 - Internal resolution is 320x240 (`screen.py`); UI coordinates are in that space.
 - Map grids are whitespace-sensitive. Don't reformat `.map` files. Each grid character is one 2 m tile;
   an `[entities]` marker places a prop, enemy or hazard there, standing on the legend tile named by
   `on=` (the map's `default` otherwise). With `entity_floor = auto` in `[meta]` (the keep uses it), a
   marker without `on=` stands on the floor most of its neighbours share, so one marker serves every
-  level. Wall props (torches, banners, shackles, racks) hang on the
+  level. The jungle uses it too; it ran out of ASCII markers, so a few of its markers are Latin-1
+  letters (`À`, `Ñ`...). Wall props (torches, banners, shackles, racks) hang on the
   adjacent wall and chests/altars turn to face the open side automatically, so they rarely need `yaw=`.
 - Floor legend entries can add hazards: `hurt=<hp per tick>` (thorns), `flow=<dx>,<dz>` (a current),
   `slow=<multiplier>` (mud), `pit` (a hole you can walk into; you fall, are hurt and hauled out) and
   `chasm` (only a raft, plank or ledge lets you onto it). Drops over 1.8 m cost HP, except into a `pit`.
+  Any tile may add `dark=<0..1>`: the share of the map's ambient light it loses. Lights still shine
+  there, and standing in one shrinks your own light and pulls the fog in (`world/darkness.py`);
+  Lumen pushes both back.
   Terrain entities: `raft to=tx,tz speed= phase=`, `plank`, `ledge deck=`, `boards deck=` (rotten
   floorboards that break for good), `lift top= [start=top] [lever=id] [speed=]` (a chain lift: its
   tile is a `chasm` shaft whose floor is the bottom stop and whose `ceil` clears `top`; it carries
   whoever stands on it to the other end, and comes when someone waits at a landing. With `lever=` it
-  stays chained until the matching lever is pulled, a shortcut opened from one side), `log_chute to=tx,tz every= speed= logs=` (a log rack that only
+  stays chained until the matching lever is pulled, a shortcut opened from one side),
+  `bridge lever=id hinge=n|s|e|w deck=` (a drawbridge standing raised on its hinge side until its
+  lever lets it down, for good), `log_chute to=tx,tz every= speed= logs=` (a log rack that only
   releases while someone climbs its slope) and `spore_pod every=`.
 - Enemy behaviour flags in `ai/enemy_types.py`: `ambush` spawns dormant (the chest Mimic) until woken;
   `lurk` sits still until you come close (the Stump Mimic, the Bone Crawler); `once` stays dead;
@@ -119,22 +134,32 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   `ai/enemy.py`: `sweep`, `web`, `pounce`, `cinders`, `combo`, `slam`, `eruption`, `hook`). At half
   HP a boss with a `brood` calls it and one with a `rage` kindles it (the Warden's burning blade);
   either way it enters its second phase (`Enemy.phase2`), fights faster and adds its `phase_moves`.
-  An enemy entity's `item=` is loot it drops when slain.
+  An enemy entity's `item=` is loot it drops when slain. `flammable` types (the jungle's plants) take
+  more from Pyre and keep burning. Enemies carry lingering harm in `Enemy.status` (`poison` from Venom
+  Dart, `burn` from Pyre), one bite a second (`status_tick`) that never staggers.
 - An enemy type's `height` is the top of its body as it dies: the ash dissolve crumbles that span.
   Every model has a death pose (eased by `models.death_fall`); `tests/test_render_logic.py` checks
   that each one collapses, stays above the floor and fits its `height`, so update both together.
   Its `tall` is the top of the standing body: a spell bolt flying higher misses it (`world/shots.py`).
 - Props that fill their tile are listed in `world/world.py` (`BLOCKING_PROPS`, `BREAKABLE_PROPS`;
-  the keep adds `pillar`, `sarcophagus` and `bell`). Decor that blocks nothing: `cage` and `roots`
-  hang from the ceiling, `grate` sits in the floor, and `cobweb`, `skull_niche`, `winch` and `lever`
-  mount on the nearest wall (`WALL_PROPS`).
+  the keep adds `pillar`, `sarcophagus` and `bell`, the jungle `bonfire`, `giant_mushroom` and
+  `totem`). Decor that blocks nothing: `cage` and `roots` hang from the ceiling, `grate` sits in the
+  floor, `mushrooms` dot it, and `cobweb`, `skull_niche`, `winch`, `lever` and `shelf_fungus` mount on
+  the nearest wall (`WALL_PROPS`). `lever model=wood` is the jungle's wooden lever.
+  Light comes from `mesh_builder.LIGHT_KINDS` (torches, braziers, fungus, bonfires, the glowing
+  toadstools). A `brazier unlit` or `bonfire unlit` stays cold until Pyre or a Flame Bolt kindles it
+  (`World.kindle`); it then burns for good under a `lit:<map>:<tx>,<tz>` flag, and its light is added
+  to the baked mesh in place (`MeshBuilder.add_light`).
   Breakables (`barrel`, `crate`, `urn`, `cocoon`) spill loot from `world/loot.py`; a `secret_wall`
-  dissolves when struck (`model=vines top=6` matches the jungle's vine walls).
+  dissolves when struck (`model=vines top=6` matches the jungle's vine walls; `model=web` is a sheet of
+  silk that blades can't cut and only fire burns). `door from=n|s|e|w` is barred on that side: it
+  only opens from there.
   After placing props in `sunken_keep.map`, run `tests/test_world.py`: its reachability test fails if
   anything cuts off a chest, door, lever, exit, altar or the iron maiden, or if a chained lift is
   needed to get anywhere (shortcuts must stay optional). `verdant_hollow.map` has its
   own solvability test (counting planks, ledges and floorboards as footing, and decor as solid): every
-  chest and the boss must be reachable, and every drop must have a way back.
+  chest, lever and the boss must be reachable without barred doors, chained lifts or drawbridges, each
+  of those must join two places already reachable, and every drop must have a way back.
 - `game.message()` text may wrap spans in braces, e.g. `f"Obtained {{{item.name}}}."`: the HUD draws
   them in the highlight colour (`util.highlight_runs`). `tests/test_ui_logic.py` checks the small font
   has a glyph for every character used in game messages and names.
@@ -142,7 +167,8 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   covers the screen. Dying keeps everything the player carries and every flag: you wake at the last
   shrine (`Game._wake_at_shrine`) and only normal enemies (and a living boss's HP) come back.
 - Persistent world state lives in the save's `flags` set, keyed `<kind>:<map>:<tx>,<tz>` (opened
-  chests, broken barrels, revealed walls, slain mimics) or `loot:<key>` for dropped items. Bosses add
+  chests, broken barrels, revealed walls, slain mimics, kindled fires as `lit:`) or `loot:<key>` for
+  dropped items. Bosses add
   their `dead_flag` (`boss_dead`, `spider_dead`) and relics a `<relic>_taken` flag (`sigil_taken` for
   the Ember Sigil).
 - Equipment (`player/inventory.py`): two hand slots (`right` = left mouse button, `left` = right
@@ -156,6 +182,11 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   viewmodel draws without depth testing, so draw what faces the camera last.
 - Secret attacks are listed in `weapons.secret()`; performing one adds a `secret:<category>` flag,
   which reveals its name in Belongings and the shop.
+- Spells are `player/spells.py` (`Spells.ALL`, their formulas) and are taught by `scroll_<id>` items;
+  `Game._cast_spell` dispatches them. Venom Dart and Flame Bolt are bolts (`World.fire_bolt` with an
+  `effect`), Pyre is a short cone (`World.pyre`), Veil of Mist sets `Player.veil_t` (ordinary foes then
+  notice you only very close; striking or casting anything else lifts it), Lumen sets `lumen_t`. A new
+  spell also needs a HUD icon (`hud.spell_icon`) and colours in `models.SPELL_GLOW` / `SPELL_ORB`.
 - Shops are `dialogue.SHOPS` (Pell's goods, and Corvane's blades in the hut west of the square; Corvane
   won't talk below `CORVANE_LEVEL`).
 - Add dependencies with `uv add` (runtime) or `uv add --dev` (tooling), never by hand-editing

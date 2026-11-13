@@ -38,6 +38,7 @@ class Player:
         self.bob_t = 0.0
         self.hurt_t = 0.0
         self.lumen_t = 0.0
+        self.veil_t = 0.0  # seconds left wrapped in a Veil of Mist (foes overlook you)
         self.webbed_t = 0.0  # seconds left caught in spider silk
         self.spore_t = 0.0  # seconds left choking on spores
         self.swing_t = None
@@ -75,7 +76,7 @@ class Player:
         s.heal(s.max_hp)
         s.restore_mp(s.max_mp)
         self.stamina.fill()
-        self.hurt_t = self.lumen_t = self.webbed_t = self.spore_t = 0.0
+        self.hurt_t = self.lumen_t = self.veil_t = self.webbed_t = self.spore_t = 0.0
         self.swing_t = None
         self.charge_t = 0.0
         self.queued_quick = False
@@ -218,6 +219,7 @@ class Player:
         self.magic_gauge.update(dt)
         self.hurt_t = max(self.hurt_t - dt, 0)
         self.lumen_t = max(self.lumen_t - dt, 0)
+        self.veil_t = max(self.veil_t - dt, 0)
         self.webbed_t = max(self.webbed_t - dt, 0)
         self.spore_t = max(self.spore_t - dt, 0)
         if self.swing_t is None:
@@ -323,6 +325,7 @@ class Player:
             a = hidden
             self.combo_n = 0
         self.stamina.spend(min(a.stamina, self.stamina.value))
+        self.veil_t = 0.0  # a blow tears the mist apart
         self.attack = a
         self.swing_hand = hand
         self.swing_power = max(self.gauge(hand).spend(), a.min_power)

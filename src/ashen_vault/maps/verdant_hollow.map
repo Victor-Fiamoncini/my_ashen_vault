@@ -4,10 +4,11 @@ ambient = 0.24 0.31 0.21
 fog = 0.05 0.11 0.07
 fog_range = 3 22
 torch = 8 0.7 0.78 0.55
-start = 15 27 -90
+start = 25 33 180
 default = ,
 edge_top = 6
 edge_tex = vine_wall
+entity_floor = auto
 
 [legend]
 # = wall tex=vine_wall top=6 cap=canopy
@@ -41,95 +42,148 @@ e = floor tex=mud h=0.8 ceil=5.8 ceil_tex=wood_plank side=log_wall
 u = floor tex=wood_plank h=1.6 ceil=4.2 ceil_tex=wood_plank side=log_wall
 + = floor tex=wood_plank h=0.8 side=wood_plank
 & = floor tex=wood_plank h=1.2 side=wood_plank
+! = floor tex=rough_stone h=0 ceil=3.6 ceil_tex=cliff_rock side=cliff_rock dark=0.85
+$ = floor tex=rough_stone h=0.4 ceil=3.6 ceil_tex=cliff_rock side=cliff_rock dark=0.85
+( = floor tex=rough_stone h=0 ceil=3.6 ceil_tex=cliff_rock side=cliff_rock dark=0.5
+) = floor tex=rough_stone h=-3.2 ceil=3.6 ceil_tex=cliff_rock side=cliff_rock dark=0.85 chasm
+0 = floor tex=leaf_litter h=-0.4 ceil=3.8 ceil_tex=bark side=bark dark=0.37
+7 = floor tex=leaf_litter h=-0.8 ceil=3.4 ceil_tex=bark side=bark dark=0.44
+8 = floor tex=leaf_litter h=-1.2 ceil=3.0 ceil_tex=bark side=bark dark=0.51
+9 = floor tex=leaf_litter h=-1.6 ceil=2.6 ceil_tex=bark side=bark dark=0.58
+: = floor tex=leaf_litter h=-2.0 ceil=2.2 ceil_tex=bark side=bark dark=0.65
+; = floor tex=leaf_litter h=-2.4 ceil=1.8 ceil_tex=bark side=bark dark=0.72
+< = floor tex=leaf_litter h=-2.8 ceil=1.4 ceil_tex=bark side=bark dark=0.79
+> = floor tex=leaf_litter h=-3.2 ceil=1.0 ceil_tex=bark side=bark dark=0.86
+? = floor tex=leaf_litter h=-3.2 ceil=1.4 ceil_tex=bark side=cliff_rock dark=0.9
+@ = floor tex=mud h=-3.4 ceil=1.4 ceil_tex=bark side=mud dark=0.9 slow=0.65
+D = floor tex=thorns h=-3.2 ceil=1.4 ceil_tex=bark side=cliff_rock dark=0.9 hurt=5
+E = floor tex=ravine h=-9 ceil=1.4 ceil_tex=bark side=cliff_rock dark=0.9 chasm
+F = floor tex=wood_plank h=3.2 side=log_wall
+G = floor tex=wood_plank h=2.8 side=log_wall
+H = floor tex=wood_plank h=2.4 side=log_wall
+I = floor tex=wood_plank h=2.0 side=log_wall
+J = floor tex=wood_plank h=1.6 side=log_wall
+K = floor tex=jungle_floor h=-1.2 side=bark chasm
+L = floor tex=cliff_rock h=0.8 side=cliff_rock chasm
 
 [grid]
 ######################################################
-#########T,|,,,,,,,|,T##########AgggCCCCCCCg>>g!ggggA#
-########B,f,,,,,,,,,f,B#########AgggC0ibbbCggggggg@gA#
-########,,,,,,,L,,,,,,,#########Ag!gCiibbz2y456gggggA#
-########,t,,,,,,,,,,,t,#########AgggC(iiiiCgggggggggA#
-########|,,,,,,,,,,,,,,#########AgggC<iii}CgggggagggA#
-########B,f,,,,,,,,,f,B#########AgggCCCiCCCggggggJggA#
-#########T,,,,,,,,,,,T##########ggg@ggggggggggggggggA#
-##############,,,###############gg______________A6AAA#
-###############D################gg______________55AAA#
-###########p.......c#####^^q^###gd______________A4AAA#
-######............h.#####^^^^###gg______________A33AA#
-######P-F-#.l.......#####G######gg____________2722AAA#
-#-*-www-s-#####.h#######^^^^^ov#gg____________X___AAA#
-#*-*www-F-####p..#######^^j^^^^ggg____________X___AAA#
-#k-*~~~---#####..######NMMMMMMM#AA____________X___AAA#
-#-*-~~~--P#####rr######MMMMMBMU#AA____________X___AAA#
-#--sKKK-F-#####RR######MMMMMMMM#A1222222Z222272AAAAAA#
+#########T,|,,,,,,,|,T###KTKKKKKAggtCCCCCCCgNNgTggggA#
+########B,f,,,,,,,,,f,B##KKFpFKKAgggCPibbbCggÍggggtgA#
+########,,,,,,,U,,,,,,,#FFFFFFFFFgTgCiibbz2y456gggggA#
+########,t,,,,,,,,,,,t,#GKKVFtKÄAgggCViiiiCgggggggÛgA#
+########|,,,,,,,,,,,,,,#HKKKKKKKAgSgCNiii}CggggghgggA#
+########B,f,,,,,,,,,f,B#IKKKKKKKAÆggCCCiCCCggggggWggA#
+#########T,,,,,,,,,,,T##JKKKKKTKgggtggggggggggggggggA#
+##############,,,#######JKKTKKKKgg______________A6AAA#
+###############[########^KKKKKKKgg______________55AAA#
+###########p.......cÅ###^Å^qÃ###gp______________A4AAA#
+##########........h..rrRR^^^^###gg______________A33AA#
+######p-]-#.tÍ......Å####a######gg____________2d22AAA#
+#-*-www-s-#####.h#######^^^^^t^#gg____________X___AAA#
+#*-*www-]-####p..#######^^h^^^^gÈg____________j___AAA#
+#k-*~~~---#####..######pMMMMMMM#AÇ____________j___AAA#
+#-*-~~~--p#####rr######MMMMMBMT#A1____________X___AAA#
+#--slll-]-#####RR######MMMMMMMM#A1222222Z2222d2AAAAAA#
 #*-*~~~---#####rr#####mm%%%%mmm#AmAAAAAAAAAAAAAAAAAAA#
-#-F-~~~--O#####.l#####mmBmmHmmmmmmmm;mmmmmmmmmmm?mmmA#
-#-**~~~-F-####p..#####mVmmmmmmm#m:mmmm~~~~~~~~~mmHmmA#
-#)--~~Y---#####..#####t,,,W,,,n#mmmmm~~~QQQQQQ~~mmmmA#
-#-P-~~~-*-#####..#####,,,,B,,,T#mmm?m~~~QuI{uQ~~m;mmA#
-#~--~~~---#B,t,,,t,B##,,,,,,,,,#mmmmmm+&uuuu$Q~~mmmmA#
-#####-F-s-#,W,,,,,,,##,,,,,,,,x#m:mmm~~~Q8u{IQ~~mmmmA#
-######.....,,,,,,,,T...#########mmmmm~~~QQQQQQ~~m:mmA#
-###########,,,,,,,S,############mmmmmm~~~~~~~~~mm9mmA#
-###########,T,,,,,,,/`##########AAAAAAAAAAAAAAAAAAAAA#
-###############E######################################
-######################################################
+#-]-~~~--O#####Â######mmBmmhmmmmmmmmpmmmmmmmmmmmnmmmA#
+#-**~~~-]-####p..#####mTmmmmmmm#mTmmmm~~~~~~~~~mmhmmA#
+#o--~~Y---#####..#####t,,,O,,,v#mmmmm~~~QQQQQQ~~mmmmA#
+#-p-~~~-*-#####.t#####,,,,B,,,T#mmmnÍ~~~QuÀ{uQ~~mpmmA#
+#~Í-~~~---#B,t,,,t,B##,,,,,,Í,,#mmmmmm+&uuuuÁQ~~mmmmA#
+#####-]-s-#,Í,,,,,,,##,,,,,,,,x#mTmmm~~~QVu{ÀQ~~mmmmA#
+######.....,,,,,Æ,,T...#########mmmmm~~~QQQQQQ~~mTÍmA#
+######0####,,,,,,,S,############mmmmmm~~~~~~~~~mmtmmA#
+######7####,T,,,,,,,/`##########AAAAAAAAAAAAAAAAAAAAA#
+######Ò########!!#####################################
+######9#######Î!!!####################################
+AAAAAA:AAAAAÌ!!!!!!!!$$!ÌAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAA;AAAAA!Ê!!!!!s!$$!!!!AAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAA<AAAAAË!!!!!!!!!!!((ÐAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAA>AAAAA!!!!!!!!!!!!((ÉAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAÌ?Î?????ÍA!!!!!s!!!!Ï!(((AAAAAAAAAAAAAAAAAAAAAAAAAAA
+AA?????Æ???AA!!!!!Í!!!!Í!!AAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AA??@@?????AAA!!!!!!!!!!!AAAAAßAAAAAAAAAAAAAAAAAAAAAAA
+AA??@@?????AAAAAÌ!!!!!!AAAAAAA?AAAAAAAAAAAAAAAAAAAAAAA
+AA?Û???????AAAAAAAAAÑAAAAAAAAAÞAAAAAAAAAAAAAAAAAAAAAAA
+AA???????????E???????Õ????h???ÌAA??AAAAAAAAAAAAAAAAAAA
+AA??????h????EÔ????????????????AA??AAAAAAAAAAAAAAAAAAA
+AA?Ï?????????Ó????Û??????Ú????Ý??s?AAAAAAAAAAAAAAAAAAA
+AA???????????E????????Î????????????AAAAAAAAAAAAAAAAAAA
+AA???????Û???E??Ú???????????Û??AA??AAAAAAAAAAAAAAAAAAA
+AA???O???????E?????????Í?????Ü?AA?ÙAAAAAAAAAAAAAAAAAAA
+AAA??AAAAAAAAAAAAAAAAAAAAAAAAAAAA??AAAAAAAAAAAAAAAAAAA
+AAA??AAAAAAAAAAAAAAAAAAAAAAAAAAAA??AAAAAAAAAAAAAAAAAAA
+AAA??????DDD???????s??@@????Ø??????AAAAAAAAAAAAAAAAAAA
+AAA??????DDD????Ö?????@@???????????AAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 
 [entities]
-L = loom_mother yaw=90 on=,
-D = door key=briar_key on=,
-G = gate lever=hollow_lever on=^
-v = lever id=hollow_lever on=^
-E = exit map=harrowmere at=25,12,90 label=Return_to_Harrowmere model=vine_door yaw=-90 on=.
-S = save_statue on=,
-k = chest item=claymore on=-
-q = chest item=red_tonic count=3 gold=80 on=^
-c = chest item=blue_moss count=2 gold=30 on=.
-x = chest item=red_tonic count=2 on=,
-s = mire_slime on=-
-K = plank on=~
+v = snare_bloom on=,
+S = save_statue
+k = chest item=claymore
+q = chest item=red_tonic count=3 gold=80
+c = chest item=blue_moss count=2 gold=30
+x = chest item=red_tonic count=2
+s = mire_slime
 Y = raft to=4,21 speed=1.1 on=~
-O = stump_mimic on=-
-W = stump_mimic on=,
-p = snare_bloom on=.
-P = snare_bloom on=-
-n = snare_bloom on=,
-N = snare_bloom on=M
-h = bark_husk on=.
-H = bark_husk on=m
-j = bark_husk on=^
-t = torch radius=7 on=,
-l = torch radius=7 on=.
-o = torch radius=7 on=^
-f = fungus radius=10 on=,
-F = fungus radius=5 on=-
-T = jungle_tree on=,
-U = jungle_tree on=M
-V = jungle_tree on=m
+O = stump_mimic
+W = log_chute to=49,13 every=2.6 speed=4.5 logs=10
+p = snare_bloom
+P = table
+n = fungus radius=6
+N = crate
+h = bark_husk
+j = ledge deck=1.2
+t = torch radius=7
+l = plank on=~
+o = frog_idol
+f = fungus radius=10
+T = jungle_tree
+U = loom_mother yaw=90
+V = torch radius=6
 b = boards deck=3.2 on=e
 z = chest item=briar_key on=e
 y = stump_mimic item=felling_axe on=3
 X = ledge deck=1.2 on=_
-J = log_chute to=49,13 every=2.6 speed=4.5 logs=10 on=g
-I = spore_pod every=4.5 on=u
-Z = spore_pod every=3.6 on=2
-$ = chest item=red_tonic count=3 gold=90 on=u
-a = bark_husk on=g
-d = snare_bloom on=g
-; = snare_bloom on=m
-: = jungle_tree on=m
-! = jungle_tree on=g
-? = fungus radius=6 on=m
-@ = torch radius=7 on=g
-( = torch radius=6 on=i
-8 = torch radius=6 on=u
-9 = torch radius=7 on=m
-7 = torch radius=8 on=2
-0 = table on=i
-< = crate on=i
-} = rack on=i
-> = crate on=g
-{ = barrel on=u
-| = cocoon on=,
-/ = secret_wall model=vines top=6 on=,
-` = chest item=blue_moss count=3 gold=150 on=,
-) = frog_idol on=-
+Z = spore_pod every=3.6
+a = gate lever=hollow_lever
+d = torch radius=8
+} = rack
+{ = barrel
+| = cocoon
+/ = secret_wall model=vines top=6
+` = chest item=blue_moss count=3 gold=150
+[ = door key=briar_key
+] = fungus radius=5
+À = spore_pod every=4.5
+Á = chest item=red_tonic count=3 gold=90
+Â = door from=n on=.
+Ã = lever id=hollow_lever model=wood
+Ä = jungle_tree on=K
+Å = totem
+Æ = bonfire
+Ç = lift top=3.2 start=top lever=rim_lift on=L
+È = lever id=rim_lift model=wood
+É = exit map=harrowmere at=43,14,180 label=Return_to_Harrowmere model=cave_mouth yaw=180
+Ê = brazier unlit
+Ë = chest item=scroll_pyre gold=20
+Ì = shelf_fungus
+Í = mushrooms
+Î = roots
+Ï = bones
+Ð = torch radius=5 on=(
+Ñ = lift top=0 lever=root_lift on=)
+Ò = roots on=8
+Ó = bridge lever=root_bridge hinge=e deck=-3.2 on=E
+Ô = lever id=root_bridge model=wood
+Õ = lever id=root_lift model=wood
+Ö = spore_pod every=3.8
+Ø = spore_pod every=4.4 phase=1.5
+Ù = spore_pod every=4
+Ú = bonfire unlit
+Û = giant_mushroom
+Ü = chest item=scroll_venom gold=40
+Ý = cobweb
+Þ = secret_wall model=web top=1.4
+ß = chest item=scroll_veil gold=120

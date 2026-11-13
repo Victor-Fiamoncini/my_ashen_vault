@@ -99,7 +99,7 @@ def test_separate_pushes_apart():
 STATIC_BLOCKERS = (
     *("barrel", "crate", "urn", "iron_maiden", "save_statue", "well", "npc"),
     *("altar", "table", "rack", "rubble", "cocoon", "frog_idol"),
-    *("pillar", "sarcophagus", "bell"),
+    *("pillar", "sarcophagus", "bell", "bonfire", "giant_mushroom", "totem"),
 )
 
 
@@ -220,27 +220,33 @@ def _spec(m, kind, **props):
     return [s for s in m.entities if s.kind == kind and all(s.props.get(k) == v for k, v in props.items())]
 
 
-def test_harrowmere_has_the_overgrown_house_exit():
+def test_harrowmere_has_the_jungle_cave():
+    """The jungle is reached by a trail out of the square's east side, ending at a cave mouth."""
     m = MapLoader.load_file(os.path.join(MAP_DIR, "harrowmere.map"))
     (exit_,) = _spec(m, "exit", map="verdant_hollow")
-    assert (exit_.tx, exit_.tz) == (25, 11)
+    assert exit_.props["model"] == "cave_mouth"
     assert m[exit_.tx, exit_.tz].walkable
-    assert m[exit_.tx, exit_.tz - 1].solid  # the house behind the doorway
-    assert m[exit_.tx, exit_.tz + 1].walkable  # the grass in front of it
+    assert m[exit_.tx + 1, exit_.tz].solid  # rock behind the mouth
+    assert m[exit_.tx - 1, exit_.tz].walkable  # the trail in front of it
+    sx, sz = (int(v) for v in m.meta["start"][:2])
+    assert (exit_.tx - 1, exit_.tz) in _reachable(m, (sx, sz))
+    assert not _spec(m, "exit", model="vine_door")  # the overgrown house is shut
 
 
 def test_verdant_hollow_loads_with_start_exit_boss_and_enemies():
     m = MapLoader.load_file(os.path.join(MAP_DIR, "verdant_hollow.map"))
     assert m.meta["name"] == "The Verdant Hollow"
-    assert (m.width, m.depth) == (54, 30)
+    assert (m.width, m.depth) == (54, 50)
     sx, sz = (int(v) for v in m.meta["start"][:2])
     assert m[sx, sz].walkable
     (back,) = _spec(m, "exit", map="harrowmere")
+    assert (back.tx, back.tz) == (sx + 1, sz)  # you arrive just inside the cave mouth
     tx, tz, _ = (int(v) for v in back.props["at"].split(","))
     town = MapLoader.load_file(os.path.join(MAP_DIR, "harrowmere.map"))
     assert town[tx, tz].walkable
-    (house,) = _spec(town, "exit", map="verdant_hollow")
-    assert (tx, tz) == (house.tx, house.tz + 1)  # lands in front of the house
+    (cave,) = _spec(town, "exit", map="verdant_hollow")
+    assert (tx, tz) == (cave.tx - 1, cave.tz)  # lands in front of the cave
+    assert [int(v) for v in cave.props["at"].split(",")[:2]] == [sx, sz]
     kinds = [s.kind for s in m.entities]
     assert kinds.count("loom_mother") == 1
     assert "snare_bloom" in kinds and "bark_husk" in kinds
@@ -251,20 +257,35 @@ def test_verdant_hollow_loads_with_start_exit_boss_and_enemies():
     assert keys and keys <= chest_items
 
 
-def _reachable(m, start, open_tiles=()):
+def _reachable(m, start, open_tiles=(), shortcuts=False):
     """Tiles a walker can reach from `start`, honoring step heights; doors count as closed unless listed.
-    Fixed platforms (planks, ledges, floorboards) count as footing at their deck height."""
+    Fixed platforms (planks, ledges, floorboards) count as footing at their deck height. Platforms
+    chained to a lever (lifts, drawbridges) only count with `shortcuts`: a lift then links the
+    landings at its two ends."""
     # Doors, gates and hidden walls block until opened; decor and breakables always count as
     # solid, so a crate or a cocoon can never be what cuts a path off.
     blocked = {
         (s.tx, s.tz) for s in m.entities if s.kind in ("door", "gate", "secret_wall", *STATIC_BLOCKERS)
     }
     blocked -= set(open_tiles)
+    platforms = [p for p in terrain.build_platforms(m) if p.kind != "raft" and (shortcuts or not p.lever)]
     decks = {
-        (TileMap.tile_coord(p.x), TileMap.tile_coord(p.z)): p.deck
-        for p in terrain.build_platforms(m)
-        if p.kind != "raft"
+        (TileMap.tile_coord(p.x), TileMap.tile_coord(p.z)): p.deck for p in platforms if p.kind != "lift"
     }
+    links = {}
+    for p in platforms:
+        if p.kind != "lift":
+            continue
+        sx, sz = TileMap.tile_coord(p.x), TileMap.tile_coord(p.z)
+        sides = [(sx + dx, sz + dz) for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1))]
+        ends = [
+            [t for t in sides if m[t].walkable and abs(m[t].floor - h) <= collision.STEP_HEIGHT]
+            for h in (p.low, p.high)
+        ]
+        for a in ends[0]:
+            links.setdefault(a, []).extend(ends[1])
+        for b in ends[1]:
+            links.setdefault(b, []).extend(ends[0])
 
     def floating(tx, tz):
         return (tx, tz) in decks
@@ -273,37 +294,116 @@ def _reachable(m, start, open_tiles=()):
     todo = [start]
     while todo:
         x, z = todo.pop()
-        for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-            n = (x + dx, z + dz)
+        steps = [(x + dx, z + dz) for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1))]
+        for n in steps + links.get((x, z), []):
             if n in seen or n in blocked:
                 continue
-            if collision.passable(m, *n, decks.get((x, z), m[x, z].floor), floating=floating):
+            ridden = n in links.get((x, z), [])
+            if ridden or collision.passable(m, *n, decks.get((x, z), m[x, z].floor), floating=floating):
                 seen.add(n)
                 todo.append(n)
     return seen
 
 
+def _verdant():
+    return MapLoader.load_file(os.path.join(MAP_DIR, "verdant_hollow.map"))
+
+
 def test_verdant_hollow_is_solvable():
-    m = MapLoader.load_file(os.path.join(MAP_DIR, "verdant_hollow.map"))
+    """The honest way through: every chest, lever and the boss can be reached with only the key
+    and hidden walls opened. Barred doors, chained lifts and drawbridges are shortcuts: never needed,
+    but each one joins two places you can already reach."""
+    m = _verdant()
     start = tuple(int(v) for v in m.meta["start"][:2])
     reach = _reachable(m, start)
     at = {s.kind + ":" + (s.props.get("item") or s.props.get("id") or ""): (s.tx, s.tz) for s in m.entities}
     assert at["chest:briar_key"] in reach
-    assert at["lever:hollow_lever"] in reach
+    for s in _spec(m, "lever"):
+        assert (s.tx, s.tz) in reach, s.props
     (boss,) = _spec(m, "loom_mother")
     assert (boss.tx, boss.tz) not in reach  # behind the locked door
     doors = [(s.tx, s.tz) for s in m.entities if s.kind in ("door", "gate", "secret_wall")]
-    opened = _reachable(m, start, open_tiles=doors)
+    barred = [(s.tx, s.tz) for s in _spec(m, "door") if s.props.get("from")]
+    honest = [d for d in doors if d not in barred]
+    opened = _reachable(m, start, open_tiles=honest)
     assert (boss.tx, boss.tz) in opened
-    # The cache behind the vine curtain only opens up once you cut through it.
-    (cache,) = [s for s in m.entities if s.kind == "chest" and s.props.get("gold") == "150"]
-    assert (cache.tx, cache.tz) not in reach and (cache.tx, cache.tz) in opened
+    # The caches behind the vine curtain and the web only open up once you get through them.
+    for gold in ("150", "120"):
+        (cache,) = [s for s in m.entities if s.kind == "chest" and s.props.get("gold") == gold]
+        assert (cache.tx, cache.tz) not in reach and (cache.tx, cache.tz) in opened
     for s in m.entities:
         if s.kind == "chest":
             assert (s.tx, s.tz) in opened, s.props
+    # Each shortcut joins two places the honest route already reaches.
+    for tx, tz in barred:
+        assert {(tx, tz - 1), (tx, tz + 1)} <= opened or {(tx - 1, tz), (tx + 1, tz)} <= opened
+    for p in terrain.build_platforms(m):
+        if not p.lever:
+            continue
+        sx, sz = TileMap.tile_coord(p.x), TileMap.tile_coord(p.z)
+        near = {(sx + dx, sz + dz) for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1))}
+        sides = {round(m[t].floor, 1) for t in near & opened}
+        want = {p.low, p.high} if p.kind == "lift" else {round(p.deck, 1)}
+        assert sides >= want, (p.kind, sx, sz)
+        assert len(near & opened) >= 2, (p.kind, sx, sz)
     # Every tile you can drop into, you can climb back out of.
-    for tile in opened:
-        assert start in _reachable(m, tile, open_tiles=doors), tile
+    full = _reachable(m, start, open_tiles=doors, shortcuts=True)
+    for tile in full:
+        assert start in _reachable(m, tile, open_tiles=doors, shortcuts=True), tile
+
+
+def _steps(m, start, goal, open_tiles):
+    """Fewest tile steps from `start` to `goal`, walking as `_reachable` does (no shortcuts)."""
+    blocked = {
+        (s.tx, s.tz) for s in m.entities if s.kind in ("door", "gate", "secret_wall", *STATIC_BLOCKERS)
+    }
+    blocked -= set(open_tiles)
+    decks = {
+        (TileMap.tile_coord(p.x), TileMap.tile_coord(p.z)): p.deck
+        for p in terrain.build_platforms(m)
+        if p.kind != "raft" and not p.lever
+    }
+    dist = {start: 0}
+    frontier = [start]
+    while frontier:
+        nxt = []
+        for x, z in frontier:
+            for n in ((x + 1, z), (x - 1, z), (x, z + 1), (x, z - 1)):
+                if n in dist or n in blocked:
+                    continue
+                if collision.passable(
+                    m, *n, decks.get((x, z), m[x, z].floor), floating=lambda tx, tz: (tx, tz) in decks
+                ):
+                    dist[n] = dist[(x, z)] + 1
+                    nxt.append(n)
+        frontier = nxt
+    return dist.get(goal)
+
+
+def test_verdant_hollow_shortcuts_cut_the_way_to_the_boss():
+    """The boss door is a long way round from the first shrine at first; the antechamber's barred
+    door then opens straight back onto it."""
+    m = _verdant()
+    shrine = max(_spec(m, "save_statue"), key=lambda s: s.tz)  # the first shrine, by the clearing
+    (boss_door,) = _spec(m, "door", key="briar_key")
+    (barred,) = [s for s in _spec(m, "door") if s.props.get("from")]
+    secrets = [(s.tx, s.tz) for s in _spec(m, "secret_wall")]
+    front = (boss_door.tx, boss_door.tz + 1)
+    here = (shrine.tx, shrine.tz - 1)
+    long_way = _steps(m, here, front, secrets)
+    short_way = _steps(m, here, front, [*secrets, (barred.tx, barred.tz)])
+    assert long_way > 80 and short_way < 25, (long_way, short_way)
+
+
+def test_verdant_hollow_has_dark_caves_with_cold_fires_and_new_spells():
+    m = _verdant()
+    sx, sz = (int(v) for v in m.meta["start"][:2])
+    assert m[sx - 3, sz].dark >= 0.8  # Mossmouth
+    cold = [s for s in m.entities if s.kind in ("brazier", "bonfire") and "unlit" in s.props]
+    assert cold and all(m[s.tx, s.tz].dark > 0 for s in cold)
+    scrolls = {s.props.get("item") for s in _spec(m, "chest")}
+    assert {"scroll_pyre", "scroll_venom", "scroll_veil"} <= scrolls
+    assert all(s.props.get("model") == "wood" for s in _spec(m, "lever"))
 
 
 AUTO = """[meta]

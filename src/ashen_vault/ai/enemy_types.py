@@ -48,6 +48,8 @@ class EnemyType:
     rage: str | None = None
     # Moves a boss only adds to its mix once it reaches its second phase.
     phase_moves: tuple = ()
+    # Plant foes: fire (Pyre) hurts them more and leaves them burning.
+    flammable: bool = False
 
     @property
     def rooted(self):
@@ -160,6 +162,7 @@ class EnemyTypes:
             ),
             EnemyType(
                 id="snare_bloom",
+                flammable=True,
                 name="Snare Bloom",
                 hp=22,
                 speed=0.0,
@@ -180,6 +183,7 @@ class EnemyTypes:
             ),
             EnemyType(
                 id="bark_husk",
+                flammable=True,
                 name="Bark Husk",
                 hp=70,
                 speed=1.1,
@@ -200,6 +204,7 @@ class EnemyTypes:
             ),
             EnemyType(
                 id="stump_mimic",
+                flammable=True,
                 name="Stump Mimic",
                 hp=34,
                 speed=1.9,

@@ -46,14 +46,14 @@ def test_odrin_intro_asks_for_both_sigils_and_gives_supplies():
 def test_odrin_without_sigils_gives_directions():
     g = FakeGame(flags={"quest"})
     _, text = talk("odrin", g)
-    assert "well" in text and "overgrown house" in text
+    assert "well" in text and "green trail" in text
     assert not g.finished
 
 
 def test_odrin_with_only_the_ember_sigil_points_to_the_hollow():
     g = FakeGame(flags={"quest"}, items=["ember_sigil"])
     _, text = talk("odrin", g)
-    assert "overgrown house" in text and "Verdant Sigil" in text
+    assert "green trail" in text and "Verdant Sigil" in text
     assert not g.finished
     assert g.player.inventory.has("ember_sigil")
 
@@ -91,13 +91,13 @@ def test_odrin_reminds_about_fallen_bosses_relics():
     assert "Warden has fallen" not in text
 
 
-def test_hollis_hints_at_the_overgrown_house_until_the_spider_dies():
+def test_hollis_hints_at_the_green_trail_until_the_spider_dies():
     _, text = talk("hollis", FakeGame())
-    assert "overgrown house" in text
+    assert "green trail" in text
     _, text = talk("hollis", FakeGame(flags={"spider_dead"}))
-    assert "overgrown house" not in text
+    assert "green trail" not in text
     _, text = talk("hollis", FakeGame(flags={"lever:north_lever"}))
-    assert "north gate" in text and "overgrown house" in text
+    assert "north gate" in text and "green trail" in text
 
 
 def test_pell_greets_once_then_opens_the_shop():

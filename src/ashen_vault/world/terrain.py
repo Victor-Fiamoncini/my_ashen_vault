@@ -10,7 +10,7 @@ from ashen_vault.util import rround
 from ashen_vault.world import collision
 from ashen_vault.world.tile_map import TileMap
 
-PLATFORM_KINDS = ("raft", "plank", "ledge", "boards", "lift")
+PLATFORM_KINDS = ("raft", "plank", "ledge", "boards", "lift", "bridge")
 TERRAIN_KINDS = (*PLATFORM_KINDS, "log_chute", "spore_pod")
 HALF = 0.95  # half the side of a platform's square deck, in metres
 GRACE = 0.15  # how far past the deck's edge you still count as standing on it
@@ -45,6 +45,7 @@ SPORE_R = 1.8  # cloud radius
 SPORE_LINGER = 1.2  # seconds the spores keep you sluggish after you leave the cloud
 SPORE_TICK = 0.8  # seconds between choking coughs
 SPORE_DAMAGE = 3
+BRIDGE_DROP = 1.4  # seconds a drawbridge takes to swing down once its lever is pulled
 LIFT_SPEED = 1.6  # m/s a lift climbs or sinks at
 LIFT_DELAY = 0.7  # seconds you stand on a resting lift before it sets off
 LIFT_CALL = 1.0  # seconds you wait at an empty landing before the lift comes for you
@@ -95,10 +96,13 @@ class Platform:
     lever: str | None = None
     nagged: bool = False  # already said it is locked, until you step off
     hold: bool = False  # just arrived: whoever rode it must step off before it goes again
+    # A drawbridge stands raised (0) until its lever is pulled, then swings down (to 1). It only
+    # bears weight once it is all the way down. Other platforms are always "down".
+    lowered: float = 1.0
 
     @property
     def afloat(self):
-        return self.sunk_t <= 0
+        return self.sunk_t <= 0 and self.lowered >= 1.0
 
     def covers(self, x, z):
         """Is (x, z) standing on the deck? A little lenient, so stepping on from a bank is safe.
@@ -144,6 +148,8 @@ class Platform:
             self._drift(dt)
         elif self.kind == "lift":
             event = self._lift(dt, loaded, call)
+        elif self.kind == "bridge":
+            event = self._lower(dt)
         else:
             self._rot(dt, loaded)
         self.dx = self.x - ox
@@ -187,6 +193,13 @@ class Platform:
         self.at = None
         self.going = 1 if other == "high" else -1
         return "lift_start"
+
+    def _lower(self, dt):
+        """A drawbridge whose lever has been pulled swings down; "bridge_down" when it lands."""
+        if self.locked or self.lowered >= 1.0:
+            return None
+        self.lowered = min(self.lowered + dt / BRIDGE_DROP, 1.0)
+        return "bridge_down" if self.lowered >= 1.0 else None
 
     def _drift(self, dt):
         """Ferries back and forth between its two landings, pausing at each."""
@@ -355,6 +368,10 @@ def build_platforms(map_):
             p.speed = float(spec.props.get("speed", str(LIFT_SPEED)))
             p.lever = spec.props.get("lever")
             p.locked = p.lever is not None
+        elif spec.kind == "bridge":
+            p.lever = spec.props.get("lever")
+            p.locked = p.lever is not None
+            p.lowered = 0.0 if p.locked else 1.0
         elif spec.kind == "raft":
             tx, tz = _coords(spec.props.get("to"), spec.tx, spec.tz)
             p.bx, p.bz = TileMap.center(tx, tz)
@@ -505,7 +522,8 @@ class Terrain:
                 elif lift_event:
                     self._hear(p.x, p.z, body, *LIFT_SOUND[lift_event])
                 continue
-            p.update(dt, loaded=p is under)
+            if p.update(dt, loaded=p is under) == "bridge_down":
+                self._hear(p.x, p.z, body, "clunk", 1.0)
             if p.kind not in ROT:
                 continue
             if was_afloat and not p.afloat:
