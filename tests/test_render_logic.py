@@ -92,7 +92,7 @@ class _RecordingGpu:
         return m
 
     def draw_part(self, kind, matrix, rgb, tex="white", glow=False):
-        assert kind in ("cube", "sphere", "cyl", "cone", "quad")
+        assert kind in ("cube", "sphere", "cyl", "cone", "quad", "blade", "lozenge", "wedge")
         assert all(0 <= c <= 255 for c in rgb), rgb
         self.parts.append((kind, matrix[7]))
 
@@ -253,16 +253,27 @@ def test_first_person_view_draws_every_hand_and_swing():
                     inv.equip(id_)
                 p = Player(inventory=inv)
                 p.spells = ["flame"]
-                for kind in (weapons.LIGHT, weapons.HEAVY, None):
+                for kind in (weapons.LIGHT, weapons.HEAVY, weapons.QUICK, None):
                     p.swing_t = None
                     p.guarding = kind is None
+                    p.stamina.fill()
                     hand = "right"
                     if kind and p.hand_item(hand).kind == "weapon":
-                        p.start_swing(hand, kind)
+                        p.start_swing(hand, kind, secrets=False)
                         p.swing_t = p.swing_time * 0.5
                     gpu = _RecordingGpu()
                     models.weapon_view(rig.Rig(gpu), p, 0.0, t=1.0)
                     assert len(gpu.parts) >= 6, (id_, body, gloves, kind)
+    # Edged weapons leave a smear of ghost blades through the blow; blunt ones don't.
+    for id_, smears in (("rusted_sword", True), ("katana", True), ("mace", False)):
+        p = Player(inventory=Inventory(right=id_))
+        p.start_swing()
+        p.swing_t = p.swing_hit_at
+        gpu = _RecordingGpu()
+        models.weapon_view(rig.Rig(gpu), p, 0.0)
+        ghosts = models.TRAIL_GHOSTS if smears else 0
+        blades = sum(1 for kind, _ in gpu.parts if kind == "blade")
+        assert blades >= ghosts and (blades >= 1 if smears else blades == 0), id_
     # Holding a katana heavy settles into the draw stance without errors.
     p = Player(inventory=Inventory(right="katana"))
     p.charge_t = 1.0
@@ -306,6 +317,37 @@ def test_the_wardens_blade_burns_in_his_second_phase():
     e.phase2 = True
     models.enemy(rig.Rig(burning), e)
     assert burning.glows > calm.glows
+
+
+def _drawn(type_id, phase2=False, state="chase"):
+    import random
+
+    from ashen_vault.ai.enemy import Enemy
+    from ashen_vault.ai.enemy_types import EnemyTypes
+    from ashen_vault.render import models
+
+    e = Enemy(EnemyTypes.get(type_id), 0, 0, rng=random.Random(0))
+    e.state, e.state_t, e.anim_t, e.phase2 = state, 0.5, 1.0, phase2
+    gpu = _ExtentGpu()
+    models.enemy(rig.Rig(gpu), e)
+    count = _RecordingGpu()
+    models.enemy(rig.Rig(count), e)
+    return gpu, len(count.parts)
+
+
+def test_bosses_have_boss_level_detail():
+    for boss in ("ashen_warden", "butcher", "brand", "bellows", "loom_mother"):
+        assert _drawn(boss)[1] >= 50, boss
+    for foe in ("bone_walker", "gaoler", "forge_golem", "iron_bowman", "slag_hound", "bone_crawler", "mimic"):
+        assert _drawn(foe)[1] >= 30, foe
+
+
+def test_phase_two_changes_how_each_boss_looks():
+    for boss in ("ashen_warden", "butcher", "brand", "bellows"):
+        (calm, calm_n), (raging, raging_n) = _drawn(boss), _drawn(boss, phase2=True)
+        assert raging.glows > calm.glows or raging_n > calm_n, boss
+        dead, _ = _drawn(boss, phase2=True, state="dead")
+        assert dead.glows == 0, f"{boss}'s fires go out when it dies"
 
 
 def test_keep_props_lift_lever_and_fire_draw():

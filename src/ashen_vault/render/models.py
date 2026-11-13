@@ -5,6 +5,7 @@ from contextlib import contextmanager
 
 from ashen_vault.ai.enemy import COMBO_GAP
 from ashen_vault.player.items import Items
+from ashen_vault.render import shapes
 from ashen_vault.util import rround
 from ashen_vault.world import terrain
 
@@ -130,15 +131,23 @@ def held(r, wrist, rgb, size=0.12, splay=0.0):
 
 
 def sword_parts(r, length, width, steel, grip=(60, 40, 28), guard=IRON, glow=False):
-    """A straight sword in a `held` frame: pommel and grip through the fist, a crossguard, then a
-    flat blade with a darker fuller, ending in a tapered point."""
-    r.part("sphere", -0.14, 0, 0, 0.07, 0.07, 0.07, guard)
-    r.part("cube", 0.01, 0, 0, 0.26, 0.05, 0.05, grip)
-    r.part("cube", 0.17, 0, 0, 0.05, 0.07, width * 2.4, guard)
-    blade = length - 0.14
-    r.part("cube", 0.2 + blade / 2, 0, 0, blade, width, 0.035, steel, glow=glow)
-    r.part("cube", 0.2 + blade / 2 - 0.05, 0, 0, blade - 0.1, width * 0.25, 0.045, _dim(steel), glow=glow)
-    r.part("cube", 0.2 + blade + 0.06, 0, 0, 0.12, width * 0.55, 0.03, steel, glow=glow)
+    """A straight sword in a `held` frame (grip along +X through the fist, the blade's flat facing +-Z):
+    the same `blade_parts` the player's swords use, turned onto the frame's +X."""
+    with r.at(0, 0, 0, rx=math.pi / 2), r.at(0, 0, 0, rz=-math.pi / 2):
+        blade_parts(
+            r,
+            length - 0.13,
+            width,
+            steel,
+            thick=0.036,
+            base=0.17,
+            guard_w=width * 2.6,
+            guard_rgb=guard,
+            grip=0.26,
+            grip_rgb=grip,
+            pommel_rgb=guard,
+            glow=glow,
+        )
 
 
 def _dim(rgb, k=0.7):
@@ -158,80 +167,276 @@ def walk_cycle(e, t):
     return math.sin(t * 7) * 0.5 if e.state in ("chase", "idle") else 0
 
 
+def _bar(r, a, b, thick, rgb, glow=False):
+    """A box from point a to point b in the current frame, `thick` across (bones, struts, chains)."""
+    dx, dy, dz = b[0] - a[0], b[1] - a[1], b[2] - a[2]
+    length = math.sqrt(dx * dx + dy * dy + dz * dz)
+    if length < 1e-6:
+        return
+    yaw = math.atan2(-dz, dx)
+    pitch = math.asin(max(-1.0, min(1.0, dy / length)))
+    mid = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2)
+    r.part("cube", *mid, length, thick, thick, rgb, ry=yaw, rz=pitch, glow=glow)
+
+
+def skull(r, bone, eyes=(30, 10, 10), glow=False, jaw=0.0):
+    """A skull facing +X centred on the origin (about 0.3 m tall): cranium, brow ridge, deep sockets
+    (lit with `eyes` when `glow`), cheekbones, a nasal hollow, a row of teeth and a jaw hinged open
+    by `jaw` radians."""
+    shade = _dim(bone, 0.78)
+    r.part("sphere", -0.02, 0.04, 0, 0.27, 0.25, 0.24, bone)  # cranium
+    r.part("cube", 0.07, -0.03, 0, 0.12, 0.12, 0.17, bone)  # face
+    r.part("cube", 0.115, 0.035, 0, 0.05, 0.035, 0.19, shade)  # brow ridge
+    for z in (-0.045, 0.045):
+        r.part("cube", 0.125, -0.005, z, 0.03, 0.055, 0.06, eyes, glow=glow)  # sockets
+        r.part("cube", 0.08, -0.055, z * 2.1, 0.07, 0.04, 0.035, bone)  # cheekbones
+    r.part("cube", 0.132, -0.055, 0, 0.02, 0.04, 0.03, (40, 30, 26))  # nasal hollow
+    r.part("cube", 0.125, -0.09, 0, 0.03, 0.03, 0.13, _bright(bone, 1.0, 18))  # teeth
+    with r.at(0.0, -0.1, 0, rz=-jaw):
+        r.part("cube", 0.06, -0.03, 0, 0.13, 0.04, 0.15, shade)  # jaw
+        r.part("cube", 0.115, 0.005, 0, 0.03, 0.025, 0.12, _bright(bone, 1.0, 18))
+
+
+def ribcage(r, bone, ribs=4, width=0.34, spacing=0.09, top=0.0, depth=0.17):
+    """Rib pairs curving from a spine (running down Y at the origin) out round the sides and in to a
+    breastbone `depth` in front (+X), each lower rib a little narrower."""
+    front = depth * 0.65
+    for i in range(ribs):
+        y = top - i * spacing
+        w = width * (1 - 0.07 * i) / 2
+        for side in (1, -1):
+            out = (front * 0.25, y - 0.02, side * w)
+            _bar(r, (-0.02, y, side * 0.03), out, 0.032, bone)
+            _bar(r, out, (front, y - 0.06, side * 0.035), 0.03, bone)
+    _bar(r, (front, top - 0.03, 0), (front, top - (ribs - 1) * spacing - 0.07, 0), 0.04, _dim(bone, 0.85))
+
+
+def hand(r, rgb, size=0.1, bony=False, curl=0.0):
+    """A hand hanging from the wrist at the origin (down -Y), palm toward +Z... fingers forward (+X):
+    a palm, three fingers (curled forward by `curl`) and a thumb. Bony hands are spindly."""
+    thin = 0.45 if bony else 1.0
+    r.part("cube", 0, -size * 0.45, 0, size * 0.5 * thin + 0.01, size * 0.9, size * 0.95, rgb)
+    for i, z in enumerate((-0.32, 0.0, 0.32)):
+        with r.at(0, -size * 0.9, z * size, rz=curl):
+            r.part(
+                "cube",
+                0,
+                -size * 0.32,
+                0,
+                size * 0.22 * thin + 0.008,
+                size * (0.7 - 0.08 * (i == 2)),
+                size * 0.24 * thin + 0.008,
+                rgb,
+            )
+    r.part(
+        "cube",
+        size * 0.3,
+        -size * 0.45,
+        -size * 0.2,
+        size * 0.2 * thin + 0.008,
+        size * 0.55,
+        size * 0.2 * thin + 0.008,
+        rgb,
+        rz=0.5,
+    )
+
+
+BONE_SHADE = (166, 156, 132)
+RAG = (70, 58, 46)
+
+
 def bone_walker(r, e, t):
-    """A walking skeleton with a rusted blade. Slain, its knees give and it topples onto its back."""
+    """A walking skeleton in the rags of a gaoler's tunic, a rusted pauldron strapped on and a notched
+    sword in its fist, embers smouldering in its sockets. Slain, its knees give and it topples onto
+    its back, and the embers go out."""
     swing = walk_cycle(e, t)
     fall = death_fall(e, 0.7)
     lean = (-0.3 if e.state == "hurt" else 0) + 1.35 * fall
+    alive = fall < 0.5
+    bone = (255, 240, 220) if e.state == "hurt" else BONE
     with r.at(-0.2 * fall, 0.12 * fall, 0, rz=lean):
-        for side, a in ((-0.14, swing), (0.14, -swing)):
+        for side, a in ((-0.13, swing), (0.13, -swing)):
+            knee = 0.1 + 0.45 * max(0.0, a) + 0.4 * fall
             with r.at(0, 0.9, side, rz=a + 0.35 * fall):
-                r.part("cube", 0, -0.22, 0, 0.08, 0.45, 0.08, BONE)
-                r.part("cube", 0, -0.66, 0, 0.07, 0.45, 0.07, BONE)
-                r.part("cube", 0.06, -0.88, 0, 0.18, 0.05, 0.1, BONE)
-        r.part("cube", 0, 0.95, 0, 0.18, 0.12, 0.34, BONE)
-        r.part("cyl", 0, 1.18, 0, 0.08, 0.4, 0.08, BONE)
-        for i in range(4):
-            r.part("cube", 0.02, 1.08 + i * 0.1, 0, 0.16, 0.03, 0.36 - i * 0.02, BONE)
-        r.part("cube", 0, 1.42, 0, 0.14, 0.06, 0.46, BONE)
-        with r.at(0.02, 1.6, 0, rz=math.sin(t * 2) * 0.1 * (1 - fall) - 0.5 * fall):
-            r.part("sphere", 0, 0, 0, 0.26, 0.28, 0.24, BONE)
-            r.part("cube", 0.11, -0.03, -0.05, 0.05, 0.06, 0.06, (30, 10, 10))
-            r.part("cube", 0.11, -0.03, 0.05, 0.05, 0.06, 0.06, (30, 10, 10))
-            r.part("cube", 0.08, -0.15, 0, 0.12, 0.06, 0.16, BONE)
-        with r.at(0, 1.4, -0.27, rz=swing * 0.6):
-            r.part("cube", 0, -0.3, 0, 0.06, 0.6, 0.06, BONE)
-        # The sword arm: upper arm, a forearm bent at the elbow, and a bony fist round the hilt.
-        # Slain, the sword falls flat beside it (the body has tipped back by `lean`).
+                r.part("cube", 0, -0.22, 0, 0.07, 0.42, 0.07, bone)  # thigh bone
+                r.part("sphere", 0.01, -0.44, 0, 0.09, 0.08, 0.09, BONE_SHADE)  # knee
+                with r.at(0, -0.44, 0, rz=-knee):
+                    r.part("cube", 0, -0.21, 0.015, 0.055, 0.42, 0.04, bone)  # shin and calf bone
+                    r.part("cube", 0, -0.21, -0.02, 0.035, 0.4, 0.03, BONE_SHADE)
+                    with r.at(0, -0.44, 0, rz=knee * 0.8):
+                        r.part("cube", 0.06, -0.01, 0, 0.18, 0.04, 0.09, bone)  # foot
+                        r.part("cube", 0.15, -0.01, 0, 0.04, 0.03, 0.1, BONE_SHADE)  # toes
+        # Pelvis: a basin with flaring hip blades, a rag hanging front and back.
+        r.part("cube", 0, 0.94, 0, 0.14, 0.1, 0.24, bone)
+        for side in (1, -1):
+            r.part("cube", -0.02, 1.0, side * 0.13, 0.12, 0.12, 0.05, bone, rx=-side * 0.35)
+        cloth = math.sin(t * 3) * 0.12 + swing * 0.2
+        for x, k in ((0.09, 1), (-0.09, -1)):
+            with r.at(x, 0.98, 0, rz=cloth * k):
+                r.part("cube", 0, -0.16, 0, 0.03, 0.32, 0.22, RAG)
+                r.part("cube", 0, -0.34, 0.05, 0.03, 0.06, 0.08, RAG)  # a tatter
+        for i in range(5):  # the spine
+            r.part("cube", -0.05, 1.03 + i * 0.075, 0, 0.06, 0.05, 0.06, BONE_SHADE if i % 2 else bone)
+        ribcage(r, bone, ribs=4, width=0.36, top=1.35, depth=0.18)
+        _bar(r, (0.03, 1.42, -0.27), (0.03, 1.42, 0.27), 0.05, bone)  # collarbones
+        with r.at(0.02, 1.62, 0, rz=math.sin(t * 2) * 0.1 * (1 - fall) - 0.5 * fall):
+            r.part("cube", -0.03, -0.08, 0, 0.05, 0.08, 0.05, BONE_SHADE)  # neck
+            skull(
+                r, bone, EMBER if alive else (40, 20, 14), glow=alive, jaw=0.15 + 0.25 * (e.state == "windup")
+            )
+        # The free arm: upper arm, elbow, forearm and a bony hand.
+        with r.at(0, 1.4, -0.27, rz=swing * 0.6 - 0.3 * fall):
+            r.part("cube", 0, -0.15, 0, 0.055, 0.3, 0.055, bone)
+            with r.at(0, -0.3, 0, rz=0.35 + 0.2 * swing):
+                r.part("cube", 0, -0.14, 0, 0.045, 0.28, 0.045, bone)
+                with r.at(0, -0.29, 0):
+                    hand(r, bone, 0.09, bony=True, curl=0.4)
+        # The sword arm: a rusted pauldron, upper arm, a forearm bent at the elbow, and a bony fist
+        # round the hilt. Slain, the sword falls flat beside it (the body has tipped back by `lean`).
         shoulder, elbow = chop_angle(e) - 0.5 * fall, elbow_bend(e) * (1 - fall)
         wrist = aim_wrist(_mix(blade_angle(e), -lean, fall), shoulder + elbow)
         with r.at(0, 1.4, 0.27, rz=shoulder):
-            r.part("cube", 0, -0.15, 0, 0.06, 0.32, 0.06, BONE)
+            r.part("cube", 0, 0.0, 0.02, 0.2, 0.08, 0.16, RUST, rx=0.25)  # pauldron
+            r.part("cube", 0, -0.06, 0.06, 0.18, 0.06, 0.13, _dim(RUST), rx=0.45)
+            r.part("cube", 0, -0.02, -0.09, 0.2, 0.025, 0.025, (60, 44, 30))  # its strap
+            r.part("cube", 0, -0.15, 0, 0.055, 0.3, 0.055, bone)
             with r.at(0, -0.3, 0, rz=elbow):
-                r.part("cube", 0, -0.15, 0, 0.05, 0.3, 0.05, BONE)
-                with r.at(0, -0.32, 0), held(r, wrist, BONE, size=0.08, splay=0.45):
-                    sword_parts(r, 0.8, 0.07, RUST, grip=(70, 50, 36))
+                r.part("cube", 0, -0.15, 0, 0.045, 0.3, 0.045, bone)
+                with r.at(0, -0.32, 0), held(r, wrist, bone, size=0.08, splay=0.45):
+                    sword_parts(r, 0.8, 0.07, (128, 104, 84), grip=(70, 50, 36), guard=RUST)
+
+
+SLIME = (70, 120, 60)
 
 
 def mire_slime(r, e, t):
-    """A heap of bog jelly. Slain, it slumps and spreads into a puddle."""
+    """A heap of bog jelly that has swallowed the last thing it caught: a skull half-sunk in its crown,
+    old bones and a rusted hilt jutting from its flanks, bubbles welling and bursting on its skin.
+    Slain, it slumps and spreads into a puddle."""
     squash = 1 + math.sin(t * (9 if e.state == "chase" else 4)) * 0.12
     if e.state == "windup":
         squash = 1.35
     if e.state == "attack":
         squash = 0.7
+    fall = death_fall(e, 0.8)
     if e.state == "dead":
-        squash = 1 + 1.2 * death_fall(e, 0.8)
-    green = (200, 220, 160) if e.state == "hurt" else (70, 120, 60)
-    r.part("sphere", 0, 0.32 / squash, 0, 0.95 * squash, 0.7 / squash, 0.95 * squash, green)
-    r.part("sphere", 0.05, 0.14, 0, 1.05 * squash, 0.28, 1.05 * squash, (50, 90, 44))
-    r.part("sphere", 0.3, 0.45 / squash, -0.14, 0.12, 0.12, 0.12, (230, 220, 120))
-    r.part("sphere", 0.3, 0.45 / squash, 0.14, 0.12, 0.12, 0.12, (230, 220, 120))
+        squash = 1 + 1.2 * fall
+    green = (200, 220, 160) if e.state == "hurt" else SLIME
+    h = 0.7 / squash  # body height
+    r.part("sphere", 0.05, 0.14, 0, 1.12 * squash, 0.28, 1.12 * squash, (46, 84, 40))  # the spreading foot
+    r.part("sphere", 0, 0.32 / squash, 0, 0.95 * squash, h, 0.95 * squash, green)
+    r.part("sphere", -0.08, 0.42 / squash, 0.1, 0.6 * squash, h * 0.7, 0.6 * squash, _bright(green, 1.0, 14))
+    for i in range(5):  # drips beading round the foot
+        a = i * 1.26 + 0.4
+        r.part(
+            "sphere",
+            math.cos(a) * 0.5 * squash,
+            0.04,
+            math.sin(a) * 0.5 * squash,
+            0.12,
+            0.08,
+            0.12,
+            (40, 76, 36),
+        )
+    top = 0.32 / squash + h / 2
+    # The swallowed dead: a skull in the crown, a thigh bone and a rib, and a hilt.
+    with r.at(0.18 * squash, top - 0.1 - 0.15 * fall, -0.05, rz=-0.3, ry=0.3, s=0.75):
+        skull(r, (190, 196, 150), (120, 230, 90), glow=e.state != "dead")
+    r.part(
+        "cube",
+        -0.25 * squash,
+        0.3 / squash + 0.1,
+        0.35 * squash,
+        0.06,
+        0.4,
+        0.06,
+        (200, 196, 160),
+        rx=0.9,
+        rz=0.4,
+    )
+    r.part("cube", 0.1, 0.25 / squash + 0.1, -0.42 * squash, 0.05, 0.3, 0.05, (200, 196, 160), rx=-1.1)
+    with r.at(-0.3 * squash, top - 0.12, -0.15, rz=0.6, rx=-0.3):
+        r.part("cube", 0, 0.12, 0, 0.05, 0.22, 0.05, (70, 50, 36))
+        r.part("cube", 0, 0.24, 0, 0.05, 0.04, 0.2, (110, 80, 56))
+        r.part("blade", 0, 0.04, 0, 0.02, 0.12, 0.08, (110, 92, 70))
+    for i in range(3):  # bubbles welling up the skin and bursting
+        k = (t * 0.6 + i / 3) % 1.0
+        a = i * 2.1
+        rad = 0.42 * squash * (1 - k * 0.6)
+        size = 0.06 + 0.08 * math.sin(k * math.pi)
+        r.part(
+            "sphere",
+            math.cos(a) * rad,
+            0.12 + (top - 0.12) * k,
+            math.sin(a) * rad,
+            size,
+            size,
+            size,
+            (120, 170, 96),
+        )
+    r.part("sphere", 0.38 * squash, 0.4 / squash, -0.18, 0.1, 0.1, 0.1, (230, 220, 120))  # its own eyes
+    r.part("sphere", 0.38 * squash, 0.4 / squash, 0.18, 0.1, 0.1, 0.1, (230, 220, 120))
+
+
+CHAR = (52, 42, 38)
 
 
 def cinder_wisp(r, e, t):
-    """A floating ember with a flame crown. Slain, it gutters out and sinks, cooling as it falls."""
+    """A burnt skull afloat in its own pyre: a crown of flame behind it, ember shards wheeling round it
+    and a guttering tail of fire beneath. Slain, it gutters out and sinks, cooling as it falls."""
     fade = death_fall(e, 0.9)
     bob = math.sin(t * 3) * 0.15 * (1 - fade)
     lit = fade < 0.5
-    glow = (255, 230, 140) if e.state == "windup" else EMBER if lit else (120, 70, 50)
+    hot = (255, 230, 140) if e.state == "windup" else EMBER
+    flame = hot if lit else (90, 60, 50)
     with r.at(0, e.type.hover + bob - 0.3 * fade, 0, s=1 - 0.35 * fade):
-        r.part("sphere", 0, 0, 0, 0.45, 0.45, 0.45, glow)
-        r.part("sphere", 0, 0, 0, 0.62, 0.3, 0.62, (180, 60, 30))
-        for i in range(3):
-            a = t * 4 + i * 2.1
+        for i in range(3):  # the crown of flame behind the skull
+            a = (i - 1) * 0.5
+            k = 1 + 0.15 * math.sin(t * 9 + i * 2)
             r.part(
-                "cube",
-                math.cos(a) * 0.5,
-                math.sin(t * 5 + i) * 0.15,
-                math.sin(a) * 0.5,
-                0.1,
-                0.1,
-                0.1,
-                (255, 200, 90),
+                "cone",
+                -0.08,
+                0.2 + 0.05 * (i == 1),
+                a * 0.4,
+                0.26,
+                0.5 * k * (1 - fade),
+                0.26,
+                flame,
+                rz=a * 0.3,
                 glow=lit,
             )
-        r.part("cone", 0, 0.42, 0, 0.3, 0.45 * (1 - fade), 0.3, (255, 120, 40), glow=lit)
+        r.part("sphere", -0.1, 0.0, 0, 0.42, 0.46, 0.42, (200, 70, 30) if lit else (80, 50, 40), glow=lit)
+        with r.at(0.06, 0.0, 0, s=1.35):
+            skull(r, CHAR, hot if lit else (40, 20, 14), glow=lit, jaw=0.25 + 0.3 * (e.state == "windup"))
+        for i in range(4):  # ember shards wheeling round it
+            a = t * 3.5 + i * math.pi / 2
+            r.part(
+                "wedge",
+                math.cos(a) * 0.48,
+                math.sin(t * 5 + i) * 0.15,
+                math.sin(a) * 0.48,
+                0.06,
+                0.14,
+                0.04,
+                (255, 200, 90) if lit else (90, 60, 50),
+                ry=-a,
+                rz=t * 4 + i,
+                glow=lit,
+            )
+        for i in range(3):  # the tail, guttering away below
+            k = 1 + 0.2 * math.sin(t * 11 + i)
+            r.part(
+                "cone",
+                -0.05 * i,
+                -0.3 - i * 0.18,
+                0,
+                0.3 - i * 0.08,
+                0.3 * k,
+                0.3 - i * 0.08,
+                flame,
+                rz=math.pi,
+                glow=lit,
+            )
 
 
 def _warden_arms(e, t):
@@ -284,9 +489,18 @@ def _warden_arms(e, t):
     return hit, free, blade, elbow, twist, crouch, glow
 
 
+PLATE = (82, 78, 76)
+PLATE_DARK = (58, 56, 56)
+PLATE_EDGE = (124, 118, 112)
+TABARD = (74, 68, 62)
+COLD_EMBER = (70, 40, 30)
+
+
 def ashen_warden(r, e, t):
-    """The keep's armoured warden. Slain, he sinks to his knees, braced on his blade, and slumps.
-    In his second phase his blade burns."""
+    """The keep's warden: a giant in soot-black plate under a ragged ash-grey tabard and cape, a crested
+    great-helm with an ember burning behind its visor, a sigil smouldering on his breastplate and a
+    greatsword in his fist. In his second phase the plate cracks open on the fire inside and his blade
+    burns. Slain, he sinks to his knees, braced on his blade, slumps, and every fire goes out."""
     swing = walk_cycle(e, t) * 0.7
     kneel = death_fall(e, 0.6)
     slump = death_fall(e, 1.6)
@@ -300,57 +514,127 @@ def ashen_warden(r, e, t):
     if cinders:
         free = -1.9 * k if e.state == "windup" else -1.9 + 1.4 * min(e.state_t / 0.15, 1)
     burning = e.phase2 and not dead
+    fire = EMBER if not dead else COLD_EMBER
     steel = EMBER if burning else IRON
+    cloth = math.sin(t * 2.2) * 0.08 + swing * 0.15
     with (
         r.at(0, lift * 0.8 + crouch - 0.42 * kneel, 0, s=1.35, ry=spin + twist),
         r.at(0, 0.95, 0, rz=-0.45 * slump),
         r.at(0, -0.95, 0),
     ):
+        # Legs: cuisse, knee cop, greave and a pointed sabaton; kneeling, the shins fold under.
         for side, a in ((-0.18, swing), (0.18, -swing)):
             with r.at(0, 0.95, side, rz=a + 1.4 * kneel):
-                r.part("cube", 0, -0.45, 0, 0.2, 0.9, 0.18, ASH)
-                r.part("cube", 0.05, -0.92, 0, 0.32, 0.1, 0.2, (60, 58, 56))
-        r.part("cube", 0, 1.0, 0, 0.36, 0.24, 0.5, (70, 66, 62))
-        r.part("cube", 0, 1.35, 0, 0.4, 0.55, 0.62, ASH)
-        r.part("cube", 0, 1.68, 0, 0.44, 0.14, 0.86, (76, 72, 68))
-        with r.at(0.02, 1.88, 0):
-            r.part("cube", 0, 0, 0, 0.3, 0.32, 0.28, (70, 66, 62))
-            r.part("cube", 0.15, 0.02, 0, 0.02, 0.05, 0.2, (70, 40, 30) if dead else EMBER, glow=not dead)
-            r.part("cone", 0, 0.26, 0, 0.12, 0.3, 0.12, (60, 58, 56))
-        with r.at(0, 1.6, -0.47, rz=free):
-            r.part("cube", 0, -0.35, 0, 0.16, 0.7, 0.16, ASH)
-            if cinders and e.state == "windup":
-                r.part("sphere", 0, -0.75, 0, 0.3 * k, 0.3 * k, 0.3 * k, EMBER, glow=True)
-        # The sword arm: a pauldron, upper arm, forearm bent at the elbow, and a gauntlet round the
-        # hilt. Slain, he leans on the sword, its point on the floor.
+                r.part("cube", 0, -0.22, 0, 0.22, 0.46, 0.2, PLATE)
+                r.part("cube", 0.08, -0.15, 0, 0.04, 0.3, 0.16, PLATE_EDGE)  # the cuisse's ridge
+                r.part("sphere", 0.08, -0.46, 0, 0.17, 0.15, 0.17, PLATE_EDGE)  # knee cop
+                with r.at(0, -0.46, 0, rz=-0.1 * max(0.0, a) - 2.3 * kneel):
+                    r.part("cube", 0, -0.21, 0, 0.19, 0.44, 0.17, PLATE_DARK)  # greave
+                    if burning:
+                        r.part("cube", 0.1, -0.2, 0.02, 0.02, 0.28, 0.03, EMBER, rx=0.4, glow=True)
+                    r.part("cube", 0.05, -0.45, 0, 0.3, 0.09, 0.2, PLATE)  # sabaton
+                    r.part("wedge", 0.24, -0.45, 0, 0.09, 0.12, 0.16, PLATE_DARK, rz=-math.pi / 2)
+        # Faulds and the tabard hanging between the legs; the cape behind, ragged at the hem.
+        r.part("cube", 0, 1.0, 0, 0.38, 0.22, 0.52, PLATE_DARK)
+        for i in range(3):
+            r.part("cube", 0.12 - i * 0.01, 0.92 - i * 0.08, 0, 0.18, 0.07, 0.5 - i * 0.03, PLATE, rz=-0.25)
+        with r.at(0.2, 0.98, 0, rz=cloth):
+            r.part("cube", 0, -0.32, 0, 0.03, 0.64, 0.3, TABARD)
+            r.part("cube", 0.02, -0.25, 0, 0.01, 0.12, 0.12, fire, glow=not dead)  # the keep's sigil
+            for z in (-0.09, 0.0, 0.09):
+                r.part("wedge", 0, -0.68, z, 0.03, 0.1, 0.09, TABARD, rz=math.pi)
+        for i, z in enumerate((-0.24, 0.0, 0.24)):
+            with r.at(-0.26, 1.66, z, rz=-cloth * (1 + 0.3 * i) - 0.15 - 1.1 * kneel):
+                r.part("cube", 0, -0.62, 0, 0.03, 1.24, 0.27, TABARD)
+                r.part("wedge", 0, -1.3, -0.06, 0.03, 0.14, 0.12, TABARD, rz=math.pi)
+                r.part("wedge", 0, -1.28, 0.07, 0.03, 0.1, 0.1, _dim(TABARD), rz=math.pi)
+                if burning:  # the hem smoulders
+                    r.part("cube", 0.02, -1.22, 0, 0.02, 0.05, 0.24, EMBER, glow=True)
+        # Breastplate with a raised ridge and the sigil smouldering on it; a gorget at the throat.
+        r.part("cube", 0, 1.38, 0, 0.42, 0.56, 0.64, PLATE)
+        r.part("cube", 0.2, 1.38, 0, 0.06, 0.5, 0.06, PLATE_EDGE)
+        r.part("cube", 0.21, 1.48, 0, 0.03, 0.14, 0.14, fire, rx=math.pi / 4, glow=not dead)
+        r.part("cube", 0, 1.13, 0, 0.44, 0.06, 0.66, PLATE_DARK)  # its lower rim
+        if burning:  # the plate splits on the fire inside
+            for y, z, a in ((1.3, -0.15, 0.5), (1.45, 0.18, -0.6), (1.22, 0.05, 1.2)):
+                r.part("cube", 0.215, y, z, 0.01, 0.22, 0.03, EMBER, rx=a, glow=True)
+        r.part("cyl", 0, 1.72, 0, 0.36, 0.12, 0.36, PLATE_DARK)  # gorget
+        # The great-helm: a tall pointed bucket, visor bars over the ember slit, a crest running back.
+        with r.at(0.02, 1.92, 0):
+            r.part("cube", 0, 0, 0, 0.32, 0.34, 0.3, PLATE)
+            r.part("wedge", 0, 0.24, 0, 0.32, 0.16, 0.3, PLATE_DARK, ry=math.pi / 2)  # the point
+            r.part("wedge", -0.02, 0.36, 0, 0.36, 0.2, 0.04, PLATE_EDGE)  # crest
+            r.part("cube", 0.16, 0.03, 0, 0.02, 0.05, 0.22, fire, glow=not dead)  # the ember behind the slit
+            r.part("cube", 0.165, 0.03, 0, 0.02, 0.07, 0.02, PLATE_DARK)  # its bar
+            for z in (-0.06, 0.06):
+                r.part("cube", 0.165, -0.09, z, 0.02, 0.1, 0.015, PLATE_DARK)  # breaths
+            r.part("cone", 0, 0.42, 0, 0.08, 0.2, 0.08, PLATE_DARK)
+        # Layered pauldrons over both shoulders.
+        for side in (-1, 1):
+            with r.at(0, 1.72, side * 0.43, rx=side * 0.3):
+                r.part("cube", 0, 0, 0, 0.36, 0.12, 0.3, PLATE)
+                r.part("cube", 0, -0.09, side * 0.05, 0.34, 0.09, 0.28, PLATE_DARK)
+                r.part("cube", 0.0, 0.07, -side * 0.02, 0.06, 0.05, 0.3, PLATE_EDGE)
+        # The free arm: upper arm, vambrace, and a gauntlet; embers gather in it for a throw.
+        with r.at(0, 1.6, -0.47, rz=free - 0.3 * kneel):
+            r.part("cube", 0, -0.17, 0, 0.16, 0.36, 0.16, PLATE)
+            r.part("sphere", 0, -0.36, 0, 0.15, 0.13, 0.15, PLATE_EDGE)  # couter
+            with r.at(0, -0.36, 0, rz=0.25):
+                r.part("cube", 0, -0.17, 0, 0.15, 0.34, 0.15, PLATE_DARK)
+                with r.at(0, -0.36, 0):
+                    hand(r, PLATE, 0.13, curl=0.6)
+                    if cinders and e.state == "windup":
+                        r.part("sphere", 0.05, -0.12, 0, 0.3 * k, 0.3 * k, 0.3 * k, EMBER, glow=True)
+        # The sword arm: upper arm, forearm bent at the elbow, and a gauntlet round the hilt. Slain, he
+        # leans on the sword, its point on the floor.
         with r.at(0, 1.6, 0.47, rz=hit - 0.5 * kneel):
-            r.part("cube", 0, -0.04, 0, 0.26, 0.16, 0.24, (76, 72, 68))
-            r.part("cube", 0, -0.19, 0, 0.17, 0.38, 0.17, ASH)
+            r.part("cube", 0, -0.19, 0, 0.17, 0.38, 0.17, PLATE)
+            r.part("sphere", 0, -0.38, 0, 0.15, 0.13, 0.15, PLATE_EDGE)
             elbow = _mix(elbow, 0.2, kneel)
             with r.at(0, -0.38, 0, rz=elbow):
-                r.part("cube", 0, -0.17, 0, 0.15, 0.36, 0.15, ASH)
+                r.part("cube", 0, -0.17, 0, 0.15, 0.36, 0.15, PLATE_DARK)
+                r.part("cube", 0, -0.3, 0, 0.18, 0.06, 0.18, PLATE_EDGE)  # the gauntlet's cuff
                 # Slain, he leans on the sword, its point on the floor ahead (the body slumps forward by
                 # 0.45 * slump, so that is undone to keep the point where it rests).
                 point = _mix(blade, -0.42 + 0.45 * slump, kneel)
                 wrist = aim_wrist(point, hit - 0.5 * kneel + elbow)
-                with r.at(0, -0.38, 0), held(r, wrist, (70, 66, 62), size=0.17, splay=0.3):
+                with r.at(0, -0.38, 0), held(r, wrist, PLATE, size=0.17, splay=0.3):
                     lit = burning or (glow and not dead)
-                    sword_parts(r, 1.55, 0.16, steel, grip=(54, 36, 26), guard=(70, 66, 62), glow=lit)
+                    sword_parts(r, 1.55, 0.16, steel, grip=(54, 36, 26), guard=PLATE_DARK, glow=lit)
                     if lit:
                         _flame(r, 1.0, 0.0, 0, 0.12 + (0.06 if burning else 0.0), t)
 
 
 LEATHER = (84, 60, 44)
 SACKCLOTH = (124, 108, 82)
+STITCH = (40, 30, 24)
+
+
+def sack_hood(r, eyes=2, glow_rgb=None, mouth=True):
+    """A sackcloth hood over a head, facing +X at the origin: coarse seams, drawstring at the neck,
+    one or two cut eyeholes (lit when `glow_rgb` is given) and a crude stitched mouth."""
+    r.part("sphere", 0, 0, 0, 0.44, 0.46, 0.42, SACKCLOTH)
+    r.part("cube", 0.0, 0.0, 0, 0.45, 0.46, 0.02, _dim(SACKCLOTH, 0.82))  # the seam over the crown
+    r.part("cyl", -0.02, -0.2, 0, 0.36, 0.05, 0.34, STITCH)  # the drawstring
+    for z in (-0.09, 0.09)[:eyes] if eyes == 2 else (-0.09,):
+        r.part("cube", 0.2, 0.03, z, 0.04, 0.06, 0.07, glow_rgb or (20, 14, 10), glow=glow_rgb is not None)
+    if eyes == 1:  # the other eye sewn shut with an X
+        r.part("cube", 0.205, 0.03, 0.09, 0.02, 0.09, 0.015, STITCH, rx=0.7)
+        r.part("cube", 0.205, 0.03, 0.09, 0.02, 0.09, 0.015, STITCH, rx=-0.7)
+    if mouth:
+        r.part("cube", 0.2, -0.11, 0, 0.03, 0.02, 0.2, STITCH)
+        for z in (-0.07, 0.0, 0.07):
+            r.part("cube", 0.205, -0.11, z, 0.02, 0.07, 0.012, STITCH)
 
 
 def gaoler(r, e, t):
-    """A hulking, hunched jailer in a sackcloth hood and a stained leather apron: a cudgel in one
-    hand, a hooked chain in the other. The hook whirls overhead, then flies out at you.
-    Slain, he drops to his knees and pitches forward onto his face."""
+    """A hulking, hunched jailer in a sackcloth hood and a riveted leather jerkin: a cudgel in one
+    hand, a hooked chain in the other, a ring of keys and a lantern on his belt. The hook whirls
+    overhead, then flies out at you. Slain, he drops to his knees and pitches forward onto his face."""
     swing = walk_cycle(e, t) * 0.6
     kneel = death_fall(e, 0.5)
     pitch = death_fall(e, 1.2)
+    dead = e.state == "dead"
     hooking = e.attack_kind == "hook" and e.state in ("windup", "attack")
     k = min(e.state_t / max(e.windup_time, 1e-3), 1) if e.state == "windup" else 1.0
     skin = (240, 220, 200) if e.state == "hurt" else (150, 120, 100)
@@ -358,19 +642,40 @@ def gaoler(r, e, t):
         for side, a in ((-0.22, swing), (0.22, -swing)):
             with r.at(0, 0.85, side, rz=a - 1.5 * kneel):
                 r.part("cube", 0, -0.42, 0, 0.26, 0.84, 0.24, LEATHER)
+                for i in range(3):  # the wraps round his shins
+                    r.part(
+                        "cube", 0, -0.52 - i * 0.1, 0, 0.28, 0.04, 0.26, (110, 96, 72), rx=0.15 * (-1) ** i
+                    )
                 r.part("cube", 0.06, -0.84, 0, 0.36, 0.12, 0.26, (50, 40, 32))
         with r.at(0, 0.9, 0, rz=-0.25):  # the hunch
             r.part("cube", 0.02, 0.45, 0, 0.62, 0.9, 0.8, skin)
-            r.part("cube", 0.2, 0.3, 0, 0.3, 0.95, 0.66, LEATHER)  # apron
+            r.part("sphere", -0.12, 0.72, 0, 0.6, 0.55, 0.85, skin)  # the hump of his back
+            r.part("cube", 0.08, 0.42, 0, 0.5, 0.84, 0.82, LEATHER)  # jerkin
+            for y in (0.2, 0.45, 0.7):  # its rivets
+                for z in (-0.25, 0.25):
+                    r.part("cube", 0.335, y, z, 0.03, 0.04, 0.04, RIVET_IRON)
             r.part("cube", 0.36, 0.35, 0.1, 0.02, 0.2, 0.18, (90, 30, 26))  # old stains
-            r.part("cube", 0, 0.75, 0, 0.66, 0.1, 0.84, (60, 46, 36))  # belt of keys
+            r.part("cube", 0, 0.05, 0, 0.66, 0.1, 0.84, (60, 46, 36))  # belt
+            r.part("cyl", 0.28, -0.08, -0.3, 0.16, 0.02, 0.16, BRASS, rz=math.pi / 2)  # the key ring
             for i in range(3):
-                r.part("cube", 0.2, 0.62, -0.3 + i * 0.12, 0.03, 0.16, 0.05, BRASS)
+                r.part("cube", 0.3, -0.18, -0.36 + i * 0.06, 0.02, 0.14, 0.03, BRASS, rx=0.2 * (i - 1))
+            with r.at(0.22, -0.05, 0.36):  # a horn lantern on the belt
+                r.part("cube", 0, -0.12, 0, 0.13, 0.18, 0.13, DARK_IRON)
+                r.part(
+                    "cube",
+                    0,
+                    -0.12,
+                    0,
+                    0.15,
+                    0.12,
+                    0.09,
+                    (255, 180, 80) if not dead else (70, 50, 34),
+                    glow=not dead,
+                )
+                r.part("cone", 0, 0.01, 0, 0.12, 0.08, 0.12, DARK_IRON)
             with r.at(0.2, 1.05, 0):  # hooded head, thrust forward
-                r.part("sphere", 0, 0, 0, 0.42, 0.44, 0.4, SACKCLOTH)
+                sack_hood(r)
                 r.part("cone", -0.05, 0.25, 0, 0.3, 0.3, 0.3, SACKCLOTH)
-                r.part("cube", 0.2, 0.02, -0.08, 0.04, 0.05, 0.06, (20, 14, 10))
-                r.part("cube", 0.2, 0.02, 0.08, 0.04, 0.05, 0.06, (20, 14, 10))
         # The cudgel arm.
         # Gripped at the end of its haft, the cudgel swings with the wrist; slain, it slips down.
         shoulder = (0.0 if hooking else chop_angle(e)) - 0.6 * kneel
@@ -380,13 +685,26 @@ def gaoler(r, e, t):
             r.part("cube", 0, -0.2, 0, 0.22, 0.42, 0.22, skin)
             with r.at(0, -0.4, 0, rz=elbow):
                 r.part("cube", 0, -0.2, 0, 0.19, 0.42, 0.19, skin)
+                r.part("cube", 0, -0.3, 0, 0.21, 0.12, 0.21, LEATHER)  # a bracer
                 slip = aim_wrist(-math.pi / 2, shoulder + elbow)
                 with r.at(0, -0.44, 0), held(r, _mix(wrist, slip, kneel), skin, size=0.18, splay=0.3):
                     r.part("cyl", 0.4, 0, 0, 0.1, 0.95, 0.1, (90, 64, 40), rz=math.pi / 2)
                     r.part("cyl", 0.85, 0, 0, 0.2, 0.3, 0.2, (70, 50, 32), rz=math.pi / 2)
-                    for i in range(3):
-                        r.part("cube", 0.85, 0.1 * (i - 1), 0.18, 0.06, 0.05, 0.05, IRON)
-        # The chain arm: the hook circles overhead on the windup and flies out on the throw.
+                    for i in range(4):
+                        a = i * math.pi / 2
+                        r.part(
+                            "wedge",
+                            0.85,
+                            math.cos(a) * 0.11,
+                            math.sin(a) * 0.11,
+                            0.05,
+                            0.08,
+                            0.05,
+                            IRON,
+                            rx=a,
+                        )
+        # The chain arm: upper arm, elbow, forearm and hand. The hook circles overhead on the windup
+        # and flies out on the throw.
         if hooking and e.state == "windup":
             arm, whirl = -2.6, t * 14
         elif hooking:
@@ -394,7 +712,11 @@ def gaoler(r, e, t):
         else:
             arm, whirl = swing * 0.5 - 0.3 * kneel, None
         with r.at(0, 1.65, -0.5, rz=arm):
-            r.part("cube", 0, -0.4, 0, 0.2, 0.8, 0.2, skin)
+            r.part("cube", 0, -0.2, 0, 0.21, 0.42, 0.21, skin)
+            r.part("cube", 0, -0.6, 0, 0.19, 0.38, 0.19, skin)
+            r.part("cube", 0, -0.66, 0, 0.21, 0.12, 0.21, LEATHER)
+            with r.at(0, -0.8, 0):
+                hand(r, skin, 0.15, curl=0.8)
             if whirl is not None:
                 with r.at(0, -0.85, 0, rx=whirl):
                     for i in range(5):
@@ -413,61 +735,109 @@ def gaoler(r, e, t):
                 r.part("cone", 0.05, -1.62, 0, 0.18, 0.3, 0.06, STEEL, rz=math.pi)
 
 
+RIVET_IRON = (120, 116, 112)
 CLEAVER = (150, 146, 140)
 
 
 def cleaver_parts(r, length=1.0, steel=CLEAVER):
     """A butcher's cleaver in a `held` frame: a short wrapped handle through the fist and a broad,
-    square blade hanging below its spine."""
+    square blade hanging below its spine, its bright edge ground to a bevel."""
     r.part("cube", 0.0, 0, 0, 0.36, 0.07, 0.07, (70, 50, 34))
+    for x in (-0.08, 0.08):
+        r.part("cube", x, 0, 0, 0.03, 0.08, 0.08, DARK_IRON)  # rivets through the scales
     r.part("cube", -0.18, 0, 0, 0.06, 0.09, 0.09, DARK_IRON)  # the butt cap
     blade = length - 0.2
-    r.part("cube", 0.18 + blade / 2, -0.12, 0, blade, 0.36, 0.04, steel)
-    r.part("cube", 0.18 + blade / 2, 0.05, 0, blade, 0.04, 0.06, _dim(steel))  # the spine
-    r.part("cube", 0.18 + blade * 0.8, -0.04, 0, 0.08, 0.08, 0.05, (20, 16, 14))  # the hanging hole
+    r.part("cube", 0.18 + blade / 2, -0.1, 0, blade, 0.32, 0.04, steel)
+    r.part("wedge", 0.18 + blade / 2, -0.3, 0, 0.05, 0.08, blade, _bright(steel), ry=math.pi / 2, rz=math.pi)
+    r.part("cube", 0.18 + blade / 2, 0.06, 0, blade, 0.04, 0.06, _dim(steel))  # the spine
+    r.part("cube", 0.18 + blade * 0.85, -0.02, 0, 0.08, 0.08, 0.05, (20, 16, 14))  # the hanging hole
+    r.part("cube", 0.18 + blade * 0.4, -0.18, 0, 0.18, 0.14, 0.045, (90, 26, 22))  # dried blood
+
+
+MEAT = (160, 118, 98)
+APRON = (88, 62, 46)
+GORE = (96, 30, 26)
 
 
 def butcher(r, e, t):
-    """The keep's slaughterman: a huge, hunched brute in a blood-dark leather apron and a sackcloth
-    hood, a cleaver as long as a man's arm in one fist. His moves share the Warden's arm poses.
+    """The keep's slaughterman: a huge, lumpen brute, pot-bellied and humpbacked, in a stitched
+    leather apron black with old blood, a chain belt hung with meat hooks and a sack hood with one
+    eye cut and the other sewn shut, a cleaver as long as a man's arm in one fist. His moves share
+    the Warden's arm poses. Enraged, his apron runs wet, his eye burns red and steam rolls off him.
     Slain, he drops to his knees and pitches forward onto his face."""
     swing = walk_cycle(e, t) * 0.5
     kneel = death_fall(e, 0.6)
     pitch = death_fall(e, 1.4)
+    dead = e.state == "dead"
+    rage = e.phase2 and not dead
     lift, spin, _, _ = _spider_move(e, t, 0.0, 1.0)
     hit, free, blade, elbow, twist, crouch, _ = _warden_arms(e, t)
-    skin = (240, 220, 200) if e.state == "hurt" else (160, 118, 98)
-    apron = (96, 40, 34) if e.phase2 else (88, 62, 46)
+    skin = (240, 220, 200) if e.state == "hurt" else (176, 110, 92) if rage else MEAT
+    apron = (110, 26, 22) if e.phase2 else APRON
     with (
-        r.at(0, lift * 0.6 + crouch + 0.55 - 0.5 * kneel, 0, s=1.3, ry=spin + twist),
+        r.at(0, lift * 0.6 + crouch + 0.55 - 0.4 * kneel, 0, s=1.3, ry=spin + twist),
         r.at(0, 0, 0, rz=-1.2 * pitch),
         r.at(0, -0.55, 0),
     ):
         for side, a in ((-0.24, swing), (0.24, -swing)):
             with r.at(0, 0.8, side, rz=a - 1.5 * kneel):
                 r.part("cube", 0, -0.4, 0, 0.28, 0.8, 0.26, (70, 54, 42))
+                for i in range(3):  # rag wraps
+                    r.part(
+                        "cube", 0, -0.45 - i * 0.12, 0, 0.3, 0.05, 0.28, (120, 100, 76), rx=0.2 * (-1) ** i
+                    )
                 r.part("cube", 0.07, -0.8, 0, 0.38, 0.12, 0.28, (46, 36, 30))
-        with r.at(0, 0.85, 0, rz=-0.2):  # the hunched bulk
+        with r.at(0, 0.85, 0, rz=-0.2):  # the hunched bulk: chest, belly, hump and shoulders
             r.part("sphere", 0.02, 0.5, 0, 0.8, 1.0, 0.95, skin)
-            r.part("cube", 0.24, 0.3, 0, 0.36, 1.0, 0.76, apron)  # apron
-            r.part("cube", 0.43, 0.2, -0.1, 0.02, 0.4, 0.3, (70, 22, 18))  # old blood
-            r.part("cube", 0.43, 0.55, 0.15, 0.02, 0.2, 0.2, (70, 22, 18))
-            r.part("cube", 0, 0.8, 0, 0.82, 0.1, 0.98, (54, 40, 32))  # the apron's strap
+            r.part("sphere", 0.16, 0.2, 0, 0.62, 0.62, 0.8, skin)  # the belly
+            r.part("sphere", -0.2, 0.85, 0, 0.58, 0.55, 0.8, _dim(skin, 0.92))  # the hump
+            for side in (-1, 1):
+                r.part("sphere", 0, 0.9, side * 0.42, 0.42, 0.38, 0.4, skin)
+            r.part("cube", 0.32, 0.25, 0, 0.3, 0.95, 0.74, apron)  # apron
+            for z in (-0.2, 0.2):  # its seams
+                r.part("cube", 0.475, 0.25, z, 0.015, 0.9, 0.02, STITCH)
+            r.part("cube", 0.48, 0.1, -0.1, 0.02, 0.4, 0.28, GORE)  # old blood
+            r.part("cube", 0.48, 0.45, 0.15, 0.02, 0.2, 0.18, GORE)
+            r.part("cube", 0.48, -0.15, 0.05, 0.02, 0.18, 0.12, GORE)
+            r.part("cube", 0.1, 0.78, 0, 0.82, 0.08, 0.98, (54, 40, 32))  # the apron's strap
+            r.part("cube", 0.12, -0.02, 0, 0.82, 0.06, 0.92, DARK_IRON)  # chain belt
+            for i, z in enumerate((-0.32, 0.38)):  # meat hooks swinging from it
+                with r.at(0.42, -0.04, z, rx=math.sin(t * 3 + i * 2) * 0.25):
+                    r.part("cube", 0, -0.12, 0, 0.025, 0.24, 0.025, IRON)
+                    r.part("wedge", 0, -0.27, 0.03, 0.025, 0.1, 0.06, STEEL, rx=-2.3)
             with r.at(0.22, 1.12, 0):  # the hooded head, thrust forward
-                r.part("sphere", 0, 0, 0, 0.44, 0.46, 0.42, SACKCLOTH)
-                r.part("cube", 0.21, 0.02, -0.09, 0.04, 0.05, 0.06, (20, 14, 10))
-                r.part("cube", 0.21, 0.02, 0.09, 0.04, 0.05, 0.06, (20, 14, 10))
-                r.part("cube", 0.2, -0.16, 0, 0.04, 0.03, 0.18, (90, 30, 26))  # a stained seam
-        # The free arm hangs, or rises with the cleaver arm for a two-handed chop.
+                sack_hood(r, eyes=1, glow_rgb=(255, 60, 40) if rage else None)
+            if rage:  # steam rolling off his shoulders
+                for i in range(3):
+                    k = (t * 0.8 + i / 3) % 1.0
+                    size = 0.12 + 0.2 * k
+                    side = (-1, 1, -1)[i]
+                    r.part(
+                        "sphere",
+                        -0.1,
+                        1.05 + k * 0.6,
+                        side * (0.3 + 0.1 * k),
+                        size,
+                        size,
+                        size,
+                        (150, 140, 136),
+                    )
+        # The free arm hangs, or rises with the cleaver arm for a two-handed chop; a meaty hand.
         with r.at(0, 1.7, -0.56, rz=free + swing * 0.4 - 0.4 * kneel):
-            r.part("cube", 0, -0.22, 0, 0.24, 0.46, 0.24, skin)
-            r.part("cube", 0, -0.62, 0, 0.21, 0.4, 0.21, skin)
+            r.part("cube", 0, -0.22, 0, 0.26, 0.46, 0.26, skin)
+            r.part("sphere", 0, -0.44, 0, 0.24, 0.2, 0.24, skin)  # elbow
+            with r.at(0, -0.44, 0, rz=0.3 + 0.2 * swing):
+                r.part("cube", 0, -0.2, 0, 0.22, 0.4, 0.22, skin)
+                r.part("cube", 0, -0.32, 0, 0.24, 0.1, 0.24, LEATHER)  # a bracer
+                with r.at(0, -0.42, 0):
+                    hand(r, skin, 0.17, curl=0.5)
         # The cleaver arm: shoulder, elbow, and the cleaver turned at the wrist; slain, it slips.
         with r.at(0, 1.7, 0.56, rz=hit - 0.6 * kneel):
-            r.part("cube", 0, -0.21, 0, 0.25, 0.44, 0.25, skin)
+            r.part("cube", 0, -0.21, 0, 0.26, 0.44, 0.26, skin)
             elbow = _mix(elbow, 0.2, kneel)
             with r.at(0, -0.42, 0, rz=elbow):
                 r.part("cube", 0, -0.2, 0, 0.22, 0.42, 0.22, skin)
+                r.part("cube", 0, -0.3, 0, 0.24, 0.1, 0.24, LEATHER)
                 wrist = aim_wrist(blade, hit + elbow)
                 slip = aim_wrist(-math.pi / 2, hit - 0.6 * kneel + elbow)
                 with r.at(0, -0.44, 0), held(r, _mix(wrist, slip, kneel), skin, size=0.2, splay=0.3):
@@ -475,8 +845,9 @@ def butcher(r, e, t):
 
 
 def bone_crawler(r, e, t):
-    """A ribcage scuttling on long finger-bones, skull slung low in front. At rest it is only a heap
-    of bones; slain, it falls apart into one again."""
+    """A ribcage scuttling on long jointed finger-bones, a lashing tail of vertebrae behind and a
+    skull slung low in front with embers in its sockets. At rest it is only a heap of bones; slain,
+    it falls apart into one again."""
     seed = int(abs(e.home_x * 3 + e.home_z * 7))
     fall = death_fall(e, 0.5)
     if e.state == "idle" or fall >= 1.0:
@@ -490,23 +861,41 @@ def bone_crawler(r, e, t):
         rear = 0.3
     bone = (255, 240, 220) if e.state == "hurt" else BONE
     rise = 0.32 * (1 - fall)
+    lit = fall < 0.5
     with r.at(0, rise, 0, rz=rear * (1 - fall)):
-        for i in range(4):  # the ribcage
-            r.part("cube", -0.15 + i * 0.1, 0.06, 0, 0.05, 0.16, 0.5 - abs(i - 1.5) * 0.06, bone, rx=0.2)
-        r.part("cube", 0, 0.12, 0, 0.56, 0.06, 0.06, bone)  # spine
-        with r.at(0.38, 0.0, 0, rz=-0.2):
-            r.part("sphere", 0, 0, 0, 0.26, 0.22, 0.22, bone)
-            r.part("cube", 0.11, 0.0, -0.05, 0.05, 0.05, 0.05, (255, 120, 60), glow=fall < 0.5)
-            r.part("cube", 0.11, 0.0, 0.05, 0.05, 0.05, 0.05, (255, 120, 60), glow=fall < 0.5)
-            jaw = 0.5 if e.state == "windup" else 0.1
-            r.part("cube", 0.06, -0.12, 0, 0.16, 0.04, 0.14, bone, rz=jaw)
-        for i in range(6):  # finger-bone legs
+        with r.at(0.05, 0.14, 0, rz=-math.pi / 2):  # the ribcage, lying along the body
+            ribcage(r, bone, ribs=4, width=0.38, spacing=0.1, top=0.18, depth=-0.14)
+        for i in range(5):  # spine
+            r.part("cube", -0.2 + i * 0.1, 0.15, 0, 0.06, 0.06, 0.07, BONE_SHADE if i % 2 else bone)
+        for i in range(5):  # the tail, lashing
+            a = math.sin(t * 6 - i * 0.8) * 0.15 * (i + 1) * (1 - fall)
+            r.part(
+                "cube",
+                -0.3 - i * 0.08,
+                0.15 + i * 0.03,
+                a * 0.4,
+                0.06 - i * 0.008,
+                0.05,
+                0.06 - i * 0.008,
+                bone,
+            )
+        with r.at(0.38, 0.02, 0, rz=-0.2):
+            skull(
+                r,
+                bone,
+                (255, 120, 60) if lit else (40, 20, 14),
+                glow=lit,
+                jaw=0.5 if e.state == "windup" else 0.1,
+            )
+        for i in range(6):  # finger-bone legs, each with a knuckle
             side = 1 if i % 2 else -1
             x = -0.2 + (i // 2) * 0.2
             step = gait * (1 if (i // 2 + i) % 2 else -1)
             with r.at(x, 0, side * 0.2, rx=side * (0.9 + 0.6 * fall), ry=step):
                 r.part("cube", 0, 0, side * 0.18, 0.04, 0.04, 0.36, bone)
-                r.part("cube", 0, -0.14, side * 0.36, 0.04, 0.3, 0.04, bone, rx=-side * 0.3)
+                r.part("sphere", 0, 0, side * 0.36, 0.06, 0.06, 0.06, BONE_SHADE)
+                r.part("cube", 0, -0.14, side * 0.36, 0.035, 0.3, 0.035, bone, rx=-side * 0.3)
+                r.part("wedge", 0, -0.3, side * 0.4, 0.03, 0.06, 0.03, BONE_SHADE, rz=math.pi)
 
 
 def mimic(r, e, t):
@@ -543,14 +932,27 @@ def mimic(r, e, t):
                 )
         r.part("cube", 0, 0.25, 0, 0.6, 0.5, 0.9, WHITE, tex="wood_plank")
         r.part("cube", 0, 0.26, 0, 0.62, 0.06, 0.92, IRON)
+        for z in (-0.3, 0.3):  # iron bands down its sides, studded
+            r.part("cube", 0, 0.25, z, 0.62, 0.5, 0.06, IRON)
+            r.part("cube", 0.315, 0.12, z, 0.02, 0.04, 0.04, RIVET_IRON)
+        r.part("cube", 0.31, 0.32, 0, 0.03, 0.12, 0.1, BRASS)  # the lock plate, now a gullet's hinge
         r.part("cube", 0.02, 0.46, 0, 0.5, 0.08, 0.78, (90, 14, 20))  # maw
-        for i in range(6):
-            r.part("cone", 0.28, 0.54, -0.35 + i * 0.14, 0.07, 0.16, 0.07, BONE)
-        r.part("cube", 0.25, 0.5, 0, 0.5, 0.05, 0.16, (190, 50, 70), rz=-0.3 - gape * 0.2)  # tongue
+        r.part("cube", -0.05, 0.43, 0, 0.36, 0.06, 0.6, (50, 6, 12))  # the dark throat
+        for i in range(7):  # two rows of teeth, the inner ones shorter
+            r.part("wedge", 0.27, 0.56, -0.36 + i * 0.12, 0.05, 0.18, 0.06, BONE)
+            if i % 2:
+                r.part("wedge", 0.16, 0.54, -0.36 + i * 0.12, 0.04, 0.11, 0.05, BONE_SHADE)
+        with r.at(0.05, 0.5, 0, rz=-0.3 - gape * 0.2):  # a long tongue, lolling in three pieces
+            r.part("cube", 0.1, 0, 0, 0.22, 0.05, 0.16, (190, 50, 70))
+            with r.at(0.2, 0, 0, rz=-0.4 + math.sin(t * 7) * 0.3):
+                r.part("cube", 0.1, 0, 0, 0.2, 0.045, 0.14, (176, 44, 64))
+                with r.at(0.2, 0, 0, rz=-0.4 + math.sin(t * 7 + 1) * 0.3):
+                    r.part("wedge", 0.06, 0, 0, 0.04, 0.12, 0.12, (160, 40, 60), rz=-math.pi / 2)
         with r.at(-0.3, 0.5, 0, rz=gape):
             r.part("cube", 0.3, 0.08, 0, 0.6, 0.16, 0.9, WHITE, tex="wood_plank")
-            for i in range(6):
-                r.part("cone", 0.56, -0.05, -0.35 + i * 0.14, 0.07, 0.16, 0.07, BONE, rx=math.pi)
+            r.part("cube", 0.3, 0.17, 0, 0.62, 0.02, 0.06, IRON)  # the lid's strap
+            for i in range(7):
+                r.part("wedge", 0.56, -0.06, -0.36 + i * 0.12, 0.05, 0.18, 0.06, BONE, rz=math.pi)
             eye = (70, 50, 30) if dead else (255, 200, 60)
             r.part("sphere", 0.45, 0.18, -0.22, 0.1, 0.1, 0.1, eye, glow=not dead)
             r.part("sphere", 0.45, 0.18, 0.22, 0.1, 0.1, 0.1, eye, glow=not dead)
@@ -590,13 +992,36 @@ def snare_bloom(r, e, t):
     a3 = -0.7 - lunge * 0.4 - 0.3 * wilt
     with r.at(0, 0, 0, s=1.2), r.at(0, 0.15, 0, rz=a1):
         r.part("cyl", 0, 0.3, 0, 0.16, 0.62, 0.16, (70, 110, 50))
+        _thorns(r, 0.62, 0.08, 4)
+        with r.at(0, 0.35, 0.06, rx=0.9 + sway):  # a leaf unfurling from the stem
+            r.part("sphere", 0, 0.18, 0, 0.05, 0.4, 0.2, DARK_LEAF)
         with r.at(0, 0.58, 0, rz=a2):
             r.part("cyl", 0, 0.28, 0, 0.13, 0.58, 0.13, (80, 120, 54))
+            _thorns(r, 0.58, 0.065, 3)
             with r.at(0, 0.55, 0, rz=a3):
                 r.part("cyl", 0, 0.12, 0, 0.11, 0.26, 0.11, (80, 120, 54))
                 # Undo the stem's bends so the mouth faces forward, dipping a little as it lunges.
                 with r.at(0, 0.26, 0, rz=-(a1 + a2 + a3) - lunge * 0.4 - 1.1 * wilt):
                     _bloom_head(r, gape, hurt, t)
+
+
+def _thorns(r, length, radius, n, rgb=(176, 150, 96)):
+    """Hooked thorns spiralling up a stem (along +Y from the origin)."""
+    for k in range(n):
+        a = k * 2.4
+        y = (k + 0.5) * length / n
+        r.part(
+            "wedge",
+            math.cos(a) * radius,
+            y,
+            math.sin(a) * radius,
+            0.03,
+            0.09,
+            0.03,
+            rgb,
+            ry=-a,
+            rz=-math.pi / 2 + 0.4,
+        )
 
 
 def _bloom_head(r, gape, hurt, t):
@@ -609,6 +1034,10 @@ def _bloom_head(r, gape, hurt, t):
         with r.at(0, 0, 0, rx=a), r.at(-0.05, 0.18, 0, rz=0.5 + gape * 0.6):
             r.part("sphere", 0, 0.2, 0, 0.16, 0.42, 0.24, petal)
     r.part("sphere", -0.08, 0, 0, 0.34, 0.34, 0.34, (60, 96, 44))
+    for i in range(5):  # sepals, spiked, cupping the head from behind
+        a = i * 2 * math.pi / 5
+        with r.at(-0.2, 0, 0, rx=a):
+            r.part("wedge", -0.04, 0.16, 0, 0.04, 0.22, 0.08, DARK_LEAF, rz=0.9)
     # Throat glows faintly so the open mouth reads in the dark.
     r.part("sphere", 0.05, 0, 0, 0.24, 0.2, 0.24, (220, 80, 60), glow=gape > 0.6)
     for side in (1, -1):
@@ -653,6 +1082,12 @@ def bark_husk(r, e, t):
         with r.at(0, 0.45 - 0.3 * slump, 0, rz=lean):
             # Tall, narrow trunk that twists as it rises.
             r.part("cyl", 0, 0.65, 0, 0.6, 1.3, 0.54, bark, tex="bark")
+            for y, ang, w in ((0.35, 1.2, 0.24), (0.55, 1.6, 0.18), (0.9, -1.4, 0.2)):  # shelf fungus
+                x, z = math.cos(ang) * 0.27, math.sin(ang) * 0.25
+                r.part("cyl", x, y, z, w, 0.04, w, (200, 176, 120))
+                r.part("cyl", x, y - 0.025, z, w * 0.8, 0.02, w * 0.8, (130, 100, 64))
+            for k in range(3):  # knots weeping sap down the trunk
+                r.part("sphere", 0.28, 0.4 + k * 0.32, (-0.1, 0.12, 0.0)[k], 0.1, 0.12, 0.1, DARK_BARK)
             with r.at(0, 1.25, 0, rz=-0.15, ry=0.25):
                 r.part("cyl", 0, 0.45, 0, 0.46, 0.9, 0.42, bark, tex="bark")
                 _husk_heart(r, t, hurt, dead=e.state == "dead")
@@ -751,6 +1186,32 @@ def stump_mimic(r, e, t):
     with r.at(0, rise, 0):
         r.part("cyl", 0, 0.33, 0, 1.0, 0.66, 1.0, bark, tex="bark")
         r.part("cyl", 0, 0.66, 0, 0.86, 0.04, 0.86, (26, 14, 10))
+        for y, a, w in ((0.25, 2.4, 0.26), (0.42, 2.0, 0.2), (0.18, -2.2, 0.22)):  # bracket fungus
+            r.part("cyl", math.cos(a) * 0.48, y, math.sin(a) * 0.48, w, 0.04, w, (196, 168, 110))
+            r.part(
+                "cyl",
+                math.cos(a) * 0.48,
+                y - 0.025,
+                math.sin(a) * 0.48,
+                w * 0.8,
+                0.02,
+                w * 0.8,
+                (120, 90, 56),
+            )
+        for k in range(5):  # roots curling up over its face like the teeth of a second jaw
+            a = -0.8 + k * 0.4
+            r.part(
+                "wedge",
+                math.cos(a) * 0.5,
+                0.2,
+                math.sin(a) * 0.5,
+                0.06,
+                0.24,
+                0.07,
+                DARK_BARK,
+                ry=-a,
+                rz=-0.25,
+            )
         if awake:
             r.part("sphere", 0.1, 0.66, 0, 0.5, 0.12, 0.5, (200, 60, 50), glow=gape > 0.6)
             for k in range(7):
@@ -875,10 +1336,21 @@ def _spider_body(r, e, t, body, fang):
         for side in (1, -1):
             r.part("sphere", -0.1, 0.05, side * 0.88, 1.4, 0.6, 0.26, (150, 60, 50))
         r.part("cone", -1.18, -0.05, 0, 0.22, 0.36, 0.22, body, rz=math.pi / 2)
-    # Waist and head-chest.
+    if e.type.id == "loom_mother":  # an egg sac slung under her abdomen, its brood stirring in it
+        with r.at(-1.45, 0.9, 0, rz=math.sin(t * 1.3) * 0.05):
+            r.part("sphere", 0, 0, 0, 0.78, 0.5, 0.7, (226, 222, 204))
+            for k in range(4):
+                a = k * 1.6 + 0.3
+                r.part(
+                    "sphere", math.cos(a) * 0.28, -0.12, math.sin(a) * 0.26, 0.2, 0.18, 0.2, (200, 196, 176)
+                )
+            r.part("cube", 0.2, 0.3, 0, 0.02, 0.5, 0.02, (236, 236, 226), rz=0.5)  # silk holding it up
+    # Waist and head-chest, plated in chitin.
     r.part("cyl", -0.2, 0.98, 0, 0.32, 0.4, 0.32, body, rz=math.pi / 2)
     r.part("sphere", 0.3, 0.92, 0, 1.0, 0.62, 0.86, body)
     r.part("sphere", 0.32, 1.12, 0, 0.7, 0.3, 0.6, (64, 54, 66))
+    for k, (x, w) in enumerate(((0.08, 0.5), (0.3, 0.56), (0.5, 0.42))):
+        r.part("wedge", x, 1.27, 0, 0.16, 0.08, w, _dim(body, 0.8) if k % 2 else (80, 68, 84), rz=-0.2)
     # Eyes: two large and six small, all glowing.
     dead = e.state == "dead"
     eye = (40, 44, 36) if dead else (255, 70, 50) if e.state == "windup" else (190, 255, 110)
@@ -918,11 +1390,13 @@ def _spider_leg(r, i, side, phase, amp, body, band, curl=0.0):
     ):
         r.part("cube", 0.55, 0, 0, 1.1, 0.12, 0.12, body)
         r.part("cube", 1.02, 0, 0, 0.16, 0.14, 0.14, band)
+        r.part("wedge", 0.7, 0.09, 0, 0.05, 0.14, 0.05, band, rz=-0.6)  # a spur
         with r.at(1.1, 0, 0, rz=-1.9 - lift * 0.5 - 0.9 * curl):
             r.part("cube", 0.5, 0, 0, 1.0, 0.1, 0.1, body)
             r.part("cube", 1.0, 0, 0, 0.12, 0.12, 0.12, band)
             with r.at(1.0, 0, 0, rz=-0.25):
                 r.part("cube", 0.4, 0, 0, 0.8, 0.07, 0.07, body)
+                r.part("wedge", 0.45, 0.05, 0, 0.04, 0.09, 0.04, (40, 32, 40), rz=-0.5)  # a bristling spine
 
 
 def npc(r, robe, skin=SKIN, hair=(70, 54, 40), t=0, hood=False, blade=False):
@@ -2049,46 +2523,114 @@ def _ease_in(k):
 #
 # Camera space: +X forward, +Y up, +Z right. A weapon is posed by (x, y, z, rx, rz) around a rest
 # pose; rz tilts the blade back over the shoulder (+) or forward and down (-), rx rolls it to the
-# right (+) or left (-). Each attack motion is three key poses (offsets from rest):
+# right (+) or left (-), ry swings it across the view (+ toward the right, - toward the left). Each
+# attack motion is three key poses (offsets from rest, (dx, dy, dz, rx, ry, rz)):
 #   wind  - drawn back, reached a little before the blow lands,
 #   strike - where the blow lands (at the attack's hit_at),
-#   follow - carried through past the target,
+#   follow - carried through past the target (overshooting a touch, then settling),
 # then it eases back to rest. The wind -> strike leg accelerates, so swings snap rather than float.
 
-REST = (0.0, 0.0, 0.0, 0.0, 0.0)
+REST = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 MOTIONS = {
+    # Light cuts: high right, down across to the low left.
     "slash": (
-        (-0.05, 0.12, 0.12, 0.9, 0.5),
-        (0.12, 0.0, -0.15, -0.6, -1.2),
-        (0.05, -0.12, -0.35, -1.3, -1.0),
+        (-0.05, 0.18, 0.2, 0.45, 0.3, 0.3),
+        (0.14, 0.0, -0.12, -0.6, -0.35, -1.2),
+        (0.06, -0.08, -0.3, -1.2, -0.55, -1.0),
     ),
-    "sweep": ((0.0, 0.03, 0.3, 1.0, -0.4), (0.05, 0.05, -0.15, -0.6, -1.0), (0.0, 0.0, -0.5, -1.5, -0.6)),
-    "chop": ((-0.05, 0.14, 0.0, 0.0, 0.6), (0.15, 0.0, -0.1, 0.0, -1.2), (0.12, -0.08, -0.1, 0.0, -1.5)),
-    "slam": ((-0.08, 0.2, -0.05, 0.0, 0.9), (0.15, -0.2, -0.12, 0.0, -1.4), (0.15, -0.3, -0.12, 0.0, -1.6)),
+    # A flat arc from right to left, the whole arm turning with it.
+    "sweep": (
+        (0.0, 0.03, 0.32, 1.0, 0.6, -0.4),
+        (0.06, 0.05, -0.12, -0.6, -0.4, -1.0),
+        (0.0, 0.0, -0.5, -1.5, -0.9, -0.6),
+    ),
+    # Overhead: raised high over the shoulder, then straight down through the target.
+    "chop": (
+        (-0.1, 0.2, -0.02, 0.0, 0.1, 0.85),
+        (0.16, -0.02, -0.1, 0.0, -0.05, -1.25),
+        (0.12, -0.12, -0.1, 0.0, -0.1, -1.55),
+    ),
+    "slam": (
+        (-0.1, 0.24, -0.05, 0.0, 0.1, 1.0),
+        (0.15, -0.2, -0.12, 0.0, 0.0, -1.4),
+        (0.15, -0.32, -0.12, 0.0, 0.0, -1.65),
+    ),
     "thrust": (
-        (-0.22, 0.08, -0.2, 0.0, -1.15),
-        (0.45, 0.08, -0.25, 0.0, -1.15),
-        (0.4, 0.06, -0.25, 0.0, -1.1),
+        (-0.25, 0.08, -0.2, 0.0, -0.25, -1.15),
+        (0.48, 0.08, -0.25, 0.0, -0.35, -1.15),
+        (0.4, 0.06, -0.25, 0.0, -0.3, -1.1),
     ),
-    "stab": ((-0.08, 0.04, -0.1, 0.0, -0.9), (0.3, 0.05, -0.15, 0.0, -1.1), (0.22, 0.04, -0.15, 0.0, -1.0)),
-    "lash": ((-0.05, 0.15, 0.05, 0.4, 0.6), (0.05, 0.05, -0.15, -0.4, -1.6), (0.0, -0.05, -0.2, -0.8, -1.3)),
-    "flick": ((0.0, -0.05, -0.25, -0.9, -0.6), (0.1, 0.1, 0.05, 0.6, -0.9), (0.05, 0.15, 0.2, 1.1, -0.4)),
-    "bash": ((-0.1, 0.1, 0.05, 0.3, 0.4), (0.25, 0.0, -0.1, -0.2, -0.9), (0.2, -0.05, -0.12, -0.3, -1.1)),
-    "hew": ((-0.08, 0.16, 0.15, 0.6, 0.7), (0.15, -0.05, -0.15, -0.4, -1.3), (0.1, -0.15, -0.3, -0.7, -1.5)),
-    "draw": ((-0.05, 0.0, -0.15, -0.25, -1.0), (0.15, 0.05, 0.25, 0.9, -1.0), (0.05, 0.12, 0.4, 1.4, -0.6)),
-    "snare": ((-0.1, 0.25, 0.1, 0.6, 0.9), (0.1, 0.0, -0.1, -0.3, -1.7), (-0.15, -0.05, 0.0, -0.2, -0.6)),
-    "leap": ((-0.05, 0.25, 0.0, 0.0, 1.0), (0.25, -0.25, -0.1, 0.0, -1.5), (0.2, -0.3, -0.1, 0.0, -1.6)),
+    "stab": (
+        (-0.1, 0.04, -0.1, 0.0, -0.2, -0.9),
+        (0.3, 0.05, -0.15, 0.0, -0.3, -1.1),
+        (0.22, 0.04, -0.15, 0.0, -0.25, -1.0),
+    ),
+    "lash": (
+        (-0.05, 0.15, 0.05, 0.4, 0.2, 0.6),
+        (0.05, 0.05, -0.15, -0.4, -0.3, -1.6),
+        (0.0, -0.05, -0.2, -0.8, -0.5, -1.3),
+    ),
+    "flick": (
+        (0.0, -0.05, -0.25, -0.9, -0.4, -0.6),
+        (0.1, 0.1, 0.05, 0.6, 0.2, -0.9),
+        (0.05, 0.15, 0.2, 1.1, 0.45, -0.4),
+    ),
+    "bash": (
+        (-0.1, 0.1, 0.05, 0.3, 0.1, 0.4),
+        (0.25, 0.0, -0.1, -0.2, -0.1, -0.9),
+        (0.2, -0.05, -0.12, -0.3, -0.2, -1.1),
+    ),
+    "hew": (
+        (-0.08, 0.16, 0.15, 0.6, 0.3, 0.7),
+        (0.15, -0.05, -0.15, -0.4, -0.3, -1.3),
+        (0.1, -0.15, -0.3, -0.7, -0.6, -1.5),
+    ),
+    "draw": (
+        (-0.05, 0.0, -0.15, -0.25, -0.5, -1.0),
+        (0.15, 0.05, 0.25, 0.9, 0.3, -1.0),
+        (0.05, 0.12, 0.4, 1.4, 0.7, -0.6),
+    ),
+    "snare": (
+        (-0.1, 0.25, 0.1, 0.6, 0.2, 0.9),
+        (0.1, 0.0, -0.1, -0.3, -0.2, -1.7),
+        (-0.15, -0.05, 0.0, -0.2, 0.0, -0.6),
+    ),
+    "leap": (
+        (-0.05, 0.25, 0.0, 0.0, 0.0, 1.0),
+        (0.25, -0.25, -0.1, 0.0, 0.0, -1.5),
+        (0.2, -0.3, -0.1, 0.0, 0.0, -1.6),
+    ),
     # Double-click quick attacks.
-    "twin": ((-0.05, 0.12, 0.12, 0.9, 0.5), (0.12, 0.0, -0.15, -0.6, -1.2), (0.1, 0.1, 0.25, 0.9, -1.0)),
-    "pommel": ((-0.15, 0.05, -0.05, 0.0, 0.5), (0.25, 0.05, -0.1, 0.0, 0.7), (0.2, 0.03, -0.1, 0.0, 0.6)),
-    "doublelash": (
-        (-0.05, 0.15, 0.05, 0.4, 0.6),
-        (0.05, 0.05, -0.15, -0.4, -1.6),
-        (0.05, 0.1, 0.1, 0.3, -1.4),
+    "twin": (  # an X: down to the left, then straight back up to the right
+        (-0.05, 0.18, 0.2, 0.45, 0.3, 0.3),
+        (0.14, 0.0, -0.12, -0.6, -0.35, -1.2),
+        (0.12, 0.1, 0.22, 0.9, 0.4, -1.1),
     ),
-    "rap": ((-0.12, 0.08, -0.05, 0.0, 0.3), (0.28, 0.02, -0.1, 0.0, -0.6), (0.22, 0.0, -0.1, 0.0, -0.7)),
-    "hook_cut": ((0.0, 0.1, -0.2, -0.6, 0.4), (0.2, 0.0, 0.1, 0.5, -1.1), (0.0, -0.05, 0.2, 0.8, -0.8)),
-    "drive": ((-0.15, 0.0, -0.05, 0.0, -0.5), (0.3, 0.0, -0.1, 0.0, -0.7), (0.25, -0.02, -0.1, 0.0, -0.7)),
+    "pommel": (  # the blade tipped back, the hilt punched into the face in front
+        (-0.15, 0.06, -0.05, 0.0, 0.2, 0.6),
+        (0.28, 0.06, -0.12, 0.0, 0.1, 0.9),
+        (0.22, 0.04, -0.1, 0.0, 0.1, 0.8),
+    ),
+    "doublelash": (  # cracked down, then snapped back up
+        (-0.05, 0.15, 0.05, 0.4, 0.2, 0.6),
+        (0.05, 0.05, -0.15, -0.4, -0.3, -1.6),
+        (0.05, 0.12, 0.12, 0.3, 0.3, -1.4),
+    ),
+    "rap": (  # a short, straight punch with the head
+        (-0.12, 0.08, -0.05, 0.0, 0.05, 0.3),
+        (0.3, 0.02, -0.1, 0.0, -0.05, -0.6),
+        (0.22, 0.0, -0.1, 0.0, -0.05, -0.7),
+    ),
+    "hook_cut": (  # reached out left, then hooked back in toward you
+        (0.05, 0.1, -0.25, -0.6, -0.5, 0.4),
+        (0.2, 0.0, 0.1, 0.5, 0.2, -1.1),
+        (0.0, -0.05, 0.22, 0.8, 0.45, -0.8),
+    ),
+    "drive": (  # the haft rammed forward, held level
+        (-0.15, 0.0, -0.05, 0.0, -0.1, -0.5),
+        (0.32, 0.0, -0.1, 0.0, -0.2, -0.7),
+        (0.25, -0.02, -0.1, 0.0, -0.15, -0.7),
+    ),
 }
 
 
@@ -2096,8 +2638,14 @@ def _lerp(a, b, k):
     return tuple(x + (y - x) * k for x, y in zip(a, b, strict=True))
 
 
+def _ease_out_back(k, overshoot=1.2):
+    """Eases out past 1 and settles back: a blade carried through its target that stops itself."""
+    k = min(max(k, 0.0), 1.0) - 1
+    return 1 + (overshoot + 1) * k**3 + overshoot * k**2
+
+
 def _motion(motion, p, hit_at=0.4):
-    """Pose offsets (dx, dy, dz, rx, rz) for one attack motion at phase p (0..1), landing at hit_at."""
+    """Pose offsets (dx, dy, dz, rx, ry, rz) for one attack motion at phase p (0..1), landing at hit_at."""
     wind, strike, follow = MOTIONS.get(motion, MOTIONS["slash"])
     wind_at = hit_at * 0.7
     follow_at = hit_at + (1 - hit_at) * 0.35
@@ -2106,7 +2654,7 @@ def _motion(motion, p, hit_at=0.4):
     if p < hit_at:
         return _lerp(wind, strike, _ease_in((p - wind_at) / (hit_at - wind_at)))
     if p < follow_at:
-        return _lerp(strike, follow, _ease((p - hit_at) / (follow_at - hit_at)))
+        return _lerp(strike, follow, _ease_out_back((p - hit_at) / (follow_at - hit_at)))
     return _lerp(follow, REST, _ease((p - follow_at) / (1 - follow_at)))
 
 
@@ -2248,10 +2796,14 @@ def _held_weapon(r, player, hand, bob, sprint, armor, both=False):
     rx, ry, rz = 0.25, 0.7, -0.55
     swinging = player.swing_t is not None and player.swing_hand == hand
     charge = player.charge_frac if (player.swing_t is None and player.charge_hand == hand) else 0.0
+    y -= bob * 0.6 * charge  # winding up a heavy steadies the bob
     if swinging:
         a = player.attack
-        dx, dy, dz, drx, drz = _motion(a.motion, player.swing_phase, a.hit_at)
-        x, y, z, rx, rz = x + dx, y + dy, z + dz, rx + drx, rz + drz
+        dx, dy, dz, drx, dry, drz = _motion(a.motion, player.swing_phase, a.hit_at)
+        x, y, z, rx, ry, rz = x + dx, y + dy, z + dz, rx + drx, ry + dry, rz + drz
+        if player.hitstop_t > 0:  # the blade bites and the arm jars back
+            x -= 0.03
+            y += math.sin(player.hitstop_t * 300) * 0.008
     elif charge > 0:  # drawing back for a heavy: raise it, with a tremble once it is ready
         k = _ease(charge)
         shake = math.sin(player.charge_t * 60) * 0.006 if charge >= 1 else 0.0
@@ -2259,9 +2811,9 @@ def _held_weapon(r, player, hand, bob, sprint, armor, both=False):
         rx, rz = rx + 0.4 * k, rz + 0.3 * k
         if item.category == "katana":  # held on: settle low into the draw stance
             d = _ease((player.charge_t - 0.35) / (1.2 - 0.35))
-            wx, wy, wz, wrx, wrz = MOTIONS["draw"][0]
+            wx, wy, wz, wrx, wry, wrz = MOTIONS["draw"][0]
             x, y, z = x + (wx + 0.05) * d, y + (wy - 0.14) * d, z + (wz + 0.04) * d
-            rx, rz = rx + (wrx - 0.4) * d, rz + (wrz - 0.3) * d
+            rx, ry, rz = rx + (wrx - 0.4) * d, ry + wry * d, rz + (wrz - 0.3) * d
     else:  # sprinting: carried low, blade forward
         y -= 0.08 * sprint
         rz -= 0.35 * sprint
@@ -2271,6 +2823,10 @@ def _held_weapon(r, player, hand, bob, sprint, armor, both=False):
         lp = _weapon_point(pose, side, _grips(item)[1])
         lhand, lshade = arm(r, lp, -1, armor["body"], armor["gloves"])
     phase = player.swing_phase if swinging else None
+    if swinging and item.category in TRAILS:
+        _swing_trail(
+            r, item, player.attack, phase, (x - dx, y - dy, z - dz, rx - drx, ry - dry, rz - drz), side
+        )
     with _pose_at(r, pose, side):
         weapon(r, item.id, phase)
         with r.at(0, _grips(item)[0], 0):
@@ -2278,6 +2834,30 @@ def _held_weapon(r, player, hand, bob, sprint, armor, both=False):
         if both:
             with r.at(0, _grips(item)[1], 0):
                 fist(r, lhand, lshade, armor["gloves"])
+
+
+TRAILS = {"sword", "greatsword", "katana", "axe"}  # edged weapons leave a smear through the blow
+TRAIL_LAG = 0.08  # how far back (in swing phase) the smear reaches
+TRAIL_GHOSTS = 6
+
+
+def _swing_trail(r, item, a, phase, rest, side):
+    """A fading smear behind an edged weapon as it cuts: a fan of ghost blades between where it is and
+    where it was a moment ago, dimmer the further back. Only around the blow, and drawn first so the
+    weapon covers them."""
+    wind_at, follow_at = a.hit_at * 0.8, a.hit_at + (1 - a.hit_at) * 0.15
+    if not wind_at < phase < follow_at:
+        return
+    length = WEAPON_LEN.get(item.id, 1.0) * 0.85
+    rgb = (255, 170, 90) if item.element == "fire" else (210, 225, 255) if item.element else (205, 205, 215)
+    now = _motion(a.motion, phase, a.hit_at)
+    then = _motion(a.motion, max(phase - TRAIL_LAG, wind_at), a.hit_at)
+    for i in range(TRAIL_GHOSTS, 0, -1):  # the oldest (dimmest) first
+        k = i / TRAIL_GHOSTS
+        off = _lerp(now, then, k)
+        pose = tuple(b + o for b, o in zip(rest, off, strict=True))
+        with _pose_at(r, pose, side):
+            r.part("blade", 0, 0.2 + length / 2, 0, 0.004, length * 0.9, 0.16, _dim(rgb, 0.62 - 0.4 * k))
 
 
 def fist_view(r, player, hand, bob, armor):
@@ -2384,9 +2964,7 @@ WEAPON_LEN = {
 
 def weapon(r, item_id, phase=None):
     """A weapon model with the grip at the origin, pointing up +Y."""
-    if item_id in ("claymore", "zweihander"):
-        greatsword(r, item_id == "zweihander")
-    elif item_id in ("katana", "moonless_tachi", "nodachi"):
+    if item_id in ("katana", "moonless_tachi", "nodachi"):
         katana(r, item_id)
     elif item_id in ("leather_whip", "thornlash"):
         whip(r, phase, thorns=item_id == "thornlash")
@@ -2410,47 +2988,194 @@ def weapon(r, item_id, phase=None):
         sword(r, item_id)
 
 
+def _bright(rgb, k=1.25, add=20):
+    return tuple(min(rround(c * k + add), 255) for c in rgb)
+
+
+def blade_parts(
+    r,
+    length,
+    width,
+    steel,
+    *,
+    thick=0.032,
+    base=0.13,
+    edge=None,
+    fuller=None,
+    guard="straight",
+    guard_w=0.32,
+    guard_rgb=BRASS,
+    grip=0.22,
+    grip_rgb=LEATHER,
+    wrap=None,
+    pommel="disc",
+    pommel_rgb=BRASS,
+    ricasso=0.0,
+    ricasso_rgb=LEATHER,
+    glow=False,
+):
+    """A straight sword with its grip at the origin and its blade up +Y (the blade's flat faces +-X):
+    pommel, grip (with `wrap` bands), a crossguard in one of a few `guard` styles, an optional
+    leather-wrapped `ricasso`, then a lozenge-section blade that narrows to a point, a fuller down
+    both faces and bright bevelled edges. Shared by the player's swords and the foes' (`sword_parts`).
+
+    guard: "straight", "droop" (quillons bent toward the hand), "quatrefoil" (drooping, with
+    trefoil knobs), "flared" (bent up toward the blade) or "hooks" (flared, with parrying hooks above
+    the ricasso). pommel: "disc", "wheel" or "stopper"."""
+    edge = edge or _bright(steel)
+    fuller = fuller or _dim(steel, 0.62)
+    # Grip and pommel.
+    r.part("cube", 0, 0.1 - grip / 2, 0, 0.055, grip, 0.055, grip_rgb)
+    if wrap:
+        for i in range(max(int(grip / 0.065), 1)):
+            r.part("cube", 0, 0.1 - grip + 0.035 + i * 0.065, 0, 0.062, 0.02, 0.062, wrap)
+    py = 0.1 - grip - 0.035
+    if pommel == "wheel":
+        r.part("cyl", 0, py - 0.01, 0, 0.12, 0.045, 0.12, pommel_rgb, rz=math.pi / 2)
+        r.part("cyl", 0, py - 0.01, 0, 0.05, 0.055, 0.05, _bright(pommel_rgb), rz=math.pi / 2)
+    elif pommel == "stopper":
+        r.part("sphere", 0, py, 0, 0.085, 0.08, 0.085, pommel_rgb)
+        r.part("cone", 0, py - 0.065, 0, 0.06, 0.06, 0.06, pommel_rgb, rz=math.pi)
+    else:
+        r.part("sphere", 0, py, 0, 0.09, 0.075, 0.08, pommel_rgb)
+    # Crossguard: a block and two quillons.
+    gy = 0.115
+    r.part("cube", 0, gy, 0, 0.07, 0.055, 0.09, guard_rgb)
+    half = guard_w / 2
+    bend = {"droop": 0.35, "quatrefoil": 0.3, "flared": -0.28, "hooks": -0.2}.get(guard, 0.0)
+    for side in (1, -1):
+        with r.at(0, gy, side * 0.04, rx=side * bend):
+            r.part("lozenge", 0, 0, side * half / 2, 0.05, half, 0.045, guard_rgb, rx=math.pi / 2)
+            if guard == "quatrefoil":
+                r.part("sphere", 0, 0, side * (half + 0.02), 0.07, 0.07, 0.06, guard_rgb)
+            else:
+                r.part(
+                    "wedge", 0, 0, side * (half + 0.02), 0.05, 0.05, 0.045, guard_rgb, rx=side * math.pi / 2
+                )
+    if ricasso:  # the unsharpened base of a big blade, wrapped so a second hand can choke up on it
+        r.part("cube", 0, base + ricasso / 2, 0, thick * 1.7, ricasso, width * 0.9, ricasso_rgb)
+        if guard == "hooks":  # parrying hooks at the top of the ricasso
+            for side in (1, -1):
+                r.part(
+                    "wedge",
+                    0,
+                    base + ricasso,
+                    side * width * 0.75,
+                    0.04,
+                    0.14,
+                    0.05,
+                    guard_rgb,
+                    rx=side * 1.0,
+                )
+    # The blade.
+    r.part("blade", 0, base + length / 2, 0, thick, length, width, steel, glow=glow)
+    body = length * (1 - shapes.SHOULDER)
+    lean = math.atan2(width * 0.09, body)
+    for side in (1, -1):  # bevelled edges, bright on both faces, up to where the point begins
+        r.part(
+            "cube",
+            0,
+            base + ricasso + (body - ricasso) / 2,
+            side * width * 0.4,
+            thick * 0.32,
+            body - ricasso - 0.02,
+            width * 0.08,
+            edge,
+            rx=-side * lean,
+            glow=glow,
+        )
+    fl = (body - ricasso) * 0.72
+    r.part("cube", 0, base + ricasso + 0.03 + fl / 2, 0, thick * 1.12, fl, width * 0.2, fuller, glow=glow)
+
+
+# The player's straight swords: blade_parts arguments per item.
+SWORDS = {
+    "rusted_sword": {
+        "length": 0.88,
+        "width": 0.13,
+        "steel": (128, 118, 104),
+        "edge": (168, 160, 148),
+        "fuller": (80, 66, 54),
+        "guard_rgb": (96, 80, 62),
+        "guard_w": 0.3,
+        "grip_rgb": (74, 56, 40),
+        "wrap": (112, 94, 68),
+        "pommel_rgb": (96, 80, 62),
+    },
+    "ashblade": {
+        "length": 0.95,
+        "width": 0.125,
+        "steel": (190, 190, 202),
+        "edge": (238, 238, 245),
+        "fuller": (66, 62, 66),
+        "guard": "flared",
+        "guard_rgb": (70, 66, 72),
+        "grip_rgb": (40, 36, 40),
+        "wrap": (120, 110, 100),
+        "pommel": "stopper",
+        "pommel_rgb": (70, 66, 72),
+    },
+    "bastard_sword": {
+        "length": 1.12,
+        "width": 0.12,
+        "steel": (176, 178, 190),
+        "guard": "droop",
+        "guard_w": 0.4,
+        "guard_rgb": (112, 108, 102),
+        "grip": 0.32,
+        "wrap": (40, 30, 22),
+        "pommel": "wheel",
+        "pommel_rgb": (112, 108, 102),
+    },
+    "claymore": {
+        "length": 1.38,
+        "width": 0.15,
+        "thick": 0.04,
+        "steel": (170, 172, 182),
+        "guard": "quatrefoil",
+        "guard_w": 0.52,
+        "guard_rgb": (120, 110, 90),
+        "grip": 0.4,
+        "wrap": (40, 30, 22),
+        "pommel": "wheel",
+        "pommel_rgb": (120, 110, 90),
+        "ricasso": 0.12,
+    },
+    "zweihander": {
+        "length": 1.62,
+        "width": 0.17,
+        "thick": 0.042,
+        "base": 0.12,
+        "steel": (185, 186, 196),
+        "guard": "hooks",
+        "guard_w": 0.6,
+        "guard_rgb": (120, 110, 90),
+        "grip": 0.42,
+        "grip_rgb": (30, 26, 24),
+        "wrap": (150, 40, 36),
+        "pommel": "stopper",
+        "pommel_rgb": (120, 110, 90),
+        "ricasso": 0.26,
+    },
+}
+SWORD_RUST = (112, 76, 54)
+
+
 def sword(r, item_id):
-    """Straight sword: rusted, Ashblade or the longer bastard sword."""
-    blade = {"ashblade": (200, 200, 215), "bastard_sword": (175, 178, 188)}.get(item_id, (170, 150, 130))
-    long = item_id == "bastard_sword"
-    length = 1.15 if long else 0.9
-    grip = 0.3 if long else 0.2
-    r.part("cube", 0, 0.1 - grip / 2, 0, 0.06, grip, 0.06, LEATHER)
-    r.part("cube", 0, 0.12, 0, 0.07, 0.04, 0.36 if long else 0.3, BRASS)
-    r.part("cube", 0, 0.15 + length / 2, 0, 0.03, length, 0.12, blade)
-    r.part(
-        "cube",
-        0.016,
-        0.15 + length / 2,
-        0,
-        0.01,
-        length - 0.04,
-        0.025,
-        tuple(min(c + 40, 255) for c in blade),
-    )
-    r.part("cube", 0, 0.19 + length, 0, 0.025, 0.08, 0.07, blade)
-    r.part("cube", 0, 0.05 - grip, 0, 0.08, 0.06, 0.08, BRASS)
+    """A straight sword: rusted, the Ashblade, the bastard sword or a greatsword (see SWORDS)."""
+    spec = SWORDS.get(item_id, SWORDS["rusted_sword"])
+    blade_parts(r, **spec)
+    w, base = spec["width"], spec.get("base", 0.13)
+    if item_id == "rusted_sword":  # rust blooms on both faces and a couple of nicks in the edge
+        for y, z, h in ((0.34, 0.022, 0.07), (0.62, -0.026, 0.05)):
+            r.part("cube", 0, y, z, 0.034, h, w * 0.2, SWORD_RUST)
+        for y, side in ((0.45, 1), (0.7, -1)):
+            r.part("wedge", 0, y, side * w * 0.42, 0.04, 0.035, 0.03, (52, 44, 38), rx=-side * math.pi / 2)
+    elif item_id == "ashblade":  # an ember that never quite went out, near the point
+        r.part("cube", 0, base + spec["length"] * 0.8, 0, 0.036, 0.05, 0.02, EMBER, glow=True)
 
 
-def greatsword(r, zwei):
-    length = 1.6 if zwei else 1.4
-    width = 0.17 if zwei else 0.15
-    blade = (185, 186, 196) if zwei else (170, 172, 180)
-    r.part("cube", 0, -0.12, 0, 0.07, 0.38, 0.07, LEATHER)
-    r.part("cube", 0, -0.34, 0, 0.1, 0.08, 0.1, BRASS)
-    r.part("cube", 0, 0.1, 0, 0.08, 0.05, 0.56 if zwei else 0.46, (120, 110, 90))
-    if zwei:  # leather-wrapped ricasso and parrying hooks
-        r.part("cube", 0, 0.24, 0, 0.05, 0.22, 0.09, LEATHER)
-        r.part("cube", 0, 0.37, 0.1, 0.04, 0.04, 0.1, (120, 110, 90))
-        r.part("cube", 0, 0.37, -0.1, 0.04, 0.04, 0.1, (120, 110, 90))
-    base = 0.36 if zwei else 0.13
-    r.part("cube", 0, base + length / 2, 0, 0.04, length, width, blade)
-    r.part("cube", 0.02, base + length / 2, 0, 0.01, length - 0.05, 0.03, (225, 225, 235))
-    r.part("cube", 0, base + length + 0.05, 0, 0.035, 0.1, width * 0.55, blade)
-
-
-# blade, edge, grip wrap, cord, segments, grip length
+# blade, edge (hamon), grip wrap, cord, segments, grip length
 KATANAS = {
     "katana": ((205, 208, 218), (245, 245, 250), (40, 30, 40), (160, 30, 40), 3, 0.3),
     "moonless_tachi": ((70, 72, 90), (200, 205, 220), (20, 18, 24), (60, 60, 80), 4, 0.32),
@@ -2460,23 +3185,27 @@ KATANAS = {
 
 def katana(r, item_id="katana"):
     blade, edge, wrap, cord, segments, grip = KATANAS[item_id]
-    r.part("cube", 0, 0.07 - grip / 2, 0, 0.055, grip, 0.055, wrap)
-    for i in range(round(grip / 0.075)):  # cord wrap
-        r.part("cube", 0, 0.05 - grip + 0.04 + i * 0.075, 0, 0.06, 0.02, 0.06, cord)
-    r.part("cyl", 0, 0.08, 0, 0.16, 0.025, 0.16, (60, 50, 30))
-    r.part("cube", 0, 0.11, 0, 0.04, 0.04, 0.06, (170, 150, 70))
-    with r.at(0, 0.13, 0):
+    r.part("cube", 0, 0.07 - grip / 2, 0, 0.055, grip, 0.06, wrap)
+    for i in range(round(grip / 0.075)):  # cord wrap, crossing diamonds down the hilt
+        r.part("cube", 0, 0.05 - grip + 0.04 + i * 0.075, 0, 0.062, 0.02, 0.066, cord, rx=0.3 * (-1) ** i)
+    r.part("cube", 0, 0.06 - grip, 0, 0.065, 0.03, 0.07, (170, 150, 70))  # kashira cap
+    r.part("cyl", 0, 0.08, 0, 0.16, 0.025, 0.16, (60, 50, 30))  # tsuba
+    r.part("cube", 0, 0.115, 0, 0.04, 0.045, 0.075, (170, 150, 70))  # habaki collar
+    with r.at(0, 0.135, 0):
         _katana_segment(r, segments, blade, edge)
 
 
 def _katana_segment(r, left, blade=(205, 208, 218), edge=(245, 245, 250)):
-    """A gentle curve: each segment hangs off the last, bent a little further back."""
+    """A gentle curve: each segment hangs off the last, bent a little further back; the edge (-Z) carries
+    a pale temper line (the hamon) and the last segment closes in a angled point (the kissaki)."""
     if left == 0:
-        r.part("cube", 0, 0.03, -0.01, 0.022, 0.07, 0.05, blade, rx=0.35)
+        r.part("blade", 0, 0.06, -0.004, 0.024, 0.13, 0.066, blade, rx=0.12)
+        r.part("cube", 0.0, 0.03, -0.022, 0.012, 0.07, 0.014, edge, rx=0.2)
         return
     with r.at(0, 0, 0, rx=0.05):
-        r.part("cube", 0, 0.17, 0, 0.025, 0.36, 0.07, blade)
-        r.part("cube", 0.013, 0.17, -0.025, 0.006, 0.36, 0.015, edge)
+        r.part("lozenge", 0, 0.17, 0, 0.026, 0.36, 0.07, blade)
+        r.part("cube", 0, 0.17, -0.024, 0.012, 0.36, 0.014, edge)
+        r.part("cube", 0, 0.17, 0.03, 0.03, 0.36, 0.01, _dim(blade, 0.6))  # the thick back (mune)
         with r.at(0, 0.34, 0):
             _katana_segment(r, left - 1, blade, edge)
 
@@ -2537,7 +3266,7 @@ def felling_axe(r):
     r.part("cube", 0, 0.35, 0, 0.06, 1.25, 0.06, WOOD)
     r.part("cube", 0, -0.2, 0, 0.075, 0.2, 0.075, LEATHER)
     r.part("cube", 0, 1.02, 0.12, 0.08, 0.28, 0.32, (120, 116, 112))  # the wedge
-    r.part("cube", 0, 1.02, 0.31, 0.05, 0.4, 0.08, (175, 175, 180))  # bit, the cutting edge
+    r.part("wedge", 0, 1.02, 0.31, 0.07, 0.1, 0.42, (175, 175, 180), rx=math.pi / 2)  # bit, the cutting edge
     r.part("cube", 0, 1.02, -0.1, 0.1, 0.18, 0.12, (96, 92, 90))  # poll
     r.part("cube", 0.045, 1.08, 0.16, 0.01, 0.08, 0.1, MOSS)
     r.part("cube", 0, 0.92, 0.0, 0.08, 0.06, 0.08, LEATHER)  # wedge binding
@@ -2552,11 +3281,11 @@ def hand_axe(r, bearded):
     r.part("cube", 0, top, 0.06, 0.07, 0.14, 0.16, (110, 108, 106))  # eye and cheek
     if bearded:
         r.part("cube", 0, top - 0.06, 0.2, 0.04, 0.32, 0.12, (150, 150, 156))  # the beard
-        r.part("cube", 0.022, top - 0.08, 0.26, 0.01, 0.36, 0.03, (215, 215, 222))  # edge
+        r.part("wedge", 0, top - 0.08, 0.27, 0.045, 0.05, 0.36, (215, 215, 222), rx=math.pi / 2)  # edge
         r.part("cube", 0, top - 0.24, 0.16, 0.04, 0.06, 0.06, (150, 150, 156))  # its hooked tip
     else:
         r.part("cube", 0, top, 0.17, 0.04, 0.2, 0.08, (150, 150, 156))
-        r.part("cube", 0.022, top, 0.21, 0.01, 0.22, 0.02, (215, 215, 222))
+        r.part("wedge", 0, top, 0.22, 0.045, 0.05, 0.22, (215, 215, 222), rx=math.pi / 2)
     r.part("cube", 0, top + 0.08, 0, 0.065, 0.03, 0.065, LEATHER)
 
 
@@ -2566,7 +3295,7 @@ def cleaver(r):
     r.part("cube", 0, 0.0, 0, 0.06, 0.42, 0.06, LEATHER)
     r.part("cube", 0, -0.23, 0, 0.075, 0.05, 0.075, DARK_IRON)  # butt cap
     r.part("cube", 0, 0.5, 0.13, 0.035, 0.6, 0.3, (140, 136, 130))  # the blade
-    r.part("cube", 0.02, 0.5, 0.27, 0.01, 0.6, 0.03, (205, 202, 196))  # its edge
+    r.part("wedge", 0, 0.5, 0.29, 0.035, 0.04, 0.6, (205, 202, 196), rx=math.pi / 2)  # its edge
     r.part("cube", 0, 0.5, -0.015, 0.05, 0.62, 0.04, (90, 88, 86))  # the spine
     r.part("cube", 0.02, 0.72, 0.1, 0.01, 0.06, 0.06, (24, 20, 18))  # hanging hole
     r.part("cube", 0.02, 0.35, 0.2, 0.01, 0.12, 0.08, (90, 30, 26))  # a stain
