@@ -23,6 +23,8 @@ class Enemy:
         self.anim_t = 0.0
         self._wander_dir = None
         self._struck = False
+        # "melee", "shot" or "bite": what the current windup will turn into.
+        self.attack_kind = None
 
     @property
     def alive(self):
@@ -90,6 +92,8 @@ class Enemy:
     def _idle(self, dt, world, dist):
         if self._notices(world, dist):
             return self._switch("chase")
+        if self.type.rooted:
+            return
         # Ruby used nil both for "not decided yet" and "stand still", so a standing enemy re-rolls every tick.
         if self._wander_dir is None or self.state_t > 2.5:
             self.state_t = 0.0
@@ -109,15 +113,24 @@ class Enemy:
         if dist > self.type.sight * 1.5:
             return self._switch("idle")
         self.face(world.player_x, world.player_z)
-        in_range = dist <= self.type.reach
-        if self.type.ranged and in_range:
+        t = self.type
+        if t.bite_reach and dist <= t.bite_reach:
+            return self._begin_windup("bite")
+        in_range = dist <= t.reach
+        if t.ranged and in_range:
             in_range = world.can_see(self.x, self.z, world.player_x, world.player_z)
-        if in_range and (not self.type.ranged or dist >= 2.5):
-            return self._switch("windup")
+        if in_range and (not t.ranged or t.bite_reach or dist >= 2.5):
+            return self._begin_windup("shot" if t.ranged else "melee")
+        if t.rooted:
+            return
         direction = -1.0 if self.type.ranged and dist < 4.0 else 1.0
         self._step(
             world, math.cos(self.yaw) * direction, math.sin(self.yaw) * direction, self.type.speed * dt
         )
+
+    def _begin_windup(self, kind):
+        self._switch("windup")
+        self.attack_kind = kind
 
     def _windup(self, world):
         if self.state_t < self.type.windup * 0.6:
@@ -128,12 +141,15 @@ class Enemy:
     def _attack(self, world, dist):
         if not self._struck:
             self._struck = True
-            if self.type.ranged:
+            if self.attack_kind == "shot":
                 world.enemy_fire(self)
-            elif dist <= self.type.reach + 0.3 and self._facing(world.player_x, world.player_z):
+            elif dist <= self._strike_reach() + 0.3 and self._facing(world.player_x, world.player_z):
                 world.enemy_strike(self)
         if self.state_t >= 0.2:
             self._switch("recover")
+
+    def _strike_reach(self):
+        return self.type.bite_reach if self.attack_kind == "bite" else self.type.reach
 
     def _facing(self, px, pz):
         diff = (math.atan2(pz - self.z, px - self.x) - self.yaw + math.pi) % (2 * math.pi) - math.pi

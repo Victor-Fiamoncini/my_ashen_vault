@@ -30,7 +30,7 @@ R,,,,,,,,,,,,,,..,,,,,,,,,,,,,,R
 R,,HHHHHH,,,,,,..,,,,,,HHHHHH,,R
 R,,HiiiiH,,,,,,..,,,,,,HHHHHH,,R
 R,,HiMiii..............HHHHHH,,R
-R,,HiiiiH,,,,,,..,,,,,,HHHHHH,,R
+R,,HiiiiH,,,,,,..,,,,,,HHVHHH,,R
 R,,HHHHHH,,,,,,..,,,,,,,,,,,,,,R
 R,,,,,,,,,,t........t,,,,,T,,,,R
 R,,T,,,,,,,.S........,,,,,,,,,,R
@@ -58,3 +58,4 @@ S = save_statue on=.
 W = exit map=sunken_keep at=15,27,-90 label=Descend_the_well model=well on=.
 g = npc id=hollis yaw=180 on=.
 f = npc id=maeve yaw=-90 on=p
+V = exit map=verdant_hollow at=15,27,-90 label=Enter_the_overgrown_house model=vine_door yaw=90 on=p

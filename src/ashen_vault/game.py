@@ -20,6 +20,7 @@ from ashen_vault.save.save_system import SaveSystem
 from ashen_vault.screen import FOV, PREVIEW, H, W, centered_row_at, list_row_at
 from ashen_vault.ui import hud as ui
 from ashen_vault.util import clamp, rround
+from ashen_vault.world import relics
 from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.world import World
 
@@ -32,8 +33,9 @@ SHOP_LIST = (6, 6, 308)
 TITLE_Y, TITLE_STEP = 140, 14
 ENDING = [
     "The bell of Harrowmere rings again.",
-    "Its note rolls down through the well and into the drowned halls,",
-    "and the old keep settles back into sleep.",
+    "Its note rolls down the well into the drowned halls",
+    "and through the roots beneath the overgrown house.",
+    "The old keep and the green hollow sleep once more.",
     "",
     "Thank you for playing the Ashen Vault demo.",
 ]
@@ -391,9 +393,12 @@ class Game:
             self.message(f"You reached level {self.player.stats.level}!")
         if not t.boss:
             return
-        self.flags.add("boss_dead")
-        self.world.drop_sigil(enemy.x, enemy.z)
-        self.message("The Warden crumbles into ash. Something glows where he fell.")
+        if t.dead_flag:
+            self.flags.add(t.dead_flag)
+        if t.drop:
+            self.world.drop_relic(t.drop, enemy.x, enemy.z)
+        if t.epitaph:
+            self.message(t.epitaph)
 
     def hurt_player(self, dmg, source):
         if not self.player.alive:
@@ -511,8 +516,7 @@ class Game:
         elif k == "pickup":
             item = Items.get(prop.props["item"])
             self.player.inventory.add(item.id)
-            if item.id == "ember_sigil":
-                self.flags.add("sigil_taken")
+            relics.mark_taken(item.id, self.flags)
             self.world.remove_prop(prop)
             self.sfx("pickup")
             self.message(f"Obtained {item.name}.")
@@ -673,7 +677,8 @@ class Game:
             self.show_title()
 
     def finish_game(self):
-        self.player.inventory.remove("ember_sigil")
+        for item_id in relics.ENDING_RELICS:
+            self.player.inventory.remove(item_id)
         self.flags.add("ending")
         self._audio.play("bell")
         self.scene = "ending"

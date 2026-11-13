@@ -15,7 +15,7 @@ def test_textures_are_rgba_64():
 
 
 def test_mesh_builder_batches_shipped_maps():
-    for name in ("harrowmere", "sunken_keep"):
+    for name in ("harrowmere", "sunken_keep", "verdant_hollow"):
         m = MapLoader.load_file(map_path(name))
         b = MeshBuilder(m, lights=MeshBuilder.lights_for(m)).build()
         assert b.batches
@@ -63,3 +63,62 @@ def test_menu_hit_testing():
     assert screen.centered_row_at(160, 140, 14, 3, 50, 120, 140 + 28) == 2
     assert screen.centered_row_at(160, 140, 14, 3, 50, 160, 140 + 42) is None
     assert screen.centered_row_at(160, 140, 14, 3, 50, 20, 140) is None
+
+
+def test_fungus_glows_teal_by_default():
+    m = MapLoader.load_file(map_path("verdant_hollow"))
+    lights = MeshBuilder.lights_for(m)
+    fungus = [s for s in m.entities if s.kind == "fungus"]
+    assert fungus
+    teal = [l for l in lights if l.color == [0.3, 0.85, 0.65]]
+    assert len(teal) == len(fungus)
+    assert all(l.y < 1.6 + 1.2 for l in teal)
+
+
+class _RecordingGpu:
+    """Stands in for Gpu: counts the parts a model draws instead of touching raylib."""
+
+    def __init__(self):
+        self.parts = []
+
+    def to_matrix(self, m):
+        return m
+
+    def draw_part(self, kind, matrix, rgb, tex="white", glow=False):
+        assert kind in ("cube", "sphere", "cyl", "cone", "quad")
+        assert all(0 <= c <= 255 for c in rgb), rgb
+        self.parts.append((kind, matrix[7]))
+
+
+def test_every_enemy_model_draws_in_every_state():
+    import random
+
+    from ashen_vault.ai.enemy import Enemy
+    from ashen_vault.ai.enemy_types import EnemyTypes
+    from ashen_vault.render import models
+
+    for type_ in EnemyTypes.ALL.values():
+        for state in ("idle", "chase", "windup", "attack", "recover", "hurt", "dead"):
+            gpu = _RecordingGpu()
+            e = Enemy(type_, 0, 0, rng=random.Random(0))
+            e.state = state
+            e.state_t = 0.1
+            e.anim_t = 1.3
+            models.enemy(rig.Rig(gpu), e)
+            assert len(gpu.parts) >= 4, (type_.id, state)
+            # Nothing sinks far below the floor (the y of each part's origin).
+            assert min(y for _, y in gpu.parts) > -0.3, (type_.id, state)
+
+
+def test_jungle_props_and_relic_icons_draw():
+    from ashen_vault.player.items import Items
+    from ashen_vault.render import models
+
+    gpu = _RecordingGpu()
+    r = rig.Rig(gpu)
+    models.jungle_tree(r, 3, 0.5)
+    models.fungus(r, 2, 0.5)
+    models.vine_door(r, 0.5)
+    for id_ in Items.ALL:
+        models.item(r, id_, 0.5)
+    assert len(gpu.parts) > 100

@@ -1,0 +1,84 @@
+[meta]
+name = The Verdant Hollow
+ambient = 0.24 0.31 0.21
+fog = 0.05 0.11 0.07
+fog_range = 3 22
+torch = 8 0.7 0.78 0.55
+start = 15 27 -90
+default = ,
+edge_top = 6
+edge_tex = vine_wall
+
+[legend]
+# = wall tex=vine_wall top=6 cap=canopy
+B = wall tex=bark top=8 cap=canopy
+, = floor tex=jungle_floor h=0 side=bark
+. = floor tex=leaf_litter h=0 ceil=4.6 ceil_tex=canopy side=bark
+r = floor tex=leaf_litter h=0.4 ceil=4.6 ceil_tex=canopy side=bark
+R = floor tex=leaf_litter h=0.8 ceil=4.6 ceil_tex=canopy side=bark
+m = floor tex=jungle_floor h=0.4 side=bark
+M = floor tex=jungle_floor h=0.8 side=bark
+^ = floor tex=leaf_litter h=1.2 side=bark
+- = floor tex=mud h=-0.2 side=mud
+= = floor tex=wood_plank h=0.05 side=wood_plank
+~ = water tex=bog h=-0.7 side=mud
+
+[grid]
+################################
+#########T,,,,,,,,,,,T##########
+########B,f,,,,,,,,,f,B#########
+########,,,,,,,L,,,,,,,#########
+########,t,,,,,,,,,,,t,#########
+########,,,,,,,,,,,,,,,#########
+########B,f,,,,,,,,,f,B#########
+#########T,,,,,,,,,,,T##########
+##############,,,###############
+###############D################
+###########p.......c#####^^q^###
+######............h.#####^^^^###
+######P-F-#.l.......#####G######
+#~~~~~~=~~#####.h#######^^^^^ov#
+#k-P~~~=~~####p..#######^^j^^^^#
+#-F-~~~=~~#####..######NMMMMMMM#
+#-s-~~~=~~#####rr######MMMMMBMU#
+#~--====~~#####RR######MMMMMMMM#
+#~~~~===--#####rr#####mmmmmmmmm#
+#~~~~=~~-s#####.l#####mmBmmHmmm#
+#~~~~===~~####p..#####mVmmmmmmm#
+#~~~~~~=~~#####..#####t,,,,,,,n#
+#~~~~~~=~~#####..#####,,,,B,,,T#
+#~~~~~---~#B,t,,,t,B##,,,,,,,,,#
+#####-F-s-#,,,,,,,,,##,,,,,,,,x#
+######.....,,,,,,,,T...#########
+###########,,,,,,,S,############
+###########,T,,,,,,,############
+###############E################
+################################
+
+[entities]
+L = loom_mother yaw=90 on=,
+D = door key=briar_key on=,
+G = gate lever=hollow_lever on=^
+v = lever id=hollow_lever on=^
+E = exit map=harrowmere at=25,12,90 label=Return_to_Harrowmere model=vine_door yaw=-90 on=.
+S = save_statue on=,
+k = chest item=briar_key on=-
+q = chest item=red_tonic count=3 gold=80 on=^
+c = chest item=blue_moss count=2 gold=30 on=.
+x = chest item=red_tonic count=2 on=,
+s = mire_slime on=-
+p = snare_bloom on=.
+P = snare_bloom on=-
+n = snare_bloom on=,
+N = snare_bloom on=M
+h = bark_husk on=.
+H = bark_husk on=m
+j = bark_husk on=^
+t = torch radius=7 on=,
+l = torch radius=7 on=.
+o = torch radius=7 on=^
+f = fungus radius=10 on=,
+F = fungus radius=5 on=-
+T = jungle_tree on=,
+U = jungle_tree on=M
+V = jungle_tree on=m

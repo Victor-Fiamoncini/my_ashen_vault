@@ -11,7 +11,7 @@ from ashen_vault.player.player import Player
 from ashen_vault.render import models
 from ashen_vault.render.mesh_builder import MeshBuilder
 from ashen_vault.util import rround
-from ashen_vault.world import collision
+from ashen_vault.world import collision, relics
 from ashen_vault.world.map_loader import MapLoader
 from ashen_vault.world.tile_map import TileMap
 
@@ -42,6 +42,7 @@ class Projectile:
     damage: int
     hostile: bool
     rgb: tuple
+    source: str = ""
 
 
 INTERACT_RANGE = 2.6
@@ -119,13 +120,8 @@ class World:
                 if spec.kind == "pickup" and key in self.flags:
                     continue
                 self.props.append(prop)
-        if (
-            "boss_dead" in self.flags
-            and self.name == "sunken_keep"
-            and not self.player.inventory.has("ember_sigil")
-            and "sigil_taken" not in self.flags
-        ):
-            self.drop_sigil(*TileMap.center(15, 4))
+        for item_id, tx, tz in relics.pending_drops(self.map, self.flags, self.player.inventory.has):
+            self.drop_relic(item_id, *TileMap.center(tx, tz))
 
     def respawn_enemies(self):
         """Shrine rest: every normal enemy comes back fresh. A living boss is left as it is."""
@@ -210,7 +206,8 @@ class World:
                 life=4.0,
                 damage=enemy.type.damage,
                 hostile=True,
-                rgb=(255, 120, 40),
+                rgb=enemy.type.shot_rgb,
+                source=enemy.name,
             )
         )
         self.game.sfx("spell")
@@ -263,7 +260,7 @@ class World:
             elif pr_.hostile:
                 if math.hypot(pr_.x - player.x, pr_.z - player.z) < 0.6:
                     self.game.hurt_player(
-                        max(rround(pr_.damage - player.inventory.defense * 0.3), 1), "Cinder Wisp"
+                        max(rround(pr_.damage - player.inventory.defense * 0.3), 1), pr_.source or "Something"
                     )
                     pr_.life = 0
             else:
@@ -349,7 +346,8 @@ class World:
         p.open_t = 0.01
         self.flags.add(p.key)
 
-    def drop_sigil(self, x, z):
+    def drop_relic(self, item_id, x, z):
+        """Leaves a boss relic on the floor as a pickup."""
         tx = TileMap.tile_coord(x)
         tz = TileMap.tile_coord(z)
         self.props.append(
@@ -360,8 +358,8 @@ class World:
                 y=self.map[tx, tz].floor,
                 tx=tx,
                 tz=tz,
-                props={"item": "ember_sigil"},
-                key="sigil",
+                props={"item": item_id},
+                key=relics.get(item_id).key,
                 yaw=0,
                 open_t=0,
             )
@@ -428,6 +426,10 @@ class World:
             models.save_statue(rig, t)
         elif k == "tree":
             models.tree(rig, p.tx * 7 + p.tz)
+        elif k == "jungle_tree":
+            models.jungle_tree(rig, p.tx * 7 + p.tz, t)
+        elif k == "fungus":
+            models.fungus(rig, p.tx * 5 + p.tz, t)
         elif k == "pickup":
             models.pickup(rig, t)
         elif k == "npc":
@@ -438,5 +440,7 @@ class World:
         elif k == "exit":
             if p.props.get("model") == "well":
                 models.well(rig)
+            elif p.props.get("model") == "vine_door":
+                models.vine_door(rig, t)
             else:
                 models.rope(rig, t)
