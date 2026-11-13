@@ -98,6 +98,13 @@ def tiny_centered(s, cx, y, col=TEXT):
     tiny(s, cx - tinyfont.width(s) // 2, y, col)
 
 
+def micro_centered(s, cx, y, col=TEXT):
+    """3x4 pixel text (tinyfont.MICRO), no shadow: the slot cards' labels and the quick count."""
+    x = int(cx - tinyfont.width(s) // 2)
+    for rx, ry, rw, rh in tinyfont.rects(s, x, int(y), tinyfont.MICRO):
+        pr.draw_rectangle(rx, ry, rw, rh, col)
+
+
 def small(s, x, y, col=TEXT):
     """In-game message text in the small pixel font (see smallfont), with a 1 px drop shadow.
     Returns the x just past the text."""
@@ -129,26 +136,32 @@ def hud(game):
 
     # Bottom left: the vitals and a small compass in one gold-edged box. It shares its height
     # and bottom edge with the cards on the right.
-    bx, by = 4, H - 4 - HUD_BOX_H
+    bx, by = HUD_MARGIN, H - HUD_MARGIN - HUD_BOX_H
     hud_box(bx, by, VITALS_W, HUD_BOX_H)
     rows = by + (HUD_BOX_H - 19) // 2  # three 5 px rows, 7 px apart
-    vital("HP", bx + 6, rows, s.hp / s.max_hp, (230, 120, 110), (190, 40, 40), s.hp)
-    vital("MP", bx + 6, rows + 7, s.mp / s.max_mp, (120, 150, 230), (50, 80, 200), s.mp)
+    vx = bx + HUD_PAD
+    vital("HP", vx, rows, s.hp / s.max_hp, (230, 120, 110), (190, 40, 40), s.hp)
+    vital("MP", vx, rows + 7, s.mp / s.max_mp, (120, 150, 230), (50, 80, 200), s.mp)
     st = p.stamina
     vital(
         "ST",
-        bx + 6,
+        vx,
         rows + 14,
         st.value,
         (130, 200, 130),
         STAMINA_TIRED_RGB if st.exhausted else STAMINA_RGB,
         rround(st.value * 100),
     )
-    compass(p.heading, bx + VITALS_W - 18, by + HUD_BOX_H // 2 - 1, COMPASS_R)
+    # The ball's shadow and E/W letters reach COMPASS_R + 2 to each side; its pointer ends
+    # COMPASS_R + 3 below the centre.
+    reach = COMPASS_R + 2
+    span = 2 * COMPASS_R + 6  # top of the shadow to the tip of the pointer
+    compass(p.heading, bx + VITALS_W - HUD_PAD - 1 - reach, by + (HUD_BOX_H - span) // 2 + reach, COMPASS_R)
 
     # Bottom right: the Primary / quick item / Secondary cards.
-    cards_hud(p, W - 4 - CARDS_W, H - 4 - HUD_BOX_H)
+    cards_hud(p, W - HUD_MARGIN - CARDS_W, H - HUD_MARGIN - HUD_BOX_H)
 
+    gold_counter(game)
     boss_bar(game)
     messages(game)
     prompt(game)
@@ -158,9 +171,9 @@ def hud(game):
 def vital(label, x, y, frac, label_rgb, bar_rgb, value=None):
     """One compact row: label, a short bar, and an optional number."""
     tiny(label, x, y, color(*label_rgb))
-    bar(x + 10, y + 1, 36, 3, frac, bar_rgb)
+    bar(x + 10, y + 1, 30, 3, frac, bar_rgb)
     if value is not None:
-        tiny(str(value), x + 50, y, DIM)
+        tiny(str(value), x + 44, y, DIM)
 
 
 SLOT_PULSE = 0.35  # seconds a card's edge flashes after its gauge fills
@@ -175,14 +188,16 @@ WINDED_RGB = (140, 40, 30)
 HUD_FILL = color(20, 16, 12, 215)
 HUD_EDGE = color(170, 135, 70)  # the gold trim shared by the vitals box and the cards
 HUD_RADIUS = 3  # corner radius in pixels, shared by every HUD box, menu and window
-HUD_BOX_H = 44  # the vitals box and the three cards share this height
-VITALS_W = 104
-COMPASS_R = 12
-CARD_W = 44
+HUD_MARGIN = 3  # pixels between the HUD boxes and the screen edge
+HUD_PAD = 3  # pixels from a HUD box's outer edge (its 1 px trim included) to its contents
+HUD_BOX_H = 38  # the vitals box and the three cards share this height
+VITALS_W = 90
+COMPASS_R = 10
+CARD_W = 41  # "SECONDARY" (35 px) plus HUD_PAD on each side
 CARD_GAP = 2
 CARDS_W = 3 * CARD_W + 2 * CARD_GAP
 CARD_LABELS = {RIGHT: "PRIMARY", LEFT: "SECONDARY"}
-MESSAGE_Y = H - 8 - HUD_BOX_H - 9  # top of the newest message line, just above the bottom boxes
+MESSAGE_Y = H - HUD_MARGIN - 4 - HUD_BOX_H - 9  # top of the newest message line, just above the bottom boxes
 
 
 def hud_box(x, y, w, h, fill=HUD_FILL, radius=HUD_RADIUS, edge=HUD_EDGE):
@@ -194,29 +209,15 @@ def hud_box(x, y, w, h, fill=HUD_FILL, radius=HUD_RADIUS, edge=HUD_EDGE):
 
 
 def mini_mouse(x, y, lit, dim=False):
-    """A 7x10 mouse with the `lit` button ("left" / "right" / None for the wheel) glowing."""
+    """A 7x10 mouse with the `lit` button ("left" / "right" / "wheel", or None for none) glowing."""
     body = color(150, 140, 120, 120 if dim else 255)
     pr.draw_rectangle_rounded(pr.Rectangle(x, y, 7, 10), 0.6, 4, body)
     off = color(60, 54, 44)
     on = color(*HIGHLIGHT_RGB) if not dim else color(120, 100, 64)
     pr.draw_rectangle(x + 1, y + 1, 2, 3, on if lit == "left" else off)
     pr.draw_rectangle(x + 4, y + 1, 2, 3, on if lit == "right" else off)
-    pr.draw_rectangle(x + 3, y + 1, 1, 3, color(30, 26, 20))
+    pr.draw_rectangle(x + 3, y + 1, 1, 3, on if lit == "wheel" else color(30, 26, 20))
     pr.draw_line(x + 1, y + 5, x + 6, y + 5, color(90, 80, 64))
-
-
-def mini_wheel(cx, y):
-    """The scroll wheel between up/down arrows: rolling it picks the quick item."""
-    chev = color(150, 120, 70)
-    pr.draw_rectangle(cx - 2, y, 5, 10, color(30, 26, 20))
-    pr.draw_rectangle_lines(cx - 2, y, 5, 10, color(150, 140, 120))
-    for i in range(3):
-        pr.draw_line(cx - 1, y + 2 + i * 3, cx + 2, y + 2 + i * 3, color(110, 100, 84))
-    for side in (-7, 7):
-        ax = cx + side
-        pr.draw_triangle(pr.Vector2(ax, y), pr.Vector2(ax - 2, y + 3), pr.Vector2(ax + 2, y + 3), chev)
-        pr.draw_line(ax, y + 3, ax, y + 7, chev)
-        pr.draw_triangle(pr.Vector2(ax - 2, y + 7), pr.Vector2(ax, y + 10), pr.Vector2(ax + 2, y + 7), chev)
 
 
 def cards_hud(player, x, y):
@@ -240,27 +241,31 @@ def _card_flash(x, y, k):
 
 def slot_card(player, hand, x, y):
     """One equip slot: a mini mouse with its button lit, the slot's gauge as a bar, the held weapon,
-    shield or spell, and the slot's name."""
+    shield or spell, and the slot's name. The Secondary card mirrors the Primary one: its mouse sits
+    at the outer (right) end of the bar."""
     two_handed = hand == LEFT and player.inventory.two_handing()
     hud_box(x, y, CARD_W, HUD_BOX_H)
-    mini_mouse(x + 4, y + 4, "left" if hand == RIGHT else "right", dim=two_handed)
-    bx, bw = x + 14, CARD_W - 18
-    cx, cy = x + CARD_W // 2, y + 25
+    bw = CARD_W - 2 * HUD_PAD - 10  # the bar fills the top row beside the 7 px mouse and a 3 px gap
+    if hand == RIGHT:
+        mx, bx = x + HUD_PAD, x + HUD_PAD + 10
+    else:
+        mx, bx = x + CARD_W - HUD_PAD - 7, x + HUD_PAD
+    mini_mouse(mx, y + HUD_PAD, "left" if hand == RIGHT else "right", dim=two_handed)
+    cx, cy = x + CARD_W // 2, y + 21
     item = player.hand_item(hand)
     t = pr.get_time()
     pulse = None
     if two_handed:
-        # The other half of a two-hander: only the left button swings it.
-        tiny("2H", bx + bw - tinyfont.width("2H"), y + 6, color(150, 120, 70))
+        # The other half of a two-hander, dimmed: only the left button swings it.
         weapon_icon(item, cx, cy, t, 70)
     elif item.kind == "shield":
         up = player.guarding
-        gauge_bar(bx, y + 7, bw, player.stamina.value if up else 0, STAMINA_RGB)
+        gauge_bar(bx, y + 6, bw, player.stamina.value if up else 0, STAMINA_RGB)
         shield_icon(item, cx, cy, 110 if player.guard_break_t > 0 else 255, up)
     elif item.kind == "spell":
         spell = player.current_spell()
         g = player.magic_gauge
-        gauge_bar(bx, y + 7, bw, g.value if spell else 0, FOCUS_RGB if g.full else FOCUS_CHARGING_RGB)
+        gauge_bar(bx, y + 6, bw, g.value if spell else 0, FOCUS_RGB if g.full else FOCUS_CHARGING_RGB)
         if spell:
             spell_icon(spell.id, cx, cy, t, 255 if g.full else 110)
             pulse = g
@@ -268,13 +273,19 @@ def slot_card(player, hand, x, y):
             pr.draw_ring(pr.Vector2(cx, cy), 4, 6, 0, 360, 24, color(60, 56, 48))
     else:
         g = player.gauge(hand)
-        gauge_bar(bx, y + 7, bw, g.value, ATK_RGB if g.full else ATK_CHARGING_RGB)
-        charge_bar(player, hand, bx, y + 7, bw)
+        gauge_bar(bx, y + 6, bw, g.value, ATK_RGB if g.full else ATK_CHARGING_RGB)
+        charge_bar(player, hand, bx, y + 6, bw)
         weapon_icon(item, cx, cy, t, 255 if g.full else 110, g.full)
         pulse = g
-    tiny_centered(CARD_LABELS[hand], cx + 1, y + HUD_BOX_H - 8, color(120, 100, 64) if two_handed else DIM)
+    label_col = color(120, 100, 64) if two_handed else DIM
+    micro_centered(CARD_LABELS[hand], cx, card_label_y(y), label_col)
     if pulse is not None and pulse.full and pulse.full_t < SLOT_PULSE:
         _card_flash(x, y, pulse.full_t / SLOT_PULSE)
+
+
+def card_label_y(y):
+    """Top of a card's bottom label: HUD_PAD above the card's lower edge."""
+    return y + HUD_BOX_H - HUD_PAD - tinyfont.MICRO_HEIGHT
 
 
 def charge_bar(player, hand, x, y, w):
@@ -293,20 +304,19 @@ def charge_bar(player, hand, x, y, w):
 
 
 def quick_card(player, x, y):
-    """The selected quick item, drawn twice size under the scroll wheel, and how many are left."""
+    """The selected quick item, drawn twice size under a mini mouse with its wheel lit (middle click
+    uses it, rolling picks another), and how many are left."""
     hud_box(x, y, CARD_W, HUD_BOX_H)
     cx = x + CARD_W // 2
-    mini_wheel(cx, y + 4)
+    mini_mouse(cx - 3, y + HUD_PAD, "wheel")
     item = player.quick_item()
     n = player.inventory.count(item.id)
-    pr.draw_rectangle(cx - 9, y + 16, 18, 18, color(0, 0, 0, 160))
-    pr.draw_rectangle_lines(cx - 9, y + 16, 18, 18, color(90, 74, 48))
     pr.rl_push_matrix()
-    pr.rl_translatef(cx, y + 25, 0)
+    pr.rl_translatef(cx, y + 22, 0)
     pr.rl_scalef(2, 2, 1)
     item_icon(item.id, 0, 0, pr.get_time(), 255 if n else 90)
     pr.rl_pop_matrix()
-    tiny_centered(f"X{n}", cx + 1, y + HUD_BOX_H - 8, TEXT if n else color(200, 80, 70))
+    micro_centered(f"X{n}", cx, card_label_y(y), TEXT if n else color(200, 80, 70))
 
 
 def item_icon(id_, cx, cy, t, alpha=255):
@@ -602,6 +612,31 @@ def compass(heading, cx, cy, r=17):
     )
 
 
+GOLD_RGB = (235, 190, 80)
+
+
+def gold_counter(game):
+    """Top right: the purse, like a soul counter. A fresh gain hangs under it as "+N", then counts in."""
+    tally = game.gold_tally
+    label = str(tally.shown)
+    w = HUD_PAD + 7 + 1 + smallfont.width(label) + HUD_PAD  # coin, gap, number
+    x, y = W - HUD_MARGIN - w, HUD_MARGIN
+    hud_box(x, y, w, 13)
+    coin(x + HUD_PAD + 3, y + 6)
+    small(label, x + HUD_PAD + 8, y + 3 + TEXT_DY, HIGHLIGHT)
+    a = tally.gain_alpha()
+    if a > 0:
+        gain = f"+{tally.shown_gain}"
+        small(gain, W - HUD_MARGIN - 2 - smallfont.width(gain), y + 16, color(*GOLD_RGB, rround(255 * a)))
+
+
+def coin(cx, cy):
+    """A 7 px gold coin with a dark rim and a glint."""
+    pr.draw_circle(cx, cy, 3, color(120, 80, 20))
+    pr.draw_circle(cx, cy, 2, color(*GOLD_RGB))
+    pr.draw_rectangle(cx - 1, cy - 2, 1, 1, color(255, 245, 200))
+
+
 BOSS_BAR_W = 168
 
 
@@ -688,7 +723,7 @@ def _web_overlay(k):
 
 
 DIALOGUE_H = 56
-DIALOGUE_Y = H - 8 - HUD_BOX_H - DIALOGUE_H  # just above the bottom HUD boxes, never over them
+DIALOGUE_Y = H - HUD_MARGIN - 4 - HUD_BOX_H - DIALOGUE_H  # just above the bottom HUD boxes, never over them
 
 
 def dialogue(speaker, line, page, pages):

@@ -1,4 +1,4 @@
-"""A 3x5 pixel font for the compact HUD. Pure data, no raylib: the HUD turns
+"""Tiny pixel fonts for the compact HUD (3x5 GLYPHS, 3x4 MICRO). Pure data, no raylib: the HUD turns
 the pixel runs into rectangles. raylib's built-in font is 10 px tall and
 smears when scaled down on the point-filtered 320x240 target."""
 
@@ -58,10 +58,41 @@ def width(s):
     return max(len(s) * ADVANCE - 1, 0)
 
 
-def rects(s, x, y):
+# A one-row-shorter 3x4 set for the slot cards' labels and the quick item's count. Only the
+# characters those use; anything else draws as a space.
+MICRO_HEIGHT = 4
+MICRO = {
+    " ": (0, 0, 0, 0),
+    "A": (2, 5, 7, 5),
+    "C": (3, 4, 4, 3),
+    "D": (6, 5, 5, 6),
+    "E": (7, 6, 4, 7),
+    "I": (7, 2, 2, 7),
+    "M": (7, 7, 5, 5),
+    "N": (6, 5, 5, 5),
+    "O": (2, 5, 5, 2),
+    "P": (6, 5, 6, 4),
+    "R": (6, 5, 6, 5),
+    "S": (3, 6, 1, 6),
+    "X": (5, 2, 2, 5),
+    "Y": (5, 5, 2, 2),
+    "0": (7, 5, 5, 7),
+    "1": (2, 6, 2, 7),
+    "2": (6, 1, 2, 7),
+    "3": (7, 3, 1, 7),
+    "4": (5, 5, 7, 1),
+    "5": (7, 6, 1, 6),
+    "6": (4, 7, 5, 7),
+    "7": (7, 1, 2, 2),
+    "8": (7, 2, 5, 7),
+    "9": (7, 5, 7, 1),
+}
+
+
+def rects(s, x, y, glyphs=GLYPHS):
     """Yields (x, y, w, h) runs covering the lit pixels of `s`. Unknown characters draw as spaces."""
     for i, ch in enumerate(s.upper()):
-        rows = GLYPHS.get(ch, GLYPHS[" "])
+        rows = glyphs.get(ch, glyphs[" "])
         gx = x + i * ADVANCE
         for row, bits in enumerate(rows):
             col = 0

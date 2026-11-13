@@ -183,14 +183,75 @@ def test_hud_boxes_fit_the_screen_without_overlapping():
     from ashen_vault.screen import H, W
     from ashen_vault.ui import hud, smallfont
 
-    cards_x = W - 4 - hud.CARDS_W
-    assert cards_x > 4 + hud.VITALS_W  # cards right of the vitals box
+    m = hud.HUD_MARGIN
+    cards_x = W - m - hud.CARDS_W
+    assert cards_x > m + hud.VITALS_W  # cards right of the vitals box
     assert hud.CARDS_W == 3 * hud.CARD_W + 2 * hud.CARD_GAP
-    row_top = H - 4 - hud.HUD_BOX_H
+    row_top = H - m - hud.HUD_BOX_H
     assert hud.DIALOGUE_Y >= 0 and row_top >= hud.DIALOGUE_Y + hud.DIALOGUE_H
     assert row_top >= hud.MESSAGE_Y + smallfont.HEIGHT
     # Every slot label and the quick count fit their card in the tiny font.
     from ashen_vault.ui import tinyfont
 
-    assert all(tinyfont.width(label) <= hud.CARD_W - 4 for label in hud.CARD_LABELS.values())
-    assert all(ch in tinyfont.GLYPHS for label in hud.CARD_LABELS.values() for ch in label)
+    assert all(tinyfont.width(label) <= hud.CARD_W - 2 * hud.HUD_PAD for label in hud.CARD_LABELS.values())
+    assert all(ch in tinyfont.MICRO for label in hud.CARD_LABELS.values() for ch in label)
+    assert all(ch in tinyfont.MICRO for ch in "X0123456789")  # the quick item's count
+
+
+def test_gold_tally_starts_settled():
+    from ashen_vault.ui.tally import GoldTally
+
+    t = GoldTally(250)
+    t.update(250, 0.1)
+    assert (t.shown, t.gain, t.gain_alpha()) == (250, 0, 0.0)
+
+
+def test_gold_tally_holds_a_gain_then_counts_it_in():
+    from ashen_vault.ui.tally import FADE_TIME, GAIN_HOLD, ROLL_TIME, GoldTally
+
+    t = GoldTally(100)
+    t.update(140, 0.0)
+    assert (t.shown, t.gain, t.shown_gain, t.gain_alpha()) == (100, 40, 40, 1.0)
+    t.update(140, GAIN_HOLD - 0.1)
+    assert t.shown == 100  # still held
+    t.update(140, 0.1 + ROLL_TIME / 2)
+    assert 100 < t.shown < 140 and t.shown + t.gain == 140
+    t.update(140, ROLL_TIME)
+    assert (t.shown, t.gain) == (140, 0)
+    assert 0 < t.gain_alpha() <= 1  # the "+40" fades out
+    t.update(140, FADE_TIME + 0.01)
+    assert t.gain_alpha() == 0
+
+
+def test_gold_tally_adds_gains_in_a_row():
+    from ashen_vault.ui.tally import GAIN_HOLD, ROLL_TIME, GoldTally
+
+    t = GoldTally(0)
+    t.update(10, 0.5)
+    t.update(25, 0.5)
+    assert (t.shown, t.gain, t.shown_gain) == (0, 25, 25)
+    t.update(25, GAIN_HOLD + ROLL_TIME)
+    assert t.shown == 25
+
+
+def test_gold_tally_shows_spending_at_once():
+    from ashen_vault.ui.tally import GoldTally
+
+    t = GoldTally(100)
+    t.update(130, 0.2)
+    t.update(60, 0.0)
+    assert (t.shown, t.gain, t.gain_alpha()) == (60, 0, 0.0)
+
+
+def test_gold_tally_alpha_stays_in_range_when_rounding_finishes_early():
+    """A small gain can round all the way in before the roll's time is up; the "+N" fade must still
+    start from 1 (it once went above 1 and overflowed the colour byte)."""
+    from ashen_vault.ui.tally import GAIN_HOLD, GoldTally
+
+    t = GoldTally(0)
+    t.update(3, 0.0)
+    t.update(3, GAIN_HOLD)
+    for _ in range(200):
+        t.update(3, 1 / 144)  # uneven real frame times
+        assert 0.0 <= t.gain_alpha() <= 1.0
+    assert (t.shown, t.gain, t.gain_alpha()) == (3, 0, 0.0)

@@ -263,9 +263,11 @@ The same list is in the game under **Controls** on the title and pause menus.
 ## Tips
 
 - Three cards in the bottom right show your slots: Primary (a mini mouse with its left button lit),
-  your quick item under the scroll wheel, and Secondary (the right button lit). HP, MP, ST (with their
-  numbers) and a small compass share the bottom-left box. Spell MP costs are listed in Belongings and
-  in the shop.
+  your quick item (the mouse with its wheel lit), and Secondary (the right button lit). HP, MP, ST
+  (with their numbers) and a small compass share the bottom-left box. Spell MP costs are listed in
+  Belongings and in the shop.
+- Your gold shows in the top right corner. Gold you pick up lingers as a "+N" under it for a moment,
+  then counts into the total.
 - Your swing damage scales with the **ATK** gauge: the gold bar on your weapon's card. Wait for it to
   fill and the card to flash before swinging.
 - Spells need your **focus** back as well as enough MP. The cyan bar on the spell's card refills after
@@ -350,8 +352,9 @@ it, so Claude Code, Codex, Cursor and Copilot all follow the same rules.
 | `src/ashen_vault/world/`, `player/`, `ai/`, `save/` | Game logic with no raylib dependency, covered by `tests/` |
 | `src/ashen_vault/render/` | PS1 shaders, procedural textures, map mesh builder, matrix rig, low-poly models |
 | `src/ashen_vault/game.py` | Scenes and the main loop |
-| `src/ashen_vault/ui/hud.py` | HUD (vitals, compass, the Primary / quick item / Secondary cards), menus and dialogue boxes |
-| `src/ashen_vault/ui/smallfont.py`, `ui/logofont.py` | The pixel font for all game text, and the logo's capitals for the title and big headings |
+| `src/ashen_vault/ui/hud.py` | HUD (vitals, compass, the Primary / quick item / Secondary cards, the gold counter), menus and dialogue boxes |
+| `src/ashen_vault/ui/tally.py` | How the gold counter holds a fresh "+N" and then counts it in |
+| `src/ashen_vault/ui/smallfont.py`, `ui/logofont.py`, `ui/tinyfont.py` | The pixel font for all game text, the logo's capitals for the title and big headings, and the HUD's tiny capitals and digits |
 | `src/ashen_vault/ui/belongings.py` | What the Belongings menu shows about the Primary and Secondary slots |
 | `src/ashen_vault/audio/synth.py` | Synthesized sound effects |
 | `src/ashen_vault/maps/*.map` | Plain-text tile maps (`[meta]`, `[legend]`, `[grid]`, `[entities]`) |

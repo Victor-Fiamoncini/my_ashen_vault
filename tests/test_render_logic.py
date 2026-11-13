@@ -38,6 +38,9 @@ def test_tinyfont_glyphs_and_width():
     for ch, rows in tinyfont.GLYPHS.items():
         assert len(rows) == tinyfont.HEIGHT, ch
         assert all(0 <= r < 8 for r in rows), ch
+    for ch, rows in tinyfont.MICRO.items():
+        assert len(rows) == tinyfont.MICRO_HEIGHT and all(0 <= r < 8 for r in rows), ch
+    assert [r[1] for r in tinyfont.rects("I", 0, 0, tinyfont.MICRO)] == [0, 1, 2, 3]
     assert tinyfont.width("HP 40") == 5 * tinyfont.ADVANCE - 1
     assert tinyfont.width("") == 0
     # Unknown characters draw as blanks instead of raising; lower case is upper-cased.

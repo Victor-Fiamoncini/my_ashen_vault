@@ -33,6 +33,7 @@ from ashen_vault.screen import (
 )
 from ashen_vault.ui import belongings
 from ashen_vault.ui import hud as ui
+from ashen_vault.ui.tally import GoldTally
 from ashen_vault.util import clamp, rround
 from ashen_vault.world import darkness, doors, elements, relics
 from ashen_vault.world.rest import RestSequence
@@ -92,6 +93,8 @@ class Game:
         self.messages = []
         self.flags = set()
         self.player = Player()
+        self.gold_tally = GoldTally(self.player.inventory.gold)
+        self._tally_inv = self.player.inventory
         self.world = None
         self.scene = None
         self._menu_index = 0
@@ -173,6 +176,11 @@ class Game:
         for m in self.messages:
             m[1] += dt
         self.messages = [m for m in self.messages if m[1] <= 5]
+        inv = self.player.inventory
+        if inv is not self._tally_inv:  # a new game or a loaded save: the counter starts settled
+            self._tally_inv = inv
+            self.gold_tally = GoldTally(inv.gold)
+        self.gold_tally.update(inv.gold, dt)
         if self.world:
             target = self.world.map.tile_at(self.player.x, self.player.z).dark
             self._dark_k = target if self._dark_k is None else darkness.ease_toward(self._dark_k, target, dt)
