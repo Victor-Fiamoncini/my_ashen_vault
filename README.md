@@ -370,6 +370,7 @@ it, so Claude Code, Codex, Cursor and Copilot all follow the same rules.
 | `src/ashen_vault/world/hazards.py`, `world/terrain.py` | Traps (spikes, blades, crumbling floors, flame jets, magma vents) and boss fire; terrain (lifts, river, ravine, ledges, logs, spores) |
 | `src/ashen_vault/world/elements.py` | Lightning against iron, fire against what was forged in it |
 | `src/ashen_vault/render/forge_models.py` | The Cinderhold's foes, the twin gargoyles, its weapons, shots, fortress dressing and skyline |
+| `src/ashen_vault/render/shapes.py` | Extra low-poly shapes for models: pointed blades, lozenge bars and wedges |
 | `src/ashen_vault/world/sky.py`, `render/sky.py` | Each map's sky (gradient, sun, clouds, mist), built as plain geometry and drawn behind the world |
 | `src/ashen_vault/dialogue.py` | NPC conversations |
 | `docs/logo/make_logo.py` | Generates the pixel-art logo SVG (its letters come from `ui/logofont.py`) |

@@ -98,6 +98,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/world/hazards.py` | Dungeon traps: floor spikes, pendulum blades, crumbling floors, flame jets, magma vents (whose bombs are `Eruption`s with an `origin`); the bosses' fire eruptions and slam shockwaves |
 | `src/ashen_vault/world/elements.py` | Elements: lightning against `conductive` foes, fire against `fireproof` ones, which weapons burn |
 | `src/ashen_vault/render/forge_models.py` | The Cinderhold's models (golem, bowman, hound, the gargoyles, Stormbrand and Slagbreaker, arrows, thunder and motes, flame jets, and the skyline: spires, bastions, smokestacks, the gatehouse, the keep, lavafalls); `models` imports it last and borrows its helpers |
+| `src/ashen_vault/render/shapes.py` | Model primitives raylib lacks (`blade`, `lozenge`, `wedge`) as pure triangle lists; `Gpu.primitive` uploads them |
 | `src/ashen_vault/world/terrain.py` | Terrain: rafts, planks, ledges, rotten floorboards, chain lifts, currents, thorns, chasm and river falls, hard landings, the log rack, spore pods (`World.terrain`) |
 | `src/ashen_vault/world/rest.py` | The shrine rest: timing and the pixelated ember fog pattern drawn while you pray |
 | `src/ashen_vault/ui/smallfont.py` | The small mixed-case pixel font for all game text: menus, dialogue, messages, prompts and the boss bar (`hud.text` draws with it) |
@@ -182,6 +183,9 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   Every model has a death pose (eased by `models.death_fall`); `tests/test_render_logic.py` checks
   that each one collapses, stays above the floor and fits its `height`, so update both together.
   Its `tall` is the top of the standing body: a spell bolt flying higher misses it (`world/shots.py`).
+  Bosses must stay boss-sized in detail (at least 50 parts, 30 for armed and armoured regulars) and
+  look different in their second phase (`test_bosses_have_boss_level_detail`,
+  `test_phase_two_changes_how_each_boss_looks`), and every glow goes out in death.
 - Foes that wield a weapon chop overhead (`models.chop_angle`) and hold it in a fist (`models.held`,
   `sword_parts`): give the arm an elbow (`elbow_bend`) and point the weapon with
   `aim_wrist(blade_direction, shoulder + elbow)` rather than a fixed angle, so it never folds back along
@@ -234,9 +238,15 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   within `weapons.DOUBLE_CLICK` of a light swing's start calls it off (refunding its ST) and starts the
   quick one (`Player.double_strike`), or queues it if the blow already landed (`chain_quick`). In a
   smoke run that is `attack wait:0.1 attack`. Quick moves that strike twice use `pulses` with a short
-  `pulse_gap`. Attack poses are keyframed in
-  `models.MOTIONS` (wind, strike, follow) and the strike lands at the attack's `hit_at`. The
-  viewmodel draws without depth testing, so draw what faces the camera last.
+  `pulse_gap`. Attack poses are keyframed in `models.MOTIONS` (wind, strike, follow, each
+  `(dx, dy, dz, rx, ry, rz)`), the strike lands at the attack's `hit_at`, and edged weapons (`TRAILS`)
+  smear a fan of ghost blades through the blow. The viewmodel draws without depth testing, so draw
+  what faces the camera last.
+- Besides raylib's cube, sphere, cyl, cone and quad, models can draw `blade` (a lozenge-section slab
+  that comes to a point), `lozenge` (the same section, straight) and `wedge` (a triangular prism),
+  generated in `render/shapes.py`. Straight swords, the player's and the foes', are `models.blade_parts`
+  (guard styles, pommels, ricasso, fuller, bevelled edges). Enemy anatomy has helpers too: `skull`,
+  `ribcage`, `hand`, `sack_hood` and `_bar` (a box between two points).
 - Secret attacks are listed in `weapons.secret()`; performing one adds a `secret:<category>` flag,
   which reveals its name in Belongings and the shop.
 - Weapons may carry an `element` (`"lightning"`, `"fire"`): `Game._strike` multiplies by
