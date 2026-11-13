@@ -14,6 +14,7 @@ from ashen_vault.render import forge_models, models
 from ashen_vault.render.mesh_builder import KINDLING, MeshBuilder
 from ashen_vault.util import rround
 from ashen_vault.world import collision, elements, loot, relics, shots, terrain
+from ashen_vault.world.arena import Arena, flood
 from ashen_vault.world.ash import AshCloud, death_phases
 from ashen_vault.world.hazards import (
     CrumbleFloor,
@@ -191,7 +192,10 @@ class World:
         self._piles = {(TileMap.tile_coord(c.x), TileMap.tile_coord(c.z)) for c in self.terrain.chutes}
         # Thorn floors grow spiked plants; each one's spikes rise (0..1) when stepped in.
         self._thorns = {(tx, tz): 0.0 for tx, tz, tile in self.map.each_tile() if tile.hurt}
+        self.arenas = []
         self._spawn_entities()
+        self.arenas = self._build_arenas()
+        self.player_blocker = self.player_blocked
 
     def _bake(self):
         """Builds the map's mesh with its light baked in, and uploads it (again, after a fire is lit)."""
@@ -388,6 +392,85 @@ class World:
             return f"lever:{prop.props.get('lever')}" in self.flags
         return False
 
+    # --- boss arenas ------------------------------------------------------------
+
+    def _build_arenas(self):
+        """One Arena per `door boss=<dead_flag>`: the tiles its bosses' lair spans behind the door."""
+        arenas = []
+        doors = [p for p in self.props if p.kind == "door" and p.props.get("boss")]
+        gates = {(p.tx, p.tz) for p in doors}
+        for p in doors:
+            flag = p.props["boss"]
+            homes = {
+                (TileMap.tile_coord(e.home_x), TileMap.tile_coord(e.home_z))
+                for e in self.enemies
+                if e.type.dead_flag == flag
+            }
+            tiles = flood(lambda tx, tz: self.map[tx, tz], homes, gates) if homes else set()
+            a = Arena(flag, (p.tx, p.tz), frozenset(tiles or ()), f"fog:{self.name}:{p.tx},{p.tz}", door=p)
+            if a.fogged(self.flags):
+                p.open_t = 1.0  # the door is gone; only the fog stands there
+            arenas.append(a)
+        return arenas
+
+    def arena_at_door(self, prop):
+        return next((a for a in self.arenas if a.door is prop), None)
+
+    def fog_gate(self, prop):
+        """The arena whose fog stands at `prop`, if it is a fog you can cross now."""
+        a = self.arena_at_door(prop) if prop.kind == "door" else None
+        return a if a and a.fogged(self.flags) and not a.sealed else None
+
+    def player_blocked(self, tx, tz):
+        """What stops the player: everything that stops a body, and every fog (crossed only on purpose)."""
+        if self.blocked_tile(tx, tz):
+            return True
+        return any(a.gate == (tx, tz) and a.fogged(self.flags) for a in self.arenas)
+
+    def cross_fog(self, arena):
+        """Walks the player through the fog to the tile beyond it."""
+        player = self.player
+        px, pz = TileMap.tile_coord(player.x), TileMap.tile_coord(player.z)
+        tx, tz = arena.crossing(arena.door.axis, px, pz)
+        player.x, player.z = TileMap.center(tx, tz)
+        self.game.sfx("spell", 0.5)
+        self.game.message("You pass through the fog.")
+
+    def mist_arenas(self):
+        """You fell: every arena you were fighting in (or stood in, its boss alive) fills with fog."""
+        here = (TileMap.tile_coord(self.player.x), TileMap.tile_coord(self.player.z))
+        for a in self.arenas:
+            if not a.cleared(self.flags) and (a.sealed or here in a.tiles):
+                self.flags.add(a.fog_key)
+
+    def _update_arenas(self):
+        here = (TileMap.tile_coord(self.player.x), TileMap.tile_coord(self.player.z))
+        for a in self.arenas:
+            if a.sealed and a.cleared(self.flags):
+                a.sealed = False
+                if a.door.open_t < 1.0:
+                    a.door.open_t = max(a.door.open_t, 0.01)
+                self.game.sfx("door")
+                self.game.message("The way out grinds open.")
+                continue
+            bosses = [
+                (
+                    (TileMap.tile_coord(e.x), TileMap.tile_coord(e.z)),
+                    e.state not in ("idle", "perched", "dormant"),
+                )
+                for e in self.enemies
+                if e.alive and e.type.dead_flag == a.flag
+            ]
+            if not self.player.alive or not a.should_seal(self.flags, here, bosses):
+                continue
+            a.sealed = True
+            if a.fogged(self.flags):
+                self.game.message("The fog closes behind you.")
+            else:
+                a.door.open_t = 0.0
+                self.game.sfx("door")
+                self.game.message("The great door slams shut behind you!")
+
     def _door_axis(self, tx, tz):
         """A door blocks the axis it is not aligned with: corridor walls tell us which."""
         return "x" if self.map[tx, tz - 1].solid and self.map[tx, tz + 1].solid else "z"
@@ -402,6 +485,10 @@ class World:
 
     def _blocks(self, p):
         """Whether prop `p` fills its tile right now."""
+        if p.kind == "door" and p.props.get("boss"):
+            a = self.arena_at_door(p)
+            if a is not None:
+                return a.blocks(self.flags, p.open_t < 0.9)
         if p.kind in ("door", "gate"):
             return p.open_t < 0.9
         if p.kind in BREAKABLE_PROPS:
@@ -660,6 +747,7 @@ class World:
         self._check_fall()
         self._push_player_out_of_bodies()
         self._update_thorns(dt)
+        self._update_arenas()
 
     def _update_thorns(self, dt):
         """Spikes stab up fully under your feet and bristle half-way as you come near."""
@@ -1037,6 +1125,12 @@ class World:
     def _interactable(self, p):
         if p.kind in ("npc", "save_statue", "exit", "pickup", "iron_maiden", "frog_idol"):
             return True
+        if p.kind == "door" and p.props.get("boss"):
+            a = self.arena_at_door(p)
+            if a and a.sealed:
+                return False  # no way out until one of you falls
+            if self.fog_gate(p):
+                return True
         if p.kind in ("chest", "lever", "door", "altar"):
             return p.open_t == 0
         return p.kind in KINDLING and not self.is_lit(p)  # a cold fire: you can look at its ashes
@@ -1366,6 +1460,12 @@ class World:
             models.totem(rig, p.tx * 3 + p.tz, t)
         elif k == "chest":
             models.chest(rig, p.open_t > 0)
+        elif k == "door" and p.props.get("boss"):
+            a = self.arena_at_door(p)
+            if a and a.fogged(self.flags):
+                models.fog_gate(rig, t, p.axis, a.sealed)
+            else:
+                models.boss_door(rig, p.open_t, p.axis, t, lit=not (a and a.cleared(self.flags)))
         elif k == "door":
             models.door(rig, p.open_t, p.axis)
         elif k == "gate":

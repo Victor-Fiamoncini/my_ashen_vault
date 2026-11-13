@@ -28,6 +28,7 @@ o = floor tex=dirt h=-3.4 ceil=4.8 side=stone_brick pit
 / = floor tex=flagstone h=7.6 ceil=11 side=stone_brick
 ` = floor tex=flagstone h=1.6 ceil=11 side=stone_brick chasm
 ] = floor tex=flagstone h=0 ceil=11 side=stone_brick chasm
+{ = wall tex=stone_brick top=11
 
 [grid]
 ################################
@@ -38,7 +39,7 @@ o = floor tex=dirt h=-3.4 ceil=4.8 side=stone_brick pit
 ##########:::k::::k:::###)////)#
 ##########>:1::::::1:>###V/////#
 ##########:bi::::::ib:###/k//k/#
-##########%:::::::::ph###//////#
+##########%:::::::::ph###{{l{{{#
 ###############D#########&////H#
 #Zooooi#08==t=>=>==t===B#//k///#
 #LXXXX=W===x=!======x==K#/////7#
@@ -63,7 +64,7 @@ o = floor tex=dirt h=-3.4 ceil=4.8 side=stone_brick pit
 [entities]
 b = brazier radius=10 on=:
 w = ashen_warden yaw=90 on=:
-D = door key=warden_key on==
+D = door key=warden_key boss=boss_dead on==
 x = cinder_wisp on==
 G = gate lever=north_lever
 c = chest item=cell_key on=-
@@ -134,3 +135,4 @@ k = pillar
 V = headsman_block
 ) = meat_hooks
 u = butcher yaw=90 item=butcher_cleaver
+l = door boss=butcher_dead on=/

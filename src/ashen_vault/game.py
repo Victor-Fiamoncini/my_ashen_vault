@@ -380,7 +380,7 @@ class Game:
             self._axis("forward", "back"),
             self._axis("strafe_r", "strafe_l"),
             dt,
-            blocked=self.world.blocker,
+            blocked=self.world.player_blocker,
             sprint=inp.down("sprint"),
             floating=self.world.terrain.floating,
             ground=self.world.terrain.floor,
@@ -754,6 +754,8 @@ class Game:
             return None
         if isinstance(p, Enemy):
             return "[E] Open chest"
+        if p.kind == "door" and self.world.fog_gate(p):
+            return "[E] Pass through the fog"
         return {
             "npc": "[E] Talk",
             "chest": "[E] Open chest",
@@ -783,6 +785,8 @@ class Game:
             self._start_dialogue(*dialogue_data.for_npc(prop.props.get("id"), self))
         elif k == "chest":
             self._open_chest(prop)
+        elif k == "door" and self.world.fog_gate(prop):
+            self.world.cross_fog(self.world.fog_gate(prop))
         elif k == "door":
             self._open_door(prop)
         elif k == "lever":
@@ -896,7 +900,9 @@ class Game:
             return
         self.world.open_prop(prop)
         self.sfx("door")
-        if key:
+        if prop.props.get("boss"):
+            self.message("The great door groans open. Something stirs beyond.")
+        elif key:
             self.message(f"The {Items.get(key).name} turns in the lock.")
         elif prop.props.get("from"):
             self.message("You lift the bar. The way back lies open.")
@@ -1135,6 +1141,8 @@ class Game:
         if not spot:
             return False
         map_name, x, z, yaw = spot
+        if self.world:
+            self.world.mist_arenas()  # the boss's door gives way to fog
         self.player.revive()
         self.messages.clear()
         self._load_world(map_name)

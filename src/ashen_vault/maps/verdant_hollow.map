@@ -155,7 +155,7 @@ d = torch radius=8
 | = cocoon
 / = secret_wall model=vines top=6
 ` = chest item=blue_moss count=3 gold=150
-[ = door key=briar_key
+[ = door key=briar_key boss=spider_dead
 ] = fungus radius=5
 À = spore_pod every=4.5
 Á = chest item=red_tonic count=3 gold=90

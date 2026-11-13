@@ -560,9 +560,10 @@ def test_cinderhold_is_solvable():
     reach = _reachable(m, start, avoid=lava)
     (key_chest,) = [s for s in _spec(m, "chest") if s.props.get("item") == "forge_key"]
     (key_door,) = _spec(m, "door", key="forge_key")
-    (postern,) = [s for s in _spec(m, "door") if not s.props.get("key")]
+    (postern,) = [s for s in _spec(m, "door") if not s.props.get("key") and not s.props.get("boss")]
     secrets = [(s.tx, s.tz) for s in _spec(m, "secret_wall")]
-    honest = [(postern.tx, postern.tz), *secrets]
+    bosses = [(s.tx, s.tz) for s in _spec(m, "door") if s.props.get("boss")]  # the roof's great door
+    honest = [(postern.tx, postern.tz), *secrets, *bosses]
     before_key = _reachable(m, start, open_tiles=honest, avoid=lava)
     assert (key_chest.tx, key_chest.tz) in before_key
     (brand,) = _spec(m, "brand")
@@ -599,7 +600,7 @@ def test_cinderhold_gate_shortcut_cuts_the_way_back_to_the_bridge():
     m = _cinder()
     shrine = min(_spec(m, "save_statue"), key=lambda s: s.tz)
     (gate,) = _spec(m, "gate")
-    (postern,) = [s for s in _spec(m, "door") if not s.props.get("key")]
+    (postern,) = [s for s in _spec(m, "door") if not s.props.get("key") and not s.props.get("boss")]
     here = (shrine.tx - 1, shrine.tz)
     bridge = (gate.tx, gate.tz + 2)
     long_way = _steps(m, here, bridge, [(postern.tx, postern.tz)])

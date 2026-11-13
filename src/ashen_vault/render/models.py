@@ -1500,6 +1500,73 @@ def door(r, open_t, axis, tex="door_wood"):
         r.part("cube", 0, 1.25 + lift, 0, 0.18, 2.5, 2.0, WHITE, tex=tex)
 
 
+BOSS_DOOR_WOOD = (92, 66, 46)
+BOSS_DOOR_IRON = (54, 52, 58)
+BOSS_DOOR_STONE = (104, 100, 96)
+
+
+def boss_door(r, open_t, axis, t, lit=True):
+    """The great double door before a boss's lair, spanning its tile: two iron-banded leaves studded
+    in rows, with ring knockers, under a stone arch of wedge voussoirs and a keystone; an ember burns
+    in a lamp on each jamb while the boss lives. The leaves swing apart (inward) as `open_t` runs to 1.
+    Axis 'x' means it blocks movement along X."""
+    swing = _ease(min(open_t, 1.0)) * 1.45
+    with r.at(0, 0, 0, ry=0 if axis == "x" else math.pi / 2):
+        # Jambs with an iron lamp on each face, the arch over them, and its keystone (on both faces).
+        for side in (-1, 1):
+            r.part("cube", 0, 1.45, side * 0.98, 0.42, 2.9, 0.16, BOSS_DOOR_STONE, tex="rough_stone")
+            for face in (-1, 1):
+                r.part("cube", face * 0.22, 1.45, side * 0.92, 0.04, 2.7, 0.04, _dim(BOSS_DOOR_STONE, 0.6))
+                with r.at(face * 0.26, 2.05, side * 0.86):
+                    r.part("cube", 0, 0, 0, 0.12, 0.16, 0.12, BOSS_DOOR_IRON)
+                    if lit:
+                        _flame(r, 0, 0.14, 0, 0.08, t + side + face)
+        for i in range(5):  # voussoirs fanning across the head of the arch
+            u = (i + 0.5) / 5 - 0.5
+            r.part(
+                "wedge", 0, 2.98 + 0.08 * math.cos(u * math.pi), u * 1.9, 0.44, 0.24, 0.34,
+                BOSS_DOOR_STONE, tex="rough_stone", rx=-u * 0.9,
+            )  # fmt: skip
+        r.part("cube", 0, 3.08, 0, 0.5, 0.3, 0.22, _dim(BOSS_DOOR_STONE, 1.15), tex="rough_stone")  # key
+        for face in (-1, 1):
+            r.part("cube", face * 0.26, 3.08, 0, 0.02, 0.12, 0.08, (255, 140, 50) if lit else COLD_EMBER,
+                   rx=math.pi / 4, glow=lit)  # fmt: skip
+        # The leaves, hinged at the jambs, swinging away from +X; banded, studded and ringed both sides.
+        for side in (-1, 1):
+            with r.at(0, 0, side * 0.9, ry=side * swing), r.at(0, 0, -side * 0.45):
+                r.part("cube", 0, 1.4, 0, 0.14, 2.8, 0.9, BOSS_DOOR_WOOD, tex="door_wood")
+                for face in (-1, 1):
+                    fx = face * 0.08
+                    for y in (0.35, 1.15, 1.95, 2.6):  # iron bands
+                        r.part("cube", fx, y, 0, 0.03, 0.12, 0.88, BOSS_DOOR_IRON)
+                        for z in (-0.3, 0.0, 0.3):  # studs along each band
+                            r.part("cube", fx * 1.25, y, z, 0.03, 0.05, 0.05, (150, 144, 140))
+                    r.part("cube", fx, 1.4, side * 0.43, 0.03, 2.8, 0.06, BOSS_DOOR_IRON)  # the meeting edge
+                    with r.at(fx * 1.5, 1.3, side * 0.3):  # a ring knocker on a diamond plate
+                        r.part("cube", 0, 0, 0, 0.03, 0.16, 0.16, BOSS_DOOR_IRON, rx=math.pi / 4)
+                        r.part(
+                            "cyl", face * 0.03, -0.12, 0, 0.18, 0.03, 0.18, (170, 150, 100), rz=math.pi / 2
+                        )
+
+
+def fog_gate(r, t, axis, sealed=False):
+    """A wall of fog where a boss's door once stood: drifting sheets of stippled grey mist layered
+    through the doorway, motes swirling across them. Sealed (the fight is on), it thickens."""
+    grey = (118, 122, 132) if not sealed else (140, 136, 128)
+    with r.at(0, 0, 0, ry=0 if axis == "x" else math.pi / 2):
+        for i in range(3 if not sealed else 4):
+            dx = (i - 1) * 0.14 + math.sin(t * 0.9 + i * 1.7) * 0.05
+            dy = math.sin(t * 0.6 + i * 2.3) * 0.15
+            dz = math.sin(t * 0.45 + i * 1.1) * 0.25
+            tex = "mist" if i == 1 else "cloud_cap"
+            r.part("cube", dx, 1.55 + dy, dz, 0.02, 3.1, 2.0, _dim(grey, 1 - 0.1 * i), tex=tex, glow=True)
+        for i in range(9):  # motes drifting up through the mist
+            u = (t * 0.25 + i / 9) % 1.0
+            z = math.sin(i * 2.7 + t * 0.7) * 0.85
+            r.part("cube", math.sin(i * 1.9 + t) * 0.18, 0.1 + 3.0 * u, z, 0.05, 0.05, 0.05, (190, 192, 200),
+                   rx=t + i, glow=True)  # fmt: skip
+
+
 def brazier(r, t, lit=True):
     r.part("cyl", 0, 0.45, 0, 0.12, 0.9, 0.12, IRON)
     r.part("cyl", 0, 0.95, 0, 0.6, 0.2, 0.6, IRON)
