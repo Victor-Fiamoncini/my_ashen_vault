@@ -524,16 +524,169 @@ def road_gate(r):
     r.part("cube", 0, 2.55, 0, 0.06, 0.06, 1.4, BLACK_IRON)
 
 
-def spire(r, seed, height):
-    """A tower of the Cinderhold seen from afar: black stone, a conical iron roof and windows burning
-    orange, so its outline reads against the red sky."""
-    w = 1.6 + (seed % 3) * 0.2
+# --- the skyline --------------------------------------------------------------------------------
+# Landmarks drawn out to the fog (world.LANDMARKS), so the fortress has a silhouette from the bridge:
+# no two of them alike. Their fronts face +Z, toward the bridge.
+
+STONE = (46, 42, 46)
+STONE_LIGHT = (58, 52, 54)
+SMOKE = (54, 44, 44)
+
+
+def _slit(r, x, y, z, face, h=1.0):
+    """A burning arrow slit on a wall face: `face` is "x" (on an east/west face) or "z"."""
+    if face == "x":
+        r.part("cube", x, y, z, 0.03, h, 0.28, MOLTEN, glow=True)
+    else:
+        r.part("cube", x, y, z, 0.28, h, 0.03, MOLTEN, glow=True)
+
+
+def _merlons(r, w, d, y, step=1.6):
+    """Crenellations round the edge of a flat roof `w` by `d` at height `y`."""
+    for i in range(max(int(w / step), 1) + 1):
+        x = -w / 2 + i * w / max(int(w / step), 1)
+        for z in (-d / 2, d / 2):
+            r.part("cube", x, y + 0.45, z, 0.6, 0.9, 0.5, STONE)
+    for i in range(1, max(int(d / step), 1)):
+        z = -d / 2 + i * d / max(int(d / step), 1)
+        for x in (-w / 2, w / 2):
+            r.part("cube", x, y + 0.45, z, 0.5, 0.9, 0.6, STONE)
+
+
+def spire(r, seed, height, width=None, roof="cone"):
+    """A watchtower of black stone with windows burning orange. `roof="cone"` is a tall iron cone;
+    `"flat"` a crenellated top with a beacon burning in it."""
+    w = width or 1.6 + (seed % 3) * 0.2
     r.part("cube", 0, height / 2, 0, w, height, w, (44, 40, 44))
-    r.part("cone", 0, height + 1.4, 0, w * 0.8, 2.8, w * 0.8, (36, 32, 36))
+    r.part("cube", 0, 0.6, 0, w * 1.2, 1.2, w * 1.2, STONE_LIGHT)  # a battered foot
+    if roof == "flat":
+        r.part("cube", 0, height + 0.15, 0, w * 1.25, 0.3, w * 1.25, STONE_LIGHT)
+        _merlons(r, w * 1.2, w * 1.2, height + 0.3, step=0.9)
+        r.part("cube", 0, height + 0.8, 0, 0.6, 0.8, 0.6, MOLTEN, glow=True)  # the beacon
+    else:
+        r.part("cone", 0, height + 1.4, 0, w * 0.8, 2.8, w * 0.8, (36, 32, 36))
     for i in range(int(height / 3)):
         y = 2 + i * 3 + (seed % 2)
-        r.part("cube", w / 2 + 0.01, y, 0, 0.02, 0.6, 0.25, MOLTEN, glow=True)
-        r.part("cube", 0, y + 1.2, w / 2 + 0.01, 0.25, 0.6, 0.02, MOLTEN, glow=True)
+        _slit(r, w / 2 + 0.01, y, 0, "x", 0.6)
+        _slit(r, 0, y + 1.2, w / 2 + 0.01, "z", 0.6)
+
+
+def bastion(r, seed, top, radius=2.2, base=0.0):
+    """A squat drum tower: a battered skirt, a ring of slits, crenellations and a shallow iron dome.
+    It rises `top` metres from `base` (above a passage's roof, it closes the gap in the wall)."""
+    d = radius * 2
+    r.part("cyl", 0, base + top / 2, 0, d, top, d, STONE)
+    r.part("cyl", 0, base + 1.2, 0, d * 1.14, 2.4, d * 1.14, STONE_LIGHT)
+    r.part("cyl", 0, base + top + 0.15, 0, d * 1.12, 0.3, d * 1.12, STONE_LIGHT)  # the parapet's lip
+    for i in range(8):
+        a = i * math.pi / 4 + seed * 0.3
+        r.part("cube", math.cos(a) * radius * 1.02, base + top + 0.75, math.sin(a) * radius * 1.02,
+               0.7, 0.9, 0.7, STONE, ry=-a)  # fmt: skip
+    r.part("sphere", 0, base + top + 0.6, 0, d * 0.82, radius * 1.1, d * 0.82, BLACK_IRON)
+    r.part("cone", 0, base + top + 1.6, 0, 0.3, 1.4, 0.3, BLACK_IRON)
+    for i in range(3):
+        a = math.pi / 2 + (i - 1) * 0.7  # toward +Z
+        _slit(r, math.cos(a) * radius, base + top * 0.6, math.sin(a) * radius, "z")
+
+
+def smokestack(r, t, height):
+    """A smelter's stack: a tapering iron-banded flue, its mouth glowing, with smoke and embers
+    rolling up out of it."""
+    r.part("cyl", 0, height * 0.3, 0, 2.4, height * 0.6, 2.4, (70, 50, 44))
+    r.part("cyl", 0, height * 0.8, 0, 1.7, height * 0.4, 1.7, (64, 46, 42))
+    for y in (height * 0.6, height * 0.85):
+        r.part(
+            "cyl",
+            0,
+            y,
+            0,
+            1.9 if y > height * 0.7 else 2.6,
+            0.3,
+            1.9 if y > height * 0.7 else 2.6,
+            BLACK_IRON,
+        )
+    r.part("cyl", 0, height + 0.1, 0, 2.0, 0.3, 2.0, BLACK_IRON)
+    r.part("cyl", 0, height + 0.2, 0, 1.3, 0.04, 1.3, MOLTEN, glow=True)
+    for i in range(4):  # puffs of smoke, swelling and thinning as they drift off
+        u = (t * 0.1 + i / 4) % 1.0
+        s = (0.5 + u * 1.4) * (1.0 - u * 0.6)
+        x = u * 2.2 + math.sin(t * 0.7 + i * 2.3) * 0.8
+        z = math.cos(i * 1.3 + t * 0.5) * 0.9
+        r.part("cube", x, height + 0.8 + u * 6, z, s, s * 0.7, s, SMOKE, ry=i + u)
+    for i in range(3):
+        u = (t * 0.4 + i / 3) % 1.0
+        r.part("cube", math.sin(i * 2.1 + t) * 0.5 + u, height + 0.5 + 4 * u, math.cos(i * 1.7) * 0.5,
+               0.12, 0.12, 0.12, EMBER, glow=True)  # fmt: skip
+
+
+def gatehouse(r, t, seed, base=6.2):
+    """The great gate's house above the passage (from its roof at `base` up): a tall block with a
+    riveted iron front, a machicolated gallery, crenellations and two unequal corner turrets."""
+    top = base + 13.0
+    h = top - base
+    r.part("cube", 0, base + h / 2, 0, 7.0, h, 4.4, STONE)
+    r.part("cube", 0, base + 1.4, 0, 7.6, 2.8, 5.0, STONE_LIGHT)  # battered plinth
+    r.part("cube", 0, top - 2.0, 0, 7.8, 0.5, 5.2, STONE_LIGHT)  # the machicolation gallery
+    for i in range(6):
+        r.part("cube", -3.0 + i * 1.2, top - 2.6, 2.45, 0.35, 0.7, 0.4, STONE)  # its corbels
+    _merlons(r, 7.0, 4.4, top)
+    r.part("cube", 0, base + 5.2, 2.22, 3.4, 5.0, 0.08, BLACK_IRON, tex="iron_plate")  # iron front
+    for x in (-1.4, 1.4):
+        for y in (base + 3.2, base + 5.2, base + 7.2):
+            r.part("cube", x, y, 2.28, 0.12, 0.12, 0.06, RIVET)
+    for x in (-2.2, 2.2):
+        _slit(r, x, top - 4.5, 2.21, "z", 1.4)
+    for side, extra in ((-1, 2.5 + seed % 2), (1, 0.0)):  # two corner turrets, one taller
+        x = side * 3.7
+        th = h + 2.5 + extra
+        r.part("cyl", x, base + th / 2, 1.6, 2.6, th, 2.6, STONE)
+        r.part("cone", x, base + th + 1.6, 1.6, 2.9, 3.2, 2.9, BLACK_IRON)
+        _slit(r, x, base + th - 2.5, 2.9, "z")
+
+
+def keep(r, t, seed):
+    """The Cinderhold's donjon: a battered plinth, two stepped tiers plated in iron, a crowning
+    tower under a steep iron roof, buttresses on its face, a lower wing to one side, burning windows,
+    and a stack smoking on its shoulder."""
+    r.part("cube", 0, 2.0, 0, 10.4, 4.0, 5.8, STONE_LIGHT)
+    r.part("cube", 0, 10.0, 0, 9.0, 12.0, 5.0, STONE)
+    r.part("cube", 0, 16.15, 0, 9.3, 0.3, 5.3, BLACK_IRON)  # iron-plated shoulders
+    r.part("cube", -0.6, 20.0, 0, 6.4, 8.0, 4.2, STONE)
+    r.part("cube", -0.6, 24.15, 0, 6.7, 0.3, 4.5, BLACK_IRON)
+    r.part("cube", -1.2, 26.5, 0, 3.8, 5.0, 3.2, STONE)
+    r.part("cone", -1.2, 31.0, 0, 4.6, 4.0, 3.9, BLACK_IRON)  # the steep roof
+    r.part("cone", -1.2, 33.6, 0, 0.25, 1.6, 0.25, BLACK_IRON)  # its finial
+    for x in (-3.6, 0.0, 3.6):  # buttresses leaning on the face
+        r.part("cube", x, 6.0, 2.8, 0.9, 11.0, 1.1, STONE_LIGHT, rx=-0.12)
+    r.part("cube", 6.6, 4.5, 0.4, 4.0, 9.0, 4.4, STONE)  # the wing
+    _merlons(r, 4.0, 4.4, 9.0)
+    for i, (x, y) in enumerate(((-2.4, 9.0), (2.0, 9.0), (-1.8, 13.0), (1.6, 13.0), (-3.0, 13.0))):
+        if (i + seed) % 4:
+            _slit(r, x, y, 2.51, "z", 1.4)
+    for y in (19.0, 22.0):
+        _slit(r, -0.6, y, 2.11, "z", 1.2)
+        _slit(r, 2.61, y, 0.0, "x", 1.2)
+    _slit(r, -1.2, 27.0, 1.61, "z", 1.0)
+    with r.at(3.2, 16.3, -1.2):
+        smokestack(r, t, 5.0)
+
+
+def lavafall(r, t, top, seed):
+    """Molten iron pouring from a spout high on the wall behind (local -Z) down into the moat: a broad
+    glowing sheet with brighter gouts sliding down it, and a seething pool where it lands."""
+    r.part("cube", 0, top + 0.4, -2.5, 2.8, 1.0, 2.2, BLACK_IRON)  # the spout, run back into the wall
+    r.part("cube", 0, top + 0.12, -1.6, 2.4, 0.25, 0.6, MOLTEN, glow=True)  # its lip
+    fall_z = -1.0
+    r.part("cube", 0, top / 2, fall_z, 2.4, top, 0.5, MOLTEN, glow=True)
+    r.part("cube", 0, top * 0.45, fall_z + 0.1, 0.9, top * 0.9, 0.4, WHITE_HOT, glow=True)  # its hot core
+    for i in range(3):  # gouts sliding down
+        u = (t * 0.45 + i / 3 + seed * 0.17) % 1.0
+        r.part("cube", 0, (top - 0.5) * (1 - u), fall_z + 0.08, 2.6, 1.6, 0.5, (255, 168, 60), glow=True)
+    r.part("sphere", 0, 0.15, fall_z + 0.8, 3.2, 0.5, 2.6, MOLTEN, glow=True)  # the pool it boils up
+    for i in range(3):
+        u = (t * 0.9 + i / 3) % 1.0
+        r.part("cube", math.sin(i * 2.3 + t * 2) * 1.0, 0.3 + u * 2.2, fall_z + 1.0 + math.cos(i * 1.9) * 0.6,
+               0.15, 0.15, 0.15, EMBER, glow=True)  # fmt: skip
 
 
 def anvil(r, t):

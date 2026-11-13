@@ -10,6 +10,7 @@ from ashen_vault.world import collision, terrain
 from ashen_vault.world.hazards import CrumbleFloor
 from ashen_vault.world.map_loader import MapError, MapLoader
 from ashen_vault.world.tile_map import Tile, TileMap
+from ashen_vault.world.world import LANDMARKS
 from conftest import ROOM
 
 
@@ -532,6 +533,21 @@ def test_cinderhold_loads_with_its_bridge_fortress_and_twin_gargoyles():
     # The new loot is in its chests.
     items = {s.props.get("item") for s in _spec(m, "chest")}
     assert {"scroll_thunder", "scroll_motes", "stormbrand", "slagbreaker", "forge_key"} <= items
+
+
+def test_cinderhold_skyline_has_no_two_towers_alike_and_stands_out_of_reach():
+    """The fortress's silhouette: no landmark repeats another's shape, and every one stands where no
+    one walks (on the wall tops, in the moat, or above a passage's roof)."""
+    m = _cinder()
+    marks = [s for s in m.entities if s.kind in LANDMARKS]
+    assert {"keep", "gatehouse", "bastion", "smokestack", "lavafall", "spire"} <= {s.kind for s in marks}
+    towers = [(s.kind, tuple(sorted(s.props.items()))) for s in marks if s.kind != "lavafall"]
+    assert len(towers) == len(set(towers))
+    reach = _reachable(m, tuple(int(v) for v in m.meta["start"][:2]), avoid=_lava(m))
+    for s in marks:
+        tile = m[s.tx, s.tz]
+        roofed = tile.ceil is not None  # a passage: the landmark rises above its roof
+        assert (s.tx, s.tz) not in reach or roofed, (s.kind, s.tx, s.tz)
 
 
 def test_cinderhold_is_solvable():

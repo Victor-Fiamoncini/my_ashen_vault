@@ -116,7 +116,7 @@ WALL_PROPS = (
     "shelf_fungus",
 )
 # Props drawn as far as the fog lets you see, however far that is: they make a skyline.
-LANDMARKS = ("spire",)
+LANDMARKS = ("spire", "keep", "bastion", "smokestack", "gatehouse", "lavafall")
 # Props that turn to face into the room.
 FACING_PROPS = ("chest", "altar", "table")
 HAZARD_KINDS = ("spikes", "pendulum", "crumble", "flame_jet", "magma_vent")
@@ -1415,7 +1415,25 @@ class World:
             else:
                 models.rope(rig, t)
         elif k == "spire":
-            forge_models.spire(rig, p.tx * 3 + p.tz, float(p.props.get("height", "12")))
+            width = float(p.props["width"]) if "width" in p.props else None
+            roof = p.props.get("roof", "cone")
+            forge_models.spire(rig, p.tx * 7 + p.tz * 13, float(p.props.get("height", "12")), width, roof)
+        elif k == "bastion":
+            forge_models.bastion(
+                rig,
+                p.tx * 7 + p.tz * 13,
+                float(p.props.get("top", "6")),
+                float(p.props.get("radius", "2.2")),
+                float(p.props.get("base", "0")),
+            )
+        elif k == "smokestack":
+            forge_models.smokestack(rig, t + p.tx, float(p.props.get("height", "12")))
+        elif k == "gatehouse":
+            forge_models.gatehouse(rig, t, p.tx + p.tz, float(p.props.get("base", "6.2")))
+        elif k == "keep":
+            forge_models.keep(rig, t, p.tx + p.tz)
+        elif k == "lavafall":
+            forge_models.lavafall(rig, t, float(p.props.get("top", "18")), p.tx)
         elif k == "anvil":
             forge_models.anvil(rig, t + p.tx)
         elif k == "chimney":

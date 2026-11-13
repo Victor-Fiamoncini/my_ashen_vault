@@ -14,6 +14,8 @@ entity_floor = auto
 
 [legend]
 K = wall tex=black_brick top=16 cap=slate
+] = wall tex=black_brick top=11 cap=slate
+~ = floor tex=slate h=8 side=black_brick
 # = wall tex=black_brick top=8 cap=slate
 p = wall tex=black_brick top=7.2 cap=black_brick
 P = wall tex=black_brick top=13.2 cap=black_brick
@@ -80,7 +82,7 @@ KKKKppRTRRFRRRRRRRRRRRRRRRRRRRRRRRTRRRRRRRBRRRRRRRÜppKKKKKKK
 KK###################pppppppppppppÖppppppppppppppppppKKKKKKK
 KK#.X...ll..M.ll...T##:abcdefhijkmn:::####################KK
 KK#.....ll.W..gg..N.##::::::::::::::::#############.....I#KK
-KK#.....ll....ll....##::::::::W:::::::#############.N....#KK
+KK#.....ll....ll....##::::::::W:::::::######Í######.N....#KK
 KK#T....ll.F..ll......::::::::::::::::#############......#KK
 KK#..W..ll....ll....##::::::H:::::::::T..J..Þ..ß........T#KK
 KK#.....gg....ll.N..##:::Z:::::::::Z::#############......#KK
@@ -92,10 +94,10 @@ KK#4sssvvsssvvvssssD...#............#K######...T..#T.....#KK
 KK#5ssssssssvvvsssL#................#K######......#......#KK
 KK#6sUsssssTvvvHssY#...#.........Ô..#K####################KK
 KK##################Q..#....Õ..T....#K####################KK
-KKKKKKÒKKKKKKKÒKKKKKKK.KKKKKKGKKKKKKKÒKKKKKKKÒKKKKKKKÒKKKKKK
-KKKKKKKKKKKKKKKKKKKKKKÓKKKKKK.KKKKKKKKKKKKKKKKKKKKKKKKKKKKKK
+]]]]KKËKKKKKKKÊKKKKKKKÉKKKKKKGKKKKKKKÒKKKKKKKÌKKKKKKKØKK]]]]
+]]]]KKKKKKKKKKKKKKKKKKÓKKKKKKÈKKKKKKKKKKKKKKKKKKKKKKKKKK]]]]
 AAAAAAAAAAAAAAAAAAAAAr=BJ=Þ====ArB$rAAAAAAAAAAAAAAAAAAAAAAAA
-AAA__________________________==__________________________AAA
+AAA________Î_________________==_________________Î________AAA
 AAA_________________________r==r_________________________AAA
 AAA__________________________==__________________________AAA
 AAA__________________________==__________________________AAA
@@ -151,7 +153,18 @@ J = flame_jet dir=s len=1 every=3.2
 Þ = flame_jet dir=s len=1 every=3.2 phase=1.1
 ß = flame_jet dir=s len=1 every=3.2 phase=2.2
 E = embers
-Ò = spire height=10 on=^
+// The skyline over the front wall, no two towers alike: a smelter stack, a drum bastion, a second
+// bastion and the great gatehouse closing the gaps above the passages, a tall spire, a lesser stack
+// and a stubby beacon tower; the keep rises behind them, and molten iron pours into the moat.
+Ë = smokestack height=18 on=^
+Ê = bastion top=6 radius=2.2 on=^
+É = bastion base=6.2 top=14 radius=2.6 on=.
+È = gatehouse on=.
+Ò = spire height=14 width=2.2 on=^
+Ì = smokestack height=10 on=^
+Ø = spire height=7 width=2.8 roof=flat on=^
+Í = keep on=~
+Î = lavafall top=20 on=_
 G = gate lever=hold_gate
 Ó = door
 // The gatehouse: a shrine, and the winch that raises the main gate.
