@@ -538,3 +538,16 @@ def test_the_wardens_blade_never_folds_back_in_any_move():
                 hit, _, blade, elbow, *_ = models._warden_arms(e, 1.3)
                 wrist = models.aim_wrist(blade, hit + elbow)
                 assert _off_forearm(wrist) <= 150, (move, state, t)
+
+
+def test_every_weapon_preview_is_centred_and_fits_its_window():
+    from ashen_vault.player.items import Items
+    from ashen_vault.render import bounds, models
+
+    for item in Items.ALL.values():
+        if item.kind != "weapon":
+            continue
+        lo, hi = bounds.measure(lambda r, i=item: models.item(r, i.id, 0.0))
+        assert abs((lo[1] + hi[1]) / 2) < 0.05, item.id  # the whip once hung at the bottom
+        assert hi[1] - lo[1] <= models.PREVIEW_HEIGHT + 1e-6, item.id
+        assert hi[1] - lo[1] >= 0.9, item.id

@@ -5,7 +5,7 @@ from contextlib import contextmanager
 
 from ashen_vault.ai.enemy import COMBO_GAP
 from ashen_vault.player.items import Items
-from ashen_vault.render import shapes
+from ashen_vault.render import bounds, shapes
 from ashen_vault.util import rround
 from ashen_vault.world import terrain
 
@@ -130,9 +130,10 @@ def held(r, wrist, rgb, size=0.12, splay=0.0):
         yield
 
 
-def sword_parts(r, length, width, steel, grip=(60, 40, 28), guard=IRON, glow=False):
+def sword_parts(r, length, width, steel, grip=(60, 40, 28), guard=IRON, glow=False, **style):
     """A straight sword in a `held` frame (grip along +X through the fist, the blade's flat facing +-Z):
-    the same `blade_parts` the player's swords use, turned onto the frame's +X."""
+    the same `blade_parts` the player's swords use, turned onto the frame's +X. `style` passes on
+    blade_parts' looks (pommel, guard style, ricasso)."""
     with r.at(0, 0, 0, rx=math.pi / 2), r.at(0, 0, 0, rz=-math.pi / 2):
         blade_parts(
             r,
@@ -147,6 +148,7 @@ def sword_parts(r, length, width, steel, grip=(60, 40, 28), guard=IRON, glow=Fal
             grip_rgb=grip,
             pommel_rgb=guard,
             glow=glow,
+            **style,
         )
 
 
@@ -522,77 +524,136 @@ def ashen_warden(r, e, t):
         r.at(0, 0.95, 0, rz=-0.45 * slump),
         r.at(0, -0.95, 0),
     ):
-        # Legs: cuisse, knee cop, greave and a pointed sabaton; kneeling, the shins fold under.
+        seam = (lambda rgb: EMBER) if burning else (lambda rgb: rgb)  # phase two: the plate's edges glow
+        # Legs: a ridged cuisse, a faceted knee cop with a fan wing, a ridged greave and a sabaton of
+        # overlapping lames closing in a pointed toe; kneeling, the shins fold under.
         for side, a in ((-0.18, swing), (0.18, -swing)):
+            out = 1 if side > 0 else -1
             with r.at(0, 0.95, side, rz=a + 1.4 * kneel):
                 r.part("cube", 0, -0.22, 0, 0.22, 0.46, 0.2, PLATE)
-                r.part("cube", 0.08, -0.15, 0, 0.04, 0.3, 0.16, PLATE_EDGE)  # the cuisse's ridge
-                r.part("sphere", 0.08, -0.46, 0, 0.17, 0.15, 0.17, PLATE_EDGE)  # knee cop
+                r.part("lozenge", 0.1, -0.2, 0, 0.04, 0.36, 0.08, PLATE_EDGE)  # the cuisse's ridge
+                r.part(
+                    "cube", 0.02, -0.02, 0, 0.24, 0.05, 0.22, seam(PLATE_DARK), glow=burning
+                )  # its top lame
+                r.part("lozenge", 0.1, -0.46, 0, 0.1, 0.16, 0.16, PLATE_EDGE, rx=math.pi / 2)  # knee cop
+                r.part("wedge", 0.05, -0.46, out * 0.11, 0.12, 0.14, 0.05, PLATE_DARK, rz=math.pi / 2)  # fan
                 with r.at(0, -0.46, 0, rz=-0.1 * max(0.0, a) - 2.3 * kneel):
                     r.part("cube", 0, -0.21, 0, 0.19, 0.44, 0.17, PLATE_DARK)  # greave
+                    r.part("lozenge", 0.09, -0.22, 0, 0.03, 0.36, 0.06, PLATE)  # its ridge
                     if burning:
-                        r.part("cube", 0.1, -0.2, 0.02, 0.02, 0.28, 0.03, EMBER, rx=0.4, glow=True)
-                    r.part("cube", 0.05, -0.45, 0, 0.3, 0.09, 0.2, PLATE)  # sabaton
-                    r.part("wedge", 0.24, -0.45, 0, 0.09, 0.12, 0.16, PLATE_DARK, rz=-math.pi / 2)
-        # Faulds and the tabard hanging between the legs; the cape behind, ragged at the hem.
+                        r.part("cube", 0.1, -0.2, 0.06 * out, 0.02, 0.28, 0.02, EMBER, glow=True)
+                    for i in range(3):  # sabaton lames, each overlapping the next
+                        r.part(
+                            "cube", 0.02 + i * 0.07, -0.42 - i * 0.012, 0, 0.12, 0.07, 0.2 - i * 0.01, PLATE
+                        )
+                    r.part("wedge", 0.27, -0.45, 0, 0.09, 0.12, 0.16, PLATE_DARK, rz=-math.pi / 2)
+        # Faulds in three lames, square tassets hung over each thigh, and a straight-hemmed tabard
+        # between the legs bearing the keep's sigil (a diamond with a bar through it).
         r.part("cube", 0, 1.0, 0, 0.38, 0.22, 0.52, PLATE_DARK)
         for i in range(3):
             r.part("cube", 0.12 - i * 0.01, 0.92 - i * 0.08, 0, 0.18, 0.07, 0.5 - i * 0.03, PLATE, rz=-0.25)
+        for side in (-1, 1):
+            with r.at(0.06, 0.94, side * 0.22, rx=side * 0.18):
+                for i in range(2):
+                    r.part(
+                        "cube", 0.02, -0.08 - i * 0.12, 0, 0.26, 0.13, 0.22, PLATE if i == 0 else PLATE_DARK
+                    )
+                r.part("cube", 0.15, -0.26, 0, 0.02, 0.02, 0.22, seam(PLATE_EDGE), glow=burning)  # the edge
         with r.at(0.2, 0.98, 0, rz=cloth):
             r.part("cube", 0, -0.32, 0, 0.03, 0.64, 0.3, TABARD)
-            r.part("cube", 0.02, -0.25, 0, 0.01, 0.12, 0.12, fire, glow=not dead)  # the keep's sigil
-            for z in (-0.09, 0.0, 0.09):
-                r.part("wedge", 0, -0.68, z, 0.03, 0.1, 0.09, TABARD, rz=math.pi)
-        for i, z in enumerate((-0.24, 0.0, 0.24)):
-            with r.at(-0.26, 1.66, z, rz=-cloth * (1 + 0.3 * i) - 0.15 - 1.1 * kneel):
-                r.part("cube", 0, -0.62, 0, 0.03, 1.24, 0.27, TABARD)
-                r.part("wedge", 0, -1.3, -0.06, 0.03, 0.14, 0.12, TABARD, rz=math.pi)
-                r.part("wedge", 0, -1.28, 0.07, 0.03, 0.1, 0.1, _dim(TABARD), rz=math.pi)
+            r.part("cube", 0.01, -0.62, 0, 0.03, 0.04, 0.31, _dim(TABARD, 0.6))  # the straight hem
+            r.part("cube", 0.02, -0.25, 0, 0.01, 0.12, 0.12, fire, rx=math.pi / 4, glow=not dead)  # sigil
+            r.part("cube", 0.025, -0.25, 0, 0.01, 0.02, 0.2, _dim(TABARD, 0.5))  # the bar across it
+            for z in (-0.13, 0.13):
+                r.part("cube", 0.015, -0.32, z, 0.01, 0.6, 0.015, _dim(TABARD, 0.6))  # the selvedges
+        # The cape: five straight-cut strips of differing length under a stiff collar band.
+        r.part("cube", -0.25, 1.66, 0, 0.06, 0.08, 0.66, PLATE_DARK)
+        for i, (z, drop) in enumerate(((-0.26, 1.2), (-0.13, 1.05), (0.0, 1.28), (0.13, 1.0), (0.26, 1.16))):
+            with r.at(-0.26, 1.66, z, rz=-cloth * (1 + 0.2 * i) - 0.15 - 1.1 * kneel):
+                r.part(
+                    "cube", 0, -drop / 2, 0, 0.03, drop, 0.13, TABARD if i % 2 == 0 else _dim(TABARD, 0.85)
+                )
                 if burning:  # the hem smoulders
-                    r.part("cube", 0.02, -1.22, 0, 0.02, 0.05, 0.24, EMBER, glow=True)
-        # Breastplate with a raised ridge and the sigil smouldering on it; a gorget at the throat.
+                    r.part("cube", 0.02, -drop + 0.03, 0, 0.02, 0.05, 0.12, EMBER, glow=True)
+        # Breastplate: two faceted halves meeting at a raised centre ridge, the sigil on the ridge, a
+        # riveted plackart over the belly, and a rim along the bottom.
         r.part("cube", 0, 1.38, 0, 0.42, 0.56, 0.64, PLATE)
-        r.part("cube", 0.2, 1.38, 0, 0.06, 0.5, 0.06, PLATE_EDGE)
-        r.part("cube", 0.21, 1.48, 0, 0.03, 0.14, 0.14, fire, rx=math.pi / 4, glow=not dead)
-        r.part("cube", 0, 1.13, 0, 0.44, 0.06, 0.66, PLATE_DARK)  # its lower rim
+        for side in (-1, 1):
+            r.part("cube", 0.18, 1.42, side * 0.16, 0.08, 0.44, 0.3, PLATE, ry=side * 0.35)  # a facet
+            r.part("cube", 0.21, 1.42, side * 0.31, 0.02, 0.44, 0.02, seam(PLATE_EDGE), glow=burning)
+        r.part("lozenge", 0.23, 1.4, 0, 0.06, 0.5, 0.08, PLATE_EDGE)  # the centre ridge
+        r.part("cube", 0.26, 1.5, 0, 0.03, 0.14, 0.14, fire, rx=math.pi / 4, glow=not dead)
+        r.part("cube", 0.215, 1.22, 0, 0.06, 0.18, 0.46, PLATE_DARK)  # plackart
+        for z in (-0.19, -0.06, 0.06, 0.19):
+            r.part("cube", 0.25, 1.28, z, 0.02, 0.03, 0.03, PLATE_EDGE)  # its rivets
+        r.part("cube", 0, 1.13, 0, 0.44, 0.06, 0.66, PLATE_DARK)  # the lower rim
         if burning:  # the plate splits on the fire inside
             for y, z, a in ((1.3, -0.15, 0.5), (1.45, 0.18, -0.6), (1.22, 0.05, 1.2)):
-                r.part("cube", 0.215, y, z, 0.01, 0.22, 0.03, EMBER, rx=a, glow=True)
-        r.part("cyl", 0, 1.72, 0, 0.36, 0.12, 0.36, PLATE_DARK)  # gorget
-        # The great-helm: a tall pointed bucket, visor bars over the ember slit, a crest running back.
+                r.part("cube", 0.24, y, z, 0.01, 0.22, 0.03, EMBER, rx=a, glow=True)
+        # Gorget: three square lames stepping up to the helm.
+        for i in range(3):
+            r.part(
+                "cube",
+                0,
+                1.69 + i * 0.05,
+                0,
+                0.36 - i * 0.04,
+                0.05,
+                0.38 - i * 0.04,
+                PLATE_DARK if i % 2 else PLATE,
+            )
+        # The great-helm: a squared bucket with a faceted brow, a ridged bevor down its face, a visor slot
+        # with three bars over the ember behind it, rivets at the temples and a stepped comb on top.
         with r.at(0.02, 1.92, 0):
             r.part("cube", 0, 0, 0, 0.32, 0.34, 0.3, PLATE)
             r.part("wedge", 0, 0.24, 0, 0.32, 0.16, 0.3, PLATE_DARK, ry=math.pi / 2)  # the point
-            r.part("wedge", -0.02, 0.36, 0, 0.36, 0.2, 0.04, PLATE_EDGE)  # crest
+            r.part("cube", 0.15, 0.1, 0, 0.04, 0.04, 0.31, PLATE_EDGE)  # brow
+            r.part("lozenge", 0.17, -0.1, 0, 0.05, 0.16, 0.06, PLATE_EDGE)  # bevor ridge
             r.part("cube", 0.16, 0.03, 0, 0.02, 0.05, 0.22, fire, glow=not dead)  # the ember behind the slit
-            r.part("cube", 0.165, 0.03, 0, 0.02, 0.07, 0.02, PLATE_DARK)  # its bar
+            bar = fire if burning else PLATE_DARK
+            for z in (-0.07, 0.0, 0.07):
+                r.part("cube", 0.17, 0.03, z, 0.02, 0.07, 0.018, bar, glow=burning)  # visor bars
             for z in (-0.06, 0.06):
-                r.part("cube", 0.165, -0.09, z, 0.02, 0.1, 0.015, PLATE_DARK)  # breaths
-            r.part("cone", 0, 0.42, 0, 0.08, 0.2, 0.08, PLATE_DARK)
-        # Layered pauldrons over both shoulders.
+                r.part("cube", 0.165, -0.11, z, 0.02, 0.08, 0.015, PLATE_DARK)  # breaths
+            for side in (-1, 1):
+                r.part("cube", 0.04, 0.03, side * 0.155, 0.04, 0.04, 0.02, PLATE_EDGE)  # temple rivets
+                r.part("cube", -0.02, -0.04, side * 0.152, 0.26, 0.02, 0.01, seam(PLATE_DARK), glow=burning)
+            for i in range(3):  # the comb, stepping down toward the back
+                r.part("wedge", 0.06 - i * 0.12, 0.33 - i * 0.03, 0, 0.13, 0.16 - i * 0.03, 0.04, PLATE_EDGE)
+            r.part("cone", 0.02, 0.42, 0, 0.07, 0.16, 0.07, PLATE_DARK)
+        # Pauldrons: three angular lames over each shoulder, a trimmed edge, and a haute-piece standing
+        # up beside the neck.
         for side in (-1, 1):
             with r.at(0, 1.72, side * 0.43, rx=side * 0.3):
                 r.part("cube", 0, 0, 0, 0.36, 0.12, 0.3, PLATE)
                 r.part("cube", 0, -0.09, side * 0.05, 0.34, 0.09, 0.28, PLATE_DARK)
+                r.part("cube", 0, -0.17, side * 0.09, 0.3, 0.08, 0.24, PLATE)
                 r.part("cube", 0.0, 0.07, -side * 0.02, 0.06, 0.05, 0.3, PLATE_EDGE)
+                r.part("cube", 0.17, -0.06, side * 0.04, 0.02, 0.2, 0.3, seam(PLATE_EDGE), glow=burning)
+                r.part("cube", 0, 0.11, -side * 0.13, 0.3, 0.14, 0.03, PLATE_DARK)  # haute-piece
         # The free arm: upper arm, vambrace, and a gauntlet; embers gather in it for a throw.
         with r.at(0, 1.6, -0.47, rz=free - 0.3 * kneel):
             r.part("cube", 0, -0.17, 0, 0.16, 0.36, 0.16, PLATE)
-            r.part("sphere", 0, -0.36, 0, 0.15, 0.13, 0.15, PLATE_EDGE)  # couter
+            r.part("lozenge", 0, -0.36, 0, 0.15, 0.13, 0.15, PLATE_EDGE, rx=math.pi / 2)  # couter
+            r.part("wedge", -0.06, -0.36, 0, 0.1, 0.12, 0.12, PLATE_DARK, rz=math.pi / 2)  # its fan
             with r.at(0, -0.36, 0, rz=0.25):
                 r.part("cube", 0, -0.17, 0, 0.15, 0.34, 0.15, PLATE_DARK)
+                r.part("cube", 0.08, -0.17, 0, 0.02, 0.3, 0.05, PLATE_EDGE)  # the vambrace's ridge
                 with r.at(0, -0.36, 0):
                     hand(r, PLATE, 0.13, curl=0.6)
                     if cinders and e.state == "windup":
-                        r.part("sphere", 0.05, -0.12, 0, 0.3 * k, 0.3 * k, 0.3 * k, EMBER, glow=True)
+                        with r.at(0.05, -0.12, 0):
+                            fireball(r, EMBER, t, k)
         # The sword arm: upper arm, forearm bent at the elbow, and a gauntlet round the hilt. Slain, he
         # leans on the sword, its point on the floor.
         with r.at(0, 1.6, 0.47, rz=hit - 0.5 * kneel):
             r.part("cube", 0, -0.19, 0, 0.17, 0.38, 0.17, PLATE)
-            r.part("sphere", 0, -0.38, 0, 0.15, 0.13, 0.15, PLATE_EDGE)
+            r.part("lozenge", 0, -0.38, 0, 0.15, 0.13, 0.15, PLATE_EDGE, rx=math.pi / 2)  # couter
+            r.part("wedge", -0.06, -0.38, 0, 0.1, 0.12, 0.12, PLATE_DARK, rz=math.pi / 2)
             elbow = _mix(elbow, 0.2, kneel)
             with r.at(0, -0.38, 0, rz=elbow):
                 r.part("cube", 0, -0.17, 0, 0.15, 0.36, 0.15, PLATE_DARK)
+                r.part("cube", 0.08, -0.17, 0, 0.02, 0.3, 0.05, PLATE_EDGE)
                 r.part("cube", 0, -0.3, 0, 0.18, 0.06, 0.18, PLATE_EDGE)  # the gauntlet's cuff
                 # Slain, he leans on the sword, its point on the floor ahead (the body slumps forward by
                 # 0.45 * slump, so that is undone to keep the point where it rests).
@@ -600,7 +661,10 @@ def ashen_warden(r, e, t):
                 wrist = aim_wrist(point, hit - 0.5 * kneel + elbow)
                 with r.at(0, -0.38, 0), held(r, wrist, PLATE, size=0.17, splay=0.3):
                     lit = burning or (glow and not dead)
-                    sword_parts(r, 1.55, 0.16, steel, grip=(54, 36, 26), guard=PLATE_DARK, glow=lit)
+                    sword_parts(
+                        r, 1.55, 0.16, steel, grip=(54, 36, 26), guard=PLATE_DARK, glow=lit,
+                        pommel="wheel", ricasso=0.1, ricasso_rgb=PLATE_DARK,
+                    )  # fmt: skip
                     if lit:
                         _flame(r, 1.0, 0.0, 0, 0.12 + (0.06 if burning else 0.0), t)
 
@@ -1999,14 +2063,57 @@ def rope(r, t):
     r.part("cyl", 0, 0.05, 0, 1.0, 0.1, 1.0, (40, 40, 44))
 
 
-def flare(r, rgb, k):
-    """A tongue of Pyre's fire: a ragged glowing blob that swells, then gutters as `k` runs to 0."""
+FIRE_CORE = (255, 246, 210)  # the white-hot heart of every fireball
+FIRE_TIP = (255, 214, 110)  # the pale ends of its licking tongues
+FIRE_TONGUES = 5
+
+
+def fiery(rgb):
+    """Whether a shot of colour `rgb` is fire (drawn as a fireball): red-hot, little blue."""
+    r_, g, b = rgb
+    return r_ >= 200 and g <= 210 and b <= 120
+
+
+def fireball(r, rgb, t, size=1.0, trail=None, seed=0.0):
+    """A ball of fire `size` times a bolt's (0.3 m shell): a white-hot core in a flickering shell of
+    `rgb`, tongues licking out and up as it turns, and with `trail` (the unit direction it came from)
+    a wake of embers that shrink and redden behind it."""
+    s = size
+    flick = 1 + math.sin(t * 23 + seed) * 0.08
+    r.part("sphere", 0, 0, 0, 0.16 * s, 0.16 * s, 0.16 * s, FIRE_CORE, glow=True)
+    r.part("sphere", 0, 0, 0, 0.3 * s * flick, 0.3 * s * flick, 0.3 * s * flick, rgb, glow=True)
+    r.part("sphere", 0, 0.03 * s, 0, 0.4 * s, 0.34 * s * flick, 0.4 * s, _dim(rgb, 0.8), glow=True)
+    for i in range(FIRE_TONGUES):
+        a = t * 5 + seed + i * 2 * math.pi / FIRE_TONGUES
+        lick = (0.22 + 0.1 * math.sin(t * 13 + i * 2.3 + seed)) * s
+        with r.at(0, 0, 0, ry=a, rz=0.8 + 0.3 * math.sin(t * 9 + i * 1.7)):
+            r.part("cone", 0, 0.14 * s + lick / 2, 0, 0.13 * s, lick, 0.13 * s, FIRE_TIP, glow=True)
+    r.part("cone", 0, 0.22 * s, 0, 0.22 * s, 0.36 * s * flick, 0.22 * s, FIRE_TIP, glow=True)  # it rises
+    if trail is None:
+        return
+    tx, ty, tz = trail
+    for i in range(1, 5):
+        d = (0.16 + 0.15 * i) * s
+        e = (0.15 - 0.028 * i) * s
+        wob = math.sin(t * 17 + i * 2.1 + seed) * 0.04 * s
+        rgb_i = (255, max(rround(rgb[1] * (1 - 0.18 * i)), 30), max(rround(rgb[2] * (1 - 0.25 * i)), 10))
+        r.part(
+            "cube", tx * d + wob, ty * d + 0.03 * i * s, tz * d - wob, e, e, e, rgb_i,
+            rx=t * 7 + i, ry=t * 5 + i * 1.3, glow=True,
+        )  # fmt: skip
+
+
+def flare(r, rgb, k, t=0.0):
+    """A tongue of Pyre's fire: a ragged fireball that swells, then gutters as `k` runs to 0."""
     size = 0.15 + 0.35 * math.sin(min(k, 1.0) * math.pi) ** 0.5
-    r.part("sphere", 0, 0, 0, size, size * 1.3, size, rgb, glow=True)
-    r.part("cone", 0, size * 0.6, 0, size * 0.6, size * 1.4, size * 0.6, (255, 220, 120), glow=True)
+    fireball(r, rgb, t, size / 0.3, seed=k * 9)
 
 
-def bolt(r, rgb):
+def bolt(r, rgb, t=0.0, trail=None):
+    """A spell bolt or a foe's shot: fire burns as a fireball, anything else is a bright glob."""
+    if fiery(rgb):
+        fireball(r, rgb, t, trail=trail)
+        return
     r.part("sphere", 0, 0, 0, 0.3, 0.3, 0.3, rgb, glow=True)
     r.part("sphere", 0, 0, 0, 0.5, 0.18, 0.18, (255, 230, 160), glow=True)
 
@@ -2308,9 +2415,17 @@ CLOTH_RED = (120, 30, 30)
 
 
 def _flame(r, x, y, z, size, t):
-    flicker = 1 + math.sin(t * 11 + x * 7 + z * 5) * 0.15
+    """A burning flame: an orange body, two side tongues leaning in the draught, and a white-hot core."""
+    seed = x * 7 + z * 5
+    flicker = 1 + math.sin(t * 11 + seed) * 0.15
     r.part("cone", x, y, z, size * flicker, size * 1.5 * flicker, size * flicker, FLAME, glow=True)
+    for i, side in enumerate((-1, 1)):
+        lean = side * (0.35 + 0.15 * math.sin(t * 9 + seed + i * 2.4))
+        lick = 1 + math.sin(t * 14 + seed + i * 1.3) * 0.2
+        with r.at(x + side * size * 0.15, y - size * 0.1, z, rz=lean):
+            r.part("cone", 0, size * 0.4, 0, size * 0.45, size * 1.1 * lick, size * 0.45, FLAME, glow=True)
     r.part("cone", x, y + 0.02, z, size * 0.5, size * 1.9 * flicker, size * 0.5, FLAME_CORE, glow=True)
+    r.part("sphere", x, y - size * 0.3, z, size * 0.45, size * 0.35, size * 0.45, FIRE_CORE, glow=True)
 
 
 def sconce(r, t):
@@ -2477,6 +2592,7 @@ def _warden_statue(r, taken, t):
             r.part("cube", 0, 1.62, 0, 0.06, 0.34, 0.06, dark)
 
 
+FIRE_SPELLS = ("flame", "pyre")
 SPELL_ORB = {
     "flame": (255, 120, 40),
     "mend": (120, 230, 140),
@@ -2490,8 +2606,12 @@ SPELL_ORB = {
 
 
 def spell_orb(r, id_, t):
-    """Inventory preview for a known spell: a glowing orb in the spell's colour."""
+    """Inventory preview for a known spell: a glowing orb in the spell's colour (fire spells burn as a
+    fireball)."""
     rgb = SPELL_ORB.get(id_, WHITE)
+    if id_ in FIRE_SPELLS:
+        fireball(r, rgb, t, 2.0)
+        return
     pulse = 1 + math.sin(t * 3) * 0.06
     r.part("sphere", 0, 0, 0, 0.7 * pulse, 0.7 * pulse, 0.7 * pulse, rgb, glow=True)
     for i in range(3):
@@ -2918,8 +3038,13 @@ def spell_hand_view(r, player, bob, side, armor, t):
         for i in range(4):  # fingers, slightly curled
             r.part("cube", 0.1, 0.02, (-0.06 + i * 0.04) * side, 0.08, 0.035, 0.03, shade)
         r.part("cube", 0.03, 0.02, -0.09 * side, 0.07, 0.035, 0.035, hand_rgb)  # thumb
-        if spell and player.magic_gauge.full:
-            glow = SPELL_GLOW.get(spell.id, (220, 220, 220))
+        glow = SPELL_GLOW.get(spell.id, (220, 220, 220)) if spell else None
+        if spell and spell.id in FIRE_SPELLS:
+            # A small fire licks over the palm; it gutters to an ember while the gauge refills.
+            ready = player.magic_gauge.full
+            with r.at(0.02, 0.16, 0):
+                fireball(r, glow, t, 0.26 if ready else 0.08 + 0.1 * player.magic_gauge.value)
+        elif spell and player.magic_gauge.full:
             pulse = 1 + math.sin(t * 5) * 0.12
             r.part("sphere", 0.02, 0.1, 0, 0.09 * pulse, 0.09 * pulse, 0.09 * pulse, glow, glow=True)
 
@@ -3093,9 +3218,9 @@ SWORDS = {
     "rusted_sword": {
         "length": 0.88,
         "width": 0.13,
-        "steel": (128, 118, 104),
-        "edge": (168, 160, 148),
-        "fuller": (80, 66, 54),
+        "steel": (142, 136, 126),
+        "edge": (180, 176, 166),
+        "fuller": (92, 84, 74),
         "guard_rgb": (96, 80, 62),
         "guard_w": 0.3,
         "grip_rgb": (74, 56, 40),
@@ -3158,7 +3283,7 @@ SWORDS = {
         "ricasso": 0.26,
     },
 }
-SWORD_RUST = (112, 76, 54)
+SWORD_RUST = (118, 92, 72)
 
 
 def sword(r, item_id):
@@ -3166,11 +3291,8 @@ def sword(r, item_id):
     spec = SWORDS.get(item_id, SWORDS["rusted_sword"])
     blade_parts(r, **spec)
     w, base = spec["width"], spec.get("base", 0.13)
-    if item_id == "rusted_sword":  # rust blooms on both faces and a couple of nicks in the edge
-        for y, z, h in ((0.34, 0.022, 0.07), (0.62, -0.026, 0.05)):
-            r.part("cube", 0, y, z, 0.034, h, w * 0.2, SWORD_RUST)
-        for y, side in ((0.45, 1), (0.7, -1)):
-            r.part("wedge", 0, y, side * w * 0.42, 0.04, 0.035, 0.03, (52, 44, 38), rx=-side * math.pi / 2)
+    if item_id == "rusted_sword":  # one faint stain of rust creeping up from the guard
+        r.part("cube", 0, base + 0.1, 0, 0.034, 0.06, w * 0.35, SWORD_RUST)
     elif item_id == "ashblade":  # an ember that never quite went out, near the point
         r.part("cube", 0, base + spec["length"] * 0.8, 0, 0.036, 0.05, 0.02, EMBER, glow=True)
 
@@ -3361,12 +3483,37 @@ def shield(r, item_id):
         r.part("cube", -0.05, 0.05, 0, 0.03, 0.2, 0.06, LEATHER)
 
 
+PREVIEW_TILT = 0.3  # weapons lean toward the camera a little in previews
+PREVIEW_HEIGHT = 1.75  # how tall a weapon stands in its preview, in the camera's view
+PREVIEW_WIDTH = 1.4  # how wide it may spin, so a broad axe or a coiled lash still fits
+WHIP_PREVIEW = 0.3  # a whip's swing phase in previews: lash drawn out in a lazy curve
+PREVIEW_ZOOM = 2.0  # the most a small weapon (a hatchet) is blown up
+_frames = {}
+
+
+def _preview_weapon(r, id_):
+    with r.at(rx=PREVIEW_TILT):
+        weapon(r, id_, WHIP_PREVIEW if id_ in ("leather_whip", "thornlash") else None)
+
+
+def preview_frame(id_):
+    """(scale, centre) that fits weapon `id_` in its preview: scaled to stand PREVIEW_HEIGHT tall (or
+    to spin within PREVIEW_WIDTH) with the middle of its box on the origin. Measured once."""
+    if id_ not in _frames:
+        lo, hi = bounds.measure(lambda r: _preview_weapon(r, id_))
+        centre = tuple((a + b) / 2 for a, b in zip(lo, hi, strict=True))
+        reach = max(math.hypot(hi[0] - lo[0], hi[2] - lo[2]), 1e-3)
+        fit = min(PREVIEW_HEIGHT / max(hi[1] - lo[1], 1e-3), PREVIEW_WIDTH / reach, PREVIEW_ZOOM)
+        _frames[id_] = (fit, centre)
+    return _frames[id_]
+
+
 def item(r, id_, t):
     """Inventory preview models, roughly 1 unit tall and centered on the origin."""
     if Items.ALL.get(id_) and Items.get(id_).kind == "weapon":
-        k = 1.2 / WEAPON_LEN.get(id_, 1.2)
-        with r.at(0, -0.8 * k, 0, rx=0.3, s=1.45 * k):
-            weapon(r, id_)
+        s, (cx, cy, cz) = preview_frame(id_)
+        with r.at(-cx * s, -cy * s, -cz * s, s=s):
+            _preview_weapon(r, id_)
     elif Items.ALL.get(id_) and Items.get(id_).kind == "shield":
         k = 1.0 if id_ != "tower_shield" else 0.75
         with r.at(0, 0, 0, s=1.3 * k):

@@ -1265,15 +1265,20 @@ class World:
                     else:
                         forge_models.thunder_spear(rig, self._time)
                 continue
+            if pr_.effect not in ("web", "flare", "mote") and models.fiery(pr_.rgb):
+                speed = math.sqrt(pr_.dx**2 + pr_.dy**2 + pr_.dz**2) or 1.0
+                with rig.at(pr_.x, pr_.y, pr_.z):  # a fireball, its embers trailing behind it
+                    models.bolt(rig, pr_.rgb, self._time, (-pr_.dx / speed, -pr_.dy / speed, -pr_.dz / speed))
+                continue
             with rig.at(pr_.x, pr_.y, pr_.z, ry=self._time * 6):
                 if pr_.effect == "web":
                     models.web_shot(rig, self._time)
                 elif pr_.effect == "flare":
-                    models.flare(rig, pr_.rgb, min(pr_.life / 0.45, 1.0))
+                    models.flare(rig, pr_.rgb, min(pr_.life / 0.45, 1.0), self._time)
                 elif pr_.effect == "mote":
                     forge_models.mote(rig, self._time)
                 else:
-                    models.bolt(rig, pr_.rgb)
+                    models.bolt(rig, pr_.rgb, self._time)
 
     def _draw_ash(self, rig, gpu, far):
         player = self.player

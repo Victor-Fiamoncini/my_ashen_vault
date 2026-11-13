@@ -10,6 +10,7 @@ from ashen_vault.render.models import (
     _spider_move,
     blade_parts,
     death_fall,
+    fireball,
     strike_angle,
     walk_cycle,
 )
@@ -655,7 +656,7 @@ def mote(r, t):
 
 def magma_bomb(r, t):
     """A lobbed glob of molten rock, crusting over as it flies."""
-    r.part("sphere", 0, 0, 0, 0.4, 0.4, 0.4, MOLTEN, glow=True)
+    fireball(r, MOLTEN, t, 1.3)
     for i in range(3):
         a = t * 5 + i * 2.1
         r.part("cube", math.cos(a) * 0.3, math.sin(a) * 0.3, 0.2, 0.18, 0.12, 0.18, CRUST, rx=a)
@@ -684,6 +685,10 @@ def flame_jet(r, glow, reach, length, t):
         r.part(
             "sphere", x, 0.5 + wob + 0.1 * u, 0, size * 0.55, size * 0.45, size * 0.55, WHITE_HOT, glow=True
         )
+        for j, side in enumerate((-1, 1)):  # tongues licking up off the gout
+            lick = size * (0.7 + 0.3 * math.sin(t * 19 + i * 2.7 + j * 1.9))
+            with r.at(x, 0.5 + wob + size * 0.3, side * size * 0.2, rx=side * 0.45):
+                r.part("cone", 0, lick / 2, 0, size * 0.4, lick, size * 0.4, (255, 200, 90), glow=True)
 
 
 def magma_vent(r, t):
