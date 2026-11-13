@@ -99,6 +99,22 @@ BLOCKING_PROPS = (
     "anvil",
     "chimney",
 )
+# How high a low blocking prop reaches above its floor, in metres: a shot flying higher passes over it
+# (a bolt over a table, a casket or a barrel). Anything not listed stands full height.
+PROP_TOP = {
+    "table": 0.85,
+    "altar": 1.1,
+    "rubble": 0.5,
+    "frog_idol": 1.0,
+    "sarcophagus": 0.9,
+    "headsman_block": 0.7,
+    "anvil": 0.95,
+    "rack": 1.5,
+    "barrel": 1.1,
+    "crate": 1.5,  # sometimes a second crate stands on the first
+    "urn": 0.85,
+    "cocoon": 0.95,
+}
 # Props that block only until they are broken or revealed.
 BREAKABLE_PROPS = ("barrel", "crate", "urn", "cocoon", "secret_wall")
 # Containers among the breakables: smashing one may spill a little loot.
@@ -380,17 +396,30 @@ class World:
 
     def blocked_tile(self, tx, tz):
         for p in self.props:
-            if p.tx != tx or p.tz != tz:
-                continue
-            if p.kind in ("door", "gate") and p.open_t < 0.9:
-                return True
-            if p.kind in BLOCKING_PROPS:
-                return True
-            if p.kind in BREAKABLE_PROPS and p.open_t == 0:
-                return True
-            if p.kind == "exit" and p.props.get("model") == "well":
+            if p.tx == tx and p.tz == tz and self._blocks(p):
                 return True
         return (tx, tz) in self._piles
+
+    def _blocks(self, p):
+        """Whether prop `p` fills its tile right now."""
+        if p.kind in ("door", "gate"):
+            return p.open_t < 0.9
+        if p.kind in BREAKABLE_PROPS:
+            return p.open_t == 0
+        return p.kind in BLOCKING_PROPS or (p.kind == "exit" and p.props.get("model") == "well")
+
+    def shot_blocked(self, x, y, z):
+        """Whether a shot at (x, y, z) runs into a prop on its tile: low props only stop it below their
+        top, so a bolt flies on over tables, caskets and barrels."""
+        tx, tz = TileMap.tile_coord(x), TileMap.tile_coord(z)
+        if (tx, tz) in self._piles:
+            return True
+        for p in self.props:
+            if p.tx != tx or p.tz != tz or not self._blocks(p):
+                continue
+            if not shots.clears(y, p.y, PROP_TOP.get(p.kind)):
+                return True
+        return False
 
     @property
     def player_x(self):
@@ -810,7 +839,7 @@ class World:
                 tile.solid
                 or tile.floor > pr_.y
                 or (tile.ceil is not None and tile.ceil < pr_.y)
-                or self.blocked_tile(TileMap.tile_coord(pr_.x), TileMap.tile_coord(pr_.z))
+                or self.shot_blocked(pr_.x, pr_.y, pr_.z)
             ):
                 pr_.life = 0
             elif pr_.effect == "flare":

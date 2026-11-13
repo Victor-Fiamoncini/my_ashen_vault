@@ -47,6 +47,12 @@ def strikes(x, y, z, ex, ez, radius, span):
     return math.hypot(x - ex, z - ez) < radius + 0.3 and lo - BOLT_SIZE <= y <= hi + BOLT_SIZE
 
 
+def clears(y, floor_y, top):
+    """Whether a shot at height `y` flies over a prop standing on `floor_y` and reaching `top` metres
+    above it (None: the prop stands full height and stops every shot)."""
+    return top is not None and y - BOLT_SIZE > floor_y + top
+
+
 def home(dx, dy, dz, x, y, z, tx, ty, tz, turn, dt):
     """Steers a shot's velocity toward (tx, ty, tz), turning at most `turn` rad/s across the ground
     and easing its climb to meet the target's height. Its speed across the ground stays the same."""

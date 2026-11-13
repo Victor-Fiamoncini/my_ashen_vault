@@ -82,3 +82,10 @@ def test_a_shot_at_your_feet_height_or_over_your_head_misses():
 
 def test_a_shot_straight_down_does_not_divide_by_zero():
     assert shots.toward(1.0, 3.0, 1.0, 1.0, 1.0, 1.0, 6.0)[1] == 0.0
+
+
+def test_a_shot_clears_a_low_prop_only_above_its_top():
+    assert shots.clears(1.4, 0.0, 0.85)
+    assert not shots.clears(0.8, 0.0, 0.85)
+    assert not shots.clears(1.4, 1.0, 0.85)  # the same table standing on a higher floor
+    assert not shots.clears(9.0, 0.0, None)  # full-height props stop everything

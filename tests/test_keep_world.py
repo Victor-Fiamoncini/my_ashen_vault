@@ -197,3 +197,33 @@ def test_the_keeps_lifts_are_jail_cages_open_toward_their_landings():
         tx, tz = TileMap.tile_coord(p.x), TileMap.tile_coord(p.z)
         for dx, dz in p.doors:
             assert world.map[tx + dx, tz + dz].walkable
+
+
+def _bolt_past(world, kind, pitch=0.0):
+    """Fires a bolt east from (15, 21) over a `kind` prop set on the next tile; returns how far it got."""
+    from ashen_vault.world.world import Prop
+
+    player = world.player
+    player.yaw, player.pitch = 0.0, pitch
+    tx, tz = TileMap.tile_coord(player.x) + 1, TileMap.tile_coord(player.z)
+    x, z = TileMap.center(tx, tz)
+    world.props.append(Prop(kind, x, z, world.map[tx, tz].floor, tx, tz, {}, f"test:{tx},{tz}"))
+    world.fire_bolt(5)
+    bolt = world.projectiles[-1]
+    for _ in range(20):
+        world._update_projectiles(0.05)
+        if bolt.life <= 0:
+            break
+    return bolt.x - player.x
+
+
+def test_a_bolt_flies_over_a_table_but_not_through_a_pillar():
+    _game, world = keep()
+    assert _bolt_past(world, "table") > 3.0
+    _game, world = keep()
+    assert _bolt_past(world, "pillar") < 3.0
+
+
+def test_a_bolt_aimed_low_still_strikes_the_barrel():
+    _game, world = keep()
+    assert _bolt_past(world, "barrel", pitch=-0.5) < 3.0
