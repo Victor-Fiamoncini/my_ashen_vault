@@ -90,6 +90,8 @@ def test_death():
     assert e.take_hit(999)
     assert not e.alive
     tick(e, FakeWorld(1, 0), 2.0)
+    assert not e.gone  # still crumbling to ash
+    tick(e, FakeWorld(1, 0), 1.0)
     assert e.gone
 
 

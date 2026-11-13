@@ -17,6 +17,7 @@ uniform float torchRadius;
 noperspective out vec2 fragTexCoord; // affine texture mapping
 out vec3 fragLight;
 out float fragDepth;
+out vec3 fragWorld;
 
 void main()
 {
@@ -42,4 +43,5 @@ void main()
     }
     fragLight = base + torchColor * torch;
     fragDepth = depth;
+    fragWorld = (matModel * vec4(vertexPosition, 1.0)).xyz;
 }

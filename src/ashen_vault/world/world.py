@@ -12,6 +12,7 @@ from ashen_vault.render import models
 from ashen_vault.render.mesh_builder import MeshBuilder
 from ashen_vault.util import rround
 from ashen_vault.world import collision
+from ashen_vault.world.ash import AshCloud, death_phases
 from ashen_vault.world.map_loader import MapLoader
 from ashen_vault.world.tile_map import TileMap
 
@@ -64,6 +65,7 @@ class World:
         self.props = []
         self.enemies = []
         self.projectiles = []
+        self.ash = AshCloud()
         self._time = 0.0
         self.blocker = self.blocked_tile
         self._spawn_entities()
@@ -224,12 +226,28 @@ class World:
         self._time += dt
         for e in self.enemies:
             e.update(dt, self)
+            if not e.alive:
+                self._shed_ash(e, dt)
         self.enemies = [e for e in self.enemies if not e.gone]
+        self.ash.update(dt)
         for p in self.props:
             if 0 < p.open_t < 1.0:
                 p.open_t = min(p.open_t + dt * 0.8, 1.0)
         self._update_projectiles(dt)
         self._push_player_out_of_bodies()
+
+    def body_span(self, enemy):
+        """(base y, height) of an enemy's body in world space, for the ash dissolve."""
+        t = enemy.type
+        base = self.enemy_y(enemy)
+        if t.hover:
+            base += t.hover - t.height / 2
+        return base, t.height
+
+    def _shed_ash(self, e, dt):
+        base, height = self.body_span(e)
+        rate = 70 if e.type.boss else 30
+        self.ash.shed(e.x, base, e.z, e.radius, height, e.death_progress, rate, dt)
 
     def _push_player_out_of_bodies(self):
         player = self.player
@@ -396,14 +414,32 @@ class World:
             if math.hypot(e.x - player.x, e.z - player.z) > far:
                 continue
             y = self.enemy_y(e)
-            sink = -e.state_t * 1.1 if e.state == "dead" else 0
             self._model_light(gpu, e.x, y + 1.0, e.z, flash=e.state == "hurt")
-            with rig.entity(e.x, y + sink, e.z, e.yaw):
+            dying = not e.alive
+            if dying:
+                ashen, dissolve = death_phases(e.death_progress)
+                gpu.set_float("ashen", ashen)
+                gpu.set_float("dissolve", dissolve)
+                gpu.set_vec2("dissolveSpan", self.body_span(e))
+            with rig.entity(e.x, y, e.z, e.yaw):
                 models.enemy(rig, e)
+            if dying:
+                gpu.set_float("ashen", 0.0)
+                gpu.set_float("dissolve", 0.0)
+        self._draw_ash(rig, gpu, far)
         for pr_ in self.projectiles:
             gpu.model_light((1.6, 1.4, 1.2))
             with rig.at(pr_.x, pr_.y, pr_.z, ry=self._time * 6):
                 models.bolt(rig, pr_.rgb)
+
+    def _draw_ash(self, rig, gpu, far):
+        player = self.player
+        for f in self.ash:
+            if math.hypot(f.x - player.x, f.z - player.z) > far:
+                continue
+            self._model_light(gpu, f.x, f.y, f.z)
+            s = f.size * (0.3 + 0.7 * f.fade)
+            rig.part("cube", f.x, f.y, f.z, s, s, s, f.rgb, rx=f.spin, ry=f.spin * 0.7, glow=f.ember)
 
     def _model_light(self, gpu, x, y, z, flash=False):
         light = (2.0, 1.6, 1.6) if flash else [min(c, 1.6) for c in self.builder.light_at(x, y, z)]

@@ -1,6 +1,9 @@
 import math
 import random
 
+DEATH_TIME = 2.4  # seconds a body takes to burn down to ash
+BOSS_DEATH_TIME = 4.5
+
 
 class Enemy:
     """Enemy state machine. `world` must provide:
@@ -30,7 +33,18 @@ class Enemy:
 
     @property
     def gone(self):
-        return self.state == "dead" and self.state_t > 1.6
+        return self.state == "dead" and self.state_t > self.death_time
+
+    @property
+    def death_time(self):
+        return BOSS_DEATH_TIME if self.type.boss else DEATH_TIME
+
+    @property
+    def death_progress(self):
+        """0 at the killing blow, 1 once the body has fully turned to ash."""
+        if self.alive:
+            return 0.0
+        return min(self.state_t / self.death_time, 1.0)
 
     @property
     def radius(self):
