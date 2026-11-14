@@ -311,6 +311,9 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   which reveals its name in Belongings and the shop.
 - Weapons may carry an `element` (`"lightning"`, `"fire"`): `Game._strike` multiplies by
   `elements.mult` and a fire weapon leaves `burn` on what it hits.
+- Each weapon has its own small, animated glyph on the HUD mouse (`hud.WEAPON_ICONS`, keyed by item id,
+  within `ICON_REACH` of the button's centre); a new weapon needs one, unlike any other
+  (`test_weapon_icons_all_look_different_and_fit_their_button`).
 - Spells are `player/spells.py` (`Spells.ALL`, their formulas) and are taught by `scroll_<id>` items;
   `Game._cast_spell` dispatches them. Venom Dart and Flame Bolt are bolts (`World.fire_bolt` with an
   `effect`; Thunder Spear is a fast `effect="thunder"` bolt), Arcane Motes are three `homing`
