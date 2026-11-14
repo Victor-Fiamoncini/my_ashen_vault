@@ -180,6 +180,7 @@ class MapLoader:
                 top=float(p.get("top", "3")),
                 wall_tex=p.get("tex", "stone_brick"),
                 floor_tex=p.get("cap") or p.get("tex", "stone_brick"),
+                thin=float(p["thin"]) if "thin" in p else None,
             )
         if kind == "water":
             return Tile(

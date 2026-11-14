@@ -2,6 +2,7 @@ import math
 from dataclasses import dataclass, field
 
 from ashen_vault.util import rround
+from ashen_vault.world import thin_walls
 
 SEAT_DEPTH = 0.6  # how far a chest is pushed back from its tile's centre toward the wall behind it
 
@@ -33,6 +34,8 @@ class Tile:
     # Molten rock: it reads as a pit (you can walk in), but it sears whoever touches it and hauls
     # them back to the last solid ground. It also glows.
     lava: bool = False
+    # A thin wall (`world/thin_walls.py`): the slab's thickness in metres; None for a full tile.
+    thin: float | None = None
 
     @property
     def hazardous(self):
@@ -60,7 +63,7 @@ class EntitySpec:
 
 
 class TileMap:
-    TILE = 2.0
+    TILE = thin_walls.TILE
 
     def __init__(self, name, width, depth, tiles, meta, entities):
         self.name = name
@@ -68,6 +71,7 @@ class TileMap:
         self.depth = depth
         self._tiles = tiles
         self._overrides = {}
+        self._layouts = {}
         self.meta = meta
         self.entities = entities
         self._edge = Tile(
@@ -94,6 +98,35 @@ class TileMap:
             self._overrides.pop(key, None)
         else:
             self._overrides[key] = tile
+        self._layouts.clear()
+
+    def layout(self, tx, tz):
+        """How thin wall tile (tx, tz) is cut into slab and margins (`thin_walls.Layout`); None for any
+        other tile."""
+        tile = self[tx, tz]
+        if not tile.thin:
+            return None
+        lay = self._layouts.get((tx, tz))
+        if lay is None:
+            lay = self._layouts[(tx, tz)] = thin_walls.layout(self, tx, tz)
+        return lay
+
+    def wall_inset(self, tx, tz, dx, dz):
+        """How much farther than its tile's edge the wall at (tx + dx, tz + dz) stands from (tx, tz):
+        0 for a full wall, the margin before a thin wall's slab."""
+        return thin_walls.inset(self, tx + dx, tz + dz, dx, dz)
+
+    def backed(self, tx, tz, yaw, depth=0.0):
+        """Where something facing `yaw` on (tx, tz) stands once set `depth` metres back from its tile's
+        centre toward the wall behind it, and on past a thin wall's margin to touch its slab. The
+        tile's centre if nothing solid stands behind."""
+        x, z = self.center(tx, tz)
+        bx, bz = -math.cos(yaw), -math.sin(yaw)
+        dx, dz = rround(bx), rround(bz)
+        if (dx, dz) == (0, 0) or not self[tx + dx, tz + dz].solid:
+            return x, z
+        back = depth + self.wall_inset(tx, tz, dx, dz)
+        return x + bx * back, z + bz * back
 
     # yaw for each direction, in the order ties are broken
     FACINGS = (((1, 0), 0.0), ((0, 1), math.pi / 2), ((-1, 0), math.pi), ((0, -1), -math.pi / 2))
@@ -123,11 +156,7 @@ class TileMap:
     def seated(self, tx, tz, yaw, depth=SEAT_DEPTH):
         """Where something facing `yaw` on (tx, tz) stands once pushed back against the wall behind
         it (a chest's back to the stones), or the tile's centre if nothing solid stands behind."""
-        x, z = self.center(tx, tz)
-        bx, bz = -math.cos(yaw), -math.sin(yaw)
-        if not self[tx + rround(bx), tz + rround(bz)].solid:
-            return x, z
-        return x + bx * depth, z + bz * depth
+        return self.backed(tx, tz, yaw, depth)
 
     def _standable(self, tx, tz):
         tile = self[tx, tz]
@@ -143,7 +172,15 @@ class TileMap:
         return math.floor(world / TileMap.TILE)
 
     def tile_at(self, wx, wz):
-        return self[TileMap.tile_coord(wx), TileMap.tile_coord(wz)]
+        """The tile under world point (wx, wz). In a thin wall's margin that is the tile lending the
+        margin its floor; inside the slab, the wall itself."""
+        tx, tz = TileMap.tile_coord(wx), TileMap.tile_coord(wz)
+        tile = self[tx, tz]
+        if tile.thin:
+            owner = self.layout(tx, tz).owner_at(wx - tx * TileMap.TILE, wz - tz * TileMap.TILE)
+            if owner is not None:
+                return self[owner]
+        return tile
 
     def floor_at(self, wx, wz):
         return self.tile_at(wx, wz).floor

@@ -49,6 +49,7 @@ LIGHT_KINDS = (
     "great_window",
     "forge_hearth",
     "crucible",
+    "rose_window",
 )
 LIGHT_Y = {
     "lamp_post": "2.6",
@@ -66,6 +67,7 @@ LIGHT_Y_WALL = {
     "window": "3.0",
     "barred_window": "2.4",
     "great_window": "1.6",
+    "rose_window": "0",
 }
 LIGHT_COLOR = {
     "fungus": "0.3,0.85,0.65",
@@ -79,6 +81,7 @@ LIGHT_COLOR = {
     "great_window": "1.0,0.5,0.2",
     "forge_hearth": "1.0,0.55,0.22",
     "crucible": "1.0,0.5,0.2",
+    "rose_window": "0.95,0.55,0.62",
 }
 LIGHT_RADIUS = {
     "hearth": "6",
@@ -92,9 +95,10 @@ LIGHT_RADIUS = {
     "shelf_fungus": "4",
     "giant_mushroom": "6",
     "bonfire": "9",
+    "rose_window": "10",
 }
 # Lights hung on a wall when one stands beside them: they shine from against it.
-WALL_LIGHTS = ("torch", "shelf_fungus", "hearth", "window", "barred_window", "great_window")
+WALL_LIGHTS = ("torch", "shelf_fungus", "hearth", "window", "barred_window", "great_window", "rose_window")
 # Fires that can stand cold (`unlit`) until something kindles them.
 KINDLING = ("brazier", "bonfire")
 DIRS = ((1, 0), (-1, 0), (0, 1), (0, -1))
@@ -136,6 +140,28 @@ def _shine(l, rgb, x, y, z, nx, ny, nz):
     rgb[2] += l.color[2] * k
 
 
+def _side(x0, z0, x1, z1, di, dj):
+    """The ends of a rectangle's side facing (di, dj), as (x, z) points."""
+    if di > 0:
+        return (x1, z0), (x1, z1)
+    if di < 0:
+        return (x0, z0), (x0, z1)
+    if dj > 0:
+        return (x0, z1), (x1, z1)
+    return (x0, z0), (x1, z0)
+
+
+def _next_cell(lay, i, j, di, dj):
+    """The cell of a thin tile's layout beside (i, j) toward (di, dj), stepping over empty ones; None
+    past the tile's edge."""
+    while True:
+        i, j = i + di, j + dj
+        if not (0 <= i <= 2 and 0 <= j <= 2):
+            return None
+        if (i, j) in lay.cells:
+            return i, j
+
+
 class MeshBuilder:
     def __init__(self, map_, lights=()):
         self.map = map_
@@ -151,8 +177,7 @@ class MeshBuilder:
         height = LIGHT_Y.get(e.kind, "1.6")
         wall = map_.wall_yaw(e.tx, e.tz) if e.kind in WALL_LIGHTS else None
         if wall is not None:  # a sconce, a bracket fungus, a hearth or a window: up against the wall
-            x -= math.cos(wall) * 0.6
-            z -= math.sin(wall) * 0.6
+            x, z = map_.backed(e.tx, e.tz, wall, 0.6)
             height = LIGHT_Y_WALL.get(e.kind, "1.9")
         y = map_[e.tx, e.tz].floor + float(e.props.get("rise", "0")) + float(e.props.get("y", height))
         color = [float(c) for c in e.props.get("color", LIGHT_COLOR.get(e.kind, "1.0,0.62,0.32")).split(",")]
@@ -240,7 +265,9 @@ class MeshBuilder:
     def build(self):
         self._exposed = self._exposed_walls()
         for tx, tz, tile in self.map.each_tile():
-            if tile.solid:
+            if tile.thin:
+                self._build_thin(tx, tz, tile)
+            elif tile.solid:
                 self._build_solid(tx, tz, tile)
             else:
                 self._build_open(tx, tz, tile)
@@ -256,6 +283,8 @@ class MeshBuilder:
 
         for dx, dz in DIRS:
             nb = self.map[tx + dx, tz + dz]
+            if nb.thin:
+                continue  # the slab draws its own faces, out at its margin
             if nb.solid:
                 top = tile.ceil if tile.ceil is not None else nb.top
                 if top > tile.floor:
@@ -268,7 +297,11 @@ class MeshBuilder:
             if tile.ceil is not None and nb.ceil is not None and nb.ceil > tile.ceil:
                 self._wall(tile.wall_tex, tx, tz, dx, dz, tile.ceil, nb.ceil, face_out=True)
             elif tile.ceil is not None and nb.ceil is None:
-                self._wall(tile.wall_tex, tx, tz, dx, dz, tile.ceil, tile.ceil + 0.6, face_out=True)
+                # A lintel over the way out; in a thin-walled house it rises with the walls beside it.
+                jambs = [j for j in (self.map[tx + dz, tz + dx], self.map[tx - dz, tz - dx]) if j.thin]
+                top = max([tile.ceil + 0.6] + [j.top for j in jambs])
+                tex = jambs[0].wall_tex if jambs else tile.wall_tex
+                self._wall(tex, tx, tz, dx, dz, tile.ceil, top, face_out=True)
 
     def _exposed_walls(self):
         """The solid tiles seen from under the open sky: those beside an open-sky floor, and any wall
@@ -304,6 +337,87 @@ class MeshBuilder:
             if not (nb.solid and nb.top < tile.top):
                 continue
             self._wall(tile.wall_tex, tx, tz, dx, dz, nb.top, tile.top, face_out=True)
+
+    def _build_thin(self, tx, tz, tile):
+        """A thin wall (`world/thin_walls.py`): its slab's faces and cap, and its margins' floors and
+        ceilings in the textures of the tiles that lend them."""
+        lay = self.map.layout(tx, tz)
+        for (i, j), owner in lay.cells.items():
+            x0, z0, x1, z1 = lay.rect(i, j)
+            if owner is None:
+                self._rect(tile.floor_tex, x0, z0, x1, z1, tile.top, 1, 0.9)
+            else:
+                o = self.map[owner]
+                self._rect(o.floor_tex, x0, z0, x1, z1, o.floor, 1, 0.85 if o.liquid else 1.0)
+                if o.ceil is not None:
+                    self._rect(o.ceil_tex, x0, z0, x1, z1, o.ceil, -1, 0.75)
+            for di, dj in DIRS:
+                a, b = _side(x0, z0, x1, z1, di, dj)
+                beyond = _next_cell(lay, i, j, di, dj)
+                if owner is None:
+                    self._slab_side(tile, tx, tz, lay, beyond, a, b, di, dj)
+                elif beyond is None:  # the tile's edge
+                    self._margin_edge(self.map[owner], self.map[tx + di, tz + dj], a, b, di, dj)
+
+    def _slab_side(self, tile, tx, tz, lay, beyond, a, b, di, dj):
+        """One side of a slab cell, facing (di, dj): against a margin, or out of the tile."""
+        if beyond is not None:
+            owner = lay.cells[beyond]
+            if owner is None:
+                return  # more slab
+            nb = self.map[owner]
+        else:
+            nb = self.map[tx + di, tz + dj]
+            if nb.solid:
+                if nb.top < tile.top:
+                    self._face(tile.wall_tex, a, b, nb.top, tile.top, (di, dj))
+                return
+        top = nb.ceil if nb.ceil is not None else tile.top
+        if top > nb.floor:
+            self._face(tile.wall_tex, a, b, nb.floor, top, (di, dj))
+
+    def _margin_edge(self, own, nb, a, b, di, dj):
+        """Where a margin meets the next tile: a full wall rises there, or the floor steps down."""
+        if nb.thin:
+            return
+        if nb.solid:
+            top = own.ceil if own.ceil is not None else nb.top
+            if top > own.floor:
+                self._face(nb.wall_tex, a, b, own.floor, top, (-di, -dj))
+        elif nb.floor < own.floor:
+            self._face(own.wall_tex, a, b, nb.floor, own.floor, (di, dj))
+
+    def _face(self, tex, a, b, y0, y1, facing):
+        """A vertical face from point a to point b (each (x, z)), between heights y0 and y1, facing
+        along `facing` (dx, dz)."""
+        dx, dz = facing
+        normal = (float(dx), 0.0, float(dz))
+        shade = 0.9 if dx == 0 else 0.78
+        length = math.hypot(b[0] - a[0], b[1] - a[1])
+        cols = max(math.ceil(length / SEG - 1e-6), 1)
+        rows = max(math.ceil((y1 - y0) / SEG - 1e-6), 1)
+        for c in range(cols):
+            u0, u1 = c / cols, (c + 1) / cols
+            p0 = (a[0] + (b[0] - a[0]) * u0, a[1] + (b[1] - a[1]) * u0)
+            p1 = (a[0] + (b[0] - a[0]) * u1, a[1] + (b[1] - a[1]) * u1)
+            for r in range(rows):
+                ya = y0 + (y1 - y0) * r / rows
+                yb = y0 + (y1 - y0) * (r + 1) / rows
+                pts = [(p0[0], ya, p0[1]), (p1[0], ya, p1[1]), (p1[0], yb, p1[1]), (p0[0], yb, p0[1])]
+                uvs = [((p[0] + p[2]) / T, -p[1] / T) for p in pts]
+                self._quad(tex, pts, uvs, normal, shade, ao_floor=y0)
+
+    def _rect(self, tex, x0, z0, x1, z1, y, up, shade):
+        """A floor (up = 1) or ceiling (up = -1) over any rectangle, split into SEG squares or less."""
+        nx = max(math.ceil((x1 - x0) / SEG - 1e-6), 1)
+        nz = max(math.ceil((z1 - z0) / SEG - 1e-6), 1)
+        for i in range(nx):
+            for j in range(nz):
+                ax, bx = x0 + (x1 - x0) * i / nx, x0 + (x1 - x0) * (i + 1) / nx
+                az, bz = z0 + (z1 - z0) * j / nz, z0 + (z1 - z0) * (j + 1) / nz
+                pts = [(ax, y, az), (ax, y, bz), (bx, y, bz), (bx, y, az)]
+                uvs = [(p[0] / T, p[2] / T) for p in pts]
+                self._quad(tex, pts, uvs, (0.0, float(up), 0.0), shade)
 
     def _horizontal(self, tex, x0, z0, y, up, shade, glow=False):
         """Floor (up = 1) or ceiling (up = -1) of one tile, split into SEG squares. A glowing floor

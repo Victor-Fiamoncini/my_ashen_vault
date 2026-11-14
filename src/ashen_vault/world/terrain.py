@@ -626,7 +626,9 @@ class Terrain:
             self._thorn_t = 0.0
         if self.under is None and tile.walkable and not tile.hazardous:
             # The middle of the tile, so a fall never puts you back on the brink.
-            self.safe = TileMap.center(TileMap.tile_coord(body.x), TileMap.tile_coord(body.z))
+            safe = TileMap.center(TileMap.tile_coord(body.x), TileMap.tile_coord(body.z))
+            # A thin wall's margin: its tile's middle is the slab, so remember where you stand.
+            self.safe = (body.x, body.z) if self.map.tile_at(*safe).solid else safe
         return event
 
     def _landing(self, body, hurt):
