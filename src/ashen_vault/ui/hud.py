@@ -99,7 +99,7 @@ def tiny_centered(s, cx, y, col=TEXT):
 
 
 def micro_centered(s, cx, y, col=TEXT):
-    """3x4 pixel text (tinyfont.MICRO), no shadow: the slot cards' labels and the quick count."""
+    """3x4 pixel text (tinyfont.MICRO), no shadow: the mouse's slot labels and the quick count."""
     x = int(cx - tinyfont.width(s) // 2)
     for rx, ry, rw, rh in tinyfont.rects(s, x, int(y), tinyfont.MICRO):
         pr.draw_rectangle(rx, ry, rw, rh, col)
@@ -135,11 +135,11 @@ def hud(game):
     s = p.stats
 
     # Bottom left: the vitals and a small compass in one gold-edged box. It shares its height
-    # and bottom edge with the cards on the right.
+    # and bottom edge with the mouse on the right.
     bx, by = HUD_MARGIN, H - HUD_MARGIN - HUD_BOX_H
-    hud_box(bx, by, VITALS_W, HUD_BOX_H)
+    hud_box(bx, by, VITALS_W, HUD_BOX_H, edge=ward_edge(p))
     rows = by + (HUD_BOX_H - 19) // 2  # three 5 px rows, 7 px apart
-    vx = bx + HUD_PAD
+    vx = bx + HUD_PAD + 1  # inside the 1 px trim, like every box's contents
     vital("HP", vx, rows, s.hp / s.max_hp, (230, 120, 110), (190, 40, 40), s.hp)
     vital("MP", vx, rows + 7, s.mp / s.max_mp, (120, 150, 230), (50, 80, 200), s.mp)
     st = p.stamina
@@ -153,13 +153,17 @@ def hud(game):
         rround(st.value * 100),
     )
     # The ball's shadow and E/W letters reach COMPASS_R + 2 to each side; its pointer ends
-    # COMPASS_R + 3 below the centre.
+    # COMPASS_R + 3 below the centre. It sits centred between the numbers and the box's right edge.
     reach = COMPASS_R + 2
     span = 2 * COMPASS_R + 6  # top of the shadow to the tip of the pointer
-    compass(p.heading, bx + VITALS_W - HUD_PAD - 1 - reach, by + (HUD_BOX_H - span) // 2 + reach, COMPASS_R)
+    left = vx + VITAL_NUM_X + tinyfont.width("100")
+    right = bx + VITALS_W - HUD_PAD - 1
+    target = game.world.boss_bearing() if game.world else None
+    compass(p.heading, (left + right) // 2, by + (HUD_BOX_H - span) // 2 + reach, COMPASS_R, target)
 
-    # Bottom right: the Primary / quick item / Secondary cards.
-    cards_hud(p, W - HUD_MARGIN - CARDS_W, H - HUD_MARGIN - HUD_BOX_H)
+    # Bottom right: a mouse whose buttons show what Primary and Secondary hold, the quick item
+    # on its wheel.
+    mouse_hud(p, W - HUD_MARGIN - MOUSE_HUD_W, H - HUD_MARGIN - HUD_BOX_H)
 
     gold_counter(game)
     boss_bar(game)
@@ -168,15 +172,27 @@ def hud(game):
     flash(p)
 
 
+WARD_EDGE_RGB = (245, 150, 60)
+
+
+def ward_edge(player):
+    """The vitals box's trim: ember-lit and breathing while an Ashen Ward holds, gold otherwise."""
+    if player.ward_t <= 0:
+        return HUD_EDGE
+    k = 0.55 + 0.45 * math.sin(pr.get_time() * 5)
+    gold = (HUD_EDGE.r, HUD_EDGE.g, HUD_EDGE.b)
+    return color(*(rround(g + (w - g) * k) for g, w in zip(gold, WARD_EDGE_RGB, strict=True)))
+
+
 def vital(label, x, y, frac, label_rgb, bar_rgb, value=None):
     """One compact row: label, a short bar, and an optional number."""
     tiny(label, x, y, color(*label_rgb))
-    bar(x + 10, y + 1, 30, 3, frac, bar_rgb)
+    bar(x + VITAL_BAR_X, y + 1, VITAL_BAR_W, 3, frac, bar_rgb)
     if value is not None:
-        tiny(str(value), x + 44, y, DIM)
+        tiny(str(value), x + VITAL_NUM_X, y, DIM)
 
 
-SLOT_PULSE = 0.35  # seconds a card's edge flashes after its gauge fills
+SLOT_PULSE = 0.35  # seconds a mouse button's edge flashes after its gauge fills
 FOCUS_RGB = (120, 220, 240)
 FOCUS_CHARGING_RGB = (50, 100, 120)
 ATK_RGB = (240, 210, 90)
@@ -186,30 +202,63 @@ HEAVY_RGB = (255, 140, 50)
 WINDED_RGB = (140, 40, 30)
 
 HUD_FILL = color(20, 16, 12, 215)
-HUD_EDGE = color(170, 135, 70)  # the gold trim shared by the vitals box and the cards
+HUD_EDGE = color(170, 135, 70)  # the gold trim shared by the vitals box and the mouse
 HUD_RADIUS = 3  # corner radius in pixels, shared by every HUD box, menu and window
+HUD_INNER_RADIUS = HUD_RADIUS - 1  # a well set inside a box (the mouse's wheel)
+# One spacing scale for the whole HUD:
 HUD_MARGIN = 3  # pixels between the HUD boxes and the screen edge
 HUD_PAD = 3  # pixels from a HUD box's outer edge (its 1 px trim included) to its contents
-HUD_BOX_H = 38  # the vitals box and the three cards share this height
+HUD_GAP = 2  # pixels between neighbouring HUD elements (a box and the text above it)
+HUD_BOX_H = 38  # the vitals box and the mouse share this height
 VITALS_W = 90
+VITAL_BAR_X, VITAL_BAR_W = 10, 30  # a vital's bar: after its 2-letter label, before its number
+VITAL_NUM_X = VITAL_BAR_X + VITAL_BAR_W + 4
 COMPASS_R = 10
-CARD_W = 41  # "SECONDARY" (35 px) plus HUD_PAD on each side
-CARD_GAP = 2
-CARDS_W = 3 * CARD_W + 2 * CARD_GAP
-CARD_LABELS = {RIGHT: "PRIMARY", LEFT: "SECONDARY"}
-MESSAGE_Y = H - HUD_MARGIN - 4 - HUD_BOX_H - 9  # top of the newest message line, just above the bottom boxes
+MOUSE_HUD_W = 58  # the bottom-right mouse: two buttons and the wheel between them
+MOUSE_SPLIT = 27  # height of its button row; the palm below holds the slot labels and the count
+WHEEL_W = 9
+BUTTON_LABELS = {RIGHT: "PRI", LEFT: "SEC"}
+# Text stacks up from the bottom boxes: the newest message just above them, the prompt above that.
+MESSAGE_Y = H - HUD_MARGIN - HUD_BOX_H - HUD_GAP - smallfont.HEIGHT
+PROMPT_Y = MESSAGE_Y - 5 * smallfont.LINE  # three message lines and two empty ones below it
+
+
+def corner_insets(radius):
+    """How far in each of a rounded box's top `radius` rows starts (mirrored for the other corners):
+    a quarter circle in whole pixels, so every box with the same radius has the very same corners."""
+    return tuple(
+        max(rround(radius - math.sqrt(radius * radius - (radius - i - 0.5) ** 2) + 0.25), 0)
+        for i in range(radius)
+    )
 
 
 def hud_box(x, y, w, h, fill=HUD_FILL, radius=HUD_RADIUS, edge=HUD_EDGE):
-    """A box with gold trim and `radius`-pixel corners, whatever its size."""
-    rect = pr.Rectangle(x, y, w, h)
-    roundness = min(2 * radius / min(w, h), 1)
-    pr.draw_rectangle_rounded(rect, roundness, 4, fill)
-    pr.draw_rectangle_rounded_lines_ex(rect, roundness, 4, 1, edge)
+    """A box with a 1 px gold trim and pixel-exact `radius` corners, whatever its size: drawn as runs
+    of whole pixels rather than raylib's rounded rectangles, which rasterise differently by size."""
+    x, y, w, h = rround(x), rround(y), rround(w), rround(h)
+    insets = corner_insets(min(radius, w // 2, h // 2))
+    r = len(insets)
+    for i, inset in enumerate(insets):  # the rounded rows, top and bottom
+        for row in (y + i, y + h - 1 - i):
+            pr.draw_rectangle(x + inset, row, w - 2 * inset, 1, fill)
+    pr.draw_rectangle(x, y + r, w, h - 2 * r, fill)
+    if edge is None:
+        return
+    if not r:
+        pr.draw_rectangle_lines(x, y, w, h, edge)
+        return
+    for row in (y, y + h - 1):  # the trim: top and bottom edges between the corners
+        pr.draw_rectangle(x + insets[0], row, w - 2 * insets[0], 1, edge)
+    for i in range(1, r):  # each lower corner row runs from its inset to the row above's
+        run = max(insets[i - 1] - insets[i], 1)
+        for row in (y + i, y + h - 1 - i):
+            pr.draw_rectangle(x + insets[i], row, run, 1, edge)
+            pr.draw_rectangle(x + w - insets[i] - run, row, run, 1, edge)
+    pr.draw_rectangle(x, y + r, 1, h - 2 * r, edge)
+    pr.draw_rectangle(x + w - 1, y + r, 1, h - 2 * r, edge)
 
 
-MOUSE_W, MOUSE_H = 5, 7  # the mini mouse drawn on the cards and beside equipped rows
-BAR_Y = HUD_PAD + 2  # a card's gauge bar, level with the middle of its mouse
+MOUSE_W, MOUSE_H = 5, 7  # the mini mouse drawn beside equipped rows in Belongings
 
 
 def mini_mouse(x, y, lit, dim=False):
@@ -224,39 +273,35 @@ def mini_mouse(x, y, lit, dim=False):
     pr.draw_line(x + 1, y + 4, x + 4, y + 4, color(90, 80, 64))
 
 
-def cards_hud(player, x, y):
-    """Bottom right: the Primary card (left mouse button), the quick item on the wheel (middle click
-    uses it, rolling picks another) and the Secondary card (right mouse button)."""
-    slot_card(player, RIGHT, x, y)
-    quick_card(player, x + CARD_W + CARD_GAP, y)
-    slot_card(player, LEFT, x + 2 * (CARD_W + CARD_GAP), y)
+def mouse_hud(player, x, y):
+    """Bottom right: a mouse whose left button shows Primary and right button Secondary (each with
+    its gauge bar), the quick item on the wheel between them (middle click uses it, rolling picks
+    another), and on the palm the slots' labels and how many quick items are left."""
+    w, split = MOUSE_HUD_W, MOUSE_SPLIT
+    hud_box(x, y, w, HUD_BOX_H)
+    cx = x + w // 2
+    pr.draw_line(cx, y + 1, cx, y + split, HUD_EDGE)  # the button divider
+    pr.draw_line(x + HUD_PAD, y + split, x + w - HUD_PAD, y + split, HUD_EDGE)
+    inner = cx - WHEEL_W // 2 - 1 - (x + HUD_PAD)  # a button's width between the trim and the wheel
+    for hand, bx in ((RIGHT, x + HUD_PAD), (LEFT, cx + WHEEL_W // 2 + 2)):
+        mouse_button(player, hand, bx, y, inner)
+    wheel(player, cx, y + HUD_PAD + 1, split - 2 * HUD_PAD - 2)
+
+    ly = y + HUD_BOX_H - HUD_PAD - tinyfont.MICRO_HEIGHT
+    dim = color(120, 100, 64)
+    two = player.inventory.two_handing()
+    micro_centered(BUTTON_LABELS[RIGHT], x + HUD_PAD + inner // 2, ly, DIM)
+    micro_centered(BUTTON_LABELS[LEFT], x + w - HUD_PAD - inner // 2, ly, dim if two else DIM)
+    n = player.inventory.count(player.quick)
+    micro_centered(f"X{n}", cx, ly, TEXT if n else color(200, 80, 70))
 
 
-def gauge_bar(x, y, w, frac, rgb, track=(40, 34, 26)):
-    pr.draw_rectangle(x - 1, y - 1, w + 2, 5, color(0, 0, 0, 220))
-    pr.draw_rectangle(x, y, w, 3, color(*track))
-    pr.draw_rectangle(x, y, rround(w * clamp(frac, 0, 1)), 3, color(*rgb))
-
-
-def _card_flash(x, y, k):
-    """The edge flashes once when a gauge fills (k runs 0 -> 1 over SLOT_PULSE)."""
-    hud_box(x, y, CARD_W, HUD_BOX_H, fill=color(0, 0, 0, 0), edge=color(255, 250, 230, rround(230 * (1 - k))))
-
-
-def slot_card(player, hand, x, y):
-    """One equip slot: a mini mouse with its button lit, the slot's gauge as a bar, the held weapon,
-    shield or spell, and the slot's name. The Secondary card mirrors the Primary one: its mouse sits
-    at the outer (right) end of the bar."""
+def mouse_button(player, hand, x, y, w):
+    """One button, `w` wide from `x`: its gauge bar along the top, what the slot holds below."""
     two_handed = hand == LEFT and player.inventory.two_handing()
-    hud_box(x, y, CARD_W, HUD_BOX_H)
-    gap = MOUSE_W + 3  # the bar fills the top row beside the mouse and a 3 px gap
-    bw = CARD_W - 2 * HUD_PAD - gap
-    if hand == RIGHT:
-        mx, bx = x + HUD_PAD, x + HUD_PAD + gap
-    else:
-        mx, bx = x + CARD_W - HUD_PAD - MOUSE_W, x + HUD_PAD
-    mini_mouse(mx, y + HUD_PAD, "left" if hand == RIGHT else "right", dim=two_handed)
-    cx, cy = x + CARD_W // 2, y + 21
+    bx, bw = x + 1, w - 2
+    by = y + HUD_PAD + 2
+    cx, cy = x + w // 2, y + HUD_PAD + 15
     item = player.hand_item(hand)
     t = pr.get_time()
     pulse = None
@@ -265,12 +310,12 @@ def slot_card(player, hand, x, y):
         weapon_icon(item, cx, cy, t, 70)
     elif item.kind == "shield":
         up = player.guarding
-        gauge_bar(bx, y + BAR_Y, bw, player.stamina.value if up else 0, STAMINA_RGB)
+        gauge_bar(bx, by, bw, player.stamina.value if up else 0, STAMINA_RGB)
         shield_icon(item, cx, cy, 110 if player.guard_break_t > 0 else 255, up)
     elif item.kind == "spell":
         spell = player.current_spell()
         g = player.magic_gauge
-        gauge_bar(bx, y + BAR_Y, bw, g.value if spell else 0, FOCUS_RGB if g.full else FOCUS_CHARGING_RGB)
+        gauge_bar(bx, by, bw, g.value if spell else 0, FOCUS_RGB if g.full else FOCUS_CHARGING_RGB)
         if spell:
             spell_icon(spell.id, cx, cy, t, 255 if g.full else 110)
             pulse = g
@@ -278,19 +323,35 @@ def slot_card(player, hand, x, y):
             pr.draw_ring(pr.Vector2(cx, cy), 4, 6, 0, 360, 24, color(60, 56, 48))
     else:
         g = player.gauge(hand)
-        gauge_bar(bx, y + BAR_Y, bw, g.value, ATK_RGB if g.full else ATK_CHARGING_RGB)
-        charge_bar(player, hand, bx, y + BAR_Y, bw)
+        gauge_bar(bx, by, bw, g.value, ATK_RGB if g.full else ATK_CHARGING_RGB)
+        charge_bar(player, hand, bx, by, bw)
         weapon_icon(item, cx, cy, t, 255 if g.full else 110, g.full)
         pulse = g
-    label_col = color(120, 100, 64) if two_handed else DIM
-    micro_centered(CARD_LABELS[hand], cx, card_label_y(y), label_col)
     if pulse is not None and pulse.full and pulse.full_t < SLOT_PULSE:
-        _card_flash(x, y, pulse.full_t / SLOT_PULSE)
+        # The button flashes once when its gauge fills.
+        k = pulse.full_t / SLOT_PULSE
+        edge = color(255, 250, 230, rround(230 * (1 - k)))
+        pr.draw_rectangle_lines(x - 1, by - 2, w + 2, MOUSE_SPLIT - HUD_PAD - 1, edge)
 
 
-def card_label_y(y):
-    """Top of a card's bottom label: HUD_PAD above the card's lower edge."""
-    return y + HUD_BOX_H - HUD_PAD - tinyfont.MICRO_HEIGHT
+def wheel(player, cx, top, h):
+    """The scroll wheel: the selected quick item between up/down chevrons."""
+    item = player.quick_item()
+    n = player.inventory.count(item.id)
+    hud_box(cx - WHEEL_W // 2, top, WHEEL_W, h, fill=color(0, 0, 0, 220), radius=HUD_INNER_RADIUS)
+    chev = color(150, 120, 70)
+    pr.draw_triangle(pr.Vector2(cx, top + 2), pr.Vector2(cx - 2, top + 4), pr.Vector2(cx + 2, top + 4), chev)
+    bottom = top + h - 2
+    pr.draw_triangle(
+        pr.Vector2(cx - 2, bottom - 2), pr.Vector2(cx, bottom), pr.Vector2(cx + 2, bottom - 2), chev
+    )
+    item_icon(item.id, cx, top + h // 2, pr.get_time(), 255 if n else 90)
+
+
+def gauge_bar(x, y, w, frac, rgb, track=(40, 34, 26)):
+    pr.draw_rectangle(x - 1, y - 1, w + 2, 5, color(0, 0, 0, 220))
+    pr.draw_rectangle(x, y, w, 3, color(*track))
+    pr.draw_rectangle(x, y, rround(w * clamp(frac, 0, 1)), 3, color(*rgb))
 
 
 def charge_bar(player, hand, x, y, w):
@@ -306,22 +367,6 @@ def charge_bar(player, hand, x, y, w):
     if k >= 1:
         pulse = 0.5 + 0.5 * math.sin(player.charge_t * 18)
         pr.draw_rectangle(x - 1, y - 1, w + 2, 5, color(255, 220, 150, rround(140 * pulse)))
-
-
-def quick_card(player, x, y):
-    """The selected quick item, drawn twice size under a mini mouse with its wheel lit (middle click
-    uses it, rolling picks another), and how many are left."""
-    hud_box(x, y, CARD_W, HUD_BOX_H)
-    cx = x + CARD_W // 2
-    mini_mouse(cx - MOUSE_W // 2, y + HUD_PAD, "wheel")
-    item = player.quick_item()
-    n = player.inventory.count(item.id)
-    pr.rl_push_matrix()
-    pr.rl_translatef(cx, y + 22, 0)
-    pr.rl_scalef(2, 2, 1)
-    item_icon(item.id, 0, 0, pr.get_time(), 255 if n else 90)
-    pr.rl_pop_matrix()
-    micro_centered(f"X{n}", cx, card_label_y(y), TEXT if n else color(200, 80, 70))
 
 
 def item_icon(id_, cx, cy, t, alpha=255):
@@ -552,6 +597,19 @@ def spell_icon(id_, cx, cy, t, alpha=255):
                     color(190, 120, 255, rround(a * (1 - j * 0.3))),
                 )
         pr.draw_circle(cx, cy, 1.5, color(240, 210, 255, a))
+    elif id_ == "ward":
+        # A ring of embers wheeling about an ashen core.
+        pr.draw_circle(cx, cy, 2.5, color(110, 96, 84, a))
+        pr.draw_circle(cx, cy, 1.2, color(255, 200, 120, a))
+        for i in range(6):
+            ang = t * 1.8 + i * math.tau / 6
+            glow = 0.6 + 0.4 * math.sin(t * 6 + i)
+            pr.draw_circle(
+                rround(cx + math.cos(ang) * 6),
+                rround(cy + math.sin(ang) * 6),
+                1.4,
+                color(245, 165, 80, rround(a * glow)),
+            )
     else:
         pr.draw_circle(cx, cy, 4, color(200, 200, 200, a))
 
@@ -559,8 +617,10 @@ def spell_icon(id_, cx, cy, t, alpha=255):
 COMPASS_TILT = 0.5  # how far we look down onto the ball (radians)
 
 
-def compass(heading, cx, cy, r=17):
-    """Compass ball that rolls with your heading; the facing sits at the front-center."""
+def compass(heading, cx, cy, r=17, target=None):
+    """Compass ball that rolls with your heading; the facing sits at the front-center. `target` is
+    the heading (degrees) of the nearest living boss's door: an ember marks it on the ball's equator,
+    or pinned dim to the rim on the side to turn toward while it is behind you."""
     pr.draw_circle(cx, cy, r + 2, color(0, 0, 0, 210))
     # Fake sphere shading: stacked discs drifting toward the light (upper left).
     for i in range(7):
@@ -611,13 +671,44 @@ def compass(heading, cx, cy, r=17):
         for rx, ry, rw, rh in runs:
             pr.draw_rectangle(rx, ry, rw, rh, color(*rgb, alpha))
 
+    if target is not None:
+        boss_marker(project, heading, target, cx, cy, r)
+
     # Fixed pointer under the ball marks the facing.
     pr.draw_triangle(
         pr.Vector2(cx, cy + r), pr.Vector2(cx - 2, cy + r + 3), pr.Vector2(cx + 2, cy + r + 3), HIGHLIGHT
     )
 
 
+BOSS_MARK_RGB = (255, 110, 40)
+
+
+def boss_marker(project, heading, target, cx, cy, r):
+    """The ember on the compass toward the boss: it glows hotter the straighter you face it."""
+    off = (target - heading + 180) % 360 - 180  # -180..180, positive to your right
+    px, py, depth = project(target, 0)
+    t = pr.get_time()
+    if depth < 0.05:  # behind you: a dim ember on the rim, on the side to turn toward
+        side = 1 if off > 0 else -1
+        x, y = cx + side * (r + 1), cy
+        pr.draw_circle(x, y, 2, color(0, 0, 0, 200))
+        pr.draw_circle(x, y, 1.2, color(*BOSS_MARK_RGB, 150))
+        return
+    ahead = clamp(1 - abs(off) / 30, 0, 1)
+    pulse = 0.5 + 0.5 * math.sin(t * (4 + 6 * ahead))
+    x, y = rround(px), rround(py)
+    pr.draw_circle(x, y, 3 + ahead, color(*BOSS_MARK_RGB, rround(60 + 80 * pulse * (0.4 + 0.6 * ahead))))
+    pts = (pr.Vector2(x, y - 3), pr.Vector2(x - 2, y), pr.Vector2(x, y + 3), pr.Vector2(x + 2, y))
+    dark = color(60, 16, 6)
+    pr.draw_triangle(pts[0], pts[1], pts[2], dark)
+    pr.draw_triangle(pts[0], pts[2], pts[3], dark)
+    core = color(255, rround(150 + 90 * ahead), rround(60 + 120 * ahead * pulse))
+    pr.draw_rectangle(x - 1, y - 1, 2, 2, core)
+    pr.draw_rectangle(x, y - 2, 1, 4, core)
+
+
 GOLD_RGB = (235, 190, 80)
+GOLD_H = 2 * HUD_PAD + 7  # the coin (and the 6 px caps under TEXT_DY) between the box's pads
 
 
 def gold_counter(game):
@@ -626,13 +717,14 @@ def gold_counter(game):
     label = str(tally.shown)
     w = HUD_PAD + 7 + 1 + smallfont.width(label) + HUD_PAD  # coin, gap, number
     x, y = W - HUD_MARGIN - w, HUD_MARGIN
-    hud_box(x, y, w, 13)
-    coin(x + HUD_PAD + 3, y + 6)
-    small(label, x + HUD_PAD + 8, y + 3 + TEXT_DY, HIGHLIGHT)
+    hud_box(x, y, w, GOLD_H)
+    coin(x + HUD_PAD + 3, y + GOLD_H // 2)
+    small(label, x + HUD_PAD + 8, y + HUD_PAD + TEXT_DY, HIGHLIGHT)
     a = tally.gain_alpha()
     if a > 0:
         gain = f"+{tally.shown_gain}"
-        small(gain, W - HUD_MARGIN - 2 - smallfont.width(gain), y + 16, color(*GOLD_RGB, rround(255 * a)))
+        gx = W - HUD_MARGIN - HUD_PAD - smallfont.width(gain)
+        small(gain, gx, y + GOLD_H + HUD_GAP + TEXT_DY, color(*GOLD_RGB, rround(255 * a)))
 
 
 def coin(cx, cy):
@@ -654,15 +746,19 @@ def boss_bar(game):
         _boss_bar(boss, i * BOSS_BAR_STEP)
 
 
-BOSS_BAR_STEP = 26  # pixels between stacked boss bars
+BOSS_BAR_H = 5
+BOSS_BOX_H = 2 * HUD_PAD + 2 + smallfont.HEIGHT + HUD_GAP + BOSS_BAR_H  # name over bar, inside the pads
+BOSS_BAR_STEP = BOSS_BOX_H + HUD_GAP  # pixels between stacked boss bars
 
 
 def _boss_bar(boss, dy):
     max_hp = boss.type.hp
-    bw, bh = BOSS_BAR_W, 5
-    x, y = W // 2 - bw // 2, 22 + dy
-    hud_box(x - 6, 8 + dy, bw + 12, 23)
-    small_centered(boss.name, W // 2, 11 + dy, HIGHLIGHT)
+    bw, bh = BOSS_BAR_W, BOSS_BAR_H
+    top = HUD_MARGIN + dy
+    name_y = top + HUD_PAD + 1
+    x, y = W // 2 - bw // 2, name_y + smallfont.HEIGHT + HUD_GAP
+    hud_box(x - 2 * HUD_PAD, top, bw + 4 * HUD_PAD, BOSS_BOX_H)
+    small_centered(boss.name, W // 2, name_y + TEXT_DY, HIGHLIGHT)
     pr.draw_rectangle(x - 1, y - 1, bw + 2, bh + 2, color(0, 0, 0, 230))
     pr.draw_rectangle(x, y, bw, bh, color(40, 14, 12))
     trail = rround(bw * clamp(boss.trail_hp / max_hp, 0, 1))
@@ -688,13 +784,14 @@ def messages(game):
         if alpha <= 0:
             continue
         y = MESSAGE_Y - (len(lines) - 1 - i) * smallfont.LINE
-        small_marked_centered(msg, W // 2, y, color(230, 220, 190, alpha), color(*HIGHLIGHT_RGB, alpha))
+        base, hi = color(230, 220, 190, alpha), color(*HIGHLIGHT_RGB, alpha)
+        small_marked_centered(msg, W // 2, y + TEXT_DY, base, hi)
 
 
 def prompt(game):
     label = game.focus_label()
     if label:
-        small_centered(label, W // 2, 140, HIGHLIGHT)
+        small_centered(label, W // 2, PROMPT_Y + TEXT_DY, HIGHLIGHT)
 
 
 def flash(player):
@@ -728,18 +825,20 @@ def _web_overlay(k):
 
 
 DIALOGUE_H = 56
-DIALOGUE_Y = H - HUD_MARGIN - 4 - HUD_BOX_H - DIALOGUE_H  # just above the bottom HUD boxes, never over them
+DIALOGUE_Y = H - HUD_MARGIN - HUD_BOX_H - HUD_GAP - DIALOGUE_H  # just above the bottom HUD boxes
+DIALOGUE_X, DIALOGUE_W = HUD_MARGIN, W - 2 * HUD_MARGIN  # as wide as the bottom row it sits on
+PANEL_PAD = 8  # text inset in menus and dialogue panels (list_menu, Belongings, the speaker's box)
 
 
 def dialogue(speaker, line, page, pages):
     """The speaker's box, sitting just above the bottom HUD boxes so it never covers them."""
-    y = DIALOGUE_Y
-    panel(10, y, 300, DIALOGUE_H)
-    text(speaker, 18, y + 5, HIGHLIGHT)
-    for i, l in enumerate(wrap(line, 284)):
-        text(l, 18, y + 18 + i * 11)
+    x, y, w = DIALOGUE_X, DIALOGUE_Y, DIALOGUE_W
+    panel(x, y, w, DIALOGUE_H)
+    text(speaker, x + PANEL_PAD, y + 5, HIGHLIGHT)
+    for i, l in enumerate(wrap(line, w - 2 * PANEL_PAD)):
+        text(l, x + PANEL_PAD, y + 18 + i * 11)
     page_mark = f"{page + 1}/{pages}"
-    text(page_mark, 302 - measure(page_mark), y + 45, DIM)
+    text(page_mark, x + w - PANEL_PAD - measure(page_mark), y + 45, DIM)
 
 
 def list_menu(title, x, y, w, rows, selected, footer=None, first=0, visible=None):

@@ -36,7 +36,7 @@ from ashen_vault.ui import belongings, compare
 from ashen_vault.ui import hud as ui
 from ashen_vault.ui.tally import GoldTally
 from ashen_vault.util import clamp, rround
-from ashen_vault.world import darkness, doors, elements, relics
+from ashen_vault.world import darkness, doors, elements, loot, relics
 from ashen_vault.world.rest import RestSequence
 from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.world import World, beside_shrine
@@ -50,7 +50,8 @@ MENU_LIST = (6, 6, 170)
 SHOP_LIST = (6, 6, 308)
 PICK_LIST = (24, 60, 190)  # the "which slot?" chooser over Belongings
 EQUIPPED_PANEL = (182, 6, 132)  # Belongings: what Primary, Secondary, Body and Hands hold
-STATS_PANEL = (182, 80, 132)
+STATS_PANEL = (182, 77, 132)
+STATS_ROW = 10  # the stats panel's line pitch: seven lines fit between Equipped and the item panel
 TITLE_Y, TITLE_STEP = 140, 14
 TITLE_ORBIT = (25, 24)  # the title camera circles Harrowmere's Silent Bell (its tile)
 # Comparing gear: a better stat green, a worse one red (keyed by compare.better).
@@ -633,6 +634,8 @@ class Game:
     def hurt_player(self, dmg, source):
         if not self.player.alive:
             return
+        if self.player.ward_t > 0:
+            dmg = Spells.warded(dmg, self.player.stats.magic)
         self.player.stats.hurt(dmg)
         self.player.hurt_t = 0.4
         self.sfx("hurt")
@@ -649,7 +652,8 @@ class Game:
         if not p.stats.spend_mp(spell.cost):
             return self.message("Not enough MP.")
         gauge = p.magic_gauge.spend()
-        self.sfx("spell")
+        p.magic_gauge.refill_time = spell.recovery
+        self.sfx("spell", 0.5 if spell.id == "pyre" else 1.0)
         if spell.id != "veil":
             p.veil_t = 0.0  # any other spell lights you up through the mist
         if spell.id == "flame":
@@ -683,6 +687,10 @@ class Game:
         elif spell.id == "motes":
             self.sfx("motes")
             self.world.motes(Spells.mote_damage(p.stats.magic, gauge))
+        elif spell.id == "ward":
+            p.ward_t = Spells.WARD_DURATION
+            self.sfx("ward")
+            self.message("Embers wreathe you. Blows land softer.")
 
     def _cycle_quick(self, step=1):
         item = self.player.cycle_quick(step)
@@ -714,12 +722,7 @@ class Game:
             self.sfx("levelup")
             self.message(f"You learned {{{Spells.get(item.spell).name}}}. Ready it from Belongings.")
         elif item.kind == "spell":
-            self.player.equip_spell(item.spell)
-            self.sfx("spell", 0.4)
-            if inv.equipped(SPELL):
-                self.message(f"{Spells.get(item.spell).name} is ready.")
-            else:
-                self._open_pick(item)
+            self._open_pick(item)  # like a weapon: always ask which slot it goes in
         elif item.kind in ("weapon", "shield", "armor"):
             if item.kind == "armor" or item.two_handed:
                 if inv.unequip(item.id):
@@ -767,6 +770,7 @@ class Game:
             "pickup": "[E] Take",
             "iron_maiden": "[E] Step inside",
             "frog_idol": "[E] Pat the stone frog",
+            "silent_bell": "[E] Touch the Silent Bell",
             "brazier": "[E] Look at the cold brazier",
             "bonfire": "[E] Look at the cold ashes",
             "altar": f"[E] Take the {Items.get(p.props.get('item', 'warden_key')).name}",
@@ -812,16 +816,27 @@ class Game:
             self._enter_maiden(prop)
         elif k == "frog_idol":
             self._pat_frog(prop)
+        elif k == "silent_bell":
+            # TODO(story): the secret beneath the Silent Bell. Something waits below the Bell Square.
+            self.sfx("bell", 0.25)
+            self.message("The cracked bronze is cold, yet it hums under your palm.")
+            self.message("A whisper rises from the stones: {the secret lies below}.")
         elif k == "exit":
             self._travel(prop.props["map"], prop.props["at"])
         elif k == "pickup":
             item = Items.get(prop.props["item"])
-            self.player.inventory.add(item.id)
+            p = self.player
+            kept, spare = loot.claim(p.inventory, p.spells, item.id)
+            if kept:
+                p.inventory.add(kept)
+            p.inventory.gold += spare
             self.flags.add(prop.key)
             relics.mark_taken(item.id, self.flags)
             self.world.remove_prop(prop)
             self.sfx("pickup")
             self.message(f"Obtained {{{item.name}}}.")
+            if spare:
+                self.message(loot.spare_message(spare))
 
     # --- shrine rest ------------------------------------------------------------------
 
@@ -880,15 +895,19 @@ class Game:
         item = prop.props.get("item")
         count = int(prop.props.get("count", "1"))
         gold = int(prop.props.get("gold", "0"))
-        if item:
-            self.player.inventory.add(item, count)
-        self.player.inventory.gold += gold
+        p = self.player
+        kept, spare = loot.claim(p.inventory, p.spells, item) if item else (None, 0)
+        if kept:
+            p.inventory.add(kept, count)
+        p.inventory.gold += gold + spare
         parts = []
         if item:
             parts.append(f"{{{Items.get(item).name}{f' x{count}' if count > 1 else ''}}}")
         if gold > 0:
             parts.append(f"{{{gold} gold}}")
         self.message(f"Found {' and '.join(parts)}.")
+        if spare:
+            self.message(loot.spare_message(spare))
 
     def _open_door(self, prop):
         if not doors.opens_from(prop.props.get("from"), prop.x, prop.z, self.player.x, self.player.z):
@@ -954,7 +973,10 @@ class Game:
         return spell.name if spell else None
 
     def _pick_options(self):
-        return belongings.pick_options(self.player.inventory, self._pick, self._spell_name())
+        spell = self.player.current_spell()
+        return belongings.pick_options(
+            self.player.inventory, self._pick, self._spell_name(), spell.id if spell else None
+        )
 
     def _update_pick(self):
         opts = self._pick_options()
@@ -1332,7 +1354,7 @@ class Game:
         self._draw_tabs()
         item = items[self._menu_index] if self._menu_index < len(items) else None
         self._draw_equipped()
-        self._draw_stats(compare.preview(self.player.inventory, item) if item and not self._pick else {})
+        self._draw_stats(self._changes(item) if item else {})
         self._draw_item_panel(
             item,
             self._item_detail(item) if item else "",
@@ -1347,6 +1369,24 @@ class Game:
             for i, (_, slot) in enumerate(self._pick_options()):
                 if slot is not None:
                     ui.mini_mouse(x + w - 11, y + ROW_TOP + i * ROW_H, belongings.SLOT_BUTTONS[slot])
+
+    def _changes(self, item):
+        """What the highlighted row would change: in the slot chooser, putting it in the hovered slot
+        (or taking it off, on Unequip); otherwise equipping it, or taking it off if it is equipped."""
+        inv = self.player.inventory
+        spell = self.player.current_spell()
+        spell_id = spell.id if spell else None
+        kw = {"magic": self.player.stats.magic, "spell": spell_id}
+        if self._pick:
+            opts = self._pick_options()
+            _, slot = opts[min(self._pick_index, len(opts) - 1)]
+            if slot is None:
+                return compare.preview(inv, self._pick, unequip=True, **kw)
+            return compare.preview(inv, self._pick, None if self._pick.two_handed else slot, **kw)
+        worn = inv.equipped(compare.held(item)) and (item.kind != "spell" or item.spell == spell_id)
+        if worn and item.kind in ("weapon", "shield", "armor", "spell"):
+            return compare.preview(inv, item, unequip=True, **kw)
+        return compare.preview(inv, item, **kw)
 
     def _draw_tabs(self):
         """The Belongings tabs along the list's title line, the open one lit and underlined."""
@@ -1388,21 +1428,23 @@ class Game:
         s = self.player.stats
         inv = self.player.inventory
         x, y, w = STATS_PANEL
-        ui.panel(x, y, w, 6 * ROW_H + 6)
-        nums = compare.numbers(inv)
+        ui.panel(x, y, w, 7 * STATS_ROW + 6)
+        spell = self.player.current_spell()
+        nums = compare.numbers(inv, s.magic, spell.id if spell else None)
         pairs = [
             (("Lv", s.level), ("Gold", inv.gold)),
             (("HP", f"{s.hp}/{s.max_hp}"), ("MP", f"{s.mp}/{s.max_mp}")),
             (("STR", s.strength), ("MAG", s.magic)),
             (("ATK", nums["ATK"]), ("DEF", nums["DEF"])),
+            (("SPL", nums["SPL"]), ("Block", nums["Block"])),
         ]
         half = (w - 16) // 2
         for i, row in enumerate(pairs):
             for j, (k, v) in enumerate(row):
                 cx = x + 8 + j * (half + 4)
-                ui.text(k, cx, y + 6 + i * ROW_H, ui.DIM)
-                self._stat_value(k, v, changes.get(k), cx + half - 4, y + 6 + i * ROW_H)
-        ly = y + 6 + 4 * ROW_H
+                ui.text(k, cx, y + 6 + i * STATS_ROW, ui.DIM)
+                self._stat_value(k, v, changes.get(k), cx + half - 4, y + 6 + i * STATS_ROW)
+        ly = y + 6 + 5 * STATS_ROW
         cap = burden.capacity(s.strength)
         load = changes.get("Load", (nums["Load"], nums["Load"]))[1]
         tier = burden.tier(load, cap)
@@ -1413,8 +1455,8 @@ class Game:
         ui.text(name, right, ly, ui.color(220, 90, 80) if heavy else ui.DIM)
         self._stat_value("Load", nums["Load"], changes.get("Load"), right, ly, f"/{compare.fmt(cap)}")
         exp = f"{s.exp}/{s.next_level_exp}"
-        ui.text("EXP", x + 8, y + 6 + 5 * ROW_H, ui.DIM)
-        ui.text(exp, x + w - 8 - ui.measure(exp), y + 6 + 5 * ROW_H)
+        ui.text("EXP", x + 8, y + 6 + 6 * STATS_ROW, ui.DIM)
+        ui.text(exp, x + w - 8 - ui.measure(exp), y + 6 + 6 * STATS_ROW)
 
     def _stat_value(self, stat, value, change, right, y, suffix=""):
         """Draws a stat right-aligned to `right`: its value, or "now>then" with `then` coloured by

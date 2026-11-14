@@ -12,7 +12,7 @@ from ashen_vault.render.mesh_builder import MeshBuilder
 from ashen_vault.world import darkness, doors
 from ashen_vault.world.map_loader import MapLoader
 from ashen_vault.world.tile_map import TileMap
-from ashen_vault.world.world import World
+from ashen_vault.world.world import Gout, World
 from test_enemy import FakeWorld
 from test_keep_world import FakeGame
 
@@ -134,13 +134,34 @@ def test_pyre_only_reaches_what_is_in_front_and_close():
     assert not world.is_lit(prop(world, "brazier"))
 
 
+def test_pyres_gout_rushes_out_to_its_reach_then_gutters():
+    game, world = jungle((15, 31), yaw=math.pi)
+    world.pyre(magic=4, gauge=1.0)
+    (gout,) = world.gouts
+    assert gout.puffs() == []  # nothing yet: it has only just left your hand
+    world.update(Gout.RUSH)
+    puffs = gout.puffs()
+    assert len(puffs) == Gout.PUFFS
+    far = puffs[-1]
+    assert math.hypot(far[0] - gout.x, far[2] - gout.z) == pytest.approx(
+        Spells.PYRE_REACH * math.cos(game.player.pitch)
+    )
+    assert far[3] > puffs[0][3] and far[4] < puffs[0][4]  # wider and cooler at the front
+    world.update(Gout.LIFE)
+    assert world.gouts == []
+
+
+def test_pyre_comes_back_faster_than_other_spells():
+    assert Spells.get("pyre").recovery < Spells.get("flame").recovery
+
+
 def test_a_flame_bolt_flying_past_a_cold_brazier_lights_it():
     game, world = jungle((17, 31), yaw=math.pi)
     world.fire_bolt(10)
     for _ in range(120):
         world._update_projectiles(1 / 60)
     assert world.is_lit(prop(world, "brazier"))
-    assert "pyre" in game.sounds
+    assert "kindle" in game.sounds
 
 
 def test_lit_fires_and_glowing_decor_add_lights_and_cold_ones_do_not():

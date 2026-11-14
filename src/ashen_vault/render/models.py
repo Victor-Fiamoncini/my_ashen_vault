@@ -1629,7 +1629,6 @@ def _villager_head(r, look):
 
 THRONE_STONE = (118, 114, 108)
 THRONE_CUSHION = (92, 34, 40)
-ENTHRONED_IRON = (54, 52, 60)
 
 
 def throne(r):
@@ -1654,70 +1653,93 @@ def throne(r):
     r.part("cube", -0.58, 4.0, 0, 0.04, 0.24, 0.24, _dim(stone, 0.75), rx=math.pi / 4)  # its sigil
 
 
+PETRIFIED = (146, 141, 132)  # the Enthroned's stone: a shade paler than the throne it grew into
+PETRIFIED_SHADE = _dim(PETRIFIED, 0.78)
+CRACK = (48, 46, 44)
+LICHEN = (132, 140, 92)
+SETTLED_DUST = (168, 162, 150)
+DUST_MOTE = (200, 196, 180)
+
+
 def enthroned(r, t):
-    """The Enthroned: an ancient, gaunt figure far taller than a man, seated on the cathedral throne
-    facing +X. Robes pool down the dais, long bony hands rest on the arms, and a crown of iron spikes
-    rises over a face lost in shadow but for two cold glints. It never moves, save the dust that
-    drifts about it and a breath every long while."""
+    """The Enthroned: an ancient, gaunt figure far taller than a man, turned to stone where it sat on
+    the cathedral throne, facing +X. Grey robes pool down the dais in stiff folds, long bony hands lie
+    on the arms, and a crown of spikes (two broken) rises over a cowled face with empty eyes. Cracks
+    run through it, lichen and moss creep up from the dais, and dust lies on every ledge. Only the dust
+    drifting through the light moves."""
+    # TODO(story): the Enthroned's petrification: when, why, and what still listens inside the stone.
     throne(r)
-    robe = (58, 54, 64)
-    under = _dim(robe, 0.7)
-    skin = (150, 146, 140)
-    breath = 1 + 0.015 * math.sin(t * 0.4)
+    robe, under, skin = PETRIFIED, PETRIFIED_SHADE, _dim(PETRIFIED, 1.06)
     with r.at(-0.2, 1.0, 0):  # the seat
         # Legs: thighs along the seat, shins down the dais, robes pooling over them.
         for side in (-1, 1):
-            r.part("cube", 0.3, 0.12, side * 0.2, 0.75, 0.2, 0.22, robe)
-            r.part("cube", 0.66, -0.35, side * 0.22, 0.2, 0.85, 0.2, under)
-            r.part("cube", 0.74, -0.72, side * 0.22, 0.32, 0.1, 0.16, (40, 36, 40))  # feet
-        r.part("cube", 0.75, -0.45, 0, 0.12, 0.95, 0.75, robe)  # the robe's fall between the knees
-        r.part("wedge", 1.0, -0.8, 0, 0.5, 0.25, 0.95, _dim(robe, 0.85), rz=math.pi / 2)  # pooled hem
-        for i in range(4):  # folds in the robe
+            r.part("cube", 0.3, 0.12, side * 0.2, 0.75, 0.2, 0.22, robe, tex="rough_stone")
+            r.part("cube", 0.66, -0.35, side * 0.22, 0.2, 0.85, 0.2, under, tex="rough_stone")
+            r.part("cube", 0.74, -0.72, side * 0.22, 0.32, 0.1, 0.16, under)  # feet
+            r.part("cube", 0.3, 0.23, side * 0.2, 0.6, 0.02, 0.18, SETTLED_DUST)  # dust on the lap
+        r.part("cube", 0.75, -0.45, 0, 0.12, 0.95, 0.75, robe, tex="rough_stone")  # the robe's fall
+        r.part("wedge", 1.0, -0.8, 0, 0.5, 0.25, 0.95, under, rz=math.pi / 2, tex="rough_stone")  # hem
+        for i in range(4):  # stiff folds in the stone robe
             r.part("cube", 0.82, -0.4, -0.27 + i * 0.18, 0.03, 0.85, 0.04, under)
+        for z, h in ((-0.3, 0.3), (0.1, 0.22), (0.32, 0.36)):  # lichen and moss creeping up the hem
+            r.part("cube", 0.83, -0.82 + h / 2, z, 0.02, h, 0.12, LICHEN)
+            r.part("cube", 1.05, -0.84, z, 0.2, 0.04, 0.16, MOSS)
+        r.part("cube", 0.82, -0.3, 0.05, 0.01, 0.5, 0.02, CRACK, rx=0.4)  # a crack down the robe
         # Torso: long and narrow, leaning back into the throne, a chain of office over the chest.
-        with r.at(-0.15, 0.25, 0, rz=0.08, s=breath):
+        with r.at(-0.15, 0.25, 0, rz=0.08):
             r.part("cube", 0, 0.55, 0, 0.36, 1.1, 0.62, robe)
-            r.part("cube", 0.05, 0.95, 0, 0.3, 0.28, 0.78, _dim(robe, 1.15))  # mantle
+            r.part("cube", 0.05, 0.95, 0, 0.3, 0.28, 0.78, _dim(robe, 1.08))  # mantle
+            r.part("cube", 0.05, 1.095, 0, 0.26, 0.015, 0.74, SETTLED_DUST)  # dust on the shoulders
             r.part("cube", -0.12, 0.45, 0, 0.14, 1.0, 0.7, under)  # its back
-            for i in range(5):  # the chain of office
+            for i in range(5):  # the chain of office, stone like the rest
                 a = (i - 2) * 0.32
-                r.part("cube", 0.19, 0.78 - abs(a) * 0.5, a * 0.6, 0.03, 0.06, 0.08, (150, 130, 80))
-            r.part("cube", 0.2, 0.55, 0, 0.03, 0.14, 0.12, (150, 130, 80))  # its pendant
-            r.part("cube", 0.215, 0.55, 0, 0.01, 0.06, 0.04, (110, 150, 170), glow=True)
+                r.part("cube", 0.19, 0.78 - abs(a) * 0.5, a * 0.6, 0.03, 0.06, 0.08, under)
+            r.part("cube", 0.2, 0.55, 0, 0.03, 0.14, 0.12, under)  # its pendant
+            r.part("cube", 0.215, 0.55, 0, 0.01, 0.06, 0.04, CRACK)  # the gem, gone dull and dark
+            # A crack splitting the chest from the collar down past the pendant.
+            for k, (y, z, rx) in enumerate(((0.9, 0.08, 0.5), (0.72, 0.02, -0.4), (0.45, 0.06, 0.3))):
+                r.part("cube", 0.185, y, z, 0.01, 0.2 - 0.03 * k, 0.018, CRACK, rx=rx)
             # Arms hanging from the shoulders to the throne's arms, forearms laid along them and long
             # bony hands drooping over the carved scrolls.
             for side in (-1, 1):
                 with r.at(0, 0.98, side * 0.42, rx=-side * 0.12), r.at(0, 0, 0, rz=0.12):
-                    r.part("cube", 0, -0.45, 0, 0.17, 0.9, 0.17, robe)
+                    r.part("cube", 0, -0.45, 0, 0.17, 0.9, 0.17, robe, tex="rough_stone")
                     with r.at(0, -0.88, 0, rz=1.5):
                         r.part("cube", 0, -0.32, 0, 0.15, 0.64, 0.15, robe)
+                        r.part("cube", 0.076, -0.32, 0, 0.01, 0.5, 0.02, SETTLED_DUST)  # dust along it
                         r.part("cube", 0, -0.62, 0, 0.2, 0.08, 0.2, under)  # cuff
+                        if side == 1:  # a crack ringing one forearm
+                            r.part("cube", 0, -0.45, 0, 0.16, 0.012, 0.16, CRACK)
                         with r.at(0, -0.68, 0, rz=-1.3):
                             hand(r, skin, size=0.16, bony=True, curl=0.9)
-            # Head: a long gaunt face lost under a cowl, two cold glints, the spiked crown.
+            # Head: a long gaunt face under a cowl, the eyes empty hollows, the spiked crown.
             with r.at(0.04, 1.2, 0, rz=0.12):
                 r.part("cube", 0, 0.05, 0, 0.12, 0.16, 0.14, skin)  # neck
                 r.part("sphere", 0, 0.32, 0, 0.3, 0.42, 0.28, skin)
                 r.part("cube", 0.12, 0.18, 0, 0.08, 0.14, 0.16, _dim(skin, 0.85))  # long jaw
                 r.part("cube", 0.13, 0.36, 0, 0.06, 0.14, 0.05, _dim(skin, 0.9))  # nose
                 for z in (-0.06, 0.06):
-                    r.part("cube", 0.14, 0.42, z, 0.02, 0.025, 0.04, (150, 200, 230), glow=True)
+                    r.part("cube", 0.14, 0.42, z, 0.02, 0.03, 0.045, CRACK)  # empty eyes
                     r.part("cube", 0.1, 0.27, z * 1.9, 0.12, 0.08, 0.03, _dim(skin, 0.7))  # hollow cheeks
-                r.part("sphere", -0.04, 0.38, 0, 0.42, 0.5, 0.42, under)  # the cowl
+                r.part("cube", 0.145, 0.3, 0.03, 0.01, 0.22, 0.012, CRACK, rx=0.35)  # a hairline crack
+                r.part("sphere", -0.1, 0.38, 0, 0.42, 0.5, 0.42, under)  # the cowl, framing the face
                 r.part("cube", 0.05, 0.6, 0, 0.3, 0.06, 0.4, robe)  # its brim
-                r.part("cyl", -0.02, 0.66, 0, 0.36, 0.08, 0.36, ENTHRONED_IRON)  # crown band
-                for i in range(7):  # iron spikes, tallest at the front
+                r.part("cube", 0.05, 0.635, 0, 0.26, 0.012, 0.36, SETTLED_DUST)
+                r.part("cyl", -0.02, 0.66, 0, 0.36, 0.08, 0.36, under)  # crown band
+                for i in range(7):  # stone spikes, tallest at the front; two have snapped off
                     a = (i - 3) * 0.42
-                    h = 0.5 - abs(i - 3) * 0.07
+                    h = (0.5 - abs(i - 3) * 0.07) * (0.4 if i in (1, 5) else 1.0)
                     r.part(
                         "cone", -0.02 + math.cos(a) * 0.16, 0.7 + h / 2, math.sin(a) * 0.16,
-                        0.06, h, 0.06, ENTHRONED_IRON,
+                        0.06, h, 0.06, under,
                     )  # fmt: skip
+    for x, z in ((0.85, -0.6), (1.15, 0.5), (0.6, 0.75)):  # chips of stone fallen on the dais
+        r.part("cube", x, 0.27, z, 0.08, 0.05, 0.06, under, ry=x * 3)
     for i in range(10):  # dust drifting through the light about the throne
         u = (t * 0.05 + i / 10) % 1.0
         r.part(
             "cube", 0.6 + math.sin(i * 2.3 + t * 0.2) * 0.8, 0.5 + 3.5 * u, math.sin(i * 1.7) * 1.0,
-            0.03, 0.03, 0.03, (200, 196, 180), glow=True,
+            0.03, 0.03, 0.03, DUST_MOTE, glow=True,
         )  # fmt: skip
 
 
@@ -1934,7 +1956,17 @@ def _cage_lift(r, chain_h, shiver, doors):
     _pulley(r, chain_h)
 
 
-def pickup(r, t):
+def pickup(r, t, item_id=None):
+    """Something lying where it fell, turning slowly. A key or a relic shows itself, hovering in a
+    soft glow; anything else is a sack with a glint of gold."""
+    if item_id in KEY_STYLES or item_id in SIGILS:
+        with r.at(0, 0.6 + math.sin(t * 2.4) * 0.06, 0, ry=t * 1.2):
+            glow = SIGILS[item_id][1] if item_id in SIGILS else (255, 220, 150)
+            halo = 0.22 + 0.03 * math.sin(t * 4)
+            r.part("sphere", 0, 0, 0, halo, halo, halo, _dim(glow, 0.5), glow=True)
+            with r.at(0, 0, 0, s=0.32 if item_id in SIGILS else 0.22):
+                item(r, item_id, t)
+        return
     with r.at(0, 0.3 + math.sin(t * 3) * 0.05, 0, ry=t * 1.5):
         r.part("sphere", 0, 0, 0, 0.3, 0.26, 0.3, (130, 100, 70))
         r.part("cube", 0, 0.15, 0, 0.12, 0.1, 0.12, (200, 170, 80))
@@ -2409,9 +2441,30 @@ def fireball(r, rgb, t, size=1.0, trail=None, seed=0.0):
 
 
 def flare(r, rgb, k, t=0.0):
-    """A tongue of Pyre's fire: a ragged fireball that swells, then gutters as `k` runs to 0."""
-    size = 0.15 + 0.35 * math.sin(min(k, 1.0) * math.pi) ** 0.5
+    """A spark of Pyre's fire: a ragged fireball that swells, then gutters to a red ember as `k`
+    runs to 0."""
+    size = 0.04 + 0.1 * math.sin(min(k, 1.0) * math.pi) ** 0.5
+    cool = min(k * 2.2, 1.0)  # the last moments: dull red
+    rgb = (rgb[0], rround(rgb[1] * cool + 40 * (1 - cool)), rround(rgb[2] * cool + 10 * (1 - cool)))
     fireball(r, rgb, t, size / 0.3, seed=k * 9)
+
+
+GOUT_HOT = (255, 225, 140)
+GOUT_COOL = (210, 50, 20)
+
+
+def gout_puff(r, size, heat, t, seed=0.0):
+    """One ball of Pyre's gout: white-gold where it leaves your hand (`heat` 1), deep red and smoky at
+    its far, roiling front (`heat` 0)."""
+    if size <= 0.02:
+        return
+    rgb = _lerp(GOUT_COOL, GOUT_HOT, heat)
+    roil = 1 + 0.12 * math.sin(t * 31 + seed * 3)
+    fireball(r, tuple(rround(c) for c in rgb), t, size * roil, seed=seed)
+    if heat < 0.45:  # smoke curls off the cooling front
+        k = 1 - heat / 0.45
+        s = 0.35 * size * k
+        r.part("sphere", 0.05, 0.3 * size + 0.1 * k, 0, s, s * 0.8, s, (60, 40, 32))
 
 
 def bolt(r, rgb, t=0.0, trail=None):
@@ -2864,7 +2917,7 @@ def warden_altar(r, taken, t):
         with r.at(0.3, 2.02 + bob, 0, ry=t * 0.8):
             r.part("sphere", 0, 0, 0, 0.16, 0.16, 0.16, (255, 150, 60), glow=True)
             with r.at(0, 0, 0, s=0.32):
-                key(r, (150, 150, 160), 1.9)
+                key(r, "warden_key", 1.9, t)
 
 
 def _warden_statue(r, taken, t):
@@ -2907,6 +2960,7 @@ SPELL_ORB = {
     "pyre": (255, 90, 30),
     "thunder": (200, 225, 255),
     "motes": (190, 120, 255),
+    "ward": (240, 170, 90),
 }
 
 
@@ -3005,10 +3059,23 @@ MOTIONS = {
         (0.25, 0.0, -0.1, -0.2, -0.1, -0.9),
         (0.2, -0.05, -0.12, -0.3, -0.2, -1.1),
     ),
-    "hew": (
-        (-0.08, 0.16, 0.15, 0.6, 0.3, 0.7),
-        (0.15, -0.05, -0.15, -0.4, -0.3, -1.3),
-        (0.1, -0.15, -0.3, -0.7, -0.6, -1.5),
+    # Axes swing their weight: the head is hauled up behind the shoulder and falls through the
+    # target bit first, biting low rather than sliding across like a sword's cut.
+    "hew": (  # a falling diagonal chop from over the right shoulder
+        (-0.12, 0.22, 0.12, 0.25, 0.15, 1.05),
+        (0.18, -0.08, -0.06, -0.15, -0.1, -1.3),
+        (0.14, -0.2, -0.14, -0.25, -0.2, -1.6),
+    ),
+    "cleave": (  # the whole body behind it: wound far back overhead, buried low with a hard stop
+        (-0.16, 0.3, -0.02, 0.0, 0.05, 1.35),
+        (0.2, -0.16, -0.08, 0.0, -0.05, -1.4),
+        (0.18, -0.3, -0.08, 0.0, -0.05, -1.7),
+    ),
+    # Hammers and maces: a short, heavy overhand blow that drops straight onto the target.
+    "pound": (
+        (-0.1, 0.2, 0.0, 0.0, 0.05, 0.85),
+        (0.2, -0.1, -0.08, 0.0, 0.0, -1.2),
+        (0.16, -0.2, -0.08, 0.0, 0.0, -1.45),
     ),
     "draw": (
         (-0.05, 0.0, -0.15, -0.25, -0.5, -1.0),
@@ -3169,15 +3236,22 @@ def _pose_at(r, pose, side):
     return r.at(x, y, z * side, rx=rx * side, ry=ry * side, rz=rz, s=0.7)
 
 
+def _pose_vector(pose, side, v):
+    """A model-space vector `v` turned into camera space by `pose` (rot_y * rot_z * rot_x, as
+    `_pose_at` enters it), unscaled."""
+    _x, _y, _z, rx, ry, rz = pose
+    rx, ry = rx * side, ry * side
+    x, y, z = v
+    y, z = y * math.cos(rx) - z * math.sin(rx), y * math.sin(rx) + z * math.cos(rx)
+    x, y = x * math.cos(rz) - y * math.sin(rz), x * math.sin(rz) + y * math.cos(rz)
+    x, z = x * math.cos(ry) + z * math.sin(ry), -x * math.sin(ry) + z * math.cos(ry)
+    return x, y, z
+
+
 def _weapon_point(pose, side, ly):
     """Camera-space position of a point `ly` up the weapon's grip in `pose` (for placing wrists)."""
-    x, y, z, rx, ry, rz = pose
-    rx, ry = rx * side, ry * side
-    # local (0, ly*s, 0) through rot_y(ry) * rot_z(rz) * rot_x(rx)
-    v = (0.0, ly * 0.7, 0.0)
-    v = (v[0], v[1] * math.cos(rx), v[1] * math.sin(rx))
-    v = (v[0] * math.cos(rz) - v[1] * math.sin(rz), v[0] * math.sin(rz) + v[1] * math.cos(rz), v[2])
-    v = (v[0] * math.cos(ry) + v[2] * math.sin(ry), v[1], -v[0] * math.sin(ry) + v[2] * math.cos(ry))
+    x, y, z = pose[:3]
+    v = _pose_vector(pose, side, (0.0, ly * 0.7, 0.0))
     return x + v[0], y + v[1], z * side + v[2]
 
 
@@ -3198,6 +3272,7 @@ def weapon_view(r, player, bob, t=0.0):
     sprint = 1.0 if player.sprinting else max(0.0, 1 - player.since_sprint / 0.25)
     breath = math.sin(t * 1.7) * 0.006
     if inv.two_handing():
+        ward_embers(r, player, t)
         return _held_weapon(r, player, "right", bob + breath, sprint, armor, both=True)
     for hand in ("right", "left"):
         item = player.hand_item(hand)
@@ -3210,6 +3285,7 @@ def weapon_view(r, player, bob, t=0.0):
             fist_view(r, player, hand, bob + breath, armor)
         else:
             _held_weapon(r, player, hand, bob + breath, sprint, armor)
+    ward_embers(r, player, t)
     return None
 
 
@@ -3262,6 +3338,11 @@ def _held_weapon(r, player, hand, bob, sprint, armor, both=False):
 
 
 TRAILS = {"sword", "greatsword", "katana", "axe"}  # edged weapons leave a smear through the blow
+# Weapons whose striking head is built with its edge (or face) on +Z, as models of its kind are, and
+# turned a quarter about the haft by `weapon` so it leads along +X: the way every swing travels.
+HEADED = {
+    "felling_axe", "hatchet", "bearded_axe", "butcher_cleaver", "war_hammer", "heartwood_maul", "slagbreaker",
+}  # fmt: skip
 TRAIL_LAG = 0.08  # how far back (in swing phase) the smear reaches
 TRAIL_GHOSTS = 6
 
@@ -3277,12 +3358,17 @@ def _swing_trail(r, item, a, phase, rest, side):
     rgb = (255, 170, 90) if item.element == "fire" else (210, 225, 255) if item.element else (205, 205, 215)
     now = _motion(a.motion, phase, a.hit_at)
     then = _motion(a.motion, max(phase - TRAIL_LAG, wind_at), a.hit_at)
+    headed = item.id in HEADED  # an axe smears only where its bit passes, not along the haft
     for i in range(TRAIL_GHOSTS, 0, -1):  # the oldest (dimmest) first
         k = i / TRAIL_GHOSTS
         off = _lerp(now, then, k)
         pose = tuple(b + o for b, o in zip(rest, off, strict=True))
         with _pose_at(r, pose, side):
-            r.part("blade", 0, 0.2 + length / 2, 0, 0.004, length * 0.9, 0.16, _dim(rgb, 0.62 - 0.4 * k))
+            col = _dim(rgb, 0.62 - 0.4 * k)
+            if headed:
+                r.part("blade", 0, length * 0.78, 0, 0.004, length * 0.55, 0.22, col)
+            else:
+                r.part("blade", 0, 0.2 + length / 2, 0, 0.004, length * 0.9, 0.16, col)
 
 
 def fist_view(r, player, hand, bob, armor):
@@ -3349,7 +3435,8 @@ def spell_hand_view(r, player, bob, side, armor, t):
     """An open hand holding the readied spell's light; it pushes forward as the spell is cast."""
     spell = player.current_spell()
     cast = 1 - min(player.magic_gauge.value / 0.25, 1.0)  # just after casting
-    x = 0.9 + 0.2 * _ease(cast)
+    thrust = 0.3 if spell and spell.id == "pyre" else 0.2  # Pyre: the palm shoved out, fingers spread
+    x = 0.9 + thrust * _ease(cast)
     y = -0.31 + bob
     z = 0.3 * side
     hand_rgb, shade = arm(r, (x - 0.06, y - 0.04, z), side, armor["body"], armor["gloves"])
@@ -3364,6 +3451,9 @@ def spell_hand_view(r, player, bob, side, armor, t):
             ready = player.magic_gauge.full
             with r.at(0.02, 0.16, 0):
                 fireball(r, glow, t, 0.26 if ready else 0.08 + 0.1 * player.magic_gauge.value)
+            if spell.id == "pyre" and cast > 0:  # the gout bursts from the palm: a white-hot flash
+                with r.at(0.25, 0.06, 0):
+                    fireball(r, GOUT_HOT, t, 0.15 + 0.3 * cast, seed=3.0)
         elif spell and player.magic_gauge.full:
             pulse = 1 + math.sin(t * 5) * 0.12
             r.part("sphere", 0.02, 0.1, 0, 0.09 * pulse, 0.09 * pulse, 0.09 * pulse, glow, glow=True)
@@ -3378,7 +3468,30 @@ SPELL_GLOW = {
     "pyre": (255, 110, 40),
     "thunder": (190, 220, 255),
     "motes": (190, 120, 255),
+    "ward": (245, 165, 80),
 }
+WARD_EMBERS = 9  # motes circling you while an Ashen Ward holds
+WARD_FADE = 2.0  # seconds before it ends that the embers gutter and flicker
+
+
+def ward_embers(r, player, t):
+    """An Ashen Ward in first person: embers wheeling around you at the edges of sight, each trailing
+    a fainter spark, guttering and flickering in the ward's last seconds."""
+    left = player.ward_t
+    if left <= 0:
+        return
+    fade = min(left / WARD_FADE, 1.0)
+    if fade < 1 and math.sin(t * 40) < -0.3:  # the guttering ward flickers
+        return
+    for i in range(WARD_EMBERS):
+        a = t * 1.6 + i * math.tau / WARD_EMBERS
+        y = -0.12 + 0.22 * math.sin(a * 2 + i)
+        for j, (k, size) in enumerate(((0.0, 0.02), (0.25, 0.012))):
+            b = a - k
+            x, z = 1.3 + 0.3 * math.cos(b), 0.7 * math.sin(b)
+            rgb = SPELL_GLOW["ward"] if j == 0 else (200, 90, 40)
+            s = size * (0.6 + 0.4 * fade)
+            r.part("cube", x, y - k * 0.06, z, s, s, s, rgb, glow=True)
 
 
 WOOD = (90, 60, 38)
@@ -3396,6 +3509,7 @@ WEAPON_LEN = {
     "moonless_tachi": 1.6,
     "nodachi": 2.1,
     "war_hammer": 1.5,
+    "heartwood_maul": 1.45,
     "felling_axe": 1.45,
     "bearded_axe": 1.15,
     "hatchet": 0.9,
@@ -3408,7 +3522,15 @@ WEAPON_LEN = {
 
 
 def weapon(r, item_id, phase=None):
-    """A weapon model with the grip at the origin, pointing up +Y."""
+    """A weapon model with the grip at the origin, pointing up +Y; an edge or striking face leads
+    along +X (see HEADED)."""
+    if item_id in HEADED:
+        with r.at(0, 0, 0, ry=math.pi / 2):
+            return _weapon(r, item_id, phase)
+    return _weapon(r, item_id, phase)
+
+
+def _weapon(r, item_id, phase=None):
     if item_id in ("katana", "moonless_tachi", "nodachi"):
         katana(r, item_id)
     elif item_id in ("leather_whip", "thornlash"):
@@ -3419,6 +3541,8 @@ def weapon(r, item_id, phase=None):
         club(r, item_id == "spiked_club")
     elif item_id == "war_hammer":
         hammer(r)
+    elif item_id == "heartwood_maul":
+        heartwood_maul(r)
     elif item_id == "felling_axe":
         felling_axe(r)
     elif item_id in ("hatchet", "bearded_axe"):
@@ -3764,6 +3888,46 @@ def hammer(r):
     r.part("cube", 0, 1.26, 0, 0.05, 0.12, 0.05, STEEL)  # top spike
 
 
+HEARTWOOD = (104, 72, 46)
+HEARTWOOD_CORE = (138, 96, 58)
+
+
+def heartwood_maul(r):
+    """The Heartwood Maul: a gnarled root haft, bark-ringed and knotted, ending in a burl of petrified
+    heartwood bound on with living roots. Its striking face is a worn knot of wood on +Z with river
+    stones grown into it; moss fills the cracks and a few roots trail from its back."""
+    for k in range(6):  # the haft: a twisting root, each segment a little askew
+        y = -0.2 + k * 0.2
+        r.part("cube", 0.012 * math.sin(k * 1.9), y, 0.01 * math.cos(k * 2.3), 0.075, 0.22, 0.07, BARK,
+               rz=0.05 * math.sin(k * 1.3), rx=0.05 * math.cos(k * 1.7))  # fmt: skip
+        r.part("cube", 0, y + 0.1, 0, 0.088, 0.025, 0.084, _dim(BARK, 0.75))  # bark ring
+    for y, z in ((0.25, 0.04), (0.55, -0.045)):  # knots
+        r.part("sphere", 0, y, z, 0.07, 0.08, 0.06, _dim(BARK, 0.85))
+    r.part("cube", 0, -0.18, 0, 0.09, 0.24, 0.09, LEATHER)  # a grip of bound hide
+    for k in range(3):
+        r.part("cube", 0, -0.27 + k * 0.08, 0, 0.1, 0.02, 0.1, _dim(LEATHER, 0.7))
+    r.part("sphere", 0, -0.34, 0, 0.12, 0.1, 0.12, _dim(BARK, 0.9))  # a root-knot pommel
+    with r.at(0, 1.07, 0.02):  # the burl
+        r.part("sphere", 0, 0, 0, 0.34, 0.3, 0.46, HEARTWOOD, tex="wood_plank")
+        r.part("sphere", 0, 0.04, 0.12, 0.3, 0.26, 0.3, _dim(HEARTWOOD, 1.08))
+        r.part("sphere", 0.04, -0.05, -0.12, 0.26, 0.24, 0.3, _dim(HEARTWOOD, 0.9))
+        r.part("cyl", 0, 0, 0.22, 0.28, 0.06, 0.28, HEARTWOOD_CORE, rx=math.pi / 2)  # striking face
+        for i in range(3):  # its growth rings
+            rad = 0.22 - i * 0.07
+            r.part("cyl", 0, 0, 0.255 + i * 0.004, rad, 0.01, rad, _dim(HEARTWOOD_CORE, 0.8 + 0.1 * i),
+                   rx=math.pi / 2)  # fmt: skip
+        for x, y, z, sz in ((0.1, 0.08, 0.2, 0.08), (-0.11, -0.06, 0.18, 0.07), (0.13, -0.1, 0.08, 0.06)):
+            r.part("sphere", x, y, z, sz, sz * 0.8, sz, (120, 118, 112))  # river stones grown in
+        for x, y, z in ((0.16, 0.06, -0.05), (-0.15, 0.1, 0.02), (0.0, 0.15, -0.12), (-0.1, -0.12, -0.15)):
+            r.part("cube", x, y, z, 0.05, 0.03, 0.12, MOSS)  # moss in the cracks
+        for ang in (-0.5, 0.5):  # roots lashing the burl to the haft
+            r.part("cube", 0, -0.04, 0, 0.36, 0.035, 0.035, _dim(BARK, 0.8), rz=ang)
+            r.part("cube", 0, -0.04, 0, 0.035, 0.035, 0.42, _dim(BARK, 0.8), rx=ang)
+        for k in range(3):  # roots trailing from its back
+            r.part("cube", 0.04 * (k - 1), -0.1 - k * 0.04, -0.34 - k * 0.04, 0.025, 0.025, 0.16,
+                   _dim(BARK, 0.7), rx=-0.6 - 0.2 * k)  # fmt: skip
+
+
 def shield(r, item_id):
     """Shields face +X (away from you); the arm holds them from behind at the origin. The first-person
     view draws without depth testing, so the back (what you see) is drawn last."""
@@ -3862,24 +4026,12 @@ def item(r, id_, t):
             r.part("cyl", 0, 0, 0, 0.32, 0.1, 0.32, ribbon)
             r.part("cyl", 0, 0.5, 0, 0.08, 0.14, 0.08, (110, 80, 50))
             r.part("cyl", 0, -0.5, 0, 0.08, 0.14, 0.08, (110, 80, 50))
-    elif id_ in ("cell_key", "warden_key"):
-        warden = id_ == "warden_key"
-        key(r, (120, 120, 128) if warden else (150, 84, 50), 1.9 if warden else 1.6)
+    elif id_ in KEY_STYLES:
+        key(r, id_, KEY_STYLES[id_][1], t)
+    elif id_ in SIGILS:
+        sigil(r, id_, t)
     elif id_.startswith("spell_"):
         spell_orb(r, id_.removeprefix("spell_"), t)
-    elif id_ == "briar_key":
-        key(r, (70, 92, 46), 1.7)
-    elif id_ == "verdant_sigil":
-        glow = 1 + math.sin(t * 3) * 0.08
-        with r.at(0, 0, 0, rz=math.pi / 2):
-            r.part("cyl", 0, 0, 0, 0.7, 0.12, 0.7, (60, 90, 70))
-            r.part("cyl", 0, 0, 0, 0.42 * glow, 0.14, 0.42 * glow, (110, 230, 120), glow=True)
-            r.part("cube", 0, 0.1, 0, 0.5, 0.02, 0.1, (40, 120, 50), ry=0.6)
-    elif id_ == "ember_sigil":
-        glow = 1 + math.sin(t * 4) * 0.08
-        with r.at(0, 0, 0, rz=math.pi / 2):
-            r.part("cyl", 0, 0, 0, 0.7, 0.12, 0.7, (110, 80, 70))
-            r.part("cyl", 0, 0, 0, 0.36 * glow, 0.14, 0.36 * glow, EMBER, glow=True)
     else:
         r.part("cube", 0, 0, 0, 0.5, 0.5, 0.5, (130, 100, 70))
 
@@ -3931,12 +4083,130 @@ def gauntlet(r, id_):
             r.part("cube", 0.085, -0.15 + k * 0.1, 0, 0.01, 0.02, 0.4, (110, 112, 120))
 
 
-def key(r, rgb, size):
+# Each key: (metal, preview size). Keys lie in the Y-Z plane, bow up, bit toward +Z, flats facing X.
+KEY_STYLES = {
+    "cell_key": ((150, 84, 50), 1.6),  # a gaoler's rusty iron key, plain and pitted
+    "warden_key": ((150, 150, 160), 1.9),  # heavy steel, an ember set in a crowned bow
+    "briar_key": ((92, 104, 58), 1.7),  # verdigris bronze grown through with thorns
+    "forge_key": ((58, 52, 52), 1.8),  # blackened iron whose bit still glows from the forge
+}
+
+
+def key(r, id_, size, t=0.0):
+    """A key of the style KEY_STYLES gives `id_`: a ring bow with an inner device, a collar, a ringed
+    shank and a bit cut with wards."""
+    metal = KEY_STYLES.get(id_, KEY_STYLES["cell_key"])[0]
+    dark, bright = _dim(metal, 0.65), _bright(metal, 1.1, 15)
     with r.at(0, 0, 0, rx=-0.6, s=size):
-        r.part("cyl", 0, 0.32, 0, 0.32, 0.06, 0.32, rgb, rz=math.pi / 2)
-        r.part("cube", 0, -0.08, 0, 0.06, 0.6, 0.06, rgb)
-        r.part("cube", 0, -0.3, 0.08, 0.05, 0.06, 0.12, rgb)
-        r.part("cube", 0, -0.18, 0.07, 0.05, 0.05, 0.1, rgb)
+        # The bow: a ring of ten links around a device.
+        for i in range(10):
+            a = i * math.tau / 10
+            r.part("cube", 0, 0.32 + math.cos(a) * 0.17, math.sin(a) * 0.17, 0.06, 0.06, 0.11, metal, rx=-a)
+        if id_ == "warden_key":
+            r.part("sphere", 0, 0.32, 0, 0.12, 0.12, 0.12, EMBER, glow=True)
+            r.part("cube", 0, 0.32, 0, 0.05, 0.26, 0.04, bright)  # a cross behind the gem
+            r.part("cube", 0, 0.32, 0, 0.05, 0.04, 0.26, bright)
+            for dz in (-0.08, 0, 0.08):  # a crown on top
+                r.part("cube", 0, 0.53 + (0.03 if dz == 0 else 0), dz, 0.05, 0.08, 0.04, bright)
+        elif id_ == "briar_key":
+            for i in range(4):  # a four-leaf device
+                with r.at(0, 0.32, 0, rx=i * math.pi / 2 + math.pi / 4):
+                    r.part("cube", 0, 0.07, 0, 0.04, 0.12, 0.05, (80, 140, 60))
+            for i in range(6):  # thorns around the ring
+                a = i * math.tau / 6 + 0.3
+                with r.at(0, 0.32 + math.cos(a) * 0.22, math.sin(a) * 0.22, rx=-a):
+                    r.part("cube", 0, 0.03, 0, 0.025, 0.08, 0.025, (70, 50, 30))
+        elif id_ == "forge_key":
+            r.part("cube", 0, 0.32, 0, 0.05, 0.2, 0.2, dark, rx=math.pi / 4)  # a square anvil-plate
+            r.part("cube", 0, 0.32, 0, 0.06, 0.06, 0.06, (255, 120, 40), glow=True)
+        else:  # the cell key: a plain bar across the ring, and rust
+            r.part("cube", 0, 0.32, 0, 0.05, 0.04, 0.3, dark)
+            r.part("cube", 0.03, 0.43, 0.08, 0.01, 0.05, 0.05, (110, 50, 30))
+        # Collar and shank.
+        r.part("cyl", 0, 0.12, 0, 0.1, 0.05, 0.1, bright)
+        r.part("cyl", 0, 0.06, 0, 0.08, 0.03, 0.08, dark)
+        r.part("cube", 0, -0.12, 0, 0.055, 0.42, 0.055, metal)
+        for y in (-0.02, -0.18):  # rings turned on the shank
+            r.part("cyl", 0, y, 0, 0.075, 0.025, 0.075, dark)
+        if id_ == "briar_key":
+            for k in range(4):  # a vine wound down it
+                r.part("cube", 0, 0.02 - k * 0.08, 0, 0.07, 0.025, 0.07, (60, 100, 44), ry=k * 0.8)
+        r.part("sphere", 0, -0.34, 0, 0.06, 0.05, 0.06, metal)  # the tip
+        # The bit: a plate with three wards of different lengths.
+        hot = id_ == "forge_key"
+        bit = (230, 110, 40) if hot else metal
+        r.part("cube", 0, -0.27, 0.09, 0.045, 0.14, 0.12, bit, glow=hot)
+        for i, (y, reach) in enumerate(((-0.32, 0.09), (-0.27, 0.05), (-0.22, 0.08))):
+            col = (255, 170, 70) if hot else (bright if i % 2 else metal)
+            r.part("cube", 0, y, 0.15 + reach / 2, 0.045, 0.035, reach, col, glow=hot)
+
+
+# Each relic sigil: (rim metal, core glow, the device on its faces).
+SIGILS = {
+    "ember_sigil": ((112, 80, 68), EMBER, "flame"),
+    "verdant_sigil": ((62, 92, 70), (110, 230, 120), "leaf"),
+    "iron_sigil": ((96, 98, 108), (120, 200, 255), "gear"),
+}
+
+
+def sigil(r, id_, t=0.0):
+    """A relic sigil: a bevelled disc ringed with studs and runes, a glowing core that pulses, and its
+    device raised on both faces. Faces +X / -X, like a coin on edge. (A `cyl`'s size is its
+    diameter: the disc is 1.1 across.)"""
+    rim, core, device = SIGILS[id_]
+    pulse = 1 + math.sin(t * 3.5) * 0.08
+    dark = _dim(rim, 0.6)
+    with r.at(0, 0, 0, rz=math.pi / 2, s=1.5):  # local Y is the disc's normal, local X its "up"
+        r.part("cyl", 0, 0, 0, 0.72, 0.1, 0.72, dark)  # the outer bevel
+        r.part("cyl", 0, 0, 0, 0.66, 0.14, 0.66, rim)
+        r.part("cyl", 0, 0, 0, 0.46, 0.16, 0.46, dark)  # the sunken field
+        r.part("cyl", 0, 0, 0, 0.26 * pulse, 0.18, 0.26 * pulse, core, glow=True)
+        for face in (1, -1):
+            y = 0.075 * face
+            for i in range(12):  # studs around the rim
+                a = i * math.tau / 12
+                r.part("cube", math.cos(a) * 0.28, y, math.sin(a) * 0.28, 0.035, 0.02, 0.035, _bright(rim))
+            for i in range(8):  # runes cut into the field around the core
+                a = i * math.tau / 8 + 0.2
+                ra = 0.185 + 0.01 * (i % 3)
+                r.part(
+                    "cube",
+                    math.cos(a) * ra,
+                    y + 0.01 * face,
+                    math.sin(a) * ra,
+                    0.015,
+                    0.02,
+                    0.045,
+                    _dim(core, 0.75),
+                    ry=-a + (i % 2) * 0.6,
+                    glow=True,
+                )
+            with r.at(0, 0.1 * face, 0, s=0.6):
+                _sigil_device(r, device, core, 0.0, t)
+
+
+def _sigil_device(r, device, core, y, t):
+    """The raised device at a sigil's heart, in the disc's plane (local X is up)."""
+    ink = (40, 26, 20)  # a dark silhouette against the glowing core
+    if device == "flame":  # three tongues of fire licking upward
+        lick = math.sin(t * 7) * 0.04
+        r.part("cube", 0.06, y, 0, 0.36 + lick, 0.03, 0.08, ink)
+        for side in (-1, 1):
+            r.part("cube", 0.0, y, 0.09 * side, 0.24, 0.03, 0.06, ink, ry=0.45 * side)
+        r.part("cube", -0.14, y, 0, 0.06, 0.03, 0.26, ink)  # the bed of embers
+    elif device == "leaf":  # three leaves on a curling stem
+        for i in range(3):
+            a = i * math.tau / 3 + t * 0.4
+            with r.at(math.cos(a) * 0.12, y, math.sin(a) * 0.12, ry=-a):
+                r.part("cube", 0.04, 0, 0, 0.18, 0.03, 0.07, ink)
+        r.part("cube", 0, y, 0, 0.06, 0.035, 0.06, ink)
+    else:  # a gear around an anvil
+        turn = t * 0.6
+        for i in range(8):
+            a = i * math.tau / 8 + turn
+            r.part("cube", math.cos(a) * 0.24, y, math.sin(a) * 0.24, 0.07, 0.03, 0.06, ink, ry=-a)
+        r.part("cube", 0.04, y, 0, 0.06, 0.035, 0.22, ink)  # the anvil's face
+        r.part("cube", -0.05, y, 0, 0.12, 0.035, 0.08, ink)  # its waist
 
 
 def eruption(r, glow, flame, t):

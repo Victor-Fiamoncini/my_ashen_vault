@@ -227,3 +227,34 @@ def test_a_bolt_flies_over_a_table_but_not_through_a_pillar():
 def test_a_bolt_aimed_low_still_strikes_the_barrel():
     _game, world = keep()
     assert _bolt_past(world, "barrel", pitch=-0.5) < 3.0
+
+
+def test_the_silent_bell_can_be_touched_from_the_edge_of_its_plinth():
+    game = FakeGame()
+    world = World(game, "harrowmere")
+    bell = next(p for p in world.props if p.kind == "silent_bell")
+    game.player.place(bell.x, bell.z - 3.4, math.pi / 2, world.map)  # at the plinth's edge, facing it
+    assert world.focus() is bell
+    game.player.place(bell.x, bell.z - 3.4, -math.pi / 2, world.map)  # turned away
+    assert world.focus() is not bell
+
+
+def test_the_compass_points_to_the_nearest_living_boss_and_then_to_none():
+    game, world = keep()
+    gates = {a.flag: TileMap.center(*a.gate) for a in world.arenas}
+    near = min(gates.values(), key=lambda g: math.hypot(g[0] - game.player.x, g[1] - game.player.z))
+    assert world.boss_target() == near
+    tx, tz = near  # face the door: the bearing is your heading
+    game.player.yaw = math.atan2(tz - game.player.z, tx - game.player.x)
+    assert world.boss_bearing() == pytest.approx(game.player.heading)
+    game.flags.add("butcher_dead")
+    assert world.boss_target() == gates["boss_dead"]
+    game.flags.add("boss_dead")
+    assert world.boss_target() is None and world.boss_bearing() is None
+
+
+def test_the_town_has_no_boss_to_point_at():
+    game = FakeGame()
+    world = World(game, "harrowmere")
+    game.player.place(*TileMap.center(25, 21), 0.0, world.map)
+    assert world.boss_bearing() is None

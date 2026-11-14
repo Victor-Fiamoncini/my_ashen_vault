@@ -105,7 +105,7 @@ MOVESETS = {
         SECRET: _secret("Snare", "snare", 0.4, damage=1.1, cone=0.85, poise=99, pull=1.2),
     },
     "mace": {
-        LIGHT: _light("Bash", "slash", pierce_def=True, stamina=0.1),
+        LIGHT: _light("Bash", "pound", pierce_def=True, stamina=0.1),
         HEAVY: _heavy("Crush", "chop", 0.45, damage=1.8, poise=2.5, pierce_def=True),
         QUICK: _quick("Hilt rap", "rap", poise=2.0, pierce_def=True),
     },
@@ -117,12 +117,12 @@ MOVESETS = {
     },
     "axe": {
         LIGHT: _light("Hew", "hew", damage=1.1, stamina=0.1),
-        HEAVY: _heavy("Splitting chop", "chop", 0.45, damage=1.8, poise=1.8),
+        HEAVY: _heavy("Splitting chop", "cleave", 0.45, damage=1.8, poise=1.8),
         QUICK: _quick("Bearded hook", "hook_cut", pull=0.6),
         SECRET: _secret("Leaping Hew", "leap", 0.55, damage=2.2, poise=2.5, lunge=1.5, reach=1.1),
     },
     "hammer": {
-        LIGHT: _light("Smash", "chop", poise=1.5, stamina=0.09),
+        LIGHT: _light("Smash", "pound", poise=1.5, stamina=0.09),
         HEAVY: _heavy("Ground slam", "slam", 0.45, damage=1.5, reach=1.1, cone=-1, targets=8, poise=2.0),
         QUICK: _quick("Haft drive", "drive", reach=0.7, poise=2.2),
         SECRET: _secret(

@@ -122,7 +122,7 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 [entities]
 v = snare_bloom on=,
 S = save_statue
-k = chest item=claymore
+k = chest item=heartwood_maul
 q = chest item=red_tonic count=3 gold=80
 c = chest item=blue_moss count=2 gold=30
 x = chest item=red_tonic count=2

@@ -591,6 +591,31 @@ def test_the_enthroned_is_boss_sized_on_a_throne_that_fits_its_tile():
     assert max(-lo_x, hi_x, -lo_z, hi_z) <= 1.0  # inside its 2 m tile
 
 
+def test_the_enthroned_is_stone_with_no_glow_but_the_drifting_dust():
+    """Petrified: no eye glints, no glowing gem, no breath. The only lit specks are the dust motes."""
+    from ashen_vault.render import models
+
+    class Lit(_RecordingGpu):
+        def __init__(self):
+            super().__init__()
+            self.lit = []
+
+        def draw_part(self, kind, matrix, rgb, tex="white", glow=False):
+            super().draw_part(kind, matrix, rgb, tex, glow)
+            if glow:
+                self.lit.append(rgb)
+
+    for t in (0.0, 7.5):
+        gpu = Lit()
+        models.enthroned(rig.Rig(gpu), t)
+        assert gpu.lit and set(gpu.lit) == {models.DUST_MOTE}
+    still = [_RecordingGpu(), _RecordingGpu()]
+    models.enthroned(rig.Rig(still[0]), 0.0)
+    models.enthroned(rig.Rig(still[1]), 3.0)
+    statue = len(still[0].parts) - 10  # all but the ten dust motes
+    assert still[0].parts[:statue] == still[1].parts[:statue], "the stone never moves"
+
+
 def test_town_props_draw_and_roofs_cover_their_buildings():
     from ashen_vault.render import bounds, town_models
 
@@ -661,3 +686,47 @@ def test_a_raised_shield_shows_the_hand_gripping_it():
         n = len(alone.parts)
         assert gpu.parts[:n] == alone.parts, id_  # the shield first...
         assert models.SKIN in gpu.parts[n:], id_  # ...then the arm and the fist on its strap
+
+
+def test_axe_and_hammer_heads_lead_their_blows():
+    """An axe's bit (a hammer's face) faces the way the swing travels as it lands, instead of lying
+    flat along the swing with its edge pointing off to the side."""
+    import math
+
+    from ashen_vault.player import weapons
+    from ashen_vault.player.items import Items
+    from ashen_vault.render import models
+
+    rest = (0.9, -0.33, 0.27, 0.25, 0.7, -0.55)
+    for id_ in models.HEADED:
+        item = Items.get(id_)
+        reach = models.WEAPON_LEN.get(id_, 1.0)
+        for kind in (weapons.LIGHT, weapons.HEAVY):
+            a = weapons.moveset(item)[kind]
+
+            def pose(p, a=a):
+                return tuple(b + d for b, d in zip(rest, models._motion(a.motion, p, a.hit_at), strict=True))
+
+            before = models._weapon_point(pose(a.hit_at - 0.03), 1, reach)
+            at = models._weapon_point(pose(a.hit_at), 1, reach)
+            v = [q - p for p, q in zip(before, at, strict=True)]
+            edge = models._pose_vector(pose(a.hit_at), 1, (1.0, 0.0, 0.0))
+            assert sum(e * d for e, d in zip(edge, v, strict=True)) / math.hypot(*v) > 0.7, (id_, kind)
+
+
+def test_every_key_and_relic_has_its_own_model():
+    """No key or sigil falls back to the plain preview cube; each draws its detailed model, in
+    Belongings and lying on the ground."""
+    from ashen_vault.player.items import Items
+    from ashen_vault.render import models
+
+    for item in Items.ALL.values():
+        if item.kind != "key":
+            continue
+        assert item.id in models.KEY_STYLES or item.id in models.SIGILS, item.id
+        gpu = _RecordingGpu()
+        models.item(rig.Rig(gpu), item.id, 0.5)
+        assert len(gpu.parts) >= 20, item.id  # the old key was four boxes
+        ground = _RecordingGpu()
+        models.pickup(rig.Rig(ground), 0.5, item.id)
+        assert len(ground.parts) > len(gpu.parts), item.id  # the item itself, in its halo

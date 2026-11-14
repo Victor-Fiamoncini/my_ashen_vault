@@ -178,23 +178,30 @@ def test_fog_pixels():
 
 
 def test_hud_boxes_fit_the_screen_without_overlapping():
-    """The vitals box and the three slot cards share the bottom row; messages and dialogue sit above
-    them, never over the cards (a taller HUD once pushed the dialogue box onto them)."""
+    """The vitals box and the mouse share the bottom row; messages, the prompt and dialogue sit above
+    them, never over them (a taller HUD once pushed the dialogue box onto the slots)."""
     from ashen_vault.screen import H, W
-    from ashen_vault.ui import hud, smallfont
+    from ashen_vault.ui import hud, smallfont, tinyfont
 
     m = hud.HUD_MARGIN
-    cards_x = W - m - hud.CARDS_W
-    assert cards_x > m + hud.VITALS_W  # cards right of the vitals box
-    assert hud.CARDS_W == 3 * hud.CARD_W + 2 * hud.CARD_GAP
+    mouse_x = W - m - hud.MOUSE_HUD_W
+    assert mouse_x > m + hud.VITALS_W  # mouse right of the vitals box
     row_top = H - m - hud.HUD_BOX_H
-    assert hud.DIALOGUE_Y >= 0 and row_top >= hud.DIALOGUE_Y + hud.DIALOGUE_H
-    assert row_top >= hud.MESSAGE_Y + smallfont.HEIGHT
-    # Every slot label and the quick count fit their card in the tiny font.
-    from ashen_vault.ui import tinyfont
-
-    assert all(tinyfont.width(label) <= hud.CARD_W - 2 * hud.HUD_PAD for label in hud.CARD_LABELS.values())
-    assert all(ch in tinyfont.MICRO for label in hud.CARD_LABELS.values() for ch in label)
+    assert hud.DIALOGUE_Y >= 0 and row_top - hud.HUD_GAP == hud.DIALOGUE_Y + hud.DIALOGUE_H
+    assert row_top - hud.HUD_GAP == hud.MESSAGE_Y + smallfont.HEIGHT
+    assert hud.PROMPT_Y + smallfont.HEIGHT < hud.MESSAGE_Y - 2 * smallfont.LINE  # above the messages
+    assert m == hud.DIALOGUE_X and W - m == hud.DIALOGUE_X + hud.DIALOGUE_W
+    # The boss bar and the gold counter hang from the same top margin.
+    assert hud.BOSS_BAR_STEP == hud.BOSS_BOX_H + hud.HUD_GAP
+    # The vitals' numbers end before the compass's shadow begins.
+    vx = m + hud.HUD_PAD + 1
+    left = vx + hud.VITAL_NUM_X + tinyfont.width("100")
+    right = m + hud.VITALS_W - hud.HUD_PAD - 1
+    assert right - left >= 2 * (hud.COMPASS_R + 2)
+    # Each button's label fits its half of the mouse in the micro font, as do the quick count's.
+    button = (hud.MOUSE_HUD_W - hud.WHEEL_W) // 2 - hud.HUD_PAD
+    assert all(tinyfont.width(label) <= button for label in hud.BUTTON_LABELS.values())
+    assert all(ch in tinyfont.MICRO for label in hud.BUTTON_LABELS.values() for ch in label)
     assert all(ch in tinyfont.MICRO for ch in "X0123456789")  # the quick item's count
 
 
@@ -255,3 +262,34 @@ def test_gold_tally_alpha_stays_in_range_when_rounding_finishes_early():
         t.update(3, 1 / 144)  # uneven real frame times
         assert 0.0 <= t.gain_alpha() <= 1.0
     assert (t.shown, t.gain, t.gain_alpha()) == (3, 0, 0.0)
+
+
+def test_hud_box_corners_are_a_whole_pixel_quarter_circle():
+    from ashen_vault.ui import hud
+
+    for radius in range(1, 7):
+        insets = hud.corner_insets(radius)
+        assert len(insets) == radius
+        assert insets[-1] == 0, "the last corner row reaches the box's side"
+        assert list(insets) == sorted(insets, reverse=True), "a corner only widens downward"
+    assert hud.corner_insets(hud.HUD_RADIUS) == (2, 1, 0)
+
+
+def test_every_hud_box_shares_the_named_corner_radii():
+    """Mismatched corners crept in from ad-hoc radii (the mouse once had 9, the wheel 2): every box
+    takes HUD_RADIUS, and a well inside a box HUD_INNER_RADIUS."""
+    for path in (SRC / "ui" / "hud.py", SRC / "game.py"):
+        for literal in re.findall(r"radius=([^,)]+)", path.read_text()):
+            assert literal in ("HUD_RADIUS", "HUD_INNER_RADIUS", "ui.HUD_RADIUS", "ui.HUD_INNER_RADIUS"), (
+                f"{path.name}: radius={literal}"
+            )
+
+
+def test_every_sound_the_game_plays_is_synthesized():
+    """`sfx("name")` with no matching sound in `audio/synth.py` plays nothing, silently: Ashen Ward's
+    `ward`, Pyre's `pyre` and the braziers' `kindle` were all added by name in two places."""
+    made = set(re.findall(r'^\s+"([a-z_]+)": gen\(', (SRC / "audio" / "synth.py").read_text(), re.M))
+    played = set()
+    for path in SRC.rglob("*.py"):
+        played |= set(re.findall(r'sfx\(\s*"([a-z_]+)"', path.read_text()))
+    assert played and not played - made, sorted(played - made)

@@ -59,6 +59,20 @@ def sounds():
         lp[0] += (noise() - lp[0]) * k
         return lp[0]
 
+    whoosh, roar, crack = [0.0], [0.0], [0.0]
+
+    def pyre(t, p):
+        # The whoosh opens bright then darkens; the roar is filtered noise beating against a low hum.
+        cut = 0.08 + 0.55 * min(p / 0.12, 1.0) * (1 - p) ** 1.5
+        whoosh[0] += (noise() - whoosh[0]) * cut
+        roar[0] += (noise() - roar[0]) * 0.03
+        hum = math.sin(t * TAU * (62 + 20 * (1 - p))) * 0.35
+        if random.random() < 0.004 * (1 - p * 0.6):  # sparse pops and crackles
+            crack[0] = noise()
+        crack[0] *= 0.82
+        body = whoosh[0] * 1.6 * env(p, 0.04) + (roar[0] * 3.2 + hum) * env(p, 0.12) * 0.7
+        return body + crack[0] * 0.55 * (1 - p)
+
     def levelup(t, p):
         f = (523.25, 659.25, 783.99, 1046.5)[min(math.floor(p * 4), 3)]
         return math.sin(t * TAU * f) * 0.3 * (1 - p)
@@ -165,8 +179,12 @@ def sounds():
         ),
         # A soft cough of spores from a bursting pod.
         "puff": gen(0.5, lambda t, p: lowpass(0.08 + (1 - p) * 0.1) * 1.6 * env(p, 0.15)),
-        # A short roar of breath-fire (Pyre), or a brazier catching.
-        "pyre": gen(0.55, lambda t, p: (lowpass(0.25 + (1 - p) * 0.2) * 2.0 + noise() * 0.25) * env(p, 0.08)),
+        # Pyre: a rushing whoosh as the gout leaves your hand, a low roar under it and fire crackling.
+        "pyre": gen(0.75, pyre),
+        # A brazier or bonfire catching.
+        "kindle": gen(
+            0.55, lambda t, p: (lowpass(0.25 + (1 - p) * 0.2) * 2.0 + noise() * 0.25) * env(p, 0.08)
+        ),
         # Venom sizzling, or mist breathed out (Veil of Mist).
         "hiss": gen(0.6, lambda t, p: noise() * 0.5 * math.sin(p * math.pi) * (0.6 + 0.4 * math.sin(t * 60))),
         # A crack of thunder: a sharp snap, then a rolling rumble (Thunder Spear).
@@ -186,6 +204,15 @@ def sounds():
                 * math.sin(t * TAU * 6) ** 2
                 * 0.3
                 * (1 - p)
+            ),
+        ),
+        # An Ashen Ward kindling: a low ember swell that rises and settles, a soft chime as it closes.
+        "ward": gen(
+            0.9,
+            lambda t, p: (
+                (math.sin(t * TAU * (98 + 40 * p)) * 0.35 + lowpass(0.05) * 1.4) * math.sin(p * math.pi)
+                + math.sin(t * TAU * 660) * 0.2 * max(1 - abs(p - 0.4) * 5, 0.0)
+                + math.sin(t * TAU * 990) * 0.1 * max(1 - abs(p - 0.45) * 5, 0.0)
             ),
         ),
         # A flame jet roaring out of its nozzle.

@@ -1,7 +1,7 @@
 """NPC conversations. Each entry returns (speaker, lines, after) where `after`
 is an optional callable run with the game when the conversation closes."""
 
-from ashen_vault.world import relics
+from ashen_vault.world import loot, relics
 
 SHOPS = {
     # Pell deals in what came in by boat or up out of the well: scrolls and odd salvage.
@@ -321,9 +321,16 @@ def gift_giver(id_, flags):
 
     def after(g):
         g.flags.add(flag)
+        spare = 0
         for item, n in items.items():
-            g.player.inventory.add(item, n)
+            kept, gold = loot.claim(g.player.inventory, g.player.spells, item)
+            if kept:
+                g.player.inventory.add(kept, n)
+            spare += gold
+        g.player.inventory.gold += spare
         g.message(_received(items))
+        if spare:
+            g.message(loot.spare_message(spare))
         if shop:
             g.open_shop(shop)
 
@@ -346,26 +353,28 @@ def wren_lines(flags):
     ]
 
 
+# TODO(story): the Enthroned's petrification. What turned them to stone, and who still speaks inside it?
 ENTHRONED_LINES = (
     [
-        "(The figure on the throne does not move. Dust lies on its hands.)",
+        "(The figure on the throne is stone, grey and cracked. Dust lies thick on its hands.)",
         "...a stranger... the tide brings them... as it brought us...",
     ],
     [
-        "(Something stirs beneath the cowl. Two cold glints turn toward you.)",
+        "(A hairline crack runs through the stone face. Something whispers from within it.)",
         "...one note... I hear one note again... faint...",
     ],
     [
-        "(The Enthroned's fingers tighten on the stone.)",
+        "(Grit trickles from the stone fingers, as if they had tried to tighten on the arms.)",
         "...two... the bell remembers its shape... it remembers us...",
     ],
     [
-        "(The air in the nave grows heavy. The candles bend toward the throne.)",
+        "(The air in the nave grows heavy. The candles bend toward the statue, and the stone is warm.)",
         "...all three... take them to the keeper... and the bell will wake... and so... shall I...",
     ],
 )
 
 
 def enthroned_lines(held):
-    """The Enthroned stirs a little more with each sigil you carry."""
+    """The petrified Enthroned whispers from the stone, and stirs a little more with each sigil you
+    carry."""
     return list(ENTHRONED_LINES[min(len(held), len(ENTHRONED_LINES) - 1)])

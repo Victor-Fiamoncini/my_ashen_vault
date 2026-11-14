@@ -39,6 +39,7 @@ class Player:
         self.hurt_t = 0.0
         self.lumen_t = 0.0
         self.veil_t = 0.0  # seconds left wrapped in a Veil of Mist (foes overlook you)
+        self.ward_t = 0.0  # seconds left inside an Ashen Ward (blows land softer)
         self.webbed_t = 0.0  # seconds left caught in spider silk
         self.spore_t = 0.0  # seconds left choking on spores
         self.swing_t = None
@@ -76,7 +77,7 @@ class Player:
         s.heal(s.max_hp)
         s.restore_mp(s.max_mp)
         self.stamina.fill()
-        self.hurt_t = self.lumen_t = self.veil_t = self.webbed_t = self.spore_t = 0.0
+        self.hurt_t = self.lumen_t = self.veil_t = self.ward_t = self.webbed_t = self.spore_t = 0.0
         self.swing_t = None
         self.charge_t = 0.0
         self.queued_quick = False
@@ -222,6 +223,7 @@ class Player:
         self.hurt_t = max(self.hurt_t - dt, 0)
         self.lumen_t = max(self.lumen_t - dt, 0)
         self.veil_t = max(self.veil_t - dt, 0)
+        self.ward_t = max(self.ward_t - dt, 0)
         self.webbed_t = max(self.webbed_t - dt, 0)
         self.spore_t = max(self.spore_t - dt, 0)
         if self.swing_t is None:

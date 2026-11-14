@@ -65,7 +65,48 @@ class Projectile:
     homing: bool = False  # steers itself toward the nearest foe it can see (Arcane Motes)
 
 
+@dataclass(eq=False)
+class Gout:
+    """Pyre's gout of fire, only for show: from your hand along where you aimed, it rushes out to
+    its full reach, roils there, then gutters."""
+
+    x: float
+    y: float
+    z: float
+    dx: float  # unit direction it was breathed in
+    dy: float
+    dz: float
+    reach: float
+    age: float = 0.0
+    LIFE = 0.45  # seconds it burns
+    RUSH = 0.12  # seconds its front takes to reach full length
+    PUFFS = 9  # balls of flame along its length
+    START = 0.8  # metres out from your eyes where the first one burns, clear of the view
+
+    @property
+    def alive(self):
+        return self.age < self.LIFE
+
+    def puffs(self):
+        """(x, y, z, size, heat) of each ball of flame out to the front: they swell with distance and
+        shrink as it gutters; `heat` runs from 1 (white-hot, at your hand) to 0 (the red front)."""
+        front = self.reach * min(self.age / self.RUSH, 1.0)
+        fade = 1.0 - max(0.0, (self.age / self.LIFE - 0.5) / 0.5)
+        out = []
+        for i in range(self.PUFFS):
+            d = self.START + i / (self.PUFFS - 1) * (self.reach - self.START)
+            if d > front:
+                break
+            k = d / self.reach
+            rise = 0.25 * k * k + 0.6 * self.age * k  # heat lifts the far end
+            size = (0.3 + 1.05 * k) * fade
+            out.append((self.x + self.dx * d, self.y + self.dy * d + rise, self.z + self.dz * d, size, 1 - k))
+        return out
+
+
 INTERACT_RANGE = 2.6
+# Props you reach from further away: the Silent Bell hangs in the middle of a plinth you can't climb.
+INTERACT_REACH = {"silent_bell": 3.8}
 WEB_TIME = 2.5  # seconds a web shot slows you
 THORN_SENSE = 3.4  # metres at which thorn plants bristle as you approach
 FALL_MESSAGES = {
@@ -222,6 +263,7 @@ class World:
         self.props = []
         self.enemies = []
         self.projectiles = []
+        self.gouts = []  # Pyre's fire, for show
         self.hazards = []
         self.eruptions = []  # fire columns the Warden calls up
         self.shockwaves = []  # rings sent out by his slam (only for show)
@@ -279,7 +321,7 @@ class World:
             i = next(i for i, (_, t) in enumerate(self._meshes) if t == tex)
             self.game.gpu.unload_mesh(self._meshes[i][0])
             self._meshes[i] = (self.game.gpu.upload_batch(self.builder.batches[tex]), tex)
-        self.game.sfx("pyre", 0.8)
+        self.game.sfx("kindle", 0.8)
         self.game.message("The fire catches, and the dark draws back.")
         return True
 
@@ -433,6 +475,7 @@ class World:
         ]
         self.enemies = bosses + twins + spawn_enemies(self.map, self.flags, bosses=False)
         self.projectiles = []
+        self.gouts = []
         self.eruptions = []
         self.shockwaves = []
 
@@ -463,6 +506,23 @@ class World:
                 p.open_t = 1.0  # the door is gone; only the fog stands there
             arenas.append(a)
         return arenas
+
+    def boss_target(self):
+        """(x, z) of the nearest great door whose boss still lives, or None when this map has no boss
+        left (or never had one). The compass points there."""
+        p = self.player
+        gates = [TileMap.center(*a.gate) for a in self.arenas if a.tiles and not a.cleared(self.flags)]
+        if not gates:
+            return None
+        return min(gates, key=lambda g: math.hypot(g[0] - p.x, g[1] - p.z))
+
+    def boss_bearing(self):
+        """The compass heading (degrees, like `Player.heading`) toward `boss_target`, or None."""
+        target = self.boss_target()
+        if target is None:
+            return None
+        p = self.player
+        return (math.degrees(math.atan2(target[1] - p.z, target[0] - p.x)) + 90) % 360
 
     def arena_at_door(self, prop):
         return next((a for a in self.arenas if a.door is prop), None)
@@ -793,6 +853,9 @@ class World:
             elif 0 < p.open_t < 1.0:
                 p.open_t = min(p.open_t + dt * 0.8, 1.0)
         self._update_projectiles(dt)
+        for g in self.gouts:
+            g.age += dt
+        self.gouts = [g for g in self.gouts if g.alive]
         self._update_hazards(dt)
         self._update_fire(dt)
         self._check_fall()
@@ -1128,25 +1191,27 @@ class World:
                 self.flags.add(p.key)
                 p.open_t = 0.01
                 self.game.message("The web shrivels in the flame.")
-        dx, dy, dz = shots.aim(player.yaw, player.pitch)
+        dx, dy, dz = shots.aim(player.yaw, player.pitch, speed=1.0)  # the unit direction you aim
+        y0 = player.eye_y - shots.BOLT_DROP
+        self.gouts.append(Gout(player.x, y0, player.z, dx, dy, dz, Spells.PYRE_REACH))
         rng = random.Random(int(self._time * 1000))
-        for i in range(12):  # a ragged spray of flame that only shows
-            spread = (i / 11 - 0.5) * 0.9 + rng.uniform(-0.08, 0.08)
+        for i in range(18):  # sparks and embers thrown out of the gout, rising as they cool
+            spread = (i / 17 - 0.5) * 0.9 + rng.uniform(-0.1, 0.1)
             ca, sa = math.cos(spread), math.sin(spread)
             sx, sz = dx * ca - dz * sa, dx * sa + dz * ca
-            speed = rng.uniform(5.0, 9.0)
+            speed = rng.uniform(4.5, 10.0)
             self.projectiles.append(
                 Projectile(
-                    x=player.x + sx * 0.5,
-                    y=player.eye_y - shots.BOLT_DROP + rng.uniform(-0.15, 0.2),
-                    z=player.z + sz * 0.5,
+                    x=player.x + sx * Gout.START,
+                    y=y0 + rng.uniform(-0.15, 0.2),
+                    z=player.z + sz * Gout.START,
                     dx=sx * speed,
-                    dy=dy * speed + rng.uniform(0.0, 1.2),
+                    dy=dy * speed + rng.uniform(0.3, 2.0),
                     dz=sz * speed,
-                    life=rng.uniform(0.25, 0.45),
+                    life=rng.uniform(0.2, 0.5),
                     damage=0,
                     hostile=False,
-                    rgb=(255, rng.randint(80, 200), 40),
+                    rgb=(255, rng.randint(70, 210), rng.randint(20, 60)),
                     effect="flare",
                 )
             )
@@ -1168,13 +1233,14 @@ class World:
             dx = p.x - player.x
             dz = p.z - player.z
             d = math.hypot(dx, dz)
-            in_reach = d < INTERACT_RANGE and (d < 0.8 or (dx * fx + dz * fz) / d > 0.55)
+            reach = INTERACT_REACH.get(getattr(p, "kind", None), INTERACT_RANGE)
+            in_reach = d < reach and (d < 0.8 or (dx * fx + dz * fz) / d > 0.55)
             if in_reach and (best is None or d < best_d):
                 best, best_d = p, d
         return best
 
     def _interactable(self, p):
-        if p.kind in ("npc", "save_statue", "exit", "pickup", "iron_maiden", "frog_idol"):
+        if p.kind in ("npc", "save_statue", "exit", "pickup", "iron_maiden", "frog_idol", "silent_bell"):
             return True
         if p.kind == "door" and p.props.get("boss"):
             a = self.arena_at_door(p)
@@ -1428,6 +1494,11 @@ class World:
             with rig.at(w.x, w.floor, w.z):
                 models.shockwave_ring(rig, w.progress, w.radius)
         self._draw_ash(rig, gpu, far)
+        for g in self.gouts:
+            gpu.model_light((1.6, 1.4, 1.2))
+            for i, (x, y, z, size, heat) in enumerate(g.puffs()):
+                with rig.at(x, y, z):
+                    models.gout_puff(rig, size, heat, self._time, seed=i * 1.7)
         for pr_ in self.projectiles:
             gpu.model_light((1.6, 1.4, 1.2))
             if pr_.effect in ("arrow", "thunder"):  # these fly point first
@@ -1555,7 +1626,7 @@ class World:
         elif k == "fungus":
             models.fungus(rig, p.tx * 5 + p.tz, t)
         elif k == "pickup":
-            models.pickup(rig, t)
+            models.pickup(rig, t, p.props.get("item"))
         elif k == "npc":
             npc_id = p.props.get("id")
             if npc_id == "enthroned":

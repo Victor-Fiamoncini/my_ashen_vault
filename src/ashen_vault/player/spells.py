@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import ClassVar
 
 from ashen_vault.player.combat import Combat
+from ashen_vault.util import rround
 
 
 @dataclass(frozen=True)
@@ -10,6 +11,7 @@ class Spell:
     name: str
     cost: int
     desc: str
+    recovery: float = 2.2  # seconds your focus (the magic gauge) takes to return after casting it
 
 
 class Spells:
@@ -22,16 +24,24 @@ class Spells:
             Spell(id="venom", name="Venom Dart", cost=6, desc="Spit a dart of bog venom that festers."),
             Spell(id="veil", name="Veil of Mist", cost=7, desc="Wrap yourself in mist; foes overlook you."),
             Spell(
-                id="pyre", name="Pyre", cost=6, desc="Breathe a short gout of fire. Kindles cold braziers."
+                id="pyre",
+                name="Pyre",
+                cost=6,
+                desc="Breathe a short gout of fire. Kindles cold braziers.",
+                recovery=1.3,  # a short-range spell: quick to loose again
             ),
             Spell(
                 id="thunder", name="Thunder Spear", cost=8, desc="Hurl a spear of lightning. Iron hates it."
             ),
             Spell(id="motes", name="Arcane Motes", cost=7, desc="Loose three seeking sparks at your foes."),
+            Spell(
+                id="ward", name="Ashen Ward", cost=6, desc="Wreathe yourself in embers that blunt every blow."
+            ),
         ]
     }
     LUMEN_DURATION = 45.0
     VEIL_DURATION = 20.0
+    WARD_DURATION = 15.0  # seconds the embers of an Ashen Ward circle you
     PYRE_REACH = 3.2  # metres the gout of fire reaches
     FLAMMABLE_MULT = 1.5  # plant foes take this much more from fire
     BURN = (3.0, 4)  # seconds and HP per second that Pyre leaves a plant foe burning
@@ -78,9 +88,21 @@ class Spells:
         return Combat.damage(base=5, strength=magic, gauge=gauge, defense=0)
 
     @staticmethod
+    def ward_cut(magic):
+        """The share of every blow an Ashen Ward stops: a third at first, more with MAG, at most 60%."""
+        return min(0.35 + 0.02 * magic, 0.6)
+
+    @staticmethod
+    def warded(dmg, magic):
+        """What a blow of `dmg` still does through an Ashen Ward (a blow always does at least 1)."""
+        if dmg <= 0:
+            return dmg
+        return max(rround(dmg * (1 - Spells.ward_cut(magic))), 1)
+
+    @staticmethod
     def power(id_, magic):
-        """What a full-gauge cast does at `magic`: damage (all three motes together), HP mended, or 0
-        for spells that neither hurt nor heal. The Belongings stats panel compares it as SPL."""
+        """What a full-gauge cast does at `magic`: damage (all three motes together), HP mended, the %
+        of each blow a ward stops, or 0 for the rest. The Belongings stats panel compares it as SPL."""
         damage = {
             "flame": Spells.flame_damage,
             "venom": Spells.venom_damage,
@@ -93,4 +115,6 @@ class Spells:
             return Spells.MOTES * Spells.mote_damage(magic, 1.0)
         if id_ == "mend":
             return Spells.mend_amount(magic)
+        if id_ == "ward":
+            return rround(Spells.ward_cut(magic) * 100)
         return 0

@@ -70,7 +70,7 @@ G = gate lever=north_lever
 c = chest item=cell_key on=-
 s = mire_slime on=-
 v = lever id=north_lever
-q = chest item=scroll_lumen gold=20
+q = chest item=scroll_ward gold=20
 r = chest item=red_tonic count=2
 a = bone_walker
 t = torch radius=9

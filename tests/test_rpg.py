@@ -330,3 +330,29 @@ def test_save_keeps_both_hands_and_armor(tmp_path):
         "body": "brigandine",
         "hands": "iron_gauntlets",
     }
+
+
+def test_ashen_ward_blunts_blows_but_never_to_nothing():
+    from ashen_vault.player.spells import Spells
+
+    for magic in range(0, 40):
+        assert 0.35 <= Spells.ward_cut(magic) <= 0.6
+    assert Spells.ward_cut(30) == 0.6
+    assert Spells.warded(20, 5) == 11  # 45% stopped
+    assert Spells.warded(1, 30) == 1  # a blow always lands
+    assert Spells.warded(0, 5) == 0
+    assert Spells.power("ward", 5) == 45  # the stats panel's SPL: % of each blow stopped
+
+
+def test_ashen_ward_wears_off_and_a_respawn_clears_it():
+    from ashen_vault.player.spells import Spells
+
+    p = Player()
+    p.ward_t = Spells.WARD_DURATION
+    p.update_timers(Spells.WARD_DURATION - 1)
+    assert p.ward_t == pytest.approx(1)
+    p.update_timers(2)
+    assert p.ward_t == 0
+    p.ward_t = 5
+    p.revive()
+    assert p.ward_t == 0
