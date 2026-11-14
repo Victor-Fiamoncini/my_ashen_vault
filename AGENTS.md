@@ -114,6 +114,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/render/bounds.py` | Measures a model without drawing it (a recording GPU); `models.preview_frame` centres and fits every weapon in its preview with it |
 | `src/ashen_vault/world/hazards.py` | Dungeon traps: floor spikes, pendulum blades, crumbling floors, flame jets, magma vents (whose bombs are `Eruption`s with an `origin`); the bosses' fire eruptions and slam shockwaves |
 | `src/ashen_vault/world/elements.py` | Elements: lightning against `conductive` foes, fire against `fireproof` ones, which weapons burn |
+| `src/ashen_vault/render/fortress_props.py` | The Cinderhold's dressing: `gargoyle_statue` (`pose=snarl`; far ones drop their fine carving, `world.DETAIL_RANGE`), `barred_window`, `tool_rack` and `great_window` (wall props; `great_window rise=` hangs high in a wall over the moat, a landmark), `forge_hearth`, `crucible`, `quench_trough`, `ingot_pile`, `slag_heap`, `impaler`, the `battlement` landmark (a crenellated walk on a wall top) and `lava_spout` (`lavafall spout=gargoyle`) |
 | `src/ashen_vault/render/forge_models.py` | The Cinderhold's models (golem, bowman, hound, the gargoyles, Stormbrand and Slagbreaker, arrows, thunder and motes, flame jets, and the skyline: spires, bastions, smokestacks, the gatehouse, the keep, lavafalls); `models` imports it last and borrows its helpers |
 | `src/ashen_vault/render/town_models.py` | Harrowmere's models: gabled `roof`s (one per building, on its NW wall tile with `span=W,D ridge=x\|z`), the `silent_bell`, the `cathedral_spire`, pews, windows, beds, cupboards, shelves, hearths, market stalls, fences, lamp posts and boats |
 | `src/ashen_vault/world/villagers.py` | How each villager looks (`Look`: build, garb, hair, hat, beard, apron, cloak, held tool, idle) |
@@ -154,6 +155,8 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   level. The jungle uses it too; it ran out of ASCII markers, so a few of its markers are Latin-1
   letters (`À`, `Ñ`...). Wall props (torches, banners, shackles, racks) hang on the
   adjacent wall and chests/altars turn to face the open side automatically, so they rarely need `yaw=`.
+  A chest (and the chest mimic) with a wall behind it sits back against that wall (`TileMap.seated`,
+  `tests/test_seating.py`), so place chests beside a wall.
 - Floor legend entries can add hazards: `hurt=<hp per tick>` (thorns), `flow=<dx>,<dz>` (a current),
   `slow=<multiplier>` (mud), `pit` (a hole you can walk into; you fall, are hurt and hauled out), `lava` (a
   pit that sears `LAVA_SHARE` of your max HP the moment you touch it and hauls you out; give it
@@ -180,8 +183,12 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   count= phase=` (stands in a lava chasm; lobs bombs at open-sky solid ground within `radius` metres,
   the first at you).
   `[meta]` may set `model_range`: metres beyond which small models stop being drawn, short of the fog's
-  end, on a map that sees far; `LANDMARKS` (`spire`, `keep`, `bastion`, `smokestack`, `gatehouse`,
-  `lavafall`) are still drawn out to the fog. They stand on tiles no one reaches (wall tops, the moat)
+  end, on a map that sees far, and `indoor_range` a shorter one while you stand under a ceiling (the far
+  rooms are walled off). Props wholly behind the eye are never drawn (`world.behind_view`).
+  A wall standing behind a lower one (a curtain wall behind its cliff, a tower behind its parapet) is
+  built where it rises above it (`MeshBuilder._exposed_walls`), so a tall wall can back a low one.
+  `LANDMARKS` (`spire`, `keep`, `bastion`, `smokestack`, `gatehouse`, `lavafall`, `battlement`) are
+  drawn out to the fog. They stand on tiles no one reaches (wall tops, the moat)
   or above a passage's roof (`bastion base=`, `gatehouse`), and no two Cinderhold towers share a shape
   (`test_cinderhold_skyline_has_no_two_towers_alike_and_stands_out_of_reach`).
 - Enemy behaviour flags in `ai/enemy_types.py`: `ambush` spawns dormant (the chest Mimic) until woken;
@@ -234,7 +241,8 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   the boss dies, and after you die in there becomes a fog gate (`models.fog_gate`) the boss walks
   through freely and you cross with interact. Each arena must stay closed behind its one door
   (`tests/test_arena.py`). `door from=n|s|e|w` is barred on that side: it
-  only opens from there.
+  only opens from there. `door model=iron` is the Cinderhold's riveted iron door, set in a stone frame
+  that rises to the passage's ceiling (`world.DOOR_FRAME_SKY` under the open sky).
   After placing props in `sunken_keep.map`, run `tests/test_world.py`: its reachability test fails if
   anything cuts off a chest, door, lever, exit, altar or the iron maiden, or if a locked lift is
   needed to get anywhere (shortcuts must stay optional). `verdant_hollow.map` has its

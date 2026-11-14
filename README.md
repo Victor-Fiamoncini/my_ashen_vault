@@ -112,7 +112,7 @@ FromSoftware, Inc.
     <td align="center"><sub>The Butcher, waiting in his slaughter hall</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/cinderhold_bridge.png" alt="A long stone bridge leading to a black fortress under a smoky red sky: a turreted gatehouse, a drum bastion, a great keep, smelter stacks and a spire"></td>
+    <td><img src="docs/screenshots/cinderhold_bridge.png" alt="A long stone bridge leading to a black fortress under a smoky red sky: a crenellated great wall with burning windows rising from the lava, a turreted gatehouse, a drum bastion, a great keep, smelter stacks and a spire"></td>
     <td><img src="docs/screenshots/postern_ledge.png" alt="A narrow ledge along the fortress wall above lava, a magma bomb arcing toward a glowing landing circle and an iron bowman ahead"></td>
   </tr>
   <tr>
@@ -405,6 +405,7 @@ it, so Claude Code, Codex, Cursor and Copilot all follow the same rules.
 | `src/ashen_vault/world/arena.py` | Boss arenas: the great door that seals behind you, and the fog left after you fall |
 | `src/ashen_vault/player/burden.py`, `ui/compare.py` | Equipment load and what it costs you; what equipping an item would change |
 | `src/ashen_vault/render/forge_models.py` | The Cinderhold's foes, the twin gargoyles, its weapons, shots, fortress dressing and skyline |
+| `src/ashen_vault/render/fortress_props.py` | The Cinderhold's dressing: gargoyle statues, barred and great windows, forge gear, battlements and lava spouts |
 | `src/ashen_vault/render/shapes.py` | Extra low-poly shapes for models: pointed blades, lozenge bars and wedges |
 | `src/ashen_vault/world/sky.py`, `render/sky.py` | Each map's sky (gradient, sun, clouds, mist), built as plain geometry and drawn behind the world |
 | `src/ashen_vault/dialogue.py` | NPC conversations |
