@@ -3184,7 +3184,7 @@ def warden_altar(r, taken, t):
         with r.at(0.3, 2.02 + bob, 0, ry=t * 0.8):
             r.part("sphere", 0, 0, 0, 0.16, 0.16, 0.16, (255, 150, 60), glow=True)
             with r.at(0, 0, 0, s=0.32):
-                key(r, "warden_key", 1.9, t)
+                key(r, "warden_key", KEY_STYLES["warden_key"][1], t)
 
 
 def _warden_statue(r, taken, t):
@@ -4416,60 +4416,129 @@ def gauntlet(r, id_):
 
 # Each key: (metal, preview size). Keys lie in the Y-Z plane, bow up, bit toward +Z, flats facing X.
 KEY_STYLES = {
-    "cell_key": ((150, 84, 50), 1.6),  # a gaoler's rusty iron key, plain and pitted
-    "warden_key": ((150, 150, 160), 1.9),  # heavy steel, an ember set in a crowned bow
-    "briar_key": ((92, 104, 58), 1.7),  # verdigris bronze grown through with thorns
-    "forge_key": ((58, 52, 52), 1.8),  # blackened iron whose bit still glows from the forge
+    "cell_key": ((150, 84, 50), 1.9),  # a gaoler's rusty iron key, short, crude and pitted
+    "warden_key": ((150, 150, 160), 1.5),  # long, heavy steel, an ember in a crowned trefoil
+    "briar_key": ((92, 104, 58), 1.7),  # verdigris bronze branches, thorned, with a leaf for a bit
+    "forge_key": ((58, 52, 52), 1.8),  # blackened iron, an anvil for a bow, its bit still glowing
 }
 
 
 def key(r, id_, size, t=0.0):
-    """A key of the style KEY_STYLES gives `id_`: a ring bow with an inner device, a collar, a ringed
-    shank and a bit cut with wards."""
+    """A key of the style KEY_STYLES gives `id_`, each its own shape (KEY_SHAPES): bow up, bit
+    toward +Z, flats facing X."""
     metal = KEY_STYLES.get(id_, KEY_STYLES["cell_key"])[0]
-    dark, bright = _dim(metal, 0.65), _bright(metal, 1.1, 15)
     with r.at(0, 0, 0, rx=-0.6, s=size):
-        # The bow: a ring of ten links around a device.
-        for i in range(10):
-            a = i * math.tau / 10
-            r.part("cube", 0, 0.32 + math.cos(a) * 0.17, math.sin(a) * 0.17, 0.06, 0.06, 0.11, metal, rx=-a)
-        if id_ == "warden_key":
-            r.part("sphere", 0, 0.32, 0, 0.12, 0.12, 0.12, EMBER, glow=True)
-            r.part("cube", 0, 0.32, 0, 0.05, 0.26, 0.04, bright)  # a cross behind the gem
-            r.part("cube", 0, 0.32, 0, 0.05, 0.04, 0.26, bright)
-            for dz in (-0.08, 0, 0.08):  # a crown on top
-                r.part("cube", 0, 0.53 + (0.03 if dz == 0 else 0), dz, 0.05, 0.08, 0.04, bright)
-        elif id_ == "briar_key":
-            for i in range(4):  # a four-leaf device
-                with r.at(0, 0.32, 0, rx=i * math.pi / 2 + math.pi / 4):
-                    r.part("cube", 0, 0.07, 0, 0.04, 0.12, 0.05, (80, 140, 60))
-            for i in range(6):  # thorns around the ring
-                a = i * math.tau / 6 + 0.3
-                with r.at(0, 0.32 + math.cos(a) * 0.22, math.sin(a) * 0.22, rx=-a):
-                    r.part("cube", 0, 0.03, 0, 0.025, 0.08, 0.025, (70, 50, 30))
-        elif id_ == "forge_key":
-            r.part("cube", 0, 0.32, 0, 0.05, 0.2, 0.2, dark, rx=math.pi / 4)  # a square anvil-plate
-            r.part("cube", 0, 0.32, 0, 0.06, 0.06, 0.06, (255, 120, 40), glow=True)
-        else:  # the cell key: a plain bar across the ring, and rust
-            r.part("cube", 0, 0.32, 0, 0.05, 0.04, 0.3, dark)
-            r.part("cube", 0.03, 0.43, 0.08, 0.01, 0.05, 0.05, (110, 50, 30))
-        # Collar and shank.
-        r.part("cyl", 0, 0.12, 0, 0.1, 0.05, 0.1, bright)
-        r.part("cyl", 0, 0.06, 0, 0.08, 0.03, 0.08, dark)
-        r.part("cube", 0, -0.12, 0, 0.055, 0.42, 0.055, metal)
-        for y in (-0.02, -0.18):  # rings turned on the shank
-            r.part("cyl", 0, y, 0, 0.075, 0.025, 0.075, dark)
-        if id_ == "briar_key":
-            for k in range(4):  # a vine wound down it
-                r.part("cube", 0, 0.02 - k * 0.08, 0, 0.07, 0.025, 0.07, (60, 100, 44), ry=k * 0.8)
-        r.part("sphere", 0, -0.34, 0, 0.06, 0.05, 0.06, metal)  # the tip
-        # The bit: a plate with three wards of different lengths.
-        hot = id_ == "forge_key"
-        bit = (230, 110, 40) if hot else metal
-        r.part("cube", 0, -0.27, 0.09, 0.045, 0.14, 0.12, bit, glow=hot)
-        for i, (y, reach) in enumerate(((-0.32, 0.09), (-0.27, 0.05), (-0.22, 0.08))):
-            col = (255, 170, 70) if hot else (bright if i % 2 else metal)
-            r.part("cube", 0, y, 0.15 + reach / 2, 0.045, 0.035, reach, col, glow=hot)
+        KEY_SHAPES.get(id_, _cell_key)(r, metal, t)
+
+
+def _key_collar(r, y, metal, width=0.1):
+    """Where the bow meets the shank: a bright collar over a darker ring."""
+    r.part("cyl", 0, y, 0, width, 0.05, width, _bright(metal, 1.1, 15))
+    r.part("cyl", 0, y - 0.06, 0, width * 0.8, 0.03, width * 0.8, _dim(metal, 0.65))
+
+
+def _cell_key(r, metal, t):
+    """A gaoler's key: short and crude, a squashed oval bow, a pitted shank and one blocky bit."""
+    dark = _dim(metal, 0.65)
+    rust = (110, 50, 30)
+    for i in range(12):  # the oval bow, wider than tall
+        a = i * math.tau / 12
+        r.part("cube", 0, 0.26 + math.cos(a) * 0.11, math.sin(a) * 0.19, 0.06, 0.06, 0.1, metal, rx=-a)
+    r.part("cube", 0, 0.26, 0, 0.05, 0.04, 0.3, dark)  # a bar across it
+    r.part("cube", 0.03, 0.34, 0.1, 0.01, 0.05, 0.05, rust)
+    _key_collar(r, 0.12, metal)
+    r.part("cube", 0, -0.04, 0, 0.065, 0.26, 0.065, metal)  # a short, thick shank
+    for y, z in ((0.0, 0.03), (-0.1, -0.02), (-0.13, 0.03)):  # pitting and rust
+        r.part("cube", 0.035, y, z, 0.01, 0.03, 0.03, rust)
+    r.part("cube", 0, -0.12, 0.11, 0.05, 0.12, 0.16, metal)  # one square bit
+    r.part("cube", 0, -0.12, 0.17, 0.052, 0.04, 0.04, dark)  # notched once
+    r.part("cube", 0.03, -0.1, 0.06, 0.01, 0.04, 0.05, rust)
+
+
+def _warden_key(r, metal, t):
+    """The Warden's key: long and heavy steel, a trefoil bow crowned over an ember, a square shank and
+    a stepped double bit."""
+    dark, bright = _dim(metal, 0.65), _bright(metal, 1.1, 15)
+    for cy, cz in ((0.44, 0.0), (0.32, -0.12), (0.32, 0.12)):  # three lobes of the trefoil
+        for i in range(8):
+            a = i * math.tau / 8
+            r.part(
+                "cube", 0, cy + math.cos(a) * 0.09, cz + math.sin(a) * 0.09, 0.05, 0.05, 0.07, metal, rx=-a
+            )
+    pulse = 1 + math.sin(t * 3) * 0.08
+    r.part("sphere", 0, 0.35, 0, 0.12 * pulse, 0.12 * pulse, 0.12 * pulse, EMBER, glow=True)
+    for dz in (-0.08, 0, 0.08):  # the crown on top
+        r.part("cone", 0, 0.58 + (0.03 if dz == 0 else 0), dz, 0.05, 0.1, 0.05, bright)
+    r.part("cube", 0, 0.54, 0, 0.05, 0.03, 0.22, bright)
+    _key_collar(r, 0.2, metal, 0.12)
+    r.part("cube", 0, -0.12, 0, 0.07, 0.62, 0.07, metal, ry=math.pi / 4)  # a long square shank
+    for y in (0.08, -0.12, -0.32):  # bands along it
+        r.part("cube", 0, y, 0, 0.09, 0.03, 0.09, dark)
+    r.part("cube", 0, -0.46, 0, 0.08, 0.06, 0.08, metal)  # the tip
+    for y, reach in ((-0.44, 0.2), (-0.36, 0.14), (-0.28, 0.08)):  # a stepped bit, both sides
+        for side in (-1, 1):
+            r.part("cube", 0, y, side * (0.04 + reach / 2), 0.05, 0.07, reach, bright if side > 0 else metal)
+
+
+def _briar_key(r, metal, t):
+    """The briar key: no ring at all, a bow of three thorny branches twisted together, a crooked shank
+    wound with vine and a bit shaped like a leaf."""
+    vine, leaf, thorn = (60, 100, 44), (80, 140, 60), (70, 50, 30)
+    for k in range(3):  # three branches curling up and out from the collar
+        a = (k - 1) * 0.75
+        with r.at(0, 0.16, 0, rx=-a):
+            r.part("cube", 0, 0.12, 0, 0.045, 0.24, 0.045, metal)
+            with r.at(0, 0.24, 0, rx=-a * 0.8):
+                r.part("cube", 0, 0.08, 0, 0.04, 0.16, 0.04, metal)
+                r.part("sphere", 0, 0.17, 0, 0.07, 0.05, 0.1, leaf)  # a bud at the end
+            for y in (0.06, 0.18):  # thorns along each branch
+                r.part("cone", 0, y, 0.03, 0.02, 0.06, 0.02, thorn, rx=math.pi / 2)
+    _key_collar(r, 0.14, metal, 0.09)
+    for k in range(3):  # a crooked shank, bent at each node
+        with r.at(0, 0.04 - k * 0.12, 0, rx=0.12 * (1 if k % 2 else -1)):
+            r.part("cube", 0, -0.06, 0, 0.05, 0.13, 0.05, metal)
+            r.part("cube", 0, -0.04, 0, 0.065, 0.025, 0.065, vine, ry=k * 0.8)  # a vine wound down it
+    with r.at(0, -0.3, 0.1, rx=math.pi / 2):  # the leaf-shaped bit, veined
+        r.part("sphere", 0, 0, 0, 0.04, 0.2, 0.11, leaf)
+        r.part("cube", 0.02, 0, 0, 0.01, 0.18, 0.015, vine)
+        for side in (-1, 1):
+            r.part("cube", 0.02, 0.02, side * 0.03, 0.01, 0.06, 0.01, vine, rx=side * 0.7)
+
+
+def _forge_key(r, metal, t):
+    """The forge key: blackened iron, its bow an anvil, a thick riveted shank and a hooked bit still
+    glowing from the forge."""
+    dark = _dim(metal, 0.65)
+    hot = (230, 110, 40)
+    glow = 0.9 + math.sin(t * 2.5) * 0.1
+    r.part("cube", 0, 0.42, 0, 0.07, 0.07, 0.36, metal)  # the anvil's face
+    r.part("wedge", 0, 0.42, 0.24, 0.07, 0.07, 0.12, metal, rx=math.pi / 2)  # its horn
+    r.part("cube", 0, 0.33, 0, 0.06, 0.12, 0.16, dark)  # waist
+    r.part("cube", 0, 0.24, 0, 0.08, 0.06, 0.28, metal)  # foot
+    for side in (-1, 1):  # its splayed feet
+        r.part("wedge", 0, 0.22, side * 0.15, 0.08, 0.04, 0.06, dark, rx=side * math.pi / 2)
+    for z in (-0.1, 0.06):  # sparks still flying off the hot face
+        r.part("cube", 0.01, 0.52 + glow * 0.03, z, 0.015, 0.015, 0.015, (255, 200, 90), glow=True)
+    r.part(
+        "cube", 0, 0.47, -0.04, 0.072, 0.02, 0.12, tuple(int(c * glow) for c in hot), glow=True
+    )  # hot face
+    _key_collar(r, 0.16, metal, 0.12)
+    r.part("cube", 0, -0.06, 0, 0.09, 0.36, 0.09, metal)  # a thick shank
+    for y in (0.1, -0.16):  # bands hammered round it
+        r.part("cube", 0, y, 0, 0.11, 0.03, 0.11, dark)
+    for y in (0.05, -0.08, -0.2):  # rivets driven through it
+        r.part("sphere", 0.05, y, 0, 0.03, 0.03, 0.03, (90, 84, 80))
+    r.part("cube", 0, -0.26, 0.08, 0.06, 0.06, 0.16, hot, glow=True)  # the hooked bit, glowing
+    r.part("cube", 0, -0.2, 0.15, 0.06, 0.14, 0.05, hot, glow=True)
+    r.part("cube", 0, -0.14, 0.12, 0.06, 0.04, 0.06, (255, 170, 70), glow=True)
+
+
+KEY_SHAPES = {
+    "cell_key": _cell_key,
+    "warden_key": _warden_key,
+    "briar_key": _briar_key,
+    "forge_key": _forge_key,
+}
 
 
 # Each relic sigil: (rim metal, core glow, the device on its faces).

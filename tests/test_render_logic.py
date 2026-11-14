@@ -828,3 +828,17 @@ def _door_parts(models, boss):
     gpu = _GlowGpu()
     models.boss_door(rig.Rig(gpu), 0.5, "x", 0.0, boss=boss)
     return gpu.parts
+
+
+def test_every_key_has_its_own_shape_and_fits_its_preview():
+    from ashen_vault.render import bounds, models
+
+    assert set(models.KEY_SHAPES) == set(models.KEY_STYLES)
+    shapes = {}
+    for id_, (_, size) in models.KEY_STYLES.items():
+        gpu = _GlowGpu()
+        models.key(rig.Rig(gpu), id_, size)
+        shapes[id_] = tuple(kind for kind, _ in gpu.parts)
+        lo, hi = bounds.measure(lambda r, id_=id_, size=size: models.key(r, id_, size))
+        assert 0.9 < hi[1] - lo[1] < 1.8, id_  # about a preview's height
+    assert len(set(shapes.values())) == len(shapes)  # no two built from the same parts
