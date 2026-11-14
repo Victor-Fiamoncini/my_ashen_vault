@@ -72,7 +72,8 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   `--at=14,41,-90 --script "interact wait:2.5 strafe_l:2"` (lower the drawbridge and cross),
   `--at=49,12,-90` (the Highland log slope), `--at=15,7,-90` (the Loom Mother),
   `--at=15,7,-90` (the Ashen Warden in his hall), `--map harrowmere --at=28,25,-90 --script "wait:0.2
-  interact"` (Odrin's dialogue box, by the Silent Bell), `--map harrowmere --at=6,26,180 --script "forward:2 interact"`
+  interact"` (Odrin's dialogue box, by the Silent Bell), `--map harrowmere --at=25,22,90 --script
+  "forward:0.6 interact"` (touch the Silent Bell; `world.INTERACT_REACH` lets you reach it from its plinth), `--map harrowmere --at=6,26,180 --script "forward:2 interact"`
   (Corvane; below `--level 5` they stay silent), `--map harrowmere --at=31,4,-90` (the north road's gate),
   `--map harrowmere --at=22,30,-60` (the Bell Square), `--map harrowmere --at=17,6,180` (the cathedral's nave;
   `--at=6,6,180 --script "wait:0.2 interact"` speaks to the Enthroned), `--map harrowmere --at=7,18,180 --script
@@ -102,7 +103,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/world/doors.py` | One-way doors (`door from=`): which side lifts the bar |
 | `src/ashen_vault/world/arena.py` | Boss arenas behind a `door boss=<dead_flag>`: the flood-filled lair, the fight that seals the great door, and the fog (`fog:<map>:<tx>,<tz>`) left after you die in there |
 | `src/ashen_vault/player/burden.py` | Equipment load: each item's `mass` against `capacity(STR)` gives a tier (Light / Medium / Heavy / Overloaded) scaling walk speed, ST refill and every ST cost |
-| `src/ashen_vault/ui/compare.py` | ATK / DEF / Block / Load now and after equipping an item: the Belongings stats panel and the shop show it before you equip or buy |
+| `src/ashen_vault/ui/compare.py` | ATK / DEF / Block / SPL / Load now and after equipping (or taking off) an item or spell: the Belongings stats panel, its slot chooser and the shop show it before you choose |
 | `src/ashen_vault/render/bounds.py` | Measures a model without drawing it (a recording GPU); `models.preview_frame` centres and fits every weapon in its preview with it |
 | `src/ashen_vault/world/hazards.py` | Dungeon traps: floor spikes, pendulum blades, crumbling floors, flame jets, magma vents (whose bombs are `Eruption`s with an `origin`); the bosses' fire eruptions and slam shockwaves |
 | `src/ashen_vault/world/elements.py` | Elements: lightning against `conductive` foes, fire against `fireproof` ones, which weapons burn |
@@ -113,7 +114,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/world/terrain.py` | Terrain: rafts, planks, ledges, rotten floorboards, chain lifts, currents, thorns, chasm and river falls, hard landings, the log rack, spore pods (`World.terrain`) |
 | `src/ashen_vault/world/rest.py` | The shrine rest: timing and the pixelated ember fog pattern drawn while you pray |
 | `src/ashen_vault/ui/smallfont.py` | The small mixed-case pixel font for all game text: menus, dialogue, messages, prompts and the boss bar (`hud.text` draws with it) |
-| `src/ashen_vault/ui/tinyfont.py` | The HUD's tiny fonts: 3x5 `GLYPHS` (the HP/MP/ST labels and numbers, `hud.tiny`) and 3x4 `MICRO` (card labels and the quick item's count, `hud.micro_centered`; only the characters they use) |
+| `src/ashen_vault/ui/tinyfont.py` | The HUD's tiny fonts: 3x5 `GLYPHS` (the HP/MP/ST labels and numbers, `hud.tiny`) and 3x4 `MICRO` (the HUD mouse's PRI / SEC labels and the quick item's count, `hud.micro_centered`; only the characters they use) |
 | `src/ashen_vault/ui/tally.py` | `GoldTally`: the top-right gold counter's bookkeeping (a gain lingers as "+N", then rolls in; spending shows at once). `Game.update` feeds it |
 | `src/ashen_vault/ui/logofont.py` | The logo's 5x7 capitals, shared by `docs/logo/make_logo.py` and big headings (`hud.big`: the title, the death screen) |
 | `src/ashen_vault/ui/belongings.py` | Belongings as data: its tabs, slot marks, the Equipped panel and the slot chooser (Primary / Secondary) |
@@ -211,7 +212,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   toadstools). A `brazier unlit` or `bonfire unlit` stays cold until Pyre or a Flame Bolt kindles it
   (`World.kindle`); it then burns for good under a `lit:<map>:<tx>,<tz>` flag, and its light is added
   to the baked mesh in place (`MeshBuilder.add_light`).
-  Breakables (`barrel`, `crate`, `urn`, `cocoon`) spill loot from `world/loot.py`; a `secret_wall`
+  Breakables (`barrel`, `crate`, `urn`, `cocoon`) spill loot from `world/loot.py` (`loot.roll`); a `secret_wall`
   dissolves when struck (`model=vines top=6` matches the jungle's vine walls; `model=web` is a sheet of
   silk that blades can't cut and only fire burns). `door boss=<dead_flag>` is a boss's great door
   (`models.boss_door`): the arena behind it seals once you are inside with its boss awake, opens when
@@ -243,7 +244,13 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   mouse button) and **Secondary** (`left` = right button) via `SLOT_NAMES`; never say "hand" in text the
   player sees. Each holds a weapon, a shield, the readied spell (`SPELL`) or nothing (a fist), plus
   `body` and `hands` armor. `two_handed` weapons fill both slots and swing from Primary only. The HUD
-  draws the slots as cards (`hud.slot_card`, `quick_card`). A mouse action must never share a name with
+  draws the slots on a mouse in the bottom right (`hud.mouse_hud`: Primary on its left button, Secondary
+  on its right, the quick item on the wheel). HUD spacing comes from `HUD_MARGIN` (screen edge),
+  `HUD_PAD` (inside a box) and `HUD_GAP` (between elements); derive new positions from them. Every
+  box and window is `hud.hud_box` (or `panel`), drawn in whole pixels with `HUD_RADIUS` corners
+  (`HUD_INNER_RADIUS` for a well inside a box); never pass another radius
+  (`test_every_hud_box_shares_the_named_corner_radii`). The
+  compass marks the nearest great door whose boss lives (`World.boss_bearing`). A mouse action must never share a name with
   a movement key (`tests/test_input.py`): `"back"` once did, and a raised shield walked you backward. Items carry a `level` requirement: buying is
   allowed, equipping is not (`Inventory.equip_error`). The first-person arms (`models.weapon_view`)
   take their sleeve and glove looks from `SLEEVES` / `GLOVES`, so new armor needs an entry there; a new
@@ -270,7 +277,11 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 - Besides raylib's cube, sphere, cyl, cone and quad, models can draw `blade` (a lozenge-section slab
   that comes to a point), `lozenge` (the same section, straight) and `wedge` (a triangular prism),
   generated in `render/shapes.py`. Straight swords, the player's and the foes', are `models.blade_parts`
-  (guard styles, pommels, ricasso, fuller, bevelled edges). Enemy anatomy has helpers too: `skull`,
+  (guard styles, pommels, ricasso, fuller, bevelled edges). Axe, cleaver and hammer heads are built with
+  their edge or face on +Z and `models.weapon` turns those in `HEADED` a quarter so it leads along +X,
+  the way swings travel (`test_axe_and_hammer_heads_lead_their_blows`; the jungle's Heartwood Maul
+  is one). Keys and relic sigils draw from
+  `KEY_STYLES` / `SIGILS`, in Belongings and on the ground (`models.pickup`). Enemy anatomy has helpers too: `skull`,
   `ribcage`, `hand`, `sack_hood` and `_bar` (a box between two points).
 - Secret attacks are listed in `weapons.secret()`; performing one adds a `secret:<category>` flag,
   which reveals its name in Belongings and the shop.
@@ -279,16 +290,23 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 - Spells are `player/spells.py` (`Spells.ALL`, their formulas) and are taught by `scroll_<id>` items;
   `Game._cast_spell` dispatches them. Venom Dart and Flame Bolt are bolts (`World.fire_bolt` with an
   `effect`; Thunder Spear is a fast `effect="thunder"` bolt), Arcane Motes are three `homing`
-  projectiles (`World.motes`, steered by `shots.home`), Pyre is a short cone (`World.pyre`), Veil of Mist sets `Player.veil_t` (ordinary foes then
-  notice you only very close; striking or casting anything else lifts it), Lumen sets `lumen_t`. A new
+  projectiles (`World.motes`, steered by `shots.home`), Pyre is a short cone (`World.pyre`)
+  drawn as a `Gout` of flame plus sparks, Veil of Mist sets `Player.veil_t` (ordinary foes then
+  notice you only very close; striking or casting anything else lifts it), Lumen sets `lumen_t`, and Ashen
+  Ward sets `ward_t` (`Game.hurt_player` passes every blow through `Spells.warded`; embers circle the view
+  and the vitals box's trim glows). A spell's
+  `recovery` is how long the magic gauge takes to refill after it (Pyre's is short). A new
   spell also needs a HUD icon (`hud.spell_icon`) and colours in `models.SPELL_GLOW` / `SPELL_ORB`.
 - Shops are `dialogue.SHOPS`: Brannoc's forged steel and armour, Pell's scrolls and salvage, Tamsin's remedies,
   and Corvane's blades in the hut on the town's west edge (Corvane won't talk below `CORVANE_LEVEL`).
   Villagers in `dialogue.GIFTS` hand a newcomer something once (`gift:<id>` flag) and then open their shop,
-  if they keep one.
+  if they keep one. Shops hide gear you own; a chest, pickup or gift holding gear or a scroll you already
+  own pays gold instead (`loot.claim`). No spell scroll, gear or key may be placed twice across maps and
+  gifts (`tests/test_loot.py`): give a new find a new item.
 - Villagers are drawn by `models.npc` from a `world/villagers.Look` (build, clothes, hair, hat, held tool,
   idle); a new villager needs an entry in `villagers.LOOKS`. The Enthroned (`npc id=enthroned`) is its own
-  model, seated on `models.throne`.
+  model, petrified on `models.throne`: all stone, nothing glows but the drifting dust, and their lines
+  whisper from the stone (`dialogue.ENTHRONED_LINES`; the lore is a TODO).
 - Add dependencies with `uv add` (runtime) or `uv add --dev` (tooling), never by hand-editing
   `uv.lock`.
 

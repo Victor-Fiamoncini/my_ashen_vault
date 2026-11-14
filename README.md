@@ -155,7 +155,8 @@ FromSoftware, Inc.
   only. A raised shield stops blows from the front for stamina, and you can still back off and sidestep
   behind it. The best gear needs a higher level.
 - **Armor you can see**: body armor and gauntlets change the sleeves and hands you see in first person.
-- **Spells**: Flame Bolt, Mend and Lumen, paid for with MP once your focus has returned, and three more
+- **Spells**: Flame Bolt, Mend and Lumen, paid for with MP once your focus has returned, Ashen Ward (embers
+  that blunt every blow) in the keep, and three more
   hidden in the hollow: Venom Dart (a sting that keeps eating at its target), Veil of Mist (ordinary foes
   overlook you until you strike) and Pyre (a short gout of fire that burns plants and kindles cold fires),
   and two in the Cinderhold: Thunder Spear (a fast bolt of lightning that bites iron and jolts it) and
@@ -280,15 +281,15 @@ The same list is in the game under **Controls** on the title and pause menus.
 
 ## Tips
 
-- Three cards in the bottom right show your slots: Primary (a mini mouse with its left button lit),
-  your quick item (the mouse with its wheel lit), and Secondary (the right button lit). HP, MP, ST
-  (with their numbers) and a small compass share the bottom-left box. Spell MP costs are listed in
-  Belongings and in the shop.
+- The mouse in the bottom right shows your slots: Primary on its left button, Secondary on its
+  right one and your quick item on the wheel. HP, MP, ST (with their numbers) and a small compass
+  share the bottom-left box; an ember on the compass points to the nearest boss still alive in the
+  area. Spell MP costs are listed in Belongings and in the shop.
 - Your gold shows in the top right corner. Gold you pick up lingers as a "+N" under it for a moment,
   then counts into the total.
-- Your swing damage scales with the **ATK** gauge: the gold bar on your weapon's card. Wait for it to
-  fill and the card to flash before swinging.
-- Spells need your **focus** back as well as enough MP. The cyan bar on the spell's card refills after
+- Your swing damage scales with the **ATK** gauge: the gold bar on your weapon's mouse button. Wait for it to
+  fill and the button to flash before swinging.
+- Spells need your **focus** back as well as enough MP. The cyan bar on the spell's button refills after
   each cast and flashes when you can cast again.
 - Hold a button to charge a **heavy attack**: an orange bar fills over the gauge, then release.
   Heavies cost more ST than light swings, and the bar turns red when you are too winded.
@@ -299,7 +300,9 @@ The same list is in the game under **Controls** on the title and pause menus.
   until it is about a third full. Holding a shield up slows its refill.
 - Your gear has weight. The **Load** line in Belongings shows it against what your STR can carry:
   a Heavy or Overloaded load slows your stride and ST refill and makes every swing cost more.
-  Before you equip or buy, the stats show what would change: green is better, red is worse.
+  Before you equip or buy, the stats show what would change (hover an item, or a slot in the
+  Primary / Secondary chooser): green is better, red is worse. Spells compare their power as **SPL**.
+- Find a copy of gear you already own and it is sold for you on the spot: half its price in gold.
 - A great door guards each boss. Fall in there and only fog remains: the boss can come through it
   after you, but stepping through yourself (E) starts the fight, and there is no leaving until one of
   you falls.
@@ -379,7 +382,7 @@ it, so Claude Code, Codex, Cursor and Copilot all follow the same rules.
 | `src/ashen_vault/world/`, `player/`, `ai/`, `save/` | Game logic with no raylib dependency, covered by `tests/` |
 | `src/ashen_vault/render/` | PS1 shaders, procedural textures, map mesh builder, matrix rig, low-poly models |
 | `src/ashen_vault/game.py` | Scenes and the main loop |
-| `src/ashen_vault/ui/hud.py` | HUD (vitals, compass, the Primary / quick item / Secondary cards, the gold counter), menus and dialogue boxes |
+| `src/ashen_vault/ui/hud.py` | HUD (vitals, compass, the mouse with Primary / quick item / Secondary, the gold counter), menus and dialogue boxes |
 | `src/ashen_vault/ui/tally.py` | How the gold counter holds a fresh "+N" and then counts it in |
 | `src/ashen_vault/ui/smallfont.py`, `ui/logofont.py`, `ui/tinyfont.py` | The pixel font for all game text, the logo's capitals for the title and big headings, and the HUD's tiny capitals and digits |
 | `src/ashen_vault/ui/belongings.py` | What the Belongings menu shows: its tabs and the Primary and Secondary slots |
