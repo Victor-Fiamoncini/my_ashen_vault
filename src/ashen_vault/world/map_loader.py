@@ -165,6 +165,9 @@ class MapLoader:
     def _build_tile(cls, kind, p):
         tile = cls._tile_of_kind(kind, p)
         tile.dark = min(max(float(p.get("dark", "0")), 0.0), 1.0)
+        if "roof" in p:
+            tile.roof = float(p["roof"])
+        tile.roof_tex = p.get("roof_tex")
         return tile
 
     @staticmethod

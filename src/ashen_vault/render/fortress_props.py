@@ -353,10 +353,11 @@ def battlement(r, t, seed, span=8.0):
     """A landmark: a run of curtain wall `span` metres long (along X, centred) whose walk is at y=0,
     standing on the wall below: a crenellated, machicolated parapet over its +Z face, a low rail on
     its -Z side, buttresses down its face and burning slits between them."""
-    r.part("cube", 0, -0.2, 0, span, 0.4, 3.0, STONE_LIGHT)  # the walk
-    r.part("cube", 0, -4.2, 0, span - 0.2, 7.6, 2.6, STONE, tex="black_brick")  # the wall under it
+    # Its back stays within the wall's tile (z >= -1), so nothing juts out over the courts behind.
+    r.part("cube", 0, -0.2, 0.25, span, 0.4, 2.5, STONE_LIGHT)  # the walk
+    r.part("cube", 0, -4.2, 0.2, span - 0.2, 7.6, 2.2, STONE, tex="black_brick")  # the wall under it
     r.part("cube", 0, 0.2, 1.62, span, 1.0, 0.36, STONE)  # the parapet, overhanging the face
-    r.part("cube", 0, 0.25, -1.4, span, 0.5, 0.2, STONE)  # the rail behind
+    r.part("cube", 0, 0.25, -0.88, span, 0.5, 0.2, STONE)  # the rail behind
     n = max(int(span / 1.6), 1)
     for i in range(n + 1):
         x = -span / 2 + 0.3 + i * (span - 0.6) / n

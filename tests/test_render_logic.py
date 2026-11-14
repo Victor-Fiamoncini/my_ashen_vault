@@ -1036,3 +1036,70 @@ def test_iron_door_stands_in_a_frame_that_stays_put():
     assert max(c[1] for c in shut.corners) == pytest.approx(6.0)  # the masonry fills up to the ceiling
     assert max(c[1] for c in raised.corners) <= 6.0 + 1e-6  # the raised leaf hides inside it
     assert ys(0.0, "wood").parts == 1  # the plain slab is unchanged
+
+
+ROOFED = """[meta]
+name = Roofed
+start = 1 4 0
+edge_top = 16
+roofs = true
+
+[legend]
+k = wall tex=black_brick top=16 cap=slate
+# = wall tex=cliff_rock top=8 cap=slate
+. = floor h=0 ceil=6 roof_tex=iron_plate
+, = floor h=0
+
+[grid]
+kkkkk
+#...#
+#...#
+#####
+#,,,#
+"""
+
+
+def _roofed(roofs=True):
+    text = ROOFED if roofs else ROOFED.replace("roofs = true\n", "")
+    return MeshBuilder(MapLoader(text, name="roofed").parse()).build()
+
+
+def test_roofs_close_a_ceilinged_room_seen_from_above():
+    """Under `[meta] roofs`, a ceilinged room has a roof just over its ceiling, the wall rising past it
+    has its face above the roof, and every wall tile is capped, even one walled in by its equals."""
+    b = _roofed()
+    roof = b.batches["iron_plate"].verts
+    assert all(y == pytest.approx(6.6) for y in roof[1::3])
+    assert (2, 0) in b._exposed and (0, 3) in b._exposed  # the tall wall, and a buried wall tile
+    brick = b.batches["black_brick"].verts
+    assert any(y == pytest.approx(6.6) for y in brick[1::3]) and max(brick[1::3]) == pytest.approx(16)
+    assert max(_roofed(roofs=False).batches["black_brick"].verts[1::3]) == pytest.approx(6)  # inside only
+
+
+def test_without_roofs_the_mesh_is_unchanged():
+    b = _roofed(roofs=False)
+    assert "iron_plate" not in b.batches  # no roof
+    assert (2, 0) not in b._exposed  # nothing outside sees the tall wall over the room
+
+
+def test_a_raised_floor_shows_its_side_over_a_lower_wall():
+    """A tower's footing on the wall top (a floor above the wall beside it) is closed down to that wall."""
+    text = """[meta]
+name = Footing
+start = 1 2 0
+edge_top = 4
+
+[legend]
+# = wall tex=cliff_rock top=8
+^ = floor tex=slate h=16 side=black_brick
+, = floor h=0
+
+[grid]
+###
+#^#
+,,,
+"""
+    b = MeshBuilder(MapLoader(text, name="footing").parse()).build()
+    side = b.batches["black_brick"].verts
+    assert min(side[1::3]) == pytest.approx(0) and max(side[1::3]) == pytest.approx(16)
+    assert any(y == pytest.approx(8) for y in side[1::3])  # down to the walls beside it, not only the road

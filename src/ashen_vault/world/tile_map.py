@@ -36,6 +36,10 @@ class Tile:
     lava: bool = False
     # A thin wall (`world/thin_walls.py`): the slab's thickness in metres; None for a full tile.
     thin: float | None = None
+    # The outer face of a ceilinged tile's roof, seen from above on a map with `[meta] roofs = true`
+    # (`roof=` in the legend; the mesh builder defaults it to just over the ceiling).
+    roof: float | None = None
+    roof_tex: str | None = None
 
     @property
     def hazardous(self):

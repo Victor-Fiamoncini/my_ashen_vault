@@ -196,6 +196,10 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   rooms are walled off). Props wholly behind the eye are never drawn (`world.behind_view`).
   A wall standing behind a lower one (a curtain wall behind its cliff, a tower behind its parapet) is
   built where it rises above it (`MeshBuilder._exposed_walls`), so a tall wall can back a low one.
+  `[meta] roofs = true` (the Cinderhold uses it) closes a map seen from above: every ceilinged tile
+  gets a roof (`roof=<h>` in its legend, at least `mesh_builder.ROOF_SLAB` over its ceiling;
+  `roof_tex=`), the walls rising past a roof show their faces above it, and every wall tile is capped.
+  A passage through a wall is roofed at the wall's height (`roof=16`), so the wall runs on over it.
   A wall tile may set `thin=<m>` (the town's houses use 0.5): it stands as a slab that thick, joined to
   its solid neighbours and hugging the side open to the sky, so outlines, roofs and outdoor collision
   stay put while the room inside runs on up to the slab (`world/thin_walls.py`). `TileMap.tile_at` gives

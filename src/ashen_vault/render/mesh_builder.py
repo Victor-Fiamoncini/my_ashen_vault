@@ -102,6 +102,9 @@ WALL_LIGHTS = ("torch", "shelf_fungus", "hearth", "window", "barred_window", "gr
 # Fires that can stand cold (`unlit`) until something kindles them.
 KINDLING = ("brazier", "bonfire")
 DIRS = ((1, 0), (-1, 0), (0, 1), (0, -1))
+# On a map with `[meta] roofs = true`, how far a roof stands over its ceiling at the least: the slab
+# a doorway's lintel is cut from.
+ROOF_SLAB = 0.6
 T = TileMap.TILE
 # Floors that shine by themselves: drawn at full brightness, and they light what is around them.
 GLOWING_FLOORS = ("lava",)
@@ -168,6 +171,7 @@ class MeshBuilder:
         self.lights = list(lights)
         self.ambient = map_.meta.get("ambient", [0.2, 0.2, 0.2])
         self.batches = defaultdict(Batch)
+        self.roofs = map_.meta.get("roofs") == "true"
         self._model_light = {}  # light for models, by spot on a MODEL_LIGHT_GRID
 
     @staticmethod
@@ -273,6 +277,13 @@ class MeshBuilder:
                 self._build_open(tx, tz, tile)
         return self
 
+    def roof(self, tile):
+        """Height of a ceilinged open tile's roof seen from above, on a map with `[meta] roofs = true`
+        (its legend's `roof=`, never less than `ROOF_SLAB` over its ceiling); None anywhere else."""
+        if not self.roofs or tile.solid or tile.ceil is None:
+            return None
+        return max(tile.roof if tile.roof is not None else tile.ceil, tile.ceil + ROOF_SLAB)
+
     def _build_open(self, tx, tz, tile):
         x0 = tx * T
         z0 = tz * T
@@ -280,6 +291,9 @@ class MeshBuilder:
         self._horizontal(tile.floor_tex, x0, z0, tile.floor, 1, 0.85 if tile.liquid else 1.0, glow=glow)
         if tile.ceil is not None:
             self._horizontal(tile.ceil_tex, x0, z0, tile.ceil, -1, 0.75)
+        roof = self.roof(tile)
+        if roof is not None:
+            self._build_roof(tx, tz, tile, roof)
 
         for dx, dz in DIRS:
             nb = self.map[tx + dx, tz + dz]
@@ -289,6 +303,9 @@ class MeshBuilder:
                 top = tile.ceil if tile.ceil is not None else nb.top
                 if top > tile.floor:
                     self._wall(nb.wall_tex, tx, tz, dx, dz, tile.floor, top)
+                elif nb.top < tile.floor:
+                    # A floor raised over a lower wall (a tower's footing on the wall top): its side.
+                    self._wall(tile.wall_tex, tx, tz, dx, dz, nb.top, tile.floor, face_out=True)
             elif nb.floor < tile.floor:
                 # Step face: drawn by the higher tile, facing down into the neighbor.
                 self._wall(tile.wall_tex, tx, tz, dx, dz, nb.floor, tile.floor, face_out=True)
@@ -300,8 +317,28 @@ class MeshBuilder:
                 # A lintel over the way out; in a thin-walled house it rises with the walls beside it.
                 jambs = [j for j in (self.map[tx + dz, tz + dx], self.map[tx - dz, tz - dx]) if j.thin]
                 top = max([tile.ceil + 0.6] + [j.top for j in jambs])
+                if roof is not None:
+                    top = max(top, roof)
                 tex = jambs[0].wall_tex if jambs else tile.wall_tex
                 self._wall(tex, tx, tz, dx, dz, tile.ceil, top, face_out=True)
+
+    def _build_roof(self, tx, tz, tile, roof):
+        """A ceilinged tile's outside, seen from the walls and stairs above it: its roof, and the
+        faces stepping down from it to a lower roof or wall beside it."""
+        tex = tile.roof_tex or tile.wall_tex
+        self._horizontal(tex, tx * T, tz * T, roof, 1, 0.9)
+        for dx, dz in DIRS:
+            nb = self.map[tx + dx, tz + dz]
+            if nb.thin:
+                continue
+            if nb.solid:
+                low = nb.top
+            else:
+                low = self.roof(nb)
+                if low is None:
+                    continue  # open sky: the lintel over the way out closes it
+            if low < roof:
+                self._wall(tile.wall_tex, tx, tz, dx, dz, low, roof, face_out=True)
 
     def _exposed_walls(self):
         """The solid tiles seen from under the open sky: those beside an open-sky floor, and any wall
@@ -310,9 +347,7 @@ class MeshBuilder:
         seen = set()
         todo = []
         for tx, tz, tile in self.map.each_tile():
-            if tile.solid and any(
-                not (nb := self.map[tx + dx, tz + dz]).solid and nb.ceil is None for dx, dz in DIRS
-            ):
+            if tile.solid and any(self._opens_above(tile, self.map[tx + dx, tz + dz]) for dx, dz in DIRS):
                 seen.add((tx, tz))
                 todo.append((tx, tz))
         while todo:
@@ -323,10 +358,21 @@ class MeshBuilder:
                 if key in seen or not (0 <= key[0] < self.map.width and 0 <= key[1] < self.map.depth):
                     continue
                 nb = self.map[key]
-                if nb.solid and nb.top > top:
+                # Under roofs every wall can be looked down on, so a whole block gets its caps.
+                if nb.solid and (nb.top > top or (self.roofs and nb.top == top)):
                     seen.add(key)
                     todo.append(key)
         return seen
+
+    def _opens_above(self, wall, nb):
+        """Whether the wall's side toward `nb` can be seen from out under the sky: an open-sky floor
+        beside it, or (with roofs) a roof lower than its top."""
+        if nb.solid:
+            return False
+        if nb.ceil is None:
+            return True
+        roof = self.roof(nb)
+        return roof is not None and roof < wall.top
 
     def _build_solid(self, tx, tz, tile):
         if (tx, tz) not in self._exposed:
@@ -334,9 +380,10 @@ class MeshBuilder:
         self._horizontal(tile.floor_tex, tx * T, tz * T, tile.top, 1, 0.9)
         for dx, dz in DIRS:
             nb = self.map[tx + dx, tz + dz]
-            if not (nb.solid and nb.top < tile.top):
-                continue
-            self._wall(tile.wall_tex, tx, tz, dx, dz, nb.top, tile.top, face_out=True)
+            if nb.solid and nb.top < tile.top:
+                self._wall(tile.wall_tex, tx, tz, dx, dz, nb.top, tile.top, face_out=True)
+            elif not nb.solid and not nb.thin and (roof := self.roof(nb)) is not None and roof < tile.top:
+                self._wall(tile.wall_tex, tx, tz, dx, dz, roof, tile.top, face_out=True)  # over a roof
 
     def _build_thin(self, tx, tz, tile):
         """A thin wall (`world/thin_walls.py`): its slab's faces and cap, and its margins' floors and

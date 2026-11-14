@@ -12,6 +12,7 @@ default = ,
 edge_top = 16
 edge_tex = black_brick
 entity_floor = auto
+roofs = true
 
 [legend]
 K = wall tex=black_brick top=16 cap=slate
@@ -27,16 +28,18 @@ r = wall tex=black_brick top=1.0 cap=black_brick
 _ = floor tex=lava h=-8 side=cliff_rock chasm
 ^ = floor tex=slate h=16 side=black_brick
 $ = floor tex=flagstone h=3 side=black_brick
-. = floor tex=iron_plate h=0 ceil=6 ceil_tex=black_brick side=black_brick
+. = floor tex=iron_plate h=0 ceil=6 ceil_tex=black_brick side=black_brick roof_tex=slate
+// The passages through the great wall: the wall runs on unbroken over them.
+; = floor tex=iron_plate h=0 ceil=6 ceil_tex=black_brick side=black_brick roof=16 roof_tex=slate
 : = floor tex=slag h=0 side=black_brick
-g = floor tex=iron_grate h=0 ceil=6 ceil_tex=black_brick side=black_brick
-l = floor tex=lava h=-1 ceil=6 ceil_tex=black_brick side=black_brick lava
+g = floor tex=iron_grate h=0 ceil=6 ceil_tex=black_brick side=black_brick roof_tex=slate
+l = floor tex=lava h=-1 ceil=6 ceil_tex=black_brick side=black_brick lava roof_tex=slate
 R = floor tex=flagstone h=6 side=black_brick
-+ = floor tex=flagstone h=6 ceil=10.4 ceil_tex=black_brick side=black_brick
++ = floor tex=flagstone h=6 ceil=10.4 ceil_tex=black_brick side=black_brick roof_tex=slate
 o = floor tex=slate h=12 side=black_brick
-s = floor tex=slag h=-3.8 ceil=0.2 ceil_tex=black_brick side=black_brick dark=0.6
-v = floor tex=lava h=-4.8 ceil=0.2 ceil_tex=black_brick side=black_brick lava
-| = floor tex=iron_grate h=-3.8 ceil=6 ceil_tex=black_brick side=black_brick chasm
+s = floor tex=slag h=-3.8 ceil=0.2 ceil_tex=black_brick side=black_brick dark=0.6 roof_tex=slate
+v = floor tex=lava h=-4.8 ceil=0.2 ceil_tex=black_brick side=black_brick lava roof_tex=slate
+| = floor tex=iron_grate h=-3.8 ceil=6 ceil_tex=black_brick side=black_brick chasm roof_tex=slate
 a = floor tex=flagstone h=0.5 side=black_brick
 b = floor tex=flagstone h=1 side=black_brick
 c = floor tex=flagstone h=1.5 side=black_brick
@@ -60,12 +63,12 @@ z = floor tex=flagstone h=9.5 side=black_brick
 8 = floor tex=flagstone h=10.5 side=black_brick
 9 = floor tex=flagstone h=11 side=black_brick
 ! = floor tex=flagstone h=11.5 side=black_brick
-1 = floor tex=slag h=-0.55 ceil=3 ceil_tex=black_brick side=black_brick dark=0.1
-2 = floor tex=slag h=-1.1 ceil=3 ceil_tex=black_brick side=black_brick dark=0.2
-3 = floor tex=slag h=-1.65 ceil=3 ceil_tex=black_brick side=black_brick dark=0.3
-4 = floor tex=slag h=-2.2 ceil=3 ceil_tex=black_brick side=black_brick dark=0.4
-5 = floor tex=slag h=-2.75 ceil=3 ceil_tex=black_brick side=black_brick dark=0.5
-6 = floor tex=slag h=-3.3 ceil=3 ceil_tex=black_brick side=black_brick dark=0.6
+1 = floor tex=slag h=-0.55 ceil=3 ceil_tex=black_brick side=black_brick dark=0.1 roof_tex=slate
+2 = floor tex=slag h=-1.1 ceil=3 ceil_tex=black_brick side=black_brick dark=0.2 roof_tex=slate
+3 = floor tex=slag h=-1.65 ceil=3 ceil_tex=black_brick side=black_brick dark=0.3 roof_tex=slate
+4 = floor tex=slag h=-2.2 ceil=3 ceil_tex=black_brick side=black_brick dark=0.4 roof_tex=slate
+5 = floor tex=slag h=-2.75 ceil=3 ceil_tex=black_brick side=black_brick dark=0.5 roof_tex=slate
+6 = floor tex=slag h=-3.3 ceil=3 ceil_tex=black_brick side=black_brick dark=0.6 roof_tex=slate
 
 [grid]
 KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK
@@ -160,15 +163,15 @@ E = embers
 // and a stubby beacon tower; the keep rises behind them, and molten iron pours into the moat.
 Ë = smokestack height=18 on=^
 Ê = bastion top=6 radius=2.2 on=^
-É = bastion base=6.2 top=14 radius=2.6 on=.
-È = gatehouse on=.
+É = bastion base=6.2 top=14 radius=2.6 on=;
+È = gatehouse on=;
 Ò = spire height=14 width=2.2 on=^
 Ì = smokestack height=10 on=^
 Ø = spire height=7 width=2.8 roof=flat on=^
 Í = keep on=~
 Î = lavafall top=22 spout=gargoyle on=_
-G = gate lever=hold_gate
-Ó = door model=iron
+G = gate lever=hold_gate on=;
+Ó = door model=iron on=;
 // The gatehouse: a shrine, and the winch that raises the main gate.
 Ô = save_statue
 Õ = lever id=hold_gate
