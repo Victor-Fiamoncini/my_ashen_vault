@@ -154,7 +154,8 @@ def sword_parts(r, length, width, steel, grip=(60, 40, 28), guard=IRON, glow=Fal
 
 
 def _dim(rgb, k=0.7):
-    return tuple(rround(c * k) for c in rgb)
+    """`rgb` scaled by `k` (a k over 1 brightens it), each channel kept within 0..255."""
+    return tuple(min(rround(c * k), 255) for c in rgb)
 
 
 def death_fall(e, time=0.6):
@@ -2319,13 +2320,6 @@ def well(r):
     r.part("cube", 0, 0.05, 0, 1.2, 0.05, 1.2, (10, 12, 14))
 
 
-def tree(r, seed):
-    h = 2.6 + (seed % 5) * 0.3
-    r.part("cyl", 0, h * 0.35, 0, 0.32, h * 0.7, 0.32, (84, 60, 40))
-    r.part("cone", 0, h * 0.75, 0, 2.4, h * 0.7, 2.4, (44, 74, 40))
-    r.part("cone", 0, h * 1.1, 0, 1.7, h * 0.55, 1.7, (52, 86, 46))
-
-
 def jungle_tree(r, seed, t):
     """Broad-leaved tree with buttress roots and hanging vines."""
     h = 3.4 + (seed % 4) * 0.35
@@ -3131,7 +3125,7 @@ def sconce(r, t):
 
 
 def banner(r, t, seed):
-    """A tattered banner hung from a pole on the wall at local -X."""
+    """A tattered banner of the realm hung from a pole on the wall at local -X, its crest in gold thread."""
     sway = math.sin(t * 0.7) * 0.03
     r.part("cyl", -0.9, 2.55, 0, 0.05, 1.0, 0.05, (70, 50, 32), rx=math.pi / 2)
     for end in (-0.5, 0.5):
@@ -3141,21 +3135,69 @@ def banner(r, t, seed):
         r.part("cube", 0, -0.75, 0, 0.03, 1.5, 0.8, cloth)
         for i, z in enumerate((-0.3, -0.1, 0.1, 0.3)):  # ragged hem
             r.part("cube", 0, -1.55 - (i % 2) * 0.08, z, 0.03, 0.2 + (i % 2) * 0.12, 0.16, cloth)
-        ember_crest(r, (200, 180, 140))
+        realm_crest(r, (210, 180, 110))
 
 
-def ember_crest(r, rgb):
-    """The keep's crest, stitched on its banners: a teardrop flame (the ember) held inside a ring,
-    with three sparks rising above it. Drawn flat on the cloth (its face is +X)."""
-    cy = -0.82
-    r.part("sphere", 0.02, cy - 0.06, 0, 0.02, 0.17, 0.17, rgb)  # the flame's round belly
-    r.part("cone", 0.02, cy + 0.08, 0, 0.02, 0.3, 0.17, rgb)  # and its pointed tongue
-    r.part("sphere", 0.025, cy - 0.06, 0, 0.02, 0.07, 0.07, (40, 30, 30))  # its dark heart
-    for i in range(12):  # the ring
-        a = i * math.pi / 6
-        r.part("cube", 0.02, cy + math.cos(a) * 0.27, math.sin(a) * 0.27, 0.02, 0.05, 0.15, rgb, rx=a)
-    for z, y in ((-0.16, -0.38), (0.0, -0.32), (0.16, -0.38)):  # sparks
-        r.part("cube", 0.02, y, z, 0.02, 0.06, 0.06, rgb, rx=0.785)
+def realm_crest(r, rgb, cy=-0.82, scale=1.0, through=0.0):
+    """The realm's crest, stitched on its banners and carved over its doors: a lone watchtower standing
+    dark against a sun half sunk below the sea's horizon, rays fanning above, waves beneath, all
+    inside a heater shield's border. Drawn flat on a face toward +X, centred `cy` up it, in the thread
+    colour `rgb` (the tower in its shadow). With `through` (a thickness), it is drawn as a slab that
+    thick centred on x = 0 instead, so one crest shows on both faces of a cloth or a block."""
+    k = scale
+    dark = _dim(rgb, 0.32)
+    x0, depth = (0.0, through) if through else (0.02, 0.02)
+
+    def flat(lift, y, z, w, h, rgb_, rx=0.0):
+        r.part(
+            "cube",
+            x0 + lift * (0 if through else 1),
+            cy + y * k,
+            z * k,
+            depth + lift * 2,
+            h * k,
+            w * k,
+            rgb_,
+            rx=rx,
+        )
+
+    # The shield: a straight top, upright sides and two edges sweeping in to its point.
+    flat(0, 0.42, 0, 0.62, 0.04, rgb)
+    for side in (-1, 1):
+        flat(0, 0.17, side * 0.29, 0.04, 0.5, rgb)
+        flat(0, -0.28, side * 0.15, 0.04, 0.42, rgb, rx=side * 0.62)
+    # The horizon, and the sun sinking into it: a half disc built up in thin courses.
+    flat(0, 0.0, 0, 0.5, 0.035, rgb)
+    radius = 0.19
+    for i in range(4):
+        y = 0.04 + i * 0.045
+        half = math.sqrt(max(radius * radius - (y - 0.02) ** 2, 0.0))
+        flat(0.001, y, 0, half * 2, 0.047, rgb)
+    for i in range(5):  # its rays
+        a = math.pi * (i + 1) / 6
+        r.part(
+            "cube",
+            x0,
+            cy + math.sin(a) * 0.27 * k,
+            math.cos(a) * 0.27 * k,
+            depth,
+            0.08 * k,
+            0.024 * k,
+            rgb,
+            rx=math.pi / 2 - a,
+        )
+    # The watchtower before the sun: a tapering body, a jutting parapet, three merlons, a lit slit.
+    flat(0.01, 0.08, 0, 0.12, 0.16, dark)
+    flat(0.01, 0.2, 0, 0.1, 0.1, dark)
+    flat(0.01, 0.265, 0, 0.14, 0.03, dark)
+    for z in (-0.05, 0.0, 0.05):
+        flat(0.01, 0.3, z, 0.028, 0.04, dark)
+    flat(0.015, 0.17, 0, 0.02, 0.05, rgb)  # the window slit, lit by the sun behind
+    # Two waves under the horizon.
+    for row, y in enumerate((-0.07, -0.14)):
+        for i in range(3 - row):
+            z = (-0.12 + i * 0.12) if row == 0 else (-0.06 + i * 0.12)
+            flat(0, y, z, 0.1, 0.022, rgb, rx=0.35 if i % 2 else -0.35)
 
 
 def rack(r, seed):

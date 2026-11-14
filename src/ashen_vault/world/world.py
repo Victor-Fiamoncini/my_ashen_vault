@@ -161,9 +161,16 @@ BLOCKING_PROPS = (
     "pew",
     "bed",
     "cupboard",
-    "stall",
     "fence",
     "lamp_post",
+    "banner_pole",
+    "fountain",
+    "tree",
+    "bench",
+    "hand_cart",
+    "hay_wagon",
+    "cargo",
+    "flying_buttress",
 )
 # How high a low blocking prop reaches above its floor, in metres: a shot flying higher passes over it
 # (a bolt over a table, a casket or a barrel). Anything not listed stands full height.
@@ -186,6 +193,10 @@ PROP_TOP = {
     "crate": 1.5,  # sometimes a second crate stands on the first
     "urn": 0.85,
     "cocoon": 0.95,
+    "bench": 0.55,
+    "hand_cart": 1.2,
+    "hay_wagon": 1.8,
+    "cargo": 1.2,
 }
 # Props that block only until they are broken or revealed.
 BREAKABLE_PROPS = ("barrel", "crate", "urn", "cocoon", "secret_wall")
@@ -208,6 +219,12 @@ WALL_PROPS = (
     "barred_window",
     "tool_rack",
     "great_window",
+    "crest_plaque",
+    "shutters",
+    "balcony",
+    "stained_window",
+    "rose_window",
+    "flying_buttress",
 )
 # Props drawn as far as the fog lets you see, however far that is: they make a skyline.
 LANDMARKS = (
@@ -222,9 +239,16 @@ LANDMARKS = (
     "roof",
     "silent_bell",
     "cathedral_spire",
+    "cathedral_tower",
+    "banner_pole",
 )
+# How far up its wall a hung town prop is set, in metres, unless its entity says `rise=`.
+RISE = {"rose_window": "6", "crest_plaque": "3", "shutters": "1.7", "balcony": "3.6"}
 # Props that turn to face into the room.
-FACING_PROPS = ("chest", "altar", "table", "stall", "bed", "cupboard", "gargoyle_statue", "forge_hearth")
+FACING_PROPS = (
+    *("chest", "altar", "table", "bed", "cupboard", "gargoyle_statue", "forge_hearth"),
+    *("bench", "hand_cart", "hay_wagon"),
+)
 # Harrowmere's buildings, furniture and street dressing (`render/town_models.py`).
 TOWN_PROPS = (
     "roof",
@@ -236,10 +260,23 @@ TOWN_PROPS = (
     "cupboard",
     "shelf",
     "hearth",
-    "stall",
     "fence",
     "lamp_post",
     "boat",
+    "banner_pole",
+    "crest_plaque",
+    "shutters",
+    "balcony",
+    "door_arch",
+    "cathedral_tower",
+    "flying_buttress",
+    "stained_window",
+    "rose_window",
+    "fountain",
+    "bench",
+    "hand_cart",
+    "hay_wagon",
+    "cargo",
 )
 HAZARD_KINDS = ("spikes", "pendulum", "crumble", "flame_jet", "magma_vent")
 FALL_DAMAGE = 25
@@ -402,6 +439,8 @@ class World:
                     yaw = self.map.open_facing(spec.tx, spec.tz)
             if spec.kind == "chest":
                 x, z = self.map.seated(spec.tx, spec.tz, yaw)
+            elif wall_yaw is not None or spec.kind in FACING_PROPS:
+                x, z = self.map.backed(spec.tx, spec.tz, yaw)  # against a thin wall's slab
             if spec.kind in HAZARD_KINDS:
                 self.hazards.append(self._make_hazard(spec))
             elif not EnemyTypes.has(spec.kind) and spec.kind not in terrain.TERRAIN_KINDS:
@@ -1734,8 +1773,11 @@ class World:
             models.meat_hooks(rig, t, p.tx * 3 + p.tz, self._ceil_h(p))
         elif k == "save_statue":
             models.save_statue(rig, t)
-        elif k == "tree":
-            models.tree(rig, p.tx * 7 + p.tz)
+        elif k == "tree":  # `kind=cypress|pine|olive`, or one picked by the tile
+            seed = p.tx * 7 + p.tz
+            kind = p.props.get("kind", town_models.TREE_KINDS[seed % len(town_models.TREE_KINDS)])
+            near = math.hypot(p.x - self.player.x, p.z - self.player.z) < DETAIL_RANGE
+            town_models.town_tree(rig, kind, seed, t, near)
         elif k == "jungle_tree":
             models.jungle_tree(rig, p.tx * 7 + p.tz, t)
         elif k == "fungus":
@@ -1853,11 +1895,57 @@ class World:
                 pitch=float(p.props.get("pitch", "2.4")),
                 tex=p.props.get("tex", "roof"),
                 wall_tex=p.props.get("wall", "timber"),
+                eave=float(p.props.get("eave", "0.35")),
             )
         elif k == "silent_bell":
             town_models.silent_bell(rig, t)
-        elif k == "cathedral_spire":
-            town_models.cathedral_spire(rig, float(p.props.get("height", "18")))
+        elif k == "cathedral_spire":  # `base=` lifts it onto the roof's ridge
+            with rig.at(0, float(p.props.get("base", "0")), 0):
+                town_models.cathedral_spire(rig, float(p.props.get("height", "18")))
+        elif k == "cathedral_tower":  # `shift=dx,dz` centres it over the tiles it stands on
+            dx, dz = (float(v) for v in p.props.get("shift", "0,0").split(","))
+            with rig.at(dx, 0, dz):
+                town_models.cathedral_tower(
+                    rig,
+                    float(p.props.get("height", "15")),
+                    float(p.props.get("width", "3.8")),
+                    "turret" not in p.props,
+                    float(p.props.get("helm", "7")),
+                )
+        elif k == "flying_buttress":
+            town_models.flying_buttress(rig, seed, float(p.props.get("top", "9")))
+        elif k == "stained_window":
+            town_models.stained_window(rig, seed)
+        elif k in ("rose_window", "crest_plaque", "shutters", "balcony"):  # `rise=` sets it up the wall
+            with rig.at(0, float(p.props.get("rise", RISE[k])), 0):
+                if k == "rose_window":
+                    town_models.rose_window(rig, seed)
+                elif k == "crest_plaque":
+                    town_models.crest_plaque(rig, seed)
+                elif k == "shutters":
+                    town_models.shutters(rig, seed, "flowers" in p.props)
+                else:
+                    town_models.balcony(rig, seed)
+        elif k == "door_arch":
+            town_models.door_arch(
+                rig,
+                seed,
+                float(p.props.get("height", "3.2")),
+                float(p.props.get("spring", "2.2")),
+                "rose" in p.props,
+            )
+        elif k == "banner_pole":
+            town_models.banner_pole(rig, t, seed)
+        elif k == "fountain":
+            town_models.fountain(rig, t, seed)
+        elif k == "bench":
+            town_models.bench(rig, seed)
+        elif k == "hand_cart":
+            town_models.hand_cart(rig, seed)
+        elif k == "hay_wagon":
+            town_models.hay_wagon(rig, seed)
+        elif k == "cargo":
+            town_models.cargo(rig, seed)
         elif k == "pew":
             town_models.pew(rig, seed)
         elif k == "window":
@@ -1870,8 +1958,6 @@ class World:
             town_models.shelf(rig, seed)
         elif k == "hearth":
             town_models.hearth(rig, t + p.tx)
-        elif k == "stall":
-            town_models.stall(rig, seed, t)
         elif k == "fence":
             town_models.fence(rig, seed)
         elif k == "lamp_post":

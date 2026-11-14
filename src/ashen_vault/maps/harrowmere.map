@@ -3,6 +3,7 @@ name = Harrowmere
 ambient = 0.62 0.58 0.62
 fog = 0.42 0.46 0.55
 fog_range = 12 56
+model_range = 40
 sky = overcast
 torch = 0 0 0 0
 start = 20 44 -90
@@ -10,7 +11,8 @@ default = ,
 edge_top = -0.5
 entity_floor = auto
 
-// Harrowmere climbs from its harbour to the cathedral on the hill. The pier where the morning boat
+// Harrowmere climbs from its harbour to the cathedral on the hill, a town of sun-warmed sandstone and
+// ochre render under terracotta roofs, paved in cobbles and setts. The pier where the morning boat
 // puts in, the quay and the market lanes; the Bell Square at the heart of town with the Silent Bell on
 // its plinth; the sunken court of the old well (down into the Sunken Keep) east of it, and the watch
 // house by the gap in the wall where the green trail leaves for the cave; Brannoc's forge and
@@ -20,13 +22,15 @@ entity_floor = auto
 [legend]
 R = wall tex=rough_stone top=7 cap=grass
 A = wall tex=cliff_rock top=6 cap=grass
-H = wall tex=timber top=4.2 cap=roof
-J = wall tex=plaster top=4.2 cap=roof
+H = wall tex=ashlar top=5.6 cap=roof thin=0.5
+J = wall tex=stucco top=5.6 cap=roof thin=0.5
 C = wall tex=rough_stone h=2 top=11 cap=slate
 P = wall tex=flagstone top=0.8 cap=flagstone
 _ = wall tex=rough_stone top=2.2 cap=cobble
 , = floor tex=grass h=0
 . = floor tex=cobble h=0
+s = floor tex=setts h=0
+q = floor tex=cobble_moss h=0
 - = floor tex=dirt h=0
 ; = floor tex=grass h=2 side=rough_stone
 = = floor tex=flagstone h=2 side=rough_stone
@@ -51,46 +55,46 @@ c = floor tex=rough_stone h=0 ceil=3.4 ceil_tex=cliff_rock side=cliff_rock dark=
 
 [grid]
 RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRAAAAAAAAAAAAAA
-R;;;;;;;;;;;Ú;;;;;;;;;;;;,,,,,,N,,,,AAAAAAAAAARAAAAAAAAAAAAAA
-R;Ú;;;;;;;;;;;;;;;;;;;;Ú;,,,,,,-,T,,AAAAAAAAAARAAAAAAAAAAAAAA
-R;;ÉCCCCCCCCCCCCCCCÊ;;;;;,,,,,,-,,,,AAAAAAAAAARAAAAAAAAAAAAAA
-R;;CDaYnnOnnOnnOnnnCË==Ë;,,,,,,-,,,TAAAAAAAAAARAAAAAAAAAAAAAA
-R;;CaannIQQIQQIQQInC====;,,,,,,-,,,,AAAAAAAAAARAAAAAAAAAAAAAA
-R;;CaEÓnnnnnnnnnnnnn====;,,,,,,-X,,,AAAAAAAAAARAAAAAAAAAAAAAA
-R;;CaannIQQIQQIQQInC====;,,-----,,,,,,AAAAAAAARAAAAAAAAAAAAAA
-R;;CDaYenOnnOnnOnnnCË==Ë;,,-,,,,,,,,,,AAAAAAAARAAAAAAAAAAAAAA
-R;;CCCCCCCCCCCCCCCCC;==;;,,-|,,,ÆHHHHH,,,,,,,,RAAAAAAAAAAAAAA
-R;;;;;;;;;;;;;;;;;;;;44;;T,-|,,,H%ii+H,ÈJJJJJ,RAAAAAAAAAAAAAA
-R;Ú;;;;;;;Ú;;;;;;;Ú;;33;;,,-|,,,iiiiiH,J+ii&J,RAAAAAAAAAAAAAA
-R;;;;;Ú;;;;;;;Ú;;;;;;22;;,,-|,,,HiÒiiH,JiiiiJ,RAAAAAAAAAAAAAA
-R;;;;;;;;;;;;;;;;;;;;11;;,,----,Hiii$H,JÒiiiJ,RAAAAAAAAAAAAAA
-R,,,,,,,,,,,,,,,,,,,,..,ÅJJJJ,-,HHHHHH,Jiii$J,RAAAAAAAAAAAAAA
-R,,ÀHHHHHH,,,,,,T,,,,..,J+i$J,-,,,,,,,,JJiJJJ,RAAAAAAAAAAAAAA
-R,,HkkkkÏH,,,,,,,,,,,..,JiiiJ,-,,,T,,,,,,,,,,,RAAAAAAAAAAAAAA
-R,,H$kkkkk.,T,,,,,,,,..,Jii&J,-,,,________,T,,RAAAAAAAAAAAAAA
-R,,Hkkbkkk.,,,,,,,,,,..,JJiJJ,-,,,_tooooo_,,,,RAAAAAAAAAAAAAA
-R,,HÍkÌkkk.,,,,,,,...............,_oooooo_,,,,RAAAAAAAAAAAAAA
-R,,HkkkkÎk.,,,,,,,.X...........X..5oooWooÇHHHHRAAAAAAAAAAAAAA
-R,,ÑHHHHHH.,,,,,,,...............,_ooooooH+iiHRAAAAAAAAAAAAAA
-R,,,,,T,,,.......................,_oooogÏHiiÍHRVVVVVVVVAAAAAA
-R,,,,,,,,,..............PPP......,_______HLiiHRwUwvvwwVAAAAAA
-RÁHHHH,,,-,,,,,,,,......PBP.M....,,,,,,,,HiiÍHRwwwvvwwVAAAAAA
-RHiLiH,,,-,,,,,,,,......PPP......,,,,,T,,HÒiiHRwwVVVwwVAAAAAA
-RHZiii----,,,T,,,,...S...........,,,,,,,,HiiiHRwõVAVwwVAAAAAA
-RHiiÏH,,,,,,,,,,,,...............-----,,,HHiHHRwwVAVwUVAAAAAA
-RHHHHH,,,,,,,,T,,,.X...........X.-----------h-RvvVAVwwVAAAAAA
-R,,,,,,,,,,,,,,,,,...............,,,,---------vvvVAVwwVVVVVAA
-R,,,ÂHHHHH,,,,,,,,,,,..X,,,,,,,,.....---------vvöVAVwwVVyxcKA
-R,T,H%iiLH,,ÃJJiJJJJ,..,,.......,,ÄHiHHH,,,,,,RVVVAVwwVVyyVAA
-R,,,HiiÒiH,,JLiii%iJ,..,,.#.#.#.,,H%iiLH,,,,,,RAAAAVwõVVFyVAA
-R,,,H&imii..JiiiiliJ,...........,,HiidiH,,RRRRRAAAAVwwyyyyVAA
-R,,,HiiÒiH..JiÒiiiiJ,,..........,,H%iiiH,,RRRRRAAAAVUwyzyyVAA
-RRR,H%iiiH,,J$iiÒiÏJ,,..........,,HiÒi$H,,RRRRRAAAAVVVVVVVVAA
-RRR,HHHHHH,,JiiiiiÏJ......Ð.....,,HHHHHH,,RRRRRAAAAAAAAAAAAAA
-RRR,,,,,,,,,JJJJJJJJ....,......Ï,,,,,,,,T,RRRRRAAAAAAAAAAAAAA
-RRR,,,,,T,,,,,,,,,,,....,,,,,,,,,,,,,,,,,,RRRRRAAAAAAAAAAAAAA
-RRR-------X-------------------X-----------RRRRRAAAAAAAAAAAAAA
-RRR--------------Ð------------------------RRRRRAAAAAAAAAAAAAA
+R;;;;;;;;;;;;;;;;;;;;;;;;,,,,,ßNß,,,AAAAAAAAAARAAAAAAAAAAAAAA
+R;Ú;;;;í;ìí;ìí;ìí;;CC;;Ú;,,,,,ÞsÞù,,AAAAAAAAAARAAAAAAAAAAAAAA
+R;;ÉCCCCCCCCCCCCCCCèC;;;;,,,,,,s,,,,AAAAAAAAAARAAAAAAAAAAAAAA
+R;;êDaYnnOðnOñnOnnnCË==Ë;,,,,ù,s,ù,ùAAAAAAAAAARAAAAAAAAAAAAAA
+R;;CaannIQQIQQIQQInC====;,,,,,,s,,,,AAAAAAAAAARAAAAAAAAAAAAAA
+R;;CîEÓnnnnÊnnnnnnnï====;,,,,,,sX,,,AAAAAAAAAARAAAAAAAAAAAAAA
+R;;CaannIQQIQQIQQInC====;qqsssss.qqq..AAAAAAAARAAAAAAAAAAAAAA
+R;;ëDaYenOònOónOnnnCË==Ë;q.s......à.á.AAAAAAAARAAAAAAAAAAAAAA
+R;;CCCCCCCCCCCCCCCCéC==;;,qs|...ÆHHHHH...á.à..RAAAAAAAAAAAAAA
+R;;;;;;í;ìí;ìí;ìí;;CC44;;ù,s|...H%ii+H.ÈJJJJJ.RAAAAAAAAAAAAAA
+R;Ú;;;;;;;Ú;;;;;;;Ú;;33;;,qs|...çiiiiH.J+ii&J.RAAAAAAAAAAAAAA
+R;;;;;Ú;;;;;;;Ú;;;;;;22Ú;q.s|...HiÒiiHâJiiiiJâRAAAAAAAAAAAAAA
+R;;;;;;;;;Ú;;;;;;;;;;11;;..ssss.Hiii$H.JÒiiiJ.RAAAAAAAAAAAAAA
+R....á.à.......q,q...ss.ÅJJJJ.s.HHHHHH.Jiii$J.RAAAAAAAAAAAAAA
+R..ÀHHHHHH..q.q,T,q..ssàJ+i$Jás..q,q...JJåJJJ.RAAAAAAAAAAAAAA
+R..HkkkkÏH.q,q.q,q...ssDJiiiJ.sÜq,T,q.....q,q.RAAAAAAAAAAAAAA
+R..H$kkkkkq,T,q.q....ss.Jii&J.s..q________,ø,qRAAAAAAAAAAAAAA
+R..Hkkbkkk.q,q.......ss.JJåJJ.s..._tooooo_q,q.RAAAAAAAAAAAAAA
+R..HÍkÌkkk..q.....sssssssssssssss._oooooo_.q..RAAAAAAAAAAAAAA
+R..HkkkkÎk........sXsssssssssssXs.5oooWooÇHHHHRAAAAAAAAAAAAAA
+R..ÑHHHHHH........sssssssssssssss._ooooooH+iiHRAAAAAAAAAAAAAA
+R...q,T,â.........sssssssssssssss._oooogÏHiiÍHRVVVVVVVVAAAAAA
+R..à.q,q...qqqqqq.ssssssPPPssssss._______HLiiHRwUwvvwwVAAAAAA
+RÁHHHHq..-q,,,,,,qÞsssssPBPsMsssÞ....q,qàHiiÍHRwwwvvwwVAAAAAA
+RHiLiH...-q,,,,,,qssssssPPPsssssÛ...q,ø,qHÒiiHRwwVVVwwVAAAAAA
+RHZiiä----q,,T,,,qsssSsssssssssss....q,qáHiiiHRwõVAVwwVAAAAAA
+RHiiÏH....q,,,,,,qsssssssssssssss-----q..HHåHHRwwVAVwUVAAAAAA
+RHHHHH.....qq,T,q.sXsssssssssssXs-----------h-RvvVAVwwVAAAAAA
+R.qá..à......q,q..sssssssssssssss....---------vvvVAVwwVVVVVAA
+Rq,qÂHHHHH...àq..â..ss.X....Ø......à.-à-------vvöVAVwwVVyxcKA
+R,ø,H%iiLHá.ÃJJæJJJJss............ÄHæHHH......RVVVAVwwVVyyVAA
+Rq,qHiiÒiH..JLiii%iJss....Õ.Ô.Ö..DH%iiLH......RAAAAVwõVVFyVAA
+R.q.H&imiä..JiiiiliJás............HiidiH..RRRRRAAAAVwwyyyyVAA
+R...HiiÒiH..JiÒiiiiJDs......Ù....áH%iiiH..RRRRRAAAAVUwyzyyVAA
+RRR.H%iiiHâ.J$iiÒiÏJss............HiÒi$Hq.RRRRRAAAAVVVVVVVVAA
+RRRqHHHHHH..JiiiiiÏJss....Ð.......HHHHHH,qRRRRRAAAAAAAAAAAAAA
+RRR,,,,,,q..JJJJJJJJss.........Ï......q,ø,RRRRRAAAAAAAAAAAAAA
+RRR,,,,,ø,q.........ss.................q,qRRRRRAAAAAAAAAAAAAA
+RRRqqqqqqqX.........ss..Ý.....X.........q.RRRRRAAAAAAAAAAAAAA
+RRR.........Ý....Ð.ÞssÞÝ..Û...............RRRRRAAAAAAAAAAAAAA
 R~~~~~~~~~~~~~~~~~~~pp~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
 R~~~~~~~~~~~~~~~~~~~pp~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
 R~~~~~~~~~@~~~~~~~~~pp~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
@@ -120,9 +124,23 @@ E = npc id=enthroned yaw=0 on=a
 B = silent_bell on=P
 S = save_statue
 X = lamp_post
-// The cathedral: its roof and spire, pillars, pews facing the throne, windows, candles and banners.
+// The cathedral: its roof, the spire over the crossing, twin towers at the west front and two
+// turrets at the apse, flying buttresses, stained glass within and without, a rose window over the
+// door and another above the throne, pillars, pews facing the throne, candles and banners.
 É = roof span=17,7 ridge=x top=9 pitch=3.5 tex=slate wall=rough_stone on=C
-Ê = cathedral_spire height=15 on=C
+Ê = cathedral_spire height=15 base=11 on=n
+è = cathedral_tower height=15 shift=1,-1 on=C
+é = cathedral_tower height=15 shift=1,1 on=C
+ê = cathedral_tower height=10 width=2.2 helm=4 turret shift=0,-2 on=C
+ë = cathedral_tower height=10 width=2.2 helm=4 turret shift=0,2 on=C
+ï = door_arch yaw=0 height=8 spring=3.4 rose on=n
+î = rose_window rise=5.6 on=a
+ì = stained_window
+í = flying_buttress
+ð = light y=4 color=0.95,0.3,0.32 radius=6 on=n
+ñ = light y=4 color=0.35,0.45,1.0 radius=6 on=n
+ò = light y=4 color=1.0,0.78,0.3 radius=6 on=n
+ó = light y=4 color=0.35,0.9,0.5 radius=6 on=n
 Ë = lamp_post
 I = pillar
 Q = pew yaw=180
@@ -130,17 +148,37 @@ O = window
 Y = candles
 Ó = light y=6 color=0.62,0.66,0.82 radius=9
 D = banner
-// Roofs, each on its building's north-west corner.
-À = roof span=7,7 ridge=z on=H
-Á = roof span=5,5 ridge=x on=H
-Â = roof span=6,7 ridge=z on=H
-Ã = roof span=8,7 ridge=x wall=plaster pitch=2.2 on=J
-Ä = roof span=6,6 ridge=x on=H
-Å = roof span=5,5 ridge=z wall=plaster on=J
-Æ = roof span=6,6 ridge=x on=H
-Ç = roof span=5,8 ridge=z on=H
-È = roof span=6,6 ridge=x wall=plaster on=J
-Ñ = chimney height=6 on=H
+// Roofs of terracotta, low and wide-eaved, each on its building's north-west corner.
+À = roof span=7,7 ridge=z top=5.6 pitch=1.4 eave=0.6 tex=terracotta wall=ashlar on=H
+Á = roof span=5,5 ridge=x top=5.6 pitch=1.2 eave=0.6 tex=terracotta wall=ashlar on=H
+Â = roof span=6,7 ridge=z top=5.6 pitch=1.3 eave=0.6 tex=terracotta wall=ashlar on=H
+Ã = roof span=8,7 ridge=x top=5.6 pitch=1.5 eave=0.6 tex=terracotta wall=stucco on=J
+Ä = roof span=6,6 ridge=x top=5.6 pitch=1.3 eave=0.6 tex=terracotta wall=ashlar on=H
+Å = roof span=5,5 ridge=z top=5.6 pitch=1.2 eave=0.6 tex=terracotta wall=stucco on=J
+Æ = roof span=6,6 ridge=x top=5.6 pitch=1.3 eave=0.6 tex=terracotta wall=ashlar on=H
+Ç = roof span=5,8 ridge=z top=5.6 pitch=1.3 eave=0.6 tex=terracotta wall=ashlar on=H
+È = roof span=6,6 ridge=x top=5.6 pitch=1.3 eave=0.6 tex=terracotta wall=stucco on=J
+Ñ = chimney height=8 on=H
+// The houses' faces: shuttered windows (some with flowers), balconies and arched front doors.
+à = shutters
+á = shutters flowers
+â = balcony
+ä = door_arch yaw=0 on=i
+å = door_arch yaw=90 on=i
+æ = door_arch yaw=-90 on=i
+ç = door_arch yaw=180 on=i
+// The realm's crest: banners on poles about the square, the pier and the gate, carved over the gate.
+Þ = banner_pole
+ß = crest_plaque
+// The market's fountain and the benches round it, carts and cargo up from the quay.
+Ô = fountain
+Õ = bench yaw=0
+Ö = bench yaw=180
+Ø = bench yaw=90
+Ù = bench yaw=-90
+Û = hand_cart
+Ü = hay_wagon yaw=-90
+Ý = cargo
 // Furniture and street dressing.
 Ì = anvil
 Í = rack
@@ -154,11 +192,12 @@ $ = hearth
 % = shelf
 & = cupboard
 + = bed
-# = stall
 | = fence
 @ = boat on=~
-T = tree
-Ú = tree on=;
+T = tree kind=olive
+ø = tree kind=pine
+ù = tree kind=cypress
+Ú = tree kind=cypress on=;
 // The well down into the Sunken Keep, in its sunken court.
 W = exit map=sunken_keep at=15,27,-90 label=Descend_the_well model=well
 // The jungle trail east of the square: a hedged path winding under a canopy that closes in and

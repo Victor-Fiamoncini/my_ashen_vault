@@ -19,6 +19,11 @@ def all_textures():
         "grass": grass(),
         "dirt": dirt(),
         "cobble": cobble(),
+        "cobble_moss": cobble_moss(),
+        "setts": setts(),
+        "stucco": stucco(),
+        "ashlar": ashlar(),
+        "terracotta": terracotta(),
         "water": water(),
         "roof": roof(),
         "iron_bars": iron_bars(),
@@ -28,6 +33,7 @@ def all_textures():
         "leaf_litter": leaf_litter(),
         "jungle_floor": jungle_floor(),
         "canopy": canopy(),
+        "foliage": foliage(),
         "mud": mud(),
         "bog": bog(),
         "rapids": rapids(),
@@ -219,27 +225,123 @@ def timber():
     return build(px)
 
 
-def cobble():
+def _cobbles(seed, joint, cell=8):
+    """Rounded cobbles set close in a tileable Voronoi pattern: each stone domed (lit on its crown,
+    darker toward its rim) and of its own shade, the joints between them coloured by `joint(x, y)`."""
+    n = SIZE // cell
+
     def px(x, y):
-        cx = x // 10
-        cy = y // 10
-        best = 99.0
-        second = 99.0
+        cx, cy = x // cell, y // cell
+        best, second, owner = 99.0, 99.0, (0, 0)
         for i in (-1, 0, 1):
             for j in (-1, 0, 1):
-                hx = (cx + i) % 7
-                hy = (cy + j) % 7
-                ppx = (cx + i) * 10 + hash_(hx, hy, 9) * 10
-                ppy = (cy + j) * 10 + hash_(hx, hy, 10) * 10
+                hx, hy = (cx + i) % n, (cy + j) % n
+                ppx = (cx + i) * cell + (0.2 + hash_(hx, hy, seed) * 0.6) * cell
+                ppy = (cy + j) * cell + (0.2 + hash_(hx, hy, seed + 1) * 0.6) * cell
                 d = math.hypot(x - ppx, y - ppy)
                 if d < best:
-                    second = best
-                    best = d
+                    second, best, owner = best, d, (hx, hy)
                 elif d < second:
                     second = d
-        if second - best < 1.6:
-            return tint([52, 50, 46], 1.0)
-        return tint([128, 122, 112], 0.7 + fbm(x, y, 91) * 0.4 - best * 0.015)
+        edge = second - best
+        if edge < 1.4:
+            return joint(x, y)
+        hue = hash_(*owner, seed + 2)
+        base = [128, 122, 112] if hue < 0.55 else [142, 128, 104] if hue < 0.8 else [108, 108, 110]
+        dome = 1.08 - min(best / (cell * 0.75), 1.0) ** 2 * 0.35
+        rim = 0.82 if edge < 2.4 else 1.0  # the stone rounds down into its joint
+        return tint(base, (0.72 + hash_(*owner, seed + 3) * 0.22 + (fbm(x, y, 91) - 0.5) * 0.18) * dome * rim)
+
+    return px
+
+
+def cobble():
+    """Grey-brown cobbles in dark, earthy joints."""
+    return build(_cobbles(9, lambda x, y: tint([46, 42, 36], 0.8 + fbm(x, y, 92) * 0.4)))
+
+
+def cobble_moss():
+    """Cobbles going green at the edge of a lawn: grass in the joints, and tufts over some stones."""
+    stones = _cobbles(29, lambda x, y: tint([54, 80, 38], 0.6 + fbm(x, y, 93) * 0.4))
+
+    def px(x, y):
+        if noise(x, y, 16, 94) > 0.76 and hash_(x, y, 95) > 0.45:
+            return tint([62, 96, 44], 0.6 + fbm(x, y, 51) * 0.5)
+        return stones(x, y)
+
+    return build(px)
+
+
+def setts():
+    """Squared paving setts laid in courses, joints staggered from row to row: the town's main roads."""
+    rows = 8  # px per course (a quarter metre)
+
+    def px(x, y):
+        row = y // rows
+        shift = (row * 7) % 16
+        xx = (x + shift) % SIZE
+        col = xx // 16
+        if y % rows == 0 or xx % 16 == 0:
+            return tint([50, 46, 40], 0.8 + fbm(x, y, 96) * 0.3)
+        k = 0.74 + hash_(col, row, 97) * 0.22 + (fbm(x, y, 98) - 0.5) * 0.2
+        if y % rows == 1 or xx % 16 == 1:
+            k *= 1.12  # the worn upper edge catches the light
+        elif y % rows == rows - 1 or xx % 16 == 15:
+            k *= 0.82
+        return tint([150, 140, 122], k)
+
+    return build(px)
+
+
+def stucco():
+    """Warm ochre render, sun-faded and stained, worn thin here and there over the stones beneath."""
+
+    def px(x, y):
+        n = fbm(x, y, 141)
+        wear = noise(x, y, 16, 142) * 0.6 + noise(x, y, 8, 145) * 0.4
+        if wear > 0.74:  # a worn patch: the coursed rubble shows faintly through
+            if y % 8 == 0 or (x + (y // 8) * 5) % 13 == 0:
+                return tint([150, 126, 96], 0.9)
+            return tint([190, 164, 124], 0.8 + hash_(x // 13, y // 8, 143) * 0.18)
+        streak = 0.95 if noise(x, y, 4, 144) > 0.8 else 1.0
+        return tint([206, 178, 132], (0.8 + n * 0.25) * streak)
+
+    return build(px)
+
+
+def ashlar():
+    """Dressed tan sandstone in courses of long and short blocks, with pale lime mortar."""
+
+    def px(x, y):
+        row = y // 16
+        shift = 0 if row % 2 == 0 else 20
+        xx = (x + shift) % SIZE
+        widths = (24, 40) if row % 2 == 0 else (36, 28)
+        col = 0 if xx < widths[0] else 1
+        left = 0 if col == 0 else widths[0]
+        if y % 16 == 0 or xx == left:
+            return tint([196, 186, 160], 0.9)
+        k = 0.78 + hash_(col, row, 151) * 0.18 + (fbm(x, y, 152) - 0.5) * 0.22
+        if y % 16 == 15 or xx == left + 1:
+            k *= 0.85
+        return tint([186, 158, 116], k)
+
+    return build(px)
+
+
+def terracotta():
+    """Barrel tiles of fired clay in rows, each tile rounded and overlapping the one below."""
+
+    def px(x, y):
+        row = y // 12
+        ox = (x + (4 if row % 2 else 0)) % 8
+        curve = math.cos((ox - 3.5) / 4.0 * math.pi / 2)
+        lap = (y % 12) / 12.0
+        if y % 12 == 11:
+            return (60, 26, 16)
+        k = 0.58 + curve * 0.42 - lap * 0.12 + hash_((x + (4 if row % 2 else 0)) // 8, row, 161) * 0.18
+        k += (fbm(x, y, 162) - 0.5) * 0.15
+        return tint([182, 86, 52], k)
 
     return build(px)
 
@@ -366,6 +468,23 @@ def canopy():
         if noise(x, y, 4, 172) > 0.8 and n > 0.55:
             return tint([150, 170, 120], 0.8 + n * 0.3)
         return tint([30, 56, 28], 0.5 + n * 0.6)
+
+    return build(px)
+
+
+def foliage():
+    """Pale leaf clusters, tinted per tree by the part's colour: bright tufts catching the sun over
+    darker hollows, with a few deep gaps."""
+
+    def px(x, y):
+        n = fbm(x, y, 191)
+        tuft = noise(x, y, 4, 192)
+        k = 0.62 + n * 0.45
+        if tuft > 0.72:
+            k += 0.28  # a sunlit tuft
+        elif tuft < 0.2:
+            k *= 0.55  # a hollow between clumps
+        return tint([210, 216, 200], k)
 
     return build(px)
 

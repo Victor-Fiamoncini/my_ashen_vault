@@ -362,7 +362,8 @@ def test_keep_props_lift_lever_and_fire_draw():
     models.lift(r, 0.5, False, 60.0)  # a very tall shaft caps its chain links
     models.lift(r, 0.5, True, 6.0, "cage", ((1, 0),))
     models.lift(r, 0.5, False, 2.0, "cage", ())  # a low shaft squats the cage
-    models.ember_crest(r, (200, 180, 140))
+    models.realm_crest(r, (200, 180, 140))
+    models.realm_crest(r, (200, 180, 140), cy=1.0, scale=2.0)
     models.banner(r, 0.5, 2)
     models.pillar(r, 3, 4.9)
     models.sarcophagus(r, 2)
@@ -677,13 +678,28 @@ def test_town_props_draw_and_roofs_cover_their_buildings():
     r = rig.Rig(gpu)
     town_models.silent_bell(r, 0.5)
     town_models.cathedral_spire(r, 15)
+    town_models.cathedral_tower(r)
+    town_models.cathedral_tower(r, 10, 2.2, False, 4)  # an apse turret
+    town_models.door_arch(r, 1)
+    town_models.door_arch(r, 1, 8, 3.4, rose=True)  # the cathedral's west door
     for seed in range(4):
         town_models.pew(r, seed)
         town_models.window(r, seed)
+        town_models.stained_window(r, seed)
+        town_models.rose_window(r, seed)
+        town_models.flying_buttress(r, seed)
         town_models.bed(r, seed)
         town_models.cupboard(r, seed)
         town_models.shelf(r, seed)
-        town_models.stall(r, seed, 0.5)
+        town_models.shutters(r, seed, flowers=seed % 2 == 1)
+        town_models.balcony(r, seed)
+        town_models.banner_pole(r, 0.5, seed)
+        town_models.crest_plaque(r, seed)
+        town_models.fountain(r, 0.5 + seed, seed)
+        town_models.bench(r, seed)
+        town_models.hand_cart(r, seed)
+        town_models.hay_wagon(r, seed)
+        town_models.cargo(r, seed)
         town_models.fence(r, seed)
         town_models.boat(r, 0.5, seed)
     town_models.hearth(r, 0.5)
@@ -697,6 +713,27 @@ def test_town_props_draw_and_roofs_cover_their_buildings():
         assert lo_x < -1.0 and hi_x > (w - 1) * 2 + 1.0, (w, d)
         assert lo_z < -1.0 and hi_z > (d - 1) * 2 + 1.0, (w, d)
         assert lo_y >= 4.0 and hi_y == pytest.approx(4.2 + 2.4, abs=0.2)
+
+
+def test_town_trees_stand_on_the_ground_and_differ_in_shape():
+    from ashen_vault.render import bounds, town_models
+
+    sizes = {}
+    for kind in town_models.TREE_KINDS:
+        for seed in range(6):
+            near, far = _RecordingGpu(), _RecordingGpu()
+            town_models.town_tree(rig.Rig(near), kind, seed, 0.7 + seed)
+            town_models.town_tree(rig.Rig(far), kind, seed, 0.7 + seed, near=False)
+            assert len(far.parts) < len(near.parts), kind
+            (lo_x, lo_y, lo_z), (hi_x, hi_y, hi_z) = bounds.measure(
+                lambda r, kind=kind, seed=seed: town_models.town_tree(r, kind, seed, 1.3)
+            )
+            assert lo_y >= -0.01, kind  # nothing sinks into the ground
+            sizes.setdefault(kind, []).append((max(hi_x - lo_x, hi_z - lo_z), hi_y))
+    width = {k: max(w for w, _ in v) for k, v in sizes.items()}
+    height = {k: min(h for _, h in v) for k, v in sizes.items()}
+    assert width["cypress"] < 2.0 < width["olive"] < width["pine"]  # slim column, round crown, broad flat top
+    assert height["cypress"] > height["pine"] > height["olive"] + 2
 
 
 def test_every_tool_hat_hair_and_build_a_villager_can_have_draws():

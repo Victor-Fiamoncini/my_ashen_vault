@@ -5,7 +5,7 @@ import os
 
 import pytest
 
-from ashen_vault import MAP_DIR
+from ashen_vault import MAP_DIR, map_path
 from ashen_vault.world import collision, terrain
 from ashen_vault.world.hazards import CrumbleFloor
 from ashen_vault.world.map_loader import MapError, MapLoader
@@ -102,7 +102,8 @@ STATIC_BLOCKERS = (
     *("altar", "table", "rack", "rubble", "cocoon", "frog_idol"),
     *("pillar", "sarcophagus", "headsman_block", "bonfire", "giant_mushroom", "totem"),
     *("anvil", "chimney", "gargoyle_statue", "forge_hearth", "quench_trough", "crucible", "impaler"),
-    *("pew", "bed", "cupboard", "stall", "fence", "lamp_post"),
+    *("pew", "bed", "cupboard", "fence", "lamp_post", "tree"),
+    *("banner_pole", "fountain", "bench", "hand_cart", "hay_wagon", "cargo", "flying_buttress"),
 )
 
 
@@ -735,3 +736,29 @@ def test_the_title_camera_circles_the_silent_bell():
     m = MapLoader.load_file(os.path.join(MAP_DIR, "harrowmere.map"))
     (bell,) = _spec(m, "silent_bell")
     assert (bell.tx, bell.tz) == game.TITLE_ORBIT
+
+
+def test_harrowmere_trees_cut_off_no_part_of_the_town():
+    """Trees fill their tiles: none may stand in the only way to anywhere (the lane behind the
+    cathedral once held one, sealing off its hill)."""
+    m = MapLoader.load_file(map_path("harrowmere"))
+    trees = {(e.tx, e.tz) for e in m.entities if e.kind == "tree"}
+    others = {(e.tx, e.tz) for e in m.entities if e.kind in STATIC_BLOCKERS and e.kind not in ("tree", "npc")}
+
+    def reach(solid):
+        start = tuple(int(float(v)) for v in m.meta["start"][:2])
+        seen, todo = {start}, [start]
+        while todo:
+            x, z = todo.pop()
+            for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                n = (x + dx, z + dz)
+                if n in seen or n in solid or m[n].solid:
+                    continue
+                if abs(m[n].floor - m[x, z].floor) > collision.STEP_HEIGHT + 0.01:
+                    continue
+                seen.add(n)
+                todo.append(n)
+        return seen
+
+    assert len(trees) > 20
+    assert reach(others) - trees == reach(others | trees)
