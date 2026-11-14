@@ -1,4 +1,4 @@
-from ashen_vault.input import CONTROLS, KEYS, MOUSE
+from ashen_vault.input import CONTROLS, KEYS, MOUSE, PointerTracker
 
 MOVEMENT = ("forward", "back", "strafe_l", "strafe_r", "sprint")
 
@@ -18,3 +18,14 @@ def test_controls_name_slots_not_hands():
     labels = [k for k, _ in CONTROLS]
     assert "Primary" in labels and "Secondary" in labels
     assert not any("hand" in k.lower() for k in labels)
+
+
+def test_pointer_motion_is_the_same_for_every_caller_in_a_frame():
+    """The Belongings tabs read the pointer before its rows; the rows must still see the move."""
+    t = PointerTracker()
+    t.next_frame()
+    assert not t.moved((10, 10))  # first sighting
+    t.next_frame()
+    assert t.moved((12, 10)) and t.moved((12, 10))
+    t.next_frame()
+    assert not t.moved((12, 10))

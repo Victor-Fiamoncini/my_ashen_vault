@@ -56,6 +56,27 @@ CONTROLS = [
 ]
 
 
+class PointerTracker:
+    """Whether the mouse moved this frame. Every call within one frame gets the same answer, so a
+    menu that asks twice (its tabs, then its rows) still sees the move."""
+
+    def __init__(self):
+        self._last = None  # position at the end of the previous frame
+        self._now = None  # position seen this frame
+        self._fresh = True
+
+    def next_frame(self):
+        if self._now is not None:
+            self._last = self._now
+        self._fresh = True
+
+    def moved(self, at):
+        if self._fresh:
+            self._now = at
+            self._fresh = False
+        return self._last is not None and self._now != self._last
+
+
 class Input:
     def __init__(self, script=None):
         self._steps = []
@@ -66,7 +87,7 @@ class Input:
         self._held_t = 0.0
         self._pressed = None
         self._wait = 0.0
-        self._mouse = None
+        self._pointer = PointerTracker()
 
     @property
     def scripted(self):
@@ -74,6 +95,7 @@ class Input:
 
     def update(self, dt):
         self._pressed = None
+        self._pointer.next_frame()
         if self._held is not None:
             self._held_t -= dt
             if self._held_t <= 0:
@@ -118,9 +140,7 @@ class Input:
         `moved` is True only on frames the mouse actually moved, so a resting
         cursor never fights keyboard navigation."""
         pos = rl.GetMousePosition()
-        at = (pos.x, pos.y)
-        moved = self._mouse is not None and at != self._mouse
-        self._mouse = at
+        moved = self._pointer.moved((pos.x, pos.y))
         mapped = to_internal(pos.x, pos.y, rl.GetScreenWidth(), rl.GetScreenHeight())
         if mapped is None:
             return None

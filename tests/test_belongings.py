@@ -84,6 +84,15 @@ def test_slot_chooser_shows_what_it_replaces():
     assert belongings.pick_options(inv, spell_row(), "Flame Bolt")[-1] != ("Unequip", None)  # spell unheld
 
 
+def test_another_spell_offers_slots_not_unequip():
+    """With Flame Bolt readied in a slot, choosing Pyre asks for a slot; only Flame Bolt can be unequipped."""
+    inv = Inventory()  # the spell sits in Secondary
+    assert inv.equipped(SPELL)
+    pyre = spell_row("pyre", "Pyre")
+    assert ("Unequip", None) not in belongings.pick_options(inv, pyre, "Flame Bolt", "flame")
+    assert belongings.pick_options(inv, spell_row(), "Flame Bolt", "flame")[-1] == ("Unequip", None)
+
+
 def test_only_weapons_shields_and_spells_take_a_slot():
     assert belongings.slottable(Items.get("buckler"))
     assert belongings.slottable(spell_row())

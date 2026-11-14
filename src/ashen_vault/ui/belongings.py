@@ -94,10 +94,12 @@ def equipped_rows(inv, spell_name):
     return rows
 
 
-def pick_options(inv, item, spell_name):
+def pick_options(inv, item, spell_name, spell_id=None):
     """The slot chooser's rows: (label, slot) for Primary and Secondary, each naming what it holds
-    now, then ("Unequip", None) when the item is already equipped."""
+    now, then ("Unequip", None) when the item is already equipped. A spell row counts as equipped
+    only when it is the readied spell (`spell_id`) sitting in a slot."""
     opts = [(f"{SLOT_NAMES[s]}: {occupant(inv, s, spell_name)}", s) for s in (RIGHT, LEFT)]
-    if inv.equipped(held_id(item)):
+    readied = item.kind != "spell" or item.spell == spell_id
+    if readied and inv.equipped(held_id(item)):
         opts.append(("Unequip", None))
     return opts

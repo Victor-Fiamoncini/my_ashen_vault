@@ -76,3 +76,21 @@ class Spells:
     def mote_damage(magic, gauge):
         """Each of the three sparks; all three landing beats a flame bolt."""
         return Combat.damage(base=5, strength=magic, gauge=gauge, defense=0)
+
+    @staticmethod
+    def power(id_, magic):
+        """What a full-gauge cast does at `magic`: damage (all three motes together), HP mended, or 0
+        for spells that neither hurt nor heal. The Belongings stats panel compares it as SPL."""
+        damage = {
+            "flame": Spells.flame_damage,
+            "venom": Spells.venom_damage,
+            "pyre": Spells.pyre_damage,
+            "thunder": Spells.thunder_damage,
+        }
+        if id_ in damage:
+            return damage[id_](magic, 1.0)
+        if id_ == "motes":
+            return Spells.MOTES * Spells.mote_damage(magic, 1.0)
+        if id_ == "mend":
+            return Spells.mend_amount(magic)
+        return 0
