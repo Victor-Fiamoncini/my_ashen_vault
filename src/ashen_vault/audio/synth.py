@@ -259,6 +259,11 @@ class Audio:
         rl.SetSoundVolume(s, volume)
         rl.PlaySound(s)
 
+    def set_volume(self, v):
+        """Master gain for every sound (0 silences them all)."""
+        if self.ready:
+            rl.SetMasterVolume(v)
+
     def close(self):
         if self.ready:
             rl.CloseAudioDevice()

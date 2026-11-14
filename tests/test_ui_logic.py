@@ -194,11 +194,18 @@ def test_hud_boxes_fit_the_screen_without_overlapping():
     assert m == hud.DIALOGUE_X and W - m == hud.DIALOGUE_X + hud.DIALOGUE_W
     # The boss bar and the gold counter hang from the same top margin.
     assert hud.BOSS_BAR_STEP == hud.BOSS_BOX_H + hud.HUD_GAP
-    # The vitals' numbers end before the compass's shadow begins.
+    # The vitals' numbers end a gap before the compass's shadow begins.
     vx = m + hud.HUD_PAD + 1
     left = vx + hud.VITAL_NUM_X + tinyfont.width("100")
     right = m + hud.VITALS_W - hud.HUD_PAD - 1
-    assert right - left >= 2 * (hud.COMPASS_R + 2)
+    assert right - left >= 2 * (hud.COMPASS_R + 2) + hud.HUD_GAP
+    # The vitals rows and the compass fill the box between the mouse's insets: the top of its gauge
+    # bars (HUD_PAD + 1 down, their dark rim) and the bottom of its labels (HUD_PAD up).
+    gauge_top = hud.HUD_PAD + 1
+    labels_end = hud.HUD_BOX_H - hud.HUD_PAD
+    assert gauge_top == hud.VITALS_TOP
+    assert labels_end == hud.VITALS_TOP + 2 * hud.VITAL_STEP + hud.VITAL_ROW_H
+    assert labels_end - 1 <= hud.VITALS_TOP + hud.COMPASS_SPAN <= labels_end
     # Each button's label fits its half of the mouse in the micro font, as do the quick count's.
     button = (hud.MOUSE_HUD_W - hud.WHEEL_W) // 2 - hud.HUD_PAD
     assert all(tinyfont.width(label) <= button for label in hud.BUTTON_LABELS.values())
@@ -374,3 +381,23 @@ def test_a_weapon_without_its_own_icon_borrows_its_categorys(monkeypatch):
 
     stranger = dataclasses.replace(Items.ALL["claymore"], id="unknown_blade")
     assert _icon_draw(monkeypatch, stranger).calls == _icon_draw(monkeypatch, Items.ALL["claymore"]).calls
+
+
+def test_scroll_thumb_spans_the_track_from_first_to_last_row():
+    from ashen_vault.ui import hud
+
+    assert hud.scroll_thumb(20, 100, 0, 10, 20) == (20, 50)
+    assert hud.scroll_thumb(20, 100, 10, 10, 20) == (70, 50)  # the last page: thumb at the bottom
+    y, th = hud.scroll_thumb(20, 100, 0, 1, 1000)
+    assert th == 4 and y == 20  # never thinner than 4 px
+
+
+def test_controls_fit_the_screen_and_scroll():
+    from ashen_vault import game
+    from ashen_vault.input import CONTROLS
+    from ashen_vault.screen import ROW_H, ROW_TOP, H
+
+    y = game.CONTROLS_LIST[1]
+    height = ROW_TOP + 2 + game.CONTROLS_ROWS * ROW_H + 12  # list_menu's panel with its footer
+    assert y + height <= H - y
+    assert len(CONTROLS) > game.CONTROLS_ROWS  # it scrolls, so it shows a scrollbar

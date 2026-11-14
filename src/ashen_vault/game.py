@@ -20,6 +20,7 @@ from ashen_vault.render.gpu import Gpu
 from ashen_vault.render.rig import Rig
 from ashen_vault.render.sky import SkyPass
 from ashen_vault.save.save_system import SaveSystem
+from ashen_vault.save.settings import Settings
 from ashen_vault.screen import (
     FOV,
     LIST_ROWS,
@@ -43,9 +44,13 @@ from ashen_vault.world.world import World, beside_shrine
 
 KIND_ORDER = ["weapon", "shield", "armor", "spell", "consumable", "scroll", "key"]
 HAND_BUTTON = {RIGHT: "attack", LEFT: "cast"}  # input actions: left mouse = Primary, right = Secondary
-PAUSE_OPTIONS = ["Resume", "Controls", "Return to Title", "Quit"]
+PAUSE_OPTIONS = ["Resume", "Options", "Controls", "Return to Title", "Quit"]
 # (x, y, width) of each ui.list_menu panel, shared by drawing and mouse hit-testing.
 PAUSE_LIST = (100, 80, 120)
+OPTIONS_LIST = (90, 80, 140)
+CONTROLS_LIST = (20, 6, 280)
+# Controls rows that fit: the panel (title, rows, footer) ends a margin above the screen's bottom.
+CONTROLS_ROWS = (H - 2 * CONTROLS_LIST[1] - ROW_TOP - 14) // ROW_H
 MENU_LIST = (6, 6, 170)
 SHOP_LIST = (6, 6, 308)
 PICK_LIST = (24, 60, 190)  # the "which slot?" chooser over Belongings
@@ -91,6 +96,8 @@ class Game:
         self._audio = Audio()
         self._input = Input(self.opts.get("script"))
         self._saves = SaveSystem()
+        self.settings = Settings.beside(self._saves.path)
+        self._audio.set_volume(self.settings.gain)
         self._camera = _camera((0, 0, 0), (1, 0, 0), FOV)
         self._view_camera = _camera((0, 0, 0), (1, 0, 0), 55)
         self._preview_camera = _camera((2.6, 0.5, 0), (0, 0, 0), 40)
@@ -121,7 +128,9 @@ class Game:
         self._shop_id = "pell"
         self._step_phase = 0.0
         self._dialogue = None
-        self._controls_from = None
+        self._controls_from = None  # the scene Controls or Options returns to
+        self._back_index = 0  # the menu row selected when it opened
+        self._scroll_hold = 0  # frames Up / Down has been held on the Controls screen
         self._dead_t = 0.0
         self._ending_t = 0.0
         self._dark_k = None  # how dark it looks where you stand (eased, so cave mouths don't pop)
@@ -199,6 +208,7 @@ class Game:
             "pause": lambda: self._update_pause(),
             "rest": lambda: self._update_rest(dt),
             "controls": lambda: self._update_controls(),
+            "options": lambda: self._update_options(),
             "dead": lambda: self._update_dead(dt),
             "ending": lambda: self._update_ending(),
         }.get(self.scene)
@@ -233,8 +243,8 @@ class Game:
 
     def _title_options(self):
         if self._saves.exists():
-            return ["Continue", "New Game", "Controls", "Quit"]
-        return ["New Game", "Controls", "Quit"]
+            return ["Continue", "New Game", "Options", "Controls", "Quit"]
+        return ["New Game", "Options", "Controls", "Quit"]
 
     def _update_title(self):
         opts = self._title_options()
@@ -251,6 +261,8 @@ class Game:
             self.new_game("harrowmere")
             self._audio.play("bell", volume=0.5)
             self.message("Harrowmere. The bell has gone quiet.")
+        elif choice == "Options":
+            self._open_options()
         elif choice == "Controls":
             self._open_controls()
         elif choice == "Quit":
@@ -1129,6 +1141,8 @@ class Game:
         choice = PAUSE_OPTIONS[self._menu_index]
         if choice == "Resume":
             self._enter_play()
+        elif choice == "Options":
+            self._open_options()
         elif choice == "Controls":
             self._open_controls()
         elif choice == "Return to Title":
@@ -1139,17 +1153,89 @@ class Game:
     def _open_controls(self):
         """Controls reference, opened from the title or pause menu; returns to it on cancel."""
         self._controls_from = self.scene
+        self._back_index = self._menu_index
+        self._menu_top = 0
         self.scene = "controls"
+
+    def _leave_submenu(self):
+        self.scene = self._controls_from
+        self._menu_index = self._back_index
 
     def _update_controls(self):
         if self._back() or self._advance():
-            self.scene = self._controls_from
+            return self._leave_submenu()
+        wheel = self._input.wheel()
+        step = (self._input.pressed("down") or wheel < 0) - (self._input.pressed("up") or wheel > 0)
+        if self._input.down("down") or self._input.down("up"):
+            self._scroll_hold += 1
+            if self._scroll_hold > 15 and self._scroll_hold % 4 == 0:  # held: keep scrolling
+                step = 1 if self._input.down("down") else -1
+        else:
+            self._scroll_hold = 0
+        top = max(len(CONTROLS) - CONTROLS_ROWS, 0)
+        self._menu_top = clamp(self._menu_top + step, 0, top)
 
-    def _draw_controls(self):
+    def _draw_submenu_backdrop(self):
         if self._controls_from == "pause":
             ui.hud(self)
         pr.draw_rectangle(0, 0, W, H, ui.color(0, 0, 0, 120))
-        ui.list_menu("Controls", 20, 14, 280, CONTROLS, -1, footer="Esc / Enter / Click: back")
+
+    def _draw_controls(self):
+        self._draw_submenu_backdrop()
+        ui.list_menu(
+            "Controls",
+            *CONTROLS_LIST,
+            CONTROLS,
+            -1,
+            footer="Up Down / Wheel: scroll    Esc: back",
+            first=self._menu_top,
+            visible=CONTROLS_ROWS,
+        )
+
+    # --- options -------------------------------------------------------------------
+
+    def _open_options(self):
+        """Sound on or off and its volume, from the title or pause menu."""
+        self._controls_from = self.scene
+        self._back_index = self._menu_index
+        self._menu_index = 0
+        self.scene = "options"
+
+    def _option_rows(self):
+        st = self.settings
+        return [
+            ("Sound effects", "On" if st.sound else "Off"),
+            ("Volume", f"< {st.percent}% >", not st.sound),
+            ("Back",),
+        ]
+
+    def _update_options(self):
+        if self._back():
+            return self._leave_submenu()
+        rows = self._option_rows()
+        self._menu_nav(len(rows))
+        clicked = self._menu_pointer(lambda px, py: list_row_at(*OPTIONS_LIST, len(rows), px, py))
+        chosen = clicked or self._input.pressed("confirm")
+        left, right = self._input.pressed("tab_prev"), self._input.pressed("tab_next")
+        st = self.settings
+        row = rows[self._menu_index][0]
+        if row == "Back":
+            if chosen:
+                self._leave_submenu()
+            return
+        if row == "Sound effects" and (chosen or left or right):
+            st.toggle_sound()
+        elif row == "Volume" and (chosen or left or right):
+            st.step_volume(-1 if left else 1, wrap=chosen)
+        else:
+            return
+        st.save()
+        self._audio.set_volume(st.gain)
+        self.sfx("pickup", 0.6)  # a taste of the new volume
+
+    def _draw_options(self):
+        self._draw_submenu_backdrop()
+        ui.list_menu("Options", *OPTIONS_LIST, self._option_rows(), self._menu_index, footer="A D: change")
 
     def _update_dead(self, dt):
         self._dead_t += dt
@@ -1286,7 +1372,9 @@ class Game:
 
     def _setup_camera(self):
         cam = self._camera
-        if self.scene == "title" or (self.scene == "controls" and self._controls_from == "title"):
+        if self.scene == "title" or (
+            self.scene in ("controls", "options") and self._controls_from == "title"
+        ):
             a = self._time * 0.08
             cx, cz = TileMap.center(*TITLE_ORBIT)
             ex = cx + math.cos(a) * 11
@@ -1328,6 +1416,8 @@ class Game:
             ui.list_menu("Paused", *PAUSE_LIST, [(o,) for o in PAUSE_OPTIONS], self._menu_index)
         elif s == "controls":
             self._draw_controls()
+        elif s == "options":
+            self._draw_options()
         elif s == "dead":
             self._draw_dead()
         elif s == "ending":

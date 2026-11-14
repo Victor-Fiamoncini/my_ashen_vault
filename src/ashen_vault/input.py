@@ -46,13 +46,17 @@ CONTROLS = [
     ("Block", "Hold the shield's button"),
     ("Quick item", "Middle mouse"),
     ("Choose quick item", "Mouse wheel"),
-    ("Equip, ready spells", "Belongings: 1 / 2"),
-    ("Belongings tabs", "A D / Left Right"),
-    ("Use, talk, open", "E"),
+    ("Use, talk, open, pray", "E"),
+    ("Next line of talk", "E / Enter / Space / Click"),
     ("Belongings", "Tab / I"),
+    ("Belongings tabs", "A D / Left Right"),
+    ("Equip, ready spells", "Enter / Click, or 1 / 2"),
     ("Pause", "Esc"),
-    ("Menus", "Up Down, Enter, Esc"),
+    ("Menus", "Up Down / Wheel"),
+    ("Choose", "Enter / E / Space"),
+    ("Back", "Esc / Tab / Backspace"),
     ("Menus (mouse)", "Point, click, right-click"),
+    ("Options: change", "A D / Left Right, Enter"),
 ]
 
 

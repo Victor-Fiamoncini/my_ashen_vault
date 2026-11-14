@@ -43,6 +43,8 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 
 - Always set `ASHEN_VAULT_SAVE` to a throwaway path so you never touch the player's real save
   (`~/.local/share/ashen_vault/save.json`).
+  Options (sound on/off, volume) live in `settings.json` in the same directory as the save
+  (`save/settings.py`), so a throwaway save keeps its own.
 - `--script` steps: `action` presses once, `action:1.5` holds for 1.5 s, `wait:1` pauses. Actions are
   the keys of `KEYS` and `MOUSE` in `src/ashen_vault/input.py`, plus `wheel_up` / `wheel_down` and
   `look_up` / `look_down` (hold them to tilt the view, 1.5 rad/s).
@@ -129,6 +131,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/world/rest.py` | The shrine rest: timing and the pixelated ember fog pattern drawn while you pray |
 | `src/ashen_vault/ui/smallfont.py` | The small mixed-case pixel font for all game text: menus, dialogue, messages, prompts and the boss bar (`hud.text` draws with it) |
 | `src/ashen_vault/ui/tinyfont.py` | The HUD's tiny fonts: 3x5 `GLYPHS` (the HP/MP/ST labels and numbers, `hud.tiny`) and 3x4 `MICRO` (the HUD mouse's PRI / SEC labels and the quick item's count, `hud.micro_centered`; only the characters they use) |
+| `src/ashen_vault/save/settings.py` | Player options (sound on/off, volume) in `settings.json` beside the save; the title and pause menus' Options screen edits them and `Audio.set_volume` applies them as the master gain |
 | `src/ashen_vault/ui/tally.py` | `GoldTally`: the top-right gold counter's bookkeeping (a gain lingers as "+N", then rolls in; spending shows at once). `Game.update` feeds it |
 | `src/ashen_vault/ui/logofont.py` | The logo's 5x7 capitals, shared by `docs/logo/make_logo.py` and big headings (`hud.big`: the title, the death screen) |
 | `src/ashen_vault/ui/belongings.py` | Belongings as data: its tabs, slot marks, the Equipped panel and the slot chooser (Primary / Secondary) |

@@ -8,7 +8,7 @@ import raylib as rl
 from raylib import ffi
 
 from ashen_vault.player.inventory import LEFT, RIGHT
-from ashen_vault.screen import H, W
+from ashen_vault.screen import ROW_H, ROW_TOP, H, W
 from ashen_vault.ui import logofont, smallfont, tinyfont
 from ashen_vault.util import clamp, highlight_runs, plain, rround
 from ashen_vault.world import rest
@@ -138,28 +138,28 @@ def hud(game):
     # and bottom edge with the mouse on the right.
     bx, by = HUD_MARGIN, H - HUD_MARGIN - HUD_BOX_H
     hud_box(bx, by, VITALS_W, HUD_BOX_H, edge=ward_edge(p))
-    rows = by + (HUD_BOX_H - 19) // 2  # three 5 px rows, 7 px apart
+    rows = by + VITALS_TOP  # three 5 px rows spread over the box, inset like the mouse's contents
     vx = bx + HUD_PAD + 1  # inside the 1 px trim, like every box's contents
     vital("HP", vx, rows, s.hp / s.max_hp, (230, 120, 110), (190, 40, 40), s.hp)
-    vital("MP", vx, rows + 7, s.mp / s.max_mp, (120, 150, 230), (50, 80, 200), s.mp)
+    vital("MP", vx, rows + VITAL_STEP, s.mp / s.max_mp, (120, 150, 230), (50, 80, 200), s.mp)
     st = p.stamina
     vital(
         "ST",
         vx,
-        rows + 14,
+        rows + 2 * VITAL_STEP,
         st.value,
         (130, 200, 130),
         STAMINA_TIRED_RGB if st.exhausted else STAMINA_RGB,
         rround(st.value * 100),
     )
     # The ball's shadow and E/W letters reach COMPASS_R + 2 to each side; its pointer ends
-    # COMPASS_R + 3 below the centre. It sits centred between the numbers and the box's right edge.
-    reach = COMPASS_R + 2
-    span = 2 * COMPASS_R + 6  # top of the shadow to the tip of the pointer
+    # COMPASS_R + 3 below the centre. It fills the box's height between the same insets as the rows,
+    # centred between the numbers and the box's right edge.
     left = vx + VITAL_NUM_X + tinyfont.width("100")
     right = bx + VITALS_W - HUD_PAD - 1
     target = game.world.boss_bearing() if game.world else None
-    compass(p.heading, (left + right) // 2, by + (HUD_BOX_H - span) // 2 + reach, COMPASS_R, target)
+    cy = by + VITALS_TOP + (VITALS_SPAN - COMPASS_SPAN) // 2 + COMPASS_R + 2
+    compass(p.heading, (left + right + 1) // 2, cy, COMPASS_R, target)
 
     # Bottom right: a mouse whose buttons show what Primary and Secondary hold, the quick item
     # on its wheel.
@@ -185,11 +185,12 @@ def ward_edge(player):
 
 
 def vital(label, x, y, frac, label_rgb, bar_rgb, value=None):
-    """One compact row: label, a short bar, and an optional number."""
-    tiny(label, x, y, color(*label_rgb))
-    bar(x + VITAL_BAR_X, y + 1, VITAL_BAR_W, 3, frac, bar_rgb)
+    """One compact row from `y` down: a bar in its dark rim, its label and number centred beside it."""
+    ty = y + (VITAL_ROW_H - tinyfont.HEIGHT) // 2
+    tiny(label, x, ty, color(*label_rgb))
+    bar(x + VITAL_BAR_X, y + 1, VITAL_BAR_W, VITAL_BAR_H, frac, bar_rgb)
     if value is not None:
-        tiny(str(value), x + VITAL_NUM_X, y, DIM)
+        tiny(str(value), x + VITAL_NUM_X, ty, DIM)
 
 
 SLOT_PULSE = 0.35  # seconds a mouse button's edge flashes after its gauge fills
@@ -210,10 +211,18 @@ HUD_MARGIN = 3  # pixels between the HUD boxes and the screen edge
 HUD_PAD = 3  # pixels from a HUD box's outer edge (its 1 px trim included) to its contents
 HUD_GAP = 2  # pixels between neighbouring HUD elements (a box and the text above it)
 HUD_BOX_H = 38  # the vitals box and the mouse share this height
-VITALS_W = 90
+VITALS_W = 94
+# The vitals and compass fill the box between the same insets as the mouse's contents: from the top of
+# its gauge bars (HUD_PAD + 1 down) to the bottom of its labels (HUD_PAD up).
+VITALS_TOP = HUD_PAD + 1
+VITALS_SPAN = HUD_BOX_H - HUD_PAD - VITALS_TOP
 VITAL_BAR_X, VITAL_BAR_W = 10, 30  # a vital's bar: after its 2-letter label, before its number
 VITAL_NUM_X = VITAL_BAR_X + VITAL_BAR_W + 4
-COMPASS_R = 10
+VITAL_BAR_H = 5  # a vital's bar, as tall as its label
+VITAL_ROW_H = VITAL_BAR_H + 2  # the bar in its 1 px dark rim
+VITAL_STEP = (VITALS_SPAN - VITAL_ROW_H) // 2  # three rows: top, middle, bottom
+COMPASS_R = 12
+COMPASS_SPAN = 2 * COMPASS_R + 6  # top of the ball's shadow to the tip of its pointer
 MOUSE_HUD_W = 58  # the bottom-right mouse: two buttons and the wheel between them
 MOUSE_SPLIT = 27  # height of its button row; the palm below holds the slot labels and the count
 WHEEL_W = 9
@@ -1306,8 +1315,28 @@ def list_menu(title, x, y, w, rows, selected, footer=None, first=0, visible=None
         if right is not None:
             rs = str(right)
             text(rs, x + w - 8 - measure(rs), y + 20 + j * 11, col)
+    if visible and len(rows) > visible:
+        scrollbar(x + w - SCROLLBAR_INSET, y + ROW_TOP, len(shown) * ROW_H - 2, first, visible, len(rows))
     if footer:
         text(footer, x + 8, y + height - 13, DIM)
+
+
+SCROLLBAR_INSET = 5  # from a panel's right edge to its scrollbar, inside the text's padding
+SCROLLBAR_W = 2
+
+
+def scroll_thumb(top, h, first, visible, n):
+    """(y, height) of a scrollbar's thumb: as long as the share of rows shown, as far down as `first`."""
+    th = max(rround(h * visible / n), 4)
+    span = max(n - visible, 1)
+    return top + rround((h - th) * first / span), th
+
+
+def scrollbar(x, top, h, first, visible, n):
+    """A thin track down a scrolling list's right edge, its thumb marking the rows shown."""
+    pr.draw_rectangle(x, top, SCROLLBAR_W, h, color(50, 42, 32))
+    ty, th = scroll_thumb(top, h, first, visible, n)
+    pr.draw_rectangle(x, ty, SCROLLBAR_W, th, DIM)
 
 
 _fog_tex = None
