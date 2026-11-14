@@ -41,7 +41,7 @@ FromSoftware, Inc.
   </tr>
   <tr>
     <td><img src="docs/screenshots/dialogue.png" alt="Talking to Odrin the bell-keeper"></td>
-    <td><img src="docs/screenshots/flame_bolt.png" alt="A flame bolt flying at a bone walker"></td>
+    <td><img src="docs/screenshots/flame_bolt.png" alt="A flame bolt bursting on a bone walker"></td>
   </tr>
   <tr>
     <td align="center"><sub>Odrin, keeper of the silent bell</sub></td>
@@ -428,7 +428,7 @@ the hollow's vine path is `uv run ashen-vault --map verdant_hollow --at=9,12,90 
 the Bark Husk is `uv run ashen-vault --map verdant_hollow --at=26,17,-90 --smoke 60 --shot bark_husk.png`,
 the log rack is `uv run ashen-vault --map verdant_hollow --at=51,6,180 --smoke 40 --shot log_rack.png`,
 the flame bolt shot is
-`uv run ashen-vault --map sunken_keep --at 15,22,0 --smoke 30 --script "wait:0.3 cast" --shot flame_bolt.png`,
+`uv run ashen-vault --map sunken_keep --at 15,22,0 --smoke 40 --script "wait:0.3 cast" --shot flame_bolt.png`,
 the Loom Mother is `uv run ashen-vault --map verdant_hollow --at=15,7,-90 --smoke 40 --shot loom_mother.png`,
 the lift ride is
 `uv run ashen-vault --map sunken_keep --at 4,24,90 --smoke 560 --script "forward:0.9 wait:5 forward:0.3" --shot undercroft_lift.png`,

@@ -246,7 +246,9 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   draws the slots as cards (`hud.slot_card`, `quick_card`). A mouse action must never share a name with
   a movement key (`tests/test_input.py`): `"back"` once did, and a raised shield walked you backward. Items carry a `level` requirement: buying is
   allowed, equipping is not (`Inventory.equip_error`). The first-person arms (`models.weapon_view`)
-  take their sleeve and glove looks from `SLEEVES` / `GLOVES`, so new armor needs an entry there.
+  take their sleeve and glove looks from `SLEEVES` / `GLOVES`, so new armor needs an entry there; a new
+  shield needs its strap in `models.SHIELD_GRIPS`, where the fist closes (drawn after the shield, so a
+  raised shield shows the hand).
 - Weapons, shields and armor carry a `mass` (kg). Their total sets the player's load tier
   (`player/burden.py`, `Player.burden`): heavier gear walks slower, refills ST slower and pays more ST
   for attacks, sprinting and blocking. New gear needs a `mass` (`tests/test_burden.py`).
