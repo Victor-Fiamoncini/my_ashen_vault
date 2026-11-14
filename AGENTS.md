@@ -60,9 +60,10 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 - On Wayland, `GLFW: Error: 65548` warnings are harmless.
 - A negative heading must be written `--at=15,7,-90` (with `=`), or argparse reads it as a flag.
 - The `smoke:` line includes the player's height (`y=`), handy for checking lifts.
-- Useful starts: `--at 4,24,90 --script "forward:0.9 wait:5 forward:0.6"` (the Cistern lift down to
-  the Undercroft), `--at=11,26,90 --script "interact strafe_l:0.7 wait:5"` (free the shrine lift and
-  ride it up), `--at=23,13,0 --script "forward:0.7 wait:5"` (the cage lift up to the Warden's Gallery),
+- Useful starts: `--at 4,24,90 --script "wait:0.2 interact wait:4.5 forward:0.6 wait:5"` (call the
+  Cistern lift up, step onto its plate and ride down to the Undercroft), `--at=11,26,90 --script
+  "strafe_l:0.7 wait:5"` (ride the shrine lift up, which frees it), `--at=13,26,180 --script "wait:0.2
+  interact"` (its call lever above, refusing while it is still fastened), `--at=23,13,0 --script "forward:0.7 wait:5"` (the cage lift up to the Warden's Gallery),
   `--at=27,7,-90` (the Butcher in his slaughter hall north of the Gallery),
   `--map harrowmere --at=47,30,0` (the hedged jungle trail; `--at=56,34,-90` its dark end at the cave
   mouth), `--map verdant_hollow`
@@ -84,7 +85,9 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   (the door at the top of the tower stair, into the keep), `--map cinder_keep --at=17,18,180` (the keep's
   great hall), `--map cinder_keep --at=9,6,180 --level 10`
   (the keep's walled roof: the gargoyles wake at once).
-- Boss doors: `--map sunken_keep --at=15,11,-90` faces the Warden's great door. The fog appears only
+- Boss doors: `--map sunken_keep --at=15,11,-90` faces the Warden's great door, `--at=28,10,-116` the
+  Butcher's, `--map verdant_hollow --at=15,11,-90` the Loom Mother's, `--map cinder_keep --at=22,5,180`
+  the gargoyles'. The fog appears only
   after dying in a sealed arena (or with its `fog:` flag set); `tests/test_arena.py` drives the flow.
 - `--level` only sets the level (for equipment requirements); HP and stats stay at level 1, so judge boss
   balance headless (`World` with a `JungleGame`) rather than from a smoke fight.
@@ -102,7 +105,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. `harrowmere` (the town, climbing from its harbour past the market and the Bell Square, with the Silent Bell, to the cathedral on the hill where the Enthroned sits; the sunken well court, the trail gap and the north gate lead out), `sunken_keep` (the dungeon below the well, with the Undercroft below its cells and the Warden's Gallery above the boss door, the Butcher's slaughter hall north of it), `verdant_hollow` (the jungle through the cave at the end of the village's east trail: Mossmouth cave, the Root Caverns below the bog, the Canopy Walk to the boss), `cinderhold` (the lava fortress up the north road: the long bridge, the gatehouse and postern, the foundry and the smelter pits below it, the ashworks, the rampart and the tower stair up to the keep), `cinder_keep` (the keep, a map of its own
   behind the door at the top of the tower stair: the postern landing, the great hall, the switchback stair,
   the antechamber's shrine and the walled rooftop where the twin gargoyles perch) |
-| `src/ashen_vault/world/sky.py`, `render/sky.py` | Skies (`[meta] sky = overcast\|jungle\|ember`): a gradient dome meeting the fog at the horizon, a sun and halo, drifting cloud banks and an overhead cap, horizon mist; dimmed by darkness and the Veil. Built pure in `world/sky.py`, drawn first each frame without fog or depth by `render/sky.py` |
+| `src/ashen_vault/world/sky.py`, `render/sky.py` | Skies (`[meta] sky = overcast\|jungle\|ember`): a gradient dome meeting the fog at the horizon, a sun and halo, drifting cloud banks and an overhead cap, horizon mist; every sky's sun stands at `SUN_AT` (low in the west, as over the town), its disc drawn over the clouds (`sky.sun`) and its halo behind them; dimmed by darkness and the Veil. Built pure in `world/sky.py`, drawn first each frame without fog or depth by `render/sky.py` |
 | `src/ashen_vault/world/darkness.py` | Dark tiles: how your light and the fog close in, Lumen and the Veil of Mist |
 | `src/ashen_vault/world/doors.py` | One-way doors (`door from=`): which side lifts the bar |
 | `src/ashen_vault/world/arena.py` | Boss arenas behind a `door boss=<dead_flag>`: the flood-filled lair, the fight that seals the great door, and the fog (`fog:<map>:<tx>,<tz>`) left after you die in there |
@@ -115,7 +118,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/render/town_models.py` | Harrowmere's models: gabled `roof`s (one per building, on its NW wall tile with `span=W,D ridge=x\|z`), the `silent_bell`, the `cathedral_spire`, pews, windows, beds, cupboards, shelves, hearths, market stalls, fences, lamp posts and boats |
 | `src/ashen_vault/world/villagers.py` | How each villager looks (`Look`: build, garb, hair, hat, beard, apron, cloak, held tool, idle) |
 | `src/ashen_vault/render/shapes.py` | Model primitives raylib lacks (`blade`, `lozenge`, `wedge`) as pure triangle lists; `Gpu.primitive` uploads them |
-| `src/ashen_vault/world/terrain.py` | Terrain: rafts, planks, ledges, rotten floorboards, chain lifts, currents, thorns, chasm and river falls, hard landings, the log rack, spore pods (`World.terrain`) |
+| `src/ashen_vault/world/terrain.py` | Terrain: rafts, planks, ledges, rotten floorboards, chain lifts (pressure plate, call levers, `summon`), currents, thorns, chasm and river falls, hard landings, the log rack, spore pods (`World.terrain`) |
 | `src/ashen_vault/world/rest.py` | The shrine rest: timing and the pixelated ember fog pattern drawn while you pray |
 | `src/ashen_vault/ui/smallfont.py` | The small mixed-case pixel font for all game text: menus, dialogue, messages, prompts and the boss bar (`hud.text` draws with it) |
 | `src/ashen_vault/ui/tinyfont.py` | The HUD's tiny fonts: 3x5 `GLYPHS` (the HP/MP/ST labels and numbers, `hud.tiny`) and 3x4 `MICRO` (the HUD mouse's PRI / SEC labels and the quick item's count, `hud.micro_centered`; only the characters they use) |
@@ -161,11 +164,14 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   there, and standing in one shrinks your own light and pulls the fog in (`world/darkness.py`);
   Lumen pushes both back.
   Terrain entities: `raft to=tx,tz speed= phase=`, `plank`, `ledge deck=`, `boards deck=` (rotten
-  floorboards that break for good), `lift top= [start=top] [lever=id] [speed=] [model=cage]` (a chain lift: its
-  tile is a `chasm` shaft whose floor is the bottom stop and whose `ceil` clears `top`; it carries
-  whoever stands on it to the other end, and comes when someone waits at a landing. With `lever=` it
-  stays chained until the matching lever is pulled, a shortcut opened from one side. `model=cage` draws
-  the keep's barred jail cage, open on the sides that face a landing (`terrain.lift_doors`)),
+  floorboards that break for good), `lift top= [start=top] [locked] [speed=] [model=cage]` (a chain lift:
+  its tile is a `chasm` shaft whose floor is the bottom stop and whose `ceil` clears `top`. It works
+  like Dark Souls': stepping onto the pressure plate in the middle of its deck (`terrain.PLATE_R`)
+  sends it to the other end (step off the plate and on again to go back), and a call lever that
+  `World` places on every landing (`terrain.call_spots`, prop `lift_call`) brings it. A `locked`
+  lift is a one-way shortcut: it rests at its `start` end, the end you reach first, its call levers
+  refuse until its first ride, which frees it for good (`lift:<map>:<tx>,<tz>` flag). `model=cage`
+  draws the keep's barred jail cage, open on the sides that face a landing (`terrain.lift_doors`)),
   `bridge lever=id hinge=n|s|e|w deck=` (a drawbridge standing raised on its hinge side until its
   lever lets it down, for good), `log_chute to=tx,tz every= speed= logs=` (a log rack that only
   releases while someone climbs its slope) and `spore_pod every=`.
@@ -223,16 +229,17 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   Breakables (`barrel`, `crate`, `urn`, `cocoon`) spill loot from `world/loot.py` (`loot.roll`); a `secret_wall`
   dissolves when struck (`model=vines top=6` matches the jungle's vine walls; `model=web` is a sheet of
   silk that blades can't cut and only fire burns). `door boss=<dead_flag>` is a boss's great door
-  (`models.boss_door`): the arena behind it seals once you are inside with its boss awake, opens when
+  (`models.boss_door`, dressed for its boss by `BOSS_DOORS` / `DOOR_ARCHES` / `DOOR_LEAVES`, keyed by
+  the `dead_flag`; a new boss door needs an entry in each): the arena behind it seals once you are inside with its boss awake, opens when
   the boss dies, and after you die in there becomes a fog gate (`models.fog_gate`) the boss walks
   through freely and you cross with interact. Each arena must stay closed behind its one door
   (`tests/test_arena.py`). `door from=n|s|e|w` is barred on that side: it
   only opens from there.
   After placing props in `sunken_keep.map`, run `tests/test_world.py`: its reachability test fails if
-  anything cuts off a chest, door, lever, exit, altar or the iron maiden, or if a chained lift is
+  anything cuts off a chest, door, lever, exit, altar or the iron maiden, or if a locked lift is
   needed to get anywhere (shortcuts must stay optional). `verdant_hollow.map` has its
   own solvability test (counting planks, ledges and floorboards as footing, and decor as solid): every
-  chest, lever and the boss must be reachable without barred doors, chained lifts or drawbridges, each
+  chest, lever and the boss must be reachable without barred doors, locked lifts or drawbridges, each
   of those must join two places already reachable, and every drop must have a way back.
   `cinderhold.map` has one too (`test_cinderhold_is_solvable`, lava counted as impassable), and so does
   `cinder_keep.map` (`test_cinder_keep_is_solvable`; `test_cinder_keep_roof_is_walled_in` keeps every wall
@@ -290,7 +297,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   their edge or face on +Z and `models.weapon` turns those in `HEADED` a quarter so it leads along +X,
   the way swings travel (`test_axe_and_hammer_heads_lead_their_blows`; the jungle's Heartwood Maul
   is one). Keys and relic sigils draw from
-  `KEY_STYLES` / `SIGILS`, in Belongings and on the ground (`models.pickup`). Enemy anatomy has helpers too: `skull`,
+  `KEY_STYLES` / `SIGILS` (each key its own shape in `KEY_SHAPES`), in Belongings and on the ground (`models.pickup`). Enemy anatomy has helpers too: `skull`,
   `ribcage`, `hand`, `sack_hood` and `_bar` (a box between two points).
 - Secret attacks are listed in `weapons.secret()`; performing one adds a `secret:<category>` flag,
   which reveals its name in Belongings and the shop.

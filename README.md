@@ -186,7 +186,7 @@ FromSoftware, Inc.
   dark, plus barrels, crates and urns to smash for a few coins, and secrets for those who look closely.
 - **A keep that folds back on itself**: barred cage lifts sink to a skull-walled Undercroft below the
   cells and climb to the Warden's Gallery above his door, where the Butcher waits among his hooks with a
-  cleaver worth taking. Some lifts are chained fast until you free their winch from the far side,
+  cleaver worth taking. Some lifts are fastened from one end until you ride them from there,
   opening shortcuts back to the shrine. Hooded Gaolers drag you in on hooked
   chains, and not every heap of bones stays a heap.
 - **A jungle that fights back too**: a river with a ford, a drifting raft and rotting planks; thorn
@@ -197,14 +197,14 @@ FromSoftware, Inc.
   molten bombs at you and iron bowmen shoot from the walls, with the Cinderhold's turreted gatehouse,
   great keep and smoking stacks ahead and molten iron pouring from its walls into the gorge. Inside, lava channels cut through the foundry, flame jets guard the corridors, slag hounds
   prowl the dark smelter pits and forge golems hide an open firebox on their backs. A postern, a gate
-  winch and a chained lift fold the fortress back onto its shrine. Its loot waits in iron chests (one of
+  winch and a fastened lift fold the fortress back onto its shrine. Its loot waits in iron chests (one of
   them has teeth), and the tower stair climbs to the keep: a great hall, a switchback stair, a shrine
   before the great door, and a rooftop walled in by battlements where the gargoyles perch.
 - **Dark places**: the hollow's caves and root caverns swallow your light. Only torches, glowing
   toadstools and fires show the way, unless you burn Lumen or kindle the cold braziers and bonfires,
   which then stay lit for good.
 - **A hollow that folds back on itself**: the way to the Loom Mother runs the long way round, over a
-  canopy walk in the treetops. Barred doors, wooden-lever lifts and a drawbridge open shortcuts back to
+  canopy walk in the treetops. Barred doors, fastened lifts and a drawbridge open shortcuts back to
   the shrines once you reach their far side.
 - **Everything procedural**: textures, low-poly models and sound effects are all generated at startup.
   The game itself ships no image or audio files.
@@ -329,8 +329,9 @@ The same list is in the game under **Controls** on the title and pause menus.
   switches between quick items.
 - Traps keep a rhythm. Watch the spikes and blades for a moment before you cross, and don't stand
   still on cracked stone.
-- Step onto a lift and it carries you; wait at its landing and it comes to you. If its chain won't
-  budge, look for the winch lever at the other end.
+- Step onto the plate in the middle of a lift and it carries you; pull the lever on its landing and it
+  comes to you. If the lever won't budge, the lift is fastened from the other end: find your way
+  there and ride it once.
 - When the Warden raises his blade in both hands, back away: the slam reaches all around him. Once his
   blade burns, keep moving off the glowing circles on the floor.
 - The Butcher is slow but hits hard. Wait out his wind-up, strike after the blow, and back off when
@@ -445,7 +446,7 @@ the flame bolt shot is
 `uv run ashen-vault --map sunken_keep --at 15,22,0 --smoke 40 --script "wait:0.3 cast" --shot flame_bolt.png`,
 the Loom Mother is `uv run ashen-vault --map verdant_hollow --at=15,7,-90 --smoke 40 --shot loom_mother.png`,
 the lift ride is
-`uv run ashen-vault --map sunken_keep --at 4,24,90 --smoke 560 --script "forward:0.9 wait:5 forward:0.3" --shot undercroft_lift.png`,
+`uv run ashen-vault --map sunken_keep --at 4,24,90 --smoke 545 --script "wait:0.2 interact wait:4.5 forward:0.6 wait:5" --shot undercroft_lift.png`,
 the Butcher is `uv run ashen-vault --map sunken_keep --at=27,7,-90 --smoke 20 --shot gallery.png`,
 the jungle trail is `uv run ashen-vault --map harrowmere --at=56,34,-90 --smoke 40 --shot jungle_trail.png`,
 Mossmouth is
