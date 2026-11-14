@@ -1,5 +1,6 @@
 """Raylib-free UI logic: message markup, the small pixel font and the shrine rest fog."""
 
+import math
 import pathlib
 import re
 
@@ -293,3 +294,83 @@ def test_every_sound_the_game_plays_is_synthesized():
     for path in SRC.rglob("*.py"):
         played |= set(re.findall(r'sfx\(\s*"([a-z_]+)"', path.read_text()))
     assert played and not played - made, sorted(played - made)
+
+
+# --- Weapon icons ---------------------------------------------------------------------
+
+
+class _Pen:
+    """Stands in for pyray in `hud`: records every draw call and how far from (0, 0) it reaches."""
+
+    def __init__(self):
+        self.calls = []
+        self.reach = 0.0
+
+    def Vector2(self, x, y):
+        return (x, y)
+
+    def Color(self, r, g, b, a):
+        return (r, g, b, a)
+
+    def _see(self, x, y, pad=0.0, pad_y=None):
+        self.reach = max(self.reach, abs(x) + pad, abs(y) + (pad if pad_y is None else pad_y))
+
+    def __getattr__(self, name):
+        def draw(*args):
+            self.calls.append((name, args))
+            if name == "draw_line_ex":
+                (p, q, w, _c) = args
+                dx, dy = q[0] - p[0], q[1] - p[1]
+                n = math.hypot(dx, dy) or 1.0
+                for x, y in (p, q):  # a thick line widens across itself, not along
+                    self._see(x, y, abs(dy) / n * w / 2, abs(dx) / n * w / 2)
+            elif name == "draw_rectangle":
+                x, y, w, h, _c = args
+                self._see(x, y)
+                self._see(x + w - 1, y + h - 1)
+            elif name in ("draw_circle", "draw_circle_lines"):
+                x, y, r, _c = args
+                self._see(x, y, r)
+            elif name == "draw_triangle":
+                for x, y in args[:3]:
+                    self._see(x, y)
+
+        return draw
+
+
+def _icon_draw(monkeypatch, item, t=0.3):
+    from ashen_vault.ui import hud
+
+    pen = _Pen()
+    monkeypatch.setattr(hud, "pr", pen)
+    hud.weapon_icon(item, 0, 0, t, 255, ready=True)
+    return pen
+
+
+def test_every_weapon_has_its_own_hud_icon():
+    """All swords once shared one glyph on the mouse HUD: each weapon now has its own."""
+    from ashen_vault.ui import hud
+
+    weapons = [i.id for i in Items.ALL.values() if i.kind == "weapon"] + [Items.FISTS.id]
+    assert not set(weapons) - set(hud.WEAPON_ICONS), sorted(set(weapons) - set(hud.WEAPON_ICONS))
+
+
+def test_weapon_icons_all_look_different_and_fit_their_button(monkeypatch):
+    from ashen_vault.ui import hud
+
+    weapons = [i for i in Items.ALL.values() if i.kind == "weapon"] + [Items.FISTS]
+    seen = {}
+    for item in weapons:
+        pen = _icon_draw(monkeypatch, item)
+        assert pen.calls, item.id
+        assert pen.reach <= hud.ICON_REACH, (item.id, pen.reach)
+        key = repr(pen.calls)
+        assert key not in seen, f"{item.id} draws the same icon as {seen.get(key)}"
+        seen[key] = item.id
+
+
+def test_a_weapon_without_its_own_icon_borrows_its_categorys(monkeypatch):
+    import dataclasses
+
+    stranger = dataclasses.replace(Items.ALL["claymore"], id="unknown_blade")
+    assert _icon_draw(monkeypatch, stranger).calls == _icon_draw(monkeypatch, Items.ALL["claymore"]).calls

@@ -387,84 +387,521 @@ def item_icon(id_, cx, cy, t, alpha=255):
 
 
 def weapon_icon(item, cx, cy, t, alpha=255, ready=False):
-    """Small weapon glyphs drawn from primitives, one per category; a glint runs up the
-    blade of edged weapons while ready."""
-    a = int(alpha)
-    cat = item.category
-    if cat == "fists":
-        skin = color(200, 150, 110, a)
-        pr.draw_rectangle(cx - 4, cy - 1, 8, 5, skin)
-        for i in range(4):
-            pr.draw_rectangle(cx - 4 + i * 2, cy - 4, 2, 3, skin)
-            pr.draw_rectangle(cx - 4 + i * 2, cy - 4, 1, 1, color(240, 200, 160, a))
-        pr.draw_rectangle(cx + 4, cy - 1, 2, 3, skin)
-        return
-    wood = color(110, 74, 44, a)
-    iron = color(150, 150, 160, a)
-    if cat == "mace":
-        pr.draw_line_ex(pr.Vector2(cx - 5, cy + 5), pr.Vector2(cx + 2, cy - 2), 2, wood)
-        pr.draw_circle(cx + 3, cy - 3, 3, iron)
-        for dx, dy in ((0, -3), (3, 0), (-3, 0), (0, 3)):
-            pr.draw_rectangle(cx + 3 + dx * 4 // 3, cy - 3 + dy * 4 // 3, 1, 1, color(210, 210, 220, a))
-        return
-    if cat == "hammer":
-        pr.draw_line_ex(pr.Vector2(cx - 5, cy + 6), pr.Vector2(cx + 3, cy - 2), 2, wood)
-        head = [pr.Vector2(cx - 1, cy - 6), pr.Vector2(cx + 7, cy + 2)]
-        pr.draw_line_ex(head[0], head[1], 5, iron)
-        pr.draw_line_ex(pr.Vector2(cx + 4, cy - 3), pr.Vector2(cx + 5, cy - 4), 2, color(200, 200, 210, a))
-        return
-    if cat == "club":
-        pr.draw_line_ex(pr.Vector2(cx - 5, cy + 5), pr.Vector2(cx + 4, cy - 4), 3, wood)
-        pr.draw_circle(cx + 3, cy - 3, 3, color(130, 90, 56, a))
-        if item.id == "spiked_club":
-            for dx, dy in ((2, -7), (7, -2), (6, -6), (0, -4)):
-                pr.draw_rectangle(cx + dx, cy + dy, 1, 1, iron)
-        return
-    if cat == "axe":
-        two = item.two_handed
-        pr.draw_line_ex(pr.Vector2(cx - 5, cy + 6), pr.Vector2(cx + 3, cy - 5), 2, wood)
-        head = [pr.Vector2(cx + 1, cy - 6), pr.Vector2(cx + 7, cy - 2 if two else cy - 3)]
-        pr.draw_line_ex(head[0], head[1], 4 if two else 3, iron)
-        pr.draw_line_ex(pr.Vector2(cx + 5, cy - 6), pr.Vector2(cx + 8, cy - 1), 1, color(220, 220, 230, a))
-        return
-    if cat == "whip":
-        pr.draw_line_ex(pr.Vector2(cx - 6, cy + 6), pr.Vector2(cx - 3, cy + 3), 2, color(80, 54, 34, a))
-        pts = [(-3, 3), (0, -1), (4, -4), (7, -3), (6, 1), (3, 2)]
-        for (x0, y0), (x1, y1) in itertools.pairwise(pts):
-            pr.draw_line_ex(
-                pr.Vector2(cx + x0, cy + y0), pr.Vector2(cx + x1, cy + y1), 1.5, color(150, 110, 70, a)
-            )
-        return
-    blade_rgb = {
-        "ashblade": (215, 215, 225),
-        "rusted_sword": (150, 132, 112),
-        "katana": (225, 228, 238),
-        "moonless_tachi": (120, 120, 140),
-        "nodachi": (230, 232, 240),
-    }.get(item.id, (190, 192, 202))
-    blade = color(*blade_rgb, a)
-    hilt = color(60, 50, 60, a) if item.id == "ashblade" else color(110, 70, 40, a)
-    if item.id == "ashblade":
-        glow = 0.5 + 0.5 * math.sin(t * 3)
-        pr.draw_circle(cx + 1, cy - 1, 5, color(255, 120, 40, rround(a * 0.25 * glow)))
-    big = cat == "greatsword"
-    tip = pr.Vector2(cx + 7, cy - 7) if big or item.id == "bastard_sword" else pr.Vector2(cx + 6, cy - 6)
-    base = pr.Vector2(cx - 3, cy + 3)
-    if cat == "katana":
-        pr.draw_line_ex(base, pr.Vector2(cx + 2, cy - 3), 1.5, blade)
-        pr.draw_line_ex(pr.Vector2(cx + 2, cy - 3), pr.Vector2(cx + 7, cy - 6), 1.5, blade)
-        pr.draw_line_ex(pr.Vector2(cx - 3, cy + 3), pr.Vector2(cx - 6, cy + 6), 2, color(40, 30, 40, a))
-        pr.draw_circle(cx - 3, cy + 3, 1.5, color(200, 170, 70, a))
+    """The weapon on a mouse button: each weapon its own small glyph drawn from primitives
+    (`WEAPON_ICONS`, falling back to its category's), most with a touch of motion. Glyphs lie on
+    the diagonal, grip bottom left and point top right, within `ICON_REACH` of the centre."""
+    draw = WEAPON_ICONS.get(item.id) or CATEGORY_ICONS.get(item.category, _icon_rusted_sword)
+    draw(cx, cy, t, int(alpha), ready)
+
+
+ICON_REACH = 9  # pixels from the button's centre a weapon glyph may reach
+
+
+def _line(cx, cy, p, q, w, col):
+    pr.draw_line_ex(pr.Vector2(cx + p[0], cy + p[1]), pr.Vector2(cx + q[0], cy + q[1]), w, col)
+
+
+def _poly(cx, cy, pts, w, col):
+    for p, q in itertools.pairwise(pts):
+        _line(cx, cy, p, q, w, col)
+
+
+def _dot(cx, cy, dx, dy, col, w=1, h=1):
+    pr.draw_rectangle(rround(cx + dx), rround(cy + dy), w, h, col)
+
+
+def _tri(cx, cy, p, q, s, col):
+    """A filled triangle in either winding (raylib only fills one)."""
+    if (q[0] - p[0]) * (s[1] - p[1]) - (q[1] - p[1]) * (s[0] - p[0]) > 0:
+        q, s = s, q
+    pr.draw_triangle(
+        pr.Vector2(cx + p[0], cy + p[1]),
+        pr.Vector2(cx + q[0], cy + q[1]),
+        pr.Vector2(cx + s[0], cy + s[1]),
+        col,
+    )
+
+
+def _along(pts, k):
+    """The point a share `k` (0..1) of the way along the polyline `pts`."""
+    lengths = [math.dist(p, q) for p, q in itertools.pairwise(pts)]
+    left = k * sum(lengths)
+    for (p, q), n in zip(itertools.pairwise(pts), lengths, strict=True):
+        if left <= n:
+            f = left / n if n else 0
+            return p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f
+        left -= n
+    return pts[-1]
+
+
+def _glint(cx, cy, pts, t, a, rgb=(255, 255, 240), speed=0.6):
+    """A bright pixel sweeping along `pts` (base to point), then resting a while."""
+    k = (t * speed) % 1.5
+    if k < 1:
+        x, y = _along(pts, k)
+        _dot(cx, cy, x, y, color(*rgb, a))
+
+
+def _diag(g, n):
+    """`n` pixels from guard offset `g` along the blade's diagonal (up and to the right)."""
+    return (g + n, -g - n)
+
+
+def _sword(
+    cx,
+    cy,
+    t,
+    a,
+    ready,
+    *,
+    grip,
+    length,
+    width,
+    steel,
+    guard,
+    guard_w,
+    guard_rgb,
+    wrap,
+    pommel,
+    pommel_rgb,
+    start=-7,
+):
+    """A straight sword on the diagonal: pommel at `start` (the bottom-left corner), the guard
+    across the blade's root, the point toward the top right. Returns the blade's (base, tip)."""
+    g = start + grip + 1  # the guard's offset along the diagonal: (g, -g)
+    root, tip = (g, -g), _diag(g, length)
+    steel_c = color(*steel, a)
+    _line(cx, cy, root, tip, width, steel_c)
+    _line(cx, cy, root, (g - grip, -g + grip), 2, color(*wrap, a))
+    gc = color(*guard_rgb, a)
+    end1, end2 = (g - guard_w, -g - guard_w), (g + guard_w, -g + guard_w)
+    _line(cx, cy, end1, end2, 2, gc)
+    if guard == "droop":  # the quillons bend down toward the grip
+        _dot(cx, cy, end1[0] - 1, end1[1] + 1, gc)
+        _dot(cx, cy, end2[0] - 1, end2[1] + 1, gc)
+    elif guard == "quatrefoil":  # a ring of lobes at each quillon's end
+        pr.draw_circle_lines(rround(cx + end1[0]), rround(cy + end1[1]), 1.5, gc)
+        pr.draw_circle_lines(rround(cx + end2[0]), rround(cy + end2[1]), 1.5, gc)
+    elif guard == "flared":  # the quillons sweep up toward the point
+        _dot(cx, cy, end1[0] + 1, end1[1] - 1, gc)
+        _dot(cx, cy, end2[0] + 1, end2[1] - 1, gc)
+    pc = color(*pommel_rgb, a)
+    px, py = g - grip - 1, -g + grip + 1
+    if pommel == "wheel":
+        pr.draw_circle(rround(cx + px), rround(cy + py), 1.5, pc)
     else:
-        pr.draw_line_ex(base, tip, 3 if big else 2, blade)
-        pr.draw_line_ex(pr.Vector2(cx - 6, cy), pr.Vector2(cx, cy + 6), 2, hilt)
-        pr.draw_line_ex(pr.Vector2(cx - 3, cy + 3), pr.Vector2(cx - 6, cy + 6), 2, hilt)
+        _dot(cx, cy, px - 1, py - 1, pc, 2, 2)
     if ready:
-        k = (t * 0.6) % 1.5  # glint sweeps base -> tip, then rests
-        if k < 1:
-            gx = rround(cx - 2 + k * 8)
-            gy = rround(cy + 2 - k * 8)
-            pr.draw_rectangle(gx, gy, 1, 1, color(255, 255, 240, a))
+        _glint(cx, cy, [_diag(g, 1), _diag(g, length - 1)], t, a)
+    return root, tip
+
+
+def _icon_fists(cx, cy, t, a, ready):
+    skin = color(200, 150, 110, a)
+    pr.draw_rectangle(cx - 4, cy - 1, 8, 5, skin)
+    for i in range(4):
+        pr.draw_rectangle(cx - 4 + i * 2, cy - 4, 2, 3, skin)
+        pr.draw_rectangle(cx - 4 + i * 2, cy - 4, 1, 1, color(240, 200, 160, a))
+    pr.draw_rectangle(cx + 4, cy - 1, 2, 3, skin)
+
+
+def _icon_rusted_sword(cx, cy, t, a, ready):
+    """Short and dull, rust creeping up from the guard and a nick near the point."""
+    _sword(
+        cx,
+        cy,
+        t,
+        a,
+        False,
+        grip=3,
+        length=9,
+        width=2,
+        steel=(150, 138, 122),
+        guard="bar",
+        guard_w=3,
+        guard_rgb=(110, 92, 74),
+        wrap=(96, 66, 44),
+        pommel="stopper",
+        pommel_rgb=(110, 92, 74),
+    )
+    rust = color(150, 84, 50, a)
+    for n in (2, 3, 6):
+        x, y = _diag(-3, n)
+        _dot(cx, cy, x, y, rust)
+    x, y = _diag(-3, 7)
+    _dot(cx, cy, x + 1, y + 1, color(30, 24, 20, a))  # the nick
+    if ready:
+        _glint(cx, cy, [_diag(-3, 1), _diag(-3, 8)], t, a, (200, 190, 170), 0.4)
+
+
+def _icon_ashblade(cx, cy, t, a, ready):
+    """Grey iron with an ember near the point that never quite went out."""
+    glow = 0.5 + 0.5 * math.sin(t * 3)
+    pr.draw_circle(cx + 4, cy - 4, 3, color(255, 120, 40, rround(a * 0.25 * glow)))
+    _sword(
+        cx,
+        cy,
+        t,
+        a,
+        ready,
+        grip=3,
+        length=10,
+        width=2,
+        steel=(215, 215, 225),
+        guard="bar",
+        guard_w=3,
+        guard_rgb=(70, 60, 70),
+        wrap=(50, 42, 50),
+        pommel="stopper",
+        pommel_rgb=(70, 60, 70),
+    )
+    x, y = _diag(-3, 8)
+    _dot(cx, cy, x, y, color(255, rround(120 + 100 * glow), 60, a))
+
+
+def _icon_bastard_sword(cx, cy, t, a, ready):
+    """Long in the blade and the grip, its guard drooping, a wheel pommel."""
+    _sword(
+        cx,
+        cy,
+        t,
+        a,
+        ready,
+        grip=4,
+        length=10,
+        width=2,
+        steel=(176, 178, 190),
+        guard="droop",
+        guard_w=3,
+        guard_rgb=(130, 124, 116),
+        wrap=(80, 60, 40),
+        pommel="wheel",
+        pommel_rgb=(130, 124, 116),
+    )
+
+
+def _icon_stormbrand(cx, cy, t, a, ready):
+    """Blued steel, flared guard; a white-blue fork of lightning flickers down the blade."""
+    _sword(
+        cx,
+        cy,
+        t,
+        a,
+        ready,
+        grip=3,
+        length=10,
+        width=3,
+        steel=(120, 145, 190),
+        guard="flared",
+        guard_w=3,
+        guard_rgb=(100, 110, 135),
+        wrap=(70, 78, 100),
+        pommel="stopper",
+        pommel_rgb=(140, 170, 230),
+    )
+    flick = math.sin(t * 23) + math.sin(t * 37)
+    if flick > -0.4:  # out for a moment now and then
+        bright = rround(a * min(1.0, 0.55 + 0.3 * flick))
+        jag = [(-2 + n + (n % 2), 2 - n + (n % 2)) for n in range(0, 9, 2)]
+        _poly(cx, cy, jag, 1, color(215, 230, 255, bright))
+
+
+def _icon_claymore(cx, cy, t, a, ready):
+    """A broad blade, rings at the guard's ends, a wheel pommel."""
+    _sword(
+        cx,
+        cy,
+        t,
+        a,
+        ready,
+        grip=3,
+        length=10,
+        width=3,
+        steel=(176, 178, 188),
+        guard="quatrefoil",
+        guard_w=4,
+        guard_rgb=(150, 136, 104),
+        wrap=(80, 60, 40),
+        pommel="wheel",
+        pommel_rgb=(150, 136, 104),
+    )
+
+
+def _icon_zweihander(cx, cy, t, a, ready):
+    """The longest blade, a red-wrapped ricasso above the guard and parrying hooks above that."""
+    g = -3
+    _sword(
+        cx,
+        cy,
+        t,
+        a,
+        ready,
+        grip=4,
+        length=10,
+        width=3.5,
+        steel=(190, 192, 202),
+        guard="bar",
+        guard_w=4,
+        guard_rgb=(150, 136, 104),
+        wrap=(60, 50, 44),
+        pommel="stopper",
+        pommel_rgb=(150, 136, 104),
+        start=-8,
+    )
+    _line(cx, cy, _diag(g, 0), _diag(g, 2), 2.5, color(160, 44, 40, a))
+    hx, hy = _diag(g, 3)
+    _line(cx, cy, (hx - 2, hy - 2), (hx + 2, hy + 2), 1, color(150, 136, 104, a))
+
+
+def _katana(cx, cy, t, a, ready, *, grip, blade_pts, width, blade, cord, tsuba, hamon=None, glint=True):
+    """A curved blade: a cord-wrapped grip from the bottom-left, a round tsuba, the blade bowing up."""
+    root = blade_pts[0]
+    end = (root[0] - grip, root[1] + grip)
+    _line(cx, cy, end, root, 2, color(36, 28, 34, a))
+    for n in range(1, grip, 2):  # the cord's diamonds down the grip
+        _dot(cx, cy, root[0] - n, root[1] + n - 1, color(*cord, a))
+    _poly(cx, cy, blade_pts, width, color(*blade, a))
+    if hamon:
+        _poly(cx, cy, [(x - 1, y + 1) for x, y in blade_pts[1:]], 1, color(*hamon, a))
+    pr.draw_circle(rround(cx + root[0]), rround(cy + root[1]), 1.5, color(*tsuba, a))
+    if ready and glint:
+        _glint(cx, cy, blade_pts, t, a)
+
+
+def _icon_katana(cx, cy, t, a, ready):
+    _katana(
+        cx,
+        cy,
+        t,
+        a,
+        ready,
+        grip=4,
+        blade_pts=[(-3, 3), (1, -2), (6, -5)],
+        width=1.5,
+        blade=(220, 224, 234),
+        cord=(180, 40, 48),
+        tsuba=(200, 170, 70),
+    )
+
+
+def _icon_moonless_tachi(cx, cy, t, a, ready):
+    """Dark-lacquered, a pale temper line; a slow sheen comes and goes as it drinks the light."""
+    pts = [(-3, 3), (1, -2), (7, -6)]
+    _katana(
+        cx,
+        cy,
+        t,
+        a,
+        ready,
+        grip=4,
+        blade_pts=pts,
+        width=2,
+        blade=(70, 72, 92),
+        cord=(90, 90, 120),
+        tsuba=(60, 60, 80),
+        hamon=(150, 156, 180),
+        glint=False,
+    )
+    sheen = 0.5 - 0.5 * math.cos(t * 1.3)
+    _poly(cx, cy, pts, 1, color(200, 205, 230, rround(a * 0.55 * sheen)))
+
+
+def _icon_nodachi(cx, cy, t, a, ready):
+    """Taller than a door: the longest curve, a long grip bound in gold cord."""
+    _katana(
+        cx,
+        cy,
+        t,
+        a,
+        ready,
+        grip=5,
+        blade_pts=[(-3, 3), (2, -3), (8, -8)],
+        width=2,
+        blade=(214, 216, 226),
+        cord=(210, 180, 80),
+        tsuba=(150, 130, 60),
+    )
+
+
+def _whip(cx, cy, t, a, pts, cord, handle, thorns=None):
+    """A handle and a coiled lash whose loose end sways."""
+    _line(cx, cy, (-7, 7), (-4, 4), 2, color(*handle, a))
+    sway = [(x + math.sin(t * 2.5 + i) * 0.7 * i / len(pts), y) for i, (x, y) in enumerate(pts)]
+    _poly(cx, cy, sway, 1.5, color(*cord, a))
+    if thorns:
+        for p, q in itertools.pairwise(sway[1:]):
+            x, y = (p[0] + q[0]) / 2, (p[1] + q[1]) / 2
+            _dot(cx, cy, x + 1, y - 1, color(*thorns, a))
+
+
+def _icon_leather_whip(cx, cy, t, a, ready):
+    _whip(cx, cy, t, a, [(-4, 4), (0, -1), (4, -4), (7, -3), (6, 1), (3, 2)], (160, 116, 72), (80, 54, 34))
+
+
+def _icon_thornlash(cx, cy, t, a, ready):
+    """A briar cord set with iron thorns, coiled tighter."""
+    _whip(
+        cx,
+        cy,
+        t,
+        a,
+        [(-4, 4), (-2, -2), (2, -6), (7, -5), (8, -1), (5, 2), (2, 0)],
+        (90, 116, 60),
+        (60, 44, 30),
+        thorns=(190, 190, 200),
+    )
+
+
+def _icon_mace(cx, cy, t, a, ready):
+    _line(cx, cy, (-5, 5), (2, -2), 2, color(110, 74, 44, a))
+    pr.draw_circle(cx + 3, cy - 3, 3, color(150, 150, 160, a))
+    flanges = ((3, -7), (7, -3), (3, 1), (-1, -3))
+    for i, (dx, dy) in enumerate(flanges):
+        lit = ready and int(t * 4) % 6 == i  # a glint runs round the flanges
+        _dot(cx, cy, dx, dy, color(*((255, 255, 240) if lit else (200, 200, 212)), a))
+
+
+def _icon_war_hammer(cx, cy, t, a, ready):
+    _line(cx, cy, (-5, 6), (3, -2), 2, color(110, 74, 44, a))
+    _line(cx, cy, (-1, -6), (7, 2), 5, color(150, 150, 160, a))
+    _line(cx, cy, (4, -3), (5, -4), 2, color(200, 200, 210, a))
+    if ready:
+        _glint(cx, cy, [(5, -6), (8, -3)], t, a)
+
+
+def _icon_heartwood_maul(cx, cy, t, a, ready):
+    """A knotted burl of petrified heartwood on a crooked root haft, moss twinkling in its cracks."""
+    _poly(cx, cy, [(-6, 7), (-3, 3), (-2, 1), (1, -1)], 2, color(96, 70, 44, a))
+    pr.draw_circle(cx + 3, cy - 3, 4, color(118, 104, 86, a))
+    pr.draw_circle(cx + 4, cy - 4, 2, color(140, 126, 104, a))
+    for dx, dy in ((1, -2), (5, -1)):
+        _dot(cx, cy, dx, dy, color(70, 56, 42, a))  # knots
+    for i, (dx, dy) in enumerate(((2, -6), (6, -3), (0, -4))):
+        twinkle = 0.55 + 0.45 * math.sin(t * 2.2 + i * 2.1)
+        _dot(cx, cy, dx, dy, color(110, 180, 70, rround(a * twinkle)))
+
+
+def _icon_slagbreaker(cx, cy, t, a, ready):
+    """A black banded haft under a slag-crusted head whose cracks pulse hot; heat motes rise."""
+    _line(cx, cy, (-6, 7), (2, -1), 2, color(70, 64, 62, a))
+    for n in (-4, -1):
+        _dot(cx, cy, n, -n, color(130, 126, 124, a))  # iron bands
+    _line(cx, cy, (-1, -6), (6, 1), 5, color(78, 66, 60, a))
+    _line(cx, cy, (-1, -6), (6, 1), 1, color(40, 34, 32, a))
+    heat = 0.6 + 0.4 * math.sin(t * 4)
+    hot = color(255, rround(110 + 80 * heat), 40, rround(a * heat))
+    _poly(cx, cy, [(1, -4), (3, -3), (4, -1), (6, 0)], 1, hot)
+    for i in range(2):
+        k = (t * 0.7 + i * 0.5) % 1
+        _dot(cx, cy, 2 + 3 * i + math.sin(t * 5 + i), -6 - k * 3, color(255, 170, 70, rround(a * (1 - k))))
+
+
+def _icon_oak_cudgel(cx, cy, t, a, ready):
+    """A knotted length of oak, thickening toward the head."""
+    wood = color(130, 92, 58, a)
+    _line(cx, cy, (-6, 6), (-1, 1), 2, wood)
+    _line(cx, cy, (-1, 1), (3, -3), 3, wood)
+    pr.draw_circle(cx + 4, cy - 4, 2.5, wood)
+    for dx, dy in ((-3, 3), (1, -1), (4, -5)):
+        _dot(cx, cy, dx, dy, color(80, 54, 34, a))
+
+
+def _icon_spiked_club(cx, cy, t, a, ready):
+    """Nails driven through a root-ball."""
+    _line(cx, cy, (-5, 5), (4, -4), 3, color(110, 74, 44, a))
+    pr.draw_circle(cx + 3, cy - 3, 3.5, color(130, 90, 56, a))
+    nails = ((2, -8), (7, -2), (6, -7), (-1, -5), (0, -1), (4, 1))
+    for i, (dx, dy) in enumerate(nails):
+        lit = ready and int(t * 5) % 9 == i
+        _dot(cx, cy, dx, dy, color(*((255, 255, 240) if lit else (170, 170, 180)), a))
+
+
+def _axe_haft(cx, cy, p, q, a):
+    _line(cx, cy, p, q, 2, color(118, 80, 48, a))
+
+
+def _icon_hatchet(cx, cy, t, a, ready):
+    """A short camp axe: a stubby haft and a small head."""
+    _axe_haft(cx, cy, (-4, 5), (2, -2), a)
+    _tri(cx, cy, (1, -4), (5, -3), (3, 0), color(150, 150, 160, a))
+    edge = [(5, -3), (3, 0)]
+    _line(cx, cy, *edge, 1, color(220, 220, 230, a))
+    if ready:
+        _glint(cx, cy, edge, t, a)
+
+
+def _icon_bearded_axe(cx, cy, t, a, ready):
+    """Its long lower edge hooks down past the haft."""
+    _axe_haft(cx, cy, (-6, 6), (3, -5), a)
+    iron = color(150, 150, 160, a)
+    _tri(cx, cy, (1, -5), (6, -6), (7, 1), iron)
+    _tri(cx, cy, (1, -5), (7, 1), (3, -1), iron)
+    edge = [(6, -6), (7, -2), (6, 2)]
+    _poly(cx, cy, edge, 1, color(220, 220, 230, a))
+    if ready:
+        _glint(cx, cy, edge, t, a)
+
+
+def _icon_felling_axe(cx, cy, t, a, ready):
+    """A long two-handed haft and a deep wedge of a head."""
+    _axe_haft(cx, cy, (-7, 7), (4, -5), a)
+    _tri(cx, cy, (2, -3), (5, -8), (8, -2), color(150, 150, 160, a))
+    edge = [(5, -8), (8, -2)]
+    _line(cx, cy, *edge, 1, color(220, 220, 230, a))
+    if ready:
+        _glint(cx, cy, edge, t, a)
+
+
+def _icon_butcher_cleaver(cx, cy, t, a, ready):
+    """Broad as a shovel, a hole to hang it by, and never quite clean."""
+    _line(cx, cy, (-7, 6), (-3, 2), 2, color(90, 60, 40, a))
+    pr.draw_rectangle(cx - 3, cy - 6, 10, 7, color(150, 150, 160, a))
+    pr.draw_rectangle(cx - 3, cy, 10, 1, color(220, 220, 230, a))  # the edge
+    _dot(cx, cy, 4, -4, color(20, 16, 14, a))  # the hang hole
+    glisten = 0.6 + 0.4 * math.sin(t * 2)
+    blood = color(150, 30, 30, rround(a * glisten))
+    _dot(cx, cy, 0, -2, blood, 2, 2)
+    _dot(cx, cy, 2, -1, blood)
+    if ready:
+        _glint(cx, cy, [(-3, 0), (6, 0)], t, a)
+
+
+WEAPON_ICONS = {
+    "fists": _icon_fists,
+    "rusted_sword": _icon_rusted_sword,
+    "ashblade": _icon_ashblade,
+    "bastard_sword": _icon_bastard_sword,
+    "stormbrand": _icon_stormbrand,
+    "claymore": _icon_claymore,
+    "zweihander": _icon_zweihander,
+    "katana": _icon_katana,
+    "moonless_tachi": _icon_moonless_tachi,
+    "nodachi": _icon_nodachi,
+    "leather_whip": _icon_leather_whip,
+    "thornlash": _icon_thornlash,
+    "mace": _icon_mace,
+    "war_hammer": _icon_war_hammer,
+    "heartwood_maul": _icon_heartwood_maul,
+    "slagbreaker": _icon_slagbreaker,
+    "oak_cudgel": _icon_oak_cudgel,
+    "spiked_club": _icon_spiked_club,
+    "hatchet": _icon_hatchet,
+    "bearded_axe": _icon_bearded_axe,
+    "felling_axe": _icon_felling_axe,
+    "butcher_cleaver": _icon_butcher_cleaver,
+}
+# A weapon without its own glyph borrows its category's.
+CATEGORY_ICONS = {
+    "fists": _icon_fists,
+    "sword": _icon_rusted_sword,
+    "greatsword": _icon_claymore,
+    "katana": _icon_katana,
+    "whip": _icon_leather_whip,
+    "mace": _icon_mace,
+    "hammer": _icon_war_hammer,
+    "club": _icon_oak_cudgel,
+    "axe": _icon_hatchet,
+}
 
 
 def shield_icon(item, cx, cy, alpha=255, raised=False):
