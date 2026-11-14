@@ -22,7 +22,7 @@ def world_on(name, flags=(), at=None):
         ("sunken_keep", "boss_dead", (15, 4)),
         ("sunken_keep", "butcher_dead", (27, 4)),
         ("verdant_hollow", "spider_dead", (15, 3)),
-        ("cinderhold", "gargoyles_dead", (24, 4)),
+        ("cinder_keep", "gargoyles_dead", (4, 4)),
     ],
 )
 def test_every_boss_has_a_closed_arena_behind_a_great_door(map_name, flag, lair):
@@ -111,7 +111,7 @@ def test_the_fight_waits_while_the_boss_is_still_outside_its_arena():
 
 
 def test_the_gargoyles_arena_clears_only_when_both_have_fallen():
-    game, world = world_on("cinderhold", at=(30, 4))
+    game, world = world_on("cinder_keep", at=(10, 4))
     (arena,) = [a for a in world.arenas if a.flag == "gargoyles_dead"]
     for e in world.enemies:
         if e.type.dead_flag == "gargoyles_dead":

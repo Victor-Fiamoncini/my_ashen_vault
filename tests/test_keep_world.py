@@ -28,6 +28,7 @@ class FakeGame:
         self.player = Player()
         self.messages = []
         self.sounds = []
+        self.volumes = []  # (name, volume) of every sound, in the order played
         self.wounds = []
 
     def message(self, text):
@@ -35,6 +36,7 @@ class FakeGame:
 
     def sfx(self, name, volume=1.0):
         self.sounds.append(name)
+        self.volumes.append((name, volume))
 
     def hurt_player(self, dmg, source):
         self.wounds.append((dmg, source))

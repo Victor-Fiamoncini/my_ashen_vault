@@ -27,7 +27,8 @@ def spawn_enemies(map_, flags, bosses=True):
             yaw = map_.open_facing(spec.tx, spec.tz)
         else:
             yaw = 0.0
-        enemies.append(Enemy(type_, x, z, yaw=yaw, marker=spec.marker, loot=spec.props.get("item"), key=key))
+        loot, look = spec.props.get("item"), spec.props.get("model")
+        enemies.append(Enemy(type_, x, z, yaw=yaw, marker=spec.marker, loot=loot, key=key, look=look))
     return enemies
 
 

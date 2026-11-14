@@ -232,6 +232,12 @@ STATUS_TINT = {"poison": (0.45, 1.1, 0.3), "burn": (1.5, 0.7, 0.25)}
 KINDLE_REACH = 1.2  # a flame bolt passing this close to a cold brazier sets it alight
 
 
+# Fire and lava sounds fade with distance: (base volume, metres at which they fall silent).
+JET_SOUND = (0.3, 10.0)
+LOB_SOUND = (0.25, 26.0)  # a soft warning from across the lava
+BOMB_SOUND = (0.25, 14.0)  # a vent's bomb bursting where it lands
+ERUPTION_SOUND = (0.6, 24.0)  # a boss's fire column
+QUIET = 0.03  # a sound fainter than this is not played at all
 SHRINE_REACH = 3.0  # metres: a save made closer than this to a shrine is taken to have been made there
 
 
@@ -508,10 +514,16 @@ class World:
         return arenas
 
     def boss_target(self):
-        """(x, z) of the nearest great door whose boss still lives, or None when this map has no boss
-        left (or never had one). The compass points there."""
+        """(x, z) of the nearest great door whose boss still lives, or of a way on to one (an `exit`
+        with `boss=<dead_flag>`, like the Cinderhold's door to its keep). None when this map has no
+        boss left (or never had one). The compass points there."""
         p = self.player
         gates = [TileMap.center(*a.gate) for a in self.arenas if a.tiles and not a.cleared(self.flags)]
+        gates += [
+            (q.x, q.z)
+            for q in self.props
+            if q.kind == "exit" and q.props.get("boss") and q.props["boss"] not in self.flags
+        ]
         if not gates:
             return None
         return min(gates, key=lambda g: math.hypot(g[0] - p.x, g[1] - p.z))
@@ -890,8 +902,8 @@ class World:
                 self._update_vent(h, dt)
                 continue
             if isinstance(h, FlameJet):
-                if h.update(dt) and math.hypot(h.x - player.x, h.z - player.z) < 10:
-                    self.game.sfx("jet", 0.6)
+                if h.update(dt):
+                    self.sfx_near("jet", h.x, h.z, *JET_SOUND)
                 if player.alive and abs(player.y - h.floor) < 1.6:
                     dmg = h.hit(player.x, player.z)
                     if dmg:
@@ -914,6 +926,13 @@ class World:
                 self.game.hurt_player(dmg, "The pendulum")
                 self._knock_player(px, pz)
 
+    def sfx_near(self, name, x, z, volume, reach):
+        """Plays a sound from (x, z), fading with your distance from it to silence at `reach`."""
+        d = math.hypot(x - self.player.x, z - self.player.z)
+        loud = volume * max(1 - d / reach, 0.0)
+        if loud >= QUIET:
+            self.game.sfx(name, loud)
+
     def _update_vent(self, h, dt):
         """A magma vent lobs its bombs: the first at you when you stand on open ground in its reach."""
         player = self.player
@@ -925,15 +944,14 @@ class World:
         bombs = h.update(dt, spot)
         if bombs:
             self.eruptions.extend(bombs)
-            if math.hypot(h.x - player.x, h.z - player.z) < h.radius + 6:
-                self.game.sfx("lob", 0.6)
+            self.sfx_near("lob", h.x, h.z, *LOB_SOUND)
 
     def _update_fire(self, dt):
         """The Warden's fire columns and slam rings."""
         player = self.player
         for f in self.eruptions:
             if f.update(dt):
-                self.game.sfx("eruption", 0.6)
+                self.sfx_near("eruption", f.x, f.z, *(BOMB_SOUND if f.origin else ERUPTION_SOUND))
             if player.alive:
                 dmg = f.hit(player.x, player.z)
                 if dmg:
@@ -1581,7 +1599,7 @@ class World:
         elif k == "totem":
             models.totem(rig, p.tx * 3 + p.tz, t)
         elif k == "chest":
-            models.chest(rig, p.open_t > 0)
+            models.chest(rig, p.open_t > 0, p.props.get("model", "wood"))
         elif k == "door" and p.props.get("boss"):
             a = self.arena_at_door(p)
             if a and a.fogged(self.flags):
@@ -1664,6 +1682,8 @@ class World:
                 models.cave_mouth(rig, t)
             elif p.props.get("model") == "road_gate":
                 forge_models.road_gate(rig)
+            elif p.props.get("model") == "keep_door":
+                forge_models.keep_door(rig, t)
             else:
                 models.rope(rig, t)
         elif k == "spire":

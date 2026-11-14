@@ -964,9 +964,11 @@ def bone_crawler(r, e, t):
 
 def mimic(r, e, t):
     """A chest with teeth. Asleep it is a plain closed chest; awake it gapes, chews and scuttles."""
+    style = getattr(e, "look", None) or "wood"
     if e.state == "dormant":
-        chest(r, False)
+        chest(r, False, style)
         return
+    shell, tex = CHEST_SHELLS.get(style, CHEST_SHELLS["wood"])
     shut = death_fall(e, 0.4)
     dead = e.state == "dead"
     gape = 0.9 + math.sin(t * 9) * 0.25
@@ -994,7 +996,7 @@ def mimic(r, e, t):
                     (60, 40, 34),
                     rz=-0.3 if lx > 0 else 0.3,
                 )
-        r.part("cube", 0, 0.25, 0, 0.6, 0.5, 0.9, WHITE, tex="wood_plank")
+        r.part("cube", 0, 0.25, 0, 0.6, 0.5, 0.9, shell, tex=tex)
         r.part("cube", 0, 0.26, 0, 0.62, 0.06, 0.92, IRON)
         for z in (-0.3, 0.3):  # iron bands down its sides, studded
             r.part("cube", 0, 0.25, z, 0.62, 0.5, 0.06, IRON)
@@ -1013,7 +1015,7 @@ def mimic(r, e, t):
                 with r.at(0.2, 0, 0, rz=-0.4 + math.sin(t * 7 + 1) * 0.3):
                     r.part("wedge", 0.06, 0, 0, 0.04, 0.12, 0.12, (160, 40, 60), rz=-math.pi / 2)
         with r.at(-0.3, 0.5, 0, rz=gape):
-            r.part("cube", 0.3, 0.08, 0, 0.6, 0.16, 0.9, WHITE, tex="wood_plank")
+            r.part("cube", 0.3, 0.08, 0, 0.6, 0.16, 0.9, shell, tex=tex)
             r.part("cube", 0.3, 0.17, 0, 0.62, 0.02, 0.06, IRON)  # the lid's strap
             for i in range(7):
                 r.part("wedge", 0.56, -0.06, -0.36 + i * 0.12, 0.05, 0.18, 0.06, BONE, rz=math.pi)
@@ -1743,13 +1745,41 @@ def enthroned(r, t):
         )  # fmt: skip
 
 
-def chest(r, is_open):
-    r.part("cube", 0, 0.25, 0, 0.6, 0.5, 0.9, WHITE, tex="wood_plank")
-    r.part("cube", 0, 0.26, 0, 0.62, 0.06, 0.92, IRON)
-    with r.at(-0.3, 0.5, 0, rz=1.9 if is_open else 0):
-        r.part("cube", 0.3, 0.08, 0, 0.6, 0.16, 0.9, WHITE, tex="wood_plank")
+IRON_CHEST = (150, 146, 156)  # tint over the iron plate of an iron chest
+IRON_CHEST_BAND = (52, 50, 56)
+CHEST_SHELLS = {"wood": (WHITE, "wood_plank"), "iron": (IRON_CHEST, "iron_plate")}
+
+
+def chest(r, is_open, style="wood"):
+    """A chest facing +X, its lid hinged at the back. `style` "iron" is the Cinderhold's: riveted
+    black bands, corner brackets, iron feet, a rounded lid and a heavy hasp with an ember-lit keyhole."""
+    shell, tex = CHEST_SHELLS.get(style, CHEST_SHELLS["wood"])
+    if style != "iron":
+        r.part("cube", 0, 0.25, 0, 0.6, 0.5, 0.9, shell, tex=tex)
+        r.part("cube", 0, 0.26, 0, 0.62, 0.06, 0.92, IRON)
+        with r.at(-0.3, 0.5, 0, rz=1.9 if is_open else 0):
+            r.part("cube", 0.3, 0.08, 0, 0.6, 0.16, 0.9, shell, tex=tex)
+        if not is_open:
+            r.part("cube", 0.31, 0.42, 0, 0.04, 0.12, 0.1, (200, 170, 80))
+        return
+    r.part("cube", 0, 0.29, 0, 0.6, 0.46, 0.9, shell, tex=tex)
+    for x, z in ((0.25, 0.4), (0.25, -0.4), (-0.25, 0.4), (-0.25, -0.4)):
+        r.part("cube", x, 0.04, z, 0.14, 0.08, 0.14, IRON_CHEST_BAND)  # feet
+        r.part("cube", x * 1.06, 0.29, z * 1.03, 0.06, 0.48, 0.06, IRON_CHEST_BAND)  # corner brackets
+    for z in (-0.25, 0.25):  # bands over the front and back, riveted
+        r.part("cube", 0, 0.29, z, 0.63, 0.48, 0.07, IRON_CHEST_BAND)
+        for y in (0.12, 0.29, 0.46):
+            r.part("cube", 0.32, y, z, 0.02, 0.035, 0.035, RIVET_IRON)
+    r.part("cube", 0, 0.5, 0, 0.63, 0.05, 0.93, IRON_CHEST_BAND)  # the rim
+    with r.at(-0.3, 0.52, 0, rz=1.9 if is_open else 0):
+        r.part("cube", 0.3, 0.06, 0, 0.6, 0.12, 0.9, shell, tex=tex)
+        r.part("cyl", 0.3, 0.12, 0, 0.58, 0.88, 0.2, shell, tex=tex, rx=math.pi / 2)  # the rounded top
+        for z in (-0.25, 0.25):
+            r.part("cyl", 0.3, 0.12, z, 0.62, 0.07, 0.24, IRON_CHEST_BAND)
+        r.part("cube", 0.6, 0.0, 0, 0.04, 0.18, 0.14, IRON_CHEST_BAND)  # the hasp, hanging from the lid
     if not is_open:
-        r.part("cube", 0.31, 0.42, 0, 0.04, 0.12, 0.1, (200, 170, 80))
+        r.part("cube", 0.315, 0.36, 0, 0.04, 0.16, 0.16, IRON)  # the lock plate
+        r.part("cube", 0.34, 0.35, 0, 0.01, 0.06, 0.025, (200, 90, 30), glow=True)  # the keyhole
 
 
 def door(r, open_t, axis, tex="door_wood"):
@@ -4019,13 +4049,9 @@ def item(r, id_, t):
         ):
             r.part("sphere", x, y, z, d, d * 0.8, d, (60, 140, 190), glow=True)
         r.part("cyl", 0, -0.32, 0, 0.6, 0.06, 0.6, (70, 60, 44))
-    elif id_ in SCROLL_RIBBON:
-        ribbon = SCROLL_RIBBON[id_]
-        with r.at(0, 0, 0, rx=math.pi / 2):
-            r.part("cyl", 0, 0, 0, 0.3, 0.9, 0.3, (210, 196, 160))
-            r.part("cyl", 0, 0, 0, 0.32, 0.1, 0.32, ribbon)
-            r.part("cyl", 0, 0.5, 0, 0.08, 0.14, 0.08, (110, 80, 50))
-            r.part("cyl", 0, -0.5, 0, 0.08, 0.14, 0.08, (110, 80, 50))
+    elif Items.ALL.get(id_) and Items.get(id_).kind == "scroll":
+        with r.at(0, 0, 0, s=1.2):
+            scroll(r, id_, t)
     elif id_ in KEY_STYLES:
         key(r, id_, KEY_STYLES[id_][1], t)
     elif id_ in SIGILS:
@@ -4036,13 +4062,81 @@ def item(r, id_, t):
         r.part("cube", 0, 0, 0, 0.5, 0.5, 0.5, (130, 100, 70))
 
 
-SCROLL_RIBBON = {
-    "scroll_mend": (170, 40, 40),
-    "scroll_lumen": (210, 200, 120),
-    "scroll_venom": (90, 150, 50),
-    "scroll_veil": (150, 160, 170),
-    "scroll_pyre": (220, 90, 30),
+PARCHMENT = (214, 198, 160)
+SOOTED_PARCHMENT = (150, 132, 110)  # scrolls kept in the Cinderhold, smudged by its smoke
+ROD_WOOD = (110, 80, 50)
+ROD_IRON = (80, 80, 88)
+# Each scroll: its parchment, its rods and the wax of its seal (the ribbon is a darker shade of it).
+# The rune pressed into the seal (SCROLL_RUNES) glows in the spell's own colour (SPELL_ORB).
+SCROLLS = {
+    "scroll_mend": (PARCHMENT, ROD_WOOD, (160, 34, 34)),
+    "scroll_lumen": (PARCHMENT, ROD_WOOD, (196, 160, 60)),
+    "scroll_venom": (PARCHMENT, ROD_WOOD, (70, 120, 40)),
+    "scroll_veil": (PARCHMENT, ROD_WOOD, (110, 120, 132)),
+    "scroll_pyre": (PARCHMENT, ROD_WOOD, (190, 70, 20)),
+    "scroll_thunder": (SOOTED_PARCHMENT, ROD_IRON, (46, 66, 150)),
+    "scroll_motes": (SOOTED_PARCHMENT, ROD_IRON, (100, 44, 140)),
+    "scroll_ward": (PARCHMENT, ROD_WOOD, (130, 60, 26)),
 }
+
+
+def _ring(n, radius, length):
+    """Bars set tangent around a circle: the rune of a ward."""
+    return [
+        (
+            math.cos(i * math.tau / n) * radius,
+            math.sin(i * math.tau / n) * radius,
+            length,
+            i * math.tau / n + math.pi / 2,
+        )
+        for i in range(n)
+    ]
+
+
+# Runes pressed into the seal as glowing bars: (y, z, length, angle in the seal's face; 0 is upright).
+SCROLL_RUNES = {
+    "flame": [(0.0, -0.022, 0.11, -0.4), (0.0, 0.022, 0.11, 0.4), (-0.05, 0.0, 0.08, math.pi / 2)],
+    "pyre": [
+        (0.0, -0.028, 0.11, -0.4), (0.0, 0.028, 0.11, 0.4), (0.0, 0.0, 0.07, 0.0),
+        (-0.05, 0.0, 0.1, math.pi / 2),
+    ],
+    "mend": [(0.0, 0.0, 0.12, 0.0), (0.0, 0.0, 0.12, math.pi / 2)],
+    "lumen": [(0.0, 0.0, 0.13, i * math.pi / 4) for i in range(4)],
+    "venom": [(0.015, -0.02, 0.1, 0.3), (0.015, 0.02, 0.1, -0.3), (-0.055, 0.0, 0.025, 0.0)],
+    "veil": [(0.04, -0.012, 0.09, math.pi / 2), (0.0, 0.012, 0.09, math.pi / 2), (-0.04, -0.012, 0.09, math.pi / 2)],
+    "thunder": [(0.042, 0.014, 0.07, -0.5), (0.0, 0.0, 0.07, 1.1), (-0.042, -0.014, 0.07, -0.5)],
+    "motes": [(0.042, 0.0, 0.035, 0.0), (-0.024, -0.036, 0.035, 0.0), (-0.024, 0.036, 0.035, 0.0)],
+    "ward": _ring(6, 0.048, 0.052),
+}  # fmt: skip
+
+
+def scroll(r, id_, t):
+    """A spell scroll lying along Z: a rolled parchment with a loose tongue hanging from it, rods
+    capped with knobs at both ends, a ribbon round its middle and a big wax seal on it, the spell's
+    rune pressed into the wax and glowing in the spell's colour."""
+    parchment, rod, wax = SCROLLS[id_]
+    spell = Items.get(id_).spell
+    ribbon = _dim(wax, 0.75)
+    with r.at(0, 0, 0, rx=math.pi / 2):  # the roll's axis along Z
+        r.part("cyl", 0, 0, 0, 0.4, 0.84, 0.4, parchment)
+        for end in (-1, 1):
+            r.part("cyl", 0, end * 0.43, 0, 0.44, 0.04, 0.44, _dim(parchment, 0.8))  # the curled edge
+            r.part("cyl", 0, end * 0.5, 0, 0.1, 0.14, 0.1, rod)
+            r.part("sphere", 0, end * 0.6, 0, 0.15, 0.15, 0.15, rod)
+        r.part("cyl", 0, 0, 0, 0.42, 0.12, 0.42, ribbon)
+    # The unrolled tongue, curling off the front of the roll, and the ribbon's loose tails.
+    r.part("cube", 0.2, -0.24, 0, 0.02, 0.3, 0.78, _dim(parchment, 0.92), rz=0.25)
+    for side in (-1, 1):
+        r.part("cube", 0.22, -0.2, side * 0.06, 0.02, 0.24, 0.06, ribbon, rx=side * 0.35)
+    # The seal on the ribbon, facing out (+X), and the rune pressed into it.
+    with r.at(0.23, 0.0, 0, rz=-math.pi / 2):
+        r.part("cyl", 0, 0, 0, 0.32, 0.05, 0.32, _dim(wax, 0.8))
+        r.part("cyl", 0, 0.02, 0, 0.26, 0.04, 0.26, wax)
+    pulse = 0.85 + 0.15 * math.sin(t * 3)
+    glow = _dim(SPELL_ORB.get(spell, WHITE), pulse)
+    for y, z, length, ang in SCROLL_RUNES.get(spell, []):
+        k = 1.5  # the runes are drawn for a 0.2 seal; this one is bigger
+        r.part("cube", 0.275, y * k, z * k, 0.02, length * k, 0.032, glow, rx=ang, glow=True)
 
 
 def garment(r, id_):

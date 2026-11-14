@@ -1,0 +1,96 @@
+[meta]
+name = The Cinderhold Keep
+ambient = 0.46 0.34 0.30
+fog = 0.22 0.08 0.05
+fog_range = 6 34
+sky = ember
+torch = 7 0.9 0.7 0.5
+start = 25 22 180
+default = ,
+edge_top = 26
+edge_tex = black_brick
+entity_floor = auto
+
+[legend]
+# = wall tex=black_brick top=24 cap=slate
+& = wall tex=black_brick top=26 cap=slate
+% = wall tex=black_brick top=20 cap=slate
+: = wall tex=black_brick top=18.8 cap=slate
+r = floor tex=slate h=12 side=black_brick
+o = floor tex=flagstone h=12 ceil=16 ceil_tex=black_brick side=black_brick
+, = floor tex=iron_plate h=0 ceil=8 ceil_tex=black_brick side=black_brick
+. = floor tex=flagstone h=0 ceil=4 ceil_tex=black_brick side=black_brick
+a = floor tex=flagstone h=0.5 ceil=4.5 ceil_tex=black_brick side=black_brick dark=0.15
+b = floor tex=flagstone h=1 ceil=5 ceil_tex=black_brick side=black_brick dark=0.15
+c = floor tex=flagstone h=1.5 ceil=5.5 ceil_tex=black_brick side=black_brick dark=0.15
+d = floor tex=flagstone h=2 ceil=6 ceil_tex=black_brick side=black_brick dark=0.15
+e = floor tex=flagstone h=2.5 ceil=6.5 ceil_tex=black_brick side=black_brick dark=0.15
+f = floor tex=flagstone h=3 ceil=7 ceil_tex=black_brick side=black_brick dark=0.15
+h = floor tex=flagstone h=3.5 ceil=7.5 ceil_tex=black_brick side=black_brick dark=0.15
+i = floor tex=flagstone h=4 ceil=8 ceil_tex=black_brick side=black_brick dark=0.15
+j = floor tex=flagstone h=4.5 ceil=8.5 ceil_tex=black_brick side=black_brick dark=0.15
+k = floor tex=flagstone h=5 ceil=9 ceil_tex=black_brick side=black_brick dark=0.15
+m = floor tex=flagstone h=5.5 ceil=9.5 ceil_tex=black_brick side=black_brick dark=0.15
+n = floor tex=flagstone h=6 ceil=10 ceil_tex=black_brick side=black_brick dark=0.15
+q = floor tex=flagstone h=6.5 ceil=10.5 ceil_tex=black_brick side=black_brick dark=0.15
+t = floor tex=flagstone h=7 ceil=11 ceil_tex=black_brick side=black_brick dark=0.15
+u = floor tex=flagstone h=7.5 ceil=11.5 ceil_tex=black_brick side=black_brick dark=0.15
+w = floor tex=flagstone h=8 ceil=12 ceil_tex=black_brick side=black_brick dark=0.15
+x = floor tex=flagstone h=8.5 ceil=12.5 ceil_tex=black_brick side=black_brick dark=0.15
+y = floor tex=flagstone h=9 ceil=13 ceil_tex=black_brick side=black_brick dark=0.15
+z = floor tex=flagstone h=9.5 ceil=13.5 ceil_tex=black_brick side=black_brick dark=0.15
+0 = floor tex=flagstone h=10 ceil=14 ceil_tex=black_brick side=black_brick dark=0.15
+8 = floor tex=flagstone h=10.5 ceil=14.5 ceil_tex=black_brick side=black_brick dark=0.15
+9 = floor tex=flagstone h=11 ceil=15 ceil_tex=black_brick side=black_brick dark=0.15
+! = floor tex=flagstone h=11.5 ceil=15.5 ceil_tex=black_brick side=black_brick dark=0.15
+
+[grid]
+##################################
+#&&%:%:%:%:%:%:%:%&&##############
+#&&rrrrrrrTrrrrrrr&&##############
+#%rrrrrrrrrrrrrrrrr%##############
+#:rrÛrrrrCrrrrrrrrr:ToooÑ#########
+#%rrrrrrrrrrrrErrrrSooooo#########
+#:rrrrrrrrrrrrrrrrr:oWooo#########
+#%rrÝrrrrrrrCrrrrrr%##o###########
+#:rrrrrrrrrrrrrrrrr:##T###########
+#&&rrrrrrrTrrrrrrr&&##o###R#######
+#&&%:%:%:%:%:%:%:%&&##!980zyxwu###
+##############################Ö###
+##################aØcdefhijkmnq###
+##,,,,,,T,,,,,,,,,,###############
+##,,,,E,,,,,,,,,B,,###############
+##,,,,,,,,,,,,,,,,,###############
+##,,,P,,,,P,,,,P,,,###############
+##,,,,,,,,,,,,,,,,,###############
+##T,,,,Z,,F,,Z,,,,,###############
+##,,,,,,,,,,,,,,,,,###############
+##,,,P,,,,P,,,,P,,,###############
+##,,,,,,,,,,,,,,,,,###..T..#######
+##,B,,H,,,,,,,,,,,,.......X#######
+##Q,,,,,,,,,T,,,,,,###.....#######
+##################################
+
+[entities]
+// The postern landing at the top of the tower stair, and the way back down.
+X = exit map=cinderhold at=47,3,0 label=Descend_to_the_rampart model=keep_door yaw=180
+T = torch radius=7
+Ö = torch radius=7 on=t
+Ø = torch radius=6 on=b
+// The great hall: iron pillars, braziers and its garrison.
+P = pillar
+Z = brazier radius=9
+E = embers
+F = forge_golem
+B = iron_bowman
+H = slag_hound
+Q = chest item=red_tonic count=2 gold=80 model=iron
+// The switchback stair, a niche off its upper flight, and the antechamber's shrine.
+R = chest item=blue_moss count=2 gold=100 model=iron
+W = cinder_wisp
+Ñ = save_statue
+// The rooftop: battlements and turrets wall it in; the twin gargoyles perch among the chimneys.
+S = door boss=gargoyles_dead on=o
+Û = brand
+Ý = bellows
+C = chimney height=2.6

@@ -58,8 +58,9 @@ class Enemy:
     and twin_busy(enemy).
     """
 
-    def __init__(self, type_, x, z, yaw=0.0, marker=None, rng=None, loot=None, key=None):
+    def __init__(self, type_, x, z, yaw=0.0, marker=None, rng=None, loot=None, key=None, look=None):
         self.type = type_
+        self.look = look  # a model variant from the map (`model=`): a mimic's iron disguise
         self.x = x
         self.z = z
         self.home_x = x

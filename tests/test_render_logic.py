@@ -19,7 +19,7 @@ def test_textures_are_rgba_64():
 
 
 def test_mesh_builder_batches_shipped_maps():
-    for name in ("harrowmere", "sunken_keep", "verdant_hollow"):
+    for name in ("harrowmere", "sunken_keep", "verdant_hollow", "cinderhold", "cinder_keep"):
         m = MapLoader.load_file(map_path(name))
         b = MeshBuilder(m, lights=MeshBuilder.lights_for(m)).build()
         assert b.batches
@@ -437,6 +437,7 @@ def test_cinderhold_props_shots_and_hazards_draw():
     gpu = _ExtentGpu()
     r = rig.Rig(gpu)
     forge_models.road_gate(r)
+    forge_models.keep_door(r, 0.5)
     forge_models.spire(r, 3, 10.0)
     forge_models.spire(r, 4, 7.0, 2.8, "flat")
     forge_models.bastion(r, 2, 6.0)
@@ -459,6 +460,59 @@ def test_cinderhold_props_shots_and_hazards_draw():
     forge_models.flame_jet(rig.Rig(roaring), 1.0, 1.0, 2.0, 0.5)
     assert cold.glows == 0 and roaring.glows > 0
     assert roaring.glows > 4  # the gout of flame itself
+
+
+class _CountGpu(_ExtentGpu):
+    def __init__(self):
+        super().__init__()
+        self.parts = 0
+        self.texes = set()
+
+    def draw_part(self, kind, m, rgb, tex="white", glow=False):
+        super().draw_part(kind, m, rgb, tex, glow)
+        self.parts += 1
+        self.texes.add(tex)
+
+
+def test_every_scroll_has_its_own_sealed_design():
+    """No scroll falls back to the plain crate: each is a rolled parchment with rods, a ribbon and a
+    wax seal carrying its spell's glowing rune, and fits the Belongings preview."""
+    from ashen_vault.player.items import Items
+    from ashen_vault.render import models
+
+    scrolls = [i for i in Items.ALL.values() if i.kind == "scroll"]
+    assert len(scrolls) >= 8
+    assert {i.id for i in scrolls} <= set(models.SCROLLS)
+    assert {i.spell for i in scrolls} <= set(models.SCROLL_RUNES)
+    for item in scrolls:
+        gpu = _CountGpu()
+        models.item(rig.Rig(gpu), item.id, 0.5)
+        assert gpu.parts >= 15 and gpu.glows >= 1, item.id
+        assert gpu.top - gpu.bottom < 1.0, item.id
+    runes = [tuple(models.SCROLL_RUNES[i.spell]) for i in scrolls]
+    assert len(set(runes)) == len(runes)  # no two spells share a rune
+
+
+def test_an_iron_chest_and_its_mimic_look_iron_open_or_shut():
+    from types import SimpleNamespace
+
+    from ashen_vault.render import models
+
+    for is_open in (False, True):
+        wood, iron = _CountGpu(), _CountGpu()
+        models.chest(rig.Rig(wood), is_open)
+        models.chest(rig.Rig(iron), is_open, "iron")
+        assert "wood_plank" in wood.texes and "iron_plate" in iron.texes
+        assert "wood_plank" not in iron.texes and iron.parts > wood.parts
+    assert iron.glows == 0  # the keyhole's ember only shows on a shut chest
+    shut = _CountGpu()
+    models.chest(rig.Rig(shut), False, "iron")
+    assert shut.glows == 1
+    for state in ("dormant", "chase"):
+        gpu = _CountGpu()
+        e = SimpleNamespace(state=state, look="iron", state_t=0.0, anim_t=0.0)
+        models.mimic(rig.Rig(gpu), e, 0.5)
+        assert "iron_plate" in gpu.texes and "wood_plank" not in gpu.texes
 
 
 def test_a_perched_gargoyle_is_a_cold_grey_statue():

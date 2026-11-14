@@ -545,17 +545,21 @@ def test_harrowmere_has_the_north_road():
     assert (back.tx, back.tz) == (start[0], start[1] + 1)  # the gate out is right behind you
 
 
-def test_cinderhold_loads_with_its_bridge_fortress_and_twin_gargoyles():
+def _cinder_keep():
+    return MapLoader.load_file(os.path.join(MAP_DIR, "cinder_keep.map"))
+
+
+def test_cinderhold_loads_with_its_bridge_fortress_and_the_way_up_to_its_keep():
     m = _cinder()
     assert m.meta["name"] == "The Cinderhold"
     kinds = [s.kind for s in m.entities]
-    assert kinds.count("brand") == 1 and kinds.count("bellows") == 1
+    assert "brand" not in kinds and "bellows" not in kinds  # they perch on the keep's roof
     for foe in ("forge_golem", "iron_bowman", "slag_hound"):
         assert foe in kinds
     for hazard in ("flame_jet", "magma_vent"):
         assert hazard in kinds
     assert kinds.count("save_statue") == 2
-    assert {"spire", "chimney", "anvil"} <= set(kinds)
+    assert {"spire", "anvil"} <= set(kinds)
     assert any(t.lava for _, _, t in m.each_tile())
     # The long bridge: a deck at least twenty tiles long running north over the lava gorge.
     start = tuple(int(v) for v in m.meta["start"][:2])
@@ -563,9 +567,11 @@ def test_cinderhold_loads_with_its_bridge_fortress_and_twin_gargoyles():
     gorge = [z for z in deck if m[27, z].chasm and m[27, z].floor_tex == "lava"]
     assert len(gorge) >= 20
     assert start[1] > max(gorge)  # you arrive south of it and cross northward
-    # The roof is high above everything, where the twins perch.
-    (brand,) = _spec(m, "brand")
-    assert m[brand.tx, brand.tz].floor >= 12 and m[brand.tx, brand.tz].open_sky
+    # The tower stair ends high above everything, at the door into the keep.
+    (door,) = _spec(m, "exit", map="cinder_keep")
+    assert m[door.tx, door.tz].floor >= 11 and door.props["boss"] == "gargoyles_dead"
+    # Every chest in the fortress is iron, and so is the mimic hiding among them.
+    assert {s.props.get("model") for s in _spec(m, "chest") + _spec(m, "mimic")} == {"iron"}
     # The new loot is in its chests.
     items = {s.props.get("item") for s in _spec(m, "chest")}
     assert {"scroll_thunder", "scroll_motes", "stormbrand", "slagbreaker", "forge_key"} <= items
@@ -587,8 +593,8 @@ def test_cinderhold_skyline_has_no_two_towers_alike_and_stands_out_of_reach():
 
 
 def test_cinderhold_is_solvable():
-    """Every chest, lever and both gargoyles can be reached with only the honest doors and the false
-    wall opened: the forge key's chest without its door. The main gate and the smelter lift are
+    """Every chest, lever and the door up into the keep can be reached with only the honest doors and
+    the false wall opened: the forge key's chest without its door. The main gate and the smelter lift are
     shortcuts, each joining two places you can already reach. Nowhere strands you."""
     m = _cinder()
     lava = _lava(m)
@@ -602,14 +608,14 @@ def test_cinderhold_is_solvable():
     honest = [(postern.tx, postern.tz), *secrets, *bosses]
     before_key = _reachable(m, start, open_tiles=honest, avoid=lava)
     assert (key_chest.tx, key_chest.tz) in before_key
-    (brand,) = _spec(m, "brand")
-    assert (brand.tx, brand.tz) not in before_key  # up past the locked rampart door
+    (keep,) = _spec(m, "exit", map="cinder_keep")
+    assert (keep.tx, keep.tz) not in before_key  # up past the locked rampart door
     opened = _reachable(m, start, open_tiles=[*honest, (key_door.tx, key_door.tz)], avoid=lava)
     assert (postern.tx, postern.tz) not in reach  # the postern is shut until you open it
     for s in m.entities:
-        if s.kind in ("chest", "lever", "brand", "bellows", "mimic"):
+        if s.kind in ("chest", "lever", "mimic", "exit"):
             assert (s.tx, s.tz) in opened, (s.kind, s.props)
-        if s.kind in ("save_statue", "anvil", "chimney"):  # solid: you stand beside them
+        if s.kind in ("save_statue", "anvil"):  # solid: you stand beside them
             around = {(s.tx + dx, s.tz + dz) for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1))}
             assert around & opened, (s.kind, s.tx, s.tz)
     (store,) = [s for s in _spec(m, "chest") if s.props.get("item") == "stormbrand"]
@@ -628,6 +634,61 @@ def test_cinderhold_is_solvable():
     full = _reachable(m, start, open_tiles=doors, shortcuts=True, avoid=lava)
     for tile in full:
         assert start in _reachable(m, tile, open_tiles=doors, shortcuts=True, avoid=lava), tile
+
+
+def test_the_keep_door_joins_the_tower_stair_to_the_keep_both_ways():
+    """Through the door at the top of the tower stair you arrive on the keep's postern landing, its door
+    behind you; going back out puts you on the stair, facing down it."""
+    hold, keep = _cinder(), _cinder_keep()
+    (up,) = _spec(hold, "exit", map="cinder_keep")
+    (down,) = _spec(keep, "exit", map="cinderhold")
+    assert up.props["model"] == down.props["model"] == "keep_door"
+    tx, tz = (int(v) for v in up.props["at"].split(",")[:2])
+    assert (tx, tz) == tuple(int(v) for v in keep.meta["start"][:2])
+    assert abs(tx - down.tx) + abs(tz - down.tz) == 1  # the door is right behind you
+    bx, bz = (int(v) for v in down.props["at"].split(",")[:2])
+    assert abs(bx - up.tx) + abs(bz - up.tz) == 1 and hold[bx, bz].walkable
+
+
+def test_cinder_keep_is_solvable():
+    """From the postern landing the great hall, the switchback stair and the antechamber's shrine lead
+    up to the great door; both gargoyles are behind it, and every chest is in reach."""
+    m = _cinder_keep()
+    assert m.meta["name"] == "The Cinderhold Keep"
+    start = tuple(int(v) for v in m.meta["start"][:2])
+    (door,) = _spec(m, "door", boss="gargoyles_dead")
+    before = _reachable(m, start)
+    for boss in _spec(m, "brand") + _spec(m, "bellows"):
+        assert (boss.tx, boss.tz) not in before  # the lair lies behind its great door
+    opened = _reachable(m, start, open_tiles=[(door.tx, door.tz)])
+    for s in m.entities:
+        if s.kind in ("chest", "brand", "bellows", "exit"):
+            assert (s.tx, s.tz) in opened, (s.kind, s.tx, s.tz)
+        if s.kind in ("chest",):
+            assert (s.tx, s.tz) in before and s.props.get("model") == "iron"
+    (shrine,) = _spec(m, "save_statue")
+    around = {(shrine.tx + dx, shrine.tz + dz) for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1))}
+    assert around & before
+    assert m[door.tx, door.tz].floor == 12 and m[shrine.tx, shrine.tz].floor == 12
+    for tile in opened:
+        assert start in _reachable(m, tile, open_tiles=[(door.tx, door.tz)]), tile
+
+
+def test_cinder_keep_roof_is_walled_in():
+    """The rooftop is open to the sky, but battlements and turrets close it in: every wall around it
+    rises well above your head, so the fight never looks out over the fortress."""
+    m = _cinder_keep()
+    (brand,) = _spec(m, "brand")
+    roof = m[brand.tx, brand.tz]
+    assert roof.open_sky and roof.floor == 12
+    arena = {(x, z) for x, z, t in m.each_tile() if t.walkable and t.open_sky and t.floor == roof.floor}
+    assert len(arena) >= 100
+    for x, z in arena:
+        for n in ((x + 1, z), (x - 1, z), (x, z + 1), (x, z - 1)):
+            if n not in arena and m[n].solid:
+                assert m[n].top >= roof.floor + 6, n
+    # Everything else in the keep is under a roof.
+    assert all(t.ceil is not None for x, z, t in m.each_tile() if t.walkable and (x, z) not in arena)
 
 
 def test_cinderhold_gate_shortcut_cuts_the_way_back_to_the_bridge():

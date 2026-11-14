@@ -1,5 +1,5 @@
 """The Cinderhold's mechanics driven headless: lava, flame jets and magma vents, lightning against
-iron, seeking motes, and the twin gargoyles on the roof."""
+iron, seeking motes, and the twin gargoyles on the roof of its keep (a map of its own)."""
 
 import math
 import random
@@ -17,14 +17,16 @@ from test_enemy import FakeWorld, tick
 from test_keep_world import FakeGame
 from test_verdant_world import JungleGame, foe
 
-ROOF = (30, 6)  # on the roof, in sight of both perches
+KEEP = "cinder_keep"
+ROOF = (10, 6)  # on the keep's roof, in sight of both perches
+ANTECHAMBER = (22, 5)  # before the great door, far from the perches
 BRIDGE = (29, 48)
 FOUNDRY = (11, 18)  # beside the golem's crossing
 
 
-def hold(at, yaw=0.0, flags=(), game=None, keep_enemies=False):
+def hold(at, yaw=0.0, flags=(), game=None, keep_enemies=False, map_name="cinderhold"):
     game = game or JungleGame(flags)
-    world = World(game, "cinderhold")
+    world = World(game, map_name)
     if not keep_enemies:
         world.enemies = []
     x, z = TileMap.center(*at)
@@ -167,6 +169,27 @@ def test_the_bridge_vents_rain_fire_on_whoever_crosses():
     assert "lob" in game.sounds
 
 
+def test_fire_and_lava_sound_softly_and_fade_with_distance():
+    """Vents, their bombs and the jets are background: never loud, quieter the farther they are, and
+    silent from across the fortress."""
+    game, world = hold(BRIDGE)
+    near = Eruption(world.player.x + 1, world.player.z, origin=(0.0, 2.0, 0.0))
+    far = Eruption(world.player.x + 40, world.player.z, origin=(0.0, 2.0, 0.0))
+    world.eruptions = [near, far]
+    run(world, Eruption.WARN + 0.1)
+    bursts = [v for name, v in game.volumes if name == "eruption"]
+    assert len(bursts) == 1 and bursts[0] <= 0.25  # only the near one, and softly
+    game.volumes.clear()
+    run(world, 12.0)
+    assert game.volumes and all(v <= 0.3 for _, v in game.volumes)
+    _game, world = hold(FOUNDRY)
+    world.sfx_near("jet", world.player.x + 30, world.player.z, 0.3, 10)
+    assert not _game.volumes
+    world.sfx_near("jet", world.player.x + 5, world.player.z, 0.3, 10)
+    ((name, volume),) = _game.volumes
+    assert name == "jet" and math.isclose(volume, 0.15)
+
+
 # --- elements -----------------------------------------------------------------------------------
 
 
@@ -241,7 +264,7 @@ def test_arcane_motes_fan_out_and_seek_out_a_foe_you_did_not_aim_at():
 
 
 def test_motes_ignore_perched_statues():
-    _game, world = hold(ROOF, yaw=math.pi, keep_enemies=True)
+    _game, world = hold(ROOF, map_name=KEEP, yaw=math.pi, keep_enemies=True)
     world.enemies = [e for e in world.enemies if e.perched]
     pr_ = world.motes(5)[1]
     before = (pr_.dx, pr_.dz)
@@ -264,14 +287,18 @@ def test_iron_bowmen_loose_arrows_that_fly_fast():
 def test_every_cinderhold_foe_fights_from_its_map_spot():
     _, world = hold(BRIDGE, keep_enemies=True)
     kinds = {e.type.id for e in world.enemies}
-    assert {"forge_golem", "iron_bowman", "slag_hound", "brand", "bellows", "mimic"} <= kinds
+    assert {"forge_golem", "iron_bowman", "slag_hound", "mimic"} <= kinds
+    _, keep = hold(ROOF, map_name=KEEP, keep_enemies=True)
+    assert {"brand", "bellows", "forge_golem", "iron_bowman", "slag_hound"} <= {
+        e.type.id for e in keep.enemies
+    }
 
 
 # --- the twin gargoyles --------------------------------------------------------------------------
 
 
 def test_the_gargoyles_perch_as_statues_until_you_come_near_then_wake_together():
-    game, world = hold((37, 3), keep_enemies=True)
+    game, world = hold(ANTECHAMBER, map_name=KEEP, keep_enemies=True)
     pair = twins(world)
     assert set(pair) == {"brand", "bellows"}
     assert all(e.perched and e.alive for e in pair.values())
@@ -292,7 +319,7 @@ def test_striking_a_perched_gargoyle_wakes_it():
 
 
 def test_a_twin_waits_its_turn_while_the_other_is_mid_move():
-    _game, world = hold(ROOF, keep_enemies=True)
+    _game, world = hold(ROOF, map_name=KEEP, keep_enemies=True)
     pair = twins(world)
     brand, bellows = pair["brand"], pair["bellows"]
     for e in (brand, bellows):
@@ -340,7 +367,7 @@ def test_a_twin_flies_into_its_rage_only_when_the_other_falls():
 
 
 def test_bellows_breathes_fire_in_a_line_toward_you_and_past():
-    game, world = hold(ROOF, keep_enemies=True)
+    game, world = hold(ROOF, map_name=KEEP, keep_enemies=True)
     bellows = twins(world)["bellows"]
     bellows.rouse()
     world.breath(bellows)
@@ -380,7 +407,7 @@ def test_a_dive_swoops_through_where_you_stood_and_strikes_once():
 
 
 def test_the_pair_falls_together_one_relic_one_flag():
-    _game, world = hold(ROOF, keep_enemies=True)
+    _game, world = hold(ROOF, map_name=KEEP, keep_enemies=True)
     pair = twins(world)
     brand, bellows = pair["brand"], pair["bellows"]
     brand.kill()
@@ -395,14 +422,14 @@ def test_the_pair_falls_together_one_relic_one_flag():
 
 
 def test_the_iron_sigil_lies_on_the_roof_once_the_pair_has_fallen():
-    _game, world = hold(ROOF, flags={"gargoyles_dead"}, keep_enemies=True)
+    _game, world = hold(ROOF, map_name=KEEP, flags={"gargoyles_dead"}, keep_enemies=True)
     assert not twins(world)
     (sigil,) = [p for p in world.props if p.kind == "pickup" and p.props.get("item") == "iron_sigil"]
     assert world.map[sigil.tx, sigil.tz].floor >= 12
 
 
 def test_a_shrine_rest_brings_a_fallen_twin_back_beside_its_living_other():
-    _game, world = hold(ROOF, keep_enemies=True)
+    _game, world = hold(ROOF, map_name=KEEP, keep_enemies=True)
     pair = twins(world)
     pair["brand"].kill()
     pair["bellows"].hp = 40
@@ -414,7 +441,7 @@ def test_a_shrine_rest_brings_a_fallen_twin_back_beside_its_living_other():
 
 
 def test_a_shrine_rest_leaves_a_living_pair_as_it_is():
-    _game, world = hold(ROOF, keep_enemies=True)
+    _game, world = hold(ROOF, map_name=KEEP, keep_enemies=True)
     pair = twins(world)
     pair["bellows"].hp = 40
     world.respawn_enemies()
@@ -432,3 +459,20 @@ def test_the_three_sigils_end_the_game():
 def test_a_fake_game_without_jungle_damage_still_builds_the_hold():
     world = World(FakeGame(), "cinderhold")
     assert world.map.meta["name"] == "The Cinderhold"
+
+
+def test_the_compass_points_up_to_the_keep_until_the_gargoyles_fall():
+    _game, world = hold(BRIDGE)
+    (door,) = [p for p in world.props if p.kind == "exit" and p.props.get("map") == KEEP]
+    assert world.boss_target() == (door.x, door.z)
+    assert world.boss_bearing() is not None
+    _game, world = hold(BRIDGE, flags={"gargoyles_dead"})
+    assert world.boss_target() is None
+
+
+def test_the_fortress_mimic_wears_the_iron_chest_disguise():
+    _game, world = hold(BRIDGE, keep_enemies=True)
+    (mimic,) = [e for e in world.enemies if e.type.id == "mimic"]
+    assert mimic.look == "iron"
+    chests = [p for p in world.props if p.kind == "chest"]
+    assert chests and all(p.props.get("model") == "iron" for p in chests)
