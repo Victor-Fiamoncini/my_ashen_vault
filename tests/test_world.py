@@ -762,3 +762,25 @@ def test_harrowmere_trees_cut_off_no_part_of_the_town():
 
     assert len(trees) > 20
     assert reach(others) - trees == reach(others | trees)
+
+
+def test_wall_props_hang_on_a_wall_tall_enough_to_hold_them():
+    """A sconce, a banner or a barred window hangs on stone that rises past it: on a low parapet it
+    would float in the air above the wall's top."""
+    from ashen_vault.world.world import WALL_PROPS
+
+    for path in glob.glob(os.path.join(MAP_DIR, "*.map")):
+        m = MapLoader.load_file(path)
+        for s in m.entities:
+            if s.kind not in WALL_PROPS:
+                continue
+            tile = m[s.tx, s.tz]
+            for (dx, dz), _ in m.WALL_CHECK:
+                wall = m[s.tx + dx, s.tz + dz]
+                if wall.solid:
+                    rise = (tile.ceil if tile.ceil is not None else wall.top) - tile.floor
+                    assert rise >= WALL_MOUNT_RISE, (os.path.basename(path), s.kind, s.tx, s.tz, rise)
+                    break
+
+
+WALL_MOUNT_RISE = 2.5  # the top of a sconce's flame over its floor
