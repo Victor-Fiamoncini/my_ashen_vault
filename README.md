@@ -32,12 +32,12 @@ FromSoftware, Inc.
 
 <table>
   <tr>
-    <td><img src="docs/screenshots/title.png" alt="Title screen over the foggy village square"></td>
-    <td><img src="docs/screenshots/village.png" alt="Harrowmere's cobbled square, with the shrine and the well"></td>
+    <td><img src="docs/screenshots/title.png" alt="Title screen circling the Silent Bell in the foggy Bell Square"></td>
+    <td><img src="docs/screenshots/village.png" alt="The Silent Bell in its frame on Harrowmere's Bell Square, the cathedral spire behind"></td>
   </tr>
   <tr>
     <td align="center"><sub>Title screen</sub></td>
-    <td align="center"><sub>Harrowmere, the village above the keep</sub></td>
+    <td align="center"><sub>The Silent Bell, at the heart of Harrowmere</sub></td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/dialogue.png" alt="Talking to Odrin the bell-keeper"></td>
@@ -94,6 +94,14 @@ FromSoftware, Inc.
   <tr>
     <td align="center"><sub>Katana and shield, one in each hand</sub></td>
     <td align="center"><sub>Corvane's blades, for those who have proven themselves</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/cathedral.png" alt="The cathedral's nave, pews and pillars leading to the Enthroned on the throne"></td>
+    <td><img src="docs/screenshots/forge.png" alt="Brannoc the smith hammering at his anvil in the forge"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>The cathedral, where the Enthroned sits</sub></td>
+    <td align="center"><sub>Brannoc's forge</sub></td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/undercroft_lift.png" alt="Riding a barred cage lift down a shaft toward a wall of skulls and bones"></td>
@@ -156,10 +164,14 @@ FromSoftware, Inc.
   the Slagbreaker maul sets what it strikes alight.
 - **Stamina**: sprinting, swinging and blocking drain a green stamina bar. Run it dry and you are
   winded until it recovers.
-- **Four hand-built areas**: the village of Harrowmere, the Sunken Keep below its well, the
+- **Four hand-built areas**: the town of Harrowmere, the Sunken Keep below its well, the
   Verdant Hollow at the end of the green trail and the Cinderhold up the north road, with locked doors,
-  levers, a flooded cellar, chests, a shop with spinning item previews and five villagers to talk to
-  (one of them only once you have proven yourself).
+  levers, a flooded cellar and chests.
+- **A town to come home to**: Harrowmere climbs from its harbour through a market and the Bell Square,
+  where the cracked Silent Bell hangs, to a cathedral on the hill where an ancient figure sits enthroned.
+  Ten villagers live there: a smith, a herbalist, a trader and a swordsmith keep shops with spinning
+  item previews (the swordsmith only for those who have proven themselves), and some hand a newcomer a
+  weapon, a shield, remedies or a scroll.
 - **A keep that fights back**: floor spikes, swinging pendulum blades and floors that crumble into the
   dark, plus barrels, crates and urns to smash for a few coins, and secrets for those who look closely.
 - **A keep that folds back on itself**: barred cage lifts sink to a skull-walled Undercroft below the
@@ -403,12 +415,14 @@ uv run ashen-vault --map sunken_keep --at 15,21,180 --smoke 100 --script "wait:1
 
 The README screenshots were taken this way, each with `ASHEN_VAULT_SAVE` pointing at a fresh throwaway
 file. The title is `uv run ashen-vault --smoke 60 --shot title.png` and the village
-`uv run ashen-vault --map harrowmere --smoke 40 --shot village.png`; Odrin is
-`uv run ashen-vault --map harrowmere --at=16,4,-90 --smoke 40 --script "wait:0.2 interact" --shot dialogue.png`,
+`uv run ashen-vault --map harrowmere --at=22,30,-60 --smoke 40 --shot village.png`; Odrin is
+`uv run ashen-vault --map harrowmere --at=28,25,-90 --smoke 40 --script "wait:0.2 interact" --shot dialogue.png`,
 Belongings is
 `uv run ashen-vault --map harrowmere --level 6 --equip primary=katana,secondary=round_shield,body=brigandine,hands=chain_mitts --smoke 40 --script "wait:0.2 menu" --shot inventory.png`,
 Corvane's shop is
-`uv run ashen-vault --map harrowmere --at=6,18,180 --level 7 --smoke 200 --script "forward:1 interact wait:0.3 confirm wait:0.3 confirm wait:0.3 confirm wait:0.3 confirm" --shot corvane.png`,
+`uv run ashen-vault --map harrowmere --at=6,26,180 --level 7 --smoke 220 --script "forward:2 interact wait:0.3 confirm wait:0.3 confirm wait:0.3 confirm wait:0.3 confirm" --shot corvane.png`,
+the cathedral is `uv run ashen-vault --map harrowmere --at=18,6,180 --smoke 40 --shot cathedral.png`,
+the forge is `uv run ashen-vault --map harrowmere --at=8,18,180 --smoke 40 --shot forge.png`,
 the Warden is `uv run ashen-vault --map sunken_keep --at=15,7,-90 --smoke 40 --shot warden.png`,
 the hollow's vine path is `uv run ashen-vault --map verdant_hollow --at=9,12,90 --smoke 40 --shot verdant_hollow.png`,
 the Bark Husk is `uv run ashen-vault --map verdant_hollow --at=26,17,-90 --smoke 60 --shot bark_husk.png`,
@@ -419,7 +433,7 @@ the Loom Mother is `uv run ashen-vault --map verdant_hollow --at=15,7,-90 --smok
 the lift ride is
 `uv run ashen-vault --map sunken_keep --at 4,24,90 --smoke 560 --script "forward:0.9 wait:5 forward:0.3" --shot undercroft_lift.png`,
 the Butcher is `uv run ashen-vault --map sunken_keep --at=27,7,-90 --smoke 20 --shot gallery.png`,
-the jungle trail is `uv run ashen-vault --map harrowmere --at=41,18,-90 --smoke 40 --shot jungle_trail.png`,
+the jungle trail is `uv run ashen-vault --map harrowmere --at=56,34,-90 --smoke 40 --shot jungle_trail.png`,
 Mossmouth is
 `uv run ashen-vault --map verdant_hollow --at=15,31,180 --equip left=spell:pyre --script "wait:0.3 cast wait:3" --smoke 120 --shot mossmouth.png`,
 the canopy is `uv run ashen-vault --map verdant_hollow --at=31,3,180 --script "look_down:0.12" --smoke 40 --shot canopy_walk.png`,

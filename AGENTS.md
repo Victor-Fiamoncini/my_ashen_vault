@@ -64,16 +64,19 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   the Undercroft), `--at=11,26,90 --script "interact strafe_l:0.7 wait:5"` (free the shrine lift and
   ride it up), `--at=23,13,0 --script "forward:0.7 wait:5"` (the cage lift up to the Warden's Gallery),
   `--at=27,7,-90` (the Butcher in his slaughter hall north of the Gallery),
-  `--map harrowmere --at=32,14,-90` (the hedged jungle trail; `--at=41,18,-90` its dark end at the cave
+  `--map harrowmere --at=47,30,0` (the hedged jungle trail; `--at=56,34,-90` its dark end at the cave
   mouth), `--map verdant_hollow`
   (Mossmouth, the dark cave you arrive in), `--at=15,31,180 --equip left=spell:pyre --script "cast"`
   (kindle Mossmouth's cold brazier), `--at=6,41,-90` (the Root Caverns), `--at=32,3,180` (the Canopy
   Walk), `--at=15,20,-90 --script interact` (the barred door, from its wrong side),
   `--at=14,41,-90 --script "interact wait:2.5 strafe_l:2"` (lower the drawbridge and cross),
   `--at=49,12,-90` (the Highland log slope), `--at=15,7,-90` (the Loom Mother),
-  `--at=15,7,-90` (the Ashen Warden in his hall), `--map harrowmere --at=16,4,-90 --script "wait:0.2
-  interact"` (Odrin's dialogue box), `--map harrowmere --at=6,18,180 --script "forward:1 interact"` (Corvane; below
-  `--level 5` they stay silent), `--map harrowmere --at=25,4,-90` (the north road's gate),
+  `--at=15,7,-90` (the Ashen Warden in his hall), `--map harrowmere --at=28,25,-90 --script "wait:0.2
+  interact"` (Odrin's dialogue box, by the Silent Bell), `--map harrowmere --at=6,26,180 --script "forward:2 interact"`
+  (Corvane; below `--level 5` they stay silent), `--map harrowmere --at=31,4,-90` (the north road's gate),
+  `--map harrowmere --at=22,30,-60` (the Bell Square), `--map harrowmere --at=17,6,180` (the cathedral's nave;
+  `--at=6,6,180 --script "wait:0.2 interact"` speaks to the Enthroned), `--map harrowmere --at=7,18,180 --script
+  "wait:0.2 interact"` (Brannoc's gift and forge), `--map harrowmere --at=37,20,0` (the sunken well court),
   `--map cinderhold --at=29,52,-90 --script "look_up:0.15"` (the long bridge and the fortress's skyline), `--map cinderhold --at=28,30,180`
   (the postern ledge and its flame jets), `--map cinderhold --at=18,17,180` (the foundry),
   `--map cinderhold --at=5,24,0` (the smelter pits), `--map cinderhold --at=30,6,180 --level 10`
@@ -93,7 +96,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/ui/hud.py` | HUD, menus, dialogue boxes |
 | `src/ashen_vault/audio/synth.py` | Synthesized sound effects |
 | `src/ashen_vault/input.py` | Key bindings and the `--script` driver |
-| `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. `harrowmere` (the village), `sunken_keep` (the dungeon below the well, with the Undercroft below its cells and the Warden's Gallery above the boss door, the Butcher's slaughter hall north of it), `verdant_hollow` (the jungle through the cave at the end of the village's east trail: Mossmouth cave, the Root Caverns below the bog, the Canopy Walk to the boss), `cinderhold` (the lava fortress up the north road: the long bridge, the gatehouse and postern, the foundry and the smelter pits below it, the ashworks, the rampart, and the roof where the twin gargoyles perch) |
+| `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. `harrowmere` (the town, climbing from its harbour past the market and the Bell Square, with the Silent Bell, to the cathedral on the hill where the Enthroned sits; the sunken well court, the trail gap and the north gate lead out), `sunken_keep` (the dungeon below the well, with the Undercroft below its cells and the Warden's Gallery above the boss door, the Butcher's slaughter hall north of it), `verdant_hollow` (the jungle through the cave at the end of the village's east trail: Mossmouth cave, the Root Caverns below the bog, the Canopy Walk to the boss), `cinderhold` (the lava fortress up the north road: the long bridge, the gatehouse and postern, the foundry and the smelter pits below it, the ashworks, the rampart, and the roof where the twin gargoyles perch) |
 | `src/ashen_vault/world/sky.py`, `render/sky.py` | Skies (`[meta] sky = overcast\|jungle\|ember`): a gradient dome meeting the fog at the horizon, a sun and halo, drifting cloud banks and an overhead cap, horizon mist; dimmed by darkness and the Veil. Built pure in `world/sky.py`, drawn first each frame without fog or depth by `render/sky.py` |
 | `src/ashen_vault/world/darkness.py` | Dark tiles: how your light and the fog close in, Lumen and the Veil of Mist |
 | `src/ashen_vault/world/doors.py` | One-way doors (`door from=`): which side lifts the bar |
@@ -104,6 +107,8 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/world/hazards.py` | Dungeon traps: floor spikes, pendulum blades, crumbling floors, flame jets, magma vents (whose bombs are `Eruption`s with an `origin`); the bosses' fire eruptions and slam shockwaves |
 | `src/ashen_vault/world/elements.py` | Elements: lightning against `conductive` foes, fire against `fireproof` ones, which weapons burn |
 | `src/ashen_vault/render/forge_models.py` | The Cinderhold's models (golem, bowman, hound, the gargoyles, Stormbrand and Slagbreaker, arrows, thunder and motes, flame jets, and the skyline: spires, bastions, smokestacks, the gatehouse, the keep, lavafalls); `models` imports it last and borrows its helpers |
+| `src/ashen_vault/render/town_models.py` | Harrowmere's models: gabled `roof`s (one per building, on its NW wall tile with `span=W,D ridge=x\|z`), the `silent_bell`, the `cathedral_spire`, pews, windows, beds, cupboards, shelves, hearths, market stalls, fences, lamp posts and boats |
+| `src/ashen_vault/world/villagers.py` | How each villager looks (`Look`: build, garb, hair, hat, beard, apron, cloak, held tool, idle) |
 | `src/ashen_vault/render/shapes.py` | Model primitives raylib lacks (`blade`, `lozenge`, `wedge`) as pure triangle lists; `Gpu.primitive` uploads them |
 | `src/ashen_vault/world/terrain.py` | Terrain: rafts, planks, ledges, rotten floorboards, chain lifts, currents, thorns, chasm and river falls, hard landings, the log rack, spore pods (`World.terrain`) |
 | `src/ashen_vault/world/rest.py` | The shrine rest: timing and the pixelated ember fog pattern drawn while you pray |
@@ -198,7 +203,8 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   the arm. `tests/test_render_logic.py` checks the wrist stays within 150 degrees of the forearm's line.
 - Props that fill their tile are listed in `world/world.py` (`BLOCKING_PROPS`, `BREAKABLE_PROPS`;
   the keep adds `pillar`, `sarcophagus` and `headsman_block`, the jungle `bonfire`, `giant_mushroom` and
-  `totem`). Decor that blocks nothing: `cage`, `roots` and `meat_hooks` hang from the ceiling, `grate` sits in the
+  `totem`, the town `pew`, `bed`, `cupboard`, `stall`, `fence` and `lamp_post`). Decor that blocks nothing:
+  `boat` rides on water, `shelf`, `hearth` and `window` hang on a wall (the last two are lights), `cage`, `roots` and `meat_hooks` hang from the ceiling, `grate` sits in the
   floor, `mushrooms` dot it, and `cobweb`, `skull_niche`, `winch`, `lever` and `shelf_fungus` mount on
   the nearest wall (`WALL_PROPS`). `lever model=wood` is the jungle's wooden lever.
   Light comes from `mesh_builder.LIGHT_KINDS` (torches, braziers, fungus, bonfires, the glowing
@@ -274,8 +280,13 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   projectiles (`World.motes`, steered by `shots.home`), Pyre is a short cone (`World.pyre`), Veil of Mist sets `Player.veil_t` (ordinary foes then
   notice you only very close; striking or casting anything else lifts it), Lumen sets `lumen_t`. A new
   spell also needs a HUD icon (`hud.spell_icon`) and colours in `models.SPELL_GLOW` / `SPELL_ORB`.
-- Shops are `dialogue.SHOPS` (Pell's goods, and Corvane's blades in the hut west of the square; Corvane
-  won't talk below `CORVANE_LEVEL`).
+- Shops are `dialogue.SHOPS`: Brannoc's forged steel and armour, Pell's scrolls and salvage, Tamsin's remedies,
+  and Corvane's blades in the hut on the town's west edge (Corvane won't talk below `CORVANE_LEVEL`).
+  Villagers in `dialogue.GIFTS` hand a newcomer something once (`gift:<id>` flag) and then open their shop,
+  if they keep one.
+- Villagers are drawn by `models.npc` from a `world/villagers.Look` (build, clothes, hair, hat, held tool,
+  idle); a new villager needs an entry in `villagers.LOOKS`. The Enthroned (`npc id=enthroned`) is its own
+  model, seated on `models.throne`.
 - Add dependencies with `uv add` (runtime) or `uv add --dev` (tooling), never by hand-editing
   `uv.lock`.
 
