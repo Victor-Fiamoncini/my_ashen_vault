@@ -1,5 +1,6 @@
 """Headless checks for the raylib-free parts of the renderer."""
 
+import math
 import random
 
 import pytest
@@ -199,6 +200,20 @@ def test_every_enemy_collapses_into_a_death_pose():
         assert dead.bottom >= min(alive.bottom, 0.0) - 0.15, (type_id, dead.bottom, alive.bottom)
 
 
+def test_a_spell_can_strike_a_hovering_body_wherever_it_is_drawn():
+    """A hovering foe's shot span reaches up its drawn body: Bellows hovers by its talons, its chest and
+    head a metre and more above them, and bolts aimed at those once sailed through."""
+    from ashen_vault.ai.enemy_types import EnemyTypes
+    from ashen_vault.world import shots
+
+    for type_id, t in EnemyTypes.ALL.items():
+        if t.hover is None:
+            continue
+        _, alive = _extent(type_id, "chase", 0.5)
+        _, hi = shots.body_span(t, 0.0)
+        assert hi >= alive.top * 0.85, (type_id, hi, alive.top)
+
+
 def test_dead_glowing_enemies_go_dark():
     for type_id in ("loom_mother", "bark_husk", "ashen_warden", "mimic", "cinder_wisp"):
         _, alive = _extent(type_id, "idle", 0.5)
@@ -217,14 +232,115 @@ def test_long_lists_scroll():
     assert screen.list_row_at(40, 30, 240, 30, 50, 50 + 11 * 11, first=10, visible=11) is None
 
 
-def test_motions_start_and_end_at_rest_and_land_on_the_blow():
+def test_motions_start_at_rest_land_on_the_blow_and_end_part_way_home():
     from ashen_vault.render import models
 
-    for motion, (_, strike, _) in models.MOTIONS.items():
+    for motion, (_, strike, follow) in models.MOTIONS.items():
         assert models._motion(motion, 0.0) == models.REST, motion
-        assert all(abs(v) < 1e-9 for v in models._motion(motion, 1.0)), motion
+        end = models._motion(motion, 1.0)
+        assert all(abs(a - b) < 1e-9 for a, b in zip(end, models._settle(motion), strict=True)), motion
+        # Settled between the follow-through and rest: the view blends the rest of the way home.
+        for e, f in zip(end, follow, strict=True):
+            assert abs(e) <= abs(f) + 1e-9, motion
         hit = models._motion(motion, 0.45, hit_at=0.45)
         assert all(abs(a - b) < 1e-9 for a, b in zip(hit, strike, strict=True)), motion
+
+
+class _PlacingGpu:
+    """Stands in for Gpu: keeps where every part is drawn (its matrix translation)."""
+
+    def __init__(self):
+        self.at = []
+
+    def to_matrix(self, m):
+        return m
+
+    def draw_part(self, kind, matrix, rgb, tex="white", glow=False):
+        self.at.append((matrix[3], matrix[7], matrix[11]))
+
+
+def _view_frame(p, blends, t):
+    from ashen_vault.render import models
+
+    gpu = _PlacingGpu()
+    models.weapon_view(rig.Rig(gpu), p, 0.0, t=t, blends=blends)
+    return gpu.at
+
+
+def _jump(a, b):
+    assert len(a) == len(b)
+    return max(math.dist(u, v) for u, v in zip(a, b, strict=True))
+
+
+def test_a_swing_eases_home_after_it_ends_instead_of_snapping():
+    from ashen_vault.player import view_blend, weapons
+    from ashen_vault.player.inventory import Inventory
+    from ashen_vault.player.player import Player
+
+    p = Player(inventory=Inventory(right="mace"))  # no trail: every frame draws the same parts
+    blends = view_blend.ViewBlends()
+    t, dt = 1.0, 1 / 60
+    _view_frame(p, blends, t)
+    p.start_swing()
+    frames = []
+    while p.swinging:
+        t += dt
+        p.update_timers(dt)
+        frames.append(_view_frame(p, blends, t))
+    recover = view_blend.RECOVER * weapons.tempo(p.hand_item("right"))
+    after = []
+    for _ in range(round(recover / dt) + 2):
+        t += dt
+        after.append(_view_frame(p, blends, t))
+    # The frame after the swing ends carries on at the pace the swing was going, still on its way home...
+    assert (
+        0.2 * _jump(frames[-2], frames[-1])
+        < _jump(frames[-1], after[0])
+        < 1.25 * _jump(frames[-2], frames[-1])
+    )
+    # ...slowing as it arrives, and there once the recovery is over.
+    assert _jump(after[-3], after[-2]) < _jump(after[0], after[1])
+    rest = _view_frame(Player(inventory=Inventory(right="mace")), view_blend.ViewBlends(), t)
+    assert _jump(after[0], rest) > 0.05
+    assert _jump(after[-1], rest) < 1e-6
+
+
+def test_a_swing_started_before_the_arm_is_home_picks_up_where_the_arm_is():
+    from ashen_vault.player import view_blend
+    from ashen_vault.player.inventory import Inventory
+    from ashen_vault.player.player import Player
+
+    p = Player(inventory=Inventory(right="mace"))
+    blends = view_blend.ViewBlends()
+    t, dt = 1.0, 1 / 60
+    p.start_swing()
+    while p.swinging:
+        t += dt
+        p.update_timers(dt)
+        _view_frame(p, blends, t)
+    for _ in range(3):  # a few frames into the recovery
+        t += dt
+        before = _view_frame(p, blends, t)
+    p.stamina.fill()
+    assert p.start_swing()
+    t += dt
+    p.update_timers(dt)
+    snapped = _view_frame(p, view_blend.ViewBlends(), t)  # where the new swing alone would put the arm
+    assert _jump(before, _view_frame(p, blends, t)) < 0.5 * _jump(before, snapped)
+
+
+def test_a_raised_shield_comes_up_over_a_few_frames():
+    from ashen_vault.player import view_blend
+    from ashen_vault.player.inventory import Inventory
+    from ashen_vault.player.player import Player
+
+    p = Player(inventory=Inventory(right="rusted_sword", left="buckler"))
+    blends = view_blend.ViewBlends()
+    low = _view_frame(p, blends, 1.0)
+    p.guarding = True
+    first = _view_frame(p, blends, 1.0 + 1 / 60)
+    up = _view_frame(p, blends, 1.0 + view_blend.GUARD + 0.05)
+    assert 0 < _jump(low, first) < _jump(low, up)
 
 
 def test_every_attack_motion_has_a_pose():

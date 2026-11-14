@@ -43,6 +43,7 @@ class Player:
         self.webbed_t = 0.0  # seconds left caught in spider silk
         self.spore_t = 0.0  # seconds left choking on spores
         self.swing_t = None
+        self.swing_id = 0  # counts swings started, so the view can tell a restarted swing from the last
         self.swing_power = 0.0
         self.swing_hand = RIGHT
         self.attack = weapons.attack(self.inventory.weapon_item())
@@ -335,6 +336,7 @@ class Player:
         self.swing_hand = hand
         self.swing_power = max(self.gauge(hand).spend(), a.min_power)
         self.swing_t = 0.0
+        self.swing_id += 1
         self.hitstop_t = 0.0
         self.queued_quick = False
         self.guarding = False

@@ -625,3 +625,23 @@ def test_boss_bar_trail_holds_then_drains_to_hp():
     for _ in range(200):
         boss.update(0.05, world)
     assert boss.trail_hp == boss.hp
+
+
+def test_every_direct_blow_flashes_even_when_it_does_not_stagger():
+    from ashen_vault.ai.enemy import FLASH_TIME
+
+    boss = Enemy(EnemyTypes.get("bellows"), 0, 0, rng=random.Random(0))
+    boss.rouse()
+    assert not boss.flashing
+    boss.take_hit(1)  # far below its poise: no stagger, but the blow shows
+    assert boss.state != "hurt" and boss.flashing
+    tick(boss, FakeWorld(0, 30), FLASH_TIME + 0.05)
+    assert not boss.flashing
+
+
+def test_a_killing_blow_flashes_but_poison_and_fire_ticks_do_not():
+    w = walker()
+    w.take_hit(1, stagger=False)
+    assert not w.flashing
+    w.take_hit(w.hp)
+    assert not w.alive and w.flashing

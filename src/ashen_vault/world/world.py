@@ -1657,9 +1657,7 @@ class World:
             if math.hypot(e.x - player.x, e.z - player.z) > far:
                 continue
             y = self.enemy_y(e)
-            self._model_light(
-                gpu, e.x, y + 1.0, e.z, flash=e.state == "hurt", tint=STATUS_TINT.get(e.afflicted)
-            )
+            self._model_light(gpu, e.x, y + 1.0, e.z, flash=e.flashing, tint=STATUS_TINT.get(e.afflicted))
             dying = not e.alive
             if dying:
                 ashen, dissolve = death_phases(e.death_progress)

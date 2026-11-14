@@ -476,3 +476,20 @@ def test_the_fortress_mimic_wears_the_iron_chest_disguise():
     assert mimic.look == "iron"
     chests = [p for p in world.props if p.kind == "chest"]
     assert chests and all(p.props.get("model") == "iron" for p in chests)
+
+
+def test_a_flame_bolt_aimed_at_bellows_in_flight_burns_it():
+    game, world = hold(ROOF, yaw=0.0, map_name=KEEP)
+    px, pz = game.player.x, game.player.z
+    bellows = Enemy(EnemyTypes.get("bellows"), px + 4.0, pz, rng=random.Random(0))
+    bellows.rouse()
+    world.enemies = [bellows]
+    chest = world.enemy_y(bellows) + bellows.type.hover + 1.4
+    game.player.pitch = math.atan2(chest - (game.player.eye_y - shots.BOLT_DROP), 4.0)
+    world.fire_bolt(30)
+    for _ in range(40):
+        world.update(0.02)
+        if bellows.hp < bellows.type.hp:
+            break
+    assert bellows.hp < bellows.type.hp
+    assert bellows.flashing  # far too heavy to stagger, but the hit shows

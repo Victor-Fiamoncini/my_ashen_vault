@@ -35,9 +35,12 @@ def player_span(feet_y):
 
 
 def body_span(type_, floor_y):
-    """Lowest and highest point of an enemy's body standing on `floor_y`."""
+    """Lowest and highest point of an enemy's body standing on `floor_y`. A hovering body spans at
+    least HOVER_BODY around its hover height, and up to its `tall` (a winged gargoyle hovers by its
+    feet, its chest and head well above)."""
     if type_.hover is not None:
-        return floor_y + type_.hover - HOVER_BODY, floor_y + type_.hover + HOVER_BODY
+        hover = floor_y + type_.hover
+        return hover - HOVER_BODY, max(hover + HOVER_BODY, floor_y + type_.tall)
     return floor_y, floor_y + type_.tall
 
 

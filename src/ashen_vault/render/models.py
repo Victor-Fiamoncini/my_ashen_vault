@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 
 from ashen_vault.ai.enemy import COMBO_GAP
+from ashen_vault.player import view_blend, weapons
 from ashen_vault.player.items import Items
 from ashen_vault.render import bounds, shapes
 from ashen_vault.util import rround
@@ -263,7 +264,7 @@ def bone_walker(r, e, t):
     fall = death_fall(e, 0.7)
     lean = (-0.3 if e.state == "hurt" else 0) + 1.35 * fall
     alive = fall < 0.5
-    bone = (255, 240, 220) if e.state == "hurt" else BONE
+    bone = (255, 240, 220) if e.flashing else BONE
     with r.at(-0.2 * fall, 0.12 * fall, 0, rz=lean):
         for side, a in ((-0.13, swing), (0.13, -swing)):
             knee = 0.1 + 0.45 * max(0.0, a) + 0.4 * fall
@@ -331,7 +332,7 @@ def mire_slime(r, e, t):
     fall = death_fall(e, 0.8)
     if e.state == "dead":
         squash = 1 + 1.2 * fall
-    green = (200, 220, 160) if e.state == "hurt" else SLIME
+    green = (200, 220, 160) if e.flashing else SLIME
     h = 0.7 / squash  # body height
     r.part("sphere", 0.05, 0.14, 0, 1.12 * squash, 0.28, 1.12 * squash, (46, 84, 40))  # the spreading foot
     r.part("sphere", 0, 0.32 / squash, 0, 0.95 * squash, h, 0.95 * squash, green)
@@ -709,7 +710,7 @@ def gaoler(r, e, t):
     dead = e.state == "dead"
     hooking = e.attack_kind == "hook" and e.state in ("windup", "attack")
     k = min(e.state_t / max(e.windup_time, 1e-3), 1) if e.state == "windup" else 1.0
-    skin = (240, 220, 200) if e.state == "hurt" else (150, 120, 100)
+    skin = (240, 220, 200) if e.flashing else (150, 120, 100)
     with r.at(0, 0.45 - 0.4 * kneel, 0, rz=-1.25 * pitch), r.at(0, -0.45, 0):
         for side, a in ((-0.22, swing), (0.22, -swing)):
             with r.at(0, 0.85, side, rz=a - 1.5 * kneel):
@@ -844,7 +845,7 @@ def butcher(r, e, t):
     rage = e.phase2 and not dead
     lift, spin, _, _ = _spider_move(e, t, 0.0, 1.0)
     hit, free, blade, elbow, twist, crouch, _ = _warden_arms(e, t)
-    skin = (240, 220, 200) if e.state == "hurt" else (176, 110, 92) if rage else MEAT
+    skin = (240, 220, 200) if e.flashing else (176, 110, 92) if rage else MEAT
     apron = (110, 26, 22) if e.phase2 else APRON
     with (
         r.at(0, lift * 0.6 + crouch + 0.55 - 0.4 * kneel, 0, s=1.3, ry=spin + twist),
@@ -931,7 +932,7 @@ def bone_crawler(r, e, t):
         rear = -0.5 * min(e.state_t / e.type.windup, 1)
     elif e.state == "attack":
         rear = 0.3
-    bone = (255, 240, 220) if e.state == "hurt" else BONE
+    bone = (255, 240, 220) if e.flashing else BONE
     rise = 0.32 * (1 - fall)
     lit = fall < 0.5
     with r.at(0, rise, 0, rz=rear * (1 - fall)):
@@ -1047,7 +1048,7 @@ def jaw_open(e, t):
 
 def snare_bloom(r, e, t):
     """Rooted carnivorous plant: a leafy base, a swaying stem and a fanged pod ringed with petals."""
-    hurt = e.state == "hurt"
+    hurt = e.flashing
     wilt = death_fall(e)
     gape = jaw_open(e, t)
     lunge = 0.35 if e.state == "windup" else (0.55 if e.state == "attack" else 0)
@@ -1138,11 +1139,11 @@ def bark_husk(r, e, t):
     that drag on the ground and a pale carved mask under a curtain of hanging willow strands.
     Down its back a split in the bark shows the glowing heart-fungus: the weak spot."""
     hit = strike_angle(e)
-    hurt = e.state == "hurt"
+    hurt = e.flashing
     moving = e.state in ("chase", "idle")
     slump = death_fall(e, 0.8)
     bark = (240, 220, 200) if hurt else (128, 118, 92)
-    lean = -0.35 if e.state == "windup" else (0.15 if hurt else -0.15)
+    lean = -0.35 if e.state == "windup" else (0.15 if e.state == "hurt" else -0.15)
     lean -= 0.55 * slump  # topples forward over its roots as it dies
     with r.at(0, 0, 0, s=1.25):
         # Root skirt: roots fan out and writhe as it glides along.
@@ -1241,7 +1242,7 @@ def stump_mimic(r, e, t):
     and stubby roots lift it off the ground."""
     settle = death_fall(e, 0.5)
     awake = e.state not in ("idle", "dead")
-    hurt = e.state == "hurt"
+    hurt = e.flashing
     bark = (240, 220, 200) if hurt else BARK
     gape = jaw_open(e, t) if awake else 0.0
     rise = 0.22 if awake else 0.22 * (1 - settle) if e.state == "dead" else 0.0
@@ -1316,7 +1317,7 @@ def stump_mimic(r, e, t):
 
 def loom_mother(r, e, t):
     """Giant spider: eight jointed legs in a skittering gait, a swollen patterned abdomen, glowing eyes."""
-    hurt = e.state == "hurt"
+    hurt = e.flashing
     body = (150, 130, 150) if hurt else SPIDER
     band = (196, 150, 90)
     moving = e.state in ("chase", "idle")
@@ -3427,7 +3428,9 @@ def _ease_in(k):
 #   wind  - drawn back, reached a little before the blow lands,
 #   strike - where the blow lands (at the attack's hit_at),
 #   follow - carried through past the target (overshooting a touch, then settling),
-# then it eases back to rest. The wind -> strike leg accelerates, so swings snap rather than float.
+# then it eases part of the way home (to SETTLE between follow and rest) as the swing ends, and the
+# view's PoseBlend (player/view_blend.py) carries it the rest of the way, slowing as it arrives, after
+# the swing. The wind -> strike leg accelerates, so swings snap rather than float.
 
 REST = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 MOTIONS = {
@@ -3556,8 +3559,18 @@ def _ease_out_back(k, overshoot=1.2):
     return 1 + (overshoot + 1) * k**3 + overshoot * k**2
 
 
+SETTLE = 0.5  # how far from the follow-through toward rest a swing has come back when it ends
+
+
+def _settle(motion):
+    """The pose offsets a motion ends on, part way home: the view blends on from there to rest."""
+    follow = MOTIONS.get(motion, MOTIONS["slash"])[2]
+    return _lerp(follow, REST, SETTLE)
+
+
 def _motion(motion, p, hit_at=0.4):
-    """Pose offsets (dx, dy, dz, rx, ry, rz) for one attack motion at phase p (0..1), landing at hit_at."""
+    """Pose offsets (dx, dy, dz, rx, ry, rz) for one attack motion at phase p (0..1), landing at hit_at.
+    It ends at `_settle(motion)`, not at rest: the rest of the way home is the view's to blend."""
     wind, strike, follow = MOTIONS.get(motion, MOTIONS["slash"])
     wind_at = hit_at * 0.7
     follow_at = hit_at + (1 - hit_at) * 0.35
@@ -3567,7 +3580,9 @@ def _motion(motion, p, hit_at=0.4):
         return _lerp(wind, strike, _ease_in((p - wind_at) / (hit_at - wind_at)))
     if p < follow_at:
         return _lerp(strike, follow, _ease_out_back((p - hit_at) / (follow_at - hit_at)))
-    return _lerp(follow, REST, _ease((p - follow_at) / (1 - follow_at)))
+    # Gathering speed as it leaves the follow-through, so the view's blend home (fastest as it
+    # starts, then slowing) carries straight on from it.
+    return _lerp(follow, _settle(motion), _ease_in((p - follow_at) / (1 - follow_at)))
 
 
 # Where the hands close on each weapon's grip (model y), the first for one hand, both for two.
@@ -3685,39 +3700,66 @@ def _heavy_look(item):
     return item.two_handed or item.category in ("greatsword", "hammer")
 
 
-def weapon_view(r, player, bob, t=0.0):
-    """Both hands in first person: each holds its weapon, shield or spell, or is a bare fist."""
+def weapon_view(r, player, bob, t=0.0, blends=None):
+    """Both hands in first person: each holds its weapon, shield or spell, or is a bare fist. `blends`
+    (a view_blend.ViewBlends kept from frame to frame) smooths the arms between one pose and the next
+    and lets them trail the turning view; without it every frame stands alone."""
+    blends = blends or view_blend.ViewBlends()
     inv = player.inventory
     armor = {"body": inv.body, "gloves": inv.hands}
     sprint = 1.0 if player.sprinting else max(0.0, 1 - player.since_sprint / 0.25)
     breath = math.sin(t * 1.7) * 0.006
+    sway = blends.sway.update(player.yaw, player.pitch, t)
+    view = (blends, t, sway)
     if inv.two_handing():
         ward_embers(r, player, t)
-        return _held_weapon(r, player, "right", bob + breath, sprint, armor, both=True)
+        return _held_weapon(r, player, "right", bob + breath, sprint, armor, view, both=True)
     for hand in ("right", "left"):
         item = player.hand_item(hand)
         side = 1 if hand == "right" else -1
         if item.kind == "shield":
-            shield_view(r, player, item, bob + breath, side, armor)
+            shield_view(r, player, item, bob + breath, side, armor, view)
         elif item.kind == "spell":
-            spell_hand_view(r, player, bob + breath, side, armor, t)
+            spell_hand_view(r, player, bob + breath + sway[1] * SWAY_SHIFT, side, armor, t)
         elif item.category == "fists":
-            fist_view(r, player, hand, bob + breath, armor)
+            fist_view(r, player, hand, bob + breath, armor, view)
         else:
-            _held_weapon(r, player, hand, bob + breath, sprint, armor)
+            _held_weapon(r, player, hand, bob + breath, sprint, armor, view)
     ward_embers(r, player, t)
     return None
 
 
-def _held_weapon(r, player, hand, bob, sprint, armor, both=False):
+SWAY_SHIFT = 0.8  # metres the arms shift per radian they trail the view
+
+
+def _swayed(pose, side, sway):
+    """A weapon pose shifted and turned by the view's sway (yaw lag, pitch lag): the same way in the
+    camera for either hand, so the pose's mirrored z and ry take `side`."""
+    x, y, z, rx, ry, rz = pose
+    yaw_lag, pitch_lag = sway
+    return (x, y + pitch_lag * SWAY_SHIFT, z + yaw_lag * SWAY_SHIFT * side, rx, ry + yaw_lag * side, rz)
+
+
+def _blend_key(player, hand, charge):
+    """What the arm is doing, and how long blending into it from the last pose takes."""
+    if player.swing_t is not None and player.swing_hand == hand:
+        return ("swing", player.swing_id), view_blend.INTO_SWING
+    if charge > 0:
+        return "charge", view_blend.INTO_CHARGE
+    return "idle", view_blend.RECOVER * weapons.tempo(player.hand_item(hand))
+
+
+def _held_weapon(r, player, hand, bob, sprint, armor, view=None, both=False):
+    blends, t, sway = view or (view_blend.ViewBlends(), 0.0, (0.0, 0.0))
     item = player.hand_item(hand)
     side = 1 if hand == "right" else -1
     heavy = _heavy_look(item)
-    x, y, z = 0.9, (-0.4 if heavy else -0.33) + bob, (0.2 if both else (0.32 if heavy else 0.27))
+    x, y, z = 0.9, (-0.4 if heavy else -0.33), (0.2 if both else (0.32 if heavy else 0.27))
     rx, ry, rz = 0.25, 0.7, -0.55
+    dx = dy = dz = drx = dry = drz = 0.0
     swinging = player.swing_t is not None and player.swing_hand == hand
     charge = player.charge_frac if (player.swing_t is None and player.charge_hand == hand) else 0.0
-    y -= bob * 0.6 * charge  # winding up a heavy steadies the bob
+    bob -= bob * 0.6 * charge  # winding up a heavy steadies the bob
     if swinging:
         a = player.attack
         dx, dy, dz, drx, dry, drz = _motion(a.motion, player.swing_phase, a.hit_at)
@@ -3738,16 +3780,17 @@ def _held_weapon(r, player, hand, bob, sprint, armor, both=False):
     else:  # sprinting: carried low, blade forward
         y -= 0.08 * sprint
         rz -= 0.35 * sprint
-    pose = (x, y, z, rx, ry, rz)
+    key, dur = _blend_key(player, hand, charge)
+    x, y, z, rx, ry, rz = blends.hands[hand].apply(key, (x, y, z, rx, ry, rz), t, dur)
+    pose = _swayed((x, y + bob, z, rx, ry, rz), side, sway)
     hand_rgb, shade = arm(r, _weapon_point(pose, side, _grips(item)[0]), side, armor["body"], armor["gloves"])
     if both:
         lp = _weapon_point(pose, side, _grips(item)[1])
         lhand, lshade = arm(r, lp, -1, armor["body"], armor["gloves"])
     phase = player.swing_phase if swinging else None
     if swinging and item.category in TRAILS:
-        _swing_trail(
-            r, item, player.attack, phase, (x - dx, y - dy, z - dz, rx - drx, ry - dry, rz - drz), side
-        )
+        rest = tuple(a - b for a, b in zip(pose, (dx, dy, dz, drx, dry, drz), strict=True))
+        _swing_trail(r, item, player.attack, phase, rest, side)
     with _pose_at(r, pose, side):
         weapon(r, item.id, phase)
         with r.at(0, _grips(item)[0], 0):
@@ -3791,8 +3834,9 @@ def _swing_trail(r, item, a, phase, rest, side):
                 r.part("blade", 0, 0.2 + length / 2, 0, 0.004, length * 0.9, 0.16, col)
 
 
-def fist_view(r, player, hand, bob, armor):
+def fist_view(r, player, hand, bob, armor, view=None):
     """A bare hand: a jab straight forward, a hook from the outside, or the double-click's one-two."""
+    blends, t, sway = view or (view_blend.ViewBlends(), 0.0, (0.0, 0.0))
     side = 1 if hand == "right" else -1
     swinging = player.swing_t is not None and player.swing_hand == hand
     phase = player.swing_phase if swinging else None
@@ -3812,22 +3856,30 @@ def fist_view(r, player, hand, bob, armor):
     pull = -0.1 * _ease(charge)
     wrist = (
         0.95 + jab + pull,
-        -0.34 + bob + jab * 0.2,
+        -0.34 + jab * 0.2,
         (0.34 - jab * 0.5 * (1 if motion != "hook" else 0) + out) * side,
     )
+    key, dur = _blend_key(player, hand, charge)
+    wx, wy, wz = blends.hands[hand].apply(key, wrist, t, dur)
+    wrist = (wx, wy + bob + sway[1] * SWAY_SHIFT, wz + sway[0] * SWAY_SHIFT)
     hand_rgb, shade = arm(r, wrist, side, armor["body"], armor["gloves"])
     with r.at(*wrist, ry=0.25 * side, rz=0.2, s=0.8), r.at(0.06, 0, 0, rz=-math.pi / 2):
         fist(r, hand_rgb, shade, armor["gloves"])
 
 
-def shield_view(r, player, item, bob, side, armor):
+def shield_view(r, player, item, bob, side, armor, view=None):
     """A shield on the forearm: carried at the side, brought to the centre while you block."""
-    up = 1.0 if player.guarding else 0.0
+    blends, t, sway = view or (view_blend.ViewBlends(), 0.0, (0.0, 0.0))
+    hand = "right" if side > 0 else "left"
+    (up,) = blends.shields[hand].apply(
+        player.guarding, (1.0 if player.guarding else 0.0,), t, view_blend.GUARD
+    )
+    bob += sway[1] * SWAY_SHIFT
     jolt = max(0.0, 0.18 - player.since_block) * 0.8  # a blow knocks it back
     reel = player.guard_break_t * 0.5  # a broken guard flings it wide
     x = 0.85 - jolt - reel * 0.3
     y = -0.44 + bob + 0.3 * up - reel * 0.3
-    z = (0.38 - 0.28 * up + reel * 0.3) * side
+    z = (0.38 - 0.28 * up + reel * 0.3) * side + sway[0] * SWAY_SHIFT
     frame = {"ry": (-0.35 + 0.35 * up) * side, "rz": 0.1, "s": 0.75}
     gx, gy = SHIELD_GRIPS.get(item.id, (-0.09, 0.0))
     # The fist closes on the strap behind the shield. It is nearer the camera than the shield, so with

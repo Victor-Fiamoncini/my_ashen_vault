@@ -9,7 +9,7 @@ from ashen_vault import dialogue as dialogue_data
 from ashen_vault.ai.enemy import Enemy
 from ashen_vault.audio.synth import Audio
 from ashen_vault.input import CONTROLS, Input
-from ashen_vault.player import burden, weapons
+from ashen_vault.player import burden, view_blend, weapons
 from ashen_vault.player.combat import Combat
 from ashen_vault.player.inventory import LEFT, PRIMARY, RIGHT, SECONDARY, SLOT_ALIASES, SLOT_NAMES, SPELL
 from ashen_vault.player.items import Item, Items
@@ -100,6 +100,7 @@ class Game:
         self._audio.set_volume(self.settings.gain)
         self._camera = _camera((0, 0, 0), (1, 0, 0), FOV)
         self._view_camera = _camera((0, 0, 0), (1, 0, 0), 55)
+        self._view_blends = view_blend.ViewBlends()  # the arms' poses, carried from frame to frame
         self._preview_camera = _camera((2.6, 0.5, 0), (0, 0, 0), 40)
         self.messages = []
         self.flags = set()
@@ -1343,7 +1344,7 @@ class Game:
         gpu.set_float("isModel", 1.0)
         gpu.model_light([min(c + 0.15, 1.4) for c in self.world.builder.light_at(p.x, p.eye_y, p.z)])
         bob = math.sin(p.bob_t) * 0.02
-        models.weapon_view(self._rig, p, bob, self._time)
+        models.weapon_view(self._rig, p, bob, self._time, self._view_blends)
         pr.end_mode_3d()
 
     def _selected_item(self):

@@ -230,6 +230,9 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   more from Pyre and keep burning. Enemies carry lingering harm in `Enemy.status` (`poison` from Venom
   Dart, `burn` from Pyre), one bite a second (`status_tick`) that never staggers.
 - An enemy type's `height` is the top of its body as it dies: the ash dissolve crumbles that span.
+  Any direct blow lights a foe white for `FLASH_TIME` (`Enemy.flashing`), stagger or not; a model
+  that whitens itself when hit keys on `e.flashing`, its reeling pose on `state == "hurt"`.
+  A hovering foe's shot span reaches from its hover height up to its `tall` (`shots.body_span`).
   Every model has a death pose (eased by `models.death_fall`); `tests/test_render_logic.py` checks
   that each one collapses, stays above the floor and fits its `height`, so update both together.
   Its `tall` is the top of the standing body: a spell bolt flying higher misses it (`world/shots.py`).
@@ -330,8 +333,10 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   smoke run that is `attack wait:0.1 attack`. Quick moves that strike twice use `pulses` with a short
   `pulse_gap`. Attack poses are keyframed in `models.MOTIONS` (wind, strike, follow, each
   `(dx, dy, dz, rx, ry, rz)`), the strike lands at the attack's `hit_at`, and edged weapons (`TRAILS`)
-  smear a fan of ghost blades through the blow. The viewmodel draws without depth testing, so draw
-  what faces the camera last.
+  smear a fan of ghost blades through the blow. A motion ends part way home (`models._settle`); the
+  view's `PoseBlend` (`player/view_blend.py`, kept by `Game` and passed to `models.weapon_view`) eases
+  the arms the rest of the way, into each new swing, charge or shield raise, and lets them trail the
+  turning view (`Sway`). The viewmodel draws without depth testing, so draw what faces the camera last.
 - Besides raylib's cube, sphere, cyl, cone and quad, models can draw `blade` (a lozenge-section slab
   that comes to a point), `lozenge` (the same section, straight) and `wedge` (a triangular prism),
   generated in `render/shapes.py`. Straight swords, the player's and the foes', are `models.blade_parts`

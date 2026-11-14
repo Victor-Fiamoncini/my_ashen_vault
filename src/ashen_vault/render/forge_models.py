@@ -59,7 +59,7 @@ def forge_golem(r, e, t):
             crouch = -0.2 * min(e.state_t / 0.15, 1)
     elif e.attack_kind == "sweep" and e.state in ("windup", "attack"):
         both = -1.55  # arms held out level while it spins
-    hot = (255, 240, 200) if e.state == "hurt" else MOLTEN
+    hot = (255, 240, 200) if e.flashing else MOLTEN
     fire = CRUST if dead else hot
     with (
         r.at(0, lift * 0.4 + crouch - 0.5 * kneel + 0.95 * topple, 0, ry=spin),
@@ -215,7 +215,7 @@ def slag_hound(r, e, t):
     gait = math.sin(t * 15) * 0.6 if e.state == "chase" else math.sin(t * 2) * 0.05
     lift, _, rear, _ = _spider_move(e, t, 0.0, 1.0)
     bite = strike_angle(e) * 0.2
-    crack = CRUST if dead else (255, 230, 160) if e.state == "hurt" else MOLTEN
+    crack = CRUST if dead else (255, 230, 160) if e.flashing else MOLTEN
     tooth = WHITE_HOT if not dead else CRUST
     with r.at(0, lift * 0.7 + 0.15 * fall, 0, rx=1.4 * fall), r.at(0, 0, 0, rz=-rear):
         for x, ph in ((0.42, 0), (-0.42, math.pi)):
@@ -420,7 +420,7 @@ def gargoyle(r, e, t):
         arm_r = arm_l = -1.0 * fall
         head = -0.3 * fall
         fold = fall
-    hurt = e.state == "hurt"
+    hurt = e.flashing
     body = STATUE if perched else (200, 196, 200) if hurt else iron
     dark = STATUE_DARK if perched else horn
     rib = body if perched else RIVET

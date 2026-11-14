@@ -42,6 +42,7 @@ TRAIL_RATE = 0.35  # fraction of max HP the trail drains per second
 VEIL_NOTICE = 1.8  # a foe notices you through a Veil of Mist only this close
 VEIL_LOSE = 4.0  # a chaser loses you in the mist beyond this
 STATUS_TICK = 1.0  # seconds between the bites of poison or fire
+FLASH_TIME = 0.15  # seconds a body glows white after any direct blow, staggered or not
 
 
 def _wrap(a):
@@ -76,6 +77,7 @@ class Enemy:
         self.state = "dormant" if type_.ambush else "perched" if type_.perch else "idle"
         self.state_t = 0.0
         self.anim_t = 0.0
+        self.flash_t = 0.0  # counts down after a direct blow: the white hit flash
         self._wander_dir = None
         self._struck = False
         # "melee", "shot", "bite" or a boss move: what the current windup will turn into.
@@ -90,6 +92,11 @@ class Enemy:
     @property
     def alive(self):
         return self.state != "dead"
+
+    @property
+    def flashing(self):
+        """Whether the body glows white: just struck (even when the blow didn't stagger it), or reeling."""
+        return self.flash_t > 0 or self.state == "hurt"
 
     @property
     def gone(self):
@@ -117,6 +124,7 @@ class Enemy:
     def update(self, dt, world):
         self.anim_t += dt
         self.state_t += dt
+        self.flash_t = max(self.flash_t - dt, 0.0)
         self._update_trail(dt)
         if self.state in ("dead", "dormant"):
             return
@@ -218,6 +226,8 @@ class Enemy:
         was_dormant = self.dormant or self.perched
         self.hp -= amount
         self._trail_hold = TRAIL_HOLD
+        if stagger:  # a direct blow (not a poison or fire tick) always shows
+            self.flash_t = FLASH_TIME
         if self.hp <= 0:
             self.hp = 0
             self._switch("dead")

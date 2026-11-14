@@ -442,7 +442,7 @@ class EnemyTypes:
                 gold=range(70, 71),
                 radius=0.85,
                 height=2.0,
-                tall=2.4,
+                tall=3.0,  # it hovers by its talons: its chest, head and horns ride high above
                 hover=1.0,
                 boss=True,
                 drop="iron_sigil",

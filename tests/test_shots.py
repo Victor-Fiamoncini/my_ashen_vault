@@ -89,3 +89,13 @@ def test_a_shot_clears_a_low_prop_only_above_its_top():
     assert not shots.clears(0.8, 0.0, 0.85)
     assert not shots.clears(1.4, 1.0, 0.85)  # the same table standing on a higher floor
     assert not shots.clears(9.0, 0.0, None)  # full-height props stop everything
+
+
+def test_a_bolt_aimed_at_a_hovering_gargoyle_strikes_its_body_not_just_its_feet():
+    bellows = EnemyTypes.get("bellows")
+    lo, hi = shots.body_span(bellows, 0.0)
+    chest = bellows.hover + 1.4  # it hovers by its talons; its chest rides well above
+    assert lo < chest < hi
+    assert fly(math.atan2(chest - (Player.EYE - shots.BOLT_DROP), 4.0), "bellows", dist=4.0)
+    assert fly(0.0, "bellows", dist=4.0)
+    assert not fly(0.6, "bellows", dist=4.0)  # well over its horns
