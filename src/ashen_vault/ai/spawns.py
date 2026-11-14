@@ -27,6 +27,8 @@ def spawn_enemies(map_, flags, bosses=True):
             yaw = map_.open_facing(spec.tx, spec.tz)
         else:
             yaw = 0.0
+        if type_.ambush:  # the chest mimic sits back against the wall like the chests it apes
+            x, z = map_.seated(spec.tx, spec.tz, yaw)
         loot, look = spec.props.get("item"), spec.props.get("model")
         enemies.append(Enemy(type_, x, z, yaw=yaw, marker=spec.marker, loot=loot, key=key, look=look))
     return enemies

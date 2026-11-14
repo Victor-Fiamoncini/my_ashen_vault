@@ -10,7 +10,7 @@ from ashen_vault.ai.enemy_types import EnemyTypes
 from ashen_vault.ai.spawns import spawn_enemies
 from ashen_vault.player.player import Player
 from ashen_vault.player.spells import Spells
-from ashen_vault.render import forge_models, models, town_models
+from ashen_vault.render import forge_models, fortress_props, models, town_models
 from ashen_vault.render.mesh_builder import KINDLING, MeshBuilder
 from ashen_vault.util import rround
 from ashen_vault.world import collision, elements, loot, relics, shots, terrain, villagers
@@ -106,6 +106,7 @@ class Gout:
 
 
 INTERACT_RANGE = 2.6
+DOOR_FRAME_SKY = 5.2  # an iron door's masonry under the open sky: tall enough to hide its raised leaf
 # Props you reach from further away: the Silent Bell hangs in the middle of a plinth you can't climb.
 INTERACT_REACH = {"silent_bell": 3.8}
 WEB_TIME = 2.5  # seconds a web shot slows you
@@ -152,6 +153,11 @@ BLOCKING_PROPS = (
     "totem",
     "anvil",
     "chimney",
+    "gargoyle_statue",
+    "forge_hearth",
+    "quench_trough",
+    "crucible",
+    "impaler",
     "pew",
     "bed",
     "cupboard",
@@ -169,6 +175,9 @@ PROP_TOP = {
     "sarcophagus": 0.9,
     "headsman_block": 0.7,
     "anvil": 0.95,
+    "gargoyle_statue": 2.2,
+    "quench_trough": 0.65,
+    "crucible": 1.1,
     "pew": 1.3,
     "bed": 0.9,
     "fence": 1.1,
@@ -196,6 +205,9 @@ WALL_PROPS = (
     "shelf",
     "hearth",
     "window",
+    "barred_window",
+    "tool_rack",
+    "great_window",
 )
 # Props drawn as far as the fog lets you see, however far that is: they make a skyline.
 LANDMARKS = (
@@ -205,12 +217,14 @@ LANDMARKS = (
     "smokestack",
     "gatehouse",
     "lavafall",
+    "battlement",
+    "great_window",
     "roof",
     "silent_bell",
     "cathedral_spire",
 )
 # Props that turn to face into the room.
-FACING_PROPS = ("chest", "altar", "table", "stall", "bed", "cupboard")
+FACING_PROPS = ("chest", "altar", "table", "stall", "bed", "cupboard", "gargoyle_statue", "forge_hearth")
 # Harrowmere's buildings, furniture and street dressing (`render/town_models.py`).
 TOWN_PROPS = (
     "roof",
@@ -269,6 +283,16 @@ def beside_shrine(map_, x, z, yaw):
             nx, nz = TileMap.center(tx + dx, tz + dz)
             return nx, nz, math.atan2(cz - nz, cx - nx)
     return x, z, yaw
+
+
+DETAIL_RANGE = 14.0  # metres within which fine carving (a statue's claws and fangs) is drawn
+BEHIND_MARGIN = 3.0  # metres behind the eye a prop may reach and still poke into view (a wide model)
+
+
+def behind_view(dx, dz, fx, fz, margin=BEHIND_MARGIN):
+    """Whether something at (dx, dz) from the eye lies wholly behind it, looking along (fx, fz): the
+    view is far narrower than a half turn, so it cannot be seen and need not be drawn."""
+    return dx * fx + dz * fz < -margin
 
 
 class World:
@@ -376,6 +400,8 @@ class World:
                     yaw = wall_yaw
                 elif spec.kind in FACING_PROPS:
                     yaw = self.map.open_facing(spec.tx, spec.tz)
+            if spec.kind == "chest":
+                x, z = self.map.seated(spec.tx, spec.tz, yaw)
             if spec.kind in HAZARD_KINDS:
                 self.hazards.append(self._make_hazard(spec))
             elif not EnemyTypes.has(spec.kind) and spec.kind not in terrain.TERRAIN_KINDS:
@@ -1460,8 +1486,13 @@ class World:
         # Small models stop being drawn sooner than the fog's end on a map that sees far (the
         # fortress from its bridge); landmarks are drawn as far as the eye can see.
         far = min(float(self.meta.get("model_range", sight)), sight)
+        if "indoor_range" in self.meta and self.map.tile_at(player.x, player.z).ceil is not None:
+            far = min(far, float(self.meta["indoor_range"]))  # under a roof the far rooms are walled off
+        fx, fz = player.forward()
         for p in self.props:
             if math.hypot(p.x - player.x, p.z - player.z) > (sight if p.kind in LANDMARKS else far):
+                continue
+            if p.kind not in LANDMARKS and behind_view(p.x - player.x, p.z - player.z, fx, fz):
                 continue
             self._model_light(gpu, p.x, p.y + 1.0, p.z)
             with rig.entity(p.x, p.y, p.z, p.yaw):
@@ -1669,7 +1700,9 @@ class World:
                 lit = not (a and a.cleared(self.flags))
                 models.boss_door(rig, p.open_t, p.axis, t, lit=lit, boss=p.props.get("boss"))
         elif k == "door":
-            models.door(rig, p.open_t, p.axis)
+            tile = self.map[p.tx, p.tz]
+            frame = (tile.ceil - tile.floor) if tile.ceil is not None else DOOR_FRAME_SKY
+            models.door(rig, p.open_t, p.axis, style=p.props.get("model", "wood"), frame=frame)
         elif k == "gate":
             models.door(rig, p.open_t, p.axis, tex="iron_bars")
         elif k == "lever":
@@ -1769,7 +1802,35 @@ class World:
         elif k == "keep":
             forge_models.keep(rig, t, p.tx + p.tz)
         elif k == "lavafall":
-            forge_models.lavafall(rig, t, float(p.props.get("top", "18")), p.tx)
+            top = float(p.props.get("top", "18"))
+            forge_models.lavafall(rig, t, top, p.tx)
+            if p.props.get("spout") == "gargoyle":  # a stone head on the wall face, spewing it
+                with rig.at(0, top - 1.75, 0):
+                    fortress_props.lava_spout(rig, t, p.tx)
+        elif k == "battlement":
+            fortress_props.battlement(rig, t, p.tx * 5 + p.tz, float(p.props.get("span", "8")))
+        elif k == "gargoyle_statue":
+            near = math.hypot(p.x - self.player.x, p.z - self.player.z) < DETAIL_RANGE
+            fortress_props.gargoyle_statue(rig, t, p.tx * 7 + p.tz * 3, p.props.get("pose", "hunched"), near)
+        elif k == "great_window":  # set high in a great wall's face, over the moat it stands in
+            with rig.at(0, float(p.props.get("rise", "0")), 0):
+                fortress_props.great_window(rig, t, p.tx * 7 + p.tz * 3)
+        elif k == "barred_window":
+            fortress_props.barred_window(rig, t, p.tx * 7 + p.tz * 3)
+        elif k == "forge_hearth":
+            fortress_props.forge_hearth(rig, t, p.tx * 7 + p.tz * 3)
+        elif k == "quench_trough":
+            fortress_props.quench_trough(rig, t + p.tx)
+        elif k == "crucible":
+            fortress_props.crucible(rig, t + p.tx)
+        elif k == "tool_rack":
+            fortress_props.tool_rack(rig, t, p.tx * 7 + p.tz * 3)
+        elif k == "ingot_pile":
+            fortress_props.ingot_pile(rig, p.tx * 7 + p.tz * 3)
+        elif k == "slag_heap":
+            fortress_props.slag_heap(rig, p.tx * 7 + p.tz * 3)
+        elif k == "impaler":
+            fortress_props.impaler(rig, t, p.tx * 7 + p.tz * 3)
         elif k == "anvil":
             forge_models.anvil(rig, t + p.tx)
         elif k == "chimney":

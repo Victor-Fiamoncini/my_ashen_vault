@@ -5,6 +5,7 @@ fog = 0.22 0.08 0.05
 fog_range = 20 100
 sky = ember
 model_range = 46
+indoor_range = 26
 torch = 7 0.9 0.7 0.5
 start = 30 69 -90
 default = ,
@@ -31,6 +32,7 @@ $ = floor tex=flagstone h=3 side=black_brick
 g = floor tex=iron_grate h=0 ceil=6 ceil_tex=black_brick side=black_brick
 l = floor tex=lava h=-1 ceil=6 ceil_tex=black_brick side=black_brick lava
 R = floor tex=flagstone h=6 side=black_brick
++ = floor tex=flagstone h=6 ceil=10.4 ceil_tex=black_brick side=black_brick
 o = floor tex=slate h=12 side=black_brick
 s = floor tex=slag h=-3.8 ceil=0.2 ceil_tex=black_brick side=black_brick dark=0.6
 v = floor tex=lava h=-4.8 ceil=0.2 ceil_tex=black_brick side=black_brick lava
@@ -77,27 +79,27 @@ KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKwKKKKKKKKK
 KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKuKKKKKKKKK
 KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKtKKKKKKKKK
 KKKKppppppppppppppppppPPPPPPPPPPPPPPPPPpppppppppppqppKKKKKKK
-KKKKppORRRRRRRRRTRRRBRRRRRRRRRRRRRRRRRRRRRRRRRTRRRRppKKKKKKK
+KKKKppORRRRRRCRRTRRRBRRRRÀRRRRRÀRRRRRÀRRRRRRLRTRRRRppKKKKKKK
 KKKKppRTRRFRRRRRRRRRRRRRRRRRRRRRRRTRRRRRRRBRRRRRRRÜppKKKKKKK
-KK###################pppppppppppppÖppppppppppppppppppKKKKKKK
-KK#.X...ll..M.ll...T##:abcdefhijkmn:::####################KK
-KK#.....ll.W..gg..N.##::::::::::::::::#############.....I#KK
-KK#.....ll....ll....##::::::::W:::::::######Í######.N....#KK
-KK#T....ll.F..ll......::::::::::::::::#############......#KK
-KK#..W..ll....ll....##::::::H:::::::::T..J..Þ..ß........T#KK
-KK#.....gg....ll.N..##:::Z:::::::::Z::#############......#KK
-KK#.....ll..T.ll....##::::::::::::::::#############...F..#KK
+KK###################ppppppppppppPÖPpppppppppppppppppKKKKKKK
+KK#.X...ll..M.llÂ..T##:abcdefhijkmn:::####################KK
+KK#.....ll.W..gg..N.##::::::::::::::::#############..ÃÅ.I#KK
+KK#.....ll..å.ll...Á##::::::::W:::::::######Í######.N....#KK
+KK#T....ll.F..ll......::::::::::::::::#############.....Á#KK
+KK#..W..ll....ll.Æ..##::::::H:::::::::T..J..Þ..ß........T#KK
+KK#À....gg....ll.N..##:::Z:::::::::Z::#############......#KK
+KK#.....llÀ.T.llÅ.Ã.##::::::::::::::::#############Â..F..#KK
 KK#1##################::::::::::::::::#############......#KK
-KK#2TssvvsHsssssvvT##########..######K######......Ù......#KK
-KK#3sssvvsssvvvsvvs#.T.#T..........T#K######Ç.....#....N.#KK
+KK#2TssvvsHsssssvvT##########..######K######...Ï..Ù......#KK
+KK#3sssvvsssvvvsvvs#.T.#T..À....À..T#K######Ç....Æ#....N.#KK
 KK#4sssvvsssvvvssssD...#............#K######...T..#T.....#KK
-KK#5ssssssssvvvssss#................#K######......#......#KK
+KK#5sÏssssssvvvssÏs#...............À#K######À.....#À.....#KK
 KK#6sUsssssTvvvHssY#...#.........Ô..#K####################KK
-KK##################Q..#....Õ..T....#K####################KK
-]]]]KKËKKKKKKKÊKKKKKKKÉKKKKKKGKKKKKKKÒKKKKKKKÌKKKKKKKØKK]]]]
+KK##################Q..#...CÕ.LT....#K####################KK
+]]]]KKËKKæKKKKÊKKKçKKKÉKKKKKKGKKKèKKKÒKKKéKKKÌKKKKêKKØKK]]]]
 ]]]]KKKKKKKKKKKKKKKKKKÓKKKKKKÈKKKKKKKKKKKKKKKKKKKKKKKKKK]]]]
-AAAAAAAAAAAAAAAAAAAAAr=BJ=Þ====ArB$rAAAAAAAAAAAAAAAAAAAAAAAA
-AAA________Î_________________==_________________Î________AAA
+AAAKKKKKKKKKKKKKKKKKKr=BJ=Þ====ArB$rKKKKKKKKKKKKKKKKKKKKKAAA
+AAA__ë__ë__Î___ë__ë__________==________ë___ë____Î___ë__ë_AAA
 AAA_________________________r==r_________________________AAA
 AAA__________________________==__________________________AAA
 AAA__________________________==__________________________AAA
@@ -124,17 +126,17 @@ AAA__________________________==__________________________AAA
 AAA__________________________==__________________________AAA
 AAA_________________________r==r_________________________AAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAA,==,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAA,,,,,,,,,,,,,TAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAA,,,T,,,,,,,,,,,,ÑAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAA,,,,,,,,,,,,,,,,,AAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAÚ,,,,,,,,,C,,TAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAA,,,TÝ,,,,,,,,L,,ÑAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAA,Û,,,,,Ï,,,,,,,âãAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAA,,,AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAA,,,AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAA,,,,,,,,,,,,,,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAA,,,,,,,,,,T,,,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAA,,,,,,,,,,,,,,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAA,,,,,,,,L,,,,àAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAA,,,,,,,Ý,,T,,áAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAA,Ï,,Û,,,C,,,,,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAA,,ÚAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAA,,,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAA,,,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAA,,,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAÚ,,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAA,,,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAÐAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
@@ -164,16 +166,16 @@ E = embers
 Ì = smokestack height=10 on=^
 Ø = spire height=7 width=2.8 roof=flat on=^
 Í = keep on=~
-Î = lavafall top=20 on=_
+Î = lavafall top=22 spout=gargoyle on=_
 G = gate lever=hold_gate
-Ó = door
+Ó = door model=iron
 // The gatehouse: a shrine, and the winch that raises the main gate.
 Ô = save_statue
 Õ = lever id=hold_gate
 Q = chest item=red_tonic count=2 gold=60 model=iron
 Z = brazier radius=9
 W = cinder_wisp
-Ö = door key=forge_key on=R
+Ö = door key=forge_key model=iron on=+
 // The foundry and the smelter pits below it.
 F = forge_golem
 X = chest item=scroll_thunder gold=40 model=iron
@@ -190,3 +192,30 @@ I = chest item=blue_moss count=3 gold=120 model=iron
 O = chest item=slagbreaker model=iron
 Ü = chest item=scroll_motes gold=60 model=iron
 S = exit map=cinder_keep at=25,22,180 label=Enter_the_keep model=keep_door boss=gargoyles_dead on=o
+// Dressing: gargoyles carved for the fortress, barred windows lit by the forges within, and the
+// clutter of the smiths; the road up is staked with warnings.
+C = gargoyle_statue
+L = gargoyle_statue pose=snarl
+À = barred_window
+Á = forge_hearth
+Â = crucible
+Ã = quench_trough
+Å = tool_rack
+Æ = ingot_pile
+Ï = slag_heap
+Ú = impaler
+Û = rubble
+Ý = bones
+à = crate
+á = barrel
+â = candles
+ã = banner
+å = chains
+// The great wall's crenellated walk, run along its top behind the skyline.
+æ = battlement span=10 on=^
+ç = battlement span=6 on=^
+è = battlement span=7 on=^
+é = battlement span=9 on=^
+ê = battlement span=5 on=^
+// Great windows high in the curtain wall's face, the fires of the halls behind them burning over the moat.
+ë = great_window rise=13 on=_

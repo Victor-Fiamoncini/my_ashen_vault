@@ -1,6 +1,10 @@
 import math
 from dataclasses import dataclass, field
 
+from ashen_vault.util import rround
+
+SEAT_DEPTH = 0.6  # how far a chest is pushed back from its tile's centre toward the wall behind it
+
 
 @dataclass(eq=False)
 class Tile:
@@ -115,6 +119,15 @@ class TileMap:
             if self[tx + dx, tz + dz].solid:
                 return yaw
         return None
+
+    def seated(self, tx, tz, yaw, depth=SEAT_DEPTH):
+        """Where something facing `yaw` on (tx, tz) stands once pushed back against the wall behind
+        it (a chest's back to the stones), or the tile's centre if nothing solid stands behind."""
+        x, z = self.center(tx, tz)
+        bx, bz = -math.cos(yaw), -math.sin(yaw)
+        if not self[tx + rround(bx), tz + rround(bz)].solid:
+            return x, z
+        return x + bx * depth, z + bz * depth
 
     def _standable(self, tx, tz):
         tile = self[tx, tz]

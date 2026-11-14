@@ -1783,12 +1783,48 @@ def chest(r, is_open, style="wood"):
         r.part("cube", 0.34, 0.35, 0, 0.01, 0.06, 0.025, (200, 90, 30), glow=True)  # the keyhole
 
 
-def door(r, open_t, axis, tex="door_wood"):
-    """Door slab spanning the tile; axis 'x' means it blocks movement along X."""
+DOOR_FRAME = (70, 64, 66)  # the dark dressed stone round an iron door
+DOOR_FRAME_LIGHT = (88, 80, 80)
+
+
+def door(r, open_t, axis, tex="door_wood", style="wood", frame=4.0):
+    """Door slab spanning the tile; axis 'x' means it blocks movement along X. `style` "iron" is the
+    Cinderhold's: a riveted iron leaf banded and studded, with a ring on each face, sliding up into a
+    frame of dark stone (jambs and a lintel `frame` metres up, the passage's ceiling) that stays put."""
     lift = open_t * 2.4
     ry = 0 if axis == "x" else math.pi / 2
     with r.at(0, 0, 0, ry=ry):
-        r.part("cube", 0, 1.25 + lift, 0, 0.18, 2.5, 2.0, WHITE, tex=tex)
+        if style != "iron":
+            r.part("cube", 0, 1.25 + lift, 0, 0.18, 2.5, 2.0, WHITE, tex=tex)
+            return
+        _iron_door_frame(r, frame)
+        with r.at(0, lift, 0):
+            r.part("cube", 0, 1.3, 0, 0.16, 2.6, 1.5, IRON_CHEST, tex="iron_plate")
+            for side in (-1, 1):
+                x = side * 0.09
+                for y in (0.35, 1.3, 2.25):  # the bands, studded along their length
+                    r.part("cube", x, y, 0, 0.02, 0.16, 1.52, IRON_CHEST_BAND)
+                    for dz in (-0.6, -0.2, 0.2, 0.6):
+                        r.part("cube", x + side * 0.015, y, dz, 0.02, 0.06, 0.06, RIVET_IRON)
+                for dz in (-0.72, 0.72):  # the border stiles
+                    r.part("cube", x, 1.3, dz, 0.02, 2.6, 0.08, IRON_CHEST_BAND)
+                r.part(
+                    "cyl", x + side * 0.03, 1.15, 0.35, 0.22, 0.03, 0.22, RIVET_IRON, rz=math.pi / 2
+                )  # ring
+                r.part("cube", x + side * 0.01, 1.35, 0.35, 0.03, 0.12, 0.12, IRON_CHEST_BAND)  # its boss
+
+
+def _iron_door_frame(r, frame):
+    """Jambs, a lintel and a threshold round an iron door, its masonry filling up to `frame`."""
+    frame = max(frame, 3.0)
+    for z in (-0.88, 0.88):
+        r.part("cube", 0, frame / 2, z, 0.5, frame, 0.26, DOOR_FRAME, tex="black_brick")
+        r.part("cube", 0, 0.2, z, 0.56, 0.4, 0.3, DOOR_FRAME_LIGHT)  # the jamb's plinth
+    r.part("cube", 0, 2.75, 0, 0.56, 0.3, 2.0, DOOR_FRAME_LIGHT)  # the lintel
+    r.part("cube", 0, 2.9, 0, 0.6, 0.22, 0.4, DOOR_FRAME)  # its keystone
+    if frame > 2.9:
+        r.part("cube", 0, (2.9 + frame) / 2, 0, 0.44, frame - 2.9, 1.6, DOOR_FRAME, tex="black_brick")
+    r.part("cube", 0, 0.03, 0, 0.6, 0.06, 1.7, DOOR_FRAME_LIGHT)  # the threshold
 
 
 BOSS_DOOR_WOOD = (92, 66, 46)

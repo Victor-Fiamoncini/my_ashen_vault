@@ -714,7 +714,7 @@ def road_gate(r):
 
 
 def keep_door(r, t):
-    """The keep's postern, set into the wall behind its tile (-X) and facing +X: two iron-banded leaves
+    """The keep's postern, set into the wall behind its tile (-X) and facing +X: two riveted iron leaves
     under a pointed arch of black stone, a ring on each, and a brazier-slit burning on either side."""
     with r.at(-0.92, 0, 0):
         for z in (-1.0, 1.0):  # jambs
@@ -724,7 +724,7 @@ def keep_door(r, t):
             r.part("cube", 0, 3.6, side * 0.45, 0.42, 0.34, 1.15, STONE_LIGHT, rx=side * 0.42)
         r.part("cube", 0, 4.0, 0, 0.46, 0.4, 0.3, STONE)
         for side in (-1, 1):  # the leaves, banded and studded
-            r.part("cube", 0.05, 1.55, side * 0.42, 0.12, 3.1, 0.82, (66, 48, 38), tex="door_wood")
+            r.part("cube", 0.05, 1.55, side * 0.42, 0.12, 3.1, 0.82, (150, 146, 156), tex="iron_plate")
             for y in (0.5, 1.5, 2.5):
                 r.part("cube", 0.12, y, side * 0.42, 0.03, 0.14, 0.84, BLACK_IRON)
                 for dz in (-0.3, 0.0, 0.3):

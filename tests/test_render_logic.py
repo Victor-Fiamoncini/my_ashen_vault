@@ -864,3 +864,138 @@ def _lever_parts(models, wood):
     gpu = _RecordingGpu()
     models.lever(rig.Rig(gpu), 0.0, wall=False, wood=wood)
     return gpu.parts
+
+
+class _BoxGpu:
+    """Records every corner of every part (x, y, z) and how many parts glow."""
+
+    def __init__(self):
+        self.corners = []
+        self.parts = 0
+        self.glows = 0
+
+    def to_matrix(self, m):
+        return m
+
+    def draw_part(self, kind, m, rgb, tex="white", glow=False):
+        assert all(0 <= c <= 255 for c in rgb), rgb
+        for cx in (-0.5, 0.5):
+            for cy in (-0.5, 0.5):
+                for cz in (-0.5, 0.5):
+                    self.corners.append(
+                        tuple(
+                            m[i * 4] * cx + m[i * 4 + 1] * cy + m[i * 4 + 2] * cz + m[i * 4 + 3]
+                            for i in range(3)
+                        )
+                    )
+        self.parts += 1
+        self.glows += glow
+
+    def span(self, axis):
+        return min(c[axis] for c in self.corners), max(c[axis] for c in self.corners)
+
+    def reach(self):
+        return max(abs(v) for c in self.corners for v in (c[0], c[2]))
+
+
+def _fortress_prop(draw, *args, **kw):
+    gpu = _BoxGpu()
+    draw(rig.Rig(gpu), *args, **kw)
+    return gpu
+
+
+def test_fortress_props_draw_in_their_place():
+    """The Cinderhold's dressing draws at every moment: the statues are cold stone and fit under the
+    ceiling, wall props hug the wall behind them (-X), floor props keep to their tile, the spout stays
+    in front of its wall (-Z) and the battlement hangs down from its walk."""
+    from ashen_vault.render import fortress_props as fp
+
+    floor = {
+        "forge_hearth": lambda r, t, s: fp.forge_hearth(r, t, s),
+        "quench_trough": lambda r, t, s: fp.quench_trough(r, t),
+        "crucible": lambda r, t, s: fp.crucible(r, t),
+        "ingot_pile": lambda r, t, s: fp.ingot_pile(r, s),
+        "slag_heap": lambda r, t, s: fp.slag_heap(r, s),
+    }
+    wall = {"barred_window": fp.barred_window, "tool_rack": fp.tool_rack, "great_window": fp.great_window}
+    lit = {"forge_hearth", "crucible", "ingot_pile", "slag_heap", "barred_window", "great_window"}
+    for t in (0.0, 0.37, 2.9):
+        for seed in range(6):
+            for pose in ("hunched", "snarl"):
+                g = _fortress_prop(fp.gargoyle_statue, t, seed, pose=pose)
+                assert g.parts >= 40 and g.glows == 0, (pose, seed)
+                lo, hi = g.span(1)
+                assert lo > -0.05 and hi < 2.4, (pose, seed, hi)
+                assert g.reach() <= 1.0
+            for name, draw in floor.items():
+                g = _fortress_prop(draw, t, seed)
+                assert 4 <= g.parts <= 80, (name, g.parts)
+                assert g.reach() <= 1.0 and g.span(1)[0] > -0.05, name
+                assert (g.glows > 0) == (name in lit), name
+            for name, draw in wall.items():
+                g = _fortress_prop(draw, t, seed)
+                assert 8 <= g.parts <= 80, name
+                lo, hi = g.span(0)
+                assert lo >= -1.0 and hi <= 0.3, (name, hi)  # it hugs the wall behind it
+                assert (g.glows > 0) == (name in lit), name
+            g = _fortress_prop(fp.lava_spout, t, seed)
+            assert g.glows > 0 and g.span(2)[0] >= -1.0 and g.span(1)[0] > -0.05
+            g = _fortress_prop(fp.impaler, t, seed)
+            assert g.parts >= 15 and g.glows == 0 and g.span(1)[1] < 3.2
+            for span in (4.0, 8.0, 12.0):
+                g = _fortress_prop(fp.battlement, t, seed, span=span)
+                lo, hi = g.span(1)
+                assert g.glows > 0 and lo >= -8.5 and hi <= 2.8, span  # fire bowls burn in its crenels
+                x0, x1 = g.span(0)
+                assert x0 >= -span / 2 - 0.2 and x1 <= span / 2 + 0.2, span
+
+
+STEPPED = """[meta]
+name = Stepped
+start = 1 1 0
+edge_top = 30
+
+[legend]
+c = wall tex=cliff_rock top=7
+k = wall tex=black_brick top=16
+x = wall tex=iron_plate top=20
+. = floor h=0
+
+[grid]
+xxxxx
+kkkkk
+ccccc
+.....
+.....
+"""
+
+
+def test_a_wall_rising_behind_a_lower_one_is_built():
+    """A curtain wall behind its cliff, and a taller tower behind that, show above the walls before
+    them: each gets its cap and the face that steps up from the wall in front."""
+    from ashen_vault.world.map_loader import MapLoader
+
+    b = MeshBuilder(MapLoader(STEPPED, name="stepped").parse()).build()
+    assert {(2, 2), (2, 1), (2, 0)} <= b._exposed
+    cliff = b.batches["cliff_rock"].verts
+    brick = b.batches["black_brick"].verts
+    stone = b.batches["iron_plate"].verts
+    assert max(cliff[1::3]) == pytest.approx(7)
+    assert min(brick[1::3]) == pytest.approx(7) and max(brick[1::3]) == pytest.approx(16)
+    assert min(stone[1::3]) == pytest.approx(16) and max(stone[1::3]) == pytest.approx(20)
+
+
+def test_iron_door_stands_in_a_frame_that_stays_put():
+    """An iron door's leaf rises into the masonry round it; the jambs and lintel never move."""
+    from ashen_vault.render import models
+
+    def ys(open_t, style):
+        gpu = _BoxGpu()
+        models.door(rig.Rig(gpu), open_t, "x", style=style, frame=6.0)
+        return gpu
+
+    shut, raised = ys(0.0, "iron"), ys(1.0, "iron")
+    assert shut.parts == raised.parts > 20
+    assert max(c[1] for c in shut.corners) == pytest.approx(6.0)  # the masonry fills up to the ceiling
+    assert max(c[1] for c in raised.corners) <= 6.0 + 1e-6  # the raised leaf hides inside it
+    assert ys(0.0, "wood").parts == 1  # the plain slab is unchanged

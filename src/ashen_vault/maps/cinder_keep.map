@@ -47,28 +47,28 @@ z = floor tex=flagstone h=9.5 ceil=13.5 ceil_tex=black_brick side=black_brick da
 [grid]
 ##################################
 #&&%:%:%:%:%:%:%:%&&##############
-#&&rrrrrrrTrrrrrrr&&##############
+#&&GrrrrrrTrrrrrrr&&##############
 #%rrrrrrrrrrrrrrrrr%##############
-#:rrÛrrrrCrrrrrrrrr:ToooÑ#########
+#:rrÛrrrrCrrrrrrrrr:TIooÑ#########
 #%rrrrrrrrrrrrErrrrSooooo#########
-#:rrrrrrrrrrrrrrrrr:oWooo#########
+#:rrrrrrrrrrrrrrrrr:oWoLo#########
 #%rrÝrrrrrrrCrrrrrr%##o###########
 #:rrrrrrrrrrrrrrrrr:##T###########
-#&&rrrrrrrTrrrrrrr&&##o###R#######
+#&&rrrrrrrTrrrrrrA&&##o###R#######
 #&&%:%:%:%:%:%:%:%&&##!980zyxwu###
 ##############################Ö###
 ##################aØcdefhijkmnq###
-##,,,,,,T,,,,,,,,,,###############
-##,,,,E,,,,,,,,,B,,###############
+##M,L,,,T,,,L,,,L,,###############
+##,,,,E,,,,,V,,,B,,###############
 ##,,,,,,,,,,,,,,,,,###############
-##,,,P,,,,P,,,,P,,,###############
+##G,,P,,,,P,,,,P,,A###############
 ##,,,,,,,,,,,,,,,,,###############
 ##T,,,,Z,,F,,Z,,,,,###############
 ##,,,,,,,,,,,,,,,,,###############
-##,,,P,,,,P,,,,P,,,###############
-##,,,,,,,,,,,,,,,,,###..T..#######
+##A,,P,,,,P,,,,P,,G###############
+##,,,,,,,,,,,,,,,,,###L.T..#######
 ##,B,,H,,,,,,,,,,,,.......X#######
-##Q,,,,,,,,,T,,,,,,###.....#######
+##Q,,,L,,,I,T,K,LON###.....#######
 ##################################
 
 [entities]
@@ -94,3 +94,14 @@ S = door boss=gargoyles_dead on=o
 Û = brand
 Ý = bellows
 C = chimney height=2.6
+// Dressing: gargoyles carved in the hall's corners and on the roof, as still as the twins until
+// they are not; barred windows on the forge-light within, and the garrison's smithy.
+G = gargoyle_statue
+A = gargoyle_statue pose=snarl
+L = barred_window
+K = tool_rack
+M = forge_hearth
+N = crucible
+O = quench_trough
+V = ingot_pile
+I = banner

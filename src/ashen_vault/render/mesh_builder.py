@@ -45,6 +45,10 @@ LIGHT_KINDS = (
     "hearth",
     "lamp_post",
     "window",
+    "barred_window",
+    "great_window",
+    "forge_hearth",
+    "crucible",
 )
 LIGHT_Y = {
     "lamp_post": "2.6",
@@ -53,8 +57,16 @@ LIGHT_Y = {
     "fungus": "0.7",
     "bonfire": "0.9",
     "giant_mushroom": "2.2",
+    "forge_hearth": "1.2",
+    "crucible": "1.0",
 }
-LIGHT_Y_WALL = {"shelf_fungus": "1.4", "hearth": "0.6", "window": "3.0"}
+LIGHT_Y_WALL = {
+    "shelf_fungus": "1.4",
+    "hearth": "0.6",
+    "window": "3.0",
+    "barred_window": "2.4",
+    "great_window": "1.6",
+}
 LIGHT_COLOR = {
     "fungus": "0.3,0.85,0.65",
     "giant_mushroom": "0.55,0.35,0.85",
@@ -63,16 +75,26 @@ LIGHT_COLOR = {
     "hearth": "1.0,0.6,0.3",
     "lamp_post": "1.0,0.78,0.45",
     "window": "0.55,0.62,0.8",
+    "barred_window": "1.0,0.5,0.2",
+    "great_window": "1.0,0.5,0.2",
+    "forge_hearth": "1.0,0.55,0.22",
+    "crucible": "1.0,0.5,0.2",
 }
 LIGHT_RADIUS = {
     "hearth": "6",
     "lamp_post": "7",
     "window": "8",
+    "barred_window": "5",
+    "great_window": "10",
+    "forge_hearth": "9",
+    "crucible": "5",
     "candles": "3",
     "shelf_fungus": "4",
     "giant_mushroom": "6",
     "bonfire": "9",
 }
+# Lights hung on a wall when one stands beside them: they shine from against it.
+WALL_LIGHTS = ("torch", "shelf_fungus", "hearth", "window", "barred_window", "great_window")
 # Fires that can stand cold (`unlit`) until something kindles them.
 KINDLING = ("brazier", "bonfire")
 DIRS = ((1, 0), (-1, 0), (0, 1), (0, -1))
@@ -127,12 +149,12 @@ class MeshBuilder:
         """The Light an emitting entity casts (see LIGHT_KINDS), ignoring whether it is lit."""
         x, z = TileMap.center(e.tx, e.tz)
         height = LIGHT_Y.get(e.kind, "1.6")
-        wall = map_.wall_yaw(e.tx, e.tz) if e.kind in ("torch", "shelf_fungus", "hearth", "window") else None
+        wall = map_.wall_yaw(e.tx, e.tz) if e.kind in WALL_LIGHTS else None
         if wall is not None:  # a sconce, a bracket fungus, a hearth or a window: up against the wall
             x -= math.cos(wall) * 0.6
             z -= math.sin(wall) * 0.6
             height = LIGHT_Y_WALL.get(e.kind, "1.9")
-        y = map_[e.tx, e.tz].floor + float(e.props.get("y", height))
+        y = map_[e.tx, e.tz].floor + float(e.props.get("rise", "0")) + float(e.props.get("y", height))
         color = [float(c) for c in e.props.get("color", LIGHT_COLOR.get(e.kind, "1.0,0.62,0.32")).split(",")]
         radius = e.props.get("radius", LIGHT_RADIUS.get(e.kind, "7"))
         return Light(x, y, z, float(radius), color)
@@ -216,6 +238,7 @@ class MeshBuilder:
         return changed
 
     def build(self):
+        self._exposed = self._exposed_walls()
         for tx, tz, tile in self.map.each_tile():
             if tile.solid:
                 self._build_solid(tx, tz, tile)
@@ -247,9 +270,33 @@ class MeshBuilder:
             elif tile.ceil is not None and nb.ceil is None:
                 self._wall(tile.wall_tex, tx, tz, dx, dz, tile.ceil, tile.ceil + 0.6, face_out=True)
 
+    def _exposed_walls(self):
+        """The solid tiles seen from under the open sky: those beside an open-sky floor, and any wall
+        rising behind a lower one already seen (a curtain wall behind its cliff, a tower behind its
+        parapet), stepping back as far as the walls keep climbing."""
+        seen = set()
+        todo = []
+        for tx, tz, tile in self.map.each_tile():
+            if tile.solid and any(
+                not (nb := self.map[tx + dx, tz + dz]).solid and nb.ceil is None for dx, dz in DIRS
+            ):
+                seen.add((tx, tz))
+                todo.append((tx, tz))
+        while todo:
+            tx, tz = todo.pop()
+            top = self.map[tx, tz].top
+            for dx, dz in DIRS:
+                key = (tx + dx, tz + dz)
+                if key in seen or not (0 <= key[0] < self.map.width and 0 <= key[1] < self.map.depth):
+                    continue
+                nb = self.map[key]
+                if nb.solid and nb.top > top:
+                    seen.add(key)
+                    todo.append(key)
+        return seen
+
     def _build_solid(self, tx, tz, tile):
-        exposed = any(not (nb := self.map[tx + dx, tz + dz]).solid and nb.ceil is None for dx, dz in DIRS)
-        if not exposed:
+        if (tx, tz) not in self._exposed:
             return
         self._horizontal(tile.floor_tex, tx * T, tz * T, tile.top, 1, 0.9)
         for dx, dz in DIRS:
