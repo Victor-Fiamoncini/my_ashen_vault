@@ -28,8 +28,8 @@ def test_the_sky_is_baked_once_and_rebaked_only_when_the_light_changes():
     layers = len(sky.layers(spec, FOG))
     assert len(gpu.uploaded) == layers
     textures = [tex for _, tex, _ in sky_pass._meshes]
-    assert textures == ["white", "cloud_cap", "clouds", "mist"]
-    assert [drifts for _, _, drifts in sky_pass._meshes] == [False, True, True, False]
+    assert textures == ["white", "cloud_cap", "clouds", "white", "mist"]
+    assert [drifts for _, _, drifts in sky_pass._meshes] == [False, True, True, False, False]
     sky_pass._bake(spec, FOG, 0.001, False)  # a change too small to see reuses the meshes
     assert len(gpu.uploaded) == layers and not gpu.unloaded
     sky_pass._bake(spec, FOG, 0.5, False)  # stepping into the dark rebakes it

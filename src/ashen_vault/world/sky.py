@@ -21,13 +21,17 @@ CAP_FROM = 40.0  # elevation where the overhead cloud cap starts
 CAP_SCALE = 1 / 60.0  # uv per metre of the overhead cap
 MIST_BAND = (-6.0, 8.0)
 MIST_REPEATS = 10
+# Where the sun stands over every map: low in the west, as Harrowmere first shows it. Every map shares
+# the same axes (+x east, +z south), so one bearing keeps it in the same place wherever you travel.
+SUN_AT = (180.0, 13.0)
+SUN_THROUGH_CLOUD = 0.2  # how far the disc takes the cloud undersides' colour, as if seen through them
 
 
 @dataclass(frozen=True)
 class Sky:
     zenith: tuple  # colour straight up; the horizon is always the map's fog colour
     sun: tuple | None = None  # the sun's disc colour (None: no sun)
-    sun_at: tuple = (180.0, 14.0)  # (azimuth, elevation) in degrees; azimuth 0 = +x (east), 90 = +z
+    sun_at: tuple = SUN_AT  # (azimuth, elevation) in degrees; azimuth 0 = +x (east), 90 = +z
     sun_size: float = 2.5  # the disc's radius, degrees
     halo: tuple | None = None  # the glow around the sun
     halo_size: float = 20.0
@@ -39,11 +43,11 @@ class Sky:
 
 
 SKIES = {
-    # Harrowmere: a low grey ceiling with a pale, warm sun breaking through it in the west.
+    # Harrowmere: a low grey ceiling with a pale, warm sun breaking through it.
     "overcast": Sky(
         zenith=(0.27, 0.33, 0.45),
         sun=(1.0, 0.94, 0.78),
-        sun_at=(180.0, 13.0),
+        sun_at=SUN_AT,
         sun_size=2.6,
         halo=(0.92, 0.8, 0.6),
         halo_size=24.0,
@@ -51,11 +55,11 @@ SKIES = {
         cloud_under=(0.42, 0.44, 0.5),
         mist=(0.6, 0.62, 0.66),
     ),
-    # The hollow: thick, humid green-gold haze over the canopy and a sun lost in it.
+    # The hollow: thick, humid green-gold haze over the canopy and a pale sun glaring through it.
     "jungle": Sky(
         zenith=(0.16, 0.26, 0.2),
         sun=(0.95, 0.92, 0.66),
-        sun_at=(250.0, 52.0),
+        sun_at=SUN_AT,
         sun_size=3.0,
         halo=(0.55, 0.6, 0.36),
         halo_size=34.0,
@@ -69,7 +73,7 @@ SKIES = {
     "ember": Sky(
         zenith=(0.08, 0.03, 0.03),
         sun=(1.0, 0.5, 0.2),
-        sun_at=(-70.0, 20.0),
+        sun_at=SUN_AT,
         sun_size=3.4,
         halo=(0.62, 0.2, 0.08),
         halo_size=26.0,
@@ -140,7 +144,8 @@ class SkyMesh:
 
 
 def dome(spec, fog, dark=0.0, veil=False):
-    """The gradient dome, then the sun's halo and disc over it (drawn in that order, no depth)."""
+    """The gradient dome, then the sun's halo over it (drawn in that order, no depth). The disc is a
+    layer of its own (`sun`), drawn over the clouds."""
     mesh = SkyMesh()
     zenith = shade(spec.zenith, dark, veil)
     for lo, hi in pairwise(RINGS):
@@ -154,7 +159,7 @@ def dome(spec, fog, dark=0.0, veil=False):
                 (direction(a1, hi), (0, 0), c_hi, RADIUS),
             )
     if spec.sun:
-        _sun(mesh, spec, fog, zenith, dark, veil)
+        _halo(mesh, spec, fog, zenith, dark, veil)
     return mesh
 
 
@@ -177,12 +182,12 @@ def _around(d, u, v, radius_deg, angle):
     return tuple(c / n for c in p)
 
 
-def _sun(mesh, spec, fog, zenith, dark, veil):
-    """A soft halo whose rim takes the dome's own colour, so it fades into the sky, then the disc."""
+def _halo(mesh, spec, fog, zenith, dark, veil):
+    """A soft halo whose rim takes the dome's own colour, so it fades into the sky. It stays behind
+    the clouds: the sky has no alpha, so drawn over them its rim would cut a hole through them."""
     d = direction(*spec.sun_at)
     u, v = _basis(d)
     halo = shade(spec.halo or spec.sun, dark, veil)
-    sun = shade(spec.sun, dark, veil)
     steps = 20
     rings = ((0.0, 1.0), (0.35, 0.55), (1.0, 0.0))  # (share of the halo's radius, how much halo shows)
     for (r0, k0), (r1, k1) in pairwise(rings):
@@ -193,10 +198,26 @@ def _sun(mesh, spec, fog, zenith, dark, veil):
                 p = _around(d, u, v, spec.halo_size * r, a)
                 corners.append((p, (0, 0), _mix(dome_color(_elev(p), fog, zenith), halo, k), RADIUS * 0.99))
             mesh.quad(*corners)
+
+
+def sun(spec, dark=0.0, veil=False):
+    """The sun's disc, drawn over the cloud banks so no sky hides it; under clouds it takes a little
+    of their undersides' colour, as if it shone through them. None for a sky without a sun."""
+    if not spec.sun:
+        return None
+    mesh = SkyMesh()
+    rgb = spec.sun
+    if spec.clouds:
+        rgb = _mix(rgb, spec.cloud_under, SUN_THROUGH_CLOUD)
+    rgb = shade(rgb, dark, veil)
+    d = direction(*spec.sun_at)
+    u, v = _basis(d)
+    steps = 20
     for i in range(steps):
         a0, a1 = 2 * math.pi * i / steps, 2 * math.pi * (i + 1) / steps
         for p in (d, _around(d, u, v, spec.sun_size, a0), _around(d, u, v, spec.sun_size, a1)):
-            mesh.vertex(p, (0, 0), sun, RADIUS * 0.98)
+            mesh.vertex(p, (0, 0), rgb, RADIUS * 0.84)
+    return mesh
 
 
 def clouds(spec, dark=0.0, veil=False):
@@ -261,17 +282,18 @@ def mist(spec, dark=0.0, veil=False):
     return mesh
 
 
-TEXTURES = {"dome": "white", "cap": "cloud_cap", "clouds": "clouds", "mist": "mist"}
+TEXTURES = {"dome": "white", "cap": "cloud_cap", "clouds": "clouds", "sun": "white", "mist": "mist"}
 DRIFTING = ("cap", "clouds")  # layers that turn slowly around you
 
 
 def layers(spec, fog, dark=0.0, veil=False):
-    """[(layer, mesh)] for a sky, back to front: the dome (with its sun), the overhead cap, the
-    cloud banks and the mist. Layers the sky lacks are left out."""
+    """[(layer, mesh)] for a sky, back to front: the dome (with the sun's halo), the overhead cap, the
+    cloud banks, the sun's disc and the mist. Layers the sky lacks are left out."""
     built = (
         ("dome", dome(spec, fog, dark, veil)),
         ("cap", cap(spec, dark, veil)),
         ("clouds", clouds(spec, dark, veil)),
+        ("sun", sun(spec, dark, veil)),
         ("mist", mist(spec, dark, veil)),
     )
     return [(name, mesh) for name, mesh in built if mesh is not None]

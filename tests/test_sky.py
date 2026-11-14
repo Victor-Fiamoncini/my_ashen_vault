@@ -67,9 +67,10 @@ def test_the_dome_rim_is_the_fog_colour_so_the_far_world_melts_into_it():
             assert mesh.colors[i * 3 : i * 3 + 3] == pytest.approx(FOG)
 
 
-def test_the_sun_sits_where_its_sky_puts_it():
-    spec = sky.SKIES["overcast"]
-    mesh = sky.dome(spec, FOG)
+@pytest.mark.parametrize("name", sorted(sky.SKIES))
+def test_the_sun_sits_where_its_sky_puts_it(name):
+    spec = sky.SKIES[name]
+    mesh = sky.sun(spec)
     d = sky.direction(*spec.sun_at)
     brightest = max(range(mesh.vertex_count), key=lambda i: sum(mesh.colors[i * 3 : i * 3 + 3]))
     p = mesh.verts[brightest * 3 : brightest * 3 + 3]
@@ -89,3 +90,22 @@ def test_dark_places_darken_every_layer():
     for layer in lit:
         assert max(dark[layer].colors) == pytest.approx(0.0), layer
         assert max(lit[layer].colors) > 0.05, layer
+
+
+def test_every_sky_puts_the_sun_low_in_the_west_as_the_town_does():
+    assert {spec.sun_at for spec in sky.SKIES.values()} == {sky.SUN_AT}
+    assert sky.SKIES["overcast"].sun_at == sky.SUN_AT
+    azimuth, elevation = sky.SUN_AT
+    d = sky.direction(azimuth, elevation)
+    assert d[0] < -0.9 and 0 < elevation < 20  # west (-x), low over the horizon
+
+
+@pytest.mark.parametrize("name", sorted(sky.SKIES))
+def test_the_sun_is_drawn_over_the_clouds_and_its_halo_behind_them(name):
+    order = [layer for layer, _ in sky.layers(sky.SKIES[name], FOG)]
+    assert order.index("sun") > order.index("clouds")
+    assert order.index("sun") < order.index("mist")  # the horizon haze still softens it
+
+
+def test_a_sky_without_a_sun_has_no_disc():
+    assert sky.sun(sky.Sky(zenith=(0.2, 0.3, 0.5))) is None
