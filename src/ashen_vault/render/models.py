@@ -3322,12 +3322,27 @@ def shield_view(r, player, item, bob, side, armor):
     x = 0.85 - jolt - reel * 0.3
     y = -0.44 + bob + 0.3 * up - reel * 0.3
     z = (0.38 - 0.28 * up + reel * 0.3) * side
-    wrist = (x - 0.12, y - 0.05, z)
-    hand_rgb, shade = arm(r, wrist, side, armor["body"], armor["gloves"])
-    with r.at(*wrist, s=0.85):
-        fist(r, hand_rgb, shade, armor["gloves"])
-    with r.at(x, y, z, ry=(-0.35 + 0.35 * up) * side, rz=0.1, s=0.75):
+    frame = {"ry": (-0.35 + 0.35 * up) * side, "rz": 0.1, "s": 0.75}
+    gx, gy = SHIELD_GRIPS.get(item.id, (-0.09, 0.0))
+    # The fist closes on the strap behind the shield. It is nearer the camera than the shield, so with
+    # no depth test the shield goes first and the arm and hand over it: raised, you see your grip.
+    with r.at(x, y, z, **frame):
         shield(r, item.id)
+        with r.at(gx, gy, 0):
+            m = r.top
+    wrist = (m[3], m[7], m[11])
+    hand_rgb, shade = arm(r, wrist, side, armor["body"], armor["gloves"])
+    with r.at(x, y, z, **frame), r.at(gx, gy, 0, s=0.85 / 0.75):
+        fist(r, hand_rgb, shade, armor["gloves"])
+
+
+# Where the fist closes behind each shield (its frame: x toward the face, y up), at the strap.
+SHIELD_GRIPS = {
+    "buckler": (-0.08, 0.0),
+    "round_shield": (-0.1, 0.0),
+    "kite_shield": (-0.1, 0.05),
+    "tower_shield": (-0.11, 0.05),
+}
 
 
 def spell_hand_view(r, player, bob, side, armor, t):

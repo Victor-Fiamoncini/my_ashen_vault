@@ -637,3 +637,27 @@ def test_every_tool_hat_hair_and_build_a_villager_can_have_draws():
             gpu = _RecordingGpu()
             models.npc(rig.Rig(gpu), look, 0.4)
             assert len(gpu.parts) >= 30, (tool, hat, hair, build, garb)
+
+
+def test_a_raised_shield_shows_the_hand_gripping_it():
+    # The first-person view has no depth test: the arm and fist behind a raised shield must be drawn
+    # after it, or the shield hides them.
+    from ashen_vault.player.inventory import Inventory
+    from ashen_vault.player.player import Player
+    from ashen_vault.render import models
+
+    class Colours(_RecordingGpu):
+        def draw_part(self, kind, matrix, rgb, tex="white", glow=False):
+            super().draw_part(kind, matrix, rgb, tex, glow)
+            self.parts[-1] = tuple(rgb)
+
+    for id_ in models.SHIELD_GRIPS:
+        alone = Colours()
+        models.shield(rig.Rig(alone), id_)
+        p = Player(inventory=Inventory(right=None, left=id_))
+        p.guarding = True
+        gpu = Colours()
+        models.shield_view(rig.Rig(gpu), p, p.hand_item("left"), 0.0, -1, {"body": None, "gloves": None})
+        n = len(alone.parts)
+        assert gpu.parts[:n] == alone.parts, id_  # the shield first...
+        assert models.SKIN in gpu.parts[n:], id_  # ...then the arm and the fist on its strap
