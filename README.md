@@ -121,11 +121,19 @@ FromSoftware, Inc.
   </tr>
   <tr>
     <td><img src="docs/screenshots/foundry.png" alt="The torchlit foundry hall, a channel of lava across the floor and a forge golem beyond it"></td>
-    <td><img src="docs/screenshots/gargoyles.png" alt="Two iron gargoyles on the fortress roof, one hovering and spitting embers, under two boss health bars"></td>
+    <td><img src="docs/screenshots/gargoyles.png" alt="Two iron gargoyles on the keep's walled rooftop, battlements and turrets behind them, under two boss health bars"></td>
   </tr>
   <tr>
     <td align="center"><sub>The foundry, where a Forge Golem guards the lava channels</sub></td>
-    <td align="center"><sub>Brand and Bellows, the twin gargoyles on the roof</sub></td>
+    <td align="center"><sub>Brand and Bellows, the twin gargoyles on the keep's roof</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/keep_hall.png" alt="The Cinderhold Keep's great hall: iron pillars and a brazier, a forge golem standing among them"></td>
+    <td><img src="docs/screenshots/thunder_scroll.png" alt="Belongings on the Spells tab, previewing the Scroll of Thunder Spear: a soot-dark scroll on iron rods, its blue wax seal pressed with a glowing lightning rune"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>The great hall of the Cinderhold Keep</sub></td>
+    <td align="center"><sub>A spell scroll, sealed with its rune</sub></td>
   </tr>
 </table>
 
@@ -140,7 +148,7 @@ FromSoftware, Inc.
   half health his blade catches fire and he calls flame up from beneath your feet; above his hall the
   Butcher swings a cleaver all around him, lunges and hacks, and at half health flies into a frenzy
   of floor-shaking chops; the Loom Mother
-  sweeps, spits webs, pounces and calls her brood; and on the Cinderhold's roof two iron gargoyles fight
+  sweeps, spits webs, pounces and calls her brood; and on the roof of the Cinderhold's keep two iron gargoyles fight
   as a pair: Brand sweeps, claws, leaps and slams, Bellows hovers, rakes the roof with fiery breath and
   swoops straight through you. They take turns, and when one falls the other flies into a rage.
 - **Deaths that linger**: every foe collapses in its own way (skeletons topple, slimes melt, the
@@ -166,7 +174,8 @@ FromSoftware, Inc.
 - **Stamina**: sprinting, swinging and blocking drain a green stamina bar. Run it dry and you are
   winded until it recovers.
 - **Four hand-built areas**: the town of Harrowmere, the Sunken Keep below its well, the
-  Verdant Hollow at the end of the green trail and the Cinderhold up the north road, with locked doors,
+  Verdant Hollow at the end of the green trail and the Cinderhold up the north road (its keep a map of
+  its own), with locked doors,
   levers, a flooded cellar and chests.
 - **A town to come home to**: Harrowmere climbs from its harbour through a market and the Bell Square,
   where the cracked Silent Bell hangs, to a cathedral on the hill where an ancient figure sits enthroned.
@@ -188,7 +197,9 @@ FromSoftware, Inc.
   molten bombs at you and iron bowmen shoot from the walls, with the Cinderhold's turreted gatehouse,
   great keep and smoking stacks ahead and molten iron pouring from its walls into the gorge. Inside, lava channels cut through the foundry, flame jets guard the corridors, slag hounds
   prowl the dark smelter pits and forge golems hide an open firebox on their backs. A postern, a gate
-  winch and a chained lift fold the fortress back onto its shrine.
+  winch and a chained lift fold the fortress back onto its shrine. Its loot waits in iron chests (one of
+  them has teeth), and the tower stair climbs to the keep: a great hall, a switchback stair, a shrine
+  before the great door, and a rooftop walled in by battlements where the gargoyles perch.
 - **Dark places**: the hollow's caves and root caverns swallow your light. Only torches, glowing
   toadstools and fires show the way, unless you burn Lumen or kindle the cold braziers and bonfires,
   which then stay lit for good.
@@ -445,7 +456,10 @@ the long bridge is `uv run ashen-vault --map cinderhold --at=29,52,-90 --script 
 the postern ledge is `uv run ashen-vault --map cinderhold --at=28,30,180 --smoke 190 --shot postern_ledge.png`,
 the foundry is `uv run ashen-vault --map cinderhold --at=18,17,180 --smoke 40 --shot foundry.png`,
 the gargoyles are
-`uv run ashen-vault --map cinderhold --at=30,6,180 --level 10 --equip right=stormbrand --smoke 200 --script "wait:1 attack wait:1" --shot gargoyles.png`,
+`uv run ashen-vault --map cinder_keep --at=9,6,180 --level 10 --equip right=stormbrand --smoke 200 --script "wait:1 attack wait:1" --shot gargoyles.png`,
+the keep's hall is `uv run ashen-vault --map cinder_keep --at=17,18,180 --smoke 40 --shot keep_hall.png`,
+the scroll is
+`uv run ashen-vault --map cinderhold --at=4,15,-90 --smoke 280 --script "interact wait:1.5 menu wait:0.2 tab_next wait:0.2 tab_next wait:0.2 tab_next wait:0.2 down wait:3" --shot thunder_scroll.png`,
 and the katana and shield shot is
 `uv run ashen-vault --map sunken_keep --at 15,22,0 --level 8 --equip primary=katana,secondary=round_shield,body=brigandine,hands=iron_gauntlets --smoke 100 --shot combat.png`.
 

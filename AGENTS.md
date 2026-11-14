@@ -80,8 +80,10 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   "wait:0.2 interact"` (Brannoc's gift and forge), `--map harrowmere --at=37,20,0` (the sunken well court),
   `--map cinderhold --at=29,52,-90 --script "look_up:0.15"` (the long bridge and the fortress's skyline), `--map cinderhold --at=28,30,180`
   (the postern ledge and its flame jets), `--map cinderhold --at=18,17,180` (the foundry),
-  `--map cinderhold --at=5,24,0` (the smelter pits), `--map cinderhold --at=30,6,180 --level 10`
-  (the roof: the gargoyles wake at once).
+  `--map cinderhold --at=5,24,0` (the smelter pits), `--map cinderhold --at=47,3,180 --script interact`
+  (the door at the top of the tower stair, into the keep), `--map cinder_keep --at=17,18,180` (the keep's
+  great hall), `--map cinder_keep --at=9,6,180 --level 10`
+  (the keep's walled roof: the gargoyles wake at once).
 - Boss doors: `--map sunken_keep --at=15,11,-90` faces the Warden's great door. The fog appears only
   after dying in a sealed arena (or with its `fog:` flag set); `tests/test_arena.py` drives the flow.
 - `--level` only sets the level (for equipment requirements); HP and stats stay at level 1, so judge boss
@@ -95,9 +97,11 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/render/` | Shaders (`shaders/ps1.*`), procedural textures, mesh builder, matrix rig, models |
 | `src/ashen_vault/game.py` | Scenes and the main loop |
 | `src/ashen_vault/ui/hud.py` | HUD, menus, dialogue boxes |
-| `src/ashen_vault/audio/synth.py` | Synthesized sound effects |
+| `src/ashen_vault/audio/synth.py` | Synthesized sound effects. Ambient fire (jets, vents, bombs) plays through `World.sfx_near`, which fades it with distance |
 | `src/ashen_vault/input.py` | Key bindings and the `--script` driver |
-| `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. `harrowmere` (the town, climbing from its harbour past the market and the Bell Square, with the Silent Bell, to the cathedral on the hill where the Enthroned sits; the sunken well court, the trail gap and the north gate lead out), `sunken_keep` (the dungeon below the well, with the Undercroft below its cells and the Warden's Gallery above the boss door, the Butcher's slaughter hall north of it), `verdant_hollow` (the jungle through the cave at the end of the village's east trail: Mossmouth cave, the Root Caverns below the bog, the Canopy Walk to the boss), `cinderhold` (the lava fortress up the north road: the long bridge, the gatehouse and postern, the foundry and the smelter pits below it, the ashworks, the rampart, and the roof where the twin gargoyles perch) |
+| `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. `harrowmere` (the town, climbing from its harbour past the market and the Bell Square, with the Silent Bell, to the cathedral on the hill where the Enthroned sits; the sunken well court, the trail gap and the north gate lead out), `sunken_keep` (the dungeon below the well, with the Undercroft below its cells and the Warden's Gallery above the boss door, the Butcher's slaughter hall north of it), `verdant_hollow` (the jungle through the cave at the end of the village's east trail: Mossmouth cave, the Root Caverns below the bog, the Canopy Walk to the boss), `cinderhold` (the lava fortress up the north road: the long bridge, the gatehouse and postern, the foundry and the smelter pits below it, the ashworks, the rampart and the tower stair up to the keep), `cinder_keep` (the keep, a map of its own
+  behind the door at the top of the tower stair: the postern landing, the great hall, the switchback stair,
+  the antechamber's shrine and the walled rooftop where the twin gargoyles perch) |
 | `src/ashen_vault/world/sky.py`, `render/sky.py` | Skies (`[meta] sky = overcast\|jungle\|ember`): a gradient dome meeting the fog at the horizon, a sun and halo, drifting cloud banks and an overhead cap, horizon mist; dimmed by darkness and the Veil. Built pure in `world/sky.py`, drawn first each frame without fog or depth by `render/sky.py` |
 | `src/ashen_vault/world/darkness.py` | Dark tiles: how your light and the fog close in, Lumen and the Veil of Mist |
 | `src/ashen_vault/world/doors.py` | One-way doors (`door from=`): which side lifts the bar |
@@ -137,7 +141,8 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   messages, sounds and wounds), so world logic can be driven without a window.
   `tests/test_verdant_world.py` does the same for the jungle (spells, kindled fires, darkness,
   shortcuts), with a `JungleGame` that also applies damage to enemies, and `tests/test_cinderhold_world.py`
-  for the fortress (lava, jets, vents, elements, motes, the twins).
+  for the fortress (lava, jets, vents, sound falloff, elements, motes, and the twins on the keep's roof,
+  `hold(..., map_name="cinder_keep")`).
 - Internal resolution is 320x240 (`screen.py`); UI coordinates are in that space.
 - Map grids are whitespace-sensitive. Don't reformat `.map` files. Each grid character is one 2 m tile;
   an `[entities]` marker places a prop, enemy or hazard there, standing on the legend tile named by
@@ -212,6 +217,9 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   toadstools). A `brazier unlit` or `bonfire unlit` stays cold until Pyre or a Flame Bolt kindles it
   (`World.kindle`); it then burns for good under a `lit:<map>:<tx>,<tz>` flag, and its light is added
   to the baked mesh in place (`MeshBuilder.add_light`).
+  `chest model=iron` is the Cinderhold's iron chest (`models.chest` style), and `mimic model=iron` hides as
+  one (`Enemy.look`). An `exit` with `boss=<dead_flag>` is a way on to a boss on another map: the compass
+  points at it while that boss lives (`World.boss_target`).
   Breakables (`barrel`, `crate`, `urn`, `cocoon`) spill loot from `world/loot.py` (`loot.roll`); a `secret_wall`
   dissolves when struck (`model=vines top=6` matches the jungle's vine walls; `model=web` is a sheet of
   silk that blades can't cut and only fire burns). `door boss=<dead_flag>` is a boss's great door
@@ -226,9 +234,10 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   own solvability test (counting planks, ledges and floorboards as footing, and decor as solid): every
   chest, lever and the boss must be reachable without barred doors, chained lifts or drawbridges, each
   of those must join two places already reachable, and every drop must have a way back.
-  `cinderhold.map` has one too (`test_cinderhold_is_solvable`, lava counted as impassable). Its tiles are
-  lowercase letters, digits and punctuation and its entity markers uppercase or Latin-1, so the two never
-  collide; keep it that way.
+  `cinderhold.map` has one too (`test_cinderhold_is_solvable`, lava counted as impassable), and so does
+  `cinder_keep.map` (`test_cinder_keep_is_solvable`; `test_cinder_keep_roof_is_walled_in` keeps every wall
+  round the rooftop at least 6 m above it). Their tiles are lowercase letters, digits and punctuation and
+  their entity markers uppercase or Latin-1, so the two never collide; keep it that way.
 - `game.message()` text may wrap spans in braces, e.g. `f"Obtained {{{item.name}}}."`: the HUD draws
   them in the highlight colour (`util.highlight_runs`). `tests/test_ui_logic.py` checks the small font
   has a glyph for every character used in game messages and names.
@@ -296,7 +305,8 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   Ward sets `ward_t` (`Game.hurt_player` passes every blow through `Spells.warded`; embers circle the view
   and the vitals box's trim glows). A spell's
   `recovery` is how long the magic gauge takes to refill after it (Pyre's is short). A new
-  spell also needs a HUD icon (`hud.spell_icon`) and colours in `models.SPELL_GLOW` / `SPELL_ORB`.
+  spell also needs a HUD icon (`hud.spell_icon`), colours in `models.SPELL_GLOW` / `SPELL_ORB`, and its
+  scroll's parchment, rods and wax in `models.SCROLLS` with a rune in `models.SCROLL_RUNES` (no two alike).
 - Shops are `dialogue.SHOPS`: Brannoc's forged steel and armour, Pell's scrolls and salvage, Tamsin's remedies,
   and Corvane's blades in the hut on the town's west edge (Corvane won't talk below `CORVANE_LEVEL`).
   Villagers in `dialogue.GIFTS` hand a newcomer something once (`gift:<id>` flag) and then open their shop,
