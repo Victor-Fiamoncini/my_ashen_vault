@@ -1605,7 +1605,8 @@ class World:
             if a and a.fogged(self.flags):
                 models.fog_gate(rig, t, p.axis, a.sealed)
             else:
-                models.boss_door(rig, p.open_t, p.axis, t, lit=not (a and a.cleared(self.flags)))
+                lit = not (a and a.cleared(self.flags))
+                models.boss_door(rig, p.open_t, p.axis, t, lit=lit, boss=p.props.get("boss"))
         elif k == "door":
             models.door(rig, p.open_t, p.axis)
         elif k == "gate":

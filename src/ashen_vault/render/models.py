@@ -2,6 +2,7 @@
 
 import math
 from contextlib import contextmanager
+from dataclasses import dataclass
 
 from ashen_vault.ai.enemy import COMBO_GAP
 from ashen_vault.player.items import Items
@@ -1793,50 +1794,286 @@ def door(r, open_t, axis, tex="door_wood"):
 BOSS_DOOR_WOOD = (92, 66, 46)
 BOSS_DOOR_IRON = (54, 52, 58)
 BOSS_DOOR_STONE = (104, 100, 96)
+BLOOD = (110, 18, 16)
+OLD_BLOOD = (70, 16, 14)
+SILK = (226, 222, 210)
+LOOM_GLOW = (150, 235, 140)
 
 
-def boss_door(r, open_t, axis, t, lit=True):
-    """The great double door before a boss's lair, spanning its tile: two iron-banded leaves studded
-    in rows, with ring knockers, under a stone arch of wedge voussoirs and a keystone; an ember burns
-    in a lamp on each jamb while the boss lives. The leaves swing apart (inward) as `open_t` runs to 1.
-    Axis 'x' means it blocks movement along X."""
+@dataclass(frozen=True)
+class DoorStyle:
+    """How one boss's great door looks: the leaves' wood and texture, the iron, the arch's stone and
+    texture, and what burns on its jambs (`lamp`: "ember", "silk" or "gargoyle")."""
+
+    wood: tuple
+    wood_tex: str
+    iron: tuple
+    stone: tuple
+    stone_tex: str
+    lamp: str
+
+
+# Each boss's door, keyed by the boss's `dead_flag` (the door's `boss=`).
+BOSS_DOORS = {
+    # The Ashen Warden: charred, ash-grey oak cracked with embers, under a crowned keystone.
+    "boss_dead": DoorStyle(
+        (64, 54, 48), "door_wood", BOSS_DOOR_IRON, BOSS_DOOR_STONE, "rough_stone", "ember"
+    ),
+    # The Butcher: rough planks lashed with crude straps, running with blood, hung with hooks.
+    "butcher_dead": DoorStyle(
+        (104, 70, 48), "wood_plank", (66, 58, 54), (96, 88, 82), "rough_stone", "ember"
+    ),
+    # The Loom Mother: gnarled root-wood bound in silk, a cocoon over it, lit by pale green glow.
+    "spider_dead": DoorStyle((88, 74, 56), "bark", (60, 66, 56), (92, 100, 86), "rough_stone", "silk"),
+    # The twin gargoyles: black riveted iron in a cracked, ember-veined arch, a stone beast on each jamb.
+    "gargoyles_dead": DoorStyle(
+        (150, 146, 156), "iron_plate", (40, 38, 44), (78, 72, 72), "black_brick", "gargoyle"
+    ),
+}
+DEFAULT_DOOR = "boss_dead"
+
+
+def boss_door(r, open_t, axis, t, lit=True, boss=None):
+    """The great double door before a boss's lair, spanning its tile, dressed for the boss behind it
+    (BOSS_DOORS, by its `dead_flag`): two leaves under a stone arch of wedge voussoirs and a
+    keystone, with lamps (or beasts) on the jambs that burn while the boss lives. The leaves swing
+    apart (inward) as `open_t` runs to 1. Axis 'x' means it blocks movement along X."""
+    key = boss if boss in BOSS_DOORS else DEFAULT_DOOR
+    style = BOSS_DOORS[key]
     swing = _ease(min(open_t, 1.0)) * 1.45
     with r.at(0, 0, 0, ry=0 if axis == "x" else math.pi / 2):
-        # Jambs with an iron lamp on each face, the arch over them, and its keystone (on both faces).
-        for side in (-1, 1):
-            r.part("cube", 0, 1.45, side * 0.98, 0.42, 2.9, 0.16, BOSS_DOOR_STONE, tex="rough_stone")
-            for face in (-1, 1):
-                r.part("cube", face * 0.22, 1.45, side * 0.92, 0.04, 2.7, 0.04, _dim(BOSS_DOOR_STONE, 0.6))
-                with r.at(face * 0.26, 2.05, side * 0.86):
-                    r.part("cube", 0, 0, 0, 0.12, 0.16, 0.12, BOSS_DOOR_IRON)
-                    if lit:
-                        _flame(r, 0, 0.14, 0, 0.08, t + side + face)
-        for i in range(5):  # voussoirs fanning across the head of the arch
-            u = (i + 0.5) / 5 - 0.5
-            r.part(
-                "wedge", 0, 2.98 + 0.08 * math.cos(u * math.pi), u * 1.9, 0.44, 0.24, 0.34,
-                BOSS_DOOR_STONE, tex="rough_stone", rx=-u * 0.9,
-            )  # fmt: skip
-        r.part("cube", 0, 3.08, 0, 0.5, 0.3, 0.22, _dim(BOSS_DOOR_STONE, 1.15), tex="rough_stone")  # key
-        for face in (-1, 1):
-            r.part("cube", face * 0.26, 3.08, 0, 0.02, 0.12, 0.08, (255, 140, 50) if lit else COLD_EMBER,
-                   rx=math.pi / 4, glow=lit)  # fmt: skip
-        # The leaves, hinged at the jambs, swinging away from +X; banded, studded and ringed both sides.
+        _door_frame(r, style, t, lit)
+        DOOR_ARCHES[key](r, style, t, lit)
         for side in (-1, 1):
             with r.at(0, 0, side * 0.9, ry=side * swing), r.at(0, 0, -side * 0.45):
-                r.part("cube", 0, 1.4, 0, 0.14, 2.8, 0.9, BOSS_DOOR_WOOD, tex="door_wood")
+                r.part("cube", 0, 1.4, 0, 0.14, 2.8, 0.9, style.wood, tex=style.wood_tex)
                 for face in (-1, 1):
-                    fx = face * 0.08
-                    for y in (0.35, 1.15, 1.95, 2.6):  # iron bands
-                        r.part("cube", fx, y, 0, 0.03, 0.12, 0.88, BOSS_DOOR_IRON)
-                        for z in (-0.3, 0.0, 0.3):  # studs along each band
-                            r.part("cube", fx * 1.25, y, z, 0.03, 0.05, 0.05, (150, 144, 140))
-                    r.part("cube", fx, 1.4, side * 0.43, 0.03, 2.8, 0.06, BOSS_DOOR_IRON)  # the meeting edge
-                    with r.at(fx * 1.5, 1.3, side * 0.3):  # a ring knocker on a diamond plate
-                        r.part("cube", 0, 0, 0, 0.03, 0.16, 0.16, BOSS_DOOR_IRON, rx=math.pi / 4)
-                        r.part(
-                            "cyl", face * 0.03, -0.12, 0, 0.18, 0.03, 0.18, (170, 150, 100), rz=math.pi / 2
-                        )
+                    DOOR_LEAVES[key](r, style, side, face, t, lit)
+
+
+def _door_frame(r, style, t, lit):
+    """Jambs with a lamp (or a beast) on each face, and the arch of voussoirs over them."""
+    stone = style.stone
+    for side in (-1, 1):
+        r.part("cube", 0, 1.45, side * 0.98, 0.42, 2.9, 0.16, stone, tex=style.stone_tex)
+        for face in (-1, 1):
+            r.part("cube", face * 0.22, 1.45, side * 0.92, 0.04, 2.7, 0.04, _dim(stone, 0.6))
+            with r.at(face * 0.26, 2.05, side * 0.86):
+                _door_lamp(r, style, face, t + side + face, lit)
+    for i in range(5):  # voussoirs fanning across the head of the arch
+        u = (i + 0.5) / 5 - 0.5
+        r.part(
+            "wedge", 0, 2.98 + 0.08 * math.cos(u * math.pi), u * 1.9, 0.44, 0.24, 0.34,
+            stone, tex=style.stone_tex, rx=-u * 0.9,
+        )  # fmt: skip
+    r.part("cube", 0, 3.08, 0, 0.5, 0.3, 0.22, _dim(stone, 1.15), tex=style.stone_tex)  # the keystone
+
+
+def _door_lamp(r, style, face, t, lit):
+    if style.lamp == "gargoyle":  # a squatting stone beast, wings folded, its eyes kindled
+        stone = _dim(style.stone, 1.2)
+        r.part("cube", 0, -0.02, 0, 0.16, 0.06, 0.16, _dim(style.stone, 0.7))  # its plinth
+        r.part("sphere", face * 0.02, 0.1, 0, 0.16, 0.18, 0.15, stone)  # hunched body
+        r.part("sphere", face * 0.08, 0.24, 0, 0.11, 0.1, 0.1, stone)  # head, thrust out
+        r.part("cube", face * 0.14, 0.22, 0, 0.06, 0.04, 0.07, _dim(stone, 0.8))  # snout
+        for dz in (-1, 1):
+            r.part(
+                "cone", face * 0.06, 0.32, dz * 0.04, 0.025, 0.09, 0.025, BONE, rz=-face * 0.4, rx=dz * 0.3
+            )
+            r.part("wedge", -face * 0.02, 0.14, dz * 0.08, 0.04, 0.2, 0.14, _dim(stone, 0.85), rx=dz * 0.35)
+            r.part(
+                "cube", face * 0.13, 0.26, dz * 0.03, 0.02, 0.02, 0.02, EMBER if lit else COLD_EMBER, glow=lit
+            )
+        return
+    r.part("cube", 0, 0, 0, 0.12, 0.16, 0.12, style.iron)
+    if not lit:
+        return
+    if style.lamp == "silk":  # a glowing bulb of fungus in a cup of silk
+        r.part("sphere", 0, 0.14, 0, 0.12, 0.14, 0.12, LOOM_GLOW, glow=True)
+        r.part("sphere", 0, 0.08, 0, 0.15, 0.06, 0.15, SILK)
+    else:
+        _flame(r, 0, 0.14, 0, 0.08, t)
+
+
+def _warden_arch(r, style, t, lit):
+    """A crowned keystone with an ember set in each face."""
+    bright = _dim(style.stone, 1.25)
+    for face in (-1, 1):
+        r.part(
+            "cube",
+            face * 0.26,
+            3.08,
+            0,
+            0.02,
+            0.12,
+            0.08,
+            EMBER if lit else COLD_EMBER,
+            rx=math.pi / 4,
+            glow=lit,
+        )
+    for dz in (-0.16, 0.0, 0.16):  # the crown's three points
+        r.part("cone", 0, 3.3 + (0.05 if dz == 0 else 0), dz, 0.1, 0.16, 0.1, bright)
+    r.part("cube", 0, 3.24, 0, 0.3, 0.05, 0.46, bright)  # its band
+
+
+def _warden_leaf(r, style, side, face, t, lit):
+    """Banded and studded as of old, with embers glowing in the cracks of the charred grain."""
+    fx = face * 0.08
+    for y in (0.35, 1.15, 1.95, 2.6):  # iron bands
+        r.part("cube", fx, y, 0, 0.03, 0.12, 0.88, style.iron)
+        for z in (-0.3, 0.0, 0.3):  # studs along each band
+            r.part("cube", fx * 1.25, y, z, 0.03, 0.05, 0.05, (150, 144, 140))
+    r.part("cube", fx, 1.4, side * 0.43, 0.03, 2.8, 0.06, style.iron)  # the meeting edge
+    for i, (y, z, length) in enumerate(((0.75, -0.2, 0.42), (1.55, 0.15, 0.5), (2.25, -0.1, 0.36))):
+        crack = EMBER if lit else (40, 34, 30)  # ember cracks in the charred wood
+        r.part("cube", fx * 1.05, y, z, 0.02, length, 0.03, crack, rx=0.35 * (1 if i % 2 else -1), glow=lit)
+    with r.at(fx * 1.5, 1.3, side * 0.3):  # a ring knocker on a diamond plate
+        r.part("cube", 0, 0, 0, 0.03, 0.16, 0.16, style.iron, rx=math.pi / 4)
+        r.part("cyl", face * 0.03, -0.12, 0, 0.18, 0.03, 0.18, (170, 150, 100), rz=math.pi / 2)
+
+
+def _butcher_arch(r, style, t, lit):
+    """Meat hooks on chains along the head of the arch, a skull of some beast nailed to the keystone,
+    blood run down its stones and pooled on the threshold."""
+    for face in (-1, 1):
+        for i, z in enumerate((-0.6, -0.15, 0.4)):
+            length = 0.35 + (i % 2) * 0.2
+            sway = math.sin(t * 0.8 + z * 3 + face) * 0.06
+            with r.at(face * 0.24, 2.92, z, rx=sway):
+                for k in range(int(length / 0.12)):
+                    r.part("cube", 0, -0.06 - k * 0.12, 0, 0.025, 0.12, 0.05, IRON, ry=0 if k % 2 else 1.57)
+                y = -length - 0.06
+                r.part("cube", 0, y, 0.03, 0.03, 0.14, 0.03, DARK_IRON)  # the hook's shank
+                r.part("cube", 0, y - 0.07, -0.01, 0.03, 0.03, 0.1, DARK_IRON)  # and its curl
+        r.part("sphere", face * 0.28, 3.06, 0, 0.12, 0.16, 0.2, BONE)  # a beast's skull on the keystone
+        for dz in (-0.07, 0.07):
+            r.part("cube", face * 0.33, 3.08, dz, 0.02, 0.04, 0.04, (30, 22, 20))  # its eye sockets
+        r.part("cube", face * 0.26, 2.7, 0.05, 0.02, 0.5, 0.06, BLOOD)  # blood run from under it
+    r.part("cube", 0, 0.01, 0, 1.3, 0.02, 1.5, OLD_BLOOD)  # the pool across the threshold
+    r.part("cube", 0.4, 0.012, 0.3, 0.6, 0.02, 0.5, BLOOD, ry=0.6)
+
+
+def _butcher_leaf(r, style, side, face, t, lit):
+    """Rough planks under crude, crooked iron straps hammered on with nails, smeared and run with
+    blood, a bloody handprint on one leaf and the cleaver left driven into the other."""
+    fx = face * 0.08
+    for z in (-0.3, 0.0, 0.3):  # the planks' seams
+        r.part("cube", fx, 1.4, z + 0.15, 0.02, 2.8, 0.02, _dim(style.wood, 0.55))
+    for y, tilt in ((0.45, 0.06), (1.5, -0.08), (2.45, 0.04)):  # crooked straps, nailed
+        r.part("cube", fx, y, 0, 0.03, 0.14, 0.9, style.iron, rx=tilt)
+        for z in (-0.38, -0.12, 0.14, 0.38):
+            r.part("cube", fx * 1.3, y + z * tilt, z, 0.03, 0.04, 0.04, (40, 36, 34))
+    for i, (z, top, length) in enumerate(
+        ((-0.32, 2.3, 1.1), (-0.05, 1.9, 1.5), (0.22, 2.6, 0.8), (0.36, 1.2, 0.7))
+    ):
+        k = 1 + 0.06 * math.sin(t * 0.5 + i)  # blood runs down from smears
+        r.part(
+            "cube", fx * 1.1, top - length * k / 2, z, 0.02, length * k, 0.035, BLOOD if i % 2 else OLD_BLOOD
+        )
+        r.part("cube", fx * 1.1, top, z, 0.02, 0.2, 0.14, OLD_BLOOD)  # the smear it drips from
+    r.part("cube", fx * 1.1, 0.12, 0, 0.02, 0.24, 0.88, OLD_BLOOD)  # soaked along the foot
+    if side * face > 0:  # a handprint, dragged down
+        with r.at(fx * 1.15, 1.25, side * -0.15):
+            r.part("cube", 0, 0, 0, 0.02, 0.16, 0.14, BLOOD)
+            for k in range(4):
+                r.part("cube", 0, 0.12, -0.05 + k * 0.035, 0.02, 0.1, 0.025, BLOOD)
+            r.part("cube", 0, -0.2, 0, 0.02, 0.3, 0.1, OLD_BLOOD)
+    elif side > 0:  # the cleaver, buried in the wood
+        with r.at(fx * 1.6, 1.7, 0.1, rx=0.5, rz=face * math.pi / 2):
+            r.part("cube", 0, 0.25, 0, 0.36, 0.06, 0.06, LEATHER)  # handle, standing out from the leaf
+            r.part("cube", 0, 0.04, 0, 0.42, 0.06, 0.25, CLEAVER)  # what shows of the blade
+            r.part("cube", 0, 0.0, 0.08, 0.2, 0.065, 0.1, BLOOD)
+
+
+def _loom_arch(r, style, t, lit):
+    """Web spun across the head of the arch from the keystone, and a cocoon hung from it."""
+    for face in (-1, 1):
+        for i in range(7):  # spokes fanning out from the keystone
+            a = (i / 6 - 0.5) * 2.6
+            r.part(
+                "cube", face * 0.24, 2.6 + math.cos(a) * 0.3, math.sin(a) * 0.55, 0.01, 0.9, 0.015, SILK, rx=a
+            )
+        for ring in (0.3, 0.6):  # and the threads strung between them
+            r.part("cube", face * 0.24, 2.95 - ring * 0.5, 0, 0.01, 0.015, 0.9 + ring * 1.2, SILK)
+    sway = math.sin(t * 0.6) * 0.06
+    with r.at(0, 2.85, 0, rx=sway):
+        r.part("cube", 0, -0.1, 0, 0.015, 0.2, 0.015, SILK)  # its thread
+        r.part("sphere", 0, -0.42, 0, 0.32, 0.5, 0.3, SILK)
+        for k in range(3):
+            r.part("cyl", 0, -0.55 + k * 0.13, 0, 0.34, 0.025, 0.32, (200, 196, 182))
+        r.part("sphere", 0.06, -0.34, 0.05, 0.08, 0.1, 0.08, (90, 70, 60))  # a shape pressing through
+
+
+def _loom_leaf(r, style, side, face, t, lit):
+    """Gnarled root-wood with knotted roots across it, wound in silk sheets, and a spider carved
+    where the leaves meet, its eyes alight."""
+    fx = face * 0.08
+    for y, tilt in ((0.5, 0.25), (1.6, -0.2), (2.5, 0.3)):  # roots twisting across
+        r.part("cyl", fx, y, 0, 0.08, 0.95, 0.08, _dim(style.wood, 0.7), rx=math.pi / 2 + tilt)
+    for y, tilt in ((0.95, 0.5), (2.0, -0.4)):  # bands of silk wound round and round the wood
+        for k in range(5):
+            r.part(
+                "cube", fx * 1.1, y + (k - 2) * 0.07, 0, 0.02, 0.025, 1.0, _dim(SILK, 0.9 + 0.04 * k), rx=tilt
+            )
+    for k in range(3):  # stray strands
+        r.part("cube", fx * 1.15, 0.3 + k * 0.9, -0.1 + k * 0.1, 0.01, 0.7, 0.012, SILK, rx=0.8 - k * 0.6)
+    with r.at(fx * 1.2, 1.4, -side * 0.38):  # half a carved spider each side of the meeting edge
+        body = _dim(style.wood, 0.6)
+        r.part("sphere", 0, 0, 0, 0.06, 0.24, 0.14, body)
+        r.part("sphere", 0, 0.17, 0, 0.05, 0.1, 0.1, body)
+        for k in range(4):  # its legs, bent out to this side
+            y = 0.1 - k * 0.07
+            r.part("cube", 0, y, side * 0.1, 0.03, 0.025, 0.18, body, rx=side * (0.5 - k * 0.3))
+            r.part("cube", 0, y - 0.1, side * 0.2, 0.03, 0.18, 0.025, body)
+        for dz in (-0.03, 0.03):
+            r.part(
+                "cube", face * 0.03, 0.2, dz, 0.02, 0.02, 0.02, LOOM_GLOW if lit else (40, 50, 40), glow=lit
+            )
+
+
+def _gargoyle_arch(r, style, t, lit):
+    """Cracks run through the black stone of the arch, molten while the twins live."""
+    vein = EMBER if lit else COLD_EMBER
+    for face in (-1, 1):
+        for z, y, length, tilt in ((-0.5, 2.9, 0.4, 0.6), (0.35, 3.0, 0.35, -0.5), (0.02, 3.12, 0.22, 0.1)):
+            r.part("cube", face * 0.25, y, z, 0.02, length, 0.03, vein, rx=tilt, glow=lit)
+        for side in (-1, 1):  # down the jambs too
+            r.part("cube", face * 0.215, 0.9, side * 1.0, 0.02, 0.8, 0.03, vein, rx=0.2 * side, glow=lit)
+
+
+def _gargoyle_leaf(r, style, side, face, t, lit):
+    """Black iron plates, riveted at every seam, with a wing spread in relief across each pair."""
+    fx = face * 0.08
+    dark = _dim(style.iron, 0.8)
+    for y in (0.7, 1.4, 2.1):  # the plates' seams
+        r.part("cube", fx, y, 0, 0.03, 0.06, 0.9, style.iron)
+        for z in (-0.36, -0.12, 0.12, 0.36):  # rivets along them
+            r.part("sphere", fx * 1.2, y, z, 0.05, 0.05, 0.05, (90, 86, 92))
+    r.part("cube", fx, 1.4, -side * 0.42, 0.03, 2.8, 0.07, style.iron)  # the meeting edge
+    with r.at(fx * 1.15, 1.75, -side * 0.38):  # a bat wing in relief, spreading toward the hinge
+        for k in range(4):  # its finger-ribs
+            a = 0.3 + k * 0.35
+            r.part(
+                "cube", 0, math.cos(a) * 0.3, side * math.sin(a) * 0.3, 0.03, 0.6, 0.03, dark, rx=-side * a
+            )
+        r.part(
+            "cube", 0, -0.05, side * 0.3, 0.02, 0.35, 0.45, _dim(style.iron, 1.3), rx=side * 0.3
+        )  # membrane
+    r.part("cube", fx * 1.2, 0.25, 0, 0.03, 0.12, 0.6, dark)  # a kick plate along the foot
+
+
+DOOR_ARCHES = {
+    "boss_dead": _warden_arch,
+    "butcher_dead": _butcher_arch,
+    "spider_dead": _loom_arch,
+    "gargoyles_dead": _gargoyle_arch,
+}
+DOOR_LEAVES = {
+    "boss_dead": _warden_leaf,
+    "butcher_dead": _butcher_leaf,
+    "spider_dead": _loom_leaf,
+    "gargoyles_dead": _gargoyle_leaf,
+}
 
 
 def fog_gate(r, t, axis, sealed=False):

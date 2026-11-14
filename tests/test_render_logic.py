@@ -784,3 +784,47 @@ def test_every_key_and_relic_has_its_own_model():
         ground = _RecordingGpu()
         models.pickup(rig.Rig(ground), 0.5, item.id)
         assert len(ground.parts) > len(gpu.parts), item.id  # the item itself, in its halo
+
+
+class _GlowGpu(_RecordingGpu):
+    """Also notes which parts glow, and their kinds and colours, so styles can be told apart."""
+
+    def __init__(self):
+        super().__init__()
+        self.glows = 0
+        self.looks = []
+
+    def draw_part(self, kind, matrix, rgb, tex="white", glow=False):
+        super().draw_part(kind, matrix, rgb, tex, glow)
+        self.glows += glow
+        self.looks.append((kind, tuple(rgb), tex))
+
+
+def test_every_boss_has_its_own_great_door_and_its_lamps_go_out_when_cleared():
+    from ashen_vault.render import models
+    from ashen_vault.world.map_loader import MapLoader
+
+    flags = set()
+    for name in ("sunken_keep", "verdant_hollow", "cinder_keep"):
+        m = MapLoader.load_file(map_path(name))
+        flags |= {s.props["boss"] for s in m.entities if s.kind == "door" and s.props.get("boss")}
+    assert flags <= set(models.BOSS_DOORS)  # no boss door falls back to another's look
+    assert set(models.BOSS_DOORS) == set(models.DOOR_ARCHES) == set(models.DOOR_LEAVES)
+    looks = {}
+    for boss in models.BOSS_DOORS:
+        lit, cold = _GlowGpu(), _GlowGpu()
+        models.boss_door(rig.Rig(lit), 0.0, "x", 0.5, lit=True, boss=boss)
+        models.boss_door(rig.Rig(cold), 0.0, "z", 0.5, lit=False, boss=boss)
+        assert len(lit.parts) >= 80, boss
+        assert lit.glows > 0 and cold.glows == 0, boss
+        looks[boss] = frozenset(lit.looks)
+    assert len(set(looks.values())) == len(looks)  # each door is dressed differently
+    plain = _GlowGpu()
+    models.boss_door(rig.Rig(plain), 0.5, "x", 0.0, boss="no_such_boss")  # unknown bosses get the Warden's
+    assert len(plain.parts) == len(_door_parts(models, models.DEFAULT_DOOR))
+
+
+def _door_parts(models, boss):
+    gpu = _GlowGpu()
+    models.boss_door(rig.Rig(gpu), 0.5, "x", 0.0, boss=boss)
+    return gpu.parts
