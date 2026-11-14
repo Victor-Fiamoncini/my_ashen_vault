@@ -154,8 +154,7 @@ FromSoftware, Inc.
 - **Deaths that linger**: every foe collapses in its own way (skeletons topple, slimes melt, the
   spider curls its legs) and then burns away to drifting ash.
 - **Weapons with their own movesets**: swords, greatswords, katanas, whips, maces, clubs, axes and a
-  war hammer, each swinging at its own speed. Tap to attack, hold for a heavy attack, double-click for
-  the weapon's own quick attack (a twin cut, a pommel crack, a double crack of the whip...). Every
+  war hammer, each swinging at its own speed. Tap to attack, hold for a heavy attack. Every
   swing costs stamina, and a weapon's weight (light, medium, heavy or great) sets how much, how hard
   it hits and how fast it swings. Some weapons hide a secret attack.
 - **Two slots**: put a weapon, a shield or a spell in either slot; the left mouse button works
@@ -281,7 +280,6 @@ Without uv, plain pip works: `python3 -m venv .venv`, `.venv/bin/pip install -e 
 | Turn / look | Mouse |
 | Primary / Secondary | Left mouse / right mouse |
 | Heavy attack | Hold the button, then release |
-| Quick attack | Double-click |
 | Block | Hold the button of the slot with the shield |
 | Cast spell | The button of the slot holding the spell |
 | Equip, ready a spell | Belongings (Tab): 1 for Primary, 2 for Secondary, or Enter / click to choose |
@@ -307,8 +305,8 @@ The same list is in the game under **Controls** on the title and pause menus.
   each cast and flashes when you can cast again.
 - Hold a button to charge a **heavy attack**: an orange bar fills over the gauge, then release.
   Heavies cost more ST than light swings, and the bar turns red when you are too winded.
-  Belongings and the shop show each weapon's light and heavy attack, its weight, the ST its light,
-  heavy and quick attacks cost (in % of the bar), and `???` where a weapon hides a secret you have not
+  Belongings and the shop show each weapon's light and heavy attack, its weight, the ST its light
+  and heavy attacks cost (in % of the bar), and `???` where a weapon hides a secret you have not
   found yet.
 - Sprinting and every swing drain **ST** (green bar). Empty it and you can neither sprint nor swing
   until it is about a third full. Holding a shield up slows its refill.

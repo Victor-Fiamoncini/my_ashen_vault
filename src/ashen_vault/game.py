@@ -121,7 +121,6 @@ class Game:
         self._rest = None
         self._hit_done = False
         self._held = {"attack": False, "cast": False}  # hand buttons held last frame (tap / hold)
-        self._spent = {"attack": False, "cast": False}  # this press already queued a quick strike
         self._pulse = None  # [seconds left, attack, weapon] of a pending second shockwave
         self._menu_top = 0  # first row shown by a scrolling list
         self._pick = None  # item waiting for a hand in the Belongings chooser
@@ -410,9 +409,6 @@ class Game:
         self._update_hands(dt)
         if p.swinging and not self._hit_done and p.swing_t >= p.swing_hit_at:
             self._resolve_swing()
-        if self._hit_done and p.chain_quick():
-            self._hit_done = False
-            self.sfx("swoosh", 0.5)
         self._update_pulse(dt)
         wheel = inp.wheel()
         if wheel:
@@ -439,7 +435,7 @@ class Game:
 
     def _update_hands(self, dt):
         """Each mouse button works its slot (left button = Primary, right = Secondary): a weapon swings
-        (tap light, hold heavy, double-click for its quick attack), a shield is raised while
+        (tap light, hold heavy), a shield is raised while
         held, a spell is cast. A two-hander swings from Primary only; Secondary then does nothing.
         A scripted `attack` / `cast` taps that button, `attack:0.6` holds it."""
         p = self.player
@@ -461,25 +457,13 @@ class Game:
 
     def _update_weapon_button(self, hand, action, dt, down, pressed):
         p = self.player
-        if pressed and p.swinging:
-            quick = p.double_strike(hand)
-            if quick:  # this click was the second of a double-click, not a new swing
-                self._spent[action] = True
-                self._held[action] = False
-                if quick is not True:
-                    self._hit_done = False
-                    self.sfx("swoosh", 0.5)
-                return
         if down:
-            if not self._spent[action] and not p.swinging and (p.charge_hand == hand or p.charge_t == 0):
+            if not p.swinging and (p.charge_hand == hand or p.charge_t == 0):
                 p.charge_hand = hand
                 p.charge_t += dt
             self._held[action] = True
             return
         released, self._held[action] = self._held[action], False
-        if self._spent[action]:
-            self._spent[action] = False
-            return
         if not (released or pressed):
             if p.charge_hand == hand:
                 p.charge_t = 0.0
@@ -570,7 +554,7 @@ class Game:
 
     def _update_pulse(self, dt):
         """The later blows of a multi-pulse attack: the hammer's Aftershock (the ground answers the slam a
-        moment later) and the double-click doubles (Twin cut, One-two, Double crack)."""
+        moment later)."""
         if not self._pulse:
             return
         self._pulse[0] -= dt
@@ -1616,9 +1600,8 @@ class Game:
         if item.kind == "weapon":
             size = weapons.WEIGHT_NAMES[weapons.weight(item)]
             kind = f"{size} {weapons.CATEGORY_NAMES[item.category]}" + (" 2H" if item.two_handed else "")
-            st = "/".join(  # light / heavy / quick, in % of the ST bar
-                str(rround(weapons.attack(item, k).stamina * 100))
-                for k in (weapons.LIGHT, weapons.HEAVY, weapons.QUICK)
+            st = "/".join(  # light / heavy, in % of the ST bar
+                str(rround(weapons.attack(item, k).stamina * 100)) for k in (weapons.LIGHT, weapons.HEAVY)
             )
             need = f"  Lv{item.level}" if item.level > 1 else ""
             return f"{kind}  ATK {item.power}  Rch {item.reach}  ST {st}{need}"

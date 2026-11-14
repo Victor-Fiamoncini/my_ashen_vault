@@ -49,12 +49,11 @@ class Player:
         self.attack = weapons.attack(self.inventory.weapon_item())
         self.charge_t = 0.0  # seconds the attack button has been held
         self.charge_hand = RIGHT  # which button is being held
-        self.queued_quick = False  # double-clicked after the light blow had already landed
         self.hitstop_t = 0.0
         self.sprinting = False
         self.since_sprint = 99.0
         self.still_t = 0.0
-        self.gauges = {h: Gauge(self.hand_weapon(h).speed or 1.0) for h in HANDS}
+        self.gauges = {h: Gauge(weapons.refill_time(self.hand_weapon(h))) for h in HANDS}
         self.magic_gauge = Gauge(2.2)
         self.stamina = Stamina()
         self.guarding = False
@@ -81,7 +80,6 @@ class Player:
         self.hurt_t = self.lumen_t = self.veil_t = self.ward_t = self.webbed_t = self.spore_t = 0.0
         self.swing_t = None
         self.charge_t = 0.0
-        self.queued_quick = False
         self.guarding = False
         self.guard_break_t = self.hitstop_t = 0.0
         self.combo_n = 0
@@ -207,7 +205,7 @@ class Player:
 
     def update_timers(self, dt):
         for h, gauge in self.gauges.items():
-            gauge.refill_time = self.hand_weapon(h).speed or 1.0
+            gauge.refill_time = weapons.refill_time(self.hand_weapon(h))
             if not (self.swinging and self.swing_hand == h):
                 gauge.update(dt)
         if not self.sprinting:
@@ -235,7 +233,6 @@ class Player:
         self.swing_t += dt
         if self.swing_t > self.swing_time:
             self.swing_t = None
-            self.queued_quick = False
 
     # --- hands -------------------------------------------------------------------------
 
@@ -334,11 +331,10 @@ class Player:
         self.veil_t = 0.0  # a blow tears the mist apart
         self.attack = a
         self.swing_hand = hand
-        self.swing_power = max(self.gauge(hand).spend(), a.min_power)
+        self.swing_power = self.gauge(hand).spend()
         self.swing_t = 0.0
         self.swing_id += 1
         self.hitstop_t = 0.0
-        self.queued_quick = False
         self.guarding = False
         return a
 
@@ -351,38 +347,6 @@ class Player:
     def burden(self):
         """The load tier your equipped gear puts you in (see player/burden.py)."""
         return burden.of(self.inventory, self.stats)
-
-    def double_strike(self, hand):
-        """A second click within DOUBLE_CLICK of a light swing of the same hand: the weapon's quick attack.
-        If the light blow hasn't landed yet it is called off (its ST refunded) and the quick attack starts
-        at once, returning it; if it already landed the quick attack is queued to follow at once
-        (`chain_quick`), returning True. Otherwise (too slow, another hand, not a light swing) None."""
-        if not (self.swinging and self.swing_hand == hand and self.attack.kind == weapons.LIGHT):
-            return None
-        if self.swing_t > weapons.DOUBLE_CLICK:
-            return None
-        if self.swing_t >= self.swing_hit_at:
-            self.queued_quick = True
-            return True
-        power = self.swing_power
-        self.stamina.value = min(self.stamina.value + self.attack.stamina, 1.0)
-        self.swing_t = None
-        a = self.start_swing(hand, weapons.QUICK, secrets=False)
-        if a:
-            self.swing_power = max(power, a.min_power)
-        return a
-
-    def chain_quick(self):
-        """Starts a queued quick attack once the light blow before it has landed. Returns it, or None."""
-        if not (self.queued_quick and self.swinging and self.swing_t >= self.swing_hit_at):
-            return None
-        hand = self.swing_hand
-        power = self.swing_power
-        self.swing_t = None
-        a = self.start_swing(hand, weapons.QUICK, secrets=False)
-        if a:
-            self.swing_power = max(power, a.min_power)
-        return a
 
     def land_hit(self, target):
         """A swing connected with `target`: freezes it a moment and counts the combo."""

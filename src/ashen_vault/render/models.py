@@ -3472,11 +3472,6 @@ MOTIONS = {
         (0.05, 0.05, -0.15, -0.4, -0.3, -1.6),
         (0.0, -0.05, -0.2, -0.8, -0.5, -1.3),
     ),
-    "flick": (
-        (0.0, -0.05, -0.25, -0.9, -0.4, -0.6),
-        (0.1, 0.1, 0.05, 0.6, 0.2, -0.9),
-        (0.05, 0.15, 0.2, 1.1, 0.45, -0.4),
-    ),
     "bash": (
         (-0.1, 0.1, 0.05, 0.3, 0.1, 0.4),
         (0.25, 0.0, -0.1, -0.2, -0.1, -0.9),
@@ -3514,37 +3509,6 @@ MOTIONS = {
         (-0.05, 0.25, 0.0, 0.0, 0.0, 1.0),
         (0.25, -0.25, -0.1, 0.0, 0.0, -1.5),
         (0.2, -0.3, -0.1, 0.0, 0.0, -1.6),
-    ),
-    # Double-click quick attacks.
-    "twin": (  # an X: down to the left, then straight back up to the right
-        (-0.05, 0.18, 0.2, 0.45, 0.3, 0.3),
-        (0.14, 0.0, -0.12, -0.6, -0.35, -1.2),
-        (0.12, 0.1, 0.22, 0.9, 0.4, -1.1),
-    ),
-    "pommel": (  # the blade tipped back, the hilt punched into the face in front
-        (-0.15, 0.06, -0.05, 0.0, 0.2, 0.6),
-        (0.28, 0.06, -0.12, 0.0, 0.1, 0.9),
-        (0.22, 0.04, -0.1, 0.0, 0.1, 0.8),
-    ),
-    "doublelash": (  # cracked down, then snapped back up
-        (-0.05, 0.15, 0.05, 0.4, 0.2, 0.6),
-        (0.05, 0.05, -0.15, -0.4, -0.3, -1.6),
-        (0.05, 0.12, 0.12, 0.3, 0.3, -1.4),
-    ),
-    "rap": (  # a short, straight punch with the head
-        (-0.12, 0.08, -0.05, 0.0, 0.05, 0.3),
-        (0.3, 0.02, -0.1, 0.0, -0.05, -0.6),
-        (0.22, 0.0, -0.1, 0.0, -0.05, -0.7),
-    ),
-    "hook_cut": (  # reached out left, then hooked back in toward you
-        (0.05, 0.1, -0.25, -0.6, -0.5, 0.4),
-        (0.2, 0.0, 0.1, 0.5, 0.2, -1.1),
-        (0.0, -0.05, 0.22, 0.8, 0.45, -0.8),
-    ),
-    "drive": (  # the haft rammed forward, held level
-        (-0.15, 0.0, -0.05, 0.0, -0.1, -0.5),
-        (0.32, 0.0, -0.1, 0.0, -0.2, -0.7),
-        (0.25, -0.02, -0.1, 0.0, -0.15, -0.7),
     ),
 }
 
@@ -3835,7 +3799,7 @@ def _swing_trail(r, item, a, phase, rest, side):
 
 
 def fist_view(r, player, hand, bob, armor, view=None):
-    """A bare hand: a jab straight forward, a hook from the outside, or the double-click's one-two."""
+    """A bare hand: a jab straight forward or a hook from the outside."""
     blends, t, sway = view or (view_blend.ViewBlends(), 0.0, (0.0, 0.0))
     side = 1 if hand == "right" else -1
     swinging = player.swing_t is not None and player.swing_hand == hand
@@ -3850,8 +3814,6 @@ def fist_view(r, player, hand, bob, armor, view=None):
         if motion == "hook":
             out = 0.3 * (1 - _ease(phase / max(hit_at, 1e-6))) if phase < hit_at else 0.0
             jab *= 0.6
-        elif motion == "onetwo":  # two snapping jabs in one swing
-            jab = 0.32 * abs(math.sin(phase * 2 * math.pi)) ** 0.7
     charge = player.charge_frac if (not swinging and player.charge_hand == hand) else 0.0
     pull = -0.1 * _ease(charge)
     wrist = (

@@ -24,20 +24,18 @@ def armed(weapon_id, level=99):
 ALL_WEAPONS = [i for i in Items.ALL.values() if i.kind == "weapon"] + [Items.FISTS]
 
 
-def test_every_weapon_has_light_heavy_and_quick_attacks_that_cost_stamina():
+def test_every_weapon_has_light_and_heavy_attacks_that_cost_stamina():
     assert len(ALL_WEAPONS) >= 17
     for item in ALL_WEAPONS:
         assert item.category in weapons.CATEGORY_NAMES, item.id
         assert item.category in weapons.TEMPO, item.id
         light = weapons.attack(item)
         heavy = weapons.attack(item, weapons.HEAVY)
-        quick = weapons.attack(item, weapons.QUICK)
-        assert (light.kind, heavy.kind, quick.kind) == ("light", "heavy", "quick")
+        assert (light.kind, heavy.kind) == ("light", "heavy")
         assert not light.heavy and heavy.heavy, item.id
         assert heavy.damage > light.damage or heavy.targets > light.targets or heavy.cone < 0
-        assert 0 < quick.stamina <= light.stamina < heavy.stamina, item.id
-        assert quick.time < light.time < heavy.time, item.id
-        assert quick.min_power > 0
+        assert 0 < light.stamina < heavy.stamina, item.id
+        assert light.time < heavy.time, item.id
 
 
 def test_bigger_weapons_swing_slower():
@@ -77,56 +75,32 @@ def test_sprint_drains_slower_than_before():
     assert Stamina.DRAIN_TIME >= 5.0
 
 
-def test_a_double_click_turns_the_light_swing_into_the_quick_attack():
+def test_the_quick_attack_is_gone():
+    assert not hasattr(weapons, "QUICK") and not hasattr(weapons, "DOUBLE_CLICK")
+    assert all(
+        set(moves) <= {weapons.LIGHT, weapons.HEAVY, weapons.SECRET} for moves in weapons.MOVESETS.values()
+    )
+    assert not hasattr(armed("rusted_sword"), "double_strike")
+
+
+def test_every_weapon_gauge_refills_slower_than_its_speed():
+    assert weapons.GAUGE_REFILL > 1
+    for item in ALL_WEAPONS:
+        assert weapons.refill_time(item) == item.speed * weapons.GAUGE_REFILL, item.id
     p = armed("rusted_sword")
-    light = p.start_swing()
-    spent = 1 - p.stamina.value
-    assert math.isclose(spent, light.stamina)
-    p.update_timers(0.05)
-    assert p.double_strike("left") is None, "only the swinging hand"
-    quick = p.double_strike("right")
-    assert quick is not None and quick is not True and quick.kind == "quick"
-    assert quick.name == "Twin cut"
-    assert math.isclose(1 - p.stamina.value, quick.stamina), "the called-off light swing is refunded"
-    assert p.swing_t == 0.0 and p.swing_power >= quick.min_power
-    assert p.double_strike("right") is None, "a quick attack doesn't chain again"
-
-
-def test_a_slow_second_click_is_no_double_click():
-    p = armed("rusted_sword")
-    p.start_swing()
-    while p.swing_t <= weapons.DOUBLE_CLICK:
-        p.update_timers(0.02)
-    assert p.double_strike("right") is None
-    assert p.attack.kind == "light"
-
-
-def test_a_double_click_after_the_blow_landed_queues_the_quick_attack():
-    p = armed("katana")
-    p.start_swing()
-    while p.swing_t < p.swing_hit_at:
-        p.update_timers(0.01)
-    assert p.swing_t <= weapons.DOUBLE_CLICK
-    assert p.double_strike("right") is True
-    quick = p.chain_quick()
-    assert quick is not None and quick.kind == "quick" and quick.name == "Iaido flick"
-    assert p.chain_quick() is None
-
-
-def test_every_category_has_its_own_quick_attack():
-    names = {weapons.MOVESETS[c][weapons.QUICK].name for c in weapons.MOVESETS}
-    assert len(names) == len(weapons.MOVESETS)
-    for c, moves in weapons.MOVESETS.items():
-        q = moves[weapons.QUICK]
-        assert q.motion != moves[weapons.LIGHT].motion, c
-        if q.pulses > 1:
-            assert q.pulse_gap < 0.3 and q.pulse_damage == 1.0, c
+    speed = Items.get("rusted_sword").speed
+    gauge = p.gauge("right")
+    gauge.spend()
+    p.update_timers(speed)
+    assert not gauge.full, "a speed's worth of seconds no longer fills it"
+    p.update_timers(speed * (weapons.GAUGE_REFILL - 1) + 0.01)
+    assert gauge.full
 
 
 def test_weight_classes_scale_cost_damage_and_tempo():
     hatchet, felling = Items.get("hatchet"), Items.get("felling_axe")
     assert (weapons.weight(hatchet), weapons.weight(felling)) == ("light", "heavy")
-    for kind in (weapons.LIGHT, weapons.HEAVY, weapons.QUICK):
+    for kind in (weapons.LIGHT, weapons.HEAVY):
         assert weapons.attack(hatchet, kind).stamina < weapons.attack(felling, kind).stamina
     assert weapons.attack(hatchet, weapons.HEAVY).damage < weapons.attack(felling, weapons.HEAVY).damage
     assert weapons.tempo(hatchet) < weapons.tempo(felling)
@@ -136,8 +110,7 @@ def test_weight_classes_scale_cost_damage_and_tempo():
     hits = [weapons.WEIGHTS[w][weapons.HEAVY][1] for w in sizes]
     assert costs == sorted(costs) and hits == sorted(hits)
     for w in sizes:
-        st = {k: weapons.WEIGHTS[w][k][0] for k in (weapons.LIGHT, weapons.HEAVY, weapons.QUICK)}
-        assert st[weapons.QUICK] <= st[weapons.LIGHT], "quick never costs more than light"
+        st = {k: weapons.WEIGHTS[w][k][0] for k in (weapons.LIGHT, weapons.HEAVY)}
         assert base.stamina * st[weapons.HEAVY] < 1.0
     for item in ALL_WEAPONS:
         assert item.weight in weapons.WEIGHTS, item.id

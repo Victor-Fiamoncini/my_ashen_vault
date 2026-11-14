@@ -42,7 +42,6 @@ CONTROLS = [
     ("Primary", "Left mouse"),
     ("Secondary", "Right mouse"),
     ("Heavy attack", "Hold the button"),
-    ("Quick attack", "Double-click"),
     ("Block", "Hold the shield's button"),
     ("Quick item", "Middle mouse"),
     ("Choose quick item", "Mouse wheel"),

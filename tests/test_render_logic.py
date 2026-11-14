@@ -349,7 +349,7 @@ def test_every_attack_motion_has_a_pose():
 
     for moves in weapons.MOVESETS.values():
         for a in moves.values():
-            assert a.motion in models.MOTIONS or a.motion in ("jab", "hook", "onetwo"), a.motion
+            assert a.motion in models.MOTIONS or a.motion in ("jab", "hook"), a.motion
 
 
 def test_first_person_view_draws_every_hand_and_swing():
@@ -369,7 +369,7 @@ def test_first_person_view_draws_every_hand_and_swing():
                     inv.equip(id_)
                 p = Player(inventory=inv)
                 p.spells = ["flame"]
-                for kind in (weapons.LIGHT, weapons.HEAVY, weapons.QUICK, None):
+                for kind in (weapons.LIGHT, weapons.HEAVY, None):
                     p.swing_t = None
                     p.guarding = kind is None
                     p.stamina.fill()

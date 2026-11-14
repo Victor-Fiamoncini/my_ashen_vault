@@ -135,7 +135,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/ui/tally.py` | `GoldTally`: the top-right gold counter's bookkeeping (a gain lingers as "+N", then rolls in; spending shows at once). `Game.update` feeds it |
 | `src/ashen_vault/ui/logofont.py` | The logo's 5x7 capitals, shared by `docs/logo/make_logo.py` and big headings (`hud.big`: the title, the death screen) |
 | `src/ashen_vault/ui/belongings.py` | Belongings as data: its tabs, slot marks, the Equipped panel and the slot chooser (Primary / Secondary) |
-| `src/ashen_vault/player/weapons.py` | Weapon categories, light/heavy/quick attacks, swing tempo and the secret attacks (`secret()`) |
+| `src/ashen_vault/player/weapons.py` | Weapon categories, light and heavy attacks, swing tempo and the secret attacks (`secret()`) |
 | `src/ashen_vault/world/shots.py` | Shots in 3D: spells follow the view's pitch, enemy shots aim at your chest, and a shot only hits a body it passes through |
 | `src/ashen_vault/player/guard.py` | Shield blocking: what a raised shield stops and what it costs in ST |
 | `src/ashen_vault/world/relics.py` | Boss relics (Ember, Verdant and Iron Sigils), their drop/taken flags, `boss_falls` (twins fall together) and the three-sigil ending |
@@ -327,16 +327,15 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 - Every attack costs ST. Each category's moveset (`weapons.MOVESETS`) is tuned for a medium weapon;
   an item's `weight` (`light` / `medium` / `heavy` / `great`) scales each attack's ST, damage and poise
   through `weapons.WEIGHTS` (`weapons.attack` returns the sized Attack) and adds `WEIGHT_TEMPO` to its
-  `tempo`, which sets how long its swings take. The quick attack is a double-click: a second click
-  within `weapons.DOUBLE_CLICK` of a light swing's start calls it off (refunding its ST) and starts the
-  quick one (`Player.double_strike`), or queues it if the blow already landed (`chain_quick`). In a
-  smoke run that is `attack wait:0.1 attack`. Quick moves that strike twice use `pulses` with a short
-  `pulse_gap`. Attack poses are keyframed in `models.MOTIONS` (wind, strike, follow, each
-  `(dx, dy, dz, rx, ry, rz)`), the strike lands at the attack's `hit_at`, and edged weapons (`TRAILS`)
-  smear a fan of ghost blades through the blow. A motion ends part way home (`models._settle`); the
-  view's `PoseBlend` (`player/view_blend.py`, kept by `Game` and passed to `models.weapon_view`) eases
-  the arms the rest of the way, into each new swing, charge or shield raise, and lets them trail the
-  turning view (`Sway`). The viewmodel draws without depth testing, so draw what faces the camera last.
+  `tempo`, which sets how long its swings take. Each hand's ATK gauge refills over the weapon's
+  `speed` times `weapons.GAUGE_REFILL` (`weapons.refill_time`); a swing hits as hard as the gauge was
+  full. Attacks that strike twice (the Aftershock) use `pulses`. Attack poses are keyframed in
+  `models.MOTIONS` (wind, strike, follow, each `(dx, dy, dz, rx, ry, rz)`), the strike lands at the
+  attack's `hit_at`, and edged weapons (`TRAILS`) smear a fan of ghost blades through the blow. A motion
+  ends part way home (`models._settle`); the view's `PoseBlend` (`player/view_blend.py`, kept by `Game`
+  and passed to `models.weapon_view`) eases the arms the rest of the way, into each new swing, charge or
+  shield raise, and lets them trail the turning view (`Sway`). The viewmodel draws without depth
+  testing, so draw what faces the camera last.
 - Besides raylib's cube, sphere, cyl, cone and quad, models can draw `blade` (a lozenge-section slab
   that comes to a point), `lozenge` (the same section, straight) and `wedge` (a triangular prism),
   generated in `render/shapes.py`. Straight swords, the player's and the foes', are `models.blade_parts`
