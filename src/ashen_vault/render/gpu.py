@@ -23,11 +23,13 @@ class Gpu:
         }
         self._materials = {}
         self._meshes = {}
+        self._tris = {}
         self._model_light = None
         self._vec3 = ffi.new("float[3]")
         self._vec2 = ffi.new("float[2]")
         self._float = ffi.new("float[1]")
         self._identity = rl.MatrixIdentity()
+        self._matrix = ffi.new("Matrix *")  # every part's transform passes through this one buffer
 
     # --- uniforms ----------------------------------------------------------
 
@@ -94,13 +96,10 @@ class Gpu:
         mesh.texcoords = self._alloc("float *", array("f", batch.uvs).tobytes())
         normals = array("f", [0.0, 1.0, 0.0]) * n
         mesh.normals = self._alloc("float *", normals.tobytes())
-        cols = batch.colors
-        rgba = bytearray(n * 4)
-        for i in range(n):
-            rgba[i * 4] = int(cols[i * 3] * 255)
-            rgba[i * 4 + 1] = int(cols[i * 3 + 1] * 255)
-            rgba[i * 4 + 2] = int(cols[i * 3 + 2] * 255)
-            rgba[i * 4 + 3] = 255
+        rgb = bytes(int(c * 255) for c in batch.colors)
+        rgba = bytearray(b"\xff") * (n * 4)
+        for ch in range(3):
+            rgba[ch::4] = rgb[ch::3]
         mesh.colors = self._alloc("unsigned char *", bytes(rgba))
         rl.UploadMesh(mesh, False)
         return mesh
@@ -126,6 +125,24 @@ class Gpu:
                 mesh = self._upload_shape(*shapes.SHAPES[kind]())[0]
             self._meshes[kind] = mesh
         return mesh
+
+    def primitive_tris(self, kind):
+        """A primitive's triangles as flat (vertices, normals, uvs) lists, unindexed: what
+        `prop_bake.PropBaker` transforms into a baked batch, exactly the mesh `draw_part` draws."""
+        tris = self._tris.get(kind)
+        if tris is None:
+            mesh = self.primitive(kind)
+            n = mesh.vertexCount
+            verts = ffi.unpack(mesh.vertices, n * 3)
+            normals = ffi.unpack(mesh.normals, n * 3)
+            uvs = ffi.unpack(mesh.texcoords, n * 2)
+            if mesh.indices != ffi.NULL:
+                order = ffi.unpack(mesh.indices, mesh.triangleCount * 3)
+                verts = [verts[i * 3 + k] for i in order for k in range(3)]
+                normals = [normals[i * 3 + k] for i in order for k in range(3)]
+                uvs = [uvs[i * 2 + k] for i in order for k in range(2)]
+            tris = self._tris[kind] = (list(verts), list(normals), list(uvs))
+        return tris
 
     @staticmethod
     def _centered(mesh):
@@ -155,6 +172,13 @@ class Gpu:
         self.set_color(mat, 255, 255, 255)
         rl.DrawMesh(mesh[0], mat, self._identity)
 
+    def draw_baked_batch(self, mesh, tex):
+        """Props baked by `prop_bake`: world-space, lit in their (halved) vertex colours."""
+        self.set_float("isModel", -1.0)
+        mat = self.material(tex)
+        self.set_color(mat, 255, 255, 255)
+        rl.DrawMesh(mesh[0], mat, self._identity)
+
     def draw_sky_batch(self, mesh, tex, matrix):
         """A sky layer: baked vertex colours like the world, placed around the eye by `matrix`."""
         self.set_float("isModel", 0.0)
@@ -168,8 +192,12 @@ class Gpu:
         self.set_vec3("modelLight", self._model_light)
 
     def draw_part(self, kind, matrix, rgb, tex="white", glow=False):
-        mat = self.material(tex)
-        self.set_color(mat, *rgb)
+        mat = self._materials.get(tex) or self.material(tex)
+        c = mat.maps[0].color
+        r, g, b = rgb
+        c.r = 0 if r < 0 else 255 if r > 255 else int(r)
+        c.g = 0 if g < 0 else 255 if g > 255 else int(g)
+        c.b = 0 if b < 0 else 255 if b > 255 else int(b)
         if glow:
             self.set_vec3("modelLight", (1.5, 1.5, 1.5))
         rl.DrawMesh(self.primitive(kind), mat, matrix)
@@ -184,7 +212,8 @@ class Gpu:
         c.b = max(0, min(255, int(b)))
         c.a = 255
 
-    @staticmethod
-    def to_matrix(m):
-        # m is row-major 4x4, which is exactly raylib's Matrix field order (m0, m4, m8, m12, ...).
-        return ffi.new("Matrix *", [float(v) for v in m])[0]
+    def to_matrix(self, m):
+        """`m` as a raylib Matrix, valid until the next call (the buffer is reused). It is row-major
+        4x4, which is exactly raylib's Matrix field order (m0, m4, m8, m12, ...)."""
+        ffi.memmove(self._matrix, array("f", m), 64)
+        return self._matrix[0]

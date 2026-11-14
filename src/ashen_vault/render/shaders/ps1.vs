@@ -9,7 +9,7 @@ uniform mat4 mvp;
 uniform mat4 matModel;
 
 uniform vec2 snapRes;      // grid that vertices snap to (PS1 integer screen coords)
-uniform float isModel;     // 1 = lit by modelLight + normal, 0 = baked vertex light
+uniform float isModel;     // 1 = lit by modelLight + normal, 0 = baked vertex light, -1 = baked prop (x2)
 uniform vec3 modelLight;
 uniform vec3 torchColor;
 uniform float torchRadius;
@@ -38,6 +38,8 @@ void main()
         vec3 n = normalize(mat3(matModel) * vertexNormal);
         float shade = 0.55 + 0.45 * max(dot(n, normalize(vec3(0.35, 1.0, 0.25))), 0.0);
         base = modelLight * shade;
+    } else if (isModel < -0.5) {
+        base = vertexColor.rgb * 2.0;  // prop_bake halves its colours to fit a byte
     } else {
         base = vertexColor.rgb;
     }

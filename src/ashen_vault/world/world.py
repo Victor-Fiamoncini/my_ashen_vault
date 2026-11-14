@@ -10,8 +10,9 @@ from ashen_vault.ai.enemy_types import EnemyTypes
 from ashen_vault.ai.spawns import spawn_enemies
 from ashen_vault.player.player import Player
 from ashen_vault.player.spells import Spells
-from ashen_vault.render import forge_models, fortress_props, models, town_models
+from ashen_vault.render import forge_models, fortress_props, models, prop_bake, town_models
 from ashen_vault.render.mesh_builder import KINDLING, MeshBuilder
+from ashen_vault.render.rig import Rig
 from ashen_vault.util import rround
 from ashen_vault.world import collision, elements, loot, relics, shots, terrain, villagers
 from ashen_vault.world.arena import Arena, flood
@@ -242,6 +243,19 @@ LANDMARKS = (
     "cathedral_tower",
     "banner_pole",
 )
+# Props that never move, open, break or flicker: they are baked once into world-space batches
+# (`render/prop_bake.py`) instead of being drawn part by part every frame. A prop drawn with the time
+# `t`, or one whose look follows its state, must not be listed (`tests/test_prop_bake.py`).
+STATIC_PROPS = frozenset(
+    {
+        *("roof", "cathedral_spire", "cathedral_tower", "flying_buttress", "door_arch", "shutters"),
+        *("balcony", "window", "stained_window", "rose_window", "crest_plaque", "pew", "shelf"),
+        *("bed", "cupboard", "fence", "bench", "hand_cart", "hay_wagon", "cargo", "tree"),
+        *("gargoyle_statue", "pillar", "sarcophagus", "headsman_block", "rack", "rubble", "bones"),
+        *("shackles", "cobweb", "mushrooms", "slag_heap", "ingot_pile", "gatehouse", "bastion"),
+        "spire",
+    }
+)
 # How far up its wall a hung town prop is set, in metres, unless its entity says `rise=`.
 RISE = {"rose_window": "6", "crest_plaque": "3", "shutters": "1.7", "balcony": "3.6"}
 # Props that turn to face into the room.
@@ -338,6 +352,8 @@ class World:
         self.name = name
         self.map = MapLoader.load_file(map_path(name))
         self._meshes = []
+        self._baked = []  # (mesh, tex, chunk, landmark) of the static props, `prop_bake`
+        self._baking = False
         self._bake()
         self.props = []
         self.enemies = []
@@ -368,6 +384,7 @@ class World:
         self._thorns = {(tx, tz): 0.0 for tx, tz, tile in self.map.each_tile() if tile.hurt}
         self.arenas = []
         self._spawn_entities()
+        self._bake_props()
         self.arenas = self._build_arenas()
         self.player_blocker = self.player_blocked
 
@@ -384,6 +401,40 @@ class World:
         for mesh, _ in self._meshes:
             self.game.gpu.unload_mesh(mesh)
         self._meshes = []
+        self._unload_baked()
+
+    def _unload_baked(self, chunks=None):
+        keep = []
+        for entry in self._baked:
+            if chunks is None or entry[2] in chunks:
+                self.game.gpu.unload_mesh(entry[0])
+            else:
+                keep.append(entry)
+        self._baked = keep
+
+    def _bake_props(self, chunks=None):
+        """Bakes the static props (of `chunks`, or all) into lit world-space batches, one per chunk,
+        texture and draw range. Only a real GPU can: a headless one has no primitives to bake."""
+        tris = getattr(self.game.gpu, "primitive_tris", None)
+        if tris is None:
+            return
+        self._unload_baked(chunks)
+        baker = prop_bake.PropBaker(tris)
+        rig = Rig(baker)
+        self._baking = True
+        try:
+            for p in self.props:
+                chunk = prop_bake.chunk_of(p.tx, p.tz)
+                if p.kind not in STATIC_PROPS or (chunks is not None and chunk not in chunks):
+                    continue
+                baker.group = (chunk, p.kind in LANDMARKS)
+                self._model_light(baker, p.x, p.y + 1.0, p.z)
+                with rig.entity(p.x, p.y, p.z, p.yaw):
+                    self._draw_prop(rig, p)
+        finally:
+            self._baking = False
+        for ((chunk, landmark), tex), batch in baker.batches.items():
+            self._baked.append((self.game.gpu.upload_batch(batch), tex, chunk, landmark))
 
     def _lit_key(self, tx, tz):
         return f"lit:{self.name}:{tx},{tz}"
@@ -402,9 +453,20 @@ class World:
             i = next(i for i, (_, t) in enumerate(self._meshes) if t == tex)
             self.game.gpu.unload_mesh(self._meshes[i][0])
             self._meshes[i] = (self.game.gpu.upload_batch(self.builder.batches[tex]), tex)
+        self._rebake_near(p.x, p.z, MeshBuilder.light_for(self.map, spec).radius)
         self.game.sfx("kindle", 0.8)
         self.game.message("The fire catches, and the dark draws back.")
         return True
+
+    def _rebake_near(self, x, z, radius):
+        """Bakes again the static props a new light can reach: the chunks within its radius."""
+        chunks = {
+            prop_bake.chunk_of(p.tx, p.tz)
+            for p in self.props
+            if p.kind in STATIC_PROPS and math.hypot(p.x - x, p.z - z) < radius + prop_bake.CHUNK_REACH
+        }
+        if chunks:
+            self._bake_props(chunks)
 
     @property
     def meta(self):
@@ -1528,7 +1590,11 @@ class World:
         if "indoor_range" in self.meta and self.map.tile_at(player.x, player.z).ceil is not None:
             far = min(far, float(self.meta["indoor_range"]))  # under a roof the far rooms are walled off
         fx, fz = player.forward()
+        self._draw_baked(gpu, sight, far, fx, fz)
+        gpu.set_float("isModel", 1.0)
         for p in self.props:
+            if p.kind in STATIC_PROPS and self._baked:
+                continue
             if math.hypot(p.x - player.x, p.z - player.z) > (sight if p.kind in LANDMARKS else far):
                 continue
             if p.kind not in LANDMARKS and behind_view(p.x - player.x, p.z - player.z, fx, fz):
@@ -1683,6 +1749,19 @@ class World:
             s = f.size * (0.3 + 0.7 * f.fade)
             rig.part("cube", f.x, f.y, f.z, s, s, s, f.rgb, rx=f.spin, ry=f.spin * 0.7, glow=f.ember)
 
+    def _draw_baked(self, gpu, sight, far, fx, fz):
+        """The baked static props, chunk by chunk, culled like single props by range and heading."""
+        player = self.player
+        reach = prop_bake.CHUNK_REACH
+        for mesh, tex, chunk, landmark in self._baked:
+            cx, cz = prop_bake.chunk_centre(*chunk)
+            dx, dz = cx - player.x, cz - player.z
+            if math.hypot(dx, dz) - reach > (sight if landmark else far):
+                continue
+            if behind_view(dx, dz, fx, fz, BEHIND_MARGIN + reach):
+                continue
+            gpu.draw_baked_batch(mesh, tex)
+
     def _model_light(self, gpu, x, y, z, flash=False, tint=None):
         light = (2.0, 1.6, 1.6) if flash else [min(c, 1.6) for c in self.builder.model_light_at(x, y, z)]
         if tint and not flash:
@@ -1776,7 +1855,7 @@ class World:
         elif k == "tree":  # `kind=cypress|pine|olive`, or one picked by the tile
             seed = p.tx * 7 + p.tz
             kind = p.props.get("kind", town_models.TREE_KINDS[seed % len(town_models.TREE_KINDS)])
-            near = math.hypot(p.x - self.player.x, p.z - self.player.z) < DETAIL_RANGE
+            near = self._baking or math.hypot(p.x - self.player.x, p.z - self.player.z) < DETAIL_RANGE
             town_models.town_tree(rig, kind, seed, t, near)
         elif k == "jungle_tree":
             models.jungle_tree(rig, p.tx * 7 + p.tz, t)
@@ -1852,7 +1931,7 @@ class World:
         elif k == "battlement":
             fortress_props.battlement(rig, t, p.tx * 5 + p.tz, float(p.props.get("span", "8")))
         elif k == "gargoyle_statue":
-            near = math.hypot(p.x - self.player.x, p.z - self.player.z) < DETAIL_RANGE
+            near = self._baking or math.hypot(p.x - self.player.x, p.z - self.player.z) < DETAIL_RANGE
             fortress_props.gargoyle_statue(rig, t, p.tx * 7 + p.tz * 3, p.props.get("pose", "hunched"), near)
         elif k == "great_window":  # set high in a great wall's face, over the moat it stands in
             with rig.at(0, float(p.props.get("rise", "0")), 0):

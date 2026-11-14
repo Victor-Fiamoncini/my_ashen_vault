@@ -1,5 +1,6 @@
 """Original low-poly models assembled from primitives. All face +X."""
 
+import functools
 import math
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -155,6 +156,11 @@ def sword_parts(r, length, width, steel, grip=(60, 40, 28), guard=IRON, glow=Fal
 
 def _dim(rgb, k=0.7):
     """`rgb` scaled by `k` (a k over 1 brightens it), each channel kept within 0..255."""
+    return _dimmed(tuple(rgb), k)
+
+
+@functools.lru_cache(maxsize=4096)
+def _dimmed(rgb, k):
     return tuple(min(rround(c * k), 255) for c in rgb)
 
 

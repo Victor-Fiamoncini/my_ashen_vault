@@ -33,7 +33,7 @@ def all_textures():
         "leaf_litter": leaf_litter(),
         "jungle_floor": jungle_floor(),
         "canopy": canopy(),
-        "foliage": foliage(),
+        "leaf_card": leaf_card(),
         "mud": mud(),
         "bog": bog(),
         "rapids": rapids(),
@@ -472,19 +472,26 @@ def canopy():
     return build(px)
 
 
-def foliage():
-    """Pale leaf clusters, tinted per tree by the part's colour: bright tufts catching the sun over
-    darker hollows, with a few deep gaps."""
+def leaf_card():
+    """A spray of leaves cut out against nothing (alpha 0 between them), for the town's trees: each
+    card is one clump seen side-on, a ragged oval of small leaves with gaps you can see through.
+    Pale, so each tree tints it; leaves catch the light toward the spray's top (high rows, which a
+    cube's face maps to its top) and darken into its heart."""
+    half = SIZE / 2
 
     def px(x, y):
-        n = fbm(x, y, 191)
-        tuft = noise(x, y, 4, 192)
-        k = 0.62 + n * 0.45
-        if tuft > 0.72:
-            k += 0.28  # a sunlit tuft
-        elif tuft < 0.2:
-            k *= 0.55  # a hollow between clumps
-        return tint([210, 216, 200], k)
+        dx, dy = (x + 0.5 - half) / half, (y + 0.5 - half) / half
+        d = math.sqrt(dx * dx + dy * dy * 1.15)
+        edge = noise(x, y, 8, 571) - 0.5  # a ragged outline
+        leaf = noise(x, y, 4, 572)  # single leaves, a few texels across
+        if d > 0.97 or 1.0 - d * 1.05 + edge * 0.7 + (leaf - 0.5) * 0.45 < 0.12 or leaf < 0.18:
+            return (0, 0, 0, 0)
+        k = 0.55 + 0.3 * ((y + 0.5) / SIZE) + 0.25 * d  # lit toward the top and the rim
+        if leaf > 0.74:
+            k += 0.25  # a leaf turned to the sun
+        elif leaf < 0.3:
+            k *= 0.6  # the shadow at a leaf's edge
+        return (*tint([205, 214, 188], k), 255)
 
     return build(px)
 
