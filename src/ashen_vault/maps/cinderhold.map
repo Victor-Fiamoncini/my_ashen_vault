@@ -91,7 +91,7 @@ KK#1##################::::::::::::::::#############......#KK
 KK#2TssvvsHsssssvvT##########..######K######......Ù......#KK
 KK#3sssvvsssvvvsvvs#.T.#T..........T#K######Ç.....#....N.#KK
 KK#4sssvvsssvvvssssD...#............#K######...T..#T.....#KK
-KK#5ssssssssvvvsssL#................#K######......#......#KK
+KK#5ssssssssvvvssss#................#K######......#......#KK
 KK#6sUsssssTvvvHssY#...#.........Ô..#K####################KK
 KK##################Q..#....Õ..T....#K####################KK
 ]]]]KKËKKKKKKKÊKKKKKKKÉKKKKKKGKKKKKKKÒKKKKKKKÌKKKKKKKØKK]]]]
@@ -181,8 +181,7 @@ M = mimic model=iron
 N = anvil
 Y = chest item=forge_key gold=50 model=iron
 U = chest item=red_tonic count=3 gold=90 model=iron
-L = lever id=smelt_lift
-D = lift top=0 lever=smelt_lift on=|
+D = lift top=0 locked on=|
 // The ashworks: a gauntlet of flame jets, and a forge with a false wall.
 I = chest item=blue_moss count=3 gold=120 model=iron
 Ù = secret_wall

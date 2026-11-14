@@ -47,14 +47,15 @@ SPORE_TICK = 0.8  # seconds between choking coughs
 SPORE_DAMAGE = 3
 BRIDGE_DROP = 1.4  # seconds a drawbridge takes to swing down once its lever is pulled
 LIFT_SPEED = 1.6  # m/s a lift climbs or sinks at
-LIFT_DELAY = 0.7  # seconds you stand on a resting lift before it sets off
-LIFT_CALL = 1.0  # seconds you wait at an empty landing before the lift comes for you
-CALL_REACH = 3.0  # metres from the shaft's centre that count as waiting at its landing
+LIFT_DELAY = 0.7  # seconds you stand on a lift's plate before it sets off
+PLATE_R = 0.55  # metres from the deck's centre that count as standing on its pressure plate
+PLATE_SINK = 0.03  # how far the plate sinks under your weight
+CALL_OUT = 0.55  # metres out from the shaft's edge that a landing's call lever stands
 HEARING = 14.0  # metres within which the player hears a pod burst or a platform give way
 
 # Sounds a platform makes (name, volume): when you first load it, and when it gives way.
 CREAK_SOUND = {"plank": ("crack", 0.25), "ledge": ("crack", 0.45), "boards": ("crack", 0.5)}
-LIFT_SOUND = {"lift_start": ("chain", 0.9), "lift_stop": ("clunk", 0.9)}
+LIFT_SOUND = {"lift_start": ("chain", 0.9), "lift_stop": ("clunk", 0.9), "lift_unlocked": ("clunk", 0.9)}
 BREAK_SOUND = {"plank": ("splash", 0.7), "ledge": ("door", 0.7), "boards": ("crack", 1.0)}
 
 # How each kind of platform rots: (seconds it bears you, seconds it stays gone, metres it drops).
@@ -86,16 +87,19 @@ class Platform:
     dz: float = 0.0
     dy: float = 0.0
     # A lift rides between `low` and `high` in its shaft. `at` is "low"/"high" while it rests there,
-    # None while it moves; `going` is +1 up, -1 down. A `locked` lift waits for its lever.
+    # None while it moves; `going` is +1 up, -1 down. Stepping onto the plate at the middle of its
+    # deck sends it to the other end; a call lever at either landing brings it. A `locked` lift is a
+    # one-way shortcut: it rests at the end you reach first, the call levers will not move it, and
+    # the end of its first ride frees it for good.
     low: float = 0.0
     high: float = 0.0
     at: str | None = None
     going: int = 0
     wait: float = 0.0
     locked: bool = False
-    lever: str | None = None
-    nagged: bool = False  # already said it is locked, until you step off
-    hold: bool = False  # just arrived: whoever rode it must step off before it goes again
+    lever: str | None = None  # a drawbridge's lever
+    pressed: bool = False  # someone stands on the plate
+    hold: bool = False  # just arrived: whoever rode it must step off the plate before it goes again
     # A drawbridge stands raised (0) until its lever is pulled, then swings down (to 1). It only
     # bears weight once it is all the way down. Other platforms are always "down".
     lowered: float = 1.0
@@ -143,15 +147,15 @@ class Platform:
             k = min(k, self.sunk_t / 0.6)
         return depth * k * k
 
-    def update(self, dt, loaded, call=None):
-        """Moves the platform. `call` is the end ("low"/"high") someone waits at for a lift.
-        Returns a lift event ("lift_start", "lift_stop", "lift_locked") or None."""
+    def update(self, dt, loaded, plate=False):
+        """Moves the platform. `plate` says someone stands on a lift's pressure plate.
+        Returns a lift event ("lift_start", "lift_stop", "lift_unlocked") or None."""
         ox, oz, oy = self.x, self.z, self.deck
         event = None
         if self.kind == "raft":
             self._drift(dt)
         elif self.kind == "lift":
-            event = self._lift(dt, loaded, call)
+            event = self._lift(dt, plate)
         elif self.kind == "bridge":
             event = self._lower(dt)
         else:
@@ -165,9 +169,10 @@ class Platform:
     def moving(self):
         return self.kind == "lift" and self.at is None
 
-    def _lift(self, dt, loaded, call):
-        """Rides the shaft. Stand on it and it carries you to the other end; wait at the far landing
-        and it comes for you. A locked lift does neither, and says so once."""
+    def _lift(self, dt, plate):
+        """Rides the shaft. Step onto the plate and it carries you to the other end; step off it and
+        back on to go again. A locked lift is freed by the end of its first ride ("lift_unlocked")."""
+        self.pressed = plate
         if self.at is None:
             self.deck += self.going * self.speed * dt
             if self.deck >= self.high or self.deck <= self.low:
@@ -176,27 +181,39 @@ class Platform:
                 self.going = 0
                 self.wait = 0.0
                 self.hold = True
+                if self.locked:
+                    self.locked = False
+                    return "lift_unlocked"
                 return "lift_stop"
             return None
-        if not loaded:
+        if not plate:
             self.hold = False
-        other = "low" if self.at == "high" else "high"
-        wanted = (loaded and not self.hold) or call == other
-        if not wanted:
+        if not plate or self.hold:
             self.wait = 0.0
-            self.nagged = False
+            return None
+        self.wait += dt
+        if self.wait < LIFT_DELAY:
+            return None
+        return self._set_off()
+
+    def _set_off(self):
+        self.going = 1 if self.at == "low" else -1
+        self.at = None
+        return "lift_start"
+
+    def summon(self, end):
+        """A call lever at the `end` landing was pulled: the lift comes if it rests at the other end.
+        Returns "lift_start", "lift_locked" (it is fastened from the other side), or None (it is
+        already here, or on its way)."""
+        if self.at is None or self.at == end:
             return None
         if self.locked:
-            if self.nagged:
-                return None
-            self.nagged = True
             return "lift_locked"
-        self.wait += dt
-        if self.wait < (LIFT_DELAY if loaded else LIFT_CALL):
-            return None
-        self.at = None
-        self.going = 1 if other == "high" else -1
-        return "lift_start"
+        return self._set_off()
+
+    @property
+    def plate_sink(self):
+        return PLATE_SINK if self.pressed else 0.0
 
     def _lower(self, dt):
         """A drawbridge whose lever has been pulled swings down; "bridge_down" when it lands."""
@@ -368,6 +385,23 @@ def lift_doors(map_, tx, tz, low, high):
     return tuple(out)
 
 
+def call_spots(map_, lift):
+    """Where a lift's call levers stand: one on each landing beside the shaft, just out from its
+    edge and to one side of the way in, as (x, z, floor, end, (dx, dz) toward the shaft). `end` is
+    the stop ("low"/"high") that landing meets."""
+    tx, tz = TileMap.tile_coord(lift.x), TileMap.tile_coord(lift.z)
+    out = []
+    for dx, dz in lift.doors:
+        floor = map_[tx + dx, tz + dz].floor
+        end = "low" if abs(floor - lift.low) <= abs(floor - lift.high) else "high"
+        out_by = TileMap.TILE / 2 + CALL_OUT
+        side = TileMap.TILE * 0.32  # off the middle of the doorway, so it never blocks the way in
+        x = lift.x + dx * out_by + dz * side
+        z = lift.z + dz * out_by - dx * side
+        out.append((x, z, floor, end, (-dx, -dz)))
+    return out
+
+
 def build_platforms(map_):
     """Platforms for every raft, plank, ledge and boards entity. A raft's `to=tx,tz` is its far landing;
     `deck=` sets a platform's height (a ledge over a chasm, floorboards over a cellar)."""
@@ -384,8 +418,7 @@ def build_platforms(map_):
             p.at = "high" if spec.props.get("start") == "top" else "low"
             p.deck = p.high if p.at == "high" else p.low
             p.speed = float(spec.props.get("speed", str(LIFT_SPEED)))
-            p.lever = spec.props.get("lever")
-            p.locked = p.lever is not None
+            p.locked = "locked" in spec.props
             p.model = spec.props.get("model", "")
             p.doors = lift_doors(map_, spec.tx, spec.tz, p.low, p.high)
         elif spec.kind == "bridge":
@@ -466,6 +499,7 @@ class Terrain:
         self.fell_into = None
         self.landed = 0  # metres of the last hard landing
         self.sounds = []  # (name, volume) to play this frame; the World plays and clears them
+        self.unlocked = []  # locked lifts whose first ride ended this frame
 
     @property
     def logs(self):
@@ -492,15 +526,9 @@ class Terrain:
                 return p
         return None
 
-    def _calls(self, p, body):
-        """Which end of a lift's shaft ("low"/"high") the body waits at, if any."""
-        if p.covers(body.x, body.z) or math.hypot(body.x - p.x, body.z - p.z) > CALL_REACH:
-            return None
-        ground = self.map.floor_at(body.x, body.z)
-        for end, h in (("low", p.low), ("high", p.high)):
-            if abs(ground - h) <= collision.STEP_HEIGHT:
-                return end
-        return None
+    @staticmethod
+    def on_plate(p, body):
+        return math.hypot(body.x - p.x, body.z - p.z) <= PLATE_R
 
     def floor(self, x, z):
         """Height the player stands at: a platform's deck, or the tile's floor."""
@@ -529,18 +557,21 @@ class Terrain:
         """Moves platforms, logs and spores, carries the player, applies currents, thorns, logs and
         spores, and catches falls. Returns "fell" when the player went into the water or the ravine,
         "landed" after a hard landing, "log" when a log struck, "logs_first"/"logs_next"/"logs_last"
-        when a log tips off a pile, "spores" when a cloud first engulfs, else None."""
+        when a log tips off a pile, "spores" when a cloud first engulfs, "lift_unlocked" when a locked
+        lift ends its first ride (`unlocked` lists it), else None."""
         event = None
         self.sounds = []
+        self.unlocked = []
         under = self.support(body.x, body.z)
         for p in self.platforms:
             was_afloat, was_loaded = p.afloat, p.load_t > 0
             if p.kind == "lift":
-                lift_event = p.update(dt, loaded=p is under, call=self._calls(p, body))
-                if lift_event == "lift_locked":
-                    event = lift_event
-                elif lift_event:
+                lift_event = p.update(dt, loaded=p is under, plate=p is under and self.on_plate(p, body))
+                if lift_event:
                     self._hear(p.x, p.z, body, *LIFT_SOUND[lift_event])
+                if lift_event == "lift_unlocked":
+                    self.unlocked.append(p)
+                    event = lift_event
                 continue
             if p.update(dt, loaded=p is under) == "bridge_down":
                 self._hear(p.x, p.z, body, "clunk", 1.0)

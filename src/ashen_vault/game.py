@@ -765,6 +765,7 @@ class Game:
             "chest": "[E] Open chest",
             "door": "[E] Open door",
             "lever": "[E] Pull lever",
+            "lift_call": "[E] Call the lift",
             "save_statue": "[E] Pray at the shrine",
             "exit": f"[E] {(p.props.get('label') or 'Leave').replace('_', ' ')}",
             "pickup": "[E] Take",
@@ -794,6 +795,8 @@ class Game:
             self.world.cross_fog(self.world.fog_gate(prop))
         elif k == "door":
             self._open_door(prop)
+        elif k == "lift_call":
+            self.world.call_lift(prop)
         elif k == "lever":
             self.world.pull_lever(prop)
             self.sfx("door")

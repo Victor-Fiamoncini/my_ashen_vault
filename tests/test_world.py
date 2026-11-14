@@ -175,10 +175,8 @@ def test_sunken_keep_decor_never_cuts_off_anything():
 
 def test_sunken_keep_lifts_reach_the_undercroft_and_the_gallery():
     m = _keep()
-    lifts = {p.lever: p for p in terrain.build_platforms(m) if p.kind == "lift"}
-    assert set(lifts) == {None, "crypt_winch", "belfry_winch"}
-    levers = {e.props["id"] for e in m.entities if e.kind == "lever"}
-    assert {"crypt_winch", "belfry_winch"} <= levers  # every chained lift has its winch
+    lifts = [p for p in terrain.build_platforms(m) if p.kind == "lift"]
+    assert sum(p.locked for p in lifts) == 2  # the shortcuts: shrine to Undercroft, Gallery down
     free = [p for p in terrain.build_platforms(m) if p.kind == "lift" and not p.locked]
     seen = _keep_reach(m, free)
     assert any(m[t].floor == -6.0 for t in seen)  # the Undercroft
@@ -319,8 +317,8 @@ def test_verdant_hollow_loads_with_start_exit_boss_and_enemies():
 
 def _reachable(m, start, open_tiles=(), shortcuts=False, avoid=()):
     """Tiles a walker can reach from `start`, honoring step heights; doors count as closed unless listed.
-    Fixed platforms (planks, ledges, floorboards) count as footing at their deck height. Platforms
-    chained to a lever (lifts, drawbridges) only count with `shortcuts`: a lift then links the
+    Fixed platforms (planks, ledges, floorboards) count as footing at their deck height. Locked
+    platforms (shortcut lifts, drawbridges) only count with `shortcuts`: a lift then links the
     landings at its two ends."""
     # Doors, gates and hidden walls block until opened; decor and breakables always count as
     # solid, so a crate or a cocoon can never be what cuts a path off.
@@ -329,7 +327,7 @@ def _reachable(m, start, open_tiles=(), shortcuts=False, avoid=()):
     }
     blocked -= set(open_tiles)
     blocked |= set(avoid)
-    platforms = [p for p in terrain.build_platforms(m) if p.kind != "raft" and (shortcuts or not p.lever)]
+    platforms = [p for p in terrain.build_platforms(m) if p.kind != "raft" and (shortcuts or not p.locked)]
     decks = {
         (TileMap.tile_coord(p.x), TileMap.tile_coord(p.z)): p.deck for p in platforms if p.kind != "lift"
     }
@@ -399,7 +397,7 @@ def test_verdant_hollow_is_solvable():
     for tx, tz in barred:
         assert {(tx, tz - 1), (tx, tz + 1)} <= opened or {(tx - 1, tz), (tx + 1, tz)} <= opened
     for p in terrain.build_platforms(m):
-        if not p.lever:
+        if not p.locked:
             continue
         sx, sz = TileMap.tile_coord(p.x), TileMap.tile_coord(p.z)
         near = {(sx + dx, sz + dz) for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1))}
@@ -422,7 +420,7 @@ def _steps(m, start, goal, open_tiles):
     decks = {
         (TileMap.tile_coord(p.x), TileMap.tile_coord(p.z)): p.deck
         for p in terrain.build_platforms(m)
-        if p.kind != "raft" and not p.lever
+        if p.kind != "raft" and not p.locked
     }
     dist = {start: 0}
     frontier = [start]
@@ -624,7 +622,7 @@ def test_cinderhold_is_solvable():
     (gate,) = _spec(m, "gate")
     assert {(gate.tx, gate.tz - 1), (gate.tx, gate.tz + 1)} <= opened
     for p in terrain.build_platforms(m):
-        if not p.lever:
+        if not p.locked:
             continue
         sx, sz = TileMap.tile_coord(p.x), TileMap.tile_coord(p.z)
         near = {(sx + dx, sz + dz) for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1))}

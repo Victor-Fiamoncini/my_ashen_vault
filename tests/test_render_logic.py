@@ -842,3 +842,25 @@ def test_every_key_has_its_own_shape_and_fits_its_preview():
         lo, hi = bounds.measure(lambda r, id_=id_, size=size: models.key(r, id_, size))
         assert 0.9 < hi[1] - lo[1] < 1.8, id_  # about a preview's height
     assert len(set(shapes.values())) == len(shapes)  # no two built from the same parts
+
+
+def test_a_lift_shows_its_pressure_plate_sinking_and_its_call_levers_turn_their_wheel():
+    from ashen_vault.render import models
+
+    up, down = _RecordingGpu(), _RecordingGpu()
+    models.lift(rig.Rig(up), 0.0, False, 6.0)
+    models.lift(rig.Rig(down), 0.0, False, 6.0, pressed=0.03)
+    plate = [y for (_, y), (_, y2) in zip(up.parts, down.parts, strict=True) if y != y2]
+    assert plate and all(y > 0 for y in plate)  # only the plate moves, and it stands on the deck
+    for wood in (False, True):
+        rest, thrown = _GlowGpu(), _GlowGpu()
+        models.lift_call(rig.Rig(rest), 0.5, wood=wood)
+        models.lift_call(rig.Rig(thrown), 1.0, wood=wood)
+        assert len(rest.parts) == len(thrown.parts) > len(_lever_parts(models, wood))
+        assert rest.parts != thrown.parts
+
+
+def _lever_parts(models, wood):
+    gpu = _RecordingGpu()
+    models.lever(rig.Rig(gpu), 0.0, wall=False, wood=wood)
+    return gpu.parts

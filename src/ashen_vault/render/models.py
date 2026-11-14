@@ -2158,12 +2158,14 @@ def _lever(r, k, wall):
         r.part("sphere", 0, 0.88, 0, 0.18, 0.18, 0.18, DARK_IRON)  # the ball grip
 
 
-def lift(r, t, moving, chain_h, model="", doors=()):
+def lift(r, t, moving, chain_h, model="", doors=(), pressed=0.0):
     """A chain lift. `model="cage"` is the keep's jail cage: an iron-barred box hung from a single
     heavy chain, open only on the `doors` sides (dx, dz) that face a landing. Otherwise an oak deck
     in an iron frame, hung from four chains. Both run up to a pulley beam under the shaft's ceiling;
-    riding, the chains shiver."""
+    riding, the chains shiver. In the middle of either floor is the pressure plate that sends it,
+    sunk `pressed` metres while someone stands on it."""
     shiver = math.sin(t * 30) * 0.01 if moving else 0.0
+    _lift_plate(r, pressed)
     if model == "cage":
         _cage_lift(r, chain_h, shiver, doors)
         return
@@ -2197,6 +2199,35 @@ def _pulley(r, chain_h):
     r.part("cube", 0, chain_h, 0, 1.9, 0.25, 0.3, OAK)  # the pulley beam
     for cx in (-0.85, 0.85):
         r.part("cyl", cx, chain_h - 0.2, 0, 0.35, 0.12, 0.35, DARK_IRON, rx=math.pi / 2)
+
+
+PLATE_IRON = (124, 118, 108)
+
+
+def _lift_plate(r, pressed):
+    """A round iron plate raised on the floor, ringed with a rim and worn bright in the middle."""
+    y = 0.035 - pressed
+    r.part("cyl", 0, 0.02, 0, 1.12, 0.05, 1.12, DARK_IRON)  # the rim it sinks into
+    r.part("cyl", 0, y, 0, 0.98, 0.05, 0.98, PLATE_IRON)
+    r.part("cyl", 0, y + 0.01, 0, 0.5, 0.04, 0.5, _bright(PLATE_IRON, 1.15, 10))  # worn smooth
+    for i in range(6):  # bolts round its edge
+        a = i * math.tau / 6
+        r.part("cube", math.cos(a) * 0.38, y + 0.02, math.sin(a) * 0.38, 0.06, 0.03, 0.06, DARK_IRON, ry=a)
+
+
+def lift_call(r, k, wood=False):
+    """A lift's call lever at a landing: a post lever like any other (`k` 0..1 thrown) under a chain
+    wheel whose chain runs off toward the shaft (+X), so it reads as the lift's."""
+    lever(r, k, wall=False, wood=wood)
+    with r.at(0, 0, 0, s=1.2):
+        post = (126, 92, 58) if wood else DARK_IRON
+        r.part("cube", -0.15, 1.25, 0, 0.1, 0.9, 0.1, post)  # a post up from the lever's block
+        with r.at(-0.15, 1.72, 0, rz=k * math.pi):  # the wheel, turning as the lever is thrown
+            r.part("cyl", 0, 0, 0, 0.42, 0.06, 0.42, IRON, rx=math.pi / 2)
+            for i in range(4):  # its spokes
+                r.part("cube", 0, 0, 0, 0.4, 0.04, 0.05, DARK_IRON, rz=i * math.pi / 4)
+        for i in range(4):  # the chain running off toward the shaft
+            r.part("cube", 0.0 + i * 0.12, 1.86, 0, 0.12, 0.03, 0.06, IRON, rx=0 if i % 2 else 1.57)
 
 
 def _cage_lift(r, chain_h, shiver, doors):

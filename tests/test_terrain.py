@@ -511,13 +511,35 @@ def test_riding_a_lift_up_and_down_without_a_hard_landing():
     assert lift.at == "low" and body.y == -6.0 and hits == [] and "landed" not in events
 
 
-def test_a_lift_comes_when_you_wait_at_its_landing():
+def test_a_lift_stays_put_when_you_wait_at_its_landing_and_comes_when_called():
     _m, h = shaft()
     (lift,) = h.platforms
     body = Body(1, 1)  # at the top, the lift is down below
-    ride(h, body, terrain.LIFT_CALL + 0.2)
-    assert lift.moving
+    ride(h, body, 3.0)
+    assert lift.at == "low" and not lift.moving  # waiting alone does nothing
+    assert lift.summon("low") is None  # it is already at the bottom
+    assert lift.summon("high") == "lift_start" and lift.moving
+    assert lift.summon("high") is None  # on its way
     ride(h, body, 6 / terrain.LIFT_SPEED + 0.2)
+    assert lift.at == "high"
+
+
+def test_only_the_plate_in_the_middle_of_the_deck_sends_a_lift():
+    _m, h = shaft()
+    (lift,) = h.platforms
+    body = Body(3, 1)
+    body.y = -6.0
+    ride(h, body, 0.2)
+    cx, cz = TileMap.center(2, 1)
+    body.x, body.z = cx - 0.8, cz + 0.6  # on the deck, by its corner
+    ride(h, body, terrain.LIFT_DELAY + 1.0)
+    assert lift.at == "low" and not lift.pressed and lift.plate_sink == 0.0
+    body.x, body.z = cx + 0.2, cz - 0.2  # onto the plate
+    ride(h, body, 0.05)
+    assert lift.pressed and lift.plate_sink == terrain.PLATE_SINK
+    ride(h, body, terrain.LIFT_DELAY + 6 / terrain.LIFT_SPEED + 0.5)
+    assert lift.at == "high"
+    ride(h, body, 2.0)  # staying on the plate does not send it straight back
     assert lift.at == "high"
 
 
@@ -539,16 +561,19 @@ def test_an_empty_shaft_is_no_footing_and_a_raised_lift_no_way_in():
     assert not h2.floating(2, 1)
 
 
-def test_a_locked_lift_stays_put_and_says_so_once():
-    _m, h = shaft("lever=winch")
+def test_a_locked_lift_refuses_its_call_levers_until_its_first_ride():
+    _m, h = shaft("locked")
     (lift,) = h.platforms
-    assert lift.locked and lift.lever == "winch"
-    body = Body(1, 1)  # calling from the top
-    _hits, events = ride(h, body, 3.0)
-    assert events.count("lift_locked") == 1 and lift.at == "low"
-    lift.locked = False
-    ride(h, body, terrain.LIFT_CALL + 0.2)
-    assert lift.moving
+    assert lift.locked and lift.lever is None
+    assert lift.summon("high") == "lift_locked" and lift.at == "low"
+    body = Body(2, 1)  # its plate still works from the end it rests at
+    body.y = -6.0
+    _hits, events = ride(h, body, terrain.LIFT_DELAY + 6 / terrain.LIFT_SPEED + 0.5)
+    assert lift.at == "high" and not lift.locked
+    assert events.count("lift_unlocked") == 1
+    body.x, body.z = TileMap.center(1, 1)
+    ride(h, body, 0.2)
+    assert lift.summon("low") == "lift_start"
 
 
 def test_a_lift_can_start_at_the_top():
@@ -559,10 +584,12 @@ def test_a_lift_can_start_at_the_top():
 
 def test_a_lift_clanks_as_it_starts_and_stops():
     _m, h = shaft()
-    body = Body(1, 1)
+    body = Body(2, 1)  # on the plate at the bottom
+    body.y = -6.0
     sounds = []
-    for _ in range(round((terrain.LIFT_CALL + 6 / terrain.LIFT_SPEED + 0.5) / 0.05)):
+    for _ in range(round((terrain.LIFT_DELAY + 6 / terrain.LIFT_SPEED + 0.5) / 0.05)):
         h.update(0.05, body, lambda *_: None)
+        body.y = h.floor(body.x, body.z)
         sounds += [name for name, _v in h.sounds]
     assert sounds == ["chain", "clunk"]
 
@@ -575,7 +602,7 @@ def test_a_lift_ignores_someone_beside_its_shaft_at_neither_landing():
     (lift,) = h.platforms
     body = Body(2, 2)  # a ledge half-way down, beside the shaft
     body.y = -3.0
-    ride(h, body, terrain.LIFT_CALL + 1.0)
+    ride(h, body, 3.0)
     assert lift.at == "low" and not lift.moving
 
 
@@ -636,3 +663,18 @@ def test_a_neighbour_far_from_either_stop_is_no_landing():
         SHAFT.replace("{extra}", "").replace("_ = floor h=-6", "_ = floor h=-3"), name="shaft"
     ).parse()
     assert terrain.lift_doors(m, 2, 1, -6.0, 0.0) == ((-1, 0),)
+
+
+def test_call_levers_stand_on_each_landing_beside_the_way_in():
+    m, h = shaft()
+    (lift,) = h.platforms
+    spots = terrain.call_spots(m, lift)
+    assert {end for *_, end, _toward in spots} == {"low", "high"}
+    for x, z, floor, end, (dx, dz) in spots:
+        tx, tz = TileMap.tile_coord(x), TileMap.tile_coord(z)
+        assert m[tx, tz].walkable and not m[tx, tz].chasm
+        assert floor == (lift.low if end == "low" else lift.high)
+        assert (TileMap.tile_coord(x + dx * 1.5), TileMap.tile_coord(z + dz * 1.5)) == (
+            2,
+            1,
+        )  # faces the shaft

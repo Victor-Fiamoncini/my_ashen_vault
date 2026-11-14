@@ -46,7 +46,7 @@ o = floor tex=dirt h=-3.4 ceil=4.8 side=stone_brick pit
 #QooooL#========<=J====B#//L/!t#
 ########8=A=t======t==N=U//k///#
 ###############_#########N</3//#
-###############;#########/F/%e&#
+###############;#########///%e&#
 #8~~~~~~0######,#########n######
 #-~~e-~~-######.########v.f.q###
 #-~~-c~~-######G########....$###
@@ -58,7 +58,7 @@ o = floor tex=dirt h=-3.4 ceil=4.8 side=stone_brick pit
 #z---p--8######..#######(e.%$###
 @@@#4#@@@@@@#N7..i0#############
 @&7""<"7"3!"9....S.|^L|P||+*|T##
-@y"L"6g6"L"d#t>..i%#########|&##
+@y"L"6g6"L""#t>..i%#########|&##
 @%73"i7"5"7e@##E###IRL*|Y|^||T##
 @@@@@@@@@@@@@###################
 [entities]
@@ -112,8 +112,7 @@ p = rubble
 e = urn
 // The Undercroft, below the cell block: lifts down from the cells and up to the shrine.
 4 = lift top=0 model=cage on=?
-9 = lift top=0 lever=crypt_winch model=cage on=?
-d = lever id=crypt_winch
+9 = lift top=0 locked model=cage on=?
 y = chest item=kite_shield gold=40
 5 = gaoler
 3 = bone_crawler
@@ -125,11 +124,10 @@ g = grate
 ! = cage
 N = winch
 // The Warden's Gallery, above the antechamber: a cage lift up from beside the boss door, and one
-// down to the lever room, chained fast until its winch is freed. North of it, the Butcher's
+// down to the lever room, fastened up here until you first ride it down. North of it, the Butcher's
 // slaughter hall.
 U = lift top=7.6 model=cage on=`
-n = lift top=7.6 start=top lever=belfry_winch model=cage on=]
-F = lever id=belfry_winch
+n = lift top=7.6 start=top locked model=cage on=]
 H = chest item=chain_mitts gold=80
 k = pillar
 V = headsman_block

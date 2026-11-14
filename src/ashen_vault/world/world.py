@@ -43,6 +43,7 @@ class Prop:
     open_t: float = 0.0
     axis: str | None = None
     wall: bool = False  # hung on the wall behind it (at local -X)
+    lift: object = None  # the terrain.Platform a lift_call lever summons
 
 
 @dataclass(eq=False)
@@ -118,8 +119,19 @@ HAZARD_MESSAGES = {
     "logs_first": "A rotten rope snaps above, and the woodpile starts to roll!",
     "logs_last": "The last log tumbles down. The woodpile is spent.",
     "spores": "Choking spores fill your lungs.",
-    "lift_locked": "The lift's chain is locked fast. Somewhere a winch holds it.",
+    "lift_unlocked": "The lift's chain grinds free. It will answer from either end now.",
 }
+LIFT_LOCKED = "It won't budge. The lift is fastened from the other end."
+CALL_REACH_Y = 1.5  # metres above or below a call lever you can still pull it from
+# Lifts that a lever unchained in older saves (before they were freed by riding them).
+LEGACY_LIFT_LEVERS = {
+    ("sunken_keep", 12, 26): "crypt_winch",
+    ("sunken_keep", 25, 16): "belfry_winch",
+    ("verdant_hollow", 33, 15): "rim_lift",
+    ("verdant_hollow", 20, 38): "root_lift",
+    ("cinderhold", 19, 24): "smelt_lift",
+}
+WOODEN_LEVER_MAPS = ("verdant_hollow",)  # where the call levers are the jungle's rough timber
 
 # Props that fill their whole tile: nothing walks or flies through them.
 BLOCKING_PROPS = (
@@ -282,6 +294,8 @@ class World:
             if p.lever and f"lever:{p.lever}" in game.flags:
                 p.locked = False
                 p.lowered = 1.0  # a drawbridge let down on an earlier visit is still down
+            if p.kind == "lift" and self._lift_freed(p, game.flags):
+                p.locked = False
         # Which way each drawbridge hangs from: its `hinge=` side, as a turn of the model.
         self._bridge_hinge = {
             (s.tx, s.tz): BRIDGE_YAW.get(s.props.get("hinge"), 0.0)
@@ -389,6 +403,7 @@ class World:
                 if spec.kind in SPILLING_PROPS and prop.open_t > 0:
                     self._spill(prop)  # a potion left lying in an earlier visit is still there
         self._respill_slain_loot()
+        self._place_call_levers()
         if (
             "boss_dead" in self.flags
             and self.name == "sunken_keep"
@@ -484,6 +499,46 @@ class World:
         self.gouts = []
         self.eruptions = []
         self.shockwaves = []
+
+    def _lift_key(self, lift):
+        return f"lift:{self.name}:{TileMap.tile_coord(lift.x)},{TileMap.tile_coord(lift.z)}"
+
+    def _lift_freed(self, lift, flags):
+        """Ridden once on an earlier visit (or, in an older save, its winch was pulled)."""
+        legacy = LEGACY_LIFT_LEVERS.get((self.name, TileMap.tile_coord(lift.x), TileMap.tile_coord(lift.z)))
+        return self._lift_key(lift) in flags or (legacy is not None and f"lever:{legacy}" in flags)
+
+    def _place_call_levers(self):
+        """A call lever on every landing of every lift, beside the way in (`terrain.call_spots`)."""
+        for i, lift in enumerate(p for p in self.terrain.platforms if p.kind == "lift"):
+            for x, z, floor, end, (dx, dz) in terrain.call_spots(self.map, lift):
+                props = {"end": end}
+                if self.name in WOODEN_LEVER_MAPS:
+                    props["model"] = "wood"
+                self.props.append(
+                    Prop(
+                        kind="lift_call",
+                        x=x,
+                        z=z,
+                        y=floor,
+                        tx=TileMap.tile_coord(x),
+                        tz=TileMap.tile_coord(z),
+                        props=props,
+                        key=f"lift_call:{self.name}:{i}:{end}",
+                        yaw=math.atan2(dz, dx),
+                        lift=lift,
+                    )
+                )
+
+    def call_lift(self, prop):
+        """Pulls a landing's call lever: the lever springs back, and the lift comes if it can."""
+        prop.open_t = 0.01
+        self.game.sfx("door", 0.6)
+        event = prop.lift.summon(prop.props["end"])
+        if event == "lift_locked":
+            self.game.message(LIFT_LOCKED)
+        elif event:
+            self.game.sfx(*terrain.LIFT_SOUND[event])
 
     def _opened(self, prop):
         if prop.kind in ("door", "chest", "lever", "altar", *BREAKABLE_PROPS):
@@ -832,6 +887,8 @@ class World:
         event = self.terrain.update(dt, self.player, self.game.hurt_player, blocked=self.blocker)
         for name, volume in self.terrain.sounds:
             self.game.sfx(name, volume)
+        for lift in self.terrain.unlocked:
+            self.flags.add(self._lift_key(lift))
         if event == "fell":
             self.game.sfx("hurt")
             self.game.message(FALL_MESSAGES[self.terrain.fell_into])
@@ -860,6 +917,8 @@ class World:
         for p in self.props:
             if p.kind == "iron_maiden":
                 self._update_maiden(p, dt)
+            elif p.kind == "lift_call" and p.open_t > 0:  # thrown, then it springs back
+                p.open_t = p.open_t + dt * 1.6 if p.open_t + dt * 1.6 < 1.0 else 0.0
             elif p.kind == "frog_idol" and p.open_t > 0:
                 p.open_t = p.open_t + dt if p.open_t + dt < FROG_CROAK else 0.0
             elif 0 < p.open_t < 1.0:
@@ -1260,6 +1319,8 @@ class World:
     def _interactable(self, p):
         if p.kind in ("npc", "save_statue", "exit", "pickup", "iron_maiden", "frog_idol", "silent_bell"):
             return True
+        if p.kind == "lift_call":  # only from its own landing, not from the floor below or a moving lift
+            return p.open_t == 0 and not p.lift.moving and abs(p.y - self.player.y) < CALL_REACH_Y
         if p.kind == "door" and p.props.get("boss"):
             a = self.arena_at_door(p)
             if a and a.sealed:
@@ -1383,9 +1444,9 @@ class World:
         for g in self.props:
             if g.kind == "gate" and g.props.get("lever") == p.props.get("id"):
                 g.open_t = 0.01
-        for lift in self.terrain.platforms:
-            if lift.lever and lift.lever == p.props.get("id"):
-                lift.locked = False
+        for bridge in self.terrain.platforms:
+            if bridge.lever and bridge.lever == p.props.get("id"):
+                bridge.locked = False
                 self.game.sfx("chain", 0.8)
 
     # --- rendering ---------------------------------------------------------------
@@ -1422,7 +1483,7 @@ class World:
                 if pl.kind == "lift":
                     tile = self.map[TileMap.tile_coord(pl.x), TileMap.tile_coord(pl.z)]
                     chain_h = (tile.ceil or pl.high + 3.0) - pl.deck
-                    models.lift(rig, self._time, pl.moving, chain_h, pl.model, pl.doors)
+                    models.lift(rig, self._time, pl.moving, chain_h, pl.model, pl.doors, pl.plate_sink)
                 elif pl.kind == "raft":
                     models.raft(rig, self._time)
                 elif pl.kind == "ledge":
@@ -1613,6 +1674,8 @@ class World:
             models.door(rig, p.open_t, p.axis, tex="iron_bars")
         elif k == "lever":
             models.lever(rig, p.open_t, p.wall, wood=p.props.get("model") == "wood")
+        elif k == "lift_call":
+            models.lift_call(rig, math.sin(math.pi * p.open_t), wood=p.props.get("model") == "wood")
         elif k == "pillar":
             models.pillar(rig, p.tx * 3 + p.tz, self._ceil_h(p))
         elif k == "sarcophagus":

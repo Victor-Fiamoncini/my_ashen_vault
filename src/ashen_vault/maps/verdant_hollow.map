@@ -82,7 +82,7 @@ L = floor tex=cliff_rock h=0.8 side=cliff_rock chasm
 ##########........h..rrRR^^^^###gg______________A33AA#
 ######p-]-#.tÍ......Å####a######gg____________2d22AAA#
 #-*-www-s-#####.h#######^^^^^t^#gg____________X___AAA#
-#*-*www-]-####p..#######^^h^^^^gÈg____________j___AAA#
+#*-*www-]-####p..#######^^h^^^^ggg____________j___AAA#
 #k-*~~~---#####..######pMMMMMMM#AÇ____________j___AAA#
 #-*-~~~--p#####rr######MMMMMBMT#A1____________X___AAA#
 #--slll-]-#####RR######MMMMMMMM#A1222222Z2222d2AAAAAA#
@@ -107,7 +107,7 @@ AA?????Æ???AA!!!!!Í!!!!Í!!AAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AA??@@?????AAA!!!!!!!!!!!AAAAAßAAAAAAAAAAAAAAAAAAAAAAA
 AA??@@?????AAAAAÌ!!!!!!AAAAAAA?AAAAAAAAAAAAAAAAAAAAAAA
 AA?Û???????AAAAAAAAAÑAAAAAAAAAÞAAAAAAAAAAAAAAAAAAAAAAA
-AA???????????E???????Õ????h???ÌAA??AAAAAAAAAAAAAAAAAAA
+AA???????????E????????????h???ÌAA??AAAAAAAAAAAAAAAAAAA
 AA??????h????EÔ????????????????AA??AAAAAAAAAAAAAAAAAAA
 AA?Ï?????????Ó????Û??????Ú????Ý??s?AAAAAAAAAAAAAAAAAAA
 AA???????????E????????Î????????????AAAAAAAAAAAAAAAAAAA
@@ -164,8 +164,7 @@ d = torch radius=8
 Ä = jungle_tree on=K
 Å = totem
 Æ = bonfire
-Ç = lift top=3.2 start=top lever=rim_lift on=L
-È = lever id=rim_lift model=wood
+Ç = lift top=3.2 start=top locked on=L
 É = exit map=harrowmere at=58,30,180 label=Return_to_Harrowmere model=cave_mouth yaw=180
 Ê = brazier unlit
 Ë = chest item=scroll_pyre gold=20
@@ -174,11 +173,10 @@ d = torch radius=8
 Î = roots
 Ï = bones
 Ð = torch radius=5 on=(
-Ñ = lift top=0 lever=root_lift on=)
+Ñ = lift top=0 locked on=)
 Ò = roots on=8
 Ó = bridge lever=root_bridge hinge=e deck=-3.2 on=E
 Ô = lever id=root_bridge model=wood
-Õ = lever id=root_lift model=wood
 Ö = spore_pod every=3.8
 Ø = spore_pod every=4.4 phase=1.5
 Ù = spore_pod every=4
