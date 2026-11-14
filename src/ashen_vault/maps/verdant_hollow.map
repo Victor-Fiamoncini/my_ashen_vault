@@ -166,7 +166,7 @@ d = torch radius=8
 Æ = bonfire
 Ç = lift top=3.2 start=top lever=rim_lift on=L
 È = lever id=rim_lift model=wood
-É = exit map=harrowmere at=43,14,180 label=Return_to_Harrowmere model=cave_mouth yaw=180
+É = exit map=harrowmere at=58,30,180 label=Return_to_Harrowmere model=cave_mouth yaw=180
 Ê = brazier unlit
 Ë = chest item=scroll_pyre gold=20
 Ì = shelf_fungus

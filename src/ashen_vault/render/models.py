@@ -7,7 +7,7 @@ from ashen_vault.ai.enemy import COMBO_GAP
 from ashen_vault.player.items import Items
 from ashen_vault.render import bounds, shapes
 from ashen_vault.util import rround
-from ashen_vault.world import terrain
+from ashen_vault.world import terrain, villagers
 
 BONE = (214, 204, 178)
 RUST = (120, 70, 44)
@@ -1463,24 +1463,262 @@ def _spider_leg(r, i, side, phase, amp, body, band, curl=0.0):
                 r.part("wedge", 0.45, 0.05, 0, 0.04, 0.09, 0.04, (40, 32, 40), rz=-0.5)  # a bristling spine
 
 
-def npc(r, robe, skin=SKIN, hair=(70, 54, 40), t=0, hood=False, blade=False):
+def npc(r, look, t=0.0):
+    """A villager facing +X, built from a `villagers.Look`: boots and trousers (or a long robe), a belted
+    tunic, an apron or cloak, jointed arms with hands, a face with brows and a nose, hair, a beard, a hat
+    or hood, and whatever they hold. They idle by their trade (`look.idle`)."""
+    hs, ws, stoop = villagers.BUILDS[look.build]
     sway = math.sin(t * 1.5) * 0.03
-    with r.at(0, 0, 0, rz=sway):
-        if hood:  # a deep hood that hides most of the face
-            r.part("sphere", -0.05, 1.6, 0, 0.4, 0.42, 0.4, robe)
-            r.part("cube", -0.12, 1.4, 0, 0.22, 0.2, 0.46, robe)
-        if blade:  # a sheathed curved sword slung across the back
-            with r.at(-0.3, 1.0, 0, rx=0.9):
-                r.part("cube", 0, 0, 0, 0.06, 1.1, 0.08, (30, 26, 30))
-                r.part("cube", 0, 0.62, 0, 0.05, 0.25, 0.05, (160, 30, 40))
-        r.part("cyl", 0, 0.55, 0, 0.55, 1.1, 0.6, robe)
-        r.part("cube", 0, 1.2, 0, 0.32, 0.35, 0.5, robe)
-        r.part("cube", 0, 1.15, -0.3, 0.14, 0.5, 0.12, robe)
-        r.part("cube", 0, 1.15, 0.3, 0.14, 0.5, 0.12, robe)
-        r.part("sphere", 0, 1.55, 0, 0.3, 0.32, 0.28, skin)
-        r.part("sphere", -0.03, 1.64, 0, 0.32, 0.18, 0.3, hair)
-        r.part("cube", 0.14, 1.56, -0.06, 0.02, 0.04, 0.04, (20, 16, 14))
-        r.part("cube", 0.14, 1.56, 0.06, 0.02, 0.04, 0.04, (20, 16, 14))
+    beat = max(math.sin(t * 2.4), 0.0) ** 3  # the smith's hammer, the guard's shifting weight
+    with r.at(0, 0, 0, rz=sway, s=hs):
+        _villager_legs(r, look, ws)
+        with r.at(0, 0.95, 0, rz=-stoop):  # everything above the hips leans with the stoop
+            _villager_torso(r, look, ws)
+            _villager_arms(r, look, ws, t, beat)
+            with r.at(0.03, 0.72, 0, rz=stoop * 0.6 - (0.12 if look.idle == "pray" else 0.0)):
+                _villager_head(r, look)
+            if look.blade:  # a sheathed curved sword slung across the back
+                with r.at(-0.2, 0.15, 0, rx=0.9):
+                    r.part("cube", 0, 0, 0, 0.06, 1.1, 0.08, (30, 26, 30))
+                    r.part("cube", 0, 0.62, 0, 0.05, 0.25, 0.05, (160, 30, 40))
+
+
+def _villager_legs(r, look, ws):
+    if look.garb == "robe":  # a robe falling to the ankles, hems of the boots peeping out
+        r.part("cyl", 0, 0.48, 0, 0.5 * ws, 0.96, 0.56 * ws, look.cloth)
+        r.part("cyl", 0, 0.06, 0, 0.56 * ws, 0.12, 0.62 * ws, _dim(look.cloth, 0.8))  # hem
+        for z in (-0.1, 0.1):
+            r.part("cube", 0.2, 0.04, z * ws, 0.16, 0.08, 0.1, look.boots)
+        return
+    for z in (-0.11, 0.11):
+        r.part("cube", 0, 0.62, z * ws, 0.17, 0.5, 0.15, look.trousers)  # thigh
+        r.part("cube", 0, 0.28, z * ws, 0.15, 0.4, 0.13, _dim(look.trousers, 0.9))  # shin
+        r.part("cube", 0.04, 0.09, z * ws, 0.24, 0.18, 0.15, look.boots)  # boot
+        r.part("cube", 0.0, 0.2, z * ws, 0.17, 0.04, 0.16, _dim(look.boots, 0.75))  # boot cuff
+
+
+def _villager_torso(r, look, ws):
+    w = 0.42 * ws
+    r.part("cube", 0, 0.32, 0, 0.26, 0.5, w, look.cloth)  # chest
+    r.part("cube", 0, 0.05, 0, 0.27, 0.16, w * 0.92, _dim(look.cloth, 0.92))  # waist
+    r.part("cube", 0, 0.02, 0, 0.29, 0.06, w * 0.95, look.belt)  # belt
+    r.part("cube", 0.15, 0.02, 0, 0.02, 0.06, 0.06, (170, 150, 90))  # buckle
+    r.part("cube", 0, -0.12, 0, 0.27, 0.2, w * 0.98, look.cloth)  # tunic skirt over the hips
+    r.part("cube", 0.12, 0.5, 0, 0.04, 0.1, 0.16, _dim(look.cloth, 0.75))  # collar
+    if look.apron:
+        r.part("cube", 0.14, 0.05, 0, 0.02, 0.62, w * 0.62, look.apron)
+        r.part("cube", 0.14, 0.42, 0, 0.02, 0.18, w * 0.45, look.apron)  # bib
+        r.part("cube", 0.155, -0.08, 0, 0.01, 0.14, w * 0.3, _dim(look.apron, 0.8))  # pocket
+    if look.cloak:
+        r.part("cube", -0.16, 0.05, 0, 0.05, 0.95, w * 1.15, look.cloak)
+        r.part("cube", -0.05, 0.5, 0, 0.26, 0.08, w * 1.2, _dim(look.cloak, 1.1))  # mantle
+        r.part("cube", 0.13, 0.48, 0, 0.03, 0.06, 0.06, (170, 150, 90))  # clasp
+
+
+TOOL_WOOD = (96, 70, 44)
+TOOL_IRON = (110, 110, 118)
+
+
+def _villager_arms(r, look, ws, t, beat):
+    """Two arms from the shoulders, each an upper arm, an elbow and a forearm ending in a hand. The
+    right one (+Z) works the tool; the left rests, or both clasp in prayer."""
+    sleeve = (look.cloak or look.cloth) if look.garb == "robe" else look.cloth
+    for side in (1, -1):
+        sh, el, tool = _arm_pose(look, side, t, beat)
+        with r.at(0, 0.5, side * (0.25 * ws), rz=sh, rx=-side * 0.08):
+            r.part("cube", 0, -0.16, 0, 0.12, 0.34, 0.12, sleeve)
+            with r.at(0, -0.32, 0, rz=el):
+                r.part("cube", 0, -0.14, 0, 0.1, 0.3, 0.1, _dim(sleeve, 0.92))
+                r.part("cube", 0, -0.27, 0, 0.11, 0.05, 0.11, _dim(sleeve, 0.7))  # cuff
+                with r.at(0, -0.3, 0):
+                    hand(r, look.skin, size=0.09, curl=0.6 if tool else 0.2)
+                    if tool:
+                        with r.at(0, -0.06, 0):
+                            _villager_tool(r, look.tool, t)
+
+
+def _arm_pose(look, side, t, beat):
+    """(shoulder, elbow, holds the tool) angles for one arm, from the idle."""
+    working = side == 1 and look.tool is not None
+    idle = look.idle
+    if idle == "pray":
+        return 0.5, 1.2, side == 1 and look.tool == "staff"
+    if not working:
+        return (0.05 + 0.03 * math.sin(t * 1.3 + side), 0.15, False) if idle != "count" else (0.3, 1.1, False)
+    if idle == "hammer":
+        return 0.2 + 1.4 * beat, 0.9 + 0.6 * (1 - beat), True
+    if idle == "stir":
+        return 0.6 + 0.15 * math.sin(t * 3), 0.9 + 0.2 * math.cos(t * 3), True
+    if idle == "count":
+        return 0.35, 1.25 + 0.08 * math.sin(t * 4), True
+    if look.tool in ("spear", "staff"):
+        return 0.15, 0.55, True
+    if look.tool == "rod":
+        return 0.7, 0.4, True
+    return 0.3, 1.0, True
+
+
+def _villager_tool(r, tool, t):
+    """What a villager holds, in the hand's frame (the hand hangs down -Y, fingers forward +X)."""
+    if tool == "hammer":  # held by the haft, head forward
+        r.part("cube", 0.12, 0, 0, 0.34, 0.04, 0.04, TOOL_WOOD)
+        r.part("cube", 0.3, 0, 0, 0.08, 0.1, 0.16, TOOL_IRON)
+    elif tool in ("spear", "staff"):  # an upright pole through the fist
+        r.part("cube", 0, 0.4, 0, 0.04, 1.9, 0.04, TOOL_WOOD)
+        if tool == "spear":
+            r.part("lozenge", 0, 1.45, 0, 0.06, 0.28, 0.025, TOOL_IRON)
+        else:
+            r.part("sphere", 0, 1.38, 0, 0.1, 0.1, 0.1, (150, 140, 110))  # a worn knob
+            r.part("cube", 0, 1.3, 0, 0.06, 0.03, 0.06, (170, 150, 90))
+    elif tool == "ladle":
+        r.part("cube", 0.12, 0, 0, 0.3, 0.03, 0.03, TOOL_WOOD)
+        r.part("sphere", 0.28, -0.03, 0, 0.09, 0.06, 0.09, TOOL_WOOD)
+    elif tool == "ledger":
+        r.part("cube", 0.08, 0.02, 0, 0.2, 0.04, 0.16, (110, 50, 40))
+        r.part("cube", 0.08, 0.045, 0, 0.18, 0.01, 0.14, (220, 210, 180))
+    elif tool == "rod":  # a fishing rod pointing out over the water, its line hanging
+        with r.at(0, 0, 0, rz=0.5):
+            r.part("cube", 0.8, 0, 0, 1.6, 0.025, 0.025, TOOL_WOOD)
+        r.part("cube", 1.42, 0.1 - 0.4, 0, 0.005, 0.8 + 0.05 * math.sin(t), 0.005, (200, 200, 200))
+    elif tool == "whetstone":
+        r.part("cube", 0.06, 0, 0, 0.14, 0.05, 0.06, (120, 120, 126))
+    elif tool == "tankard":
+        r.part("cyl", 0.06, 0.02, 0, 0.1, 0.13, 0.1, (130, 110, 90))
+        r.part("cyl", 0.06, 0.09, 0, 0.09, 0.02, 0.09, (230, 220, 200))  # froth
+    elif tool == "lantern":
+        r.part("cube", 0, -0.12, 0, 0.12, 0.16, 0.12, IRON)
+        r.part("cube", 0, -0.12, 0, 0.08, 0.1, 0.08, (255, 200, 110), glow=True)
+
+
+def _villager_head(r, look):
+    skin = look.skin
+    r.part("cube", 0, 0.0, 0, 0.12, 0.1, 0.12, skin)  # neck
+    r.part("sphere", 0, 0.16, 0, 0.27, 0.3, 0.25, skin)
+    r.part("cube", 0.125, 0.15, 0, 0.05, 0.06, 0.04, _dim(skin, 0.9))  # nose
+    for z in (-0.055, 0.055):
+        r.part("cube", 0.12, 0.2, z, 0.02, 0.03, 0.035, (24, 20, 18))  # eyes
+        r.part("cube", 0.125, 0.235, z, 0.02, 0.02, 0.05, _dim(look.hair, 0.9))  # brows
+        r.part("cube", 0.0, 0.17, z * 2.4, 0.06, 0.08, 0.03, _dim(skin, 0.92))  # ears
+    r.part("cube", 0.12, 0.09, 0, 0.015, 0.015, 0.06, _dim(skin, 0.6))  # mouth
+    if look.beard:
+        r.part("cube", 0.09, 0.06, 0, 0.1, 0.14, 0.2, look.hair)
+        r.part("cube", 0.11, 0.0, 0, 0.07, 0.1, 0.12, look.hair)
+    if look.hood:  # a deep hood that hides most of the face
+        r.part("sphere", -0.03, 0.2, 0, 0.36, 0.38, 0.34, look.cloak or look.cloth)
+        r.part("cube", -0.1, 0.0, 0, 0.2, 0.2, 0.4, look.cloak or look.cloth)
+        return
+    style = look.hair_style
+    if style != "bald":
+        r.part("sphere", -0.03, 0.25, 0, 0.29, 0.17, 0.27, look.hair)
+    else:
+        r.part("sphere", -0.02, 0.26, 0, 0.25, 0.1, 0.23, _dim(skin, 0.95))  # a bare pate
+    if style == "long":
+        r.part("cube", -0.1, 0.08, 0, 0.1, 0.32, 0.26, look.hair)
+    elif style == "bun":
+        r.part("sphere", -0.13, 0.3, 0, 0.12, 0.12, 0.12, look.hair)
+    if look.hat == "brim":
+        r.part("cyl", 0, 0.3, 0, 0.44, 0.03, 0.44, look.hat_rgb)
+        r.part("cyl", 0, 0.37, 0, 0.24, 0.13, 0.24, look.hat_rgb)
+    elif look.hat == "cap":
+        r.part("sphere", -0.01, 0.29, 0, 0.29, 0.14, 0.27, look.hat_rgb)
+        r.part("cube", 0.13, 0.27, 0, 0.1, 0.02, 0.18, _dim(look.hat_rgb, 0.85))  # peak
+    elif look.hat == "coif":  # a mail coif over the head and neck
+        r.part("sphere", -0.01, 0.2, 0, 0.3, 0.3, 0.28, look.hat_rgb)
+        r.part("cube", -0.04, 0.0, 0, 0.18, 0.12, 0.28, look.hat_rgb)
+
+
+THRONE_STONE = (118, 114, 108)
+THRONE_CUSHION = (92, 34, 40)
+ENTHRONED_IRON = (54, 52, 60)
+
+
+def throne(r):
+    """A high-backed stone throne facing +X on a two-step dais: carved arms ending in scrolls, a worn
+    red cushion, a tall back with ribbed panels rising to a pointed crest and two finials."""
+    stone = THRONE_STONE
+    r.part("cube", 0, 0.12, 0, 1.9, 0.24, 1.9, stone, tex="flagstone")  # lower step
+    r.part("cube", -0.2, 0.36, 0, 1.4, 0.24, 1.5, _dim(stone, 0.95), tex="flagstone")  # upper step
+    r.part("cube", -0.25, 0.7, 0, 0.9, 0.44, 1.1, stone, tex="rough_stone")  # seat block
+    r.part("cube", -0.2, 0.95, 0, 0.8, 0.08, 0.95, THRONE_CUSHION)  # cushion
+    r.part("cube", 0.2, 0.95, 0, 0.06, 0.06, 0.95, _dim(THRONE_CUSHION, 0.8))  # its rolled edge
+    for side in (-1, 1):  # arms
+        r.part("cube", -0.25, 1.15, side * 0.62, 0.95, 0.12, 0.2, stone, tex="rough_stone")
+        r.part("cube", -0.25, 0.95, side * 0.62, 0.85, 0.36, 0.14, _dim(stone, 0.9))
+        r.part("cyl", 0.22, 1.15, side * 0.62, 0.22, 0.2, 0.22, stone, rx=math.pi / 2)  # scroll end
+        r.part("cube", -0.25, 2.3, side * 0.62, 0.22, 3.3, 0.22, stone, tex="rough_stone")  # back post
+        r.part("cone", -0.25, 4.1, side * 0.62, 0.3, 0.6, 0.3, _dim(stone, 1.1))  # finial
+    r.part("cube", -0.68, 2.35, 0, 0.18, 3.4, 1.05, stone, tex="rough_stone")  # back slab
+    for z in (-0.3, 0.0, 0.3):  # ribbed panels carved in the back
+        r.part("cube", -0.58, 2.2, z, 0.04, 2.6, 0.08, _dim(stone, 0.8))
+    r.part("wedge", -0.68, 4.35, 0, 0.18, 0.6, 1.05, stone, tex="rough_stone")  # pointed crest
+    r.part("cube", -0.58, 4.0, 0, 0.04, 0.24, 0.24, _dim(stone, 0.75), rx=math.pi / 4)  # its sigil
+
+
+def enthroned(r, t):
+    """The Enthroned: an ancient, gaunt figure far taller than a man, seated on the cathedral throne
+    facing +X. Robes pool down the dais, long bony hands rest on the arms, and a crown of iron spikes
+    rises over a face lost in shadow but for two cold glints. It never moves, save the dust that
+    drifts about it and a breath every long while."""
+    throne(r)
+    robe = (58, 54, 64)
+    under = _dim(robe, 0.7)
+    skin = (150, 146, 140)
+    breath = 1 + 0.015 * math.sin(t * 0.4)
+    with r.at(-0.2, 1.0, 0):  # the seat
+        # Legs: thighs along the seat, shins down the dais, robes pooling over them.
+        for side in (-1, 1):
+            r.part("cube", 0.3, 0.12, side * 0.2, 0.75, 0.2, 0.22, robe)
+            r.part("cube", 0.66, -0.35, side * 0.22, 0.2, 0.85, 0.2, under)
+            r.part("cube", 0.74, -0.72, side * 0.22, 0.32, 0.1, 0.16, (40, 36, 40))  # feet
+        r.part("cube", 0.75, -0.45, 0, 0.12, 0.95, 0.75, robe)  # the robe's fall between the knees
+        r.part("wedge", 1.0, -0.8, 0, 0.5, 0.25, 0.95, _dim(robe, 0.85), rz=math.pi / 2)  # pooled hem
+        for i in range(4):  # folds in the robe
+            r.part("cube", 0.82, -0.4, -0.27 + i * 0.18, 0.03, 0.85, 0.04, under)
+        # Torso: long and narrow, leaning back into the throne, a chain of office over the chest.
+        with r.at(-0.15, 0.25, 0, rz=0.08, s=breath):
+            r.part("cube", 0, 0.55, 0, 0.36, 1.1, 0.62, robe)
+            r.part("cube", 0.05, 0.95, 0, 0.3, 0.28, 0.78, _dim(robe, 1.15))  # mantle
+            r.part("cube", -0.12, 0.45, 0, 0.14, 1.0, 0.7, under)  # its back
+            for i in range(5):  # the chain of office
+                a = (i - 2) * 0.32
+                r.part("cube", 0.19, 0.78 - abs(a) * 0.5, a * 0.6, 0.03, 0.06, 0.08, (150, 130, 80))
+            r.part("cube", 0.2, 0.55, 0, 0.03, 0.14, 0.12, (150, 130, 80))  # its pendant
+            r.part("cube", 0.215, 0.55, 0, 0.01, 0.06, 0.04, (110, 150, 170), glow=True)
+            # Arms hanging from the shoulders to the throne's arms, forearms laid along them and long
+            # bony hands drooping over the carved scrolls.
+            for side in (-1, 1):
+                with r.at(0, 0.98, side * 0.42, rx=-side * 0.12), r.at(0, 0, 0, rz=0.12):
+                    r.part("cube", 0, -0.45, 0, 0.17, 0.9, 0.17, robe)
+                    with r.at(0, -0.88, 0, rz=1.5):
+                        r.part("cube", 0, -0.32, 0, 0.15, 0.64, 0.15, robe)
+                        r.part("cube", 0, -0.62, 0, 0.2, 0.08, 0.2, under)  # cuff
+                        with r.at(0, -0.68, 0, rz=-1.3):
+                            hand(r, skin, size=0.16, bony=True, curl=0.9)
+            # Head: a long gaunt face lost under a cowl, two cold glints, the spiked crown.
+            with r.at(0.04, 1.2, 0, rz=0.12):
+                r.part("cube", 0, 0.05, 0, 0.12, 0.16, 0.14, skin)  # neck
+                r.part("sphere", 0, 0.32, 0, 0.3, 0.42, 0.28, skin)
+                r.part("cube", 0.12, 0.18, 0, 0.08, 0.14, 0.16, _dim(skin, 0.85))  # long jaw
+                r.part("cube", 0.13, 0.36, 0, 0.06, 0.14, 0.05, _dim(skin, 0.9))  # nose
+                for z in (-0.06, 0.06):
+                    r.part("cube", 0.14, 0.42, z, 0.02, 0.025, 0.04, (150, 200, 230), glow=True)
+                    r.part("cube", 0.1, 0.27, z * 1.9, 0.12, 0.08, 0.03, _dim(skin, 0.7))  # hollow cheeks
+                r.part("sphere", -0.04, 0.38, 0, 0.42, 0.5, 0.42, under)  # the cowl
+                r.part("cube", 0.05, 0.6, 0, 0.3, 0.06, 0.4, robe)  # its brim
+                r.part("cyl", -0.02, 0.66, 0, 0.36, 0.08, 0.36, ENTHRONED_IRON)  # crown band
+                for i in range(7):  # iron spikes, tallest at the front
+                    a = (i - 3) * 0.42
+                    h = 0.5 - abs(i - 3) * 0.07
+                    r.part(
+                        "cone", -0.02 + math.cos(a) * 0.16, 0.7 + h / 2, math.sin(a) * 0.16,
+                        0.06, h, 0.06, ENTHRONED_IRON,
+                    )  # fmt: skip
+    for i in range(10):  # dust drifting through the light about the throne
+        u = (t * 0.05 + i / 10) % 1.0
+        r.part(
+            "cube", 0.6 + math.sin(i * 2.3 + t * 0.2) * 0.8, 0.5 + 3.5 * u, math.sin(i * 1.7) * 1.0,
+            0.03, 0.03, 0.03, (200, 196, 180), glow=True,
+        )  # fmt: skip
 
 
 def chest(r, is_open):

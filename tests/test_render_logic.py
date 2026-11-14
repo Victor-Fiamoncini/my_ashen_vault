@@ -551,3 +551,89 @@ def test_every_weapon_preview_is_centred_and_fits_its_window():
         assert abs((lo[1] + hi[1]) / 2) < 0.05, item.id  # the whip once hung at the bottom
         assert hi[1] - lo[1] <= models.PREVIEW_HEIGHT + 1e-6, item.id
         assert hi[1] - lo[1] >= 0.9, item.id
+
+
+def test_every_villager_draws_as_a_person_in_every_idle():
+    """Each villager has legs, a torso, two jointed arms with hands and a face; whatever they do,
+    nothing sinks below the floor and they stand about a person's height."""
+    from ashen_vault.render import bounds, models
+    from ashen_vault.world import villagers
+
+    for id_ in (*villagers.LOOKS, "stranger"):
+        look = villagers.look(id_)
+        for t in (0.0, 0.7, 1.9):
+            gpu = _RecordingGpu()
+            models.npc(rig.Rig(gpu), look, t)
+            assert len(gpu.parts) >= 35, id_
+            assert min(y for _, y in gpu.parts) > -0.1, id_
+        (_, lo_y, _), (_, hi_y, _) = bounds.measure(lambda r, look=look: models.npc(r, look, 0.0))
+        assert lo_y > -0.1 and 1.5 < hi_y < 3.6, (id_, hi_y)  # a staff or spear may stand taller
+
+
+def test_villager_looks_are_checked_and_strangers_wear_grey():
+
+    from ashen_vault.world import villagers
+
+    assert villagers.look("nobody") == villagers.Look()
+    with pytest.raises(AssertionError):
+        villagers.Look(build="giant")
+    assert villagers.look("brannoc").tool == "hammer" and villagers.look("corvane").blade
+
+
+def test_the_enthroned_is_boss_sized_on_a_throne_that_fits_its_tile():
+    from ashen_vault.render import bounds, models
+
+    gpu = _RecordingGpu()
+    models.enthroned(rig.Rig(gpu), 1.0)
+    assert len(gpu.parts) >= 50
+    (lo_x, lo_y, lo_z), (hi_x, hi_y, hi_z) = bounds.measure(models.throne)
+    assert lo_y >= 0 and hi_y > 4.0  # a high back
+    assert max(-lo_x, hi_x, -lo_z, hi_z) <= 1.0  # inside its 2 m tile
+
+
+def test_town_props_draw_and_roofs_cover_their_buildings():
+    from ashen_vault.render import bounds, town_models
+
+    gpu = _RecordingGpu()
+    r = rig.Rig(gpu)
+    town_models.silent_bell(r, 0.5)
+    town_models.cathedral_spire(r, 15)
+    for seed in range(4):
+        town_models.pew(r, seed)
+        town_models.window(r, seed)
+        town_models.bed(r, seed)
+        town_models.cupboard(r, seed)
+        town_models.shelf(r, seed)
+        town_models.stall(r, seed, 0.5)
+        town_models.fence(r, seed)
+        town_models.boat(r, 0.5, seed)
+    town_models.hearth(r, 0.5)
+    town_models.lamp_post(r, 0.5)
+    assert len(gpu.parts) > 300
+    for w, d, ridge in ((6, 7, "z"), (8, 7, "x"), (17, 7, "x")):
+        (lo_x, lo_y, lo_z), (hi_x, hi_y, hi_z) = bounds.measure(
+            lambda r, w=w, d=d, ridge=ridge: town_models.roof(r, w, d, ridge, top=4.2, pitch=2.4)
+        )
+        # The NW corner tile is the origin: the roof spans every tile to the SE, eaves overhanging.
+        assert lo_x < -1.0 and hi_x > (w - 1) * 2 + 1.0, (w, d)
+        assert lo_z < -1.0 and hi_z > (d - 1) * 2 + 1.0, (w, d)
+        assert lo_y >= 4.0 and hi_y == pytest.approx(4.2 + 2.4, abs=0.2)
+
+
+def test_every_tool_hat_hair_and_build_a_villager_can_have_draws():
+    """Options no villager uses yet (a lantern, a brimmed hat) still draw, so a new villager can."""
+    from ashen_vault.render import models
+    from ashen_vault.world import villagers
+
+    for tool, hat, hair, build in zip(
+        villagers.TOOLS,
+        [*villagers.HATS] * 3,
+        [*villagers.HAIR_STYLES] * 3,
+        [*villagers.BUILDS] * 2,
+        strict=False,
+    ):
+        for garb in villagers.GARBS:
+            look = villagers.Look(tool=tool, hat=hat, hair_style=hair, build=build, garb=garb)
+            gpu = _RecordingGpu()
+            models.npc(rig.Rig(gpu), look, 0.4)
+            assert len(gpu.parts) >= 30, (tool, hat, hair, build, garb)

@@ -39,7 +39,7 @@ from ashen_vault.util import clamp, rround
 from ashen_vault.world import darkness, doors, elements, relics
 from ashen_vault.world.rest import RestSequence
 from ashen_vault.world.tile_map import TileMap
-from ashen_vault.world.world import World
+from ashen_vault.world.world import World, beside_shrine
 
 KIND_ORDER = ["weapon", "shield", "armor", "spell", "consumable", "scroll", "key"]
 HAND_BUTTON = {RIGHT: "attack", LEFT: "cast"}  # input actions: left mouse = Primary, right = Secondary
@@ -52,6 +52,7 @@ PICK_LIST = (24, 60, 190)  # the "which slot?" chooser over Belongings
 EQUIPPED_PANEL = (182, 6, 132)  # Belongings: what Primary, Secondary, Body and Hands hold
 STATS_PANEL = (182, 80, 132)
 TITLE_Y, TITLE_STEP = 140, 14
+TITLE_ORBIT = (25, 24)  # the title camera circles Harrowmere's Silent Bell (its tile)
 # Comparing gear: a better stat green, a worse one red (keyed by compare.better).
 COMPARE_COLORS = {1: ui.color(120, 210, 110), -1: ui.color(225, 95, 80), 0: ui.TEXT}
 ENDING = [
@@ -328,7 +329,7 @@ class Game:
         self.flags = flags
         self.messages.clear()
         self._load_world(map_name)
-        self.player.place(player.x, player.z, player.yaw, self.world.map)
+        self.player.place(*beside_shrine(self.world.map, player.x, player.z, player.yaw), self.world.map)
         self._enter_play()
         self.message("You wake beside the shrine.")
 
@@ -1146,7 +1147,7 @@ class Game:
         self.player.revive()
         self.messages.clear()
         self._load_world(map_name)
-        self.player.place(x, z, yaw, self.world.map)
+        self.player.place(*beside_shrine(self.world.map, x, z, yaw), self.world.map)
         self._saves.save(map=self.world.name, player=self.player, flags=self.flags)
         self._enter_play()
         self.message("You wake beside the shrine.")
@@ -1262,13 +1263,13 @@ class Game:
         cam = self._camera
         if self.scene == "title" or (self.scene == "controls" and self._controls_from == "title"):
             a = self._time * 0.08
-            cx, cz = TileMap.center(15, 15)
-            ex = cx + math.cos(a) * 9
-            ez = cz + math.sin(a) * 9
+            cx, cz = TileMap.center(*TITLE_ORBIT)
+            ex = cx + math.cos(a) * 11
+            ez = cz + math.sin(a) * 11
             self.player.x = ex
             self.player.z = ez
-            cam.position = (ex, 4.5, ez)
-            cam.target = (cx, 1.5, cz)
+            cam.position = (ex, 5.0, ez)
+            cam.target = (cx, 3.2, cz)
             return
         p = self.player
         fx, fz = p.forward()

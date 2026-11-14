@@ -80,7 +80,7 @@ m = chest item=blue_moss count=2 gold=30
 z = chest item=claymore on=-
 h = chest item=war_hammer on=:
 S = save_statue
-E = exit map=harrowmere at=15,16,-90 label=Climb_the_rope model=rope
+E = exit map=harrowmere at=37,20,0 label=Climb_the_rope model=rope
 ^ = spikes on=|
 * = spikes phase=0.9 on=|
 + = spikes phase=1.8 on=|

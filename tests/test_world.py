@@ -102,6 +102,7 @@ STATIC_BLOCKERS = (
     *("altar", "table", "rack", "rubble", "cocoon", "frog_idol"),
     *("pillar", "sarcophagus", "headsman_block", "bonfire", "giant_mushroom", "totem"),
     *("anvil", "chimney"),
+    *("pew", "bed", "cupboard", "stall", "fence", "lamp_post"),
 )
 
 
@@ -222,6 +223,38 @@ def _spec(m, kind, **props):
     return [s for s in m.entities if s.kind == kind and all(s.props.get(k) == v for k, v in props.items())]
 
 
+def test_harrowmere_every_villager_shop_and_road_is_reachable_from_the_pier():
+    """From the pier where you land you can walk to every villager, the shrine, the well, the cave
+    trail, the north gate and the throne; the cathedral stands on its hill above the square."""
+    m = MapLoader.load_file(os.path.join(MAP_DIR, "harrowmere.map"))
+    sx, sz = (int(v) for v in m.meta["start"][:2])
+    assert m[sx, sz].floor_tex == "wood_plank"  # on the pier
+    reach = _reachable(m, (sx, sz))
+    beside = ((1, 0), (-1, 0), (0, 1), (0, -1))
+    ids = set()
+    for s in m.entities:
+        if s.kind in ("npc", "save_statue", "exit"):
+            ids.add(s.props.get("id"))
+            assert any((s.tx + dx, s.tz + dz) in reach for dx, dz in beside), (s.kind, s.props, s.tx, s.tz)
+    assert {
+        "odrin",
+        "pell",
+        "hollis",
+        "maeve",
+        "corvane",
+        "brannoc",
+        "garrick",
+        "tamsin",
+        "ilse",
+        "wren",
+    } <= ids
+    (throne,) = _spec(m, "npc", id="enthroned")
+    (bell,) = _spec(m, "silent_bell")
+    assert m[throne.tx, throne.tz].floor >= m[bell.tx, bell.tz - 2].floor + 2.0  # up on the hill
+    assert all(s.props.get("span") for s in _spec(m, "roof"))  # no flat-topped boxes left
+    assert len(_spec(m, "roof")) >= 8
+
+
 def test_harrowmere_has_the_jungle_cave():
     """The jungle is reached by a trail out of the square's east side, ending at a cave mouth."""
     m = MapLoader.load_file(os.path.join(MAP_DIR, "harrowmere.map"))
@@ -240,20 +273,23 @@ def test_harrowmere_jungle_trail_is_a_narrow_path_darkening_under_the_canopy():
     tiles across, hedged in, and roofed by a canopy that grows darker toward the cave."""
     m = MapLoader.load_file(os.path.join(MAP_DIR, "harrowmere.map"))
     (exit_,) = _spec(m, "exit", map="verdant_hollow")
-    trail = {
+    jungle = {
         (tx, tz)
         for tz in range(m.depth)
-        for tx in range(32, exit_.tx)
+        for tx in range(exit_.tx)
         if m[tx, tz].walkable and m[tx, tz].floor_tex == "jungle_floor"
     }
-    assert (exit_.tx - 1, exit_.tz) in _reachable(m, (31, exit_.tz))
+    gap = min(tx for tx, _ in jungle)  # the gap in the town's east wall, where the trail begins
+    assert m[gap, exit_.tz - 2].solid and m[gap, exit_.tz + 1].solid
+    trail = {(tx, tz) for tx, tz in jungle if tx > gap}
+    assert (exit_.tx - 1, exit_.tz) in _reachable(m, (gap, exit_.tz))
     for tx, tz in trail:  # no open clearing: no 3x3 block of trail anywhere
         assert not all((tx + dx, tz + dz) in trail for dx in range(3) for dz in range(3)), (tx, tz)
     roofed = [m[t] for t in trail if not m[t].open_sky]
     assert roofed and len(roofed) > len(trail) / 2  # mostly under the canopy...
     assert len(roofed) < len(trail)  # ...with the sky still showing at the start
     near = max(m[t].dark for t in trail if abs(t[0] - exit_.tx) + abs(t[1] - exit_.tz) <= 4)
-    far = min(m[t].dark for t in trail if t[0] <= 33)
+    far = min(m[t].dark for t in trail if t[0] <= gap + 2)
     assert near > far  # darker toward the cave
 
 
@@ -606,3 +642,36 @@ def test_cinderhold_gate_shortcut_cuts_the_way_back_to_the_bridge():
     long_way = _steps(m, here, bridge, [(postern.tx, postern.tz)])
     short_way = _steps(m, here, bridge, [(postern.tx, postern.tz), (gate.tx, gate.tz)])
     assert long_way > 2 * short_way, (long_way, short_way)
+
+
+def test_a_save_from_before_the_town_was_rebuilt_wakes_beside_the_new_shrine():
+    from ashen_vault.world.world import SHRINE_REACH, beside_shrine
+
+    m = MapLoader.load_file(os.path.join(MAP_DIR, "harrowmere.map"))
+    (shrine,) = _spec(m, "save_statue")
+    sx, sz = TileMap.center(shrine.tx, shrine.tz)
+    near = (sx + TileMap.TILE, sz, 1.0)
+    assert beside_shrine(m, *near) == near  # a save made at this shrine stands
+    x, z, yaw = beside_shrine(m, *TileMap.center(15, 21), 0.0)  # the old shrine's spot: in the bell's plinth
+    assert math.hypot(x - sx, z - sz) <= SHRINE_REACH
+    assert m.tile_at(x, z).walkable
+    assert yaw == pytest.approx(math.atan2(sz - z, sx - x))  # facing the shrine
+
+
+def test_waking_where_there_is_no_open_tile_beside_a_shrine_keeps_the_saved_spot():
+    from ashen_vault.world.world import beside_shrine
+
+    m = MapLoader("[meta]\nstart = 1 1 0\n[legend]\n# = wall\n. = floor\n[grid]\n###\n#S#\n###\n"
+                  "[entities]\nS = save_statue on=.\n").parse()  # fmt: skip
+    far = (40.0, 40.0, 0.5)
+    assert beside_shrine(m, *far) == far  # boxed in: nowhere better to stand
+    bare = MapLoader("[meta]\nstart = 1 1 0\n[legend]\n. = floor\n[grid]\n...\n").parse()
+    assert beside_shrine(bare, *far) == far  # no shrine at all
+
+
+def test_the_title_camera_circles_the_silent_bell():
+    from ashen_vault import game
+
+    m = MapLoader.load_file(os.path.join(MAP_DIR, "harrowmere.map"))
+    (bell,) = _spec(m, "silent_bell")
+    assert (bell.tx, bell.tz) == game.TITLE_ORBIT

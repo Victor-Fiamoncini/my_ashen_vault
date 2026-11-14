@@ -173,3 +173,65 @@ def test_katanas_moved_from_pell_to_corvane():
     for shop in dialogue.SHOPS.values():
         assert all(i in Items.ALL for i in shop)
     assert set(dialogue.SHOPS) == set(dialogue.SHOP_NAMES)
+
+
+OLD_PELL_STOCK = [
+    "red_tonic", "blue_moss", "scroll_mend", "leather_gloves", "oak_cudgel", "buckler", "hatchet",
+    "leather_whip", "round_shield", "bastard_sword", "mace", "chain_mitts", "ringmail", "spiked_club",
+    "ashblade", "lamellar_vest", "thornlash", "kite_shield", "iron_gauntlets", "bearded_axe", "brigandine",
+    "zweihander", "tower_shield", "blackened_plate",
+]  # fmt: skip
+
+
+def test_pells_old_stock_is_split_between_the_smith_the_herbalist_and_pell():
+    from ashen_vault.player.items import Items
+
+    town = ("pell", "brannoc", "tamsin")
+    for id_ in OLD_PELL_STOCK:
+        assert sum(id_ in dialogue.SHOPS[s] for s in town) == 1, id_
+    assert all(Items.get(i).kind in ("weapon", "shield", "armor") for i in dialogue.SHOPS["brannoc"])
+    assert set(dialogue.SHOPS["tamsin"]) == {"red_tonic", "blue_moss"}
+
+
+def test_shopkeepers_open_their_own_shops():
+    for id_, speaker in (("brannoc", "Brannoc"), ("tamsin", "Tamsin")):
+        g = FakeGame()
+        got, _ = talk(id_, g)
+        assert got == speaker and g.shop_opened == id_
+
+
+def test_each_villager_gives_their_gift_once():
+    gifts = {
+        "brannoc": {"hatchet": 1},
+        "garrick": {"buckler": 1},
+        "tamsin": {"red_tonic": 2, "blue_moss": 1},
+        "ilse": {"scroll_lumen": 1},
+    }
+    for id_, items in gifts.items():
+        g = FakeGame()
+        _, first = talk(id_, g)
+        assert f"gift:{id_}" in g.flags
+        for item, n in items.items():
+            assert g.player.inventory.count(item) == n, (id_, item)
+        assert g.messages and g.messages[-1].startswith("Received {")
+        _, second = talk(id_, g)
+        assert second != first
+        for item, n in items.items():
+            assert g.player.inventory.count(item) == n, (id_, item)
+
+
+def test_the_innkeeper_talks_of_the_bell_and_the_three_roads():
+    g = FakeGame()
+    _, first = talk("wren", g)
+    assert "bell" in first.lower() and "met_wren" in g.flags
+    _, second = talk("wren", g)
+    assert second != first
+
+
+def test_the_enthroned_stirs_a_little_more_with_each_sigil_held():
+    texts = []
+    for n in range(4):
+        speaker, text = talk("enthroned", FakeGame(items=ALL_SIGILS[:n]))
+        assert speaker == "The Enthroned"
+        texts.append(text)
+    assert len(set(texts)) == 4

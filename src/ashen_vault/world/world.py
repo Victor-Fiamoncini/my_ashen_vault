@@ -10,10 +10,10 @@ from ashen_vault.ai.enemy_types import EnemyTypes
 from ashen_vault.ai.spawns import spawn_enemies
 from ashen_vault.player.player import Player
 from ashen_vault.player.spells import Spells
-from ashen_vault.render import forge_models, models
+from ashen_vault.render import forge_models, models, town_models
 from ashen_vault.render.mesh_builder import KINDLING, MeshBuilder
 from ashen_vault.util import rround
-from ashen_vault.world import collision, elements, loot, relics, shots, terrain
+from ashen_vault.world import collision, elements, loot, relics, shots, terrain, villagers
 from ashen_vault.world.arena import Arena, flood
 from ashen_vault.world.ash import AshCloud, death_phases
 from ashen_vault.world.hazards import (
@@ -99,6 +99,12 @@ BLOCKING_PROPS = (
     "totem",
     "anvil",
     "chimney",
+    "pew",
+    "bed",
+    "cupboard",
+    "stall",
+    "fence",
+    "lamp_post",
 )
 # How high a low blocking prop reaches above its floor, in metres: a shot flying higher passes over it
 # (a bolt over a table, a casket or a barrel). Anything not listed stands full height.
@@ -110,6 +116,9 @@ PROP_TOP = {
     "sarcophagus": 0.9,
     "headsman_block": 0.7,
     "anvil": 0.95,
+    "pew": 1.3,
+    "bed": 0.9,
+    "fence": 1.1,
     "rack": 1.5,
     "barrel": 1.1,
     "crate": 1.5,  # sometimes a second crate stands on the first
@@ -131,11 +140,40 @@ WALL_PROPS = (
     "skull_niche",
     "winch",
     "shelf_fungus",
+    "shelf",
+    "hearth",
+    "window",
 )
 # Props drawn as far as the fog lets you see, however far that is: they make a skyline.
-LANDMARKS = ("spire", "keep", "bastion", "smokestack", "gatehouse", "lavafall")
+LANDMARKS = (
+    "spire",
+    "keep",
+    "bastion",
+    "smokestack",
+    "gatehouse",
+    "lavafall",
+    "roof",
+    "silent_bell",
+    "cathedral_spire",
+)
 # Props that turn to face into the room.
-FACING_PROPS = ("chest", "altar", "table")
+FACING_PROPS = ("chest", "altar", "table", "stall", "bed", "cupboard")
+# Harrowmere's buildings, furniture and street dressing (`render/town_models.py`).
+TOWN_PROPS = (
+    "roof",
+    "silent_bell",
+    "cathedral_spire",
+    "pew",
+    "window",
+    "bed",
+    "cupboard",
+    "shelf",
+    "hearth",
+    "stall",
+    "fence",
+    "lamp_post",
+    "boat",
+)
 HAZARD_KINDS = ("spikes", "pendulum", "crumble", "flame_jet", "magma_vent")
 FALL_DAMAGE = 25
 FALL_DEPTH = 1.5  # metres below the pit's rim before a fall counts
@@ -152,13 +190,26 @@ BRIDGE_YAW = {"w": 0.0, "e": math.pi, "n": -math.pi / 2, "s": math.pi / 2}
 STATUS_TINT = {"poison": (0.45, 1.1, 0.3), "burn": (1.5, 0.7, 0.25)}
 KINDLE_REACH = 1.2  # a flame bolt passing this close to a cold brazier sets it alight
 
-NPC_LOOKS = {
-    "odrin": {"robe": (70, 60, 90), "hair": (200, 200, 200)},
-    "pell": {"robe": (120, 90, 40)},
-    "hollis": {"robe": (80, 84, 90), "hair": (40, 30, 22)},
-    "maeve": {"robe": (60, 90, 100), "hair": (140, 70, 40)},
-    "corvane": {"robe": (40, 40, 56), "hair": (150, 150, 150), "hood": True, "blade": True},
-}
+
+SHRINE_REACH = 3.0  # metres: a save made closer than this to a shrine is taken to have been made there
+
+
+def beside_shrine(map_, x, z, yaw):
+    """Where a saved player wakes: where they knelt, unless that is no longer beside a shrine (the map
+    was rebuilt since), then on the first open tile beside the nearest shrine, facing it."""
+    shrines = [TileMap.center(s.tx, s.tz) for s in map_.entities if s.kind == "save_statue"]
+    if not shrines or (
+        map_.tile_at(x, z).walkable and any(math.hypot(x - cx, z - cz) <= SHRINE_REACH for cx, cz in shrines)
+    ):
+        return x, z, yaw
+    cx, cz = min(shrines, key=lambda c: math.hypot(c[0] - x, c[1] - z))
+    tx, tz = TileMap.tile_coord(cx), TileMap.tile_coord(cz)
+    taken = {(s.tx, s.tz) for s in map_.entities}
+    for dx, dz in ((0, 1), (1, 0), (-1, 0), (0, -1)):
+        if map_[tx + dx, tz + dz].walkable and (tx + dx, tz + dz) not in taken:
+            nx, nz = TileMap.center(tx + dx, tz + dz)
+            return nx, nz, math.atan2(cz - nz, cx - nx)
+    return x, z, yaw
 
 
 class World:
@@ -1506,15 +1557,11 @@ class World:
         elif k == "pickup":
             models.pickup(rig, t)
         elif k == "npc":
-            look = NPC_LOOKS.get(p.props.get("id"), {})
-            models.npc(
-                rig,
-                look.get("robe", (110, 110, 110)),
-                hair=look.get("hair", (70, 54, 40)),
-                t=t + p.tx,
-                hood=look.get("hood", False),
-                blade=look.get("blade", False),
-            )
+            npc_id = p.props.get("id")
+            if npc_id == "enthroned":
+                models.enthroned(rig, t)
+            else:
+                models.npc(rig, villagers.look(npc_id), t + p.tx)
         elif k == "barrel":
             models.barrel(rig, p.tx * 7 + p.tz, broken=p.open_t > 0)
         elif k == "secret_wall":
@@ -1572,8 +1619,49 @@ class World:
             forge_models.anvil(rig, t + p.tx)
         elif k == "chimney":
             forge_models.chimney(rig, t + p.tx, float(p.props.get("height", "2.6")))
+        elif k in TOWN_PROPS:
+            self._draw_town_prop(rig, p, k, t)
         elif k == "embers":
             forge_models.embers_rain(rig, t, p.tx * 3 + p.tz)
+
+    def _draw_town_prop(self, rig, p, k, t):
+        seed = p.tx * 7 + p.tz * 3
+        if k == "roof":
+            w, d = (int(v) for v in p.props.get("span", "2,2").split(","))
+            town_models.roof(
+                rig,
+                w,
+                d,
+                ridge=p.props.get("ridge", "x"),
+                top=float(p.props.get("top", "4.2")),
+                pitch=float(p.props.get("pitch", "2.4")),
+                tex=p.props.get("tex", "roof"),
+                wall_tex=p.props.get("wall", "timber"),
+            )
+        elif k == "silent_bell":
+            town_models.silent_bell(rig, t)
+        elif k == "cathedral_spire":
+            town_models.cathedral_spire(rig, float(p.props.get("height", "18")))
+        elif k == "pew":
+            town_models.pew(rig, seed)
+        elif k == "window":
+            town_models.window(rig, seed)
+        elif k == "bed":
+            town_models.bed(rig, seed)
+        elif k == "cupboard":
+            town_models.cupboard(rig, seed)
+        elif k == "shelf":
+            town_models.shelf(rig, seed)
+        elif k == "hearth":
+            town_models.hearth(rig, t + p.tx)
+        elif k == "stall":
+            town_models.stall(rig, seed, t)
+        elif k == "fence":
+            town_models.fence(rig, seed)
+        elif k == "lamp_post":
+            town_models.lamp_post(rig, t + p.tx)
+        elif k == "boat":
+            town_models.boat(rig, t, seed)
 
 
 def maiden_door(t):

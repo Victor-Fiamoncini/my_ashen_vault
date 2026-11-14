@@ -4,24 +4,21 @@ is an optional callable run with the game when the conversation closes."""
 from ashen_vault.world import relics
 
 SHOPS = {
-    "pell": [
-        "red_tonic",
-        "blue_moss",
-        "scroll_mend",
+    # Pell deals in what came in by boat or up out of the well: scrolls and odd salvage.
+    "pell": ["scroll_mend", "leather_whip", "ashblade", "thornlash"],
+    # Brannoc forges the rest: honest steel, shields and armour.
+    "brannoc": [
         "leather_gloves",
         "oak_cudgel",
         "buckler",
         "hatchet",
-        "leather_whip",
         "round_shield",
         "bastard_sword",
         "mace",
         "chain_mitts",
         "ringmail",
         "spiked_club",
-        "ashblade",
         "lamellar_vest",
-        "thornlash",
         "kite_shield",
         "iron_gauntlets",
         "bearded_axe",
@@ -30,9 +27,15 @@ SHOPS = {
         "tower_shield",
         "blackened_plate",
     ],
+    "tamsin": ["red_tonic", "blue_moss"],
     "corvane": ["katana", "moonless_tachi", "nodachi"],
 }
-SHOP_NAMES = {"pell": "Pell's Goods", "corvane": "Corvane's Blades"}
+SHOP_NAMES = {
+    "pell": "Pell's Goods",
+    "brannoc": "Brannoc's Forge",
+    "tamsin": "Tamsin's Remedies",
+    "corvane": "Corvane's Blades",
+}
 CORVANE_LEVEL = 5  # the swordsmith won't speak to anyone greener than this
 
 
@@ -49,6 +52,12 @@ def for_npc(id_, game):
         return maeve(game, flags)
     if id_ == "corvane":
         return corvane(game.player.stats.level, flags)
+    if id_ in GIFTS:
+        return gift_giver(id_, flags)
+    if id_ == "wren":
+        return "Wren", wren_lines(flags), None
+    if id_ == "enthroned":
+        return "The Enthroned", enthroned_lines(relics.held(inv.has)), None
     return "Stranger", ["..."], None
 
 
@@ -235,3 +244,128 @@ def corvane(level, flags):
         ],
         after,
     )
+
+
+# Villagers who hand a newcomer something once: (speaker, items, first meeting, after the gift, shop).
+GIFTS = {
+    "brannoc": (
+        "Brannoc",
+        {"hatchet": 1},
+        [
+            "Mind the sparks. Brannoc, smith of Harrowmere, for my sins.",
+            "You're going down that well with a rusted sword? No. Take this hatchet. It bites.",
+            "When you've coin, come back. Everything I sell, I forged on this anvil.",
+        ],
+        ["Steel doesn't sharpen itself. What'll it be?"],
+        "brannoc",
+    ),
+    "garrick": (
+        "Garrick",
+        {"buckler": 1},
+        [
+            "Halt. ...Ah, the one off the boat. Captain Garrick, of what's left of the watch.",
+            "Six of us once. Now it's me and Hollis, and Hollis guards the well from the inside.",
+            "Here, a buckler from the watch stores. Catch the blow, then answer it.",
+        ],
+        [
+            "The trail east goes green and dark. The road north goes red. Pick your poison.",
+            "Raise that buckler before the blow, not after.",
+        ],
+        None,
+    ),
+    "tamsin": (
+        "Tamsin",
+        {"red_tonic": 2, "blue_moss": 1},
+        [
+            "Careful of the pot, it's half boiled down. I'm Tamsin. I mend what the dark breaks.",
+            "Take these, a first dose on the house. Nobody walks out of the well on their own legs twice.",
+            "After that, I'm afraid herbs cost coin like anything else.",
+        ],
+        ["Back in one piece? Mostly? Let's see what you need."],
+        "tamsin",
+    ),
+    "ilse": (
+        "Sister Ilse",
+        {"scroll_lumen": 1},
+        [
+            "Be welcome under this roof, traveller. I am Ilse. I tend the candles, and the one who sits above.",
+            "The Enthroned was old when the bell was cast. They have not spoken plainly in my lifetime.",
+            "Take this scroll. Read it, and a little light will walk with you where none should be.",
+        ],
+        [
+            "The candles burn lower each night the bell is silent.",
+            "If the Enthroned speaks to you, remember every word. I will want to hear them.",
+        ],
+        None,
+    ),
+}
+
+
+def _received(items):
+    from ashen_vault.player.items import Items
+
+    parts = []
+    for item, n in items.items():
+        name = Items.get(item).name
+        parts.append(f"{{{n} {name}s}}" if n > 1 else f"{{{name}}}")
+    return "Received " + " and ".join(parts) + "."
+
+
+def gift_giver(id_, flags):
+    """A villager who gives a newcomer something on first meeting, then sells their wares (if any)."""
+    speaker, items, first, later, shop = GIFTS[id_]
+    flag = f"gift:{id_}"
+    opens = (lambda g: g.open_shop(shop)) if shop else None
+    if flag in flags:
+        return speaker, later, opens
+
+    def after(g):
+        g.flags.add(flag)
+        for item, n in items.items():
+            g.player.inventory.add(item, n)
+        g.message(_received(items))
+        if shop:
+            g.open_shop(shop)
+
+    return speaker, first, after
+
+
+def wren_lines(flags):
+    if "met_wren" in flags:
+        return [
+            "The cellar's dry and the ale's wet. That's all an inn can promise these days.",
+            "Folk sleep badly since the bell went quiet. They say they dream of a long hall and a chair.",
+        ]
+    flags.add("met_wren")
+    return [
+        "Welcome to the Drowned Lantern. I'm Wren. Rooms are cheap, since nobody's travelling.",
+        "You'll have seen the bell in the square. The Silent Bell, we call it now. It cracked one still night.",
+        "No wind, no storm. Just a sound like a breath let out, and then nothing.",
+        "Since then: the keep below wakes, a wood grows in a cave, the old fortress north is lit again.",
+        "Three roads out of Harrowmere, and every one of them gone bad.",
+    ]
+
+
+ENTHRONED_LINES = (
+    [
+        "(The figure on the throne does not move. Dust lies on its hands.)",
+        "...a stranger... the tide brings them... as it brought us...",
+    ],
+    [
+        "(Something stirs beneath the cowl. Two cold glints turn toward you.)",
+        "...one note... I hear one note again... faint...",
+    ],
+    [
+        "(The Enthroned's fingers tighten on the stone.)",
+        "...two... the bell remembers its shape... it remembers us...",
+    ],
+    [
+        "(The air in the nave grows heavy. The candles bend toward the throne.)",
+        "...all three... take them to the keeper... and the bell will wake... and so... shall I...",
+    ],
+)
+
+
+def enthroned_lines(held):
+    """The Enthroned stirs a little more with each sigil you carry."""
+    return list(ENTHRONED_LINES[min(len(held), len(ENTHRONED_LINES) - 1)])

@@ -2,23 +2,46 @@
 name = Harrowmere
 ambient = 0.62 0.58 0.62
 fog = 0.42 0.46 0.55
-fog_range = 10 46
+fog_range = 12 56
 sky = overcast
 torch = 0 0 0 0
-start = 15 20 -90
+start = 20 44 -90
 default = ,
 edge_top = -0.5
+entity_floor = auto
+
+// Harrowmere climbs from its harbour to the cathedral on the hill. The pier where the morning boat
+// puts in, the quay and the market lanes; the Bell Square at the heart of town with the Silent Bell on
+// its plinth; the sunken court of the old well (down into the Sunken Keep) east of it, and the watch
+// house by the gap in the wall where the green trail leaves for the cave; Brannoc's forge and
+// Corvane's hut to the west; the north road winding up past Odrin's house to the gate; and up the
+// steps on the hill, the cathedral, where the Enthroned sits at the end of the nave.
 
 [legend]
 R = wall tex=rough_stone top=7 cap=grass
+A = wall tex=cliff_rock top=6 cap=grass
 H = wall tex=timber top=4.2 cap=roof
+J = wall tex=plaster top=4.2 cap=roof
+C = wall tex=rough_stone h=2 top=11 cap=slate
+P = wall tex=flagstone top=0.8 cap=flagstone
+_ = wall tex=rough_stone top=2.2 cap=cobble
 , = floor tex=grass h=0
 . = floor tex=cobble h=0
 - = floor tex=dirt h=0
-p = floor tex=wood_plank h=0.1 side=wood_plank
+; = floor tex=grass h=2 side=rough_stone
+= = floor tex=flagstone h=2 side=rough_stone
+4 = floor tex=flagstone h=1.6 side=rough_stone
+3 = floor tex=flagstone h=1.2 side=rough_stone
+2 = floor tex=flagstone h=0.8 side=rough_stone
+1 = floor tex=flagstone h=0.4 side=rough_stone
+n = floor tex=flagstone h=2 ceil=10 ceil_tex=slate side=rough_stone dark=0.3
+a = floor tex=flagstone h=2.4 ceil=10 ceil_tex=slate side=rough_stone dark=0.3
 i = floor tex=wood_plank h=0.2 ceil=3.4 ceil_tex=wood_plank side=wood_plank
+k = floor tex=flagstone h=0 ceil=3.4 ceil_tex=wood_plank side=rough_stone
+o = floor tex=cobble h=-0.8 side=rough_stone
+5 = floor tex=cobble h=-0.4 side=rough_stone
+p = floor tex=wood_plank h=0.1 side=wood_plank
 ~ = water tex=water h=-0.8 side=rough_stone
-A = wall tex=cliff_rock top=6 cap=grass
 G = wall tex=vine_wall top=3.4 cap=canopy
 V = wall tex=vine_wall top=5.5 cap=canopy
 w = floor tex=jungle_floor h=0 ceil=4.2 ceil_tex=canopy side=vine_wall dark=0.2
@@ -27,55 +50,126 @@ v = floor tex=jungle_floor h=0
 c = floor tex=rough_stone h=0 ceil=3.4 ceil_tex=cliff_rock side=cliff_rock dark=0.45
 
 [grid]
-RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRAAAAAAAAAAAAAA
-R,,,,,,,,,,,HHHHHHHH,,,,,N,,,,,RAAAAAAAAAAAAAA
-R,,T,,,,,,,,HiiiiiiH,,,,,-,T,,,RAAAAAAAAAAAAAA
-R,,,,,,,,,,,HiiiBiiH,,,,,-,,,,,RAAAAAAAAAAAAAA
-R,,,,,,,,,,,HiiiiiiH,,,,,-,,,,,RAAAAAAAAAAAAAA
-R,,,,,,,,,,,HiLiiLiH,,,,,-,,,,,RAAAAAAAAAAAAAA
-R,,,,,,,,,,,HHHiiHHH,,,,,-,,,,,RVVVVVVVVAAAAAA
-R,,,,,,,,,,,,,,..,,,,,,,,,,,,,,RwUwvvwwVAAAAAA
-R,,HHHHHH,,,,,,..,,,,,,HHHHHH,,RwwwvvwwVAAAAAA
-R,,HiiiiH,,,,,,..,,,,,,HHHHHH,,RwwVVVwwVAAAAAA
-R,,HiMiii..............HHHHHH,,RwnVAVwwVAAAAAA
-R,,HiiiiH,,,,,,..,,,,,,HHHHHH,,RwwVAVwUVAAAAAA
-R,,HHHHHH,,,,,,..,,,,,,,,,,,,,,RvvVAVwwVAAAAAA
-R,,,,,,,,,,t........t,,,,,T,,,,vvvVAVwwVVVVVAA
-R,,T,,,,,,,.S........,,,,,,,,,,vvmVAVwwVVyxcKA
-R,,,,,,,,,,....W.....,,,,,,,,,,RVVVAVwwVVyyVAA
-R,HHHHH,,,,.......g..,,,,,,,,,,RAAAAVwnVVFyVAA
-R,HiLiH,,,,..........,,,,,,,,,,RAAAAVwwyyyyVAA
-R,HiCii,,,,t........t,,,T,,,,,,RAAAAVUwyzyyVAA
-R,HiiiH,,,,,,,,..,,,,,,,,,,,,,,RAAAAVVVVVVVVAA
-R,HHHHH,,,,,,,,..,,,,,,,,,,,,,,RAAAAAAAAAAAAAA
-R------------------------------RAAAAAAAAAAAAAA
-R~~~~~~~~~~~~~~pp~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
-R~~~~~~~~~~~~~~pp~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
-R~~~~~~~~~~~~~~pf~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
-R~~~~~~~~~~~~~~pp~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
-R~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
-R~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
+RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRAAAAAAAAAAAAAA
+R;;;;;;;;;;;Ú;;;;;;;;;;;;,,,,,,N,,,,AAAAAAAAAARAAAAAAAAAAAAAA
+R;Ú;;;;;;;;;;;;;;;;;;;;Ú;,,,,,,-,T,,AAAAAAAAAARAAAAAAAAAAAAAA
+R;;ÉCCCCCCCCCCCCCCCÊ;;;;;,,,,,,-,,,,AAAAAAAAAARAAAAAAAAAAAAAA
+R;;CDaYnnOnnOnnOnnnCË==Ë;,,,,,,-,,,TAAAAAAAAAARAAAAAAAAAAAAAA
+R;;CaannIQQIQQIQQInC====;,,,,,,-,,,,AAAAAAAAAARAAAAAAAAAAAAAA
+R;;CaEÓnnnnnnnnnnnnn====;,,,,,,-X,,,AAAAAAAAAARAAAAAAAAAAAAAA
+R;;CaannIQQIQQIQQInC====;,,-----,,,,,,AAAAAAAARAAAAAAAAAAAAAA
+R;;CDaYenOnnOnnOnnnCË==Ë;,,-,,,,,,,,,,AAAAAAAARAAAAAAAAAAAAAA
+R;;CCCCCCCCCCCCCCCCC;==;;,,-|,,,ÆHHHHH,,,,,,,,RAAAAAAAAAAAAAA
+R;;;;;;;;;;;;;;;;;;;;44;;T,-|,,,H%ii+H,ÈJJJJJ,RAAAAAAAAAAAAAA
+R;Ú;;;;;;;Ú;;;;;;;Ú;;33;;,,-|,,,iiiiiH,J+ii&J,RAAAAAAAAAAAAAA
+R;;;;;Ú;;;;;;;Ú;;;;;;22;;,,-|,,,HiÒiiH,JiiiiJ,RAAAAAAAAAAAAAA
+R;;;;;;;;;;;;;;;;;;;;11;;,,----,Hiii$H,JÒiiiJ,RAAAAAAAAAAAAAA
+R,,,,,,,,,,,,,,,,,,,,..,ÅJJJJ,-,HHHHHH,Jiii$J,RAAAAAAAAAAAAAA
+R,,ÀHHHHHH,,,,,,T,,,,..,J+i$J,-,,,,,,,,JJiJJJ,RAAAAAAAAAAAAAA
+R,,HkkkkÏH,,,,,,,,,,,..,JiiiJ,-,,,T,,,,,,,,,,,RAAAAAAAAAAAAAA
+R,,H$kkkkk.,T,,,,,,,,..,Jii&J,-,,,________,T,,RAAAAAAAAAAAAAA
+R,,Hkkbkkk.,,,,,,,,,,..,JJiJJ,-,,,_tooooo_,,,,RAAAAAAAAAAAAAA
+R,,HÍkÌkkk.,,,,,,,...............,_oooooo_,,,,RAAAAAAAAAAAAAA
+R,,HkkkkÎk.,,,,,,,.X...........X..5oooWooÇHHHHRAAAAAAAAAAAAAA
+R,,ÑHHHHHH.,,,,,,,...............,_ooooooH+iiHRAAAAAAAAAAAAAA
+R,,,,,T,,,.......................,_oooogÏHiiÍHRVVVVVVVVAAAAAA
+R,,,,,,,,,..............PPP......,_______HLiiHRwUwvvwwVAAAAAA
+RÁHHHH,,,-,,,,,,,,......PBP.M....,,,,,,,,HiiÍHRwwwvvwwVAAAAAA
+RHiLiH,,,-,,,,,,,,......PPP......,,,,,T,,HÒiiHRwwVVVwwVAAAAAA
+RHZiii----,,,T,,,,...S...........,,,,,,,,HiiiHRwõVAVwwVAAAAAA
+RHiiÏH,,,,,,,,,,,,...............-----,,,HHiHHRwwVAVwUVAAAAAA
+RHHHHH,,,,,,,,T,,,.X...........X.-----------h-RvvVAVwwVAAAAAA
+R,,,,,,,,,,,,,,,,,...............,,,,---------vvvVAVwwVVVVVAA
+R,,,ÂHHHHH,,,,,,,,,,,..X,,,,,,,,.....---------vvöVAVwwVVyxcKA
+R,T,H%iiLH,,ÃJJiJJJJ,..,,.......,,ÄHiHHH,,,,,,RVVVAVwwVVyyVAA
+R,,,HiiÒiH,,JLiii%iJ,..,,.#.#.#.,,H%iiLH,,,,,,RAAAAVwõVVFyVAA
+R,,,H&imii..JiiiiliJ,...........,,HiidiH,,RRRRRAAAAVwwyyyyVAA
+R,,,HiiÒiH..JiÒiiiiJ,,..........,,H%iiiH,,RRRRRAAAAVUwyzyyVAA
+RRR,H%iiiH,,J$iiÒiÏJ,,..........,,HiÒi$H,,RRRRRAAAAVVVVVVVVAA
+RRR,HHHHHH,,JiiiiiÏJ......Ð.....,,HHHHHH,,RRRRRAAAAAAAAAAAAAA
+RRR,,,,,,,,,JJJJJJJJ....,......Ï,,,,,,,,T,RRRRRAAAAAAAAAAAAAA
+RRR,,,,,T,,,,,,,,,,,....,,,,,,,,,,,,,,,,,,RRRRRAAAAAAAAAAAAAA
+RRR-------X-------------------X-----------RRRRRAAAAAAAAAAAAAA
+RRR--------------Ð------------------------RRRRRAAAAAAAAAAAAAA
+R~~~~~~~~~~~~~~~~~~~pp~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
+R~~~~~~~~~~~~~~~~~~~pp~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
+R~~~~~~~~~@~~~~~~~~~pp~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
+R~~~~~~~~~~~~~~~~~~~pp~~@~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
+R~~~~~~~~~~~~~~~~~~~pp~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
+R~~~~~~~~~~~~~~~~~~~pp~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
+R~~~~~~~~~~~~~~~~~~~pf~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
+R~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
+R~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
+R~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
+R~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
 
 [entities]
+// Villagers.
+M = npc id=odrin yaw=90
+m = npc id=pell yaw=0
+g = npc id=hollis yaw=180
+f = npc id=maeve yaw=90 on=p
+Z = npc id=corvane yaw=0
+b = npc id=brannoc yaw=90
+h = npc id=garrick yaw=180
+d = npc id=tamsin yaw=-90
+e = npc id=ilse yaw=-90
+l = npc id=wren yaw=180
+E = npc id=enthroned yaw=0 on=a
+// The heart of town.
+B = silent_bell on=P
+S = save_statue
+X = lamp_post
+// The cathedral: its roof and spire, pillars, pews facing the throne, windows, candles and banners.
+É = roof span=17,7 ridge=x top=9 pitch=3.5 tex=slate wall=rough_stone on=C
+Ê = cathedral_spire height=15 on=C
+Ë = lamp_post
+I = pillar
+Q = pew yaw=180
+O = window
+Y = candles
+Ó = light y=6 color=0.62,0.66,0.82 radius=9
+D = banner
+// Roofs, each on its building's north-west corner.
+À = roof span=7,7 ridge=z on=H
+Á = roof span=5,5 ridge=x on=H
+Â = roof span=6,7 ridge=z on=H
+Ã = roof span=8,7 ridge=x wall=plaster pitch=2.2 on=J
+Ä = roof span=6,6 ridge=x on=H
+Å = roof span=5,5 ridge=z wall=plaster on=J
+Æ = roof span=6,6 ridge=x on=H
+Ç = roof span=5,8 ridge=z on=H
+È = roof span=6,6 ridge=x wall=plaster on=J
+Ñ = chimney height=6 on=H
+// Furniture and street dressing.
+Ì = anvil
+Í = rack
+Î = crate
+Ï = barrel
+Ð = crate
+Ò = table
+L = torch radius=6
+t = torch radius=6
+$ = hearth
+% = shelf
+& = cupboard
++ = bed
+# = stall
+| = fence
+@ = boat on=~
 T = tree
-B = npc id=odrin yaw=90 on=i
-L = torch radius=6 on=i
-M = npc id=pell yaw=0 on=i
-t = torch radius=7 on=.
-S = save_statue on=.
-W = exit map=sunken_keep at=15,27,-90 label=Descend_the_well model=well on=.
-g = npc id=hollis yaw=180 on=.
-f = npc id=maeve yaw=-90 on=p
-C = npc id=corvane yaw=0 on=i
+Ú = tree on=;
+// The well down into the Sunken Keep, in its sunken court.
+W = exit map=sunken_keep at=15,27,-90 label=Descend_the_well model=well
 // The jungle trail east of the square: a hedged path winding under a canopy that closes in and
 // darkens on the way to the cave mouth into the Verdant Hollow.
 K = exit map=verdant_hollow at=25,33,180 label=Enter_the_cave model=cave_mouth yaw=180 on=c
 u = torch radius=6 on=v
 j = jungle_tree on=v
-m = mushrooms on=v
+ö = mushrooms on=v
 x = fungus radius=4 on=c
 U = torch radius=5 on=w
-n = mushrooms on=w
+õ = mushrooms on=w
 F = fungus radius=4 on=y
 z = mushrooms on=y
 // The north road, out through the wall to the Cinderhold.

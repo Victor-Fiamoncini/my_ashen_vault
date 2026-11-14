@@ -141,7 +141,7 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 
 [entities]
 // The road down to Harrowmere and the wayside shrine.
-Ð = exit map=harrowmere at=25,2,90 label=Return_to_Harrowmere model=road_gate yaw=90
+Ð = exit map=harrowmere at=31,2,90 label=Return_to_Harrowmere model=road_gate yaw=90
 Ñ = save_statue
 T = torch radius=7
 // The long bridge: vents in the lava lob bombs onto it; hounds and bowmen hold it.

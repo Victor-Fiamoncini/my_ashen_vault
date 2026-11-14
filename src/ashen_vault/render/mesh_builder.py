@@ -33,16 +33,46 @@ class Batch:
 
 SEG = 1.0  # max quad size in meters, keeps affine warping tolerable
 # Light-emitting entities and their defaults; a map can override them with y=, color= and radius=.
-LIGHT_KINDS = ("torch", "brazier", "light", "candles", "fungus", "bonfire", "giant_mushroom", "shelf_fungus")
-LIGHT_Y = {"light": "2.0", "candles": "0.6", "fungus": "0.7", "bonfire": "0.9", "giant_mushroom": "2.2"}
-LIGHT_Y_WALL = {"shelf_fungus": "1.4"}
+LIGHT_KINDS = (
+    "torch",
+    "brazier",
+    "light",
+    "candles",
+    "fungus",
+    "bonfire",
+    "giant_mushroom",
+    "shelf_fungus",
+    "hearth",
+    "lamp_post",
+    "window",
+)
+LIGHT_Y = {
+    "lamp_post": "2.6",
+    "light": "2.0",
+    "candles": "0.6",
+    "fungus": "0.7",
+    "bonfire": "0.9",
+    "giant_mushroom": "2.2",
+}
+LIGHT_Y_WALL = {"shelf_fungus": "1.4", "hearth": "0.6", "window": "3.0"}
 LIGHT_COLOR = {
     "fungus": "0.3,0.85,0.65",
     "giant_mushroom": "0.55,0.35,0.85",
     "shelf_fungus": "0.25,0.7,0.75",
     "bonfire": "1.0,0.55,0.25",
+    "hearth": "1.0,0.6,0.3",
+    "lamp_post": "1.0,0.78,0.45",
+    "window": "0.55,0.62,0.8",
 }
-LIGHT_RADIUS = {"candles": "3", "shelf_fungus": "4", "giant_mushroom": "6", "bonfire": "9"}
+LIGHT_RADIUS = {
+    "hearth": "6",
+    "lamp_post": "7",
+    "window": "8",
+    "candles": "3",
+    "shelf_fungus": "4",
+    "giant_mushroom": "6",
+    "bonfire": "9",
+}
 # Fires that can stand cold (`unlit`) until something kindles them.
 KINDLING = ("brazier", "bonfire")
 DIRS = ((1, 0), (-1, 0), (0, 1), (0, -1))
@@ -97,8 +127,8 @@ class MeshBuilder:
         """The Light an emitting entity casts (see LIGHT_KINDS), ignoring whether it is lit."""
         x, z = TileMap.center(e.tx, e.tz)
         height = LIGHT_Y.get(e.kind, "1.6")
-        wall = map_.wall_yaw(e.tx, e.tz) if e.kind in ("torch", "shelf_fungus") else None
-        if wall is not None:  # a sconce or a bracket fungus: the light sits up against the wall
+        wall = map_.wall_yaw(e.tx, e.tz) if e.kind in ("torch", "shelf_fungus", "hearth", "window") else None
+        if wall is not None:  # a sconce, a bracket fungus, a hearth or a window: up against the wall
             x -= math.cos(wall) * 0.6
             z -= math.sin(wall) * 0.6
             height = LIGHT_Y_WALL.get(e.kind, "1.9")
