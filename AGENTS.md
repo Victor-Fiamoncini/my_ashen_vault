@@ -76,7 +76,11 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   interact"` (Odrin's dialogue box, by the Silent Bell), `--map harrowmere --at=25,22,90 --script
   "forward:0.6 interact"` (touch the Silent Bell; `world.INTERACT_REACH` lets you reach it from its plinth), `--map harrowmere --at=6,26,180 --script "forward:2 interact"`
   (Corvane; below `--level 5` they stay silent), `--map harrowmere --at=31,4,-90` (the north road's gate),
-  `--map harrowmere --at=22,30,-60` (the Bell Square), `--map harrowmere --at=17,6,180` (the cathedral's nave;
+  `--map harrowmere --at=22,30,-60` (the Bell Square), `--map harrowmere --at=28,37,-90` (the market's fountain
+  and benches), `--map harrowmere --at=23,6,180` (the cathedral's west door and rose window),
+  `--map harrowmere --at=8,25,-90 --script "look_up:0.1"` (a house's face, its balcony and the cathedral's
+  towers behind), `--map harrowmere --at=14,33,-90 --script "forward:3"` (walk to a thin wall's slab:
+  you stop at z=62.9), `--map harrowmere --at=17,6,180` (the cathedral's nave;
   `--at=6,6,180 --script "wait:0.2 interact"` speaks to the Enthroned), `--map harrowmere --at=7,18,180 --script
   "wait:0.2 interact"` (Brannoc's gift and forge), `--map harrowmere --at=37,20,0` (the sunken well court),
   `--map cinderhold --at=29,52,-90 --script "look_up:0.15"` (the long bridge and the fortress's skyline), `--map cinderhold --at=28,30,180`
@@ -102,7 +106,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/ui/hud.py` | HUD, menus, dialogue boxes |
 | `src/ashen_vault/audio/synth.py` | Synthesized sound effects. Ambient fire (jets, vents, bombs) plays through `World.sfx_near`, which fades it with distance |
 | `src/ashen_vault/input.py` | Key bindings and the `--script` driver |
-| `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. `harrowmere` (the town, climbing from its harbour past the market and the Bell Square, with the Silent Bell, to the cathedral on the hill where the Enthroned sits; the sunken well court, the trail gap and the north gate lead out), `sunken_keep` (the dungeon below the well, with the Undercroft below its cells and the Warden's Gallery above the boss door, the Butcher's slaughter hall north of it), `verdant_hollow` (the jungle through the cave at the end of the village's east trail: Mossmouth cave, the Root Caverns below the bog, the Canopy Walk to the boss), `cinderhold` (the lava fortress up the north road: the long bridge, the gatehouse and postern, the foundry and the smelter pits below it, the ashworks, the rampart and the tower stair up to the keep), `cinder_keep` (the keep, a map of its own
+| `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. `harrowmere` (the town of sandstone and ochre-rendered houses under terracotta roofs, thin-walled (`thin=0.5`), paved in cobbles and setts, climbing from its harbour past the market's fountain and the Bell Square, with the Silent Bell, to the twin-towered cathedral on the hill where the Enthroned sits; the sunken well court, the trail gap and the north gate lead out), `sunken_keep` (the dungeon below the well, with the Undercroft below its cells and the Warden's Gallery above the boss door, the Butcher's slaughter hall north of it), `verdant_hollow` (the jungle through the cave at the end of the village's east trail: Mossmouth cave, the Root Caverns below the bog, the Canopy Walk to the boss), `cinderhold` (the lava fortress up the north road: the long bridge, the gatehouse and postern, the foundry and the smelter pits below it, the ashworks, the rampart and the tower stair up to the keep), `cinder_keep` (the keep, a map of its own
   behind the door at the top of the tower stair: the postern landing, the great hall, the switchback stair,
   the antechamber's shrine and the walled rooftop where the twin gargoyles perch) |
 | `src/ashen_vault/world/sky.py`, `render/sky.py` | Skies (`[meta] sky = overcast\|jungle\|ember`): a gradient dome meeting the fog at the horizon, a sun and halo, drifting cloud banks and an overhead cap, horizon mist; every sky's sun stands at `SUN_AT` (low in the west, as over the town), its disc drawn over the clouds (`sky.sun`) and its halo behind them; dimmed by darkness and the Veil. Built pure in `world/sky.py`, drawn first each frame without fog or depth by `render/sky.py` |
@@ -116,7 +120,8 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/world/elements.py` | Elements: lightning against `conductive` foes, fire against `fireproof` ones, which weapons burn |
 | `src/ashen_vault/render/fortress_props.py` | The Cinderhold's dressing: `gargoyle_statue` (`pose=snarl`; far ones drop their fine carving, `world.DETAIL_RANGE`), `barred_window`, `tool_rack` and `great_window` (wall props; `great_window rise=` hangs high in a wall over the moat, a landmark), `forge_hearth`, `crucible`, `quench_trough`, `ingot_pile`, `slag_heap`, `impaler`, the `battlement` landmark (a crenellated walk on a wall top) and `lava_spout` (`lavafall spout=gargoyle`) |
 | `src/ashen_vault/render/forge_models.py` | The Cinderhold's models (golem, bowman, hound, the gargoyles, Stormbrand and Slagbreaker, arrows, thunder and motes, flame jets, and the skyline: spires, bastions, smokestacks, the gatehouse, the keep, lavafalls); `models` imports it last and borrows its helpers |
-| `src/ashen_vault/render/town_models.py` | Harrowmere's models: gabled `roof`s (one per building, on its NW wall tile with `span=W,D ridge=x\|z`), the `silent_bell`, the `cathedral_spire`, pews, windows, beds, cupboards, shelves, hearths, market stalls, fences, lamp posts and boats |
+| `src/ashen_vault/render/town_models.py` | Harrowmere's models: gabled `roof`s (one per building, on its NW wall tile with `span=W,D ridge=x\|z`, `tex=terracotta eave=`), the `silent_bell`, the cathedral (`cathedral_spire base=` over the crossing, `cathedral_tower` with `shift=dx,dz` to centre it on a 2x2 footprint, `turret` for the small ones, `flying_buttress`, stained-glass `window` within and `stained_window` without, `rose_window`), the houses' faces (`shutters [flowers]`, `balcony`, `door_arch` on the doorway tile facing out; `rise=` sets a hung one's height, `world.RISE`), the realm's crest (`banner_pole`, `crest_plaque`), the square's `fountain`, `bench`es, `hand_cart`, `hay_wagon` and `cargo`, the trees (`tree kind=cypress|pine|olive`: slim cypresses, flat-crowned umbrella pines, gnarled olives; far ones drop their finer limbs), pews, beds, cupboards, shelves, hearths, fences, lamp posts and boats |
+| `src/ashen_vault/world/thin_walls.py` | Thin walls (`wall ... thin=<m>`): the slab each such tile stands as (hugging the side open to the sky, centred between two rooms), the margins it lends to its open neighbours (`Layout`), and how far a prop must move back to touch it (`inset`) |
 | `src/ashen_vault/world/villagers.py` | How each villager looks (`Look`: build, garb, hair, hat, beard, apron, cloak, held tool, idle) |
 | `src/ashen_vault/render/shapes.py` | Model primitives raylib lacks (`blade`, `lozenge`, `wedge`) as pure triangle lists; `Gpu.primitive` uploads them |
 | `src/ashen_vault/world/terrain.py` | Terrain: rafts, planks, ledges, rotten floorboards, chain lifts (pressure plate, call levers, `summon`), currents, thorns, chasm and river falls, hard landings, the log rack, spore pods (`World.terrain`) |
@@ -187,6 +192,13 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   rooms are walled off). Props wholly behind the eye are never drawn (`world.behind_view`).
   A wall standing behind a lower one (a curtain wall behind its cliff, a tower behind its parapet) is
   built where it rises above it (`MeshBuilder._exposed_walls`), so a tall wall can back a low one.
+  A wall tile may set `thin=<m>` (the town's houses use 0.5): it stands as a slab that thick, joined to
+  its solid neighbours and hugging the side open to the sky, so outlines, roofs and outdoor collision
+  stay put while the room inside runs on up to the slab (`world/thin_walls.py`). `TileMap.tile_at` gives
+  a margin's point to the tile lending it (its floor, ceiling and darkness), collision and sight lines
+  test the slab itself, the mesh draws its faces and the margins' floors and ceilings, a doorway's
+  lintel rises to the thin walls beside it, and wall props, facing props, chests and wall lights move
+  back onto the slab (`TileMap.backed`, `wall_inset`). `tests/test_thin_walls.py` covers it.
   `LANDMARKS` (`spire`, `keep`, `bastion`, `smokestack`, `gatehouse`, `lavafall`, `battlement`) are
   drawn out to the fog. They stand on tiles no one reaches (wall tops, the moat)
   or above a passage's roof (`bastion base=`, `gatehouse`), and no two Cinderhold towers share a shape
@@ -222,10 +234,16 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   the arm. `tests/test_render_logic.py` checks the wrist stays within 150 degrees of the forearm's line.
 - Props that fill their tile are listed in `world/world.py` (`BLOCKING_PROPS`, `BREAKABLE_PROPS`;
   the keep adds `pillar`, `sarcophagus` and `headsman_block`, the jungle `bonfire`, `giant_mushroom` and
-  `totem`, the town `pew`, `bed`, `cupboard`, `stall`, `fence` and `lamp_post`). Decor that blocks nothing:
+  `totem`, the town `pew`, `bed`, `cupboard`, `fence`, `lamp_post`, `banner_pole`, `fountain`, `bench`,
+  `hand_cart`, `hay_wagon`, `cargo`, `flying_buttress` and `tree`; `test_harrowmere_trees_cut_off_no_part_of_the_town`
+  keeps the trees out of the only way anywhere). Decor that blocks nothing:
   `boat` rides on water, `shelf`, `hearth` and `window` hang on a wall (the last two are lights), `cage`, `roots` and `meat_hooks` hang from the ceiling, `grate` sits in the
   floor, `mushrooms` dot it, and `cobweb`, `skull_niche`, `winch`, `lever` and `shelf_fungus` mount on
   the nearest wall (`WALL_PROPS`). `lever model=wood` is the jungle's wooden lever.
+  Every `banner`, in every map, carries the realm's crest (`models.realm_crest`: a lone watchtower dark
+  against a sun half sunk below the sea, in a heater shield); the town flies it on `banner_pole`s and
+  carves it in `crest_plaque`s, and `through=` draws one crest that shows on both faces of a cloth or
+  a block.
   Light comes from `mesh_builder.LIGHT_KINDS` (torches, braziers, fungus, bonfires, the glowing
   toadstools). A `brazier unlit` or `bonfire unlit` stays cold until Pyre or a Flame Bolt kindles it
   (`World.kindle`); it then burns for good under a `lit:<map>:<tx>,<tz>` flag, and its light is added

@@ -32,8 +32,8 @@ FromSoftware, Inc.
 
 <table>
   <tr>
-    <td><img src="docs/screenshots/title.png" alt="Title screen circling the Silent Bell in the foggy Bell Square"></td>
-    <td><img src="docs/screenshots/village.png" alt="The Silent Bell in its frame on Harrowmere's Bell Square, the cathedral spire behind"></td>
+    <td><img src="docs/screenshots/title.png" alt="Title screen circling the Silent Bell on the foggy, cobbled Bell Square"></td>
+    <td><img src="docs/screenshots/village.png" alt="The Silent Bell in its frame on Harrowmere's paved Bell Square, a cathedral tower, a cypress and a crested banner pole behind"></td>
   </tr>
   <tr>
     <td align="center"><sub>Title screen</sub></td>
@@ -96,7 +96,7 @@ FromSoftware, Inc.
     <td align="center"><sub>Corvane's blades, for those who have proven themselves</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/cathedral.png" alt="The cathedral's nave, pews and pillars leading to the Enthroned on the throne"></td>
+    <td><img src="docs/screenshots/cathedral.png" alt="The cathedral's nave, pews and pillars between stained-glass windows, leading to the Enthroned under a rose window"></td>
     <td><img src="docs/screenshots/forge.png" alt="Brannoc the smith hammering at his anvil in the forge"></td>
   </tr>
   <tr>
@@ -177,8 +177,11 @@ FromSoftware, Inc.
   Verdant Hollow at the end of the green trail and the Cinderhold up the north road (its keep a map of
   its own), with locked doors,
   levers, a flooded cellar and chests.
-- **A town to come home to**: Harrowmere climbs from its harbour through a market and the Bell Square,
-  where the cracked Silent Bell hangs, to a cathedral on the hill where an ancient figure sits enthroned.
+- **A town to come home to**: Harrowmere's sandstone and ochre houses, under terracotta roofs and
+  among cypresses, olives and umbrella pines, climb on cobbled lanes from its harbour past the market's
+  fountain and the Bell Square, where the cracked Silent Bell hangs, to a twin-towered cathedral of
+  stained glass on the hill where an ancient figure sits enthroned. The realm's crest, a lone tower
+  against a setting sun, flies on its banners.
   Ten villagers live there: a smith, a herbalist, a trader and a swordsmith keep shops with spinning
   item previews (the swordsmith only for those who have proven themselves), and some hand a newcomer a
   weapon, a shield, remedies or a scroll.
