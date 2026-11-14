@@ -3130,18 +3130,56 @@ def sconce(r, t):
         _flame(r, 0, 0.5, 0, 0.18, t)
 
 
-def banner(r, t, seed):
-    """A tattered banner of the realm hung from a pole on the wall at local -X, its crest in gold thread."""
+CHAR = (34, 22, 18)  # cloth burned black
+SCORCH_RIM = (70, 36, 22)  # the brown ring round a burn
+
+
+def banner(r, t, seed, burnt=False):
+    """A tattered banner of the realm hung from a pole on the wall at local -X, its crest in gold thread.
+    A `burnt` one (the Cinderhold's) is the same cloth after the fires: see `_burnt_banner`."""
     sway = math.sin(t * 0.7) * 0.03
-    r.part("cyl", -0.9, 2.55, 0, 0.05, 1.0, 0.05, (70, 50, 32), rx=math.pi / 2)
+    pole = (40, 30, 24) if burnt else (70, 50, 32)
+    r.part("cyl", -0.9, 2.55, 0, 0.05, 1.0, 0.05, pole, rx=math.pi / 2)
     for end in (-0.5, 0.5):
-        r.part("sphere", -0.9, 2.55, end, 0.08, 0.08, 0.08, BRASS)
+        r.part("sphere", -0.9, 2.55, end, 0.08, 0.08, 0.08, _dim(BRASS, 0.5) if burnt else BRASS)
     cloth = CLOTH_RED if seed % 2 == 0 else (40, 50, 80)
+    if burnt:
+        with r.at(-0.9, 2.5, 0, rz=sway):
+            _burnt_banner(r, t, seed, cloth)
+        return
     with r.at(-0.9, 2.5, 0, rz=sway):
         r.part("cube", 0, -0.75, 0, 0.03, 1.5, 0.8, cloth)
         for i, z in enumerate((-0.3, -0.1, 0.1, 0.3)):  # ragged hem
             r.part("cube", 0, -1.55 - (i % 2) * 0.08, z, 0.03, 0.2 + (i % 2) * 0.12, 0.16, cloth)
         realm_crest(r, (210, 180, 110))
+
+
+def _burnt_banner(r, t, seed, cloth):
+    """An old banner the fortress's fires have been at: the cloth gone dark with soot, one top corner
+    torn from the pole and sagging, its lower edge burned away into ragged black tatters (a few
+    tips still smouldering), burn holes ringed in brown, and the crest's thread tarnished.
+    Drawn in the cloth's frame: hanging down from y = 0, its faces toward +-X."""
+    soot = _dim(cloth, 0.5)
+    r.part("cube", 0, -0.55, -0.07, 0.03, 1.1, 0.66, soot)  # the cloth still whole
+    r.part("cube", 0, -0.7, 0.33, 0.03, 1.1, 0.14, soot, rx=0.12)  # the torn corner, sagging
+    r.part("cube", 0, -1.18, 0, 0.032, 0.18, 0.8, _dim(cloth, 0.3))  # the scorched band above the hem
+    ragged = (0.34, 0.12, 0.46, 0.2, 0.06, 0.38, 0.16)  # the hem's tatters, longest to barely there
+    for i in range(7):  # what is left of the hem: overlapping, leaning, burned black at the tips
+        k = (seed * 3 + i * 5) % 7
+        z = -0.34 + i * 0.113 + (k % 3 - 1) * 0.015
+        length = ragged[k]
+        lean = (k % 3 - 1) * 0.12
+        with r.at(0, -1.25, z, rx=lean):
+            r.part("cube", 0, -length / 2, 0, 0.03, length, 0.1 + (k % 2) * 0.05, _dim(cloth, 0.3))
+            r.part("cube", 0, -length, 0, 0.034, 0.06, 0.07, CHAR)
+            if k % 3 == 0:
+                glow = 0.6 + 0.4 * math.sin(t * 3 + i * 1.7)
+                r.part("cube", 0, -length - 0.03, 0, 0.036, 0.03, 0.04, _dim(EMBER, glow), glow=True)
+    for y, z, size, turn in ((-0.22, 0.2, 0.12, 0.6), (-1.0, -0.26, 0.1, -0.4), (-0.5, -0.35, 0.08, 0.9)):
+        r.part("cube", 0, y, z, 0.036, size * 1.6, size * 1.3, SCORCH_RIM, rx=turn)  # a burn hole, ringed
+        r.part("cube", 0, y, z, 0.04, size, size * 0.8, CHAR, rx=turn + 0.3)
+        r.part("cube", 0, y - size * 0.3, z + size * 0.25, 0.04, size * 0.6, size * 0.7, CHAR, rx=-turn)
+    realm_crest(r, (150, 118, 70))
 
 
 def realm_crest(r, rgb, cy=-0.82, scale=1.0, through=0.0):

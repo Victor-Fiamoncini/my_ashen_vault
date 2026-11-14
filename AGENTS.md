@@ -252,6 +252,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   against a sun half sunk below the sea, in a heater shield); the town flies it on `banner_pole`s and
   carves it in `crest_plaque`s, and `through=` draws one crest that shows on both faces of a cloth or
   a block.
+  `banner burnt` is the Cinderhold's: sooty cloth, a charred and smouldering hem, burn holes.
   A wall prop must hang on stone that rises past it (at least 2.5 m over its floor, or the ceiling):
   `test_wall_props_hang_on_a_wall_tall_enough_to_hold_them`.
   Light comes from `mesh_builder.LIGHT_KINDS` (torches, braziers, fungus, bonfires, the glowing

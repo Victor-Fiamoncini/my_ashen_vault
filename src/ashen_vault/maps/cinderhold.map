@@ -212,7 +212,7 @@ L = gargoyle_statue pose=snarl
 à = crate
 á = barrel
 â = candles
-ã = banner
+ã = banner burnt
 å = chains
 // The great wall's crenellated walk, run along its top behind the skyline.
 æ = battlement span=10 on=^

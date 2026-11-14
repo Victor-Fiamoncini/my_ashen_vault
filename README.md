@@ -198,7 +198,7 @@ FromSoftware, Inc.
   cabin floor gives way into its cellar. Long drops hurt, and the hollow keeps a few secrets too.
 - **A fortress of iron and fire**: cross a long bridge over a lava gorge while vents in the lava lob
   molten bombs at you and iron bowmen shoot from the walls, with the Cinderhold's turreted gatehouse,
-  great keep and smoking stacks ahead and molten iron pouring from its walls into the gorge. Inside, lava channels cut through the foundry, flame jets guard the corridors, slag hounds
+  great keep and smoking stacks ahead and molten iron pouring from its walls into the gorge. Inside, under the realm's scorched banners, lava channels cut through the foundry, flame jets guard the corridors, slag hounds
   prowl the dark smelter pits and forge golems hide an open firebox on their backs. A postern, a gate
   winch and a fastened lift fold the fortress back onto its shrine. Its loot waits in iron chests (one of
   them has teeth), and the tower stair climbs to the keep: a great hall, a switchback stair, a shrine

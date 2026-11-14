@@ -365,6 +365,7 @@ def test_keep_props_lift_lever_and_fire_draw():
     models.realm_crest(r, (200, 180, 140))
     models.realm_crest(r, (200, 180, 140), cy=1.0, scale=2.0)
     models.banner(r, 0.5, 2)
+    models.banner(r, 0.5, 3, burnt=True)
     models.pillar(r, 3, 4.9)
     models.sarcophagus(r, 2)
     models.cage(r, 0.5, 1, 3.4)
@@ -1036,6 +1037,30 @@ def test_iron_door_stands_in_a_frame_that_stays_put():
     assert max(c[1] for c in shut.corners) == pytest.approx(6.0)  # the masonry fills up to the ceiling
     assert max(c[1] for c in raised.corners) <= 6.0 + 1e-6  # the raised leaf hides inside it
     assert ys(0.0, "wood").parts == 1  # the plain slab is unchanged
+
+
+def test_a_burnt_banner_is_darker_and_more_ragged_than_a_clean_one():
+    """The Cinderhold's banners are the realm's after the fires: sooty cloth, a charred and smouldering
+    hem, burn holes; the crest still on it. A clean banner keeps its colours."""
+    from ashen_vault.render import models
+
+    class Colours(_RecordingGpu):
+        def __init__(self):
+            super().__init__()
+            self.glows = 0
+
+        def draw_part(self, kind, matrix, rgb, tex="white", glow=False):
+            super().draw_part(kind, matrix, rgb, tex, glow)
+            self.parts[-1] = tuple(rgb)
+            self.glows += glow
+
+    clean, burnt = Colours(), Colours()
+    models.banner(rig.Rig(clean), 0.5, 2)
+    models.banner(rig.Rig(burnt), 0.5, 2, burnt=True)
+    assert models.CLOTH_RED in clean.parts and models.CLOTH_RED not in burnt.parts
+    assert models.CHAR in burnt.parts and models.CHAR not in clean.parts
+    assert burnt.glows > 0 == clean.glows  # a tip or two still smoulders
+    assert len(burnt.parts) <= len(clean.parts) + 30  # it sways, so it stays lean
 
 
 ROOFED = """[meta]

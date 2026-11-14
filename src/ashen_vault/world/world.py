@@ -1783,7 +1783,7 @@ class World:
             else:
                 models.torch(rig, t)
         elif k == "banner":
-            models.banner(rig, t + p.tz, p.tx * 3 + p.tz)
+            models.banner(rig, t + p.tz, p.tx * 3 + p.tz, burnt="burnt" in p.props)
         elif k == "rack":
             models.rack(rig, p.tx + p.tz)
         elif k == "table":
