@@ -7,9 +7,17 @@ import math
 import os
 import sys
 
-# The wordmark's letters live with the game so the title screen draws the same ones.
+# The letters live with the game, so the logo is set in the title screen's own fonts: the wordmark in
+# the 5x7 capitals (`hud.big`) and the tagline in the small mixed-case font of its menu (`hud.text`).
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "src"))
-from ashen_vault.ui.logofont import FONT
+from ashen_vault.ui import logofont, smallfont
+
+# The title screen's colours (ui/hud.py): HIGHLIGHT for the wordmark, DIM for the tagline, the HUD's
+# gold trim for the frame, and its black drop shadow.
+HIGHLIGHT = "#ffdc8c"
+DIM = "#8c826e"
+EDGE = "#aa8746"
+SHADOW = "#000000"
 
 # The silent bell: B = bronze body, c = crack, k = clapper.
 BELL = [
@@ -81,41 +89,47 @@ def emblem(ox, oy, s):
     return out
 
 
-def text(s, ox, oy, px, fill, shadow=None):
+def pixels(runs, px, fill, ox, oy, shadow=None):
+    """SVG rects for font runs (x, y, w, h in glyph pixels from the text's top-left), `px` screen pixels
+    each, offset to (ox, oy); with `shadow`, a drop shadow first, offset like `hud.big`'s."""
+    runs = list(runs)
     out = []
-    x = ox
-    for ch in s:
-        if ch == " ":
-            x += 4 * px
-            continue
-        glyph = FONT[ch]
-        for gy, row in enumerate(glyph):
-            for gx, c in enumerate(row):
-                if c != "#":
-                    continue
-                if shadow:
-                    out.append(
-                        f'<rect x="{x + gx * px + px // 2}" y="{oy + gy * px + px // 2}" width="{px}" '
-                        f'height="{px}" fill="{shadow}"/>'
-                    )
-                out.append(
-                    f'<rect x="{x + gx * px}" y="{oy + gy * px}" width="{px}" height="{px}" fill="{fill}"/>'
-                )
-        x += (len(glyph[0]) + 1) * px
-    return out, x - px - ox
+    if shadow:
+        off = max(px // 2, 1)
+        for x, y, w, h in runs:
+            out.append(
+                f'<rect x="{ox + x * px + off}" y="{oy + y * px + off}" width="{w * px}" height="{h * px}" '
+                f'fill="{shadow}" fill-opacity="0.8"/>'
+            )
+    for x, y, w, h in runs:
+        out.append(
+            f'<rect x="{ox + x * px}" y="{oy + y * px}" width="{w * px}" height="{h * px}" fill="{fill}"/>'
+        )
+    return out
+
+
+def wordmark(s, cx, y, px):
+    """`s` in the title's 5x7 capitals, centred on `cx`, with its drop shadow."""
+    x = cx - logofont.width(s, px) // 2
+    return pixels(logofont.rects(s, 0, 0), px, HIGHLIGHT, x, y, shadow=SHADOW)
+
+
+def tagline(s, cx, y, px):
+    """`s` in the menu's small mixed-case font, centred on `cx`."""
+    x = cx - smallfont.width(s) * px // 2
+    return pixels(smallfont.rects(s, 0, 0), px, DIM, x, y)
 
 
 def main():
     W, H = 640, 200
     parts = [
         f'<rect width="{W}" height="{H}" rx="14" fill="#14100c"/>',
-        f'<rect x="3" y="3" width="{W - 6}" height="{H - 6}" rx="11" fill="none" stroke="#78644a" stroke-width="2"/>',
+        f'<rect x="3" y="3" width="{W - 6}" height="{H - 6}" rx="11" fill="none" stroke="{EDGE}" stroke-width="2"/>',
     ]
     parts += emblem(34, 28, 6)
-    title, tw = text("ASHEN VAULT", 200, 62, 6, "#ffdc8c", shadow="#3a2410")
-    parts += title
-    tag, _ = text("BENEATH THE SILENT BELL", 202, 124, 3, "#8c826e")
-    parts += tag
+    cx = 405  # the middle of the space right of the emblem
+    parts += wordmark("ASHEN VAULT", cx, 58, 6)
+    parts += tagline("beneath the silent bell", cx, 122, 3)
     svg = (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" '
         f'shape-rendering="crispEdges" role="img" aria-label="Ashen Vault">'
@@ -124,7 +138,7 @@ def main():
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ashen_vault.svg")
     with open(path, "w") as f:
         f.write(svg)
-    print(f"wrote {path} (wordmark {tw}px wide)")
+    print(f"wrote {path}")
 
 
 if __name__ == "__main__":
