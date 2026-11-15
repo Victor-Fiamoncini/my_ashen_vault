@@ -307,6 +307,7 @@ FROG_GOLD = 33  # coins the frog coughs up the first time it is patted
 BRIDGE_YAW = {"w": 0.0, "e": math.pi, "n": -math.pi / 2, "s": math.pi / 2}
 STATUS_TINT = {"poison": (0.45, 1.1, 0.3), "burn": (1.5, 0.7, 0.25)}
 KINDLE_REACH = 1.2  # a flame bolt passing this close to a cold brazier sets it alight
+SLAG_GOUTS = 8  # tongues of molten flame Slag Burst throws out around you
 
 
 # Fire and lava sounds fade with distance: (base volume, metres at which they fall silent).
@@ -1352,9 +1353,9 @@ class World:
             out.append(pr_)
         return out
 
-    def fire_bolt(self, damage, effect="flame", rgb=(255, 160, 60), speed=shots.BOLT_SPEED):
+    def fire_bolt(self, damage, effect="flame", rgb=(255, 160, 60), speed=shots.BOLT_SPEED, yaw_offset=0.0):
         player = self.player
-        dx, dy, dz = shots.aim(player.yaw, player.pitch, speed)
+        dx, dy, dz = shots.aim(player.yaw + yaw_offset, player.pitch, speed)
         lead = 0.5 / speed  # starts half a metre out along the aim
         self.projectiles.append(
             Projectile(
@@ -1375,29 +1376,28 @@ class World:
     def pyre(self, magic, gauge):
         """A short gout of fire in front of you: it burns the foes it reaches (plants catch and keep
         burning), kindles cold braziers and burns away webs. Returns how many foes it struck."""
-        player = self.player
-        targets = self.melee_targets(Spells.PYRE_REACH, cone=0.5)
-        for e in targets:
+
+        def burn(e):
             flammable = e.type.flammable
             dmg = Spells.pyre_damage(magic, gauge, flammable)
             self.game.damage_enemy(e, max(rround(dmg * elements.mult(e.type, "fire")), 1))
             if flammable and e.alive:
                 e.afflict("burn", *Spells.BURN)
-        fx, fz = player.forward()
-        for p in list(self.props):
-            dx, dz = p.x - player.x, p.z - player.z
-            d = math.hypot(dx, dz) or 1e-6
-            if d > Spells.PYRE_REACH + TileMap.TILE / 2 or (dx * fx + dz * fz) / d < 0.4:
-                continue
-            if p.kind in KINDLING:
-                self.kindle(p)
-            elif self._web(p) and p.open_t == 0:
-                self.flags.add(p.key)
-                p.open_t = 0.01
-                self.game.message("The web shrivels in the flame.")
+
+        return self.flame_cone(Spells.PYRE_REACH, burn)
+
+    def flame_cone(self, reach, burn, cone=0.5):
+        """A gout of fire `reach` metres ahead: `burn(enemy)` for each foe it reaches, then cold
+        braziers kindle and webs shrivel in it. Pyre's, and the Ashblade's Ember Spill. Returns how
+        many foes it struck."""
+        player = self.player
+        targets = self.melee_targets(reach, cone=cone)
+        for e in targets:
+            burn(e)
+        self._fire_touches(lambda d, cos: d <= reach + TileMap.TILE / 2 and cos >= 0.4)
         dx, dy, dz = shots.aim(player.yaw, player.pitch, speed=1.0)  # the unit direction you aim
         y0 = player.eye_y - shots.BOLT_DROP
-        self.gouts.append(Gout(player.x, y0, player.z, dx, dy, dz, Spells.PYRE_REACH))
+        self.gouts.append(Gout(player.x, y0, player.z, dx, dy, dz, reach))
         rng = random.Random(int(self._time * 1000))
         for i in range(18):  # sparks and embers thrown out of the gout, rising as they cool
             spread = (i / 17 - 0.5) * 0.9 + rng.uniform(-0.1, 0.1)
@@ -1420,6 +1420,45 @@ class World:
                 )
             )
         return len(targets)
+
+    def _fire_touches(self, reaches):
+        """Kindles the cold fires and burns the webs a burst of flame reaches: `reaches(distance,
+        cos_from_facing)` says which props it touches."""
+        player = self.player
+        fx, fz = player.forward()
+        for p in list(self.props):
+            dx, dz = p.x - player.x, p.z - player.z
+            d = math.hypot(dx, dz) or 1e-6
+            if not reaches(d, (dx * fx + dz * fz) / d):
+                continue
+            if p.kind in KINDLING:
+                self.kindle(p)
+            elif self._web(p) and p.open_t == 0:
+                self.flags.add(p.key)
+                p.open_t = 0.01
+                self.game.message("The web shrivels in the flame.")
+
+    def volley(self, damage, count, spread, effect, rgb, speed=shots.BOLT_SPEED):
+        """`count` shots fanned `spread` radians apart about your aim (Thornlash's Thorn Volley)."""
+        for i in range(count):
+            self.fire_bolt(damage, effect, rgb, speed, yaw_offset=(i - (count - 1) / 2) * spread)
+
+    def slag_ring(self, damage_for, radius):
+        """Slagbreaker's Slag Burst: molten flame bursts out all around you along the floor.
+        `damage_for(enemy)` is dealt to every foe within `radius` metres, fire burns them, and the
+        cold fires and webs it reaches kindle and shrivel. Returns the foes struck."""
+        player = self.player
+        targets = self.melee_targets(radius, cone=-1)
+        for e in targets:
+            self.game.damage_enemy(e, max(rround(damage_for(e)), 1))
+            if elements.burns(e.type, "fire") and e.alive:
+                e.afflict("burn", *elements.WEAPON_BURN)
+        self._fire_touches(lambda d, _cos: d <= radius + TileMap.TILE / 2)
+        y0 = player.y + 0.3
+        for i in range(SLAG_GOUTS):
+            a = player.yaw + i * math.tau / SLAG_GOUTS
+            self.gouts.append(Gout(player.x, y0, player.z, math.cos(a), 0.05, math.sin(a), radius))
+        return targets
 
     @staticmethod
     def _web(p):

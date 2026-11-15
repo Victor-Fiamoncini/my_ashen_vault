@@ -47,6 +47,7 @@ class Player:
         self.swing_power = 0.0
         self.swing_hand = RIGHT
         self.attack = weapons.attack(self.inventory.weapon_item())
+        self.swing_art = None  # the weapon art riding on the current swing (see weapons.ARTS)
         self.charge_t = 0.0  # seconds the attack button has been held
         self.charge_hand = RIGHT  # which button is being held
         self.hitstop_t = 0.0
@@ -299,6 +300,20 @@ class Player:
         heavy = weapons.attack(self.hand_weapon(hand), weapons.HEAVY)
         return not self.stamina.exhausted and self.stamina.value >= heavy.stamina * self.burden.cost
 
+    def art_primed(self, hand=RIGHT):
+        """The weapon's art, if it has one and both its ATK gauge and the heavy charge are full."""
+        a = weapons.art(self.hand_weapon(hand))
+        if a is None or not self.gauge(hand).full or self.charge_hand != hand or self.charge_frac < 1:
+            return None
+        return a
+
+    def art_ready(self, hand=RIGHT):
+        """The art a heavy released now would loose: primed, with the ST for the heavy and the MP."""
+        a = self.art_primed(hand)
+        if a is None or not self.can_heavy(hand) or self.stats.mp < a.mp:
+            return None
+        return a
+
     def context(self):
         """What secrets look at as a swing starts."""
         return weapons.Context(
@@ -310,15 +325,17 @@ class Player:
             since_hit=self.since_hit,
         )
 
-    def start_swing(self, hand=RIGHT, kind=weapons.LIGHT, secrets=True):
+    def start_swing(self, hand=RIGHT, kind=weapons.LIGHT, secrets=True, art=False):
         """Starts an attack with `hand`. Every attack costs ST: too winded and you can't swing at all,
         and a heavy you can't pay for comes out light. A light or heavy may turn into the weapon's
-        secret attack (see weapons.secret). Returns the Attack, or None."""
+        secret attack (see weapons.secret). With `art`, a heavy released with the art ready carries it
+        (`swing_art`) and pays its MP; a secret outranks it. Returns the Attack, or None."""
         if self.swinging or self.guard_break_t > 0 or self.stamina.exhausted:
             return None
         item = self.hand_weapon(hand)
         if item.kind != "weapon":
             return None
+        ready = self.art_ready(hand) if art and kind == weapons.HEAVY else None
         if kind == weapons.HEAVY and not self.can_heavy(hand):
             kind = weapons.LIGHT
         a = self._loaded(weapons.attack(item, kind))
@@ -327,6 +344,10 @@ class Player:
         if hidden and self.stamina.value >= hidden.stamina:
             a = hidden
             self.combo_n = 0
+            ready = None
+        if ready:
+            self.stats.spend_mp(ready.mp)
+        self.swing_art = ready
         self.stamina.spend(min(a.stamina, self.stamina.value))
         self.veil_t = 0.0  # a blow tears the mist apart
         self.attack = a

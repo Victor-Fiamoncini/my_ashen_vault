@@ -132,6 +132,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/ui/smallfont.py` | The small mixed-case pixel font for all game text: menus, dialogue, messages, prompts and the boss bar (`hud.text` draws with it) |
 | `src/ashen_vault/ui/tinyfont.py` | The HUD's tiny fonts: 3x5 `GLYPHS` (the HP/MP/ST labels and numbers, `hud.tiny`) and 3x4 `MICRO` (the HUD mouse's PRI / SEC labels and the quick item's count, `hud.micro_centered`; only the characters they use) |
 | `src/ashen_vault/save/settings.py` | Player options (sound on/off, volume) in `settings.json` beside the save; the title and pause menus' Options screen edits them and `Audio.set_volume` applies them as the master gain |
+| `src/ashen_vault/ui/atk_bar.py` | What a weapon button's two-row bar shows (ATK gauge, heavy charge, a ready art), as data; `hud.draw_atk_bar` draws it |
 | `src/ashen_vault/ui/tally.py` | `GoldTally`: the top-right gold counter's bookkeeping (a gain lingers as "+N", then rolls in; spending shows at once). `Game.update` feeds it |
 | `src/ashen_vault/ui/logofont.py` | The logo's 5x7 capitals, shared by `docs/logo/make_logo.py` and big headings (`hud.big`: the title, the death screen) |
 | `src/ashen_vault/ui/belongings.py` | Belongings as data: its tabs, slot marks, the Equipped panel and the slot chooser (Primary / Secondary) |
@@ -347,6 +348,13 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   `ribcage`, `hand`, `sack_hood` and `_bar` (a box between two points).
 - Secret attacks are listed in `weapons.secret()`; performing one adds a `secret:<category>` flag,
   which reveals its name in Belongings and the shop.
+- Weapon arts (`weapons.ARTS`, keyed by item id: the Ashblade's Ember Spill, Stormbrand's Thunderstroke,
+  Thornlash's Thorn Volley, Slagbreaker's Slag Burst): releasing a heavy with both the ATK gauge and the
+  heavy charge full, and the art's `mp`, sets `Player.swing_art` (`art_ready`; a secret outranks it), and
+  `Game._release_art` looses it as the blow lands, through the spells' plumbing (`World.flame_cone`, which
+  Pyre shares, `fire_bolt`, `volley`, `slag_ring`). The weapon button's bar shows the ATK gauge on its top
+  row and the heavy charge on its bottom one (`ui/atk_bar.py`); a ready art burns it in the art's `rgb`.
+  Belongings and the shop list the art under the weapon's moves.
 - Weapons may carry an `element` (`"lightning"`, `"fire"`): `Game._strike` multiplies by
   `elements.mult` and a fire weapon leaves `burn` on what it hits.
 - Each weapon has its own small, animated glyph on the HUD mouse (`hud.WEAPON_ICONS`, keyed by item id,

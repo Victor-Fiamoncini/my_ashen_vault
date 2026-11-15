@@ -33,11 +33,11 @@ from ashen_vault.screen import (
     list_row_at,
     scroll_into_view,
 )
-from ashen_vault.ui import belongings, compare
+from ashen_vault.ui import belongings, compare, smallfont
 from ashen_vault.ui import hud as ui
 from ashen_vault.ui.tally import GoldTally
 from ashen_vault.util import clamp, rround
-from ashen_vault.world import darkness, doors, elements, loot, relics
+from ashen_vault.world import darkness, doors, elements, loot, relics, shots
 from ashen_vault.world.rest import RestSequence
 from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.world import World, beside_shrine
@@ -469,22 +469,28 @@ class Game:
                 p.charge_t = 0.0
             return
         heavy = p.charge_hand == hand and p.charge_t >= weapons.CHARGE_TIME
-        self._swing(hand, weapons.HEAVY if heavy else weapons.LIGHT)
+        self._swing(hand, weapons.HEAVY if heavy else weapons.LIGHT, art=heavy)
         if p.charge_hand == hand:
             p.charge_t = 0.0
 
-    def _swing(self, hand, kind):
+    def _swing(self, hand, kind, art=False):
+        """Starts a swing. `art`: a heavy released with both gauges full looses the weapon's art, if
+        it has one and you have the MP (Player.art_ready)."""
         p = self.player
         if p.swinging:
             return
         if p.stamina.exhausted:
             self.message("Too winded to swing.")
             return
-        a = p.start_swing(hand, kind)
+        a = p.start_swing(hand, kind, art=art)
         if not a:
             return
         self._hit_done = False
-        if a.kind == weapons.SECRET:
+        if p.swing_art:
+            self.sfx("heavy", 0.8)
+            self.sfx("spell", 0.6)
+            self.message(f"{{{p.swing_art.name}}}!")
+        elif a.kind == weapons.SECRET:
             self.sfx("heavy", 0.9)
             self.sfx("swoosh", 0.6)
             self.message(f"{{{a.name}}}!")
@@ -514,6 +520,40 @@ class Game:
             p.land_hit(targets[0])
         if a.pulses > 1:
             self._pulse = [a.pulse_gap, a, weapon, a.pulses - 1]
+        if p.swing_art:
+            self._release_art(weapon, p.swing_art)
+
+    def _art_damage(self, weapon, art):
+        """What a weapon art deals before elements: the weapon's full-gauge blow, scaled by the art."""
+        p = self.player
+        return Combat.damage(
+            base=self._swing_power(weapon), strength=p.stats.strength, gauge=1.0, defense=0, mult=art.damage
+        )
+
+    def _release_art(self, weapon, art):
+        """The weapon art riding on the swing that just landed (weapons.ARTS)."""
+        p = self.player
+        p.veil_t = 0.0
+        dmg = self._art_damage(weapon, art)
+        speed = art.speed or shots.BOLT_SPEED
+        if art.kind == weapons.CONE:
+            self.sfx("spell", 0.5)
+
+            def burn(e):
+                self.damage_enemy(e, max(rround(dmg * elements.mult(e.type, art.element)), 1))
+                if elements.burns(e.type, art.element) and e.alive:
+                    e.afflict("burn", *elements.WEAPON_BURN)
+
+            self.world.flame_cone(art.reach, burn)
+        elif art.kind == weapons.BOLT:
+            self.sfx("thunder" if art.effect == "thunder" else "spell")
+            self.world.fire_bolt(dmg, effect=art.effect, rgb=art.rgb, speed=speed)
+        elif art.kind == weapons.VOLLEY:
+            self.sfx("spell", 0.7)
+            self.world.volley(dmg, art.count, art.spread, art.effect, art.rgb, speed)
+        elif art.kind == weapons.RING:
+            self.sfx("heavy", 1.0)
+            self.world.slag_ring(lambda e: dmg * elements.mult(e.type, art.element), art.reach)
 
     def _strike(self, weapon, a, mult=1.0):
         """Deals one blow of attack `a` to everything in reach; returns who it hit."""
@@ -1584,13 +1624,17 @@ class Game:
                     known = f"secret:{item.category}" in self.flags
                     head += f" / {moves[weapons.SECRET].name if known else '???'}"
                 lines = [head, *lines]
-            for i, l in enumerate(lines[:3]):
-                ui.text(
-                    l,
-                    84,
-                    187 + i * 11,
-                    ui.color(240, 210, 90) if l is lines[0] and item.kind == "weapon" else ui.TEXT,
-                )
+            art = weapons.art(item) if item.kind == "weapon" else None
+            if art:  # a weapon art takes its own line, in its colour
+                lines.insert(1, f"Art: {art.name} ({art.mp} MP)")
+            # Three lines sit 11 px apart; a fourth (a weapon with an art) packs them at the font's own.
+            lines = lines[: 4 if art else 3]
+            step, top = (11, 187) if len(lines) <= 3 else (smallfont.LINE, 185)
+            for i, l in enumerate(lines):
+                rgb = (240, 210, 90) if i == 0 and item.kind == "weapon" else None
+                if art and i == 1:
+                    rgb = art.rgb
+                ui.text(l, 84, top + i * step, ui.color(*rgb) if rgb else ui.TEXT)
         msg = self.messages[-1] if self.messages else None
         fresh = msg is not None and msg[1] < 2.5
         ui.text(msg[0] if fresh else footer, 84, 221, ui.TEXT if fresh else ui.DIM)

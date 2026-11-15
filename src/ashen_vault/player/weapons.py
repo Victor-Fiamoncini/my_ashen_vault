@@ -238,3 +238,50 @@ def secret(item, kind, ctx):
     elif kind == LIGHT and cat == "club":
         hit = ctx.combo >= COMBO_HITS
     return attack(item, SECRET) if hit else None
+
+
+# --- weapon arts ----------------------------------------------------------------------------------
+# A few weapons hide an art: release a heavy with both the ATK gauge and the heavy charge full, and
+# with the MP to pay for it, and the swing looses something more than steel (the Ashblade spills fire).
+CONE, BOLT, VOLLEY, RING = "cone", "bolt", "volley", "ring"
+
+
+@dataclass(frozen=True)
+class Art:
+    id: str
+    name: str
+    mp: int  # MP it costs; short of it, the swing is a plain heavy
+    kind: str  # CONE (a gout of flame ahead), BOLT (one shot), VOLLEY (a fan of shots), RING (all around)
+    damage: float  # multiplier on the weapon's full-gauge blow (Combat.damage)
+    rgb: tuple  # its colour on the HUD bar and in the world
+    reach: float = 0.0  # metres a cone or ring reaches
+    element: str | None = None  # "fire" burns what it hits; elements.mult applies to every art
+    effect: str = "flame"  # a shot's look and touch (Projectile.effect)
+    speed: float = 0.0  # a shot's speed (0: the spell bolt's)
+    count: int = 1  # shots in a volley
+    spread: float = 0.0  # radians between a volley's shots
+
+
+ARTS = {
+    "ashblade": Art("ember_spill", "Ember Spill", 6, CONE, 1.3, (255, 110, 40), reach=4.5, element="fire"),
+    "stormbrand": Art(
+        "thunderstroke",
+        "Thunderstroke",
+        6,
+        BOLT,
+        1.6,
+        (150, 200, 255),
+        element="lightning",
+        effect="thunder",
+        speed=16.0,
+    ),
+    "thornlash": Art(
+        "thorn_volley", "Thorn Volley", 5, VOLLEY, 0.6, (140, 220, 70), effect="venom", count=3, spread=0.16
+    ),
+    "slagbreaker": Art("slag_burst", "Slag Burst", 8, RING, 1.2, (255, 80, 20), reach=4.0, element="fire"),
+}
+
+
+def art(item):
+    """The art `item` hides, or None."""
+    return ARTS.get(item.id) if item is not None else None

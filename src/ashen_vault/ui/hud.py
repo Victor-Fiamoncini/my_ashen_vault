@@ -9,7 +9,7 @@ from raylib import ffi
 
 from ashen_vault.player.inventory import LEFT, RIGHT
 from ashen_vault.screen import ROW_H, ROW_TOP, H, W
-from ashen_vault.ui import logofont, smallfont, tinyfont
+from ashen_vault.ui import atk_bar, logofont, smallfont, tinyfont
 from ashen_vault.util import clamp, highlight_runs, plain, rround
 from ashen_vault.world import rest
 
@@ -196,11 +196,7 @@ def vital(label, x, y, frac, label_rgb, bar_rgb, value=None):
 SLOT_PULSE = 0.35  # seconds a mouse button's edge flashes after its gauge fills
 FOCUS_RGB = (120, 220, 240)
 FOCUS_CHARGING_RGB = (50, 100, 120)
-ATK_RGB = (240, 210, 90)
-ATK_CHARGING_RGB = (150, 120, 50)
-CHARGE_SHOW = 0.08  # ignore the first moments of a hold so plain taps never flash the bar
-HEAVY_RGB = (255, 140, 50)
-WINDED_RGB = (140, 40, 30)
+GAUGE_H = 4  # a button's gauge bar; a weapon's splits into two rows (see ui/atk_bar.py)
 
 HUD_FILL = color(20, 16, 12, 215)
 HUD_EDGE = color(170, 135, 70)  # the gold trim shared by the vitals box and the mouse
@@ -332,8 +328,7 @@ def mouse_button(player, hand, x, y, w):
             pr.draw_ring(pr.Vector2(cx, cy), 4, 6, 0, 360, 24, color(60, 56, 48))
     else:
         g = player.gauge(hand)
-        gauge_bar(bx, by, bw, g.value, ATK_RGB if g.full else ATK_CHARGING_RGB)
-        charge_bar(player, hand, bx, by, bw)
+        draw_atk_bar(atk_bar.state(player, hand), player.charge_t, bx, by, bw)
         weapon_icon(item, cx, cy, t, 255 if g.full else 110, g.full)
         pulse = g
     if pulse is not None and pulse.full and pulse.full_t < SLOT_PULSE:
@@ -358,24 +353,30 @@ def wheel(player, cx, top, h):
 
 
 def gauge_bar(x, y, w, frac, rgb, track=(40, 34, 26)):
-    pr.draw_rectangle(x - 1, y - 1, w + 2, 5, color(0, 0, 0, 220))
-    pr.draw_rectangle(x, y, w, 3, color(*track))
-    pr.draw_rectangle(x, y, rround(w * clamp(frac, 0, 1)), 3, color(*rgb))
+    pr.draw_rectangle(x - 1, y - 1, w + 2, GAUGE_H + 2, color(0, 0, 0, 220))
+    pr.draw_rectangle(x, y, w, GAUGE_H, color(*track))
+    pr.draw_rectangle(x, y, rround(w * clamp(frac, 0, 1)), GAUGE_H, color(*rgb))
 
 
-def charge_bar(player, hand, x, y, w):
-    """While the attack button is held: an orange bar fills over the gauge towards a heavy attack
-    and pulses once it is ready. Dim red when there is not enough ST for one."""
-    if player.charge_hand != hand or player.swinging or player.charge_t < CHARGE_SHOW:
-        return
-    if not player.can_heavy(hand):
-        pr.draw_rectangle(x, y, w, 3, color(*WINDED_RGB))
-        return
-    k = player.charge_frac
-    pr.draw_rectangle(x, y, rround(w * k), 3, color(*HEAVY_RGB))
-    if k >= 1:
-        pulse = 0.5 + 0.5 * math.sin(player.charge_t * 18)
-        pr.draw_rectangle(x - 1, y - 1, w + 2, 5, color(255, 220, 150, rround(140 * pulse)))
+def draw_atk_bar(bar, held_t, x, y, w, track=(40, 34, 26)):
+    """A weapon button's bar (`atk_bar.BarState`): the ATK gauge on its top row, the heavy charge on
+    its bottom one. A ready heavy pulses; a ready art burns the whole bar in its colour and flares its
+    rim."""
+    half = GAUGE_H // 2
+    pr.draw_rectangle(x - 1, y - 1, w + 2, GAUGE_H + 2, color(0, 0, 0, 220))
+    pr.draw_rectangle(x, y, w, GAUGE_H, color(*track))
+    pr.draw_rectangle(x, y, rround(w * clamp(bar.gauge, 0, 1)), half, color(*bar.gauge_rgb))
+    pr.draw_rectangle(x, y + half, rround(w * clamp(bar.charge, 0, 1)), half, color(*bar.charge_rgb))
+    pulse = 0.5 + 0.5 * math.sin(held_t * 18)
+    if bar.glow == atk_bar.HEAVY:
+        pr.draw_rectangle(x - 1, y - 1, w + 2, GAUGE_H + 2, color(255, 220, 150, rround(140 * pulse)))
+    elif bar.glow == atk_bar.ART:
+        r, g, b = bar.art_rgb
+        spark = x + rround((held_t * 40) % (w + 6)) - 3  # a white-hot spark runs along the bar
+        for dx, a in ((-2, 90), (-1, 170), (0, 255), (1, 170), (2, 90)):
+            if x <= spark + dx < x + w:
+                pr.draw_rectangle(spark + dx, y, 1, GAUGE_H, color(255, 245, 210, a))
+        pr.draw_rectangle_lines(x - 2, y - 2, w + 4, GAUGE_H + 4, color(r, g, b, rround(110 + 140 * pulse)))
 
 
 def item_icon(id_, cx, cy, t, alpha=255):
