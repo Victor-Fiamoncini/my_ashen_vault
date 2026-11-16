@@ -486,7 +486,7 @@ the flame bolt shot is
 `uv run ashen-vault --map sunken_keep --at 15,22,0 --smoke 40 --script "wait:0.3 cast" --shot flame_bolt.png`,
 the Loom Mother is `uv run ashen-vault --map verdant_hollow --at=15,7,-90 --smoke 40 --shot loom_mother.png`,
 the lift ride is
-`uv run ashen-vault --map sunken_keep --at 4,24,90 --smoke 560 --script "forward:0.15 wait:5 forward:0.6 wait:5" --shot undercroft_lift.png`,
+`uv run ashen-vault --map sunken_keep --at 4,24,90 --smoke 680 --script "forward:0.15 wait:5 forward:0.6 wait:7" --shot undercroft_lift.png`,
 the Butcher is `uv run ashen-vault --map sunken_keep --at=27,7,-90 --smoke 20 --shot gallery.png`,
 the jungle trail is `uv run ashen-vault --map harrowmere --at=56,34,-90 --smoke 40 --shot jungle_trail.png`,
 Mossmouth is
