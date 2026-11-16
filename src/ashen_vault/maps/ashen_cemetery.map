@@ -1,0 +1,125 @@
+[meta]
+name = The Cemetery of Ashes
+ambient = 0.34 0.33 0.37
+fog = 0.30 0.30 0.34
+fog_range = 8 34
+sky = overcast
+torch = 5 0.6 0.55 0.5
+start = 10 45 -90
+default = ,
+edge_top = 7
+entity_floor = auto
+
+// Where the Ashen wake. A walled hollow of graves among the cliffs, under a grey dusk; you climb out
+// of an open grave as the town's bell tolls somewhere beyond. A lane leads north between the walls
+// to a field of headstones where the husks of the Ashen who woke before you still wander; up the
+// steps, a dark chapel with its far door sealed in silk; past it a shrine in a small court, and
+// the great door of the Sexton, who keeps the cemetery's gate. Beyond the gate, Harrowmere.
+// The way runs one way only: once through the gate there is no coming back.
+
+[legend]
+# = wall tex=ash_rock top=7 cap=ash_ground
+v = wall tex=ash_stone top=9 cap=ash_ground
+w = wall tex=ash_brick top=3.6 cap=ash_ground
+k = wall tex=ash_brick top=6 cap=ash_ground
+, = floor tex=ash_grass h=0
+. = floor tex=ash_ground h=0
+1 = floor tex=ash_ground h=0.4 side=ash_stone
+c = floor tex=ash_flagstone h=0.8 ceil=4.6 ceil_tex=ash_brick side=ash_brick dark=0.25
+f = floor tex=flagstone h=0.8 side=ash_stone
+a = floor tex=ash_flagstone h=0.8 side=ash_stone
+
+[grid]
+####vvvvvvvvvvvvvv####
+####vvvvvvvvvvvvvv####
+####vaaaaaEaaaaaav####
+####vaZaaaaaaaaZav####
+####vaaaaaaaaaaaav####
+####vaaaaaJaaaaaRv####
+####vRaaaaaaaaaaav####
+####vaaaaaaaaaaaav####
+####vaRaaaaaaaaRav####
+####vaaaaaaaaaaaav####
+####vwwwwwFwwwwwvv####
+#####wfffffffffw######
+#####wfTfffffRfw######
+#####wfffffffffw######
+#####wLfffffffLw######
+#####wfffÊÊÊfffw######
+#####kkkkkWkkkkk######
+#####kccVÉÉÉVcck######
+#####kDÈÈccccUck######
+#####kcÈÈcccccLk######
+#####kcPccQXcPck######
+#####kLcccccccck######
+#####kcPcccccPck######
+#####kNcÇÇÇÇÇcKk######
+#####kkkkkckkkkk######
+#w,,,wwwwÆÆÆwwww,,,,w#
+#wR,,,,,,...,,,,,,,Rw#
+#w,,G,G,,,..,AGXG,G,w#
+#w,,,,,B,,ÌÌ,,,,,,,,w#
+#w,,,,R,,,..,,,B,,,,w#
+#w,,G,,GX,..Z,G,,G,,w#
+#w,R,,,,A,ÅÅ,,,,,,,,w#
+#w,,,Y,,,,..,,,,,Y,,w#
+#wwwwwwwwwÄÄwwwwwwwww#
+########ww..ww########
+########wwÃÃww########
+########wwC.ww########
+########ww..ww########
+########wwÂÂww########
+##wwwwwwww..wwwwwwww##
+##wY,,,,,,..,,,,,,Yw##
+##w,,,,,,,..,,,,,,,w##
+##w,,G,G,,ÁÁS,G,G,,w##
+##w,,,,,,,ÁÁ,,,,,,,w##
+##wL,,,,,,..,,,,,,Lw##
+##w,,G,G,,MM,,G,G,,w##
+##w,,,,,,,O.,,,,,,,w##
+##w,Y,R,,,..,,,,,Y,w##
+##wwwwwwwwwwwwwwwwww##
+######################
+
+[entities]
+// The waking hollow: the open grave you climb out of, rows of headstones, the first shrine.
+M = hint text="{W A S D} walk. The {mouse} looks about.|Climb out of the grave and follow the path north."
+O = open_grave
+S = save_statue
+Á = hint text="A shrine. Press {E} beside it to pray:|it mends you and records your journey."
+G = gravestone
+Y = tree kind=cypress
+R = urn
+L = torch radius=6
+// The lane between the walls, and the Rusted Sword left against one of them.
+Â = hint text="Something lies against the wall ahead.|Press {E} to open a chest."
+C = chest item=rusted_sword
+Ã = hint text="Open {Belongings} with {Tab}, choose a weapon and press {1}|to hold it as your {Primary}."
+// The field of headstones, where the husks of those who failed still wander.
+Ä = hint text="{Left mouse} swings your Primary. Hold it for a heavy blow."
+Å = hint text="Every blow and every sprint ({Shift}) spends stamina.|Step back and let it refill."
+Ì = hint text="Urns break when struck, and spill what they hold.|The {wheel} picks a quick item; {middle mouse} uses it."
+B = bone_walker
+A = ashen_husk
+X = mourner
+Z = brazier radius=8
+Æ = hint text="Ash lies thick on the chapel steps.|Many of the Ashen came this way. None came back." on=1
+// The chapel: the Flame Bolt's scroll by its west wall, a cold brazier, and its far door sealed in silk.
+Ç = hint text="Silk seals the chapel's far door. No blade will cut it."
+D = chest item=scroll_flame gold=15
+È = hint text="A scroll: choose it in {Belongings} to learn its spell,|then press {2} on the spell to ready it as your {Secondary}."
+É = hint text="{Right mouse} casts your Secondary's spell.|Burn the silk."
+W = secret_wall model=web on=c
+U = brazier unlit radius=7
+P = pillar
+Q = sarcophagus
+V = candles
+K = cobweb
+N = skull_niche
+// The shrine court before the great door.
+T = save_statue
+Ê = hint text="A great door, and something waiting behind it.|Pray at the shrine first, then press {E} at the door."
+// The Sexton's yard, and the cemetery's gate out to Harrowmere, shut until its keeper falls.
+F = door boss=sexton_dead on=a
+J = sexton
+E = exit map=harrowmere at=2,29,0 label=Leave_the_cemetery model=cemetery_gate yaw=90 oneway requires=sexton_dead shut="The gate will not yield while its keeper stands."

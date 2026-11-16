@@ -54,6 +54,12 @@ def all_textures():
         "cloud_cap": cloud_cap(),
         "mist": mist(),
         "ash_skin": ash_skin(),
+        "ash_rock": ash_rock(),
+        "ash_stone": ash_stone(),
+        "ash_brick": ash_brick(),
+        "ash_ground": ash_ground(),
+        "ash_grass": ash_grass(),
+        "ash_flagstone": ash_flagstone(),
         "white": solid(255, 255, 255),
     }
 
@@ -573,6 +579,108 @@ def cliff_rock():
         if band > 0.7 and hash_(x, y, 223) > 0.55:
             return tint([66, 96, 46], 0.7 + n * 0.4)  # moss growing in it
         return tint([108, 100, 88], k)
+
+    return build(px)
+
+
+def _soot(x, y, seed):
+    """0..1 how sooty a wall is at (x, y): streaks running down from above, broken by noise."""
+    streak = noise(x, 0, 4, seed) * 0.7 + noise(x, y, 16, seed + 1) * 0.3
+    return max(streak - 0.55, 0.0) / 0.45
+
+
+def _ashed(c, k):
+    """`c` drifted over with pale ash by `k` (0..1)."""
+    return [rround(v + (178 - v) * k) for v in c]
+
+
+def ash_rock():
+    """The cemetery's cliffs: pale grey rock in sloping strata, no moss, soot streaked down from its
+    cracks and ash settled on every ledge."""
+
+    def px(x, y):
+        n = fbm(x, y, 401)
+        band = math.sin((y + x * 0.25 + noise(x, y, 16, 402) * 10) * 0.45)
+        if band > 0.88:
+            return tint([26, 24, 24], 0.9 + n * 0.2)  # a crack between strata
+        c = tint([112, 108, 104], 0.62 + n * 0.35 + band * 0.08)
+        if 0.62 < band <= 0.88 and hash_(x, y, 403) > 0.35:
+            return _ashed(c, 0.55)  # ash on the ledge below the crack
+        return tint(c, 1 - 0.45 * _soot(x, y, 404))
+
+    return build(px)
+
+
+def ash_stone():
+    """Rough blocks of grey-white stone, charred dark where they meet."""
+    bh, bw = 16, 32
+
+    def px(x, y):
+        row = y // bh
+        ox = (x + (bw // 2 if row % 2 else 0)) % SIZE
+        n = fbm(x, y, 411)
+        dy, dx = min(y % bh, bh - 1 - y % bh), min(ox % bw, bw - 1 - ox % bw)
+        edge = min(dx, dy)
+        if edge == 0:
+            return tint([30, 28, 28], 0.8 + n * 0.3)
+        char = max(0.0, 1 - edge / 4) * (0.5 + noise(x, y, 8, 412) * 0.5)
+        c = tint([150, 146, 140], 0.7 + hash_(ox // bw, row, 413) * 0.2 + (n - 0.5) * 0.35)
+        return tint(c, 1 - 0.6 * char)
+
+    return build(px)
+
+
+def ash_brick():
+    """Cold grey brick in soot-black mortar, the lower courses crusted with pale ash."""
+    base = bricks([112, 108, 106], [24, 22, 22], 421)
+
+    def px(x, y):
+        i = (y * SIZE + x) * 4
+        c = [base[i], base[i + 1], base[i + 2]]
+        c = tint(c, 1 - 0.35 * _soot(x, y, 422))
+        crust = max(0.0, (y - 40) / 24) * noise(x, y, 8, 423)
+        return _ashed(c, min(crust * 1.4, 0.7))
+
+    return build(px)
+
+
+def ash_ground():
+    """Loose pale ash underfoot, with darker cinders and the odd fleck of bone."""
+
+    def px(x, y):
+        n = fbm(x, y, 431)
+        h = hash_(x, y, 432)
+        if h > 0.985:
+            return [196, 190, 172]  # a fleck of bone
+        if h < 0.03:
+            return tint([44, 40, 38], 0.9 + n * 0.3)  # a cinder
+        return tint([150, 146, 142], 0.62 + n * 0.4 + (hash_(x, y, 433) - 0.5) * 0.1)
+
+    return build(px)
+
+
+def ash_grass():
+    """Dead grass, grey-brown and thin, with ash drifted between the blades."""
+
+    def px(x, y):
+        n = fbm(x, y, 441)
+        if noise(x, y, 16, 442) > 0.58:
+            return tint([140, 136, 132], 0.66 + n * 0.35)  # ash drifted over it
+        blade = 1.25 if hash_(x, y, 443) > 0.84 else 1.0
+        return tint([92, 86, 70], (0.6 + n * 0.45) * blade)
+
+    return build(px)
+
+
+def ash_flagstone():
+    """Flagstones under a dusting of ash, thickest in the joints."""
+    base = flagstone()
+
+    def px(x, y):
+        i = (y * SIZE + x) * 4
+        c = tint([base[i], base[i + 1], base[i + 2]], 0.95)
+        dark = c[0] < 50  # a joint
+        return _ashed(c, 0.55 if dark else 0.25 * noise(x, y, 8, 451))
 
     return build(px)
 

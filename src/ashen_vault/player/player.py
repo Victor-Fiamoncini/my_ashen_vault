@@ -65,6 +65,12 @@ class Player:
         self.combo_n = 0
         self.combo_t = 99.0
 
+    @classmethod
+    def woken(cls):
+        """A new Ashen climbing out of its grave in the Cemetery of Ashes: bare hands, no spell yet, only
+        the coat it was buried in. The cemetery gives it the Rusted Sword and the Flame Bolt."""
+        return cls(inventory=Inventory(right=None, left=None), spells=[])
+
     def place(self, x, z, yaw, map_):
         self.x = x
         self.z = z

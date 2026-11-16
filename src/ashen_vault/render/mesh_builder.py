@@ -50,8 +50,10 @@ LIGHT_KINDS = (
     "forge_hearth",
     "crucible",
     "rose_window",
+    "save_statue",
 )
 LIGHT_Y = {
+    "save_statue": "2.4",
     "lamp_post": "2.6",
     "light": "2.0",
     "candles": "0.6",
@@ -84,6 +86,7 @@ LIGHT_COLOR = {
     "rose_window": "0.95,0.55,0.62",
 }
 LIGHT_RADIUS = {
+    "save_statue": "6",
     "hearth": "6",
     "lamp_post": "7",
     "window": "8",

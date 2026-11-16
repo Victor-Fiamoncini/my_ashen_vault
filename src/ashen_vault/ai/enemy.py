@@ -21,6 +21,11 @@ MOVES = {
     "hook": (0.8, 6.0, 0.4),  # a hooked chain that drags you in
     "breath": (1.0, 7.0, 0.8),  # rakes a line of fire along the floor toward you and past you
     "dive": (0.9, 8.0, 1.2),  # swoops low straight through where you stood
+    # The Ashen Sexton's own: a spadeful of grave ash flung in a fan, grasping hands of ash bursting
+    # up in a line toward you, and (second phase) the knell, two rings of embers tolled outward.
+    "spadeful": (0.8, 6.0, 0.4),
+    "grasp": (1.0, 7.0, 0.7),
+    "knell": (1.3, 9.0, 0.6),
 }
 COMBO_SWINGS = 3
 COMBO_GAP = 0.45  # seconds between the swings of a combo
@@ -37,12 +42,28 @@ DIVE_OVERSHOOT = 3.0  # metres a swoop carries on past where you stood
 DIVE_HIT = 1.1  # a swoop passing this close (beyond its radius) strikes you, once
 BREATH_RANGE = (3.0, 10.0)  # distances a gout of breath is loosed from
 DIVE_RANGE = (5.0, 13.0)
+SPADEFUL_RANGE = (3.5, 11.0)
+GRASP_RANGE = (2.5, 10.0)
+KNELL_RANGE = 12.0  # it tolls only while you are this close
+KNELL_GAP = 0.5  # seconds between the knell's two rings
 TRAIL_HOLD = 0.6  # seconds the boss bar's damage trail waits before draining
 TRAIL_RATE = 0.35  # fraction of max HP the trail drains per second
 VEIL_NOTICE = 1.8  # a foe notices you through a Veil of Mist only this close
 VEIL_LOSE = 4.0  # a chaser loses you in the mist beyond this
 STATUS_TICK = 1.0  # seconds between the bites of poison or fire
 FLASH_TIME = 0.15  # seconds a body glows white after any direct blow, staggered or not
+
+
+# Seconds a move holds its attack pose before recovering (a plain blow: 0.2).
+ATTACK_TIMES = {
+    "sweep": 0.35,
+    "slam": 0.45,
+    "kindle": 0.6,
+    "eruption": 0.5,
+    "breath": 0.6,
+    "grasp": 0.6,
+    "spadeful": 0.35,
+}
 
 
 def _wrap(a):
@@ -55,7 +76,7 @@ class Enemy:
     move_enemy(enemy, dx, dz), enemy_strike(enemy, mult), enemy_fire(enemy, kind),
     for bosses with a brood, summon(enemy, type_id, count); for bosses with a rage, boss_rage(enemy),
     slam(enemy) and eruption(enemy); for hook throwers, hook(enemy, mult, pull);
-    for fire-breathers, breath(enemy). Optional, for twin bosses: rouse_twin(enemy), twin_fallen(enemy)
+    for fire-breathers, breath(enemy); for the Sexton, grasp(enemy) and knell(enemy, wave). Optional, for twin bosses: rouse_twin(enemy), twin_fallen(enemy)
     and twin_busy(enemy).
     """
 
@@ -370,6 +391,12 @@ class Enemy:
             options.append("breath")
         if "dive" in ready and seen and DIVE_RANGE[0] <= dist <= DIVE_RANGE[1]:
             options.append("dive")
+        if "spadeful" in ready and seen and SPADEFUL_RANGE[0] <= dist <= SPADEFUL_RANGE[1]:
+            options.append("spadeful")
+        if "grasp" in ready and seen and GRASP_RANGE[0] <= dist <= GRASP_RANGE[1]:
+            options.append("grasp")
+        if "knell" in ready and dist <= KNELL_RANGE:
+            options.append("knell")
         if not options:
             return None
         # Up close a special is only sometimes chosen, so the plain blow stays in the mix.
@@ -414,9 +441,11 @@ class Enemy:
             return self._combo(world, dist, dt)
         if kind == "dive":
             return self._dive(world, dt)
+        if kind == "knell":
+            return self._knell(world)
         if not self._struck:
             self._struck = True
-            if kind in ("shot", "web", "cinders"):
+            if kind in ("shot", "web", "cinders", "spadeful"):
                 world.enemy_fire(self, kind)
             elif kind == "summon":
                 world.summon(self, self.type.brood, 2)
@@ -430,6 +459,8 @@ class Enemy:
                 world.eruption(self)
             elif kind == "breath":
                 world.breath(self)
+            elif kind == "grasp":
+                world.grasp(self)
             elif kind == "hook":
                 if dist <= HOOK_RANGE[1] + 0.5 and self._facing(world.player_x, world.player_z):
                     world.hook(self, MOVES["hook"][2], HOOK_PULL)
@@ -438,9 +469,17 @@ class Enemy:
                     world.enemy_strike(self, MOVES["sweep"][2])
             elif dist <= self._strike_reach() + 0.3 and self._facing(world.player_x, world.player_z):
                 world.enemy_strike(self)
-        if self.state_t >= {"sweep": 0.35, "slam": 0.45, "kindle": 0.6, "eruption": 0.5, "breath": 0.6}.get(
-            kind, 0.2
-        ):
+        if self.state_t >= ATTACK_TIMES.get(kind, 0.2):
+            self._switch("recover")
+
+    def _knell(self, world):
+        """Two rings of embers, KNELL_GAP apart, the second turned half a gap from the first: stand
+        in a gap of the first, then step aside for the second, or keep far off and strafe."""
+        due = 1 if self.state_t < KNELL_GAP else 2
+        while int(self._struck) < due:
+            world.knell(self, int(self._struck))
+            self._struck += 1
+        if self.state_t >= KNELL_GAP + 0.3:
             self._switch("recover")
 
     @property

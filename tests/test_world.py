@@ -104,6 +104,7 @@ STATIC_BLOCKERS = (
     *("anvil", "chimney", "gargoyle_statue", "forge_hearth", "quench_trough", "crucible", "impaler"),
     *("pew", "bed", "cupboard", "fence", "lamp_post", "tree"),
     *("banner_pole", "fountain", "bench", "hand_cart", "hay_wagon", "cargo", "flying_buttress"),
+    *("gravestone", "cemetery_gate"),
 )
 
 
@@ -222,12 +223,14 @@ def _spec(m, kind, **props):
     return [s for s in m.entities if s.kind == kind and all(s.props.get(k) == v for k, v in props.items())]
 
 
-def test_harrowmere_every_villager_shop_and_road_is_reachable_from_the_pier():
-    """From the pier where you land you can walk to every villager, the shrine, the well, the cave
-    trail, the north gate and the throne; the cathedral stands on its hill above the square."""
+def test_harrowmere_every_villager_shop_and_road_is_reachable_from_the_cemetery_gate():
+    """From the cemetery's gate, where the Ashen come into town, you can walk to every villager, the
+    shrine, the well, the cave trail, the north gate and the throne; the cathedral stands on its hill
+    above the square."""
     m = MapLoader.load_file(os.path.join(MAP_DIR, "harrowmere.map"))
     sx, sz = (int(v) for v in m.meta["start"][:2])
-    assert m[sx, sz].floor_tex == "wood_plank"  # on the pier
+    (gate,) = _spec(m, "cemetery_gate")
+    assert (gate.tx + 1, gate.tz) == (sx, sz) and m[gate.tx - 1, gate.tz].solid  # in the wall, behind you
     reach = _reachable(m, (sx, sz))
     beside = ((1, 0), (-1, 0), (0, 1), (0, -1))
     ids = set()
@@ -784,3 +787,41 @@ def test_wall_props_hang_on_a_wall_tall_enough_to_hold_them():
 
 
 WALL_MOUNT_RISE = 2.5  # the top of a sconce's flame over its floor
+
+
+# --- the Cemetery of Ashes ------------------------------------------------------------------------
+
+
+def test_ashen_cemetery_is_solvable_in_order():
+    """The cemetery is one way, taught in order: from the grave you reach the first shrine and the
+    Rusted Sword before any foe; the Flame Bolt's scroll before the silk that only fire burns; past it
+    the second shrine and the great door; and the gate out to Harrowmere only behind the Sexton."""
+    m = MapLoader.load_file(map_path("ashen_cemetery"))
+    assert m.meta["name"] == "The Cemetery of Ashes"
+    start = tuple(int(v) for v in m.meta["start"][:2])
+    beside = ((1, 0), (-1, 0), (0, 1), (0, -1))
+    (sword,) = _spec(m, "chest", item="rusted_sword")
+    (scroll,) = _spec(m, "chest", item="scroll_flame")
+    (web,) = _spec(m, "secret_wall", model="web")
+    (door,) = _spec(m, "door", boss="sexton_dead")
+    (gate,) = _spec(m, "exit")
+    (boss,) = _spec(m, "sexton")
+    shrines = sorted(_spec(m, "save_statue"), key=lambda s: -s.tz)
+    assert len(shrines) == 2
+    before_fire = _reachable(m, start)
+    assert {(sword.tx, sword.tz), (scroll.tx, scroll.tz)} <= before_fire
+    assert any((shrines[0].tx + dx, shrines[0].tz + dz) in before_fire for dx, dz in beside)
+    assert (web.tx, web.tz) not in before_fire
+    foes = [s for s in m.entities if s.kind in ("ashen_husk", "bone_walker")]
+    assert foes and all(s.tz < sword.tz for s in foes)  # the sword lies before the first foe
+    burnt = _reachable(m, start, open_tiles=[(web.tx, web.tz)])
+    assert any((shrines[1].tx + dx, shrines[1].tz + dz) in burnt for dx, dz in beside)
+    assert (door.tx, door.tz) not in burnt
+    assert (gate.tx, gate.tz) not in burnt and (boss.tx, boss.tz) not in burnt
+    through = _reachable(m, start, open_tiles=[(web.tx, web.tz), (door.tx, door.tz)])
+    assert {(gate.tx, gate.tz), (boss.tx, boss.tz)} <= through
+    assert gate.props["map"] == "harrowmere" and "oneway" in gate.props
+    assert gate.props["requires"] == "sexton_dead"
+    assert len(_spec(m, "exit")) == 1  # no other way out, and none back in from the town
+    town = MapLoader.load_file(map_path("harrowmere"))
+    assert not _spec(town, "exit", map="ashen_cemetery")

@@ -47,6 +47,24 @@ def test_odrin_intro_asks_for_all_three_sigils_and_gives_supplies():
     assert not g.finished
 
 
+def test_odrin_greets_a_woken_ashen_with_the_prophecy_of_four_sigils():
+    """The player is one of the Ashen, woken by the bell: Odrin tells of the prophecy (four sigils to
+    raise the stone king) and of the Ashen who failed before; nobody came off a boat."""
+    _, text = talk("odrin", FakeGame())
+    assert "bell" in text and "prophecy" in text and "four sigils" in text
+    assert "Enthroned" in text and "king" in text and "cemetery" in text
+    assert "boat" not in text and "traveller" not in text
+
+
+def test_nobody_in_town_takes_the_ashen_for_a_sailor():
+    from ashen_vault import dialogue
+
+    for npc in ("odrin", "garrick", "ilse", "wren", "enthroned", "brannoc", "tamsin", "hollis", "pell"):
+        _, text = talk(npc, FakeGame())
+        assert "off the boat" not in text and "the tide brings" not in text, npc
+    assert "fourth" in " ".join(dialogue.ENTHRONED_LINES[-1])
+
+
 def test_odrin_without_sigils_gives_directions():
     g = FakeGame(flags={"quest"})
     _, text = talk("odrin", g)

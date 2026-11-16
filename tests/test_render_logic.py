@@ -20,7 +20,14 @@ def test_textures_are_rgba_64():
 
 
 def test_mesh_builder_batches_shipped_maps():
-    for name in ("harrowmere", "sunken_keep", "verdant_hollow", "cinderhold", "cinder_keep"):
+    for name in (
+        "ashen_cemetery",
+        "harrowmere",
+        "sunken_keep",
+        "verdant_hollow",
+        "cinderhold",
+        "cinder_keep",
+    ):
         m = MapLoader.load_file(map_path(name))
         b = MeshBuilder(m, lights=MeshBuilder.lights_for(m)).build()
         assert b.batches
@@ -452,14 +459,25 @@ def _drawn(type_id, phase2=False, state="chase"):
 
 
 def test_bosses_have_boss_level_detail():
-    for boss in ("ashen_warden", "butcher", "brand", "bellows", "loom_mother"):
+    for boss in ("ashen_warden", "butcher", "brand", "bellows", "loom_mother", "sexton"):
         assert _drawn(boss)[1] >= 50, boss
-    for foe in ("bone_walker", "gaoler", "forge_golem", "iron_bowman", "slag_hound", "bone_crawler", "mimic"):
+    foes = (
+        "bone_walker",
+        "gaoler",
+        "forge_golem",
+        "iron_bowman",
+        "slag_hound",
+        "bone_crawler",
+        "mimic",
+        "ashen_husk",
+        "mourner",
+    )
+    for foe in foes:
         assert _drawn(foe)[1] >= 30, foe
 
 
 def test_phase_two_changes_how_each_boss_looks():
-    for boss in ("ashen_warden", "butcher", "brand", "bellows"):
+    for boss in ("ashen_warden", "butcher", "brand", "bellows", "sexton"):
         (calm, calm_n), (raging, raging_n) = _drawn(boss), _drawn(boss, phase2=True)
         assert raging.glows > calm.glows or raging_n > calm_n, boss
         dead, _ = _drawn(boss, phase2=True, state="dead")
@@ -710,6 +728,82 @@ def test_the_wardens_blade_never_folds_back_in_any_move():
                 hit, _, blade, elbow, *_ = models._warden_arms(e, 1.3)
                 wrist = models.aim_wrist(blade, hit + elbow)
                 assert _off_forearm(wrist) <= 150, (move, state, t)
+
+
+def test_the_sextons_spade_never_folds_back_in_any_move():
+    import random
+
+    from ashen_vault.ai.enemy import KNELL_GAP, Enemy
+    from ashen_vault.ai.enemy_types import EnemyTypes
+    from ashen_vault.render import cemetery_models, models
+
+    type_ = EnemyTypes.get("sexton")
+    for move in (None, *type_.moves, *type_.phase_moves):
+        for state in ("chase", "windup", "attack", "recover"):
+            for t in (0.0, 0.1, 0.3, KNELL_GAP * 1.2, KNELL_GAP * 2.5):
+                e = Enemy(type_, 0, 0, rng=random.Random(0))
+                e.state, e.state_t, e.attack_kind = state, t, move
+                hit, _, blade, elbow, *_ = cemetery_models.sexton_arms(e, 1.3)
+                assert _off_forearm(models.aim_wrist(blade, hit + elbow)) <= 150, (move, state, t)
+
+
+def test_the_sextons_own_moves_each_strike_their_own_pose():
+    import random
+
+    from ashen_vault.ai.enemy import Enemy
+    from ashen_vault.ai.enemy_types import EnemyTypes
+    from ashen_vault.render import cemetery_models
+
+    type_ = EnemyTypes.get("sexton")
+    poses = set()
+    for move in ("spadeful", "grasp", "knell"):
+        e = Enemy(type_, 0, 0, rng=random.Random(0))
+        e.state, e.state_t, e.attack_kind = "windup", 5.0, move
+        poses.add(tuple(round(v, 2) for v in cemetery_models.sexton_arms(e, 0.0)))
+    assert len(poses) == 3
+
+
+def test_a_burning_web_glows_only_while_it_burns():
+    from ashen_vault.render import models
+
+    def glows(open_t):
+        gpu = _ExtentGpu()
+        models.burning_web(rig.Rig(gpu), 3.8, open_t, 1.0)
+        return gpu.glows, gpu.top
+
+    assert glows(0.0)[0] == 0 and glows(0.0)[1] > 3.5  # whole and cold before the fire
+    assert glows(0.3)[0] > 0 and glows(0.7)[0] > 0
+    gpu = _RecordingGpu()
+    models.burning_web(rig.Rig(gpu), 3.8, 1.0, 1.0)
+    assert not gpu.parts  # burnt away
+
+
+def test_a_shrine_is_a_lit_torch_that_lights_its_ground():
+    from ashen_vault.render import mesh_builder, models
+
+    gpu = _ExtentGpu()
+    models.save_statue(rig.Rig(gpu), 1.0)
+    assert gpu.glows > 0 and 2.2 < gpu.top < 3.2
+    assert "save_statue" in mesh_builder.LIGHT_KINDS
+
+
+def test_every_map_texture_is_generated():
+    import ashen_vault
+    from ashen_vault.render import texture_gen
+
+    names = set(texture_gen.all_textures())
+    for map_name in (
+        "ashen_cemetery",
+        "harrowmere",
+        "sunken_keep",
+        "verdant_hollow",
+        "cinderhold",
+        "cinder_keep",
+    ):
+        m = MapLoader.load_file(ashen_vault.map_path(map_name))
+        tiles = {m[tx, tz] for tz in range(m.depth) for tx in range(m.width)}
+        used = {tex for tile in tiles for tex in (tile.wall_tex, tile.floor_tex, tile.ceil_tex) if tex}
+        assert used <= names, (map_name, used - names)
 
 
 def test_every_weapon_preview_is_centred_and_fits_its_window():
@@ -1065,7 +1159,7 @@ def test_every_boss_has_its_own_great_door_and_its_lamps_go_out_when_cleared():
     from ashen_vault.world.map_loader import MapLoader
 
     flags = set()
-    for name in ("sunken_keep", "verdant_hollow", "cinder_keep"):
+    for name in ("ashen_cemetery", "sunken_keep", "verdant_hollow", "cinder_keep"):
         m = MapLoader.load_file(map_path(name))
         flags |= {s.props["boss"] for s in m.entities if s.kind == "door" and s.props.get("boss")}
     assert flags <= set(models.BOSS_DOORS)  # no boss door falls back to another's look

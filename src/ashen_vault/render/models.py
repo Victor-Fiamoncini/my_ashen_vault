@@ -48,6 +48,9 @@ def enemy(r, e):
         "slag_hound": forge_models.slag_hound,
         "brand": forge_models.gargoyle,
         "bellows": forge_models.gargoyle,
+        "sexton": cemetery_models.sexton,
+        "mourner": cemetery_models.mourner,
+        "ashen_husk": cemetery_models.ashen_husk,
     }.get(e.type.id)
     if fn:
         fn(r, e, t)
@@ -1888,7 +1891,7 @@ LOOM_GLOW = (150, 235, 140)
 @dataclass(frozen=True)
 class DoorStyle:
     """How one boss's great door looks: the leaves' wood and texture, the iron, the arch's stone and
-    texture, and what burns on its jambs (`lamp`: "ember", "silk" or "gargoyle")."""
+    texture, and what burns on its jambs (`lamp`: "ember", "silk", "candle" or "gargoyle")."""
 
     wood: tuple
     wood_tex: str
@@ -1913,6 +1916,10 @@ BOSS_DOORS = {
     # The twin gargoyles: black riveted iron in a cracked, ember-veined arch, a stone beast on each jamb.
     "gargoyles_dead": DoorStyle(
         (150, 146, 156), "iron_plate", (40, 38, 44), (78, 72, 72), "black_brick", "gargoyle"
+    ),
+    # The Ashen Sexton: grey, weathered grave-boards under a lintel of urns, candles on the jambs.
+    "sexton_dead": DoorStyle(
+        (118, 112, 106), "wood_plank", (58, 56, 60), (122, 118, 112), "rough_stone", "candle"
     ),
 }
 DEFAULT_DOOR = "boss_dead"
@@ -1976,6 +1983,9 @@ def _door_lamp(r, style, face, t, lit):
     if style.lamp == "silk":  # a glowing bulb of fungus in a cup of silk
         r.part("sphere", 0, 0.14, 0, 0.12, 0.14, 0.12, LOOM_GLOW, glow=True)
         r.part("sphere", 0, 0.08, 0, 0.15, 0.06, 0.15, SILK)
+    elif style.lamp == "candle":  # a stub of tallow on a pricket, guttering
+        r.part("cyl", 0, 0.14, 0, 0.06, 0.14, 0.06, (214, 204, 180))
+        _flame(r, 0, 0.24, 0, 0.05, t)
     else:
         _flame(r, 0, 0.14, 0, 0.08, t)
 
@@ -2147,17 +2157,61 @@ def _gargoyle_leaf(r, style, side, face, t, lit):
     r.part("cube", fx * 1.2, 0.25, 0, 0.03, 0.12, 0.6, dark)  # a kick plate along the foot
 
 
+def _sexton_arch(r, style, t, lit):
+    """A row of funeral urns along the head of the arch, ash spilling from a cracked one, and a bell
+    carved in the keystone whose clapper glows while the Sexton keeps its gate."""
+    for face in (-1, 1):
+        for i, z in enumerate((-0.62, -0.31, 0.31, 0.62)):
+            clay = _dim((132, 104, 80), 1 - 0.07 * i)
+            r.part("sphere", face * 0.24, 3.2, z, 0.16, 0.22, 0.16, clay)
+            r.part("cyl", face * 0.24, 3.33, z, 0.09, 0.05, 0.09, _dim(clay, 0.75))
+        r.part("cube", face * 0.24, 2.9, 0.62, 0.02, 0.5, 0.05, (104, 100, 98))  # ash run from a crack
+        with r.at(face * 0.27, 3.1, 0):  # the carved bell
+            r.part("cone", 0, 0.02, 0, 0.18, 0.2, 0.18, _dim(style.stone, 1.2))
+            r.part("cube", 0, 0.14, 0, 0.04, 0.06, 0.04, _dim(style.stone, 1.2))
+            r.part("sphere", 0, -0.1, 0, 0.05, 0.05, 0.05, EMBER if lit else COLD_EMBER, glow=lit)
+
+
+def _sexton_leaf(r, style, side, face, t, lit):
+    """Grey grave-boards nailed to iron straps, a bell-shaped hole for the knocker and names scratched
+    into the wood, one under another: the Ashen who came this way before."""
+    fx = face * 0.08
+    for z in (-0.3, -0.05, 0.2):  # the boards' seams
+        r.part("cube", fx, 1.4, z + 0.1, 0.02, 2.8, 0.02, _dim(style.wood, 0.55))
+    for y in (0.4, 2.4):  # two straps, nailed
+        r.part("cube", fx, y, 0, 0.03, 0.12, 0.9, style.iron)
+        for z in (-0.36, 0.0, 0.36):
+            r.part("cube", fx * 1.3, y, z, 0.03, 0.04, 0.04, (40, 36, 34))
+    for k in range(7):  # scratched names, each a little shorter, fading lower down
+        length = 0.5 - 0.04 * k
+        r.part(
+            "cube",
+            fx * 1.08,
+            2.05 - k * 0.2,
+            -side * 0.08,
+            0.02,
+            0.025,
+            length,
+            _dim(style.wood, 0.5 + 0.05 * k),
+        )
+    with r.at(fx * 1.4, 1.3, side * 0.3):  # an iron bell for a knocker
+        r.part("cone", 0, 0, 0, 0.14, 0.16, 0.14, style.iron)
+        r.part("sphere", 0, -0.09, 0, 0.04, 0.04, 0.04, (120, 100, 70))
+
+
 DOOR_ARCHES = {
     "boss_dead": _warden_arch,
     "butcher_dead": _butcher_arch,
     "spider_dead": _loom_arch,
     "gargoyles_dead": _gargoyle_arch,
+    "sexton_dead": _sexton_arch,
 }
 DOOR_LEAVES = {
     "boss_dead": _warden_leaf,
     "butcher_dead": _butcher_leaf,
     "spider_dead": _loom_leaf,
     "gargoyles_dead": _gargoyle_leaf,
+    "sexton_dead": _sexton_leaf,
 }
 
 
@@ -2198,11 +2252,46 @@ def torch(r, t):
     r.part("cone", 0, 1.72, 0, 0.2 * flicker, 0.3 * flicker, 0.2 * flicker, (255, 170, 60), glow=True)
 
 
+SHRINE_COALS = (64, 34, 24)
+SHRINE_FLAME_Y = 2.36  # where the shrine's flame burns (mesh_builder.LIGHT_Y lights the ground from there)
+
+
 def save_statue(r, t):
-    r.part("cube", 0, 0.15, 0, 0.9, 0.3, 0.9, WHITE, tex="rough_stone")
-    r.part("cube", 0, 0.9, 0, 0.5, 1.2, 0.5, WHITE, tex="rough_stone")
-    with r.at(0, 1.75 + math.sin(t * 2) * 0.06, 0, ry=t):
-        r.part("cube", 0, 0, 0, 0.3, 0.4, 0.3, (120, 200, 255), rx=0.6, rz=0.6, glow=True)
+    """A shrine: a waist-high stone post on a stepped base, runes cut in its faces, a carved collar,
+    and on top a cradle of wrought iron heaped with coals, where a flame always burns."""
+    r.part("cube", 0, 0.1, 0, 1.1, 0.2, 1.1, WHITE, tex="rough_stone")  # the steps
+    r.part("cube", 0, 0.28, 0, 0.84, 0.16, 0.84, WHITE, tex="rough_stone")
+    r.part("cube", 0, 1.03, 0, 0.44, 1.34, 0.44, WHITE, tex="rough_stone")  # the post
+    for a in range(4):  # a rune cut in each face: a flame's tongue over an open eye
+        with r.at(0, 0, 0, ry=a * math.pi / 2):
+            r.part("cube", 0.222, 1.08, 0, 0.01, 0.07, 0.07, (40, 36, 34), rx=math.pi / 4)
+            r.part("cube", 0.222, 1.08, 0, 0.01, 0.03, 0.2, (40, 36, 34))
+            r.part("cube", 0.222, 1.26, 0, 0.01, 0.2, 0.04, (40, 36, 34))
+            r.part("cube", 0.222, 1.24, 0.05, 0.01, 0.12, 0.03, (40, 36, 34), rx=0.5)
+    r.part("cube", 0, 1.76, 0, 0.6, 0.12, 0.6, WHITE, tex="rough_stone")  # the collar
+    r.part("cube", 0, 1.88, 0, 0.5, 0.12, 0.5, _dim(WHITE, 0.85), tex="rough_stone")
+    r.part("cyl", 0, 1.97, 0, 0.42, 0.06, 0.42, DARK_IRON)  # the cradle's foot
+    for sx, sz in ((1, 1), (1, -1), (-1, 1), (-1, -1)):  # four bars curling up and out
+        mid = (sx * 0.3, 2.3, sz * 0.3)
+        _bar(r, (sx * 0.14, 1.98, sz * 0.14), mid, 0.045, DARK_IRON)
+        _bar(r, mid, (sx * 0.22, 2.52, sz * 0.22), 0.04, DARK_IRON)
+    r.part("cyl", 0, 2.3, 0, 0.86, 0.035, 0.86, DARK_IRON)  # a band round them
+    r.part("sphere", 0, 2.1, 0, 0.44, 0.18, 0.44, SHRINE_COALS)  # the heap of coals
+    for i in range(3):
+        a = i * 2.1 + 0.4
+        glow = 0.8 + 0.2 * math.sin(t * 3 + i * 1.7)
+        r.part(
+            "sphere",
+            math.cos(a) * 0.12,
+            2.16,
+            math.sin(a) * 0.12,
+            0.13,
+            0.08,
+            0.13,
+            _dimmed(EMBER, glow),
+            glow=True,
+        )
+    _flame(r, 0, SHRINE_FLAME_Y, 0, 0.24, t)
 
 
 OAK = (96, 66, 40)
@@ -2914,6 +3003,60 @@ def secret_wall(r, height, open_t, tex="stone_brick"):
         seg = min(2.0 * k, h - y)
         r.part("cube", 0, y + seg / 2, 0, w, seg, w, WHITE, tex=tex)
         y += seg
+
+
+WEB_CELL = 0.5  # metres: the burning silk falls away in cells this size
+CHAR = (34, 28, 24)
+BURN_EDGE = (255, 120, 40)
+
+
+def _burn_order(x, z, row, rows):
+    """When (0..1 of the burn) the web wall's cell at (x, z) in `row` catches: low first, the middle
+    of each face before its corners, with a ragged jitter so the edge never runs straight."""
+    side = min(abs(x), abs(z)) / 0.75
+    jitter = (math.sin(x * 12.9898 + z * 39.346 + row * 78.233) * 43758.5453) % 1.0
+    return min(0.62 * row / max(rows - 1, 1) + 0.18 * side + 0.16 * jitter, 1.0)
+
+
+def burning_web(r, height, open_t, t):
+    """A web wall burning away once fire has caught it (`open_t` 0..1): the flame climbs from the
+    bottom, each cell of the silk blackening, glowing at its edge and licked by flames before it
+    falls away, while embers drift up. Only the outer shell of cells is drawn (a ring round the tile)."""
+    if open_t >= 1.0:
+        return
+    if open_t <= 0.0:
+        return secret_wall(r, height, 0.0, tex="web_wall")
+    front = open_t * 1.3
+    band = 0.22
+    rows = max(math.ceil(height / WEB_CELL), 1)
+    ring = [(i, 0) for i in range(4)] + [(3, j) for j in range(1, 4)] + [(i, 3) for i in range(2, -1, -1)]
+    ring += [(0, j) for j in range(2, 0, -1)]
+    for row in range(rows):
+        y0 = row * WEB_CELL
+        h = min(WEB_CELL, height - y0)
+        for n, (i, j) in enumerate(ring):
+            x, z = -0.75 + i * WEB_CELL, -0.75 + j * WEB_CELL
+            d = _burn_order(x, z, row, rows)
+            if d < front - band:
+                continue  # burnt through
+            if d >= front:
+                r.part("cube", x, y0 + h / 2, z, WEB_CELL, h, WEB_CELL, WHITE, tex="web_wall")
+                continue
+            k = (front - d) / band  # 0 as it catches, 1 as it falls
+            s = WEB_CELL * (1 - 0.45 * k)
+            r.part("cube", x, y0 + h / 2 - 0.1 * k, z, s, h * (1 - 0.5 * k), s, CHAR)
+            r.part("cube", x, y0 + h - 0.04, z, s + 0.04, 0.05, s + 0.04, BURN_EDGE, glow=True)
+            if (n + row) % 2 == 0:  # flames licking up the outside of the sheet
+                _flame(r, x * 1.4, y0 + h * 0.35, z * 1.4, 0.28 * (1.2 - k), t + n)
+    for i in range(10):  # embers drifting up off the burn
+        seed = i * 2.39
+        rise = (t * 0.9 + seed) % 1.0
+        y = min(front, 1.0) * height * 0.8 + rise * 1.6
+        a = seed * 2.7
+        x = math.cos(a) * 1.2 + math.sin(t * 2 + seed) * 0.15
+        z = math.sin(a) * 1.2
+        size = 0.06 * (1 - rise) + 0.02
+        r.part("cube", x, y, z, size, size, size, EMBER, glow=True)
 
 
 def crumble_slab(r, shake, drop, rise, t):
@@ -4768,6 +4911,7 @@ ROD_IRON = (80, 80, 88)
 # Each scroll: its parchment, its rods and the wax of its seal (the ribbon is a darker shade of it).
 # The rune pressed into the seal (SCROLL_RUNES) glows in the spell's own colour (SPELL_ORB).
 SCROLLS = {
+    "scroll_flame": (SOOTED_PARCHMENT, ROD_WOOD, (210, 96, 30)),  # found among the ashes of the cemetery
     "scroll_mend": (PARCHMENT, ROD_WOOD, (160, 34, 34)),
     "scroll_lumen": (PARCHMENT, ROD_WOOD, (196, 160, 60)),
     "scroll_venom": (PARCHMENT, ROD_WOOD, (70, 120, 40)),
@@ -5250,4 +5394,4 @@ def meat_hooks(r, t, seed, ceil_h):
 
 
 # The Cinderhold's models live in their own module; it borrows the helpers above, so it is imported last.
-from ashen_vault.render import forge_models  # noqa: E402
+from ashen_vault.render import cemetery_models, forge_models  # noqa: E402

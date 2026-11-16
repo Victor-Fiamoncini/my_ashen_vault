@@ -63,12 +63,15 @@ TITLE_ORBIT = (25, 24)  # the title camera circles Harrowmere's Silent Bell (its
 COMPARE_COLORS = {1: ui.color(120, 210, 110), -1: ui.color(225, 95, 80), 0: ui.TEXT}
 ENDING = [
     "The bell of Harrowmere rings again.",
-    "Its note rolls down the well into the drowned halls",
-    "and through the roots of the cave in the green hollow.",
-    "The old keep and the green hollow sleep once more.",
+    "Its note rolls down the well into the drowned halls,",
+    "through the roots of the green hollow and the forges.",
+    "On the hill, the stone king stirs upon his throne.",
     "",
     "Thank you for playing the Ashen Vault demo.",
 ]
+
+
+STORY_MAP = "ashen_cemetery"  # where a new game begins
 
 
 def _camera(pos, target, fovy):
@@ -258,9 +261,7 @@ class Game:
         if choice == "Continue":
             self.continue_game()
         elif choice == "New Game":
-            self.new_game("harrowmere")
-            self._audio.play("bell", volume=0.5)
-            self.message("Harrowmere. The bell has gone quiet.")
+            self.start_story()
         elif choice == "Options":
             self._open_options()
         elif choice == "Controls":
@@ -302,15 +303,26 @@ class Game:
     def _advance(self):
         return self._input.pressed("confirm") or self._input.pressed("click")
 
-    def new_game(self, map_name, at=None):
+    def new_game(self, map_name, at=None, player=None):
+        """Starts afresh on `map_name` (at its `start`, or `at`). Debug runs (`--map`) start armed with
+        the default kit; the story's start passes a bare `Player.woken()`."""
         self.flags = set()
-        self.player = Player()
+        self.player = player or Player()
         self.messages.clear()
         self._load_world(map_name)
         x, z, yaw = self._spot(at) if at else self.world.start_position()
         self.player.place(x, z, yaw, self.world.map)
         self._debug_setup()
         self._enter_play()
+
+    def start_story(self):
+        """New Game: a ring of the town's bell wakes you, one more of the Ashen, in an open grave in the
+        Cemetery of Ashes. The journey is recorded at once, so a death before the first prayer still
+        wakes you beside the cemetery's first shrine."""
+        self.new_game(STORY_MAP, player=Player.woken())
+        self._saves.save(map=self.world.name, player=self.player, flags=self.flags)
+        self._audio.play("bell", volume=0.5)
+        self.message("A bell tolls, far off. The ash in you stirs.")
 
     def _debug_setup(self):
         """--level and --equip (slot=id pairs) for smoke runs; gear is added to the pack first, and
@@ -862,7 +874,7 @@ class Game:
             self.message("The cracked bronze is cold, yet it hums under your palm.")
             self.message("A whisper rises from the stones: {the secret lies below}.")
         elif k == "exit":
-            self._travel(prop.props["map"], prop.props["at"])
+            self._take_exit(prop)
         elif k == "pickup":
             item = Items.get(prop.props["item"])
             p = self.player
@@ -877,6 +889,20 @@ class Game:
             self.message(f"Obtained {{{item.name}}}.")
             if spare:
                 self.message(loot.spare_message(spare))
+
+    def _take_exit(self, prop):
+        """Goes through an exit. One with `requires=<flag>` stays shut until that flag is set (its
+        `shut=` words say why). A `oneway` exit never leads back: you are recorded on the far side at
+        once (so you wake by its shrine, not behind you) and a `left:<map>` flag remembers it."""
+        if not self.world.exit_open(prop):
+            self.sfx("door", 0.5)
+            self.message(prop.props.get("shut", "It will not open.").replace("_", " "))
+            return
+        left = self.world.name
+        self._travel(prop.props["map"], prop.props["at"])
+        if "oneway" in prop.props:
+            self.flags.add(f"left:{left}")
+            self._saves.save(map=self.world.name, player=self.player, flags=self.flags)
 
     # --- shrine rest ------------------------------------------------------------------
 

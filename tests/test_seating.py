@@ -8,7 +8,13 @@ from ashen_vault.world.tile_map import SEAT_DEPTH, TileMap
 from ashen_vault.world.world import World
 from test_keep_world import FakeGame
 
-MAPS = ("sunken_keep", "verdant_hollow", "cinderhold", "cinder_keep")  # the town has no chests
+MAPS = (
+    "ashen_cemetery",
+    "sunken_keep",
+    "verdant_hollow",
+    "cinderhold",
+    "cinder_keep",
+)  # the town has no chests
 
 
 def _tile(x, z):

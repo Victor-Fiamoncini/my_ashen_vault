@@ -214,7 +214,7 @@ class Eruption:
     RADIUS = 1.0
     DAMAGE = 18
 
-    def __init__(self, x, z, floor=0.0, delay=0.0, damage=DAMAGE, origin=None):
+    def __init__(self, x, z, floor=0.0, delay=0.0, damage=DAMAGE, origin=None, style="fire"):
         self.x = x
         self.z = z
         self.floor = floor
@@ -223,6 +223,8 @@ class Eruption:
         self.spent = False  # has it wounded someone yet
         # (x, y, z) a lobbed magma bomb flies from: it arcs down while the circle glows.
         self.origin = origin
+        # "fire", or "hands": the Sexton's grasping ash, which hurts and holds you where you stand.
+        self.style = style
 
     def update(self, dt):
         """Advances it; returns True on the frame the flame bursts up."""

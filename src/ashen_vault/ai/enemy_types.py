@@ -459,6 +459,73 @@ class EnemyTypes:
                 twin="brand",
                 shot_rgb=(255, 170, 70),
             ),
+            # --- the Cemetery of Ashes -----------------------------------------------------------
+            EnemyType(
+                id="ashen_husk",
+                name="Ashen Husk",
+                # One of the Ashen who woke before you and failed: grey, stooped and empty, it
+                # shambles at you and claws.
+                hp=16,
+                speed=1.2,
+                damage=6,
+                reach=1.6,
+                sight=9,
+                windup=0.7,
+                recover=1.0,
+                exp=8,
+                gold=range(2, 7),
+                radius=0.4,
+                height=0.85,
+                tall=1.7,
+            ),
+            EnemyType(
+                id="mourner",
+                name="Shrouded Mourner",
+                # Found only in the Cemetery of Ashes: a hooded thing in long dark robes that stands
+                # bowed over a grave, still as a stone, until you come close; then it glides at you
+                # and stabs with a crooked knife. Left far behind, it gives up and stands still again.
+                hp=22,
+                speed=2.6,
+                damage=9,
+                reach=1.5,
+                sight=3.5,
+                windup=0.45,
+                recover=1.1,
+                exp=14,
+                gold=range(4, 11),
+                radius=0.4,
+                height=1.0,
+                tall=2.2,
+                lurk=True,
+            ),
+            EnemyType(
+                id="sexton",
+                name="Ashen Sexton",
+                hp=95,
+                speed=1.5,
+                damage=12,
+                reach=2.8,
+                sight=14,
+                windup=0.95,
+                recover=1.3,
+                exp=60,
+                gold=range(40, 41),
+                radius=0.75,
+                height=2.0,
+                tall=2.6,
+                boss=True,
+                dead_flag="sexton_dead",
+                epitaph="The Sexton sinks back into the ash it kept. The gate beyond stands open.",
+                poise=10,
+                # The first boss, and a gentle one: slow spade sweeps and a slam, and its own moves: a
+                # spadeful of grave ash flung in a fan, and hands of ash grasping up from the ground in
+                # a line. At half HP the ash in its chest catches the bell's note and kindles, and it
+                # tolls the knell: two rings of embers, one after the other.
+                moves=("sweep", "slam", "spadeful", "grasp"),
+                phase_moves=("knell",),
+                rage="The bell's note rings through the Sexton. Its ash catches fire!",
+                shot_rgb=(255, 150, 60),
+            ),
         ]
     }
 

@@ -10,11 +10,11 @@ from ashen_vault.ai.enemy_types import EnemyTypes
 from ashen_vault.ai.spawns import spawn_enemies
 from ashen_vault.player.player import Player
 from ashen_vault.player.spells import Spells
-from ashen_vault.render import forge_models, fortress_props, models, prop_bake, town_models
+from ashen_vault.render import cemetery_models, forge_models, fortress_props, models, prop_bake, town_models
 from ashen_vault.render.mesh_builder import KINDLING, MeshBuilder
 from ashen_vault.render.rig import Rig
 from ashen_vault.util import rround
-from ashen_vault.world import collision, elements, loot, relics, shots, terrain, villagers
+from ashen_vault.world import collision, elements, hints, loot, relics, shots, terrain, villagers
 from ashen_vault.world.arena import Arena, flood
 from ashen_vault.world.ash import AshCloud, death_phases
 from ashen_vault.world.hazards import (
@@ -111,6 +111,7 @@ DOOR_FRAME_SKY = 5.2  # an iron door's masonry under the open sky: tall enough t
 # Props you reach from further away: the Silent Bell hangs in the middle of a plinth you can't climb.
 INTERACT_REACH = {"silent_bell": 3.8}
 WEB_TIME = 2.5  # seconds a web shot slows you
+WEB_BURN_RATE = 0.45  # a web wall that fire has caught burns away over 1 / this many seconds
 THORN_SENSE = 3.4  # metres at which thorn plants bristle as you approach
 FALL_MESSAGES = {
     "river": "The river drags you under and casts you back ashore.",
@@ -172,6 +173,8 @@ BLOCKING_PROPS = (
     "hay_wagon",
     "cargo",
     "flying_buttress",
+    "gravestone",
+    "cemetery_gate",
 )
 # How high a low blocking prop reaches above its floor, in metres: a shot flying higher passes over it
 # (a bolt over a table, a casket or a barrel). Anything not listed stands full height.
@@ -181,6 +184,7 @@ PROP_TOP = {
     "rubble": 0.5,
     "frog_idol": 1.0,
     "sarcophagus": 0.9,
+    "gravestone": 1.1,
     "headsman_block": 0.7,
     "anvil": 0.95,
     "gargoyle_statue": 2.2,
@@ -253,6 +257,7 @@ STATIC_PROPS = frozenset(
         *("bed", "cupboard", "fence", "bench", "hand_cart", "hay_wagon", "cargo", "tree"),
         *("gargoyle_statue", "pillar", "sarcophagus", "headsman_block", "rack", "rubble", "bones"),
         *("shackles", "cobweb", "mushrooms", "slag_heap", "ingot_pile", "gatehouse", "bastion"),
+        *("gravestone", "open_grave", "cemetery_gate"),
         "spire",
     }
 )
@@ -300,6 +305,12 @@ LAVA_MIN = 20
 MOTE_SIGHT = 14.0  # metres an arcane mote looks for a foe to steer toward
 BREATH_STEP = 1.2  # metres between the fire circles of a gargoyle's breath
 BREATH_PAST = 2.5  # metres the breath rakes on past where you stand
+GRASP_STEP = 1.1  # metres between the hands of the Sexton's grasping ash
+GRASP_PAST = 2.0  # metres the line runs on past where you stand
+GRASP_HOLD = 1.6  # seconds a hand that catches you holds you (slowed, as by silk)
+KNELL_SHOTS = 10  # embers in each ring of the Sexton's knell
+KNELL_SPEED = 5.0
+ASH_CLOD = (150, 144, 138)  # the grey of a spadeful of grave ash
 MAIDEN_CYCLE = 3.0  # seconds the iron maiden's door stays in motion after use
 FROG_CROAK = 1.2  # seconds the stone frog's throat swells after a pat
 FROG_GOLD = 33  # coins the frog coughs up the first time it is patted
@@ -384,6 +395,7 @@ class World:
         # Thorn floors grow spiked plants; each one's spikes rise (0..1) when stepped in.
         self._thorns = {(tx, tz): 0.0 for tx, tz, tile in self.map.each_tile() if tile.hurt}
         self.arenas = []
+        self.hints = hints.build(self.map)
         self._spawn_entities()
         self._bake_props()
         self.arenas = self._build_arenas()
@@ -491,6 +503,8 @@ class World:
     def _spawn_entities(self):
         self.enemies = spawn_enemies(self.map, self.flags)
         for spec in self.map.entities:
+            if spec.kind == "hint":  # words, not a thing: `hints` shows them
+                continue
             x, z = TileMap.center(spec.tx, spec.tz)
             y = self.map[spec.tx, spec.tz].floor
             yaw = float(spec.props.get("yaw", "0")) * math.pi / 180
@@ -937,6 +951,51 @@ class World:
             for e in self._twins_of(enemy)
         )
 
+    def grasp(self, enemy):
+        """The Sexton drives its spade into the ground: hands of ash burst up in a line from it toward
+        you and on past, each a moment after the one before. One that catches you hurts and holds you
+        (`Eruption` style "hands"). Step sideways out of the line."""
+        player = self.player
+        dx, dz = player.x - enemy.x, player.z - enemy.z
+        d = math.hypot(dx, dz) or 1.0
+        ux, uz = dx / d, dz / d
+        damage = rround(enemy.type.damage * MOVES["grasp"][2])
+        s, n = enemy.radius + 0.8, 0
+        while s <= d + GRASP_PAST:
+            x, z = enemy.x + ux * s, enemy.z + uz * s
+            tile = self.map.tile_at(x, z)
+            if tile.solid or not tile.walkable:
+                break
+            self.eruptions.append(Eruption(x, z, tile.floor, delay=n * 0.15, damage=damage, style="hands"))
+            s += GRASP_STEP
+            n += 1
+        self.game.sfx("quake", 0.7)
+
+    def knell(self, enemy, wave):
+        """One ring of the Sexton's knell: KNELL_SHOTS embers flung out all round at chest height,
+        the second `wave` turned half a gap from the first."""
+        y = self.enemy_y(enemy) + 1.2
+        damage = rround(enemy.type.damage * MOVES["knell"][2])
+        lead = enemy.radius / KNELL_SPEED
+        for i in range(KNELL_SHOTS):
+            a = enemy.yaw + (i + 0.5 * wave) * math.tau / KNELL_SHOTS
+            dx, dz = math.cos(a) * KNELL_SPEED, math.sin(a) * KNELL_SPEED
+            self.projectiles.append(
+                Projectile(
+                    x=enemy.x + dx * lead,
+                    y=y,
+                    z=enemy.z + dz * lead,
+                    dx=dx,
+                    dz=dz,
+                    life=3.0,
+                    damage=damage,
+                    hostile=True,
+                    rgb=enemy.type.shot_rgb,
+                    source=enemy.name,
+                )
+            )
+        self.game.sfx("bell", 0.9 if wave == 0 else 0.7)
+
     def hook(self, enemy, mult, pull):
         """A hooked chain: a light blow that drags you toward the thrower, unless a shield stops it."""
         if self.enemy_strike(enemy, mult) <= 0:
@@ -959,11 +1018,18 @@ class World:
                 self._fire_one(enemy, kind, spread)
             self.game.sfx("spell")
             return
+        if kind == "spadeful":
+            # A spadeful of grave ash flung in a fan of five clods: each that hits clogs your stride.
+            for spread in (-0.44, -0.22, 0.0, 0.22, 0.44):
+                self._fire_one(enemy, kind, spread)
+            self.game.sfx("quake", 0.5)
+            return
         self._fire_one(enemy, kind)
         self.game.sfx("spell")
 
     def _fire_one(self, enemy, kind, spread=0.0):
         web = kind == "web"
+        ash = kind == "spadeful"
         y = self.enemy_y(enemy) + (enemy.type.hover or 1.2)
         player = self.player
         speed = 7.5 if web else 11 if enemy.type.shot == "arrow" else 6
@@ -972,7 +1038,7 @@ class World:
         )
         lead = enemy.radius / speed  # leaves from the edge of its body
         damage = enemy.type.damage
-        if kind in ("web", "cinders"):
+        if kind in ("web", "cinders", "spadeful"):
             damage = rround(damage * MOVES[kind][2])
         self.projectiles.append(
             Projectile(
@@ -985,9 +1051,9 @@ class World:
                 life=4.0,
                 damage=damage,
                 hostile=True,
-                rgb=(230, 230, 220) if web else enemy.type.shot_rgb,
+                rgb=(230, 230, 220) if web else ASH_CLOD if ash else enemy.type.shot_rgb,
                 source=enemy.name,
-                effect="web" if web else enemy.type.shot,
+                effect="web" if web else "ash" if ash else enemy.type.shot,
             )
         )
 
@@ -1050,7 +1116,7 @@ class World:
             elif p.kind == "frog_idol" and p.open_t > 0:
                 p.open_t = p.open_t + dt if p.open_t + dt < FROG_CROAK else 0.0
             elif 0 < p.open_t < 1.0:
-                p.open_t = min(p.open_t + dt * 0.8, 1.0)
+                p.open_t = min(p.open_t + dt * (WEB_BURN_RATE if self._web(p) else 0.8), 1.0)
         self._update_projectiles(dt)
         for g in self.gouts:
             g.age += dt
@@ -1061,6 +1127,19 @@ class World:
         self._push_player_out_of_bodies()
         self._update_thorns(dt)
         self._update_arenas()
+        self._update_hints()
+
+    def _update_hints(self):
+        """A tutorial hint shows the first time you step onto its tile, and never again."""
+        if not self.player.alive:
+            return
+        here = (TileMap.tile_coord(self.player.x), TileMap.tile_coord(self.player.z))
+        hint = hints.due(self.hints, here, self.flags, self.name)
+        if hint is None:
+            return
+        self.flags.add(hint.flag(self.name))
+        for line in hint.lines:
+            self.game.message(line)
 
     def _update_thorns(self, dt):
         """Spikes stab up fully under your feet and bristle half-way as you come near."""
@@ -1138,11 +1217,17 @@ class World:
         player = self.player
         for f in self.eruptions:
             if f.update(dt):
-                self.sfx_near("eruption", f.x, f.z, *(BOMB_SOUND if f.origin else ERUPTION_SOUND))
+                sound = "quake" if f.style == "hands" else "eruption"
+                self.sfx_near(sound, f.x, f.z, *(BOMB_SOUND if f.origin else ERUPTION_SOUND))
             if player.alive:
                 dmg = f.hit(player.x, player.z)
                 if dmg:
-                    self.game.hurt_player(max(rround(dmg - player.inventory.defense * 0.3), 1), "The fire")
+                    hands = f.style == "hands"
+                    hurt = max(rround(dmg - player.inventory.defense * 0.3), 1)
+                    self.game.hurt_player(hurt, "The grasping ash" if hands else "The fire")
+                    if hands:
+                        player.webbed_t = max(player.webbed_t, GRASP_HOLD)
+                        self.game.message("Hands of ash clutch at your legs!")
         self.eruptions = [f for f in self.eruptions if not f.done]
         for w in self.shockwaves:
             w.update(dt)
@@ -1249,6 +1334,11 @@ class World:
                 or self.shot_blocked(pr_.x, pr_.y, pr_.z)
             ):
                 pr_.life = 0
+                if pr_.effect == "flame" and not pr_.hostile:  # a flame bolt sets a web it strikes alight
+                    tx, tz = TileMap.tile_coord(pr_.x), TileMap.tile_coord(pr_.z)
+                    for p in self.props:
+                        if self._web(p) and p.open_t == 0 and (p.tx, p.tz) == (tx, tz):
+                            self._burn_web(p)
             elif pr_.effect == "flare":
                 continue
             elif pr_.hostile:
@@ -1264,6 +1354,9 @@ class World:
                     if pr_.effect == "web":
                         player.webbed_t = WEB_TIME
                         self.game.message("Sticky silk binds your legs!")
+                    elif pr_.effect == "ash":
+                        player.webbed_t = max(player.webbed_t, GRASP_HOLD)
+                        self.game.message("Grave ash clogs your stride!")
                     pr_.life = 0
             else:
                 target = next(
@@ -1434,9 +1527,13 @@ class World:
             if p.kind in KINDLING:
                 self.kindle(p)
             elif self._web(p) and p.open_t == 0:
-                self.flags.add(p.key)
-                p.open_t = 0.01
-                self.game.message("The web shrivels in the flame.")
+                self._burn_web(p)
+
+    def _burn_web(self, p):
+        self.flags.add(p.key)
+        p.open_t = 0.01
+        self.game.message("The web shrivels in the flame.")
+        self.game.sfx("eruption", 0.5)
 
     def volley(self, damage, count, spread, effect, rgb, speed=shots.BOLT_SPEED):
         """`count` shots fanned `spread` radians apart about your aim (Thornlash's Thorn Volley)."""
@@ -1481,6 +1578,12 @@ class World:
             if in_reach and (best is None or d < best_d):
                 best, best_d = p, d
         return best
+
+    def exit_open(self, p):
+        """Whether an exit lets you through: one with `requires=<flag>` stays shut until that flag is
+        set (the cemetery's gate, until the Sexton falls)."""
+        need = p.props.get("requires")
+        return not need or need in self.flags
 
     def _interactable(self, p):
         if p.kind in ("npc", "save_statue", "exit", "pickup", "iron_maiden", "frog_idol", "silent_bell"):
@@ -1735,7 +1838,10 @@ class World:
         for f in self.eruptions:
             self._model_light(gpu, f.x, f.floor + 0.5, f.z)
             with rig.at(f.x, f.floor, f.z):
-                models.eruption(rig, f.glow, f.flame, self._time)
+                if f.style == "hands":
+                    cemetery_models.ash_hands(rig, f.glow, f.flame, self._time + f.x)
+                else:
+                    models.eruption(rig, f.glow, f.flame, self._time)
             bomb = f.bomb()
             if bomb:
                 gpu.model_light((1.6, 1.4, 1.2))
@@ -1774,6 +1880,8 @@ class World:
                     models.flare(rig, pr_.rgb, min(pr_.life / 0.45, 1.0), self._time)
                 elif pr_.effect == "mote":
                     forge_models.mote(rig, self._time)
+                elif pr_.effect == "ash":
+                    cemetery_models.ash_clod(rig, self._time)
                 else:
                     models.bolt(rig, pr_.rgb, self._time)
 
@@ -1911,8 +2019,11 @@ class World:
         elif k == "secret_wall":
             tile = self.map[p.tx, p.tz]
             top = float(p.props["top"]) if "top" in p.props else tile.ceil or tile.floor + 4.0
-            tex = {"vines": "vine_wall", "web": "web_wall"}.get(p.props.get("model"), "stone_brick")
-            models.secret_wall(rig, top - tile.floor, p.open_t, tex=tex)
+            if p.props.get("model") == "web":
+                models.burning_web(rig, top - tile.floor, p.open_t, t)
+            else:
+                tex = {"vines": "vine_wall"}.get(p.props.get("model"), "stone_brick")
+                models.secret_wall(rig, top - tile.floor, p.open_t, tex=tex)
         elif k == "cocoon":
             models.cocoon(rig, p.tx * 7 + p.tz * 3, broken=p.open_t > 0)
         elif k == "frog_idol":
@@ -1939,6 +2050,8 @@ class World:
                 forge_models.road_gate(rig)
             elif p.props.get("model") == "keep_door":
                 forge_models.keep_door(rig, t)
+            elif p.props.get("model") == "cemetery_gate":  # it swings open once its keeper falls
+                cemetery_models.cemetery_gate(rig, 1.0 if self.exit_open(p) else 0.0)
             else:
                 models.rope(rig, t)
         elif k == "spire":
@@ -1997,6 +2110,12 @@ class World:
             self._draw_town_prop(rig, p, k, t)
         elif k == "embers":
             forge_models.embers_rain(rig, t, p.tx * 3 + p.tz)
+        elif k == "gravestone":
+            cemetery_models.gravestone(rig, p.tx * 7 + p.tz * 3)
+        elif k == "open_grave":
+            cemetery_models.open_grave(rig, p.tx * 3 + p.tz)
+        elif k == "cemetery_gate":
+            cemetery_models.cemetery_gate(rig)
 
     def _draw_town_prop(self, rig, p, k, t):
         seed = p.tx * 7 + p.tz * 3

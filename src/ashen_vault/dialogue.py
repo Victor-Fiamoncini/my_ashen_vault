@@ -109,14 +109,17 @@ def _sigil_lines(flags, held):
 
 def odrin(game, flags, inv):
     held = relics.held(inv.has)
+    # TODO(story): the prophecy asks for four sigils, but only three can be found yet. Until the fourth
+    # sigil's place is built, bringing the three ends the demo.
     if len(held) == len(relics.ENDING_RELICS):
         return (
             "Odrin",
             [
                 "Ember, leaf and iron, all three of them. I can feel them from here.",
-                "Give them here. The bell will hold its note again.",
+                "Give them here. Three of the four, in an old man's hands. No Ashen ever came this far.",
                 "Listen. The ground has gone quiet already, the roots are still, and the forges are cooling.",
-                "Harrowmere owes you more than it can pay. Rest now, wanderer.",
+                "The fourth is still lost to us. But up on the hill the stone on the throne has cracked.",
+                "Harrowmere owes you more than it can pay. Rest now, Ashen.",
             ],
             lambda g: g.finish_game(),
         )
@@ -131,15 +134,19 @@ def odrin(game, flags, inv):
         return (
             "Odrin",
             [
-                "A traveller off the morning boat? Then the tide has not taken all our luck.",
-                "I keep the bell of Harrowmere. For three hundred years it has sung over the old keep below us.",
-                "Last month the bell cracked, and three things began to stir around the town.",
+                "Grey as hearth-ash, and walking. So the bell has called another of you.",
+                "You heard it in the grave, didn't you? One toll over the town. No hand was on the rope.",
+                "Who rang it, I cannot tell you. No one in Harrowmere has touched that rope in years.",
+                "I am Odrin. I kept that bell, once. Now I keep a prophecy older than the bell.",
+                "Whoever wakes to the bell must win the four sigils, and the king on the stone throne shall rise.",
+                "The Enthroned. Our king, turned to stone in his chair in the cathedral, longer than anyone remembers.",
+                "You are not the first to wake. The cemetery you climbed out of is full of the ones who failed.",
                 "Deep in the Sunken Keep the Ember Sigil sits in the Warden's hall. That is one.",
-                "The other is the Verdant Sigil. A green trail has crept out of the square's east side.",
+                "The next is the Verdant Sigil. A green trail has crept out of the square's east side.",
                 "It ends at a cave, and beyond it a hollow has grown where no wood should be. Something nests there.",
-                "The last is the Iron Sigil. Look north at night: the old fortress on the ridge glows again.",
+                "Then the Iron Sigil. Look north at night: the old fortress on the ridge glows again.",
                 "They call it the Cinderhold. The north road and its long bridge lead there. Its forges are lit.",
-                "The bell needs all three sigils to hold its note. Bring them back and the town will sleep again.",
+                "The fourth... the prophecy will not say where it lies. Find the three, and perhaps it will find you.",
                 "Take these. They are all an old bell-keeper has.",
             ],
             after,
@@ -147,7 +154,7 @@ def odrin(game, flags, inv):
     lines = _sigil_lines(flags, held)
     if held:
         felt = [SIGIL_HELD[i] for i in held]
-        return "Odrin", [*felt, "Hold on to it a little longer. The bell still needs the rest.", *lines], None
+        return "Odrin", [*felt, "Keep it close. The king will need every one of them.", *lines], None
     dead = [SIGIL_FALLEN[i][1] for i in relics.ENDING_RELICS if SIGIL_FALLEN[i][1] in lines]
     if dead:
         return "Odrin", dead, None
@@ -156,7 +163,7 @@ def odrin(game, flags, inv):
         [
             "The well in the square leads down into the keep. The green trail east leads to the hollow's cave.",
             "The north road climbs to the Cinderhold. Its bridge crosses a gorge of fire.",
-            "Save your strength at the stone shrines. The old wardens built them for travellers like you.",
+            "Save your strength at the stone shrines. The old wardens built them for the Ashen. Many knelt there.",
         ],
         None,
     )
@@ -263,7 +270,7 @@ GIFTS = {
         "Garrick",
         {"buckler": 1},
         [
-            "Halt. ...Ah, the one off the boat. Captain Garrick, of what's left of the watch.",
+            "Halt. ...Grey skin, ash on your boots. Another one up from the cemetery. Captain Garrick, of the watch.",
             "Six of us once. Now it's me and Hollis, and Hollis guards the well from the inside.",
             "Here, a buckler from the watch stores. Catch the blow, then answer it.",
         ],
@@ -289,7 +296,7 @@ GIFTS = {
         {"scroll_lumen": 1},
         [
             "Be welcome under this roof, traveller. I am Ilse. I tend the candles, and the one who sits above.",
-            "The Enthroned was old when the bell was cast. They have not spoken plainly in my lifetime.",
+            "The Enthroned, our king, was old when the bell was cast. Not a plain word from the throne in my life.",
             "Take this scroll. Read it, and a little light will walk with you where none should be.",
         ],
         [
@@ -341,35 +348,36 @@ def wren_lines(flags):
     if "met_wren" in flags:
         return [
             "The cellar's dry and the ale's wet. That's all an inn can promise these days.",
-            "Folk sleep badly since the bell went quiet. They say they dream of a long hall and a chair.",
+            "Folk sleep badly since the bell rang. They say they dream of a long hall and a chair.",
         ]
     flags.add("met_wren")
     return [
         "Welcome to the Drowned Lantern. I'm Wren. Rooms are cheap, since nobody's travelling.",
-        "You'll have seen the bell in the square. The Silent Bell, we call it now. It cracked one still night.",
-        "No wind, no storm. Just a sound like a breath let out, and then nothing.",
+        "You'll have seen the bell in the square. The Silent Bell, we call it. Cracked, and dumb for years.",
+        "Then one still night it rang. Once. No wind, no storm, and nobody at the rope.",
         "Since then: the keep below wakes, a wood grows in a cave, the old fortress north is lit again.",
         "Three roads out of Harrowmere, and every one of them gone bad.",
     ]
 
 
-# TODO(story): the Enthroned's petrification. What turned them to stone, and who still speaks inside it?
+# TODO(story): the king's petrification. What turned him to stone, who rang the bell, and why it wakes
+# the Ashen? And the fourth sigil, which nobody can find yet.
 ENTHRONED_LINES = (
     [
-        "(The figure on the throne is stone, grey and cracked. Dust lies thick on its hands.)",
-        "...a stranger... the tide brings them... as it brought us...",
+        "(The king on the throne is stone, grey and cracked. Dust lies thick on his hands and his crown.)",
+        "...ash again... the bell calls them... as it called the others...",
     ],
     [
         "(A hairline crack runs through the stone face. Something whispers from within it.)",
-        "...one note... I hear one note again... faint...",
+        "...one... I feel one... warm, far below the stone...",
     ],
     [
         "(Grit trickles from the stone fingers, as if they had tried to tighten on the arms.)",
-        "...two... the bell remembers its shape... it remembers us...",
+        "...two... the bell remembers its shape... it remembers its king...",
     ],
     [
         "(The air in the nave grows heavy. The candles bend toward the statue, and the stone is warm.)",
-        "...all three... take them to the keeper... and the bell will wake... and so... shall I...",
+        "...three... and the fourth... still lost... take them to the bell-keeper... and I... shall wake...",
     ],
 )
 

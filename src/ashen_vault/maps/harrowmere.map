@@ -6,14 +6,15 @@ fog_range = 10 48
 model_range = 40
 sky = overcast
 torch = 0 0 0 0
-start = 20 44 -90
+start = 2 29 0
 default = ,
 edge_top = -0.5
 entity_floor = auto
 
 // Harrowmere climbs from its harbour to the cathedral on the hill under a low, gloomy sky, a town of
-// sandstone and ochre render under terracotta roofs, all stone underfoot: cobbles, setts and flags. The pier where the morning boat
-// puts in, the quay and the market lanes; the Bell Square at the heart of town with the Silent Bell on
+// sandstone and ochre render under terracotta roofs, all stone underfoot: cobbles, setts and flags. The
+// cemetery's gate in the west wall, shut behind each Ashen who comes through it; the pier, the quay and
+// the market lanes; the Bell Square at the heart of town with the Silent Bell on
 // its plinth; the sunken court of the old well (down into the Sunken Keep) east of it, and the watch
 // house by the gap in the wall where the green trail leaves for the cave; Brannoc's forge and
 // Corvane's hut to the west; the north road winding up past Odrin's house to the gate; and up the
@@ -83,7 +84,7 @@ RHiLiH...-q,,,,,,qssssssPPPsssssÛ...q,ø,qHÒiiHRwwVVVwwVAAAAAA
 RHZiiä----q,,T,,,qsssSsssssssssss....q,qáHiiiHRwõVAVwwVAAAAAA
 RHiiÏH....q,,,,,,qsssssssssssssss-----q..HHåHHRwwVAVwUVAAAAAA
 RHHHHH.....qq,T,q.sXsssssssssssXs-----------h-RvvVAVwwVAAAAAA
-R.qá..à......q,q..sssssssssssssss....---------vvvVAVwwVVVVVAA
+Rüqá..à......q,q..sssssssssssssss....---------vvvVAVwwVVVVVAA
 Rq,qÂHHHHH...àq..â..ss.X....Ø......à.-à-------vvöVAVwwVVyxcKA
 R,ø,H%iiLHá.ÃJJæJJJJss............ÄHæHHH......RVVVAVwwVVyyVAA
 Rq,qHiiÒiH..JLiii%iJss....Õ.Ô.Ö..DH%iiLH......RAAAAVwõVVFyVAA
@@ -198,6 +199,9 @@ T = tree kind=olive
 ø = tree kind=pine
 ù = tree kind=cypress
 Ú = tree kind=cypress on=;
+// The gate of the Cemetery of Ashes in the west wall: the Ashen come through it into town, and it
+// shuts behind them for good.
+ü = cemetery_gate yaw=0
 // The well down into the Sunken Keep, in its sunken court.
 W = exit map=sunken_keep at=15,27,-90 label=Descend_the_well model=well
 // The jungle trail east of the square: a hedged path winding under a canopy that closes in and

@@ -474,6 +474,14 @@ class Items:
                 desc="Glowing moss from the cliffs. Restores 15 MP.",
             ),
             Item(
+                id="scroll_flame",
+                name="Scroll of Flame Bolt",
+                kind="scroll",
+                price=0,
+                spell="flame",
+                desc="Teaches Flame Bolt. Its seal is still warm, though its last reader is ash.",
+            ),
+            Item(
                 id="scroll_mend",
                 name="Scroll of Mend",
                 kind="scroll",

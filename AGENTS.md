@@ -91,9 +91,16 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   (the door at the top of the tower stair, into the keep), `--map cinder_keep --at=17,18,180` (the keep's
   great hall), `--map cinder_keep --at=9,6,180 --level 10`
   (the keep's walled roof: the gargoyles wake at once).
+- The story begins in `ashen_cemetery` (the title's New Game, `Game.start_story`: bare hands and no
+  spell, `Player.woken()`, the journey recorded at once). A `--map` run starts on any map with the default
+  kit instead: `--map ashen_cemetery` (the waking grave and the first hint), `--map ashen_cemetery
+  --at=10,19,-90 --script "wait:0.3 cast"` (burn the chapel's silk with Flame Bolt), `--map
+  ashen_cemetery --at=10,3,-90 --script "wait:0.1 interact"` (the gate out, refusing while the
+  Sexton lives). Without `--map`, `--script "wait:0.3 confirm"` presses New Game on the title (with
+  a throwaway save that doesn't exist yet).
 - Boss doors: `--map sunken_keep --at=15,11,-90` faces the Warden's great door, `--at=28,10,-116` the
   Butcher's, `--map verdant_hollow --at=15,11,-90` the Loom Mother's, `--map cinder_keep --at=22,5,180`
-  the gargoyles'. The fog appears only
+  the gargoyles', `--map ashen_cemetery --at=10,11,-90` the Sexton's. The fog appears only
   after dying in a sealed arena (or with its `fog:` flag set); `tests/test_arena.py` drives the flow.
 - `--level` only sets the level (for equipment requirements); HP and stats stay at level 1, so judge boss
   balance headless (`World` with a `JungleGame`) rather than from a smoke fight.
@@ -108,7 +115,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/ui/hud.py` | HUD, menus, dialogue boxes |
 | `src/ashen_vault/audio/synth.py` | Synthesized sound effects. Ambient fire (jets, vents, bombs) plays through `World.sfx_near`, which fades it with distance |
 | `src/ashen_vault/input.py` | Key bindings and the `--script` driver |
-| `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. `harrowmere` (the town of sandstone and ochre-rendered houses under terracotta roofs, thin-walled (`thin=0.5`), paved in cobbles and setts, climbing from its harbour past the market's fountain and the Bell Square, with the Silent Bell, to the twin-towered cathedral on the hill where the Enthroned sits; the sunken well court, the trail gap and the north gate lead out), `sunken_keep` (the dungeon below the well, with the Undercroft below its cells and the Warden's Gallery above the boss door, the Butcher's slaughter hall north of it), `verdant_hollow` (the jungle through the cave at the end of the village's east trail: Mossmouth cave, the Root Caverns below the bog, the Canopy Walk to the boss), `cinderhold` (the lava fortress up the north road: the long bridge, the gatehouse and postern, the foundry and the smelter pits below it, the ashworks, the rampart and the tower stair up to the keep), `cinder_keep` (the keep, a map of its own
+| `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. `ashen_cemetery` (the linear first level, the tutorial: the waking grave and its shrine, the lane with the Rusted Sword, the field of headstones, its husks and the Shrouded Mourners bowed at its graves, the chapel with the Flame Bolt's scroll and its silk-sealed far door, the shrine court, and the Sexton's yard with the one-way gate out to the town; walled and floored in its own ash textures, `ash_rock`, `ash_stone`, `ash_brick`, `ash_ground`, `ash_grass`, `ash_flagstone`), `harrowmere` (the town of sandstone and ochre-rendered houses under terracotta roofs, thin-walled (`thin=0.5`), paved in cobbles and setts, climbing from its harbour past the market's fountain and the Bell Square, with the Silent Bell, to the twin-towered cathedral on the hill where the Enthroned sits; you arrive by the cemetery's gate in its west wall, its `start`; the sunken well court, the trail gap and the north gate lead out), `sunken_keep` (the dungeon below the well, with the Undercroft below its cells and the Warden's Gallery above the boss door, the Butcher's slaughter hall north of it), `verdant_hollow` (the jungle through the cave at the end of the village's east trail: Mossmouth cave, the Root Caverns below the bog, the Canopy Walk to the boss), `cinderhold` (the lava fortress up the north road: the long bridge, the gatehouse and postern, the foundry and the smelter pits below it, the ashworks, the rampart and the tower stair up to the keep), `cinder_keep` (the keep, a map of its own
   behind the door at the top of the tower stair: the postern landing, the great hall, the switchback stair,
   the antechamber's shrine and the walled rooftop where the twin gargoyles perch) |
 | `src/ashen_vault/world/sky.py`, `render/sky.py` | Skies (`[meta] sky = overcast\|jungle\|ember`): a gradient dome meeting the fog at the horizon, a sun and halo, drifting cloud banks and an overhead cap, horizon mist; every sky's sun stands at `SUN_AT` (low in the west, as over the town), its disc drawn over the clouds (`sky.sun`) and its halo behind them; dimmed by darkness and the Veil. Built pure in `world/sky.py`, drawn first each frame without fog or depth by `render/sky.py` |
@@ -139,7 +146,9 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/player/weapons.py` | Weapon categories, light and heavy attacks, swing tempo and the secret attacks (`secret()`) |
 | `src/ashen_vault/world/shots.py` | Shots in 3D: spells follow the view's pitch, enemy shots aim at your chest, and a shot only hits a body it passes through |
 | `src/ashen_vault/player/guard.py` | Shield blocking: what a raised shield stops and what it costs in ST |
-| `src/ashen_vault/world/relics.py` | Boss relics (Ember, Verdant and Iron Sigils), their drop/taken flags, `boss_falls` (twins fall together) and the three-sigil ending |
+| `src/ashen_vault/world/relics.py` | Boss relics (Ember, Verdant and Iron Sigils), their drop/taken flags, `boss_falls` (twins fall together) and the three-sigil ending (the prophecy names four; the fourth's place is a TODO) |
+| `src/ashen_vault/world/hints.py` | Tutorial hints (`hint text="...\|..."`): shown once, the first time you step onto any of its marker's tiles (`hint:<map>:<marker>` flag); `World._update_hints` fires them |
+| `src/ashen_vault/render/cemetery_models.py` | The Cemetery of Ashes' models: the Ashen Sexton (its `grave_spade`, and `sexton_arms`, its poses for each move), the Ashen Husk, the Shrouded Mourner (the cemetery's own lurker), `ash_hands` (the Sexton's grasping ash) and `ash_clod` (its spadeful), `gravestone`, `open_grave` and `cemetery_gate` (also the gate exit's `model=`, swung open once its `requires=` flag is set) |
 | `src/ashen_vault/dialogue.py` | NPC conversations and the shop list |
 | `tests/` | pytest suite; `conftest.py` has a small test map |
 | `docs/logo/make_logo.py` | Regenerates `docs/logo/ashen_vault.svg` |
@@ -213,11 +222,14 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   or above a passage's roof (`bastion base=`, `gatehouse`), and no two Cinderhold towers share a shape
   (`test_cinderhold_skyline_has_no_two_towers_alike_and_stands_out_of_reach`).
 - Enemy behaviour flags in `ai/enemy_types.py`: `ambush` spawns dormant (the chest Mimic) until woken;
-  `lurk` sits still until you come close (the Stump Mimic, the Bone Crawler); `once` stays dead;
+  `lurk` sits still until you come close (the Stump Mimic, the Bone Crawler, the Shrouded Mourner); `once` stays dead;
   bosses set `dead_flag` and drop a relic (the Butcher, a mini-boss, sets `butcher_dead` but has no
   relic: his cleaver is an entity `item=`). Any type picks special attacks from `moves` (see `MOVES` in
   `ai/enemy.py`: `sweep`, `web`, `pounce`, `cinders`, `combo`, `slam`, `eruption`, `hook`, `breath`
-  (a line of `Eruption`s raking toward you and past), `dive` (a swoop through where you stood)). At half
+  (a line of `Eruption`s raking toward you and past), `dive` (a swoop through where you stood), and the
+  Ashen Sexton's own: `spadeful` (a fan of five ash clods that slow you, `effect="ash"`), `grasp` (a line
+  of `Eruption(style="hands")`: ash hands that hurt and hold you) and `knell` (second phase: two rings of
+  embers, `KNELL_GAP` apart, the second turned half a gap; `World.knell`); no other foe uses them). At half
   HP a boss with a `brood` calls it and one with a `rage` kindles it (the Warden's burning blade);
   either way it enters its second phase (`Enemy.phase2`), fights faster and adds its `phase_moves`.
   `perch` spawns a statue (`Enemy.perched`) that wakes when it sees you, or is struck. `twin=<type>`
@@ -247,7 +259,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 - Props that fill their tile are listed in `world/world.py` (`BLOCKING_PROPS`, `BREAKABLE_PROPS`;
   the keep adds `pillar`, `sarcophagus` and `headsman_block`, the jungle `bonfire`, `giant_mushroom` and
   `totem`, the town `pew`, `bed`, `cupboard`, `fence`, `lamp_post`, `banner_pole`, `fountain`, `bench`,
-  `hand_cart`, `hay_wagon`, `cargo`, `flying_buttress` and `tree`; `test_harrowmere_trees_cut_off_no_part_of_the_town`
+  `hand_cart`, `hay_wagon`, `cargo`, `flying_buttress` and `tree`, the cemetery `gravestone` and `cemetery_gate`; `test_harrowmere_trees_cut_off_no_part_of_the_town`
   keeps the trees out of the only way anywhere). Decor that blocks nothing:
   `boat` rides on water, `shelf`, `hearth` and `window` hang on a wall (the last two are lights), `cage`, `roots` and `meat_hooks` hang from the ceiling, `grate` sits in the
   floor, `mushrooms` dot it, and `cobweb`, `skull_niche`, `winch`, `lever` and `shelf_fungus` mount on
@@ -260,15 +272,21 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   A wall prop must hang on stone that rises past it (at least 2.5 m over its floor, or the ceiling):
   `test_wall_props_hang_on_a_wall_tall_enough_to_hold_them`.
   Light comes from `mesh_builder.LIGHT_KINDS` (torches, braziers, fungus, bonfires, the glowing
-  toadstools). A `brazier unlit` or `bonfire unlit` stays cold until Pyre or a Flame Bolt kindles it
+  toadstools, and every shrine, `save_statue`: a stone post with a flame burning in an iron cradle). A `brazier unlit` or `bonfire unlit` stays cold until Pyre or a Flame Bolt kindles it
   (`World.kindle`); it then burns for good under a `lit:<map>:<tx>,<tz>` flag, and its light is added
   to the baked mesh in place (`MeshBuilder.add_light`).
   `chest model=iron` is the Cinderhold's iron chest (`models.chest` style), and `mimic model=iron` hides as
   one (`Enemy.look`). An `exit` with `boss=<dead_flag>` is a way on to a boss on another map: the compass
-  points at it while that boss lives (`World.boss_target`).
+  points at it while that boss lives (`World.boss_target`). `exit requires=<flag> shut="..."` stays shut
+  (saying `shut=`) until that flag is set (`World.exit_open`), and `exit oneway` never leads back: going
+  through records the journey on the far side at once, so you wake by its shrines, and sets `left:<map>`
+  (`Game._take_exit`). `hint text="Line one.|Line two."` is a tutorial hint, not a prop (`world/hints.py`):
+  put its marker on every tile of the way past it, keep it to two lines that fit the screen
+  (`test_every_cemetery_hint_fits_the_screen`).
   Breakables (`barrel`, `crate`, `urn`, `cocoon`) spill loot from `world/loot.py` (`loot.roll`); a `secret_wall`
   dissolves when struck (`model=vines top=6` matches the jungle's vine walls; `model=web` is a sheet of
-  silk that blades can't cut and only fire burns). `door boss=<dead_flag>` is a boss's great door
+  silk that blades can't cut and only fire burns: Pyre, a fiery art, or a Flame Bolt that strikes it;
+  it burns away over about two seconds, `models.burning_web`, but lets you through at once). `door boss=<dead_flag>` is a boss's great door
   (`models.boss_door`, dressed for its boss by `BOSS_DOORS` / `DOOR_ARCHES` / `DOOR_LEAVES`, keyed by
   the `dead_flag`; a new boss door needs an entry in each): the arena behind it seals once you are inside with its boss awake, opens when
   the boss dies, and after you die in there becomes a fog gate (`models.fog_gate`) the boss walks
@@ -284,7 +302,9 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   of those must join two places already reachable, and every drop must have a way back.
   `cinderhold.map` has one too (`test_cinderhold_is_solvable`, lava counted as impassable), and so does
   `cinder_keep.map` (`test_cinder_keep_is_solvable`; `test_cinder_keep_roof_is_walled_in` keeps every wall
-  round the rooftop at least 6 m above it). Their tiles are lowercase letters, digits and punctuation and
+  round the rooftop at least 6 m above it), and `ashen_cemetery.map` (`test_ashen_cemetery_is_solvable_in_order`:
+  the sword before any foe, the scroll before the silk, the gate only behind the Sexton, and no way
+  back from town). Their tiles are lowercase letters, digits and punctuation and
   their entity markers uppercase or Latin-1, so the two never collide; keep it that way.
 - `game.message()` text may wrap spans in braces, e.g. `f"Obtained {{{item.name}}}."`: the HUD draws
   them in the highlight colour (`util.highlight_runs`). `tests/test_ui_logic.py` checks the small font
@@ -295,8 +315,9 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 - Persistent world state lives in the save's `flags` set, keyed `<kind>:<map>:<tx>,<tz>` (opened
   chests, broken barrels, revealed walls, slain mimics, kindled fires as `lit:`) or `loot:<key>` for
   dropped items. Bosses add
-  their `dead_flag` (`boss_dead`, `spider_dead`, `gargoyles_dead`, `butcher_dead`) and relics a `<relic>_taken` flag
-  (`sigil_taken` for the Ember Sigil).
+  their `dead_flag` (`boss_dead`, `spider_dead`, `gargoyles_dead`, `butcher_dead`, `sexton_dead`) and relics a
+  `<relic>_taken` flag (`sigil_taken` for the Ember Sigil). Shown hints add `hint:<map>:<marker>`, a one-way
+  exit `left:<map>`.
 - Equipment (`player/inventory.py`): two hand slots, shown to players as **Primary** (`right` = left
   mouse button) and **Secondary** (`left` = right button) via `SLOT_NAMES`; never say "hand" in text the
   player sees. Each holds a weapon, a shield, the readied spell (`SPELL`) or nothing (a fist), plus
@@ -362,7 +383,8 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 - Each weapon has its own small, animated glyph on the HUD mouse (`hud.WEAPON_ICONS`, keyed by item id,
   within `ICON_REACH` of the button's centre); a new weapon needs one, unlike any other
   (`test_weapon_icons_all_look_different_and_fit_their_button`).
-- Spells are `player/spells.py` (`Spells.ALL`, their formulas) and are taught by `scroll_<id>` items;
+- Spells are `player/spells.py` (`Spells.ALL`, their formulas) and are taught by `scroll_<id>` items, every
+  one of them: a woken Ashen knows none, and finds Flame Bolt's (`scroll_flame`) in the cemetery's chapel;
   `Game._cast_spell` dispatches them. Venom Dart and Flame Bolt are bolts (`World.fire_bolt` with an
   `effect`; Thunder Spear is a fast `effect="thunder"` bolt), Arcane Motes are three `homing`
   projectiles (`World.motes`, steered by `shots.home`), Pyre is a short cone (`World.pyre`)
@@ -381,8 +403,13 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   gifts (`tests/test_loot.py`): give a new find a new item.
 - Villagers are drawn by `models.npc` from a `world/villagers.Look` (build, clothes, hair, hat, held tool,
   idle); a new villager needs an entry in `villagers.LOOKS`. The Enthroned (`npc id=enthroned`) is its own
-  model, petrified on `models.throne`: all stone, nothing glows but the drifting dust, and their lines
-  whisper from the stone (`dialogue.ENTHRONED_LINES`; the lore is a TODO).
+  model, petrified on `models.throne`: all stone, nothing glows but the drifting dust, and the stone king's
+  lines whisper from it (`dialogue.ENTHRONED_LINES`).
+- The story: the player is one of the Ashen, woken in the Cemetery of Ashes by a toll of the town's bell
+  that no one rang. Odrin knows the prophecy: whoever wakes must win four sigils to raise the king turned
+  to stone on the cathedral's throne (the Enthroned); many Ashen woke before and failed. Nobody arrived by
+  sea. Only three sigils exist yet, and the ending takes those three; the fourth's place, who rang the
+  bell and what petrified the king are `TODO(story)`s in `dialogue.py`.
 - Add dependencies with `uv add` (runtime) or `uv add --dev` (tooling), never by hand-editing
   `uv.lock`.
 

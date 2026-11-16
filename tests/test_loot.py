@@ -54,14 +54,15 @@ def test_no_spell_gear_or_key_can_be_found_twice():
     assert not twice
 
 
-def test_every_spell_but_the_first_is_taught_by_one_free_scroll_or_a_shop():
+def test_every_spell_is_taught_by_one_free_scroll_or_a_shop():
+    """Flame Bolt too: a woken Ashen knows no spell until it finds the scroll in the cemetery's chapel."""
     from ashen_vault import dialogue
     from ashen_vault.player.items import Items
     from ashen_vault.player.spells import Spells
 
     sold = {i for stock in dialogue.SHOPS.values() for i in stock}
     taught = [Items.get(i).spell for i in [*_free_sources(), *sold] if Items.get(i).kind == "scroll"]
-    assert sorted(taught) == sorted(s for s in Spells.ALL if s != "flame")
+    assert sorted(taught) == sorted(Spells.ALL)
 
 
 def test_a_spare_copy_of_owned_gear_is_paid_in_gold():
