@@ -1602,3 +1602,23 @@ def test_the_cemeterys_bone_walkers_rise_in_their_own_grave_clothes():
     assert dead.top < alive.top and dead.top <= e.type.height * 1.1
     assert dead.bottom >= min(alive.bottom, 0.0) - 0.15
     assert alive.glows > 0 and dead.glows == 0
+
+
+def test_a_thorn_shot_and_a_flying_flame_draw_a_steady_number_of_glowing_parts():
+    from ashen_vault.render import models
+
+    def count(draw, t):
+        gpu = _RecordingGpu()
+        draw(rig.Rig(gpu), t)
+        return gpu.parts
+
+    def thorn(r, t):
+        return models.thorn_shot(r, (150, 210, 70), t)
+
+    def flame(r, t):
+        return models.fireball(r, (255, 140, 50), t, trail=(-1.0, 0.0, 0.0))
+
+    for draw in (thorn, flame):
+        sizes = {len(count(draw, t / 7)) for t in range(20)}
+        assert len(sizes) == 1, draw  # nothing pops in and out from frame to frame
+    assert len(count(flame, 0.0)) <= 20  # a flame stays lean: one is drawn for every bolt and spark

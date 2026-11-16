@@ -209,7 +209,7 @@ def test_thorn_volley_fans_out_its_thorns():
     world.volley(7, art.count, art.spread, art.effect, art.rgb)
     shots_ = world.projectiles
     assert len(shots_) == art.count
-    assert all(s.effect == "venom" and not s.hostile and s.damage == 7 for s in shots_)
+    assert all(s.effect == "thorn" and not s.hostile and s.damage == 7 for s in shots_)
     headings = sorted(math.atan2(s.dz, s.dx) for s in shots_)
     assert headings[1] == pytest.approx(game.player.yaw, abs=1e-6)
     assert headings[2] - headings[1] == pytest.approx(art.spread)
@@ -227,3 +227,21 @@ def test_slag_burst_strikes_all_around_and_iron_shrugs_off_half():
     assert "burn" not in hound.status
     assert len(world.gouts) == SLAG_GOUTS
     assert all(abs(g.dy) < 0.1 for g in world.gouts), "the slag runs along the floor"
+
+
+def test_thorn_volley_poisons_what_it_strikes():
+    _game, world = jungle((15, 31), yaw=0.0)
+    husk = foe(world, "bark_husk", (17, 31))
+    art = weapons.ARTS["thornlash"]
+    world.volley(1, art.count, art.spread, art.effect, art.rgb)
+    for _ in range(60):
+        world._update_projectiles(1 / 60)
+    assert husk.afflicted == "poison"
+
+
+def test_snare_blooms_spit_thorns():
+    _game, world = jungle((15, 31), yaw=0.0)
+    bloom = foe(world, "snare_bloom", (18, 31))
+    world.enemy_fire(bloom)
+    (thorn,) = world.projectiles
+    assert thorn.effect == "thorn" and thorn.hostile

@@ -33,7 +33,7 @@ class EnemyType:
     bite_reach: float | None = None
     # Color of the projectiles a ranged enemy fires.
     shot_rgb: tuple = (255, 120, 40)
-    # What its shots look like when they are not plain bolts of light: "arrow".
+    # What its shots look like when they are not plain bolts of light: "arrow", "thorn".
     shot: str | None = None
     # Turning speed in rad/s; None turns instantly. Slow turners can be outflanked.
     turn_rate: float | None = None
@@ -223,6 +223,7 @@ class EnemyTypes:
                 ranged=True,
                 bite_reach=2.2,
                 shot_rgb=(150, 210, 70),
+                shot="thorn",
                 poise=0,
             ),
             EnemyType(

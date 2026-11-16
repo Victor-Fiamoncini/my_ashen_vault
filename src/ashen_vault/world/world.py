@@ -72,7 +72,8 @@ class Projectile:
     source: str = ""
     # "web": slows whoever it hits; "venom": poisons it; "flame": kindles cold fires it passes;
     # "flare": a spark of Pyre's fire that only shows; "thunder": a lightning spear; "mote": an arcane
-    # spark; "arrow": an iron bowman's arrow.
+    # spark; "arrow": an iron bowman's arrow; "thorn": a barbed thorn (a Snare Bloom's, or Thornlash's
+    # Thorn Volley, which poisons what it strikes).
     effect: str | None = None
     dy: float = 0.0  # climb (or drop) per second: spells follow the view up and down
     homing: bool = False  # steers itself toward the nearest foe it can see (Arcane Motes)
@@ -1511,7 +1512,7 @@ class World:
                     dmg = max(rround(pr_.damage * elements.mult(target.type, element)), 1)
                     jolt = elements.staggers(target.type, element)
                     self.game.damage_enemy(target, dmg, 99.0 if jolt else 1.0)
-                    if pr_.effect == "venom" and target.alive:
+                    if pr_.effect in ("venom", "thorn") and target.alive:
                         target.afflict("poison", *Spells.venom_poison(self.player.stats.magic))
                         self.game.sfx("hiss", 0.6)
                     pr_.life = 0
@@ -2020,12 +2021,14 @@ class World:
                         models.gout_puff(rig, size, heat, self._time, seed=i * 1.7)
         for pr_ in self.projectiles:
             gpu.model_light((1.6, 1.4, 1.2))
-            if pr_.effect in ("arrow", "thunder"):  # these fly point first
+            if pr_.effect in ("arrow", "thunder", "thorn"):  # these fly point first
                 heading = -math.atan2(pr_.dz, pr_.dx)
                 climb = math.atan2(pr_.dy, math.hypot(pr_.dx, pr_.dz))
                 with rig.at(pr_.x, pr_.y, pr_.z, ry=heading, rz=climb):
                     if pr_.effect == "arrow":
                         forge_models.arrow(rig, pr_.rgb)
+                    elif pr_.effect == "thorn":
+                        models.thorn_shot(rig, pr_.rgb, self._time)
                     else:
                         forge_models.thunder_spear(rig, self._time)
                 continue

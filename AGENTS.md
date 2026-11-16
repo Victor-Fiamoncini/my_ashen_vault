@@ -253,7 +253,8 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   `dead_flag` and relic set only when both are dead (`relics.boss_falls`), and a shrine rest brings a
   fallen twin back beside its living other at full HP. `conductive` foes take `LIGHTNING_MULT` from
   lightning and are jolted (`staggers`); `fireproof` ones take half from fire and never burn. `shot=arrow`
-  draws a ranged foe's shots as arrows (and they fly faster).
+  draws a ranged foe's shots as arrows (and they fly faster), `shot=thorn` as barbed thorns
+  (`models.thorn_shot`, the Snare Bloom's, and Thornlash's Thorn Volley, whose thorns poison).
   An enemy entity's `item=` is loot it drops when slain. `flammable` types (the jungle's plants) take
   more from Pyre and keep burning. Enemies carry lingering harm in `Enemy.status` (`poison` from Venom
   Dart, `burn` from Pyre), one bite a second (`status_tick`) that never staggers.

@@ -276,7 +276,7 @@ ARTS = {
         speed=16.0,
     ),
     "thornlash": Art(
-        "thorn_volley", "Thorn Volley", 5, VOLLEY, 0.6, (140, 220, 70), effect="venom", count=3, spread=0.16
+        "thorn_volley", "Thorn Volley", 5, VOLLEY, 0.6, (140, 220, 70), effect="thorn", count=3, spread=0.16
     ),
     "slagbreaker": Art("slag_burst", "Slag Burst", 8, RING, 1.2, (255, 80, 20), reach=4.0, element="fire"),
 }

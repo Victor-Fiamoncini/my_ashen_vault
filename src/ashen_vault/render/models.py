@@ -1139,48 +1139,150 @@ def _bloom_head(r, gape, hurt, t):
                 )
 
 
+HUSK_BARK = (112, 94, 80)  # grey-brown dead wood
+HUSK_HOLLOW = (16, 10, 8)
+HUSK_FIBRE = (78, 58, 46)  # the stringy wood hanging in its mouth
+HUSK_ROOT_Y = 0.3  # where the trunk's flared foot meets its roots
+HUSK_NECK_Y = 1.6  # where the flared foot narrows into the upper trunk
+HUSK_TOP_Y = 2.4  # the broken top, crowned with splinters
+# Its branches: (height, side, spread round the trunk, rest elevation, length, kink). The first pair,
+# at the shoulders, does the slam.
+HUSK_LIMBS = (
+    (1.95, 1, 1.25, -0.1, 0.95, 0.35),
+    (1.95, -1, 1.25, -0.1, 0.95, -0.3),
+    (1.1, 1, 1.0, -0.45, 0.8, -0.4),
+    (1.15, -1, 1.05, -0.5, 0.75, 0.45),
+    (2.25, 1, 1.9, 0.35, 0.65, 0.5),
+    (2.2, -1, 2.0, 0.3, 0.7, -0.45),
+)
+
+
+def _husk_radius(y):
+    """The trunk's radius at height `y`: a flared foot narrowing to the neck, then straight."""
+    if y >= HUSK_NECK_Y:
+        return 0.36
+    k = max(y - HUSK_ROOT_Y, 0.0) / (HUSK_NECK_Y - HUSK_ROOT_Y)
+    return 0.575 - (0.575 - 0.356) * k
+
+
 def bark_husk(r, e, t):
-    """A gaunt weeping-willow husk. It hunches forward on a skirt of writhing roots, with long arms
-    that drag on the ground and a pale carved mask under a curtain of hanging willow strands.
-    Down its back a split in the bark shows the glowing heart-fungus: the weak spot."""
+    """A hollow dead tree that walks on its roots. Its top is broken off into a crown of jagged
+    splinters, a face is split into its trunk (slanted ember eyes under a heavy brow, a tall gaping
+    mouth hung with stringy fibres) and long bare branches jut from it, the shoulder pair raised
+    together and brought down in a double slam. Down its back a split in the bark shows the glowing
+    heart-fungus: the weak spot."""
     hit = strike_angle(e)
     hurt = e.flashing
+    dead = e.state == "dead"
     moving = e.state in ("chase", "idle")
     slump = death_fall(e, 0.8)
-    bark = (240, 220, 200) if hurt else (128, 118, 92)
-    lean = -0.35 if e.state == "windup" else (0.15 if e.state == "hurt" else -0.15)
-    lean -= 0.55 * slump  # topples forward over its roots as it dies
-    with r.at(0, 0, 0, s=1.25):
-        # Root skirt: roots fan out and writhe as it glides along.
-        for i in range(9):
-            a = i * 2 * math.pi / 9
-            wr = math.sin(t * (5 if moving else 1.5) + i * 1.7) * (0.2 if moving else 0.06)
-            with r.at(math.cos(a) * 0.18, 0.5, math.sin(a) * 0.18, ry=-a, rz=-0.75 + wr):
-                r.part("cube", 0.32, 0, 0, 0.7, 0.13, 0.13, DARK_BARK)
-                with r.at(0.65, 0, 0, rz=-0.5 - wr):
-                    r.part("cube", 0.2, 0, 0, 0.42, 0.09, 0.09, DARK_BARK)
-        with r.at(0, 0.45 - 0.3 * slump, 0, rz=lean):
-            # Tall, narrow trunk that twists as it rises.
-            r.part("cyl", 0, 0.65, 0, 0.6, 1.3, 0.54, bark, tex="bark")
-            for y, ang, w in ((0.35, 1.2, 0.24), (0.55, 1.6, 0.18), (0.9, -1.4, 0.2)):  # shelf fungus
-                x, z = math.cos(ang) * 0.27, math.sin(ang) * 0.25
-                r.part("cyl", x, y, z, w, 0.04, w, (200, 176, 120))
-                r.part("cyl", x, y - 0.025, z, w * 0.8, 0.02, w * 0.8, (130, 100, 64))
-            for k in range(3):  # knots weeping sap down the trunk
-                r.part("sphere", 0.28, 0.4 + k * 0.32, (-0.1, 0.12, 0.0)[k], 0.1, 0.12, 0.1, DARK_BARK)
-            with r.at(0, 1.25, 0, rz=-0.15, ry=0.25):
-                r.part("cyl", 0, 0.45, 0, 0.46, 0.9, 0.42, bark, tex="bark")
-                _husk_heart(r, t, hurt, dead=e.state == "dead")
-                _husk_mask(r, e)
-                _willow_crown(r, e, t)
-            # Long arms: both rise together and come down in a double slam.
-            for side in (1, -1):
-                arm = hit if side > 0 else hit * 0.9
-                if moving:
-                    arm = math.sin(t * 2.5 + side) * 0.12
-                arm -= 0.9 * slump  # the arms fall forward and sprawl along the ground
-                with r.at(0, 1.95, side * 0.36, rx=side * 0.18, rz=arm):
-                    _willow_arm(r, bark)
+    bark = (240, 220, 200) if hurt else HUSK_BARK
+    dark = (200, 180, 160) if hurt else DARK_BARK
+    lean = -0.25 if e.state == "windup" else (0.12 if e.state == "hurt" else -0.06)
+    lean -= 0.85 * slump  # keels over forward on its face as it dies
+    _husk_roots(r, t, moving, dark)
+    pivot = _husk_radius(HUSK_ROOT_Y)  # it tips over the front edge of its foot
+    with r.at(pivot, 0, 0, rz=lean), r.at(-pivot, 0, 0):
+        r.part("frustum", 0, (HUSK_ROOT_Y + HUSK_NECK_Y) / 2, 0, 1.15, HUSK_NECK_Y - HUSK_ROOT_Y, 1.1, bark,
+               tex="bark")  # fmt: skip
+        r.part("cyl", 0, HUSK_ROOT_Y / 2 + 0.02, 0, 1.12, HUSK_ROOT_Y, 1.06, bark, tex="bark")
+        with r.at(0, HUSK_NECK_Y, 0, ry=0.12):
+            r.part("cyl", 0, (HUSK_TOP_Y - HUSK_NECK_Y) / 2, 0, 0.72, HUSK_TOP_Y - HUSK_NECK_Y, 0.7, bark,
+                   tex="bark")  # fmt: skip
+        _husk_crown(r, bark, dark)
+        _husk_face(r, e, t, dark)
+        with r.at(-0.2, 1.45, 0):
+            _husk_heart(r, t, hurt, dead=dead)
+        for y, a, w in ((0.75, 2.0, 0.3), (0.95, 2.3, 0.22), (2.0, -2.0, 0.24)):  # shelf fungus
+            rad = _husk_radius(y)
+            x, z = math.cos(a) * rad, math.sin(a) * rad
+            r.part("cyl", x, y, z, w, 0.05, w, (196, 172, 120))
+            r.part("cyl", x, y - 0.03, z, w * 0.8, 0.02, w * 0.8, (126, 98, 64))
+        for y, a in ((0.5, -1.2), (1.3, 1.6), (2.3, 2.7)):  # moss clinging to it
+            rad = _husk_radius(y)
+            with r.at(math.cos(a) * rad, y, math.sin(a) * rad, ry=-a):
+                r.part("sphere", 0, 0, 0, 0.1, 0.3, 0.34, _dim(MOSS, 0.75))
+        for i, (y, side, spread, rest, length, kink) in enumerate(HUSK_LIMBS):
+            sway = math.sin(t * (2.4 if moving else 1.1) + i * 1.9) * 0.08
+            if e.state == "hurt":
+                sway += math.sin(t * 22 + i) * 0.18  # thrashing
+            elev = rest + sway
+            if i < 2:  # the slam: raised high and swept in, then brought down in front
+                k = min(abs(hit) / 2.2, 1.0)
+                elev = rest - hit * 0.5 + (0 if hit else sway)
+                spread -= 0.55 * k
+            elev -= 0.9 * slump  # the branches droop as it falls
+            rad = _husk_radius(y) * 0.9
+            with r.at(0, y, side * rad, ry=-side * spread, rz=elev):
+                _husk_branch(r, length, bark, dark, kink)
+
+
+def _husk_roots(r, t, moving, dark):
+    """Buttress roots splayed round the foot, writhing as it glides along."""
+    for i in range(6):
+        a = i * math.tau / 6 + 0.3
+        wr = math.sin(t * (5 if moving else 1.5) + i * 1.7) * (0.12 if moving else 0.04)
+        with r.at(math.cos(a) * 0.38, 0.4, math.sin(a) * 0.38, ry=-a, rz=-2.05 + wr):
+            r.part("frustum", 0, 0.32, 0, 0.3, 0.64, 0.22, dark, tex="bark")
+            with r.at(0, 0.62, 0, rz=0.45 - wr):
+                r.part("cone", 0, 0.22, 0, 0.16, 0.46, 0.12, dark)
+
+
+def _husk_crown(r, bark, dark):
+    """The broken top: a ring of jagged splinters leaning out round a dark hollow."""
+    r.part("cyl", 0, HUSK_TOP_Y + 0.01, 0, 0.6, 0.04, 0.58, HUSK_HOLLOW)
+    for k in range(7):
+        a = k * math.tau / 7 + 0.2
+        h = 0.32 + (k * 5 % 7) * 0.05
+        with r.at(
+            math.cos(a) * 0.28, HUSK_TOP_Y - 0.05, math.sin(a) * 0.28, ry=-a, rz=-0.22 - (k % 3) * 0.08
+        ):
+            r.part("blade", 0, h / 2, 0, 0.26, h, 0.2, bark if k % 2 else dark, tex="bark", ry=math.pi / 2)
+
+
+def _husk_face(r, e, t, dark):
+    """Split into the front of the trunk: a heavy brow over slanted eye slits lit by embers, a knot of a
+    nose, and a tall mouth hung with fibres that gapes wider as it winds up."""
+    dead = e.state == "dead"
+    rad = _husk_radius(HUSK_NECK_Y)
+    for side in (1, -1):
+        z = side * 0.13
+        slant = side * 0.35  # the inner ends lower: a scowl
+        r.part("cube", rad + 0.03, 2.13, z, 0.12, 0.08, 0.22, dark, rx=slant)  # brow
+        r.part("cube", rad, 2.03, z, 0.05, 0.065, 0.17, HUSK_HOLLOW, rx=slant)
+        r.part("cube", rad + 0.02, 2.03, z, 0.02, 0.035, 0.1, (60, 40, 30) if dead else (255, 90, 40),
+               rx=slant, glow=not dead)  # fmt: skip
+    r.part("sphere", rad + 0.03, 1.86, 0, 0.1, 0.14, 0.1, dark)  # a knot for a nose
+    gape = 0.42 + 0.22 * max(jaw_open(e, t), 0.0)
+    mid = 1.42 - gape / 4
+    with r.at(_husk_radius(mid) + 0.01, mid, 0, rz=0.17):  # follows the foot's slope
+        r.part("cube", 0, 0, 0, 0.06, gape, 0.3, HUSK_HOLLOW)
+        for y in (1, -1):  # the lips: splintered bark
+            r.part("cube", 0.03, y * (gape / 2 + 0.03), 0, 0.09, 0.08, 0.38, dark)
+        for z in (1, -1):
+            r.part("cube", 0.03, 0, z * 0.18, 0.09, gape, 0.07, dark)
+        for k in range(5):  # fibres hanging from above
+            z = (k - 2) * 0.055
+            ln = 0.1 + (k * 3 % 4) * 0.035
+            r.part("cone", 0.03, gape / 2 - ln / 2, z, 0.035, ln, 0.035, HUSK_FIBRE, rx=math.pi)
+        for k in range(4):  # and rising from below
+            z = (k - 1.5) * 0.065
+            ln = 0.07 + (k * 5 % 3) * 0.035
+            r.part("cone", 0.03, -gape / 2 + ln / 2, z, 0.03, ln, 0.03, HUSK_FIBRE)
+
+
+def _husk_branch(r, length, bark, dark, kink):
+    """A bare branch along +X: a tapering limb, a knotted crook and a thinner forearm ending in three
+    twig claws, with a dead twig off the crook."""
+    r.part("frustum", length / 2, 0, 0, 0.17, length, 0.17, bark, tex="bark", rz=-math.pi / 2)
+    r.part("sphere", length, 0, 0, 0.15, 0.15, 0.15, dark)
+    with r.at(length, 0, 0, rz=-0.25, ry=kink):
+        fore = length * 0.85
+        r.part("frustum", fore / 2, 0, 0, 0.11, fore, 0.11, bark, tex="bark", rz=-math.pi / 2)
+        r.part("cone", 0.1, 0.12, 0, 0.04, 0.3, 0.04, dark, rz=-0.6)  # a dead twig
+        with r.at(fore, 0, 0):
+            for k in (-1, 0, 1):
+                r.part("cone", 0.14, 0, k * 0.04, 0.045, 0.3, 0.045, dark, rz=-math.pi / 2, ry=k * 0.45)
 
 
 def _husk_heart(r, t, hurt, dead=False):
@@ -1193,53 +1295,6 @@ def _husk_heart(r, t, hurt, dead=False):
         r.part("sphere", -0.24, y, z, 0.12, 0.07, 0.12, (80, 220, 170), glow=not dead)
     for y in (0.05, 0.4, 0.75):
         r.part("cube", -0.25, y, 0, 0.05, 0.06, 0.3, DARK_BARK)
-
-
-def _husk_mask(r, e):
-    """Pale carved mask: hollow eye slits with ember pupils and a long mouth slit."""
-    mask = (214, 204, 178)
-    r.part("cube", 0.24, 0.6, 0, 0.07, 0.72, 0.5, mask)
-    r.part("cube", 0.25, 0.96, 0, 0.08, 0.08, 0.54, mask)
-    dead = e.state == "dead"  # the ember pupils go out
-    for z in (-0.12, 0.12):
-        r.part("cube", 0.28, 0.74, z, 0.03, 0.08, 0.14, (16, 10, 8))
-        r.part(
-            "cube", 0.295, 0.74, z, 0.02, 0.05, 0.05, (60, 40, 30) if dead else (255, 120, 50), glow=not dead
-        )
-    gape = 0.18 if e.state in ("windup", "attack") else 0.05
-    r.part("cube", 0.28, 0.44, 0, 0.03, 0.16 + gape, 0.07, (16, 10, 8))
-    # Twisted antler-like twigs above the mask.
-    for side in (1, -1):
-        with r.at(0.1, 0.95, side * 0.12, rx=side * 0.6, rz=0.3):
-            r.part("cube", 0, 0.2, 0, 0.05, 0.4, 0.05, DARK_BARK)
-            r.part("cube", 0.06, 0.32, side * 0.05, 0.04, 0.2, 0.04, DARK_BARK, rx=side * 0.7)
-
-
-def _willow_crown(r, e, t):
-    """A dome of leaves with willow strands hanging all round. The strands part in front of the
-    mask, and they swing up when it winds up."""
-    flare = 0.5 if e.state == "windup" else 0.0
-    with r.at(0, 1.0, 0):
-        r.part("sphere", 0, 0.1, 0, 1.0, 0.4, 1.0, DARK_LEAF)
-        r.part("sphere", -0.1, 0.25, 0.1, 0.7, 0.3, 0.7, LEAF)
-        for k in range(16):
-            a = k * 2 * math.pi / 16
-            front = math.cos(a) > 0.4
-            length = 0.25 if front else 0.9 + (k * 7 % 5) * 0.18
-            sway = math.sin(t * 1.4 + k) * 0.08
-            with r.at(math.cos(a) * 0.45, 0, math.sin(a) * 0.45, ry=-a, rz=sway - flare):
-                r.part("cube", 0, -length / 2, 0, 0.05, length, 0.14, LEAF if k % 3 else MOSS)
-
-
-def _willow_arm(r, bark):
-    """Hangs from the shoulder: long upper arm, a knotted elbow and a forearm ending in twig claws."""
-    r.part("cyl", 0, -0.48, 0, 0.16, 0.96, 0.16, bark)
-    r.part("sphere", 0, -0.98, 0, 0.24, 0.24, 0.24, DARK_BARK)
-    with r.at(0, -0.98, 0, rz=0.35):
-        r.part("cyl", 0, -0.45, 0, 0.12, 0.9, 0.12, bark)
-        for k in range(4):
-            with r.at(0, -0.9, (k - 1.5) * 0.06, rx=(k - 1.5) * 0.35, rz=0.25):
-                r.part("cone", 0, -0.24, 0, 0.06, 0.5, 0.06, DARK_BARK, rx=math.pi)
 
 
 def stump_mimic(r, e, t):
@@ -2926,7 +2981,6 @@ def rope(r, t):
 
 FIRE_CORE = (255, 246, 210)  # the white-hot heart of every fireball
 FIRE_TIP = (255, 214, 110)  # the pale ends of its licking tongues
-FIRE_TONGUES = 5
 
 
 def fiery(rgb):
@@ -2935,22 +2989,62 @@ def fiery(rgb):
     return r_ >= 200 and g <= 210 and b <= 120
 
 
-def fireball(r, rgb, t, size=1.0, trail=None, seed=0.0):
-    """A ball of fire `size` times a bolt's (0.3 m shell): a white-hot core in a flickering shell of
-    `rgb`, tongues licking out and up as it turns, and with `trail` (the unit direction it came from)
-    a wake of embers that shrink and redden behind it."""
+FIRE_LICKS = 3  # loose tongues of flame that break off the top and rise away
+FIRE_SPARKS = 2  # embers drifting up out of it
+FIRE_SMOKE = (150, 40, 16)  # the deep red a lick cools to as it rises away
+
+
+def _flame_frame(trail):
+    """The (ry, rz) turning a flame's +Y to where its tongues stream: straight up while it stands,
+    swept back along `trail` (and a little up) while it flies."""
+    if trail is None:
+        return 0.0, 0.0
+    dx, dy, dz = trail[0] * 0.85, trail[1] * 0.85 + 0.5, trail[2] * 0.85
+    n = math.sqrt(dx * dx + dy * dy + dz * dz) or 1.0
+    dx, dy, dz = dx / n, dy / n, dz / n
+    return math.atan2(dz, -dx), math.acos(max(-1.0, min(1.0, dy)))
+
+
+def fireball(r, rgb, t, size=1.0, trail=None, seed=0.0, lean=False):
+    """A flame `size` times a bolt's (0.3 m across): three nested teardrops, a white-hot core in a
+    pale-gold heart in a shell of `rgb`, their tips licking and swaying out of step; loose tongues
+    break off the top and rise away, shrinking and reddening, with embers drifting up out of it.
+    With `trail` (the unit direction it came from) it streams back along it like a comet, leaving a
+    wake of embers that shrink and redden behind it. A `lean` flame, one of many in a row, sheds a
+    single loose tongue, no embers and no wake."""
     s = size
     flick = 1 + math.sin(t * 23 + seed) * 0.08
-    r.part("sphere", 0, 0, 0, 0.16 * s, 0.16 * s, 0.16 * s, FIRE_CORE, glow=True)
-    r.part("sphere", 0, 0, 0, 0.3 * s * flick, 0.3 * s * flick, 0.3 * s * flick, rgb, glow=True)
-    r.part("sphere", 0, 0.03 * s, 0, 0.4 * s, 0.34 * s * flick, 0.4 * s, _dim(rgb, 0.8), glow=True)
-    for i in range(FIRE_TONGUES):
-        a = t * 5 + seed + i * 2 * math.pi / FIRE_TONGUES
-        lick = (0.22 + 0.1 * math.sin(t * 13 + i * 2.3 + seed)) * s
-        with r.at(0, 0, 0, ry=a, rz=0.8 + 0.3 * math.sin(t * 9 + i * 1.7)):
-            r.part("cone", 0, 0.14 * s + lick / 2, 0, 0.13 * s, lick, 0.13 * s, FIRE_TIP, glow=True)
-    r.part("cone", 0, 0.22 * s, 0, 0.22 * s, 0.36 * s * flick, 0.22 * s, FIRE_TIP, glow=True)  # it rises
-    if trail is None:
+    ry, rz = _flame_frame(trail)
+    with r.at(0, 0, 0, ry=ry, rz=rz):
+        for k, (w, h, rgb_k) in enumerate(
+            ((0.32, 0.62, rgb), (0.23, 0.46, FIRE_TIP), (0.14, 0.3, FIRE_CORE))
+        ):
+            w *= s * (flick if k == 0 else 1)
+            h *= s * (1 + 0.16 * math.sin(t * (11 + 3 * k) + seed + k * 1.9))
+            r.part("sphere", 0, 0, 0, w, w * 0.9, w, rgb_k, glow=True)
+            sway = 0.22 * math.sin(t * (7 + 2 * k) + seed + k * 2.4)
+            nod = 0.18 * math.sin(t * (5 + k) + seed * 1.3 + k)
+            with r.at(0, w * 0.2, 0, rz=sway, rx=nod):
+                r.part("cone", 0, h / 2, 0, w * 0.92, h, w * 0.92, rgb_k, glow=True)
+            if k == 0:  # the shell forks: a second, shorter tongue licks out of step beside the first
+                side = 0.3 * math.sin(t * 3 + seed)
+                with r.at(-w * 0.3, w * 0.1, w * side, rz=0.3 - sway, rx=-nod):
+                    r.part("cone", 0, h * 0.35, 0, w * 0.7, h * 0.7, w * 0.7, rgb_k, glow=True)
+        for i in range(1 if lean else FIRE_LICKS):
+            p = (t * 1.9 + i / FIRE_LICKS + seed * 0.37) % 1.0
+            w = 0.13 * s * (1 - p)
+            x = 0.1 * s * math.sin(i * 2.1 + seed + p * 4)
+            z = 0.1 * s * math.cos(i * 1.7 + seed + p * 3)
+            lick = _lerp(FIRE_TIP, rgb, min(p * 2, 1.0)) if p < 0.5 else _lerp(rgb, FIRE_SMOKE, p * 2 - 1)
+            lick = tuple(rround(c) for c in lick)
+            r.part("cone", x, (0.42 + 0.5 * p) * s, z, w, w * 2.4, w, lick, glow=True)
+        for i in range(0 if lean else FIRE_SPARKS):
+            p = (t * 0.9 + i / FIRE_SPARKS + seed * 0.21) % 1.0
+            e = 0.035 * s * (1 - p)  # dwindling as it rises, until it winks out and another rises
+            x = 0.2 * s * math.sin(i * 3.3 + seed + p * 6)
+            r.part("cube", x, (0.3 + 0.9 * p) * s, 0.05 * s * math.cos(p * 5 + i), e, e, e, FIRE_TIP,
+                   rx=t * 6 + i, ry=t * 4, glow=True)  # fmt: skip
+    if trail is None or lean:
         return
     tx, ty, tz = trail
     for i in range(1, 5):
@@ -2998,6 +3092,31 @@ def bolt(r, rgb, t=0.0, trail=None):
         return
     r.part("sphere", 0, 0, 0, 0.3, 0.3, 0.3, rgb, glow=True)
     r.part("sphere", 0, 0, 0, 0.5, 0.18, 0.18, (255, 230, 160), glow=True)
+
+
+THORN_WOOD = (164, 132, 80)  # a thorn's pale, woody shaft
+THORN_TIP = (64, 40, 26)  # darkening to a hard point
+THORN_SCALE = 1.7
+
+
+def thorn_shot(r, rgb, t):
+    """A barbed thorn in flight, point first along +X: a fleshy green root torn from the plant, a pale
+    shaft hardening to a dark point, hooked barbs raked back round it, a scrap of leaf flapping at its
+    tail and a glowing bead of sap (`rgb`) trailing off it. Drawn at `THORN_SCALE`, so it reads in flight."""
+    with r.at(s=THORN_SCALE):
+        _thorn(r, rgb, t)
+
+
+def _thorn(r, rgb, t):
+    r.part("sphere", -0.2, 0, 0, 0.14, 0.1, 0.1, _dim(rgb, 0.6))  # the fleshy root
+    r.part("frustum", -0.02, 0, 0, 0.08, 0.36, 0.08, THORN_WOOD, rz=-math.pi / 2)
+    r.part("blade", 0.26, 0, 0, 0.07, 0.22, 0.07, THORN_TIP, rz=-math.pi / 2)
+    for k in range(3):  # barbs, hooked back
+        with r.at(-0.08 + k * 0.1, 0, 0, rx=k * 2.1 + 0.4):
+            r.part("cone", -0.03, 0.045, 0, 0.03, 0.09, 0.03, THORN_TIP, rz=0.97)
+    with r.at(-0.28, 0, 0, rx=math.sin(t * 22) * 0.7):  # a scrap of leaf
+        r.part("cube", -0.06, 0, 0, 0.14, 0.01, 0.08, LEAF, ry=0.3)
+    r.part("sphere", -0.36, -0.02 - 0.02 * math.sin(t * 9), 0, 0.05, 0.06, 0.05, rgb, glow=True)
 
 
 # --- dungeon dressing --------------------------------------------------------
@@ -4330,7 +4449,7 @@ def spell_hand_view(r, player, bob, side, armor, t):
         if spell and spell.id in FIRE_SPELLS:
             # A small fire licks over the palm; it gutters to an ember while the gauge refills.
             ready = player.magic_gauge.full
-            with r.at(0.02, 0.16, 0):
+            with r.at(0.02, 0.17, 0):
                 fireball(r, glow, t, 0.26 if ready else 0.08 + 0.1 * player.magic_gauge.value)
             if spell.id == "pyre" and cast > 0:  # the gout bursts from the palm: a white-hot flash
                 with r.at(0.25, 0.06, 0):

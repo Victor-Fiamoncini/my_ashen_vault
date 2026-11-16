@@ -75,7 +75,7 @@ FromSoftware, Inc.
   </tr>
   <tr>
     <td><img src="docs/screenshots/verdant_hollow.png" alt="A vine-walled path under the canopy of the Verdant Hollow"></td>
-    <td><img src="docs/screenshots/bark_husk.png" alt="A Bark Husk, a weeping-willow tree creature, beside a thorn plant"></td>
+    <td><img src="docs/screenshots/bark_husk.png" alt="A Bark Husk, a hollow dead tree with a gaping face and splintered crown, beside a thorn plant"></td>
   </tr>
   <tr>
     <td align="center"><sub>The Verdant Hollow, through the cave at the end of Harrowmere's green trail</sub></td>

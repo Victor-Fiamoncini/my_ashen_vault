@@ -6,8 +6,11 @@ import math
 from ashen_vault.ai.enemy import COMBO_GAP, STATUE_BURST
 from ashen_vault.render.models import (
     EMBER,
+    GOUT_COOL,
+    GOUT_HOT,
     _ease,
     _flame,
+    _lerp,
     _spider_move,
     blade_parts,
     death_fall,
@@ -695,22 +698,35 @@ def flame_jet(r, glow, reach, length, t):
     mouth = (255, round(60 + 170 * glow), 30) if glow > 0 else (30, 26, 24)
     r.part("cyl", -0.48, 0.5, 0, 0.14, 0.04, 0.14, mouth, rz=math.pi / 2, glow=glow > 0)
     if reach <= 0:
+        if glow > 0:  # sputtering embers as it builds
+            for i in range(JET_SPUTTER):
+                u = (t * 2.3 + i / JET_SPUTTER) % 1.0
+                e = 0.06 * glow * (1 - u)
+                r.part("cube", -0.45 + 0.9 * u, 0.5 + 0.35 * u * u + 0.08 * math.sin(i * 2.4), 0.12 * math.sin(i * 1.7 + u * 5),
+                       e, e, e, (255, rround(120 + 100 * glow), 50), rx=t * 7 + i, glow=True)  # fmt: skip
         return
     span = length * reach
-    n = max(int(span / 0.7), 1)
-    for i in range(n):
+    n = max(int(span / JET_PUFF), 1)
+    for i in range(n):  # a row of flames: white-gold at the nozzle, deep red and smoky at its front
         u = (i + 0.5) / n
         x = -0.45 + span * u
-        size = 0.25 + 0.45 * u
+        size = 0.8 + 1.3 * u
+        heat = 1 - u
         wob = math.sin(t * 25 + i * 1.9) * 0.08
-        r.part("sphere", x, 0.5 + wob + 0.15 * u, 0, size, size * 0.8, size, (255, 130, 40), glow=True)
-        r.part(
-            "sphere", x, 0.5 + wob + 0.1 * u, 0, size * 0.55, size * 0.45, size * 0.55, WHITE_HOT, glow=True
-        )
-        for j, side in enumerate((-1, 1)):  # tongues licking up off the gout
-            lick = size * (0.7 + 0.3 * math.sin(t * 19 + i * 2.7 + j * 1.9))
-            with r.at(x, 0.5 + wob + size * 0.3, side * size * 0.2, rx=side * 0.45):
-                r.part("cone", 0, lick / 2, 0, size * 0.4, lick, size * 0.4, (255, 200, 90), glow=True)
+        rgb = tuple(rround(c) for c in _lerp(GOUT_COOL, GOUT_HOT, heat))
+        with r.at(x, 0.5 + wob + 0.15 * u, 0):
+            roil = 1 + 0.1 * math.sin(t * 31 + i * 3)
+            # Its tongues stream on along the jet and up, a blowtorch's.
+            fireball(r, rgb, t, size * roil, trail=JET_STREAM, seed=i * 1.7, lean=True)
+            if heat < 0.35:  # smoke curls off the cooling front
+                k = 1 - heat / 0.35
+                w = 0.32 * size * k
+                r.part("sphere", 0.05, 0.1 * size + 0.25 * k, 0, w, w * 0.8, w, (60, 40, 32))  # fmt: skip
+
+
+JET_PUFF = 0.6  # metres of gout per flame
+JET_STREAM = (1.0, 0.0, 0.0)  # which way a jet's tongues stream: on along it
+JET_SPUTTER = 3  # embers spat from the nozzle while it builds
 
 
 def magma_vent(r, t):
