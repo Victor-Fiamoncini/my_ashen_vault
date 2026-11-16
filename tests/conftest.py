@@ -25,6 +25,15 @@ a = bone_walker yaw=90
 """
 
 
+def risen(*enemies):
+    """Skips a boss's entrance: one still in its ashes stands idle at once, as bosses did before they
+    rose; a statue on its perch is awake and on the hunt, as a roused one was."""
+    for e in enemies:
+        if e.state in ("ashes", "rising", "perched"):
+            e.state, e.state_t = ("chase" if e.type.perch else "idle"), 0.0
+    return enemies[0] if len(enemies) == 1 else enemies
+
+
 def make_room():
     return MapLoader(ROOM, name="room").parse()
 

@@ -13,6 +13,7 @@ from ashen_vault.world import hints
 from ashen_vault.world.map_loader import MapLoader
 from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.world import World
+from conftest import risen
 from test_verdant_world import JungleGame
 
 
@@ -113,6 +114,7 @@ def test_the_gate_out_stays_shut_until_the_sexton_falls():
     assert not world.exit_open(gate)
     warden = next(e for e in world.enemies if e.type.id == "sexton")
     assert warden.type.boss and warden.type.drop is None  # it keeps no sigil
+    risen(warden)
     while warden.alive:
         game.damage_enemy(warden, 50)
     game.flags.add(warden.type.dead_flag)

@@ -11,6 +11,8 @@ from ashen_vault.player.spells import Spells
 from ashen_vault.util import rround
 
 STATS = ("ATK", "DEF", "Block", "SPL", "Load")
+# Bare, ungloved hands strike for only this share of a blow: a newly woken Ashen must find a weapon.
+BARE_HANDED = 0.35
 LOWER_IS_BETTER = ("Load",)
 
 
@@ -21,12 +23,23 @@ def swing_power(weapon, gloves):
     return weapon.power + 2 * ((gloves.power or 0) if gloves else 0)
 
 
+def bare_handed(weapon, gloves):
+    """Whether `weapon` is a fist in nothing that adds to its blows."""
+    return weapon.category == "fists" and not (gloves and gloves.power)
+
+
+def strike_mult(weapon, gloves):
+    """What a blow from `weapon` is scaled by for the hands it is held in: BARE_HANDED for bare fists."""
+    return BARE_HANDED if bare_handed(weapon, gloves) else 1.0
+
+
 def numbers(inv, magic=0, spell=None):
     """ATK, DEF, Block (% the held shield stops), SPL (what the readied `spell` does at `magic`, when
     a slot holds it) and Load (kg) of what `inv` has equipped now."""
     shield = inv.shield_hand()
+    weapon, gloves = inv.weapon_item(), inv.hands_item()
     return {
-        "ATK": swing_power(inv.weapon_item(), inv.hands_item()),
+        "ATK": max(rround(swing_power(weapon, gloves) * strike_mult(weapon, gloves)), 1),
         "DEF": inv.defense,
         "Block": rround(inv.hand_item(shield).guard * 100) if shield else 0,
         "SPL": Spells.power(spell, magic) if spell and inv.equipped(SPELL) else 0,

@@ -805,6 +805,41 @@ def olive(r, seed, t=0.0, near=True):
     _clump(r, 0, h + 0.3, 0, 2.0, 1.2, _dim(TREE_LEAF, 1.05), yaw)
 
 
+DEAD_BARK = (78, 74, 70)  # bleached grey by ash and weather
+
+
+def dead_tree(r, seed, t=0.0, near=True):
+    """A dead tree of the cemetery: a split, leaning trunk and bare, crooked limbs clawing at the sky,
+    the bark long gone grey. Never a leaf on it."""
+    h = 3.6 + (seed % 3) * 0.4
+    yaw = seed * 1.3
+    lean = 0.35
+    top = (math.cos(yaw) * lean, h * 0.62, math.sin(yaw) * lean)
+    _bough(r, [(0, 0.0, 0), (0.05, h * 0.3, -0.05), top], 0.42, 0.26, DEAD_BARK)
+    for k in range(3):  # the roots, gripping the ground
+        a = yaw + k * math.tau / 3 + 0.5
+        _limb(r, 0, 0.2, 0, math.cos(a) * 0.6, 0.02, math.sin(a) * 0.6, 0.14, DEAD_BARK)
+    limbs = 4 if near else 2
+    for k in range(limbs):
+        a = yaw + k * math.tau / limbs + 0.4
+        bend = a + (0.8 if k % 2 else -0.8)
+        y0 = h * (0.45 + 0.08 * k)
+        mid = (top[0] + math.cos(a) * 0.8, y0 + 0.7, top[2] + math.sin(a) * 0.8)
+        tip = (mid[0] + math.cos(bend) * 0.7, mid[1] + 0.5 + 0.2 * (k % 2), mid[2] + math.sin(bend) * 0.7)
+        _bough(r, [(top[0], y0, top[2]), mid, tip], 0.16, 0.06, DEAD_BARK)
+        if near:  # a twig off each, crooked like a finger
+            twig = (tip[0] + math.cos(a) * 0.35, tip[1] - 0.15, tip[2] + math.sin(a) * 0.35)
+            _limb(r, *tip, *twig, 0.04, _dim(DEAD_BARK, 0.9))
+    _bough(
+        r,
+        [top, (top[0] - 0.1, h * 0.95, top[2] + 0.1), (top[0], h * 1.1, top[2] - 0.2)],
+        0.2,
+        0.06,
+        DEAD_BARK,
+    )
+
+
 def town_tree(r, kind, seed, t=0.0, near=True):
-    """One of the town's trees by `kind` (`TREE_KINDS`); far ones drop some limbs and clumps."""
-    {"cypress": cypress, "pine": umbrella_pine, "olive": olive}[kind](r, seed, t, near)
+    """A tree by `kind`: one of the town's (`TREE_KINDS`) or the cemetery's `dead` one; far ones drop
+    some limbs and clumps."""
+    {"cypress": cypress, "pine": umbrella_pine, "olive": olive, "dead": dead_tree}[kind](r, seed, t, near)

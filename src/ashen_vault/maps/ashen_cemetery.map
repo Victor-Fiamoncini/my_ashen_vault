@@ -28,18 +28,19 @@ k = wall tex=ash_brick top=6 cap=ash_ground
 c = floor tex=ash_flagstone h=0.8 ceil=4.6 ceil_tex=ash_brick side=ash_brick dark=0.25
 f = floor tex=flagstone h=0.8 side=ash_stone
 a = floor tex=ash_flagstone h=0.8 side=ash_stone
+g = floor tex=ash_ground h=0.8 side=ash_stone
 
 [grid]
 ####vvvvvvvvvvvvvv####
 ####vvvvvvvvvvvvvv####
-####vaaaaaEaaaaaav####
-####vaZaaaaaaaaZav####
-####vaaaaaaaaaaaav####
-####vaaaaaJaaaaaRv####
-####vRaaaaaaaaaaav####
-####vaaaaaaaaaaaav####
-####vaRaaaaaaaaRav####
-####vaaaaaaaaaaaav####
+####vÐGgÖVEVÖgGgÐv####
+####vÔZaaaaaaaaZÔv####
+####vGggaaaaaaggGv####
+####vOaaaaJaaaaaRv####
+####vRaÚaaaaaaÚaOv####
+####vÕaaaaaaaaaaÕv####
+####vGRaØaaaaØaRGv####
+####vÐaaaaaaaaaaÐv####
 ####vwwwwwFwwwwwvv####
 #####wfffffffffw######
 #####wfTfffffRfw######
@@ -122,4 +123,12 @@ T = save_statue
 // The Sexton's yard, and the cemetery's gate out to Harrowmere, shut until its keeper falls.
 F = door boss=sexton_dead on=a
 J = sexton
+// Its yard: stone mourners bowed either side of the gate, crypts set in the walls, fenced family
+// plots, fresh graves, and heaps of the ash it shovels from its pyres. Dead trees in the corners.
+Ö = mourning_statue
+Ô = crypt_front
+Õ = grave_railing
+Ø = ash_mound
+Ú = bones
+Ð = tree kind=dead
 E = exit map=harrowmere at=2,29,0 label=Leave_the_cemetery model=cemetery_gate yaw=90 oneway requires=sexton_dead shut="The gate will not yield while its keeper stands."

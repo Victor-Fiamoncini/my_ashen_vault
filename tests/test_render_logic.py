@@ -664,9 +664,16 @@ def test_a_perched_gargoyle_is_a_cold_grey_statue():
         models.enemy(rig.Rig(perched), e)
         e.rouse()
         e.anim_t = 1.0
+        e.state_t = e.rise_time * 0.3
+        cracking = _ExtentGpu()
+        models.enemy(rig.Rig(cracking), e)
+        e.state_t = e.rise_time
         awake = _ExtentGpu()
         models.enemy(rig.Rig(awake), e)
         assert perched.glows == 0 and awake.glows > 0, type_id
+        assert cracking.glows > 0 and cracking.bottom >= perched.bottom - 0.01, (
+            type_id
+        )  # fire through the stone
     # Bellows hovers once awake; perched, it squats on the parapet like Brand.
     assert awake.bottom > 0.3 and perched.bottom < 0.1
 

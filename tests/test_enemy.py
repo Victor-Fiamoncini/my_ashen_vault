@@ -7,7 +7,7 @@ from ashen_vault.ai.enemy import Enemy
 from ashen_vault.ai.enemy_types import EnemyTypes
 from ashen_vault.ai.spawns import spawn_enemies
 from ashen_vault.world.map_loader import MapLoader
-from conftest import ROOM
+from conftest import ROOM, risen
 
 
 class FakeWorld:
@@ -106,7 +106,7 @@ def test_hit_staggers_and_interrupts_windup():
 
 
 def test_boss_has_poise():
-    boss = Enemy(EnemyTypes.get("ashen_warden"), 0, 0)
+    boss = risen(Enemy(EnemyTypes.get("ashen_warden"), 0, 0))
     boss.take_hit(5)
     assert boss.state != "hurt"
     boss.take_hit(20)
@@ -345,7 +345,7 @@ def test_stump_mimic_waits_until_you_are_close():
 
 
 def spider(x=0.0, z=0.0, seed=3):
-    s = Enemy(EnemyTypes.get("loom_mother"), x, z, rng=random.Random(seed))
+    s = risen(Enemy(EnemyTypes.get("loom_mother"), x, z, rng=random.Random(seed)))
     s.cooldowns = dict.fromkeys(s.cooldowns, 0.0)
     return s
 
@@ -430,7 +430,7 @@ def test_brood_is_small_fast_and_dies_with_its_mother():
 
 
 def warden(seed=3):
-    w = Enemy(EnemyTypes.get("ashen_warden"), 0.0, 0.0, rng=random.Random(seed))
+    w = risen(Enemy(EnemyTypes.get("ashen_warden"), 0.0, 0.0, rng=random.Random(seed)))
     w.cooldowns = dict.fromkeys(w.cooldowns, 0.0)
     return w
 
@@ -630,8 +630,7 @@ def test_boss_bar_trail_holds_then_drains_to_hp():
 def test_every_direct_blow_flashes_even_when_it_does_not_stagger():
     from ashen_vault.ai.enemy import FLASH_TIME
 
-    boss = Enemy(EnemyTypes.get("bellows"), 0, 0, rng=random.Random(0))
-    boss.rouse()
+    boss = risen(Enemy(EnemyTypes.get("bellows"), 0, 0, rng=random.Random(0)))
     assert not boss.flashing
     boss.take_hit(1)  # far below its poise: no stagger, but the blow shows
     assert boss.state != "hurt" and boss.flashing
@@ -645,3 +644,51 @@ def test_a_killing_blow_flashes_but_poison_and_fire_ticks_do_not():
     assert not w.flashing
     w.take_hit(w.hp)
     assert not w.alive and w.flashing
+
+
+def test_a_boss_of_ash_waits_as_a_heap_untouchable_until_it_rises():
+    from ashen_vault.ai.enemy import ASH_RISE
+
+    world = FakeWorld(3, 0)  # no rise_time: it rises when it notices you
+    for type_id in ("ashen_warden", "butcher", "loom_mother", "sexton"):
+        boss = Enemy(EnemyTypes.get(type_id), 0, 0, rng=random.Random(0))
+        assert boss.state == "ashes" and boss.unseen and boss.rise_progress == 0.0
+        assert not boss.take_hit(10_000) and boss.hp == boss.type.hp  # nothing to strike yet
+        world.visible = False
+        tick(boss, world, 1.0)
+        assert boss.state == "ashes"
+        world.visible = True
+        boss.update(0.05, world)
+        assert boss.state == "rising" and boss.rise_time == ASH_RISE
+        tick(boss, world, ASH_RISE / 2)
+        assert 0.3 < boss.rise_progress < 0.7
+        assert not boss.take_hit(10_000) and boss.hp == boss.type.hp  # not whole yet
+        tick(boss, world, ASH_RISE / 2 + 0.1)
+        assert boss.state not in ("ashes", "rising") and boss.rise_progress == 1.0 and not boss.unseen
+
+
+def test_the_world_says_when_a_heap_rises_and_how_fast():
+    class Lair(FakeWorld):
+        seconds = None
+
+        def rise_time(self, _enemy):
+            return self.seconds
+
+    world = Lair(3, 0)
+    boss = Enemy(EnemyTypes.get("sexton"), 0, 0, rng=random.Random(0))
+    tick(boss, world, 1.0)
+    assert boss.state == "ashes"  # it sees you, but you are not in its lair
+    world.seconds = 1.5
+    boss.update(0.05, world)
+    assert boss.state == "rising" and boss.rise_time == 1.5
+
+
+def test_a_struck_statue_cracks_and_tears_free_before_it_fights():
+    from ashen_vault.ai.enemy import STATUE_RISE
+
+    boss = Enemy(EnemyTypes.get("brand"), 0, 0, rng=random.Random(0))
+    assert boss.perched and boss.rise_progress == 0.0
+    assert not boss.take_hit(5)
+    assert boss.state == "rising" and boss.rise_time == STATUE_RISE
+    tick(boss, FakeWorld(3, 0), STATUE_RISE + 0.1)
+    assert boss.state not in ("perched", "rising")

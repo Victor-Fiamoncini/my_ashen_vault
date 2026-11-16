@@ -1195,7 +1195,9 @@ def boss_bar(game):
     world = game.world
     if not world:
         return
-    awake = [e for e in world.enemies if e.type.boss and e.alive and e.state not in ("idle", "perched")]
+    awake = [
+        e for e in world.enemies if e.type.boss and e.alive and e.state not in ("idle", "perched", "ashes")
+    ]
     for i, boss in enumerate(awake[:2]):  # twin bosses get a bar each, one under the other
         _boss_bar(boss, i * BOSS_BAR_STEP)
 
@@ -1215,8 +1217,9 @@ def _boss_bar(boss, dy):
     small_centered(boss.name, W // 2, name_y + TEXT_DY, HIGHLIGHT)
     pr.draw_rectangle(x - 1, y - 1, bw + 2, bh + 2, color(0, 0, 0, 230))
     pr.draw_rectangle(x, y, bw, bh, color(40, 14, 12))
-    trail = rround(bw * clamp(boss.trail_hp / max_hp, 0, 1))
-    fill = rround(bw * clamp(boss.hp / max_hp, 0, 1))
+    shown = boss.rise_progress  # the bar fills as the boss rises
+    trail = rround(bw * clamp(boss.trail_hp * shown / max_hp, 0, 1))
+    fill = rround(bw * clamp(boss.hp * shown / max_hp, 0, 1))
     if trail > fill:
         pr.draw_rectangle(x + fill, y, trail - fill, bh, color(235, 190, 110))
     if boss.enraged:

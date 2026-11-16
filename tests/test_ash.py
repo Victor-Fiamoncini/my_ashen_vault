@@ -1,8 +1,11 @@
+import itertools
+import math
 import random
 
 from ashen_vault.ai.enemy import BOSS_DEATH_TIME, DEATH_TIME, Enemy
 from ashen_vault.ai.enemy_types import EnemyTypes
 from ashen_vault.world.ash import ASH_RGB, EMBER_RGB, AshCloud, death_phases
+from conftest import risen
 
 
 def test_death_phases_bleach_then_crumble():
@@ -26,7 +29,7 @@ def test_death_progress_and_boss_takes_longer():
     assert e.death_progress == 1.0
     assert e.gone
 
-    boss = Enemy(EnemyTypes.get("ashen_warden"), 0, 0)
+    boss = risen(Enemy(EnemyTypes.get("ashen_warden"), 0, 0))
     boss.take_hit(9999)
     boss.state_t = DEATH_TIME + 0.01
     assert not boss.gone
@@ -76,3 +79,27 @@ def test_embers_cool_to_ash():
     cloud.clear()
     cloud.emit(0, 0, 0, 0.3, 5, ember_chance=0.0)
     assert all(f.rgb == ASH_RGB for f in cloud)
+
+
+def test_a_rise_is_the_death_dissolve_played_backwards():
+    from ashen_vault.world.ash import rise_phases
+
+    assert rise_phases(0.0) == (1.0, 1.0)  # all ash, nothing formed
+    assert rise_phases(1.0) == (0.0, 0.0)  # whole, in its own colours
+    ks = [i / 20 for i in range(21)]
+    dissolves = [rise_phases(k)[1] for k in ks]
+    assert all(a >= b for a, b in itertools.pairwise(dissolves))  # it only ever builds up
+    assert rise_phases(0.6)[0] > rise_phases(0.6)[1]  # it stands before its colour comes back
+
+
+def test_gathering_ash_streams_in_toward_the_body_and_up():
+    cloud = AshCloud(random.Random(2))
+    cloud.gather(0.0, 0.0, 0.0, 0.8, 2.0, 0.4, 600, 0.05)
+    assert len(cloud) > 10
+    for f in cloud:
+        assert math.hypot(f.x, f.z) > 0.8  # from a ring round the heap
+        assert f.vx * f.x + f.vz * f.z < 0  # drifting in
+        assert f.vy > 0  # and up to where it forms
+    cloud.clear()
+    cloud.gather(0.0, 0.0, 0.0, 0.8, 2.0, 1.0, 600, 0.05)
+    assert len(cloud) == 0  # whole: nothing more to gather

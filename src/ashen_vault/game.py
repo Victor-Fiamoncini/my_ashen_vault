@@ -518,6 +518,10 @@ class Game:
         """A weapon's ATK; bare fists hit harder in gauntlets."""
         return compare.swing_power(weapon, self.player.inventory.hands_item())
 
+    def _hands_mult(self, weapon):
+        """Bare, ungloved fists land only a fraction of a blow (`compare.BARE_HANDED`)."""
+        return compare.strike_mult(weapon, self.player.inventory.hands_item())
+
     def _resolve_swing(self):
         self._hit_done = True
         p = self.player
@@ -539,7 +543,11 @@ class Game:
         """What a weapon art deals before elements: the weapon's full-gauge blow, scaled by the art."""
         p = self.player
         return Combat.damage(
-            base=self._swing_power(weapon), strength=p.stats.strength, gauge=1.0, defense=0, mult=art.damage
+            base=self._swing_power(weapon),
+            strength=p.stats.strength,
+            gauge=1.0,
+            defense=0,
+            mult=art.damage * self._hands_mult(weapon),
         )
 
     def _release_art(self, weapon, art):
@@ -582,7 +590,7 @@ class Game:
                 strength=p.stats.strength,
                 gauge=p.swing_power,
                 defense=4 if target.type.boss and not a.pierce_def else 0,
-                mult=a.damage * back * mult * elements.mult(target.type, element),
+                mult=a.damage * back * mult * elements.mult(target.type, element) * self._hands_mult(weapon),
             )
             if back > 1:
                 self.message(f"You strike the {target.name}'s weak spot!")

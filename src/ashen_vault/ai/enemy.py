@@ -64,6 +64,12 @@ VEIL_NOTICE = 1.8  # a foe notices you through a Veil of Mist only this close
 VEIL_LOSE = 4.0  # a chaser loses you in the mist beyond this
 STATUS_TICK = 1.0  # seconds between the bites of poison or fire
 FLASH_TIME = 0.15  # seconds a body glows white after any direct blow, staggered or not
+# A boss's entrance (`EnemyType.rise`): one of ash waits as a smouldering heap until you step into its
+# lair, then builds itself from the feet up out of the burning ash; a statue cracks and tears free.
+ASH_RISE = 3.0  # seconds, the first time you meet it
+ASH_RISE_AGAIN = 1.5  # seconds, when you come back through its fog
+STATUE_RISE = 2.2
+STATUE_BURST = 0.55  # share of a statue's rise at which its stone skin bursts off
 
 
 # Seconds a move holds its attack pose before recovering (a plain blow: 0.2).
@@ -92,7 +98,8 @@ class Enemy:
     for bosses with a brood, summon(enemy, type_id, count); for bosses with a rage, boss_rage(enemy),
     slam(enemy) and eruption(enemy); for hook throwers, hook(enemy, mult, pull);
     for fire-breathers, breath(enemy); for the Sexton, grasp(enemy) and knell(enemy, wave). Optional, for twin bosses: rouse_twin(enemy), twin_fallen(enemy)
-    and twin_busy(enemy).
+    and twin_busy(enemy); for bosses that rise from ash, rise_time(enemy) (seconds, or None while it
+    should stay a heap; without it the heap rises when it notices you).
     """
 
     def __init__(self, type_, x, z, yaw=0.0, marker=None, rng=None, loot=None, key=None, look=None):
@@ -110,8 +117,17 @@ class Enemy:
         self._rng = rng or random.Random()
         self.loot = loot  # item dropped on death
         self.key = key  # flag set on death for enemies that stay dead
-        self.state = "dormant" if type_.ambush else "perched" if type_.perch else "idle"
+        self.state = (
+            "dormant"
+            if type_.ambush
+            else "perched"
+            if type_.perch
+            else "ashes"
+            if type_.rise == "ash"
+            else "idle"
+        )
         self.state_t = 0.0
+        self.rise_time = 0.0  # how long the current rise takes
         self.anim_t = 0.0
         self.flash_t = 0.0  # counts down after a direct blow: the white hit flash
         self._wander_dir = None
@@ -170,6 +186,17 @@ class Enemy:
                 self.rouse()
                 if hasattr(world, "rouse_twin"):
                     world.rouse_twin(self)
+            return
+        if self.state == "ashes":
+            ask = getattr(world, "rise_time", None)
+            seconds = ask(self) if ask else (ASH_RISE if self._notices(world, dist) else None)
+            if seconds:
+                self.begin_rise(seconds)
+            return
+        if self.state == "rising":
+            if self.state_t >= self.rise_time:
+                self.face(world.player_x, world.player_z)
+                self._switch("chase")
             return
         for m in self.cooldowns:
             self.cooldowns[m] = max(self.cooldowns[m] - dt, 0.0)
@@ -257,7 +284,7 @@ class Enemy:
     def take_hit(self, amount, poise_mult=1.0, stagger=True):
         """Applies damage and returns True if the hit was fatal. Heavy blows (`poise_mult`)
         stagger tougher foes; lingering harm (`stagger=False`) never does."""
-        if not self.alive:
+        if not self.alive or self.unseen:
             return False
         was_dormant = self.dormant or self.perched
         self.hp -= amount
@@ -268,7 +295,9 @@ class Enemy:
             self.hp = 0
             self._switch("dead")
             return True
-        if stagger and amount * poise_mult >= self.type.poise:
+        if self.perched:  # struck on its perch: the statue cracks open
+            self.rouse()
+        elif stagger and amount * poise_mult >= self.type.poise:
             self._switch("hurt")
         elif was_dormant:
             self._switch("chase")
@@ -282,10 +311,26 @@ class Enemy:
     def perched(self):
         return self.state == "perched"
 
+    @property
+    def unseen(self):
+        """Still a heap of ash, or not yet whole: nothing can strike it."""
+        return self.state in ("ashes", "rising")
+
+    @property
+    def rise_progress(self):
+        """0 as its rise begins, 1 once it stands whole (and ever after); 0 while it waits."""
+        if self.state == "rising":
+            return min(self.state_t / self.rise_time, 1.0) if self.rise_time > 0 else 1.0
+        return 0.0 if self.state in ("ashes", "perched") else 1.0
+
+    def begin_rise(self, seconds):
+        self._switch("rising")
+        self.rise_time = seconds
+
     def rouse(self):
-        """A perched statue comes to life and gives chase."""
+        """A perched statue comes to life: it cracks and tears free of its perch, then gives chase."""
         if self.perched:
-            self._switch("chase")
+            self.begin_rise(STATUE_RISE)
 
     def wake(self, px, pz):
         """A disguised enemy springs: it turns on whoever disturbed it and strikes straight away."""

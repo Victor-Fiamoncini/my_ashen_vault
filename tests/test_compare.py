@@ -38,6 +38,26 @@ def test_bare_fists_hit_harder_in_gauntlets():
     assert compare.better("ATK", 8, 8) == 0 and compare.better("Load", 9, 4) == 1
 
 
+def test_bare_hands_land_only_a_fraction_of_a_blow_but_gauntlets_restore_it():
+    from ashen_vault.player.combat import Combat
+
+    gauntlets = Items.get("iron_gauntlets")
+    assert compare.strike_mult(Items.FISTS, None) == compare.BARE_HANDED <= 0.4
+    assert compare.strike_mult(Items.FISTS, Items.get("leather_gloves")) in (compare.BARE_HANDED, 1.0)
+    assert compare.strike_mult(Items.FISTS, gauntlets) == 1.0
+    assert compare.strike_mult(Items.get("rusted_sword"), None) == 1.0
+    full = Combat.damage(base=compare.swing_power(Items.FISTS, None), strength=6, gauge=1.0, defense=0)
+    bare = Combat.damage(
+        base=compare.swing_power(Items.FISTS, None),
+        strength=6,
+        gauge=1.0,
+        defense=0,
+        mult=compare.strike_mult(Items.FISTS, None),
+    )
+    assert bare <= full * 0.4
+    assert compare.numbers(Inventory(right=None, left=None))["ATK"] < Items.FISTS.power
+
+
 def test_a_shield_shows_how_much_more_it_blocks():
     inv = Inventory(left="buckler")
     inv.add("kite_shield")

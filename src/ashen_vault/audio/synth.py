@@ -73,6 +73,19 @@ def sounds():
         body = whoosh[0] * 1.6 * env(p, 0.04) + (roar[0] * 3.2 + hum) * env(p, 0.12) * 0.7
         return body + crack[0] * 0.55 * (1 - p)
 
+    swell, pop = [0.0], [0.0]
+
+    def rise(t, p):
+        # A boss rising from its ashes: a fire roar swelling up from nothing over a low drone that
+        # climbs in pitch, embers crackling ever faster, cut off as it stands whole.
+        swell[0] += (noise() - swell[0]) * (0.02 + 0.2 * p)
+        drone = math.sin(t * TAU * (40 + 50 * p)) * 0.4 + math.sin(t * TAU * (60 + 75 * p)) * 0.2
+        if random.random() < 0.001 + 0.008 * p:
+            pop[0] = noise()
+        pop[0] *= 0.8
+        level = p**1.4 * min((1 - p) / 0.08, 1.0)
+        return (swell[0] * 2.6 + drone) * level + pop[0] * 0.5 * p
+
     def levelup(t, p):
         f = (523.25, 659.25, 783.99, 1046.5)[min(math.floor(p * 4), 3)]
         return math.sin(t * TAU * f) * 0.3 * (1 - p)
@@ -225,6 +238,8 @@ def sounds():
         ),
         # A gargoyle's breath: a long roar that swells and fades.
         "breath": gen(1.2, lambda t, p: (lowpass(0.18) * 2.2 + noise() * 0.2) * math.sin(p * math.pi) ** 0.7),
+        # A boss forming out of the burning ash of its heap.
+        "rise": gen(2.6, rise),
         # Iron grinding on stone, then a metallic shriek (the gargoyles waking).
         "screech": gen(
             1.1,

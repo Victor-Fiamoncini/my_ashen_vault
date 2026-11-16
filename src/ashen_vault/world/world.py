@@ -5,7 +5,17 @@ import random
 from dataclasses import dataclass
 
 from ashen_vault import map_path
-from ashen_vault.ai.enemy import ASHFALL_RADIUS, EXHALE_CONE, EXHALE_REACH, MOVES, SLAM_RADIUS, Enemy
+from ashen_vault.ai.enemy import (
+    ASH_RISE,
+    ASH_RISE_AGAIN,
+    ASHFALL_RADIUS,
+    EXHALE_CONE,
+    EXHALE_REACH,
+    MOVES,
+    SLAM_RADIUS,
+    STATUE_BURST,
+    Enemy,
+)
 from ashen_vault.ai.enemy_types import EnemyTypes
 from ashen_vault.ai.spawns import spawn_enemies
 from ashen_vault.player.player import Player
@@ -16,7 +26,7 @@ from ashen_vault.render.rig import Rig
 from ashen_vault.util import rround
 from ashen_vault.world import collision, elements, hints, loot, relics, shots, terrain, villagers
 from ashen_vault.world.arena import Arena, flood
-from ashen_vault.world.ash import AshCloud, death_phases
+from ashen_vault.world.ash import AshCloud, death_phases, rise_phases
 from ashen_vault.world.hazards import (
     CrumbleFloor,
     DustDevil,
@@ -177,6 +187,8 @@ BLOCKING_PROPS = (
     "flying_buttress",
     "gravestone",
     "cemetery_gate",
+    "mourning_statue",
+    "grave_railing",
 )
 # How high a low blocking prop reaches above its floor, in metres: a shot flying higher passes over it
 # (a bolt over a table, a casket or a barrel). Anything not listed stands full height.
@@ -187,6 +199,7 @@ PROP_TOP = {
     "frog_idol": 1.0,
     "sarcophagus": 0.9,
     "gravestone": 1.1,
+    "grave_railing": 1.15,
     "headsman_block": 0.7,
     "anvil": 0.95,
     "gargoyle_statue": 2.2,
@@ -232,6 +245,7 @@ WALL_PROPS = (
     "stained_window",
     "rose_window",
     "flying_buttress",
+    "crypt_front",
 )
 # Props drawn as far as the fog lets you see, however far that is: they make a skyline.
 LANDMARKS = (
@@ -259,7 +273,8 @@ STATIC_PROPS = frozenset(
         *("bed", "cupboard", "fence", "bench", "hand_cart", "hay_wagon", "cargo", "tree"),
         *("gargoyle_statue", "pillar", "sarcophagus", "headsman_block", "rack", "rubble", "bones"),
         *("shackles", "cobweb", "mushrooms", "slag_heap", "ingot_pile", "gatehouse", "bastion"),
-        *("gravestone", "open_grave", "cemetery_gate"),
+        *("gravestone", "open_grave", "cemetery_gate", "mourning_statue", "crypt_front", "grave_railing"),
+        "ash_mound",
         "spire",
     }
 )
@@ -268,7 +283,7 @@ RISE = {"rose_window": "6", "crest_plaque": "3", "shutters": "1.7", "balcony": "
 # Props that turn to face into the room.
 FACING_PROPS = (
     *("chest", "altar", "table", "bed", "cupboard", "gargoyle_statue", "forge_hearth"),
-    *("bench", "hand_cart", "hay_wagon"),
+    *("bench", "hand_cart", "hay_wagon", "mourning_statue"),
 )
 # Harrowmere's buildings, furniture and street dressing (`render/town_models.py`).
 TOWN_PROPS = (
@@ -780,7 +795,7 @@ class World:
             bosses = [
                 (
                     (TileMap.tile_coord(e.x), TileMap.tile_coord(e.z)),
-                    e.state not in ("idle", "perched", "dormant"),
+                    e.state not in ("idle", "perched", "dormant", "ashes"),
                 )
                 for e in self.enemies
                 if e.alive and e.type.dead_flag == a.flag
@@ -856,7 +871,7 @@ class World:
         nx, nz = collision.move(self.map, enemy.x, enemy.z, dx, dz, radius=enemy.radius, blocked=self.blocker)
         nx, nz = collision.separate(nx, nz, enemy.radius, self.player.x, self.player.z, Player.RADIUS)
         for other in self.enemies:
-            if other is enemy or not other.alive:
+            if other is enemy or not other.alive or other.state == "ashes":
                 continue
             nx, nz = collision.separate(nx, nz, enemy.radius, other.x, other.z, other.radius)
         tile = self.map.tile_at(nx, nz)
@@ -1180,7 +1195,10 @@ class World:
     def update(self, dt):
         self._time += dt
         for e in self.enemies:
+            was, rose = e.state, e.rise_progress
             e.update(dt, self)
+            if e.state == "rising":
+                self._rising(e, was != "rising", rose, dt)
             harm = e.status_tick(dt)
             if harm:
                 self.game.damage_enemy(e, harm, stagger=False)
@@ -1374,6 +1392,35 @@ class World:
             base += t.hover - t.height / 2
         return base, t.height
 
+    def rise_time(self, enemy):
+        """How long a boss of ash takes to rise once you step into its lair (shorter when you come back
+        through the fog you left dying), or None while you stand outside it. A boss with no lair
+        rises when it notices you."""
+        arena = next((a for a in self.arenas if a.flag == enemy.type.dead_flag and a.tiles), None)
+        if arena is None:
+            near = math.hypot(self.player.x - enemy.x, self.player.z - enemy.z) <= enemy.type.sight
+            return ASH_RISE if near and self.can_see(enemy.x, enemy.z, self.player.x, self.player.z) else None
+        here = (TileMap.tile_coord(self.player.x), TileMap.tile_coord(self.player.z))
+        if not self.player.alive or here not in arena.tiles:
+            return None
+        return ASH_RISE_AGAIN if arena.fogged(self.flags) else ASH_RISE
+
+    def _rising(self, e, began, before, dt):
+        """A boss's entrance as it plays: embers flare and ash streams in while one of ash forms; a
+        statue bursts its stone skin part way through tearing free."""
+        base, height = self.body_span(e)
+        k = e.rise_progress
+        if e.type.rise == "ash":
+            if began:
+                self.game.sfx("rise")
+                name = e.name if e.name.startswith("The ") else f"The {e.name}"
+                self.game.message(f"{name} rises from the ashes!")
+                self.ash.emit(e.x, base, e.z, e.radius * 1.6, 50, band=0.2, ember_chance=0.7)
+            self.ash.gather(e.x, base, e.z, e.radius, height, k, 90, dt)
+        elif before < STATUE_BURST <= k:
+            self.game.sfx("crack")
+            self.ash.emit(e.x, base + height * 0.5, e.z, e.radius, 60, band=height * 0.4, ember_chance=0.15)
+
     def _shed_ash(self, e, dt):
         base, height = self.body_span(e)
         rate = 70 if e.type.boss else 30
@@ -1382,7 +1429,7 @@ class World:
     def _push_player_out_of_bodies(self):
         player = self.player
         for e in self.enemies:
-            if not e.alive:
+            if not e.alive or e.state == "ashes":
                 continue
             nx, nz = collision.separate(player.x, player.z, Player.RADIUS, e.x, e.z, e.radius)
             tile = self.map.tile_at(nx, nz)
@@ -1445,6 +1492,7 @@ class World:
                         e
                         for e in self.enemies
                         if e.alive
+                        and not e.unseen
                         and shots.strikes(
                             pr_.x, pr_.y, pr_.z, e.x, e.z, e.radius, shots.body_span(e.type, self.enemy_y(e))
                         )
@@ -1471,7 +1519,7 @@ class World:
         fx, fz = player.forward()
         out = []
         for e in self.enemies:
-            if not e.alive:
+            if not e.alive or e.unseen:
                 continue
             dx = e.x - player.x
             dz = e.z - player.z
@@ -1489,7 +1537,7 @@ class World:
         """An arcane mote turns toward the nearest living foe it can see ahead of it."""
         best, best_d = None, MOTE_SIGHT
         for e in self.enemies:
-            if not e.alive or e.perched:
+            if not e.alive or e.perched or e.unseen:
                 continue
             d = math.hypot(e.x - pr_.x, e.z - pr_.z)
             if d < best_d and self.can_see(pr_.x, pr_.z, e.x, e.z):
@@ -1881,9 +1929,15 @@ class World:
                 continue
             y = self.enemy_y(e)
             self._model_light(gpu, e.x, y + 1.0, e.z, flash=e.flashing, tint=STATUS_TINT.get(e.afflicted))
-            dying = not e.alive
+            forming = e.unseen and e.type.rise == "ash"
+            if forming:  # the heap it waits in, sinking as it rises out of it
+                with rig.at(e.x, y, e.z):
+                    cemetery_models.ash_heap(rig, self._time, e.rise_progress, max(e.radius, 0.8) * 1.2)
+                if e.state == "ashes":
+                    continue
+            dying = not e.alive or forming
             if dying:
-                ashen, dissolve = death_phases(e.death_progress)
+                ashen, dissolve = rise_phases(e.rise_progress) if forming else death_phases(e.death_progress)
                 gpu.set_float("ashen", ashen)
                 gpu.set_float("dissolve", dissolve)
                 gpu.set_vec2("dissolveSpan", self.body_span(e))
@@ -2213,6 +2267,14 @@ class World:
             cemetery_models.open_grave(rig, p.tx * 3 + p.tz)
         elif k == "cemetery_gate":
             cemetery_models.cemetery_gate(rig)
+        elif k == "mourning_statue":
+            cemetery_models.mourning_statue(rig, p.tx * 7 + p.tz * 3)
+        elif k == "crypt_front":
+            cemetery_models.crypt_front(rig, p.tx * 7 + p.tz * 3)
+        elif k == "grave_railing":
+            cemetery_models.grave_railing(rig, p.tx * 7 + p.tz * 3)
+        elif k == "ash_mound":
+            cemetery_models.ash_mound(rig, p.tx * 7 + p.tz * 3)
 
     def _draw_town_prop(self, rig, p, k, t):
         seed = p.tx * 7 + p.tz * 3

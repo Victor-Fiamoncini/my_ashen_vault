@@ -13,6 +13,7 @@ from ashen_vault.player.items import Items
 from ashen_vault.player.player import Player
 from ashen_vault.world.map_loader import MapLoader
 from ashen_vault.world.world import World
+from conftest import risen
 
 
 def armed(weapon_id, level=99):
@@ -212,7 +213,7 @@ def test_damage_multiplier():
 
 
 def test_heavy_blow_staggers_the_boss_when_a_light_one_does_not():
-    boss = Enemy(EnemyTypes.get("ashen_warden"), 0, 0, rng=random.Random(1))
+    boss = risen(Enemy(EnemyTypes.get("ashen_warden"), 0, 0, rng=random.Random(1)))
     boss.take_hit(10)
     assert boss.state != "hurt"
     boss.take_hit(10, poise_mult=2.0)

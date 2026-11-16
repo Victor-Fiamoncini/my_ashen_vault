@@ -3,9 +3,10 @@ Original low-poly models assembled from primitives; like everything in `models`,
 
 import math
 
-from ashen_vault.ai.enemy import COMBO_GAP
+from ashen_vault.ai.enemy import COMBO_GAP, STATUE_BURST
 from ashen_vault.render.models import (
     EMBER,
+    _ease,
     _flame,
     _spider_move,
     blade_parts,
@@ -14,6 +15,7 @@ from ashen_vault.render.models import (
     strike_angle,
     walk_cycle,
 )
+from ashen_vault.util import rround
 
 BLACK_IRON = (62, 60, 66)
 DARK = (40, 38, 44)
@@ -398,19 +400,28 @@ def gargoyle(r, e, t):
     The survivor of the pair, in its second phase, glows through cracks all over. Perched, either is a
     grey statue, wings folded, head bowed. Slain, it pitches forward onto its face and goes cold."""
     scale, iron, horn, tail_blade, throat = GARGOYLES[e.type.id]
-    perched = e.state == "perched"
+    k = e.rise_progress  # 0 on its perch, climbing as it tears free, 1 awake
+    stone = 1.0 - _ease(min(max((k - STATUE_BURST) / 0.2 + 0.5, 0.0), 1.0))  # its stone skin, bursting
+    perched = stone > 0.5  # still more statue than iron
     fall = death_fall(e, 0.9)
     dead = e.state == "dead"
-    hover = (e.type.hover or 0.0) if not perched else 0.0
+    hover = (e.type.hover or 0.0) * _ease(min(max((k - 0.7) / 0.3, 0.0), 1.0))  # lifts off last
     lift, spin, pitch, arm_r, arm_l, wing, head, jaw, glow = _gargoyle_pose(e, t)
     flap = 0.0
     if hover and not dead:
-        flap = math.sin(t * 9) * 0.45
+        flap = math.sin(t * 9) * 0.45 * min(hover / e.type.hover, 1.0)
         hover += math.sin(t * 4.5) * 0.1
-    if perched:  # crouched on its perch, wings folded, head bowed
-        pitch, arm_r, arm_l, wing, head = 0.55, 0.6, 0.6, 0.0, -0.35
-        jaw = glow = spin = 0.0
-        lift = -0.1
+    if k < 1.0:  # crouched on its perch, wings folded, head bowed; tearing free, it uncurls
+        body_k = _ease(min(k / 0.7, 1.0))
+        wing_k = _ease(min(max((k - 0.55) / 0.45, 0.0), 1.0))  # the wings unfold last
+        pitch = 0.55 + (pitch - 0.55) * body_k
+        arm_r = 0.6 + (arm_r - 0.6) * body_k
+        arm_l = 0.6 + (arm_l - 0.6) * body_k
+        head = -0.35 + (head + 0.35) * body_k
+        lift = -0.1 + (lift + 0.1) * body_k
+        wing *= wing_k
+        jaw = 0.5 * math.sin(math.pi * min(max((k - 0.5) / 0.4, 0.0), 1.0))  # a roar as it breaks out
+        glow = spin = 0.0
     fold = 0.0
     if dead:
         # It slumps onto its belly: the legs fold under, the chest tips level, the wings drop flat.
@@ -421,12 +432,15 @@ def gargoyle(r, e, t):
         head = -0.3 * fall
         fold = fall
     hurt = e.flashing
-    body = STATUE if perched else (200, 196, 200) if hurt else iron
-    dark = STATUE_DARK if perched else horn
-    rib = body if perched else RIVET
+    live = (200, 196, 200) if hurt else iron
+    body = _blend(live, STATUE, stone)
+    dark = _blend(horn, STATUE_DARK, stone)
+    rib = _blend(RIVET, body, stone)
     lit = not perched and not dead
     hot = WHITE_HOT if glow > 0.8 else MOLTEN
     cracked = lit and e.phase2
+    # Tearing free, fire shows through seams that spread across the stone until it bursts off.
+    seams = 4 if cracked else math.ceil(4 * min(k / 0.45, 1.0)) if k > 0 and stone > 0 else 0
     legs = 0.0 if hover else walk_cycle(e, t) * 0.6
     y0 = hover * (1 - fall) + lift - 0.6 * fold
     with r.at(0, y0, 0, ry=spin, s=scale):
@@ -472,8 +486,9 @@ def gargoyle(r, e, t):
                         (40, 30, 30) if not lit else (110, 50, 34),
                         rx=a,
                     )
-            if cracked:  # the survivor's rage: fire showing through cracks everywhere
-                for y, z, a in ((0.3, -0.2, 0.7), (0.55, 0.15, -0.6), (0.75, -0.05, 1.3), (0.2, 0.22, -1.1)):
+            if seams:  # the survivor's rage (or a statue cracking open): fire showing through cracks
+                cracks = ((0.3, -0.2, 0.7), (0.55, 0.15, -0.6), (0.75, -0.05, 1.3), (0.2, 0.22, -1.1))
+                for y, z, a in cracks[:seams]:
                     r.part("cube", 0.312, y, z, 0.02, 0.22, 0.03, EMBER, rx=a, glow=True)
                     r.part("cube", -0.31, y + 0.05, -z, 0.02, 0.2, 0.03, EMBER, rx=-a, glow=True)
             # Wings from the back of the shoulders.
@@ -553,6 +568,13 @@ def gargoyle(r, e, t):
         if lit and glow > 0.8 and e.attack_kind in ("slam", "eruption", "kindle"):
             _flame(r, 0.6, 0.15, 0.45, 0.12, t)
             _flame(r, 0.6, 0.15, -0.45, 0.12, t)
+
+
+def _blend(a, b, k):
+    """Colour `a` turned `k` of the way to `b`, in whole steps."""
+    if k <= 0:
+        return a
+    return tuple(rround(x + (y - x) * k) for x, y in zip(a, b, strict=True))
 
 
 BONE_WHITE = (220, 212, 190)

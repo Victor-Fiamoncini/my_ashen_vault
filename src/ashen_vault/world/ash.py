@@ -17,6 +17,24 @@ def death_phases(k):
     return ashen, dissolve
 
 
+def _smooth(k):
+    k = min(max(k, 0.0), 1.0)
+    return k * k * (3 - 2 * k)
+
+
+RISE_FORMED = 0.85  # share of a rise by which the body stands whole; the rest is its colour coming back
+
+
+def rise_phases(k):
+    """Maps rise progress `k` (0..1) to (ashen, dissolve), the death dissolve played backwards: the
+    body builds up out of the ash from the feet, behind a climbing band of embers, still grey, and only
+    takes its own colours back once it stands whole."""
+    k = min(max(k, 0.0), 1.0)
+    dissolve = 1.0 - _smooth(k / RISE_FORMED)
+    ashen = 1.0 - _smooth((k - 0.5) / 0.5)
+    return ashen, dissolve
+
+
 @dataclass
 class Flake:
     x: float
@@ -96,6 +114,39 @@ class AshCloud:
         count = int(want) + (1 if self._rng.random() < want - int(want) else 0)
         front = base_y + height * (1.0 - dissolve)
         self.emit(x, front, z, radius * 0.8, count)
+
+    def gather(self, x, base_y, z, radius, height, k, rate, dt):
+        """Draws flakes and embers in from a wide ring round a body that is `k` of the way through
+        rising out of its ashes, each drifting in and up to the climbing front where it forms."""
+        _, dissolve = rise_phases(k)
+        if dissolve <= 0.0 or k >= 1.0:
+            return
+        rng = self._rng
+        want = rate * dt
+        count = int(want) + (1 if rng.random() < want - int(want) else 0)
+        front = base_y + height * (1.0 - dissolve)
+        for _ in range(count):
+            a = rng.random() * math.tau
+            d = radius * (1.8 + rng.random() * 1.6)
+            life = 0.6 + rng.random() * 0.5
+            sx, sz = x + math.cos(a) * d, z + math.sin(a) * d
+            sy = base_y + rng.random() * 0.3
+            tx, tz = x + math.cos(a) * radius * 0.3, z + math.sin(a) * radius * 0.3
+            self.flakes.append(
+                Flake(
+                    x=sx,
+                    y=sy,
+                    z=sz,
+                    vx=(tx - sx) / life,
+                    vy=(front - sy) / life,
+                    vz=(tz - sz) / life,
+                    life=life,
+                    max_life=life,
+                    size=0.04 + rng.random() * 0.05,
+                    ember=rng.random() < 0.55,
+                    spin=rng.random() * math.tau,
+                )
+            )
 
     def update(self, dt):
         self._time += dt

@@ -13,6 +13,7 @@ from ashen_vault.world import darkness, doors
 from ashen_vault.world.map_loader import MapLoader
 from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.world import Gout, World
+from conftest import risen
 from test_enemy import FakeWorld
 from test_keep_world import FakeGame
 
@@ -284,7 +285,7 @@ def test_a_veil_of_mist_hides_you_from_ordinary_foes():
     husk.x = VEIL_LOSE + 1.0
     husk.update(0.1, w)
     assert husk.state == "idle"  # and once you slip away it loses you
-    boss = Enemy(EnemyTypes.get("loom_mother"), 5.0, 0.0)
+    boss = risen(Enemy(EnemyTypes.get("loom_mother"), 5.0, 0.0))
     boss.update(0.1, w)
     assert boss.state == "chase"  # bosses see through it
 

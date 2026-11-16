@@ -63,6 +63,9 @@ class EnemyType:
     # set (and the relic only dropped) once both have fallen; when one falls the other flies into its
     # `rage`. They take turns with their special moves.
     twin: str | None = None
+    # A boss's entrance: "ash" waits as a smouldering heap in its lair and rises out of the burning
+    # ash when you step in (see enemy.ASH_RISE). A `perch` statue cracks and tears free instead.
+    rise: str | None = None
 
     @property
     def rooted(self):
@@ -144,6 +147,7 @@ class EnemyTypes:
                 boss=True,
                 drop="ember_sigil",
                 dead_flag="boss_dead",
+                rise="ash",
                 epitaph="The Warden crumbles into ash. Something glows where he fell.",
                 poise=14,
                 # A cleave all around, a leaping slam, a fan of embers flung from his hand, a
@@ -171,6 +175,7 @@ class EnemyTypes:
                 tall=2.7,
                 boss=True,
                 dead_flag="butcher_dead",
+                rise="ash",
                 epitaph="The Butcher topples among his hooks, and does not rise.",
                 poise=12,
                 # The keep's slaughterman, above the Warden's hall: a slow, heavy cleaver that sweeps
@@ -278,6 +283,7 @@ class EnemyTypes:
                 boss=True,
                 drop="verdant_sigil",
                 dead_flag="spider_dead",
+                rise="ash",
                 epitaph="The Loom Mother curls up and is still. Something green glows in the silk.",
                 poise=16,
                 moves=("sweep", "web", "pounce"),
@@ -519,6 +525,7 @@ class EnemyTypes:
                 tall=2.6,
                 boss=True,
                 dead_flag="sexton_dead",
+                rise="ash",
                 epitaph="The Sexton sinks back into the ash it kept. The gate beyond stands open.",
                 poise=10,
                 # The first boss, and a gentle one: slow spade chops, and the ash it keeps. Up close it

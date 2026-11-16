@@ -13,6 +13,7 @@ from ashen_vault.world import elements, relics, shots
 from ashen_vault.world.hazards import Eruption, FlameJet, MagmaVent
 from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.world import LAVA_MIN, LAVA_SHARE, World
+from conftest import risen
 from test_enemy import FakeWorld, tick
 from test_keep_world import FakeGame
 from test_verdant_world import JungleGame, foe
@@ -355,7 +356,7 @@ class TwinWorld(FakeWorld):
 
 def test_a_twin_flies_into_its_rage_only_when_the_other_falls():
     e = Enemy(EnemyTypes.get("bellows"), 0, 0, rng=random.Random(2))
-    e.rouse()
+    risen(e)
     w = TwinWorld(12.0, 0.0, busy=True)  # its twin keeps it from any special move
     e.hp = 10  # half HP is no trigger for a twin
     tick(e, w, 0.5)
@@ -383,7 +384,7 @@ def test_bellows_breathes_fire_in_a_line_toward_you_and_past():
 
 def test_bellows_chooses_its_breath_at_range_and_looses_it_once():
     e = Enemy(EnemyTypes.get("bellows"), 0, 0, rng=random.Random(0))
-    e.rouse()
+    risen(e)
     w = TwinWorld(6.0, 0.0)
     e.cooldowns = {m: (0.0 if m == "breath" else 99.0) for m in e.cooldowns}
     tick(e, w, 0.05)
@@ -394,7 +395,7 @@ def test_bellows_chooses_its_breath_at_range_and_looses_it_once():
 
 def test_a_dive_swoops_through_where_you_stood_and_strikes_once():
     e = Enemy(EnemyTypes.get("bellows"), 0, 0, rng=random.Random(0))
-    e.rouse()
+    risen(e)
     w = TwinWorld(8.0, 0.0)
     e.cooldowns = {m: (0.0 if m == "dive" else 99.0) for m in e.cooldowns}
     tick(e, w, 0.05)
@@ -482,7 +483,7 @@ def test_a_flame_bolt_aimed_at_bellows_in_flight_burns_it():
     game, world = hold(ROOF, yaw=0.0, map_name=KEEP)
     px, pz = game.player.x, game.player.z
     bellows = Enemy(EnemyTypes.get("bellows"), px + 4.0, pz, rng=random.Random(0))
-    bellows.rouse()
+    risen(bellows)
     world.enemies = [bellows]
     chest = world.enemy_y(bellows) + bellows.type.hover + 1.4
     game.player.pitch = math.atan2(chest - (game.player.eye_y - shots.BOLT_DROP), 4.0)

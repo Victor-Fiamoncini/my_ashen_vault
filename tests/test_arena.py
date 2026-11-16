@@ -126,3 +126,35 @@ def test_the_gargoyles_arena_clears_only_when_both_have_fallen():
     game.flags.add("gargoyles_dead")
     world._update_arenas()
     assert not arena.sealed
+
+
+def test_the_boss_rises_from_its_ashes_as_you_step_in_and_the_door_slams_behind_you():
+    from ashen_vault.ai.enemy import ASH_RISE
+
+    game, world, arena, warden = warden_fight()
+    game.player.place(*TileMap.center(15, 10), 0.0, world.map)  # outside, at the door
+    world.update(1 / 30)
+    assert warden.state == "ashes" and not arena.sealed
+    assert warden not in world.melee_targets(99.0, cone=-1.0)  # a heap of ash: nothing to strike
+    game.player.place(*TileMap.center(15, 7), 0.0, world.map)
+    world.update(1 / 30)
+    assert warden.state == "rising" and warden.rise_time == ASH_RISE
+    assert arena.sealed and any("rises from the ashes" in m for m in game.messages)
+    assert len(world.ash) > 0  # embers flare as it forms
+    for _ in range(int(ASH_RISE * 30) + 5):
+        world.update(1 / 30)
+    assert not warden.unseen
+
+
+def test_after_you_fall_the_boss_rises_quicker_through_its_fog():
+    from ashen_vault.ai.enemy import ASH_RISE_AGAIN
+
+    _game, world, _arena, warden = warden_fight({"fog:sunken_keep:15,9"})
+    world.update(1 / 30)
+    assert warden.state == "rising" and warden.rise_time == ASH_RISE_AGAIN
+
+
+def test_the_butcher_rises_without_a_doubled_article():
+    game, world = world_on("sunken_keep", {"door:sunken_keep:28,10"}, at=(28, 7))
+    world.update(1 / 30)
+    assert "The Butcher rises from the ashes!" in game.messages

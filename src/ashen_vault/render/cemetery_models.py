@@ -49,6 +49,7 @@ HEADSTONE = (126, 124, 118)
 MOSS = (70, 96, 56)
 EARTH = (74, 58, 44)
 PIT = (22, 18, 16)
+BONE_ASH = (190, 180, 160)  # a bone half burnt
 GATE_SET_BACK = 0.7  # the cemetery gate stands this far back toward the wall behind its tile
 
 
@@ -346,6 +347,56 @@ def ashen_husk(r, e, t):
             r.part("cube", x, 1.45 - 1.3 * k, z, 0.025, 0.025, 0.025, crust, rx=t * 3 + i, ry=t * 2)
 
 
+HEAP_ASH = (150, 144, 138)  # a boss's heap: pale, fresh-burnt ash
+
+
+def ash_heap(r, t, k=0.0, scale=1.0):
+    """The smouldering heap a boss of ash waits in (`Enemy` state "ashes"): a mound of pale ash
+    with a charred bone or two in it, ember cracks breathing across its crust and sparks lifting off.
+    `k`, its rise, sinks the heap as the body forms out of it, and the embers flare as it goes."""
+    sink = 1.0 - min(k / 0.85, 1.0)
+    if sink <= 0.0:
+        return
+    breathe = 0.5 + 0.5 * math.sin(t * 2.1)
+    w, h = 1.0, 0.75 * sink  # half-width and height of the mound
+    with r.at(0, 0, 0, s=scale):
+        r.part("sphere", 0, 0, 0, w * 2, h * 2, w * 1.8, HEAP_ASH)
+        r.part("sphere", 0.15, 0, -0.1, w * 1.2, h * 2.5, w * 1.1, _dim(HEAP_ASH, 0.9))  # its crown
+        r.part("sphere", -0.7, 0, 0.55, 0.9, h * 0.9, 0.8, _dim(HEAP_ASH, 0.8))  # a spill at its foot
+        r.part("cube", 0.55, h * 0.55, 0.45, 0.5, 0.06, 0.07, _dim(BONE_ASH, sink), ry=0.7, rz=0.3)
+        for i in range(6):  # cracks in the crust, embers breathing under it
+            a = i * 1.047 + 0.3
+            f = 0.35 + 0.15 * (i % 2)
+            heat = _mix_rgb(COLD, EMBER, min(0.35 + 0.65 * (breathe if i % 2 else 1 - breathe) + k, 1.0))
+            y = h * math.sqrt(1 - f * f) * (1.0 if f > 0.4 else 1.1)
+            r.part(
+                "cube",
+                math.cos(a) * f * w,
+                y,
+                math.sin(a) * f * w * 0.9,
+                0.4,
+                0.04,
+                0.05,
+                heat,
+                ry=a,
+                glow=True,
+            )
+        for i in range(4):  # sparks lifting off it
+            rise = (t * 0.6 + i / 4) % 1
+            r.part(
+                "cube",
+                0.3 * math.sin(i * 2.3 + t),
+                h + rise * 1.4,
+                0.3 * math.cos(i * 1.7 + t),
+                0.04,
+                0.04,
+                0.04,
+                EMBER,
+                rx=t * 3 + i,
+                glow=True,
+            )
+
+
 def gravestone(r, seed):
     """A weathered headstone, one of a few shapes picked by `seed`: a round-topped slab, a cross or a
     small obelisk, leaning a little, chipped and furred with moss, a mound of earth before it."""
@@ -371,6 +422,85 @@ def gravestone(r, seed):
             r.part("cone", 0, 1.35, 0, 0.24, 0.24, 0.24, stone, tex="rough_stone")
         r.part("cube", 0.02, 0.18, 0.2, 0.18, 0.14, 0.2, MOSS)  # moss creeping up from the ground
         r.part("cube", -0.04, 0.4, -0.18, 0.16, 0.2, 0.14, _dim(MOSS, 0.8))
+
+
+def mourning_statue(r, seed):
+    """A stone mourner on a plinth, facing +X: a hooded figure in a long robe, its head bowed over a
+    funeral urn held in both hands, the stone streaked and chipped, moss at its feet."""
+    stone = _dim(HEADSTONE, 0.92 + 0.04 * (seed % 3))
+    dark = _dim(stone, 0.72)
+    r.part("cube", 0, 0.25, 0, 1.0, 0.5, 1.0, dark, tex="rough_stone")  # the plinth
+    r.part("cube", 0, 0.53, 0, 0.86, 0.08, 0.86, stone, tex="rough_stone")  # its moulding
+    r.part("cube", 0.505, 0.28, 0, 0.01, 0.12, 0.5, _dim(stone, 0.55))  # a worn inscription
+    r.part("cube", 0.2, 0.08, 0.3, 0.26, 0.16, 0.3, MOSS)
+    with r.at(0, 0.57, 0):
+        r.part("cone", 0, 0.75, 0, 0.62, 1.5, 0.58, stone, tex="rough_stone")  # the robe, falling wide
+        r.part("cube", 0, 0.08, 0, 0.66, 0.16, 0.62, dark, tex="rough_stone")  # its hem in folds
+        r.part("cube", -0.08, 1.15, 0, 0.36, 0.5, 0.42, stone, tex="rough_stone")  # shoulders
+        with r.at(0.08, 1.48, 0, rz=-0.5):  # the hooded head, bowed toward the urn
+            r.part("sphere", 0, 0, 0, 0.32, 0.36, 0.3, stone, tex="rough_stone")
+            r.part("cube", 0.13, -0.02, 0, 0.08, 0.26, 0.2, PIT)  # the shadow inside the hood
+            r.part("cone", -0.06, 0.16, 0, 0.26, 0.24, 0.26, stone, tex="rough_stone", rz=0.4)  # its peak
+        for side in (-1, 1):  # arms in their sleeves, folded forward to the urn
+            r.part("cube", 0.12, 1.02, side * 0.2, 0.34, 0.12, 0.13, stone, tex="rough_stone", rz=-0.5)
+        r.part("sphere", 0.3, 0.92, 0, 0.24, 0.26, 0.24, _dim(stone, 1.06), tex="rough_stone")  # the urn
+        r.part("cyl", 0.3, 1.07, 0, 0.13, 0.06, 0.13, dark, tex="rough_stone")  # its neck
+        r.part("cube", 0.33, 0.9, 0, 0.12, 0.1, 0.32, stone, tex="rough_stone")  # hands about it
+        r.part("cube", 0.25, 0.4, 0.18, 0.02, 0.5, 0.03, _dim(stone, 0.6))  # a streak of weathering
+        r.part("cube", -0.2, 0.5, -0.24, 0.12, 0.3, 0.06, MOSS)
+
+
+def crypt_front(r, seed):
+    """A small crypt's face built out of the wall at local -X: a stepped threshold, two columns
+    under a pediment, a sealed iron door with a ring, and a blank plate where a name was."""
+    stone = _dim(HEADSTONE, 0.88 + 0.05 * (seed % 2))
+    dark = _dim(stone, 0.7)
+    r.part("cube", -0.88, 1.6, 0, 0.24, 3.2, 1.9, dark, tex="rough_stone")  # the face against the wall
+    r.part("cube", -0.74, 0.08, 0, 0.5, 0.16, 1.6, stone, tex="rough_stone")  # the step
+    r.part("cube", -0.76, 1.15, 0, 0.06, 2.0, 1.0, GRAVE_IRON)  # the door, sealed
+    for z in (-0.25, 0.25):
+        r.part("cube", -0.725, 1.15, z, 0.02, 1.9, 0.04, _dim(GRAVE_IRON, 1.3))  # its straps
+    r.part("cyl", -0.71, 1.1, 0.15, 0.12, 0.03, 0.12, RUST, rz=math.pi / 2)  # a ring for a handle
+    for z in (-0.7, 0.7):  # columns, each on a base under a capital
+        r.part("cube", -0.68, 0.24, z, 0.32, 0.16, 0.32, stone, tex="rough_stone")
+        r.part("cyl", -0.68, 1.3, z, 0.22, 2.0, 0.22, stone, tex="rough_stone")
+        r.part("cube", -0.68, 2.36, z, 0.32, 0.14, 0.32, stone, tex="rough_stone")
+    r.part("cube", -0.7, 2.52, 0, 0.4, 0.2, 1.9, stone, tex="rough_stone")  # the lintel
+    r.part("wedge", -0.72, 2.86, 0, 0.34, 0.5, 2.0, dark, tex="rough_stone", rx=math.pi / 2)  # pediment
+    r.part("cube", -0.5, 2.52, 0, 0.02, 0.12, 0.7, _dim(stone, 1.15))  # a blank name plate
+    r.part("cube", -0.62, 0.5, -0.5, 0.1, 0.2, 0.2, MOSS)
+
+
+def grave_railing(r, seed):
+    """A family plot fenced in wrought iron: a low stone kerb round a grass-grown grave and a small
+    cross at its head, behind spiked iron bars, one of them bent where something forced it."""
+    r.part("cube", 0, 0.08, 0, 1.6, 0.16, 1.6, _dim(HEADSTONE, 0.75), tex="rough_stone")  # the kerb
+    r.part("cube", 0, 0.12, 0, 1.3, 0.12, 1.3, EARTH)
+    r.part("cube", 0.1, 0.2, 0, 0.9, 0.06, 0.6, MOSS)  # the grave, grown over
+    r.part("cube", -0.45, 0.6, 0, 0.12, 0.9, 0.12, HEADSTONE, tex="rough_stone")  # the cross
+    r.part("cube", -0.45, 0.82, 0, 0.12, 0.12, 0.46, HEADSTONE, tex="rough_stone")
+    for side in range(4):  # four sides of bars, each with a rail and spikes
+        with r.at(0, 0, 0, ry=side * math.pi / 2):
+            r.part("cube", 0.76, 1.0, 0, 0.04, 0.05, 1.56, GRAVE_IRON)  # the top rail
+            r.part("cube", 0.76, 0.35, 0, 0.04, 0.05, 1.56, GRAVE_IRON)
+            for i in range(6):
+                z = -0.7 + i * 0.28
+                bent = side == seed % 4 and i == 2
+                r.part("cube", 0.76, 0.6, z, 0.035, 0.9, 0.035, GRAVE_IRON, rz=0.35 if bent else 0.0)
+                r.part("cone", 0.76 + (0.16 if bent else 0.0), 1.1, z, 0.06, 0.12, 0.06, GRAVE_IRON)
+        r.part("sphere", 0.76, 1.1, 0.76, 0.1, 0.1, 0.1, RUST)  # finials at the corners
+
+
+def ash_mound(r, seed):
+    """A heap of grey ash shovelled out of the Sexton's pyres, cold: a low drift with a bone or two
+    showing through, a spade's cut in its side."""
+    with r.at(0, 0, 0, ry=seed * 0.7):
+        r.part("sphere", 0, 0, 0, 1.3, 0.42, 1.0, ASH_BODY, tex="rough_stone")
+        r.part("sphere", 0.35, 0, 0.3, 0.8, 0.3, 0.7, _dim(ASH_BODY, 0.88), tex="rough_stone")
+        r.part("cube", -0.35, 0.12, 0.0, 0.3, 0.2, 0.06, ASH_DARK, ry=0.4)  # the spade's cut
+        r.part("cube", 0.1, 0.17, -0.2, 0.4, 0.05, 0.05, (200, 192, 170), ry=seed)  # a bone, showing
+        if seed % 2:
+            r.part("sphere", -0.15, 0.16, 0.25, 0.14, 0.12, 0.13, (200, 192, 170))  # a skull's crown
 
 
 def open_grave(r, seed):
