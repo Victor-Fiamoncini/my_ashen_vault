@@ -1213,7 +1213,7 @@ def test_every_key_has_its_own_shape_and_fits_its_preview():
     assert len(set(shapes.values())) == len(shapes)  # no two built from the same parts
 
 
-def test_a_lift_shows_its_pressure_plate_sinking_and_its_call_levers_turn_their_wheel():
+def test_a_lift_shows_its_pressure_plates_sinking_and_its_lever_swinging():
     from ashen_vault.render import models
 
     up, down = _RecordingGpu(), _RecordingGpu()
@@ -1222,17 +1222,18 @@ def test_a_lift_shows_its_pressure_plate_sinking_and_its_call_levers_turn_their_
     plate = [y for (_, y), (_, y2) in zip(up.parts, down.parts, strict=True) if y != y2]
     assert plate and all(y > 0 for y in plate)  # only the plate moves, and it stands on the deck
     for wood in (False, True):
-        rest, thrown = _GlowGpu(), _GlowGpu()
-        models.lift_call(rig.Rig(rest), 0.5, wood=wood)
-        models.lift_call(rig.Rig(thrown), 1.0, wood=wood)
-        assert len(rest.parts) == len(thrown.parts) > len(_lever_parts(models, wood))
-        assert rest.parts != thrown.parts
-
-
-def _lever_parts(models, wood):
-    gpu = _RecordingGpu()
-    models.lever(rig.Rig(gpu), 0.0, wall=False, wood=wood)
-    return gpu.parts
+        up, down = _RecordingGpu(), _RecordingGpu()
+        models.call_plate(rig.Rig(up), wood=wood)
+        models.call_plate(rig.Rig(down), 0.03, wood=wood)
+        moved = [y for (_, y), (_, y2) in zip(up.parts, down.parts, strict=True) if y != y2]
+        assert 0 < len(moved) < len(up.parts)  # the plate sinks in its frame
+        assert all(-0.05 < y < 0.08 for _, y in up.parts)  # flush with the floor
+        for post in (False, True):
+            rest, thrown = _GlowGpu(), _GlowGpu()
+            models.lift_call(rig.Rig(rest), 0.0, wood=wood, post=post)
+            models.lift_call(rig.Rig(thrown), 1.0, wood=wood, post=post)
+            assert len(rest.parts) == len(thrown.parts) and rest.parts != thrown.parts
+            assert len(rest.parts) <= 12  # a small fitting on the wall, no wheel or block
 
 
 class _BoxGpu:

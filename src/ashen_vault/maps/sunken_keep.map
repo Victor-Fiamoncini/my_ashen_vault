@@ -22,13 +22,13 @@ _ = floor tex=flagstone h=1.2 ceil=4.6
 ~ = water tex=water h=-0.6 ceil=3.2 side=mossy_brick
 o = floor tex=dirt h=-3.4 ceil=4.8 side=stone_brick pit
 | = floor tex=flagstone h=0 ceil=4.4 side=stone_brick
-" = floor tex=flagstone h=-6 ceil=-2.6 side=stone_brick
+" = floor tex=flagstone h=-10 ceil=-6.6 side=stone_brick
 @ = wall tex=ossuary top=6
-? = floor tex=flagstone h=-6 ceil=3.6 side=stone_brick chasm
-/ = floor tex=flagstone h=7.6 ceil=11 side=stone_brick
-` = floor tex=flagstone h=1.6 ceil=11 side=stone_brick chasm
-] = floor tex=flagstone h=0 ceil=11 side=stone_brick chasm
-{ = wall tex=stone_brick top=11
+? = floor tex=flagstone h=-10 ceil=3.6 side=stone_brick chasm
+/ = floor tex=flagstone h=12 ceil=15.4 side=stone_brick
+` = floor tex=flagstone h=1.6 ceil=15.4 side=stone_brick chasm
+] = floor tex=flagstone h=0 ceil=15.4 side=stone_brick chasm
+{ = wall tex=stone_brick top=15.4
 
 [grid]
 ################################
@@ -126,8 +126,8 @@ N = winch
 // The Warden's Gallery, above the antechamber: a cage lift up from beside the boss door, and one
 // down to the lever room, fastened up here until you first ride it down. North of it, the Butcher's
 // slaughter hall.
-U = lift top=7.6 model=cage on=`
-n = lift top=7.6 start=top locked model=cage on=]
+U = lift top=12 model=cage on=`
+n = lift top=12 start=top locked model=cage on=]
 H = chest item=chain_mitts gold=80
 k = pillar
 V = headsman_block

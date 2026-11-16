@@ -181,10 +181,10 @@ def test_sunken_keep_lifts_reach_the_undercroft_and_the_gallery():
     assert sum(p.locked for p in lifts) == 2  # the shortcuts: shrine to Undercroft, Gallery down
     free = [p for p in terrain.build_platforms(m) if p.kind == "lift" and not p.locked]
     seen = _keep_reach(m, free)
-    assert any(m[t].floor == -6.0 for t in seen)  # the Undercroft
-    assert any(m[t].floor == 7.6 for t in seen)  # the Gallery
+    assert any(m[t].floor == -10.0 for t in seen)  # the Undercroft
+    assert any(m[t].floor == 12.0 for t in seen)  # the Gallery
     no_lifts = _keep_reach(m, [])
-    assert not any(m[t].floor in (-6.0, 7.6) for t in no_lifts)
+    assert not any(m[t].floor in (-10.0, 12.0) for t in no_lifts)
 
 
 def test_wall_yaw_faces_out_of_the_nearest_wall(room):

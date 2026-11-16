@@ -524,6 +524,33 @@ def test_a_lift_stays_put_when_you_wait_at_its_landing_and_comes_when_called():
     assert lift.at == "high"
 
 
+def test_stepping_onto_a_landings_call_plate_brings_the_lift():
+    _m, h = shaft()
+    (lift,) = h.platforms
+    (top,) = [c for c in lift.calls if c.end == "high"]
+    body = Body(1, 1)
+    ride(h, body, 0.1)
+    body.x, body.z = top.x, top.z
+    ride(h, body, 0.05)
+    assert top.pressed and top.sink == terrain.PLATE_SINK and lift.moving
+    assert [name for name, _v in h.sounds] == ["clunk", "chain"]  # the plate clicks, the chain runs
+    ride(h, body, 6 / terrain.LIFT_SPEED + 0.5)
+    assert lift.at == "high"
+    ride(h, body, 2.0)  # standing on it calls only once: it does not send the lift away again
+    assert lift.at == "high"
+
+
+def test_a_call_plate_on_the_landing_above_ignores_someone_far_below_it():
+    _m, h = shaft()
+    (lift,) = h.platforms
+    lift.deck, lift.at = 0.0, "high"
+    (top,) = [c for c in lift.calls if c.end == "high"]
+    body = Body(1, 1)
+    body.x, body.z, body.y = top.x, top.z, -6.0
+    h._press_calls(lift, body)
+    assert not top.pressed and lift.at == "high"
+
+
 def test_only_the_plate_in_the_middle_of_the_deck_sends_a_lift():
     _m, h = shaft()
     (lift,) = h.platforms
@@ -665,16 +692,35 @@ def test_a_neighbour_far_from_either_stop_is_no_landing():
     assert terrain.lift_doors(m, 2, 1, -6.0, 0.0) == ((-1, 0),)
 
 
-def test_call_levers_stand_on_each_landing_beside_the_way_in():
+def test_a_call_plate_lies_on_each_landing_just_out_from_the_shaft():
     m, h = shaft()
     (lift,) = h.platforms
-    spots = terrain.call_spots(m, lift)
-    assert {end for *_, end, _toward in spots} == {"low", "high"}
-    for x, z, floor, end, (dx, dz) in spots:
-        tx, tz = TileMap.tile_coord(x), TileMap.tile_coord(z)
-        assert m[tx, tz].walkable and not m[tx, tz].chasm
-        assert floor == (lift.low if end == "low" else lift.high)
-        assert (TileMap.tile_coord(x + dx * 1.5), TileMap.tile_coord(z + dz * 1.5)) == (
-            2,
-            1,
-        )  # faces the shaft
+    assert {c.end for c in lift.calls} == {"low", "high"}
+    for c in lift.calls:
+        tile = m.tile_at(c.x, c.z)
+        assert tile.walkable and not tile.chasm
+        assert c.floor == (lift.low if c.end == "low" else lift.high)
+        out = abs(c.x - lift.x) - TileMap.TILE / 2
+        assert (
+            out + 0.15 >= terrain.CALL_PLATE_R and out + terrain.CALL_PLATE_R < TileMap.TILE / 2
+        )  # by the brink
+        assert c.z == lift.z  # in the middle of the way in
+
+
+def test_only_a_shortcut_lift_has_a_lever_on_the_far_landing_hung_on_the_wall():
+    m, h = shaft()
+    assert terrain.lever_spot(m, h.platforms[0]) is None
+    m, h = shaft("locked")
+    (lift,) = h.platforms
+    x, z, floor, end, yaw, on_wall = terrain.lever_spot(m, lift)
+    assert end == "high" and floor == 0.0 and on_wall  # it rests low: the lever waits up top
+    # On the wall beside the landing, facing out of it, close to the shaft.
+    assert m[TileMap.tile_coord(x - math.cos(yaw) * 0.1), TileMap.tile_coord(z - math.sin(yaw) * 0.1)].solid
+    assert not m[
+        TileMap.tile_coord(x + math.cos(yaw) * 0.1), TileMap.tile_coord(z + math.sin(yaw) * 0.1)
+    ].solid
+    assert abs(x - lift.x) < TileMap.TILE
+    # Freed, it keeps its lever where it was.
+    lift.locked = False
+    lift.at, lift.deck = "high", lift.high
+    assert terrain.lever_spot(m, lift)[:4] == (x, z, floor, end)

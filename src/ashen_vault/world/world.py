@@ -670,26 +670,33 @@ class World:
         return self._lift_key(lift) in flags or (legacy is not None and f"lever:{legacy}" in flags)
 
     def _place_call_levers(self):
-        """A call lever on every landing of every lift, beside the way in (`terrain.call_spots`)."""
+        """A lever on the far landing of every shortcut lift (`terrain.lever_spot`), hung on the wall
+        beside the shaft: it tells you the lift is fastened from the other end, and calls it once
+        freed. Every other landing calls its lift with the plate in its floor."""
         for i, lift in enumerate(p for p in self.terrain.platforms if p.kind == "lift"):
-            for x, z, floor, end, (dx, dz) in terrain.call_spots(self.map, lift):
-                props = {"end": end}
-                if self.name in WOODEN_LEVER_MAPS:
-                    props["model"] = "wood"
-                self.props.append(
-                    Prop(
-                        kind="lift_call",
-                        x=x,
-                        z=z,
-                        y=floor,
-                        tx=TileMap.tile_coord(x),
-                        tz=TileMap.tile_coord(z),
-                        props=props,
-                        key=f"lift_call:{self.name}:{i}:{end}",
-                        yaw=math.atan2(dz, dx),
-                        lift=lift,
-                    )
+            spot = terrain.lever_spot(self.map, lift)
+            if spot is None:
+                continue
+            x, z, floor, end, yaw, on_wall = spot
+            props = {"end": end}
+            if self.name in WOODEN_LEVER_MAPS:
+                props["model"] = "wood"
+            if not on_wall:
+                props["post"] = "1"
+            self.props.append(
+                Prop(
+                    kind="lift_call",
+                    x=x,
+                    z=z,
+                    y=floor,
+                    tx=TileMap.tile_coord(x + math.cos(yaw) * 0.1),  # the landing, not the wall it hangs on
+                    tz=TileMap.tile_coord(z + math.sin(yaw) * 0.1),
+                    props=props,
+                    key=f"lift_call:{self.name}:{i}:{end}",
+                    yaw=yaw,
+                    lift=lift,
                 )
+            )
 
     def call_lift(self, prop):
         """Pulls a landing's call lever: the lever springs back, and the lift comes if it can."""
@@ -1903,6 +1910,9 @@ class World:
                         models.bridge(rig, pl.lowered)
                 else:
                     models.plank(rig, pl.creaking)
+            for c in pl.calls:
+                with rig.entity(c.x, c.floor, c.z, math.atan2(c.z - pl.z, c.x - pl.x)):
+                    models.call_plate(rig, c.sink, wood=self.name in WOODEN_LEVER_MAPS)
         for chute in self.terrain.chutes:
             y = self.map.floor_at(chute.x, chute.z)
             self._model_light(gpu, chute.x, y + 0.8, chute.z)
@@ -2122,7 +2132,9 @@ class World:
         elif k == "lever":
             models.lever(rig, p.open_t, p.wall, wood=p.props.get("model") == "wood")
         elif k == "lift_call":
-            models.lift_call(rig, math.sin(math.pi * p.open_t), wood=p.props.get("model") == "wood")
+            models.lift_call(
+                rig, math.sin(math.pi * p.open_t), wood=p.props.get("model") == "wood", post="post" in p.props
+            )
         elif k == "pillar":
             models.pillar(rig, p.tx * 3 + p.tz, self._ceil_h(p))
         elif k == "sarcophagus":

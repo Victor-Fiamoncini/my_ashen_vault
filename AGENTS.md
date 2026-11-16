@@ -62,10 +62,10 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 - On Wayland, `GLFW: Error: 65548` warnings are harmless.
 - A negative heading must be written `--at=15,7,-90` (with `=`), or argparse reads it as a flag.
 - The `smoke:` line includes the player's height (`y=`), handy for checking lifts.
-- Useful starts: `--at 4,24,90 --script "wait:0.2 interact wait:4.5 forward:0.6 wait:5"` (call the
-  Cistern lift up, step onto its plate and ride down to the Undercroft), `--at=11,26,90 --script
+- Useful starts: `--at 4,24,90 --script "forward:0.15 wait:5 forward:0.6 wait:5.5"` (step onto the
+  landing's call plate to bring the Cistern lift up, then onto its deck's plate and ride 10 m down to the Undercroft), `--at=11,26,90 --script
   "strafe_l:0.7 wait:5"` (ride the shrine lift up, which frees it), `--at=13,26,180 --script "wait:0.2
-  interact"` (its call lever above, refusing while it is still fastened), `--at=23,13,0 --script "forward:0.7 wait:5"` (the cage lift up to the Warden's Gallery),
+  interact"` (its lever on the wall above, refusing while it is still fastened), `--at=23,13,0 --script "forward:0.7 wait:5"` (the cage lift up to the Warden's Gallery),
   `--at=27,7,-90` (the Butcher in his slaughter hall north of the Gallery),
   `--map harrowmere --at=47,30,0` (the hedged jungle trail; `--at=56,34,-90` its dark end at the cave
   mouth), `--map verdant_hollow`
@@ -134,7 +134,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/world/thin_walls.py` | Thin walls (`wall ... thin=<m>`): the slab each such tile stands as (hugging the side open to the sky, centred between two rooms), the margins it lends to its open neighbours (`Layout`), and how far a prop must move back to touch it (`inset`) |
 | `src/ashen_vault/world/villagers.py` | How each villager looks (`Look`: build, garb, hair, hat, beard, apron, cloak, held tool, idle) |
 | `src/ashen_vault/render/shapes.py` | Model primitives raylib lacks (`blade`, `lozenge`, `wedge`) as pure triangle lists; `Gpu.primitive` uploads them |
-| `src/ashen_vault/world/terrain.py` | Terrain: rafts, planks, ledges, rotten floorboards, chain lifts (pressure plate, call levers, `summon`), currents, thorns, chasm and river falls, hard landings, the log rack, spore pods (`World.terrain`) |
+| `src/ashen_vault/world/terrain.py` | Terrain: rafts, planks, ledges, rotten floorboards, chain lifts (pressure plates, call plates, shortcut levers, `summon`), currents, thorns, chasm and river falls, hard landings, the log rack, spore pods (`World.terrain`) |
 | `src/ashen_vault/world/rest.py` | The shrine rest: timing and the pixelated ember fog pattern drawn while you pray |
 | `src/ashen_vault/ui/smallfont.py` | The small mixed-case pixel font for all game text: menus, dialogue, messages, prompts and the boss bar (`hud.text` draws with it) |
 | `src/ashen_vault/ui/tinyfont.py` | The HUD's tiny fonts: 3x5 `GLYPHS` (the HP/MP/ST labels and numbers, `hud.tiny`) and 3x4 `MICRO` (the HUD mouse's PRI / SEC labels and the quick item's count, `hud.micro_centered`; only the characters they use) |
@@ -189,10 +189,13 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   floorboards that break for good), `lift top= [start=top] [locked] [speed=] [model=cage]` (a chain lift:
   its tile is a `chasm` shaft whose floor is the bottom stop and whose `ceil` clears `top`. It works
   like Dark Souls': stepping onto the pressure plate in the middle of its deck (`terrain.PLATE_R`)
-  sends it to the other end (step off the plate and on again to go back), and a call lever that
-  `World` places on every landing (`terrain.call_spots`, prop `lift_call`) brings it. A `locked`
-  lift is a one-way shortcut: it rests at its `start` end, the end you reach first, its call levers
-  refuse until its first ride, which frees it for good (`lift:<map>:<tx>,<tz>` flag). `model=cage`
+  sends it to the other end (step off the plate and on again to go back), and stepping onto the call
+  plate set in each landing's floor just out from the shaft (`Platform.calls`, `terrain.call_plates`)
+  brings it. A `locked` lift is a one-way shortcut: it rests at its `start` end, the end you reach
+  first; the far landing's call plate ignores you and a lever hung on the wall beside the shaft there
+  (`terrain.lever_spot`, prop `lift_call`, the only lift levers) says it is fastened, until its first
+  ride frees it for good (`lift:<map>:<tx>,<tz>` flag; the lever then calls it too). Floors a lift
+  joins sit far apart (the keep's Undercroft at -10 m, its Gallery at 12 m), so a ride feels like one. `model=cage`
   draws the keep's barred jail cage, open on the sides that face a landing (`terrain.lift_doors`)),
   `bridge lever=id hinge=n|s|e|w deck=` (a drawbridge standing raised on its hinge side until its
   lever lets it down, for good), `log_chute to=tx,tz every= speed= logs=` (a log rack that only

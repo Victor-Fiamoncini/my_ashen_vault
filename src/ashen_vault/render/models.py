@@ -2391,19 +2391,76 @@ def _lift_plate(r, pressed):
         r.part("cube", math.cos(a) * 0.38, y + 0.02, math.sin(a) * 0.38, 0.06, 0.03, 0.06, DARK_IRON, ry=a)
 
 
-def lift_call(r, k, wood=False):
-    """A lift's call lever at a landing: a post lever like any other (`k` 0..1 thrown) under a chain
-    wheel whose chain runs off toward the shaft (+X), so it reads as the lift's."""
-    lever(r, k, wall=False, wood=wood)
-    with r.at(0, 0, 0, s=1.2):
-        post = (126, 92, 58) if wood else DARK_IRON
-        r.part("cube", -0.15, 1.25, 0, 0.1, 0.9, 0.1, post)  # a post up from the lever's block
-        with r.at(-0.15, 1.72, 0, rz=k * math.pi):  # the wheel, turning as the lever is thrown
-            r.part("cyl", 0, 0, 0, 0.42, 0.06, 0.42, IRON, rx=math.pi / 2)
-            for i in range(4):  # its spokes
-                r.part("cube", 0, 0, 0, 0.4, 0.04, 0.05, DARK_IRON, rz=i * math.pi / 4)
-        for i in range(4):  # the chain running off toward the shaft
-            r.part("cube", 0.0 + i * 0.12, 1.86, 0, 0.12, 0.03, 0.06, IRON, rx=0 if i % 2 else 1.57)
+CALL_PLATE = 0.84  # side of a landing's call plate, in metres
+LIFT_LEVER_Y = 1.15  # height of a lift lever's pivot above its floor
+
+
+def call_plate(r, sink=0.0, wood=False):
+    """A landing's call plate, set flush in the floor just out from the shaft: a square of riveted iron
+    plate (in the jungle, a slab of planks) in a stone (or timber) frame. It sinks `sink` metres under
+    your weight."""
+    frame = (96, 70, 44) if wood else (88, 84, 78)
+    half = CALL_PLATE / 2
+    for sx, sz in ((1, 0), (-1, 0), (0, 1), (0, -1)):  # the frame round it
+        r.part(
+            "cube",
+            sx * half,
+            0.012,
+            sz * half,
+            0.08 if sx else CALL_PLATE + 0.08,
+            0.025,
+            0.08 if sz else CALL_PLATE + 0.08,
+            frame,
+        )
+    r.part(
+        "cube",
+        0,
+        0.01 - sink,
+        0,
+        CALL_PLATE - 0.06,
+        0.03,
+        CALL_PLATE - 0.06,
+        (190, 160, 120) if wood else (205, 210, 220),
+        tex="wood_plank" if wood else "iron_plate",
+    )
+
+
+def lift_call(r, k, wood=False, post=False):
+    """A shortcut lift's lever, hung on the wall at local x=0 (+X out of it) or, with `post`, on a
+    squat post: a bolted plate with a short handle that swings down as `k` (0..1) runs, and a few
+    links of the lift's chain running up out of it into the stone."""
+    plate = (112, 82, 52) if wood else DARK_IRON
+    if post:
+        r.part(
+            "cube",
+            -0.1,
+            (LIFT_LEVER_Y + 0.5) / 2,
+            0,
+            0.2,
+            LIFT_LEVER_Y + 0.5,
+            0.2,
+            plate,
+            tex="bark" if wood else "rough_stone",
+        )
+    r.part("cube", 0.025, LIFT_LEVER_Y, 0, 0.05, 0.62, 0.26, plate, tex="bark" if wood else "white")
+    for by in (-0.24, 0.24):  # its bolts
+        r.part("cube", 0.055, LIFT_LEVER_Y + by, 0, 0.03, 0.05, 0.05, IRON)
+    r.part("cube", 0.07, LIFT_LEVER_Y, 0, 0.04, 0.36, 0.07, (24, 22, 20))  # the slot it swings in
+    with r.at(0.08, LIFT_LEVER_Y, 0, rz=0.75 - 1.5 * k):  # up at rest, thrown down
+        r.part("cube", 0.16, 0, 0, 0.32, 0.05, 0.05, (126, 92, 58) if wood else IRON)
+        r.part("cube", 0.34, 0, 0, 0.1, 0.08, 0.08, (70, 110, 46) if wood else (86, 60, 40))  # the grip
+    for i in range(3):  # the chain, up into the wall
+        r.part(
+            "cube",
+            0.04,
+            LIFT_LEVER_Y + 0.38 + i * LINK * 0.6,
+            0,
+            0.03,
+            LINK * 0.6,
+            0.07,
+            IRON,
+            ry=0 if i % 2 else 1.57,
+        )
 
 
 def _cage_lift(r, chain_h, shiver, doors):

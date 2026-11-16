@@ -69,7 +69,18 @@ def calls(world, at):
     return {p.props["end"]: p for p in world.props if p.kind == "lift_call" and p.lift is lift(world, at)}
 
 
-def test_shortcut_lifts_load_locked_and_their_call_levers_refuse():
+def run_terrain(world, game, seconds):
+    for _ in range(round(seconds / 0.05)):
+        world.update_terrain(0.05)
+        game.player.y = world.player_floor()
+
+
+def stand_on(game, world, plate):
+    game.player.x, game.player.z = plate.x, plate.z
+    game.player.y = world.player_floor()
+
+
+def test_shortcut_lifts_load_locked_and_their_levers_refuse():
     game, world = keep(at=(13, 26))  # the shrine room landing; its lift waits below, fastened
     assert lift(world, CRYPT_LIFT).locked and lift(world, BELFRY_LIFT).locked
     assert not lift(world, (4, 25)).locked
@@ -78,59 +89,91 @@ def test_shortcut_lifts_load_locked_and_their_call_levers_refuse():
     assert any("fastened from the other end" in m for m in game.messages)
 
 
+def test_a_fastened_lift_ignores_the_call_plate_on_its_far_landing():
+    game, world = keep(at=(13, 26))
+    shaft = lift(world, CRYPT_LIFT)
+    (plate,) = [c for c in shaft.calls if c.end == "high"]
+    stand_on(game, world, plate)
+    run_terrain(world, game, 1.0)
+    assert plate.pressed and shaft.at == "low" and not shaft.moving
+
+
 def test_riding_a_shortcut_lift_from_its_open_end_frees_it_for_good():
     game, world = keep(at=(11, 26))  # the Undercroft landing, beside the lift resting there
     game.player.y = world.player_floor()
     shaft = lift(world, CRYPT_LIFT)
     game.player.x, game.player.z = shaft.x, shaft.z  # onto the plate
-    for _ in range(round((0.7 + 6 / shaft.speed + 1.0) / 0.05)):
-        world.update_terrain(0.05)
-        game.player.y = world.player_floor()
+    run_terrain(world, game, 0.7 + (shaft.high - shaft.low) / shaft.speed + 1.0)
     assert shaft.at == "high" and not shaft.locked
     assert f"lift:sunken_keep:{CRYPT_LIFT[0]},{CRYPT_LIFT[1]}" in game.flags
     assert any("grinds free" in m for m in game.messages)
-    # Come back later: it stays free, and its lever below brings it down.
+    # Come back later: it stays free, and the call plate below brings it down.
     again_game, again = keep(game.flags, at=(11, 26))
     freed = lift(again, CRYPT_LIFT)
     assert not freed.locked
     freed.at, freed.deck = "high", freed.high
-    again.call_lift(calls(again, CRYPT_LIFT)["low"])
+    (plate,) = [c for c in freed.calls if c.end == "low"]
+    stand_on(again_game, again, plate)
+    run_terrain(again, again_game, 0.1)
     assert freed.moving and "chain" in again_game.sounds
+    run_terrain(again, again_game, (freed.high - freed.low) / freed.speed + 0.5)
+    assert freed.at == "low"
 
 
-def test_an_old_save_whose_winch_was_pulled_keeps_its_lift_free():
-    _game, world = keep({"lever:crypt_winch"})
-    assert not lift(world, CRYPT_LIFT).locked and lift(world, BELFRY_LIFT).locked
+def test_every_lift_landing_has_a_call_plate_that_brings_it():
+    game, world = keep()
+    for p in (p for p in world.terrain.platforms if p.kind == "lift"):
+        assert len(p.calls) == len(p.doors) and {c.end for c in p.calls} == {"low", "high"}
+        for c in p.calls:
+            tile = world.map.tile_at(c.x, c.z)
+            assert tile.walkable and not tile.chasm and c.floor == (p.low if c.end == "low" else p.high)
+    free = lift(world, (4, 25))
+    (plate,) = [c for c in free.calls if c.end == "high"]
+    stand_on(game, world, plate)
+    run_terrain(world, game, 0.1)
+    assert free.moving
+    run_terrain(world, game, (free.high - free.low) / free.speed + 0.5)
+    assert free.at == "high"
+    run_terrain(world, game, 2.0)  # standing on the plate calls it only once
+    assert free.at == "high"
 
 
-def test_every_lift_landing_has_a_call_lever_that_springs_back():
+def test_only_shortcut_lifts_have_a_lever_and_it_hangs_on_a_wall_off_the_way_in():
     _game, world = keep()
     for p in (p for p in world.terrain.platforms if p.kind == "lift"):
         levers = [c for c in world.props if c.kind == "lift_call" and c.lift is p]
-        assert len(levers) == len(p.doors) and {c.props["end"] for c in levers} == {"low", "high"}
-        for c in levers:
-            assert (
-                not world.map[c.tx, c.tz].solid
-                and abs(c.y - (p.low if c.props["end"] == "low" else p.high)) < 1
-            )
-    free = lift(world, (4, 25))
-    lever = calls(world, (4, 25))["high"]
-    world.call_lift(lever)
-    assert free.moving and lever.open_t > 0
-    for _ in range(20):
-        world.update(0.05)
-    assert lever.open_t == 0  # thrown, and back up ready for the next pull
+        if not p.shortcut:
+            assert levers == []
+            continue
+        (lever,) = levers
+        assert lever.props["end"] != p.start  # on the landing it does not rest at
+        assert "post" not in lever.props  # hung on a wall beside the landing
+        assert abs(lever.y - (p.low if lever.props["end"] == "low" else p.high)) < 1
+        back = world.map[
+            TileMap.tile_coord(lever.x - math.cos(lever.yaw) * 0.1),
+            TileMap.tile_coord(lever.z - math.sin(lever.yaw) * 0.1),
+        ]
+        assert back.solid and not world.map[lever.tx, lever.tz].solid
+        # Out of the middle of the way in: no closer to the shaft's axis than the landing's edge.
+        assert max(abs(lever.x - p.x), abs(lever.z - p.z)) > 1.0
+        world.call_lift(lever)
+        assert lever.open_t > 0
+        for _ in range(20):
+            world.update(0.05)
+        assert lever.open_t == 0  # thrown, and back up ready for the next pull
 
 
-def test_a_call_lever_is_out_of_reach_from_the_floor_below():
-    game, world = keep()
-    lever = calls(world, (4, 25))["high"]
-    game.player.x, game.player.z, game.player.y = lever.x - 0.5, lever.z, lever.y
+def test_a_lift_lever_is_out_of_reach_from_the_floor_below():
+    game, world = keep({f"lift:sunken_keep:{CRYPT_LIFT[0]},{CRYPT_LIFT[1]}"})
+    lever = calls(world, CRYPT_LIFT)["high"]
+    game.player.x = lever.x + math.cos(lever.yaw) * 0.6
+    game.player.z = lever.z + math.sin(lever.yaw) * 0.6
+    game.player.y = lever.y
     assert world._interactable(lever)
     game.player.y = lever.y - 6.0
     assert not world._interactable(lever)
     game.player.y = lever.y
-    world.call_lift(lever)  # while the lift is on its way, there is nothing to call
+    world.call_lift(lever)  # freed, it calls the lift; while it is on its way there is nothing to call
     lever.open_t = 0.0
     assert lever.lift.moving and not world._interactable(lever)
 
@@ -226,7 +269,7 @@ def test_the_butcher_waits_in_his_hall_north_of_the_gallery():
     _game, world = keep()
     b = butcher(world)
     assert b is not None and b.type.boss and b.type.drop is None  # no relic: the ending is untouched
-    assert world.map.tile_at(b.x, b.z).floor == pytest.approx(7.6)
+    assert world.map.tile_at(b.x, b.z).floor == pytest.approx(12.0)
     assert TileMap.tile_coord(b.z) < 9  # in the slaughter hall, beyond the old gallery's north wall
 
 

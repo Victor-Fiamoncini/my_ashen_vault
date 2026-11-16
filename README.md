@@ -359,9 +359,9 @@ The same list is in the game under **Controls** on the title and pause menus.
   switches between quick items.
 - Traps keep a rhythm. Watch the spikes and blades for a moment before you cross, and don't stand
   still on cracked stone.
-- Step onto the plate in the middle of a lift and it carries you; pull the lever on its landing and it
-  comes to you. If the lever won't budge, the lift is fastened from the other end: find your way
-  there and ride it once.
+- Step onto the plate in the middle of a lift and it carries you; step onto the plate in front of its
+  shaft and it comes to you. If it doesn't, and a lever on the wall beside it won't budge, the lift is
+  fastened from the other end: find your way there and ride it once.
 - When the Warden raises his blade in both hands, back away: the slam reaches all around him. Once his
   blade burns, keep moving off the glowing circles on the floor.
 - The Butcher is slow but hits hard. Wait out his wind-up, strike after the blow, and back off when
@@ -486,7 +486,7 @@ the flame bolt shot is
 `uv run ashen-vault --map sunken_keep --at 15,22,0 --smoke 40 --script "wait:0.3 cast" --shot flame_bolt.png`,
 the Loom Mother is `uv run ashen-vault --map verdant_hollow --at=15,7,-90 --smoke 40 --shot loom_mother.png`,
 the lift ride is
-`uv run ashen-vault --map sunken_keep --at 4,24,90 --smoke 545 --script "wait:0.2 interact wait:4.5 forward:0.6 wait:5" --shot undercroft_lift.png`,
+`uv run ashen-vault --map sunken_keep --at 4,24,90 --smoke 560 --script "forward:0.15 wait:5 forward:0.6 wait:5" --shot undercroft_lift.png`,
 the Butcher is `uv run ashen-vault --map sunken_keep --at=27,7,-90 --smoke 20 --shot gallery.png`,
 the jungle trail is `uv run ashen-vault --map harrowmere --at=56,34,-90 --smoke 40 --shot jungle_trail.png`,
 Mossmouth is

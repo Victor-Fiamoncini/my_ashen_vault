@@ -46,16 +46,24 @@ SPORE_LINGER = 1.2  # seconds the spores keep you sluggish after you leave the c
 SPORE_TICK = 0.8  # seconds between choking coughs
 SPORE_DAMAGE = 3
 BRIDGE_DROP = 1.4  # seconds a drawbridge takes to swing down once its lever is pulled
-LIFT_SPEED = 1.6  # m/s a lift climbs or sinks at
+LIFT_SPEED = 2.2  # m/s a lift climbs or sinks at
 LIFT_DELAY = 0.7  # seconds you stand on a lift's plate before it sets off
 PLATE_R = 0.55  # metres from the deck's centre that count as standing on its pressure plate
 PLATE_SINK = 0.03  # how far the plate sinks under your weight
-CALL_OUT = 0.55  # metres out from the shaft's edge that a landing's call lever stands
+CALL_PLATE_OUT = 0.55  # metres out from the shaft's edge to the middle of a landing's call plate
+CALL_PLATE_R = 0.42  # metres from a call plate's middle that count as standing on it
+CALL_PLATE_Y = 0.5  # metres above or below a call plate's floor you still press it from
+LEVER_BACK = 0.55  # metres from the shaft's edge to a shortcut lift's wall lever, along its landing
+LEVER_POST = 0.8  # metres to one side of the way in a free-standing lever stands, with no wall to hang on
 HEARING = 14.0  # metres within which the player hears a pod burst or a platform give way
 
 # Sounds a platform makes (name, volume): when you first load it, and when it gives way.
 CREAK_SOUND = {"plank": ("crack", 0.25), "ledge": ("crack", 0.45), "boards": ("crack", 0.5)}
-LIFT_SOUND = {"lift_start": ("chain", 0.9), "lift_stop": ("clunk", 0.9), "lift_unlocked": ("clunk", 0.9)}
+LIFT_SOUND = {
+    "lift_start": ("chain", 0.9),
+    "lift_stop": ("clunk", 0.9),
+    "lift_unlocked": ("clunk", 0.9),
+}
 BREAK_SOUND = {"plank": ("splash", 0.7), "ledge": ("door", 0.7), "boards": ("crack", 1.0)}
 
 # How each kind of platform rots: (seconds it bears you, seconds it stays gone, metres it drops).
@@ -65,6 +73,28 @@ ROT = {
     "ledge": (LEDGE_CREAK, LEDGE_GONE, 7.0),
     "boards": (BOARDS_CREAK, None, None),
 }
+
+
+@dataclass(eq=False)
+class CallPlate:
+    """An iron plate set in a lift's landing, just out from the shaft: stepping onto it calls the lift
+    to that landing (`end`, "low" or "high") once the lift is free."""
+
+    x: float
+    z: float
+    floor: float
+    end: str
+    pressed: bool = False
+
+    def under(self, body):
+        return (
+            math.hypot(body.x - self.x, body.z - self.z) <= CALL_PLATE_R
+            and abs(body.y - self.floor) <= CALL_PLATE_Y
+        )
+
+    @property
+    def sink(self):
+        return PLATE_SINK if self.pressed else 0.0
 
 
 @dataclass(eq=False)
@@ -88,15 +118,19 @@ class Platform:
     dy: float = 0.0
     # A lift rides between `low` and `high` in its shaft. `at` is "low"/"high" while it rests there,
     # None while it moves; `going` is +1 up, -1 down. Stepping onto the plate at the middle of its
-    # deck sends it to the other end; a call lever at either landing brings it. A `locked` lift is a
-    # one-way shortcut: it rests at the end you reach first, the call levers will not move it, and
-    # the end of its first ride frees it for good.
+    # deck sends it to the other end; stepping onto the call plate on either landing (`calls`) brings
+    # it. A `locked` lift is a one-way shortcut (`shortcut` stays True after it is freed): it rests at
+    # the end you reach first, the far landing's call plate will not move it, and the end of its first
+    # ride frees it for good.
     low: float = 0.0
     high: float = 0.0
     at: str | None = None
     going: int = 0
     wait: float = 0.0
     locked: bool = False
+    shortcut: bool = False
+    start: str = "low"  # the end a lift rests at when the map loads
+    calls: list = field(default_factory=list)  # a lift's CallPlates, one per landing
     lever: str | None = None  # a drawbridge's lever
     pressed: bool = False  # someone stands on the plate
     hold: bool = False  # just arrived: whoever rode it must step off the plate before it goes again
@@ -202,7 +236,7 @@ class Platform:
         return "lift_start"
 
     def summon(self, end):
-        """A call lever at the `end` landing was pulled: the lift comes if it rests at the other end.
+        """Called to the `end` landing (by its call plate or lever): it comes if it rests at the other end.
         Returns "lift_start", "lift_locked" (it is fastened from the other side), or None (it is
         already here, or on its way)."""
         if self.at is None or self.at == end:
@@ -385,21 +419,51 @@ def lift_doors(map_, tx, tz, low, high):
     return tuple(out)
 
 
-def call_spots(map_, lift):
-    """Where a lift's call levers stand: one on each landing beside the shaft, just out from its
-    edge and to one side of the way in, as (x, z, floor, end, (dx, dz) toward the shaft). `end` is
-    the stop ("low"/"high") that landing meets."""
+def call_plates(map_, lift):
+    """A call plate on each landing, in the middle of the way in and just out from the shaft's edge."""
     tx, tz = TileMap.tile_coord(lift.x), TileMap.tile_coord(lift.z)
     out = []
     for dx, dz in lift.doors:
         floor = map_[tx + dx, tz + dz].floor
         end = "low" if abs(floor - lift.low) <= abs(floor - lift.high) else "high"
-        out_by = TileMap.TILE / 2 + CALL_OUT
-        side = TileMap.TILE * 0.32  # off the middle of the doorway, so it never blocks the way in
-        x = lift.x + dx * out_by + dz * side
-        z = lift.z + dz * out_by - dx * side
-        out.append((x, z, floor, end, (-dx, -dz)))
+        out_by = TileMap.TILE / 2 + CALL_PLATE_OUT
+        out.append(CallPlate(lift.x + dx * out_by, lift.z + dz * out_by, floor, end))
     return out
+
+
+def lever_spot(map_, lift):
+    """Where a shortcut lift's lever stands: on its far landing (the one it does not rest at first),
+    hung on a wall close to the shaft so it never stands in the way: on a wall flanking the landing,
+    or else on the face of the shaft's own wall beside the way in. As (x, z, floor, end, yaw, on_wall),
+    `yaw` facing out of the wall; with no wall at hand (`on_wall` False) it stands on a post to one
+    side, facing the landing. None for a lift that is no shortcut."""
+    if not lift.shortcut:
+        return None
+    tx, tz = TileMap.tile_coord(lift.x), TileMap.tile_coord(lift.z)
+    edge = TileMap.TILE / 2
+    for dx, dz in lift.doors:
+        lx, lz = tx + dx, tz + dz
+        floor = map_[lx, lz].floor
+        end = "low" if abs(floor - lift.low) <= abs(floor - lift.high) else "high"
+        if end == lift.start:
+            continue
+        sides = ((-dz, dx), (dz, -dx))
+        for sx, sz in sides:  # a wall flanking the landing, just out from the shaft
+            if map_[lx + sx, lz + sz].solid:
+                back = edge + map_.wall_inset(lx, lz, sx, sz)
+                x = lift.x + dx * (edge + LEVER_BACK) + sx * back
+                z = lift.z + dz * (edge + LEVER_BACK) + sz * back
+                return x, z, floor, end, math.atan2(-sz, -sx), True
+        for sx, sz in sides:  # the shaft's own wall beside the way in, facing the landing
+            if map_[tx + sx, tz + sz].solid and map_[lx + sx, lz + sz].walkable:
+                x = lift.x + dx * edge + sx * (edge + LEVER_BACK)
+                z = lift.z + dz * edge + sz * (edge + LEVER_BACK)
+                return x, z, floor, end, math.atan2(dz, dx), True
+        sx, sz = sides[0]
+        x = lift.x + dx * (edge + LEVER_BACK) + sx * LEVER_POST
+        z = lift.z + dz * (edge + LEVER_BACK) + sz * LEVER_POST
+        return x, z, floor, end, math.atan2(dz, dx), False
+    return None
 
 
 def build_platforms(map_):
@@ -415,12 +479,13 @@ def build_platforms(map_):
         if spec.kind == "lift":
             p.low = bottom
             p.high = float(spec.props.get("top", str(bottom)))
-            p.at = "high" if spec.props.get("start") == "top" else "low"
+            p.at = p.start = "high" if spec.props.get("start") == "top" else "low"
             p.deck = p.high if p.at == "high" else p.low
             p.speed = float(spec.props.get("speed", str(LIFT_SPEED)))
-            p.locked = "locked" in spec.props
+            p.locked = p.shortcut = "locked" in spec.props
             p.model = spec.props.get("model", "")
             p.doors = lift_doors(map_, spec.tx, spec.tz, p.low, p.high)
+            p.calls = call_plates(map_, p)
         elif spec.kind == "bridge":
             p.lever = spec.props.get("lever")
             p.locked = p.lever is not None
@@ -526,6 +591,18 @@ class Terrain:
                 return p
         return None
 
+    def _press_calls(self, lift, body):
+        """Stepping onto a landing's call plate clicks it down and calls the lift, if it is free and
+        rests at the other end. Standing on it calls only once: step off and on to call again."""
+        for c in lift.calls:
+            on = c.under(body)
+            if on and not c.pressed:
+                self._hear(c.x, c.z, body, "clunk", 0.3)
+                called = lift.summon(c.end)
+                if called == "lift_start":
+                    self._hear(lift.x, lift.z, body, *LIFT_SOUND[called])
+            c.pressed = on
+
     @staticmethod
     def on_plate(p, body):
         return math.hypot(body.x - p.x, body.z - p.z) <= PLATE_R
@@ -558,7 +635,7 @@ class Terrain:
         spores, and catches falls. Returns "fell" when the player went into the water or the ravine,
         "landed" after a hard landing, "log" when a log struck, "logs_first"/"logs_next"/"logs_last"
         when a log tips off a pile, "spores" when a cloud first engulfs, "lift_unlocked" when a locked
-        lift ends its first ride (`unlocked` lists it), else None."""
+        lift ends its first ride (`unlocked` lists it), else None. A lift's landing call plates call it."""
         event = None
         self.sounds = []
         self.unlocked = []
@@ -572,6 +649,7 @@ class Terrain:
                 if lift_event == "lift_unlocked":
                     self.unlocked.append(p)
                     event = lift_event
+                self._press_calls(p, body)
                 continue
             if p.update(dt, loaded=p is under) == "bridge_down":
                 self._hear(p.x, p.z, body, "clunk", 1.0)
