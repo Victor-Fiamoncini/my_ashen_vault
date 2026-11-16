@@ -22,11 +22,20 @@ from ashen_vault.render.sky import SkyPass
 from ashen_vault.save.save_system import SaveSystem
 from ashen_vault.save.settings import Settings
 from ashen_vault.screen import (
+    COLUMN_H,
+    EQUIPPED_H,
+    EQUIPPED_PANEL,
     FOV,
+    ITEM_PANEL,
     LIST_ROWS,
+    MENU_LIST,
     PREVIEW,
     ROW_H,
     ROW_TOP,
+    SHOP_LIST,
+    STATS_H,
+    STATS_PANEL,
+    STATS_ROW,
     H,
     W,
     centered_row_at,
@@ -51,12 +60,7 @@ OPTIONS_LIST = (90, 80, 140)
 CONTROLS_LIST = (20, 6, 280)
 # Controls rows that fit: the panel (title, rows, footer) ends a margin above the screen's bottom.
 CONTROLS_ROWS = (H - 2 * CONTROLS_LIST[1] - ROW_TOP - 14) // ROW_H
-MENU_LIST = (6, 6, 170)
-SHOP_LIST = (6, 6, 308)
 PICK_LIST = (24, 60, 190)  # the "which slot?" chooser over Belongings
-EQUIPPED_PANEL = (182, 6, 132)  # Belongings: what Primary, Secondary, Body and Hands hold
-STATS_PANEL = (182, 77, 132)
-STATS_ROW = 10  # the stats panel's line pitch: seven lines fit between Equipped and the item panel
 TITLE_Y, TITLE_STEP = 140, 14
 TITLE_ORBIT = (25, 24)  # the title camera circles Harrowmere's Silent Bell (its tile)
 # Comparing gear: a better stat green, a worse one red (keyed by compare.better).
@@ -206,7 +210,7 @@ class Game:
             "title": lambda: self._update_title(),
             "play": lambda: self._update_play(dt),
             "dialogue": lambda: self._update_dialogue(),
-            "menu": lambda: self._update_menu(),
+            "menu": lambda: self._update_menu(dt),
             "shop": lambda: self._update_shop(),
             "pause": lambda: self._update_pause(),
             "rest": lambda: self._update_rest(dt),
@@ -411,17 +415,13 @@ class Game:
             floating=self.world.terrain.floating,
             ground=self.world.terrain.floor,
         )
-        self.world.update_terrain(dt)
-        under = self.world.terrain.under
-        p.settle(self.world.map, dt, floor=self.world.player_floor(), snap=under is not None and under.moving)
+        self._carry_player(dt)
         if moved:
             self._footstep()
 
         p.update_timers(dt)
         self._update_hands(dt)
-        if p.swinging and not self._hit_done and p.swing_t >= p.swing_hit_at:
-            self._resolve_swing()
-        self._update_pulse(dt)
+        self._update_blows(dt)
         wheel = inp.wheel()
         if wheel:
             self._cycle_quick(-1 if wheel > 0 else 1)  # wheel down = next
@@ -429,11 +429,35 @@ class Game:
             self._quick_use(p.quick)
         if inp.pressed("interact"):
             self._interact()
+        self._update_world(dt)
 
+    def _carry_player(self, dt):
+        """Lifts, rafts and gravity move the player whether or not they walk."""
+        self.world.update_terrain(dt)
+        under = self.world.terrain.under
+        p = self.player
+        p.settle(self.world.map, dt, floor=self.world.player_floor(), snap=under is not None and under.moving)
+
+    def _update_blows(self, dt):
+        """A swing under way lands at its hit time, and a multi-pulse attack's later blows follow."""
+        p = self.player
+        if p.swinging and not self._hit_done and p.swing_t >= p.swing_hit_at:
+            self._resolve_swing()
+        self._update_pulse(dt)
+
+    def _update_world(self, dt):
         self.world.update(dt)
-        if not p.alive:
+        if not self.player.alive:
             self._dead_t = 0.0
             self.scene = "dead"
+
+    def _tick_unpaused(self, dt):
+        """Belongings doesn't pause the game: the world goes on and foes still strike while you stand
+        there, though you neither walk nor fight."""
+        self._carry_player(dt)
+        self.player.update_timers(dt)
+        self._update_blows(dt)
+        self._update_world(dt)
 
     def _axis(self, pos, neg):
         return (1 if self._input.down(pos) else 0) - (1 if self._input.down(neg) else 0)
@@ -1036,6 +1060,8 @@ class Game:
         self._pick = None
         self._mouse_look(False)
         self.player.guarding = False
+        self.player.charge_t = 0.0  # a heavy held as it opened is let go, not loosed
+        self._held = dict.fromkeys(self._held, False)
 
     def _open_pick(self, item):
         """Asks which slot (Primary or Secondary) a one-handed weapon, a shield or a spell goes in."""
@@ -1114,7 +1140,10 @@ class Game:
                 return True
         return False
 
-    def _update_menu(self):
+    def _update_menu(self, dt):
+        self._tick_unpaused(dt)
+        if self.scene != "menu":  # fallen while browsing
+            return self._mouse_look(True)
         if self._pick:
             return self._update_pick()
         if self._back():
@@ -1506,7 +1535,9 @@ class Game:
             )
             for i in items
         ]
-        ui.list_menu("", *MENU_LIST, rows, self._menu_index, first=self._menu_top, visible=LIST_ROWS)
+        ui.list_menu(
+            "", *MENU_LIST, rows, self._menu_index, first=self._menu_top, visible=LIST_ROWS, height=COLUMN_H
+        )
         self._draw_tabs()
         item = items[self._menu_index] if self._menu_index < len(items) else None
         self._draw_equipped()
@@ -1517,7 +1548,7 @@ class Game:
             "A/D: tab   1/2: Primary/Secondary   Enter: choose",
         )
         for text, _ in self._weight_mark(item) if item else ():
-            ui.text(text, 310 - ui.measure(text), 162, ui.DIM)
+            ui.text(text, self._item_right() - ui.measure(text), self._item_name_y(), ui.DIM)
         if self._pick:
             x, y, w = PICK_LIST
             rows = [(label,) for label, _ in self._pick_options()]
@@ -1564,7 +1595,7 @@ class Game:
     def _draw_equipped(self):
         """What each slot holds: a mini mouse with its button lit for Primary and Secondary."""
         x, y, w = EQUIPPED_PANEL
-        ui.panel(x, y, w, 20 + 4 * ROW_H + 3)
+        ui.panel(x, y, w, EQUIPPED_H)
         ui.text("Equipped", x + 8, y + 5, ui.HIGHLIGHT)
         for i, (button, slot, name) in enumerate(
             belongings.equipped_rows(self.player.inventory, self._spell_name())
@@ -1584,7 +1615,7 @@ class Game:
         s = self.player.stats
         inv = self.player.inventory
         x, y, w = STATS_PANEL
-        ui.panel(x, y, w, 7 * STATS_ROW + 6)
+        ui.panel(x, y, w, STATS_H)
         spell = self.player.current_spell()
         nums = compare.numbers(inv, s.magic, spell.id if spell else None)
         pairs = [
@@ -1594,13 +1625,14 @@ class Game:
             (("ATK", nums["ATK"]), ("DEF", nums["DEF"])),
             (("SPL", nums["SPL"]), ("Block", nums["Block"])),
         ]
+        top = y + 5  # on the title line of every other panel
         half = (w - 16) // 2
         for i, row in enumerate(pairs):
             for j, (k, v) in enumerate(row):
                 cx = x + 8 + j * (half + 4)
-                ui.text(k, cx, y + 6 + i * STATS_ROW, ui.DIM)
-                self._stat_value(k, v, changes.get(k), cx + half - 4, y + 6 + i * STATS_ROW)
-        ly = y + 6 + 5 * STATS_ROW
+                ui.text(k, cx, top + i * STATS_ROW, ui.DIM)
+                self._stat_value(k, v, changes.get(k), cx + half - 4, top + i * STATS_ROW)
+        ly = top + 5 * STATS_ROW
         cap = burden.capacity(s.strength)
         load = changes.get("Load", (nums["Load"], nums["Load"]))[1]
         tier = burden.tier(load, cap)
@@ -1611,8 +1643,8 @@ class Game:
         ui.text(name, right, ly, ui.color(220, 90, 80) if heavy else ui.DIM)
         self._stat_value("Load", nums["Load"], changes.get("Load"), right, ly, f"/{compare.fmt(cap)}")
         exp = f"{s.exp}/{s.next_level_exp}"
-        ui.text("EXP", x + 8, y + 6 + 6 * STATS_ROW, ui.DIM)
-        ui.text(exp, x + w - 8 - ui.measure(exp), y + 6 + 6 * STATS_ROW)
+        ui.text("EXP", x + 8, top + 6 * STATS_ROW, ui.DIM)
+        ui.text(exp, x + w - 8 - ui.measure(exp), top + 6 * STATS_ROW)
 
     def _stat_value(self, stat, value, change, right, y, suffix=""):
         """Draws a stat right-aligned to `right`: its value, or "now>then" with `then` coloured by
@@ -1643,18 +1675,41 @@ class Game:
         """[("Wt N", 0)] for gear that adds to your load, else []."""
         return [(f"Wt {compare.fmt(item.mass)}", 0)] if item.mass else []
 
+    @staticmethod
+    def _item_inset():
+        """The preview well's inset in the item panel: centred top to bottom, as far from the left."""
+        return (ITEM_PANEL[3] - PREVIEW - 6) // 2
+
+    def _item_text_x(self):
+        return ITEM_PANEL[0] + 2 * self._item_inset() + PREVIEW + 6
+
+    @staticmethod
+    def _item_right():
+        x, _y, w, _h = ITEM_PANEL
+        return x + w - ui.PANEL_PAD
+
+    def _item_name_y(self):
+        return ITEM_PANEL[1] + self._item_inset() - ui.TEXT_DY  # the name's caps level with the well's top
+
     def _draw_item_panel(self, item, detail, footer):
         """Bottom panel shared by Belongings and the shop: spinning preview, name, details, description."""
-        ui.panel(6, 156, 308, 78)
+        x, y, w, h = ITEM_PANEL
+        ui.panel(x, y, w, h)
+        inset = self._item_inset()
+        tx, ty = self._item_text_x(), self._item_name_y()
         if item:
-            pr.draw_rectangle(10, 160, PREVIEW + 6, PREVIEW + 6, pr.BLACK)
+            well = PREVIEW + 6
+            pr.draw_rectangle(x + inset, y + inset, well, well, pr.BLACK)
             pr.draw_texture_rec(
-                self._preview.texture, pr.Rectangle(0, 0, PREVIEW, -PREVIEW), pr.Vector2(13, 163), pr.WHITE
+                self._preview.texture,
+                pr.Rectangle(0, 0, PREVIEW, -PREVIEW),
+                pr.Vector2(x + inset + 3, y + inset + 3),
+                pr.WHITE,
             )
-            pr.draw_rectangle_lines(10, 160, PREVIEW + 6, PREVIEW + 6, ui.HUD_EDGE)
-            ui.text(item.name, 84, 162, ui.HIGHLIGHT)
-            ui.text(detail, 84, 174, ui.DIM)
-            lines = ui.wrap(item.desc, 224)
+            pr.draw_rectangle_lines(x + inset, y + inset, well, well, ui.HUD_EDGE)
+            ui.text(item.name, tx, ty, ui.HIGHLIGHT)
+            ui.text(detail, tx, ty + 12, ui.DIM)
+            lines = ui.wrap(item.desc, self._item_right() - tx)
             if item.kind == "weapon":
                 moves = weapons.moveset(item)
                 head = f"{moves[weapons.LIGHT].name} / Heavy: {moves[weapons.HEAVY].name}"
@@ -1667,15 +1722,18 @@ class Game:
                 lines.insert(1, f"Art: {art.name} ({art.mp} MP)")
             # Three lines sit 11 px apart; a fourth (a weapon with an art) packs them at the font's own.
             lines = lines[: 4 if art else 3]
-            step, top = (11, 187) if len(lines) <= 3 else (smallfont.LINE, 185)
+            step, top = (11, ty + 25) if len(lines) <= 3 else (smallfont.LINE, ty + 23)
             for i, l in enumerate(lines):
                 rgb = (240, 210, 90) if i == 0 and item.kind == "weapon" else None
                 if art and i == 1:
                     rgb = art.rgb
-                ui.text(l, 84, top + i * step, ui.color(*rgb) if rgb else ui.TEXT)
+                ui.text(l, tx, top + i * step, ui.color(*rgb) if rgb else ui.TEXT)
         msg = self.messages[-1] if self.messages else None
         fresh = msg is not None and msg[1] < 2.5
-        ui.text(msg[0] if fresh else footer, 84, 221, ui.TEXT if fresh else ui.DIM)
+        # The footer's caps end level with the well's bottom.
+        ui.text(
+            msg[0] if fresh else footer, tx, y + h - inset - smallfont.HEIGHT, ui.TEXT if fresh else ui.DIM
+        )
 
     def _item_detail(self, item):
         need = f"   Lv{item.level}" if item.level > 1 else ""
@@ -1711,16 +1769,24 @@ class Game:
             for i in stock
         ]
         title = f"{dialogue_data.SHOP_NAMES[self._shop_id]}  (you have {gold}g)"
-        ui.list_menu(title, *SHOP_LIST, rows, self._menu_index, first=self._menu_top, visible=LIST_ROWS)
+        ui.list_menu(
+            title,
+            *SHOP_LIST,
+            rows,
+            self._menu_index,
+            first=self._menu_top,
+            visible=LIST_ROWS,
+            height=COLUMN_H,
+        )
         item = self._selected_item()
         detail = f"{self._item_detail(item)}   {item.price}g" if item else ""
         self._draw_item_panel(item, detail, "Enter/Click: buy   Esc/R-click: leave")
         if item:  # what wearing it would change, beside its name
-            x = 310
+            x = self._item_right()
             changes = compare.deltas(compare.preview(self.player.inventory, item))
             for text, good in reversed(changes or self._weight_mark(item)):
                 x -= ui.measure(text)
-                ui.text(text, x, 162, COMPARE_COLORS[good] if good else ui.DIM)
+                ui.text(text, x, self._item_name_y(), COMPARE_COLORS[good] if good else ui.DIM)
                 x -= 8
 
     def _draw_dead(self):

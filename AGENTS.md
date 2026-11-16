@@ -339,7 +339,10 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   `body` and `hands` armor. `two_handed` weapons fill both slots and swing from Primary only. The HUD
   draws the slots on a mouse in the bottom right (`hud.mouse_hud`: Primary on its left button, Secondary
   on its right, the quick item on the wheel). HUD spacing comes from `HUD_MARGIN` (screen edge),
-  `HUD_PAD` (inside a box) and `HUD_GAP` (between elements); derive new positions from them. Every
+  `HUD_PAD` (inside a box) and `HUD_GAP` (between elements); derive new positions from them. Belongings and the
+  shop lay their panels out from `screen.MENU_SPACE` (one margin from the screen edge and between
+  panels: `MENU_LIST`, `EQUIPPED_PANEL`, `STATS_PANEL`, `ITEM_PANEL`). Belongings doesn't pause the game
+  (`Game._tick_unpaused`): the world, lifts and foes go on while it is open, you just neither walk nor fight. Every
   box and window is `hud.hud_box` (or `panel`), drawn in whole pixels with `HUD_RADIUS` corners
   (`HUD_INNER_RADIUS` for a well inside a box); never pass another radius
   (`test_every_hud_box_shares_the_named_corner_radii`). The

@@ -401,3 +401,23 @@ def test_controls_fit_the_screen_and_scroll():
     height = ROW_TOP + 2 + game.CONTROLS_ROWS * ROW_H + 12  # list_menu's panel with its footer
     assert y + height <= H - y
     assert len(CONTROLS) > game.CONTROLS_ROWS  # it scrolls, so it shows a scrollbar
+
+
+def test_belongings_and_shop_panels_share_one_margin_and_gap():
+    """Every Belongings / shop panel stands MENU_SPACE from the screen's edges and its neighbours."""
+    from ashen_vault import screen as s
+
+    space = s.MENU_SPACE
+    lx, ly, lw = s.MENU_LIST
+    ex, ey, ew = s.EQUIPPED_PANEL
+    sx, sy, sw = s.STATS_PANEL
+    ix, iy, iw, ih = s.ITEM_PANEL
+    assert lx == ly == ey == ix == space
+    assert ex - (lx + lw) == space and ex == sx and ew == sw
+    assert ex + ew == s.W - space and ix + iw == s.W - space
+    assert sy - (ey + s.EQUIPPED_H) == space
+    assert iy - (sy + s.STATS_H) == space and iy - (ly + s.COLUMN_H) == space
+    assert iy + ih == s.H - space
+    assert (space, space, s.W - 2 * space) == s.SHOP_LIST
+    # A full list's rows fit inside the column-high panel.
+    assert s.ROW_TOP + s.LIST_ROWS * s.ROW_H <= s.COLUMN_H

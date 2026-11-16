@@ -1298,11 +1298,12 @@ def dialogue(speaker, line, page, pages):
     text(page_mark, x + w - PANEL_PAD - measure(page_mark), y + 45, DIM)
 
 
-def list_menu(title, x, y, w, rows, selected, footer=None, first=0, visible=None):
+def list_menu(title, x, y, w, rows, selected, footer=None, first=0, visible=None, height=None):
     """rows are tuples (label, right=None, dim=False). A long list shows `visible` rows from `first`,
-    with arrows on the title line when there is more above or below."""
+    with arrows on the title line when there is more above or below. `height` fixes the panel's
+    height (Belongings and the shop line it up with their other panels); it fits the rows otherwise."""
     shown = rows[first : first + visible] if visible else rows
-    height = 22 + max(len(shown), 1) * 11 + (12 if footer else 0)
+    height = height or 22 + max(len(shown), 1) * 11 + (12 if footer else 0)
     panel(x, y, w, height)
     text(title, x + 8, y + 5, HIGHLIGHT)
     if visible and first > 0:

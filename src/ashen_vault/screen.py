@@ -10,6 +10,23 @@ ROW_H = 11  # height of a ui.list_menu row
 ROW_TOP = 20  # first list_menu row, relative to the panel top
 LIST_ROWS = 11  # rows a full-height list_menu shows before it scrolls
 
+# Belongings and the shop: every panel stands MENU_SPACE from the screen's edge and from its
+# neighbours (the in-game HUD's margin), so the gaps match all round. The item list sits beside a
+# column holding Equipped over the stats, both as tall as that column; the item panel fills the rest.
+MENU_SPACE = 3
+SIDE_W = 136  # the right column: Equipped and the stats
+EQUIPPED_H = ROW_TOP + 4 * ROW_H + 3  # the title, four slots and the bottom pad
+STATS_ROW = 10  # the stats panel's line pitch
+STATS_H = 7 * STATS_ROW + 9  # seven lines, padded like Equipped above and below
+COLUMN_H = EQUIPPED_H + MENU_SPACE + STATS_H  # the list's height too, so both end level
+SIDE_X = W - MENU_SPACE - SIDE_W
+MENU_LIST = (MENU_SPACE, MENU_SPACE, SIDE_X - 2 * MENU_SPACE)  # (x, y, width) of the Belongings list
+SHOP_LIST = (MENU_SPACE, MENU_SPACE, W - 2 * MENU_SPACE)
+EQUIPPED_PANEL = (SIDE_X, MENU_SPACE, SIDE_W)
+STATS_PANEL = (SIDE_X, MENU_SPACE + EQUIPPED_H + MENU_SPACE, SIDE_W)
+ITEM_Y = MENU_SPACE + COLUMN_H + MENU_SPACE
+ITEM_PANEL = (MENU_SPACE, ITEM_Y, W - 2 * MENU_SPACE, H - MENU_SPACE - ITEM_Y)  # (x, y, w, h)
+
 
 def to_internal(mx, my, sw, sh):
     """Window pixel -> 320x240 pixel, undoing the letterboxed scale in Game.render().
