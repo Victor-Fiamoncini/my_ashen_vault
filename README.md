@@ -10,12 +10,14 @@
 
 ---
 
-The bell of Harrowmere has cracked. Beneath the village well, the drowned halls of the Sunken Keep have
-begun to stir, and at the end of a green trail out of the square a cave opens on the jungle of the
+You are one of the Ashen, woken in a cemetery of ashes by a single toll of Harrowmere's bell, though no
+hand was on its rope. Old Odrin, the bell-keeper, knows the prophecy: whoever wakes must win four sigils
+to raise the king who sits turned to stone in the cathedral. Many Ashen woke before you. None came back.
+Beneath the village well, the drowned halls of the Sunken Keep have begun to stir, and at the end of a green trail out of the square a cave opens on the jungle of the
 Verdant Hollow, which has swallowed the old woodcutters' camp. Up the north road, past a long bridge over
 a gorge of fire, the forges of the Cinderhold burn again, and two iron gargoyles keep watch from its roof.
 Take up a rusted sword, bring back the Ember Sigil from the keep, the Verdant Sigil from the hollow and the
-Iron Sigil from the Cinderhold, and let the bell sing again.
+Iron Sigil from the Cinderhold, and let the bell sing again. Where the fourth lies, not even the prophecy says.
 
 ### Inspiration
 
@@ -38,6 +40,22 @@ FromSoftware, Inc.
   <tr>
     <td align="center"><sub>Title screen</sub></td>
     <td align="center"><sub>The Silent Bell, at the heart of Harrowmere</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/cemetery.png" alt="Waking in the Cemetery of Ashes: grey ash underfoot between soot-stained walls, a shrine's flame burning in its iron cradle, the first hint below"></td>
+    <td><img src="docs/screenshots/mourner.png" alt="A Shrouded Mourner, a hooded figure in dark robes, bowed by a stone coffin in the cemetery's chapel, the silk-sealed door behind"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Waking in the Cemetery of Ashes, by its first shrine</sub></td>
+    <td align="center"><sub>A Shrouded Mourner, bowed at a grave until you come too close</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/silk.png" alt="The silk sealing the chapel's far door burning away from the bottom up, charred patches glowing at the edges, flames licking up its face"></td>
+    <td><img src="docs/screenshots/sexton.png" alt="The Ashen Sexton in its walled yard, flinging a spadeful of grave ash clods at you, its health bar above"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Flame Bolt burning the silk off the chapel door</sub></td>
+    <td align="center"><sub>The Ashen Sexton flings a spadeful of grave ash</sub></td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/dialogue.png" alt="Talking to Odrin the bell-keeper"></td>
@@ -143,7 +161,9 @@ FromSoftware, Inc.
   15-bit color with ordered dithering, distance fog and baked vertex lighting, under skies of drifting
   cloud with a sun glowing through them and mist along the horizon.
 - **Deliberate, weighty combat**: an ATK gauge that refills between swings, enemy wind-ups you can read
-  and interrupt, and bosses with poise and attacks of their own: the Ashen Warden cleaves all around,
+  and interrupt, and bosses with poise and attacks of their own: the Ashen Sexton, keeper of the
+  cemetery's gate, flings spadefuls of grave ash that clog your stride, calls hands of ash up from the
+  ground to clutch at you and, once wounded, tolls its spade like a bell in rings of embers; the Ashen Warden cleaves all around,
   leaps, flings embers, chains three cuts together and slams a shockwave through the floor, and at
   half health his blade catches fire and he calls flame up from beneath your feet; above his hall the
   Butcher swings a cleaver all around him, lunges and hacks, and at half health flies into a frenzy
@@ -162,8 +182,9 @@ FromSoftware, Inc.
   only. A raised shield stops blows from the front for stamina, and you can still back off and sidestep
   behind it. The best gear needs a higher level.
 - **Armor you can see**: body armor and gauntlets change the sleeves and hands you see in first person.
-- **Spells**: Flame Bolt, Mend and Lumen, paid for with MP once your focus has returned, Ashen Ward (embers
-  that blunt every blow) in the keep, and three more
+- **Spells**, each taught by a scroll and paid for with MP once your focus has returned: Flame Bolt in
+  the cemetery's chapel, Mend and Lumen from the town, Ashen Ward (embers that blunt every blow) in the
+  keep, and three more
   hidden in the hollow: Venom Dart (a sting that keeps eating at its target), Veil of Mist (ordinary foes
   overlook you until you strike) and Pyre (a short gout of fire that burns plants and kindles cold fires),
   and two in the Cinderhold: Thunder Spear (a fast bolt of lightning that bites iron and jolts it) and
@@ -172,10 +193,15 @@ FromSoftware, Inc.
   the Slagbreaker maul sets what it strikes alight.
 - **Stamina**: sprinting, swinging and blocking drain a green stamina bar. Run it dry and you are
   winded until it recovers.
-- **Four hand-built areas**: the town of Harrowmere, the Sunken Keep below its well, the
+- **Five hand-built areas**: the Cemetery of Ashes where you wake, the town of Harrowmere, the Sunken Keep below its well, the
   Verdant Hollow at the end of the green trail and the Cinderhold up the north road (its keep a map of
   its own), with locked doors,
   levers, a flooded cellar and chests.
+- **A cemetery to wake in**: the story opens in the Cemetery of Ashes, walled and floored in grey ash,
+  a short first level that teaches as you go. Climb out of your grave, find a rusted sword, cross a field
+  of headstones where Ashen Husks shamble and Shrouded Mourners stand bowed at the graves until you come
+  too close, burn the silk sealing the chapel with the Flame Bolt you find inside, and face the Ashen
+  Sexton before its gate lets you out to Harrowmere, for good.
 - **A town to come home to**: Harrowmere's sandstone and ochre houses, under terracotta roofs and
   among cypresses, olives and umbrella pines, climb on cobbled lanes from its harbour past the market's
   fountain and the Bell Square, where the cracked Silent Bell hangs, to a twin-towered cathedral of
@@ -210,7 +236,8 @@ FromSoftware, Inc.
   the shrines once you reach their far side.
 - **Everything procedural**: textures, low-poly models and sound effects are all generated at startup.
   The game itself ships no image or audio files.
-- **Save shrines**: pray at a stone shrine to heal and record your journey. The fallen rise again when
+- **Save shrines**: pray at a shrine, a stone post with a flame burning in an iron cradle, to heal and
+  record your journey. The fallen rise again when
   you do; only bosses and mimics stay dead.
 
 ## Installing
@@ -405,6 +432,8 @@ it, so Claude Code, Codex, Cursor and Copilot all follow the same rules.
 | `src/ashen_vault/world/elements.py` | Lightning against iron, fire against what was forged in it |
 | `src/ashen_vault/world/arena.py` | Boss arenas: the great door that seals behind you, and the fog left after you fall |
 | `src/ashen_vault/player/burden.py`, `ui/compare.py` | Equipment load and what it costs you; what equipping an item would change |
+| `src/ashen_vault/render/cemetery_models.py` | The Cemetery of Ashes' foes (the Ashen Sexton and its moves, the Ashen Husk, the Shrouded Mourner), headstones, open graves and its gate |
+| `src/ashen_vault/world/hints.py` | The cemetery's tutorial hints, each shown once |
 | `src/ashen_vault/render/forge_models.py` | The Cinderhold's foes, the twin gargoyles, its weapons, shots, fortress dressing and skyline |
 | `src/ashen_vault/render/fortress_props.py` | The Cinderhold's dressing: gargoyle statues, barred and great windows, forge gear, battlements and lava spouts |
 | `src/ashen_vault/render/shapes.py` | Extra low-poly shapes for models: pointed blades, lozenge bars and wedges |
@@ -435,10 +464,17 @@ file. The title is `uv run ashen-vault --smoke 60 --shot title.png` and the vill
 `uv run ashen-vault --map harrowmere --at=22,30,-60 --smoke 40 --shot village.png`; Odrin is
 `uv run ashen-vault --map harrowmere --at=28,25,-90 --smoke 40 --script "wait:0.2 interact" --shot dialogue.png`,
 Belongings is
-`uv run ashen-vault --map harrowmere --level 6 --equip primary=katana,secondary=round_shield,body=brigandine,hands=chain_mitts --smoke 40 --script "wait:0.2 menu" --shot inventory.png`,
+`uv run ashen-vault --map harrowmere --at=20,44,-90 --level 6 --equip primary=katana,secondary=round_shield,body=brigandine,hands=chain_mitts --smoke 40 --script "wait:0.2 menu" --shot inventory.png`,
 Corvane's shop is
 `uv run ashen-vault --map harrowmere --at=6,26,180 --level 7 --smoke 220 --script "forward:2 interact wait:0.3 confirm wait:0.3 confirm wait:0.3 confirm wait:0.3 confirm" --shot corvane.png`,
 the cathedral is `uv run ashen-vault --map harrowmere --at=18,6,180 --smoke 40 --shot cathedral.png`,
+the cemetery is `uv run ashen-vault --map ashen_cemetery --smoke 40 --shot cemetery.png`,
+the Mourner is `uv run ashen-vault --map ashen_cemetery --at=11,22,-90 --smoke 40 --shot mourner.png`,
+the burning silk is
+`uv run ashen-vault --map ashen_cemetery --at=12,18,-135 --smoke 90 --script "wait:0.3 cast wait:0.9" --shot silk.png`,
+the Sexton is
+`uv run ashen-vault --map ashen_cemetery --at=10,11,-90 --smoke 220 --script "wait:0.1 interact wait:1 forward:1.2 wait:1" --shot sexton.png`
+(its move is random, so take it again until it flings),
 the forge is `uv run ashen-vault --map harrowmere --at=8,18,180 --smoke 40 --shot forge.png`,
 the Warden is `uv run ashen-vault --map sunken_keep --at=15,7,-90 --smoke 40 --shot warden.png`,
 the hollow's vine path is `uv run ashen-vault --map verdant_hollow --at=9,12,90 --smoke 40 --shot verdant_hollow.png`,
