@@ -1364,7 +1364,11 @@ class Game:
             return
         p = self.player
         pr.begin_mode_3d(self._view_camera)
-        rl.rlDisableDepthTest()  # begin_mode_3d turns depth on; the viewmodel must draw over the world
+        # The viewmodel must draw over the world, yet sort within itself (fingers round a grip, in front
+        # of it and behind): wipe the depth buffer only, the colour mask keeping the world's pixels.
+        rl.rlColorMask(False, False, False, False)
+        rl.rlClearScreenBuffers()
+        rl.rlColorMask(True, True, True, True)
         gpu.set_float("isModel", 1.0)
         gpu.model_light([min(c + 0.15, 1.4) for c in self.world.builder.light_at(p.x, p.eye_y, p.z)])
         bob = math.sin(p.bob_t) * 0.02

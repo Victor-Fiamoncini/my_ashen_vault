@@ -53,6 +53,7 @@ def all_textures():
         "clouds": clouds(),
         "cloud_cap": cloud_cap(),
         "mist": mist(),
+        "ash_skin": ash_skin(),
         "white": solid(255, 255, 255),
     }
 
@@ -167,6 +168,19 @@ def flagstone():
 
 def rough_stone():
     return build(lambda x, y: tint([84, 80, 76], 0.6 + fbm(x, y, 31) * 0.6))
+
+
+def ash_skin():
+    """The player's ashen skin: near-white mottled grain (the part's colour sets its grey) shot with
+    sparse dark blue-grey streaks running along the limb."""
+
+    def px(x, y):
+        k = 0.78 + fbm(x, y, 53) * 0.2 + (hash_(x, y, 54) - 0.5) * 0.16
+        if hash_(x, y // 5, 55) < 0.025:  # a faint streak, five pixels long
+            return tint([196, 200, 222], 0.72 + hash_(x, y, 56) * 0.1)
+        return tint([255, 255, 255], k)
+
+    return build(px)
 
 
 def dirt():

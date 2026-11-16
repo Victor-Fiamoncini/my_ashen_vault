@@ -93,7 +93,7 @@ class _RecordingGpu:
         return m
 
     def draw_part(self, kind, matrix, rgb, tex="white", glow=False):
-        assert kind in ("cube", "sphere", "cyl", "cone", "quad", "blade", "lozenge", "wedge")
+        assert kind in ("cube", "sphere", "cyl", "cone", "quad", "blade", "lozenge", "wedge", "frustum")
         assert all(0 <= c <= 255 for c in rgb), rgb
         self.parts.append((kind, matrix[7]))
 
@@ -726,8 +726,9 @@ def test_every_weapon_preview_is_centred_and_fits_its_window():
 
 
 def test_every_villager_draws_as_a_person_in_every_idle():
-    """Each villager has legs, a torso, two jointed arms with hands and a face; whatever they do,
-    nothing sinks below the floor and they stand about a person's height."""
+    """Each villager has legs, a square-shouldered torso, two jointed arms with mitts and a faceless
+    head sitting on the collar; whatever they do, nothing sinks below the floor and they stand about a
+    person's height."""
     from ashen_vault.render import bounds, models
     from ashen_vault.world import villagers
 
@@ -740,6 +741,84 @@ def test_every_villager_draws_as_a_person_in_every_idle():
             assert min(y for _, y in gpu.parts) > -0.1, id_
         (_, lo_y, _), (_, hi_y, _) = bounds.measure(lambda r, look=look: models.npc(r, look, 0.0))
         assert lo_y > -0.1 and 1.5 < hi_y < 3.6, (id_, hi_y)  # a staff or spear may stand taller
+
+
+def test_every_villager_s_neck_runs_down_into_the_chest():
+    """No gap between head and body: the neck's foot sits inside the chest, in every idle and build."""
+    from ashen_vault.render import bounds, models
+    from ashen_vault.world import villagers
+
+    class Parts(bounds.BoundsGpu):
+        def __init__(self):
+            super().__init__()
+            self.found = []
+
+        def draw_part(self, kind, m, rgb, tex="white", glow=False):
+            start = len(self.points)
+            super().draw_part(kind, m, rgb, tex, glow)
+            self.found.append((kind, rgb, self.points[start:]))
+
+    for id_ in (*villagers.LOOKS, "stranger"):
+        look = villagers.look(id_)
+        for t in (0.0, 0.7, 1.9):
+            gpu = Parts()
+            models.npc(rig.Rig(gpu), look, t)
+            neck = next(pts for kind, rgb, pts in gpu.found if kind == "frustum" and rgb == look.skin)
+            chest = next(pts for kind, rgb, pts in gpu.found if kind == "cube" and rgb == look.cloth)
+            assert min(p[1] for p in neck) < max(p[1] for p in chest) - 0.02, (id_, t)
+
+
+def test_villagers_have_no_eyes():
+    """Faces are blank, as the old crawlers drew them: a bare head is all skin, shaded no darker than
+    its shadowed brow (no dark eyes, brows or mouth)."""
+    from ashen_vault.render import models
+    from ashen_vault.world import villagers
+
+    gpu = _RecordingGpu()
+    colours = []
+    gpu.draw_part = lambda kind, m, rgb, tex="white", glow=False: colours.append(rgb)
+    look = villagers.Look(hair_style="bald")
+    models._villager_head(rig.Rig(gpu), look)
+    assert all(sum(c) >= sum(look.skin) * 0.75 for c in colours), colours
+
+
+def test_villagers_are_built_square_without_round_parts():
+    """Blocky as the old crawlers' folk: no rounded shoulders, skulls or hands, only boxes, wedges and
+    faceted prisms (a held tool may still be round)."""
+    import dataclasses
+
+    from ashen_vault.render import models
+    from ashen_vault.world import villagers
+
+    for id_ in (*villagers.LOOKS, "stranger"):
+        look = dataclasses.replace(villagers.look(id_), tool=None)
+        gpu = _RecordingGpu()
+        kinds = []
+        gpu.draw_part = lambda kind, m, rgb, tex="white", glow=False, kinds=kinds: kinds.append(kind)
+        models.npc(rig.Rig(gpu), look, 0.7)
+        assert "sphere" not in kinds and "cyl" not in kinds, id_
+
+
+def test_the_enthroned_has_no_eyes():
+    """The Enthroned's face is as blank as the villagers': no dark hollows or cracks on the head (the
+    throne's carved sigil behind it aside)."""
+    from ashen_vault.render import bounds, models
+
+    class Head(bounds.BoundsGpu):
+        def __init__(self):
+            super().__init__()
+            self.dark = []
+
+        def draw_part(self, kind, m, rgb, tex="white", glow=False):
+            start = len(self.points)
+            super().draw_part(kind, m, rgb, tex, glow)
+            pts = self.points[start:]
+            if sum(rgb) < sum(models.PETRIFIED_SHADE) * 0.8 and max(p[0] for p in pts) > -0.4:
+                self.dark.append(min(p[1] for p in pts))
+
+    gpu = Head()
+    models.enthroned(rig.Rig(gpu), 0.0)
+    assert gpu.dark and max(gpu.dark) < 2.4  # every crack lies below the shoulders' mantle
 
 
 def test_villager_looks_are_checked_and_strangers_wear_grey():
@@ -808,7 +887,7 @@ def test_town_props_draw_and_roofs_cover_their_buildings():
         town_models.bed(r, seed)
         town_models.cupboard(r, seed)
         town_models.shelf(r, seed)
-        town_models.shutters(r, seed, flowers=seed % 2 == 1)
+        town_models.shutters(r, seed)
         town_models.balcony(r, seed)
         town_models.banner_pole(r, 0.5, seed)
         town_models.crest_plaque(r, seed)
@@ -853,6 +932,28 @@ def test_town_trees_stand_on_the_ground_and_differ_in_shape():
     assert height["cypress"] > height["pine"] > height["olive"] + 2
 
 
+def test_town_trees_stand_straight_on_the_ground_with_no_dark_disc():
+    """No pool of shade under a tree: only its bark meets the ground."""
+    from ashen_vault.render import bounds, town_models
+
+    class Ground(bounds.BoundsGpu):
+        def __init__(self):
+            super().__init__()
+            self.touching = []
+
+        def draw_part(self, kind, m, rgb, tex="white", glow=False):
+            start = len(self.points)
+            super().draw_part(kind, m, rgb, tex, glow)
+            if min(p[1] for p in self.points[start:]) < 0.04:
+                self.touching.append(tex)
+
+    for kind in town_models.TREE_KINDS:
+        for seed in range(3):
+            gpu = Ground()
+            town_models.town_tree(rig.Rig(gpu), kind, seed, 0.5)
+            assert gpu.touching and set(gpu.touching) == {"bark"}, (kind, seed)
+
+
 def test_every_tool_hat_hair_and_build_a_villager_can_have_draws():
     """Options no villager uses yet (a lantern, a brimmed hat) still draw, so a new villager can."""
     from ashen_vault.render import models
@@ -893,12 +994,13 @@ def test_a_raised_shield_shows_the_hand_gripping_it():
         models.shield_view(rig.Rig(gpu), p, p.hand_item("left"), 0.0, -1, {"body": None, "gloves": None})
         n = len(alone.parts)
         assert gpu.parts[:n] == alone.parts, id_  # the shield first...
-        assert models.SKIN in gpu.parts[n:], id_  # ...then the arm and the fist on its strap
+        assert models.ASHEN in gpu.parts[n:], id_  # ...then the arm and the fist on its strap
 
 
-def test_axe_and_hammer_heads_lead_their_blows():
-    """An axe's bit (a hammer's face) faces the way the swing travels as it lands, instead of lying
-    flat along the swing with its edge pointing off to the side."""
+def test_edges_and_heads_lead_their_blows():
+    """A blade's edge (an axe's bit, a hammer's face) faces the way the swing travels as it lands,
+    instead of lying flat along the swing with its edge pointing off to the side. Thrusts travel along
+    the blade, so only cuts and blows count."""
     import math
 
     from ashen_vault.player import weapons
@@ -906,11 +1008,15 @@ def test_axe_and_hammer_heads_lead_their_blows():
     from ashen_vault.render import models
 
     rest = (0.9, -0.33, 0.27, 0.25, 0.7, -0.55)
-    for id_ in models.HEADED:
+    edged = [i for i in Items.ALL if Items.get(i).kind == "weapon" and models.edge_turn(i)]
+    assert set(models.HEADED) | set(models.SWORDS) | set(models.KATANAS) <= set(edged)
+    for id_ in edged:
         item = Items.get(id_)
         reach = models.WEAPON_LEN.get(id_, 1.0)
         for kind in (weapons.LIGHT, weapons.HEAVY):
             a = weapons.moveset(item)[kind]
+            if a.motion in ("thrust", "stab"):
+                continue
 
             def pose(p, a=a):
                 return tuple(b + d for b, d in zip(rest, models._motion(a.motion, p, a.hit_at), strict=True))
@@ -1244,3 +1350,107 @@ edge_top = 4
     side = b.batches["black_brick"].verts
     assert min(side[1::3]) == pytest.approx(0) and max(side[1::3]) == pytest.approx(16)
     assert any(y == pytest.approx(8) for y in side[1::3])  # down to the walls beside it, not only the road
+
+
+class _TexGpu(_RecordingGpu):
+    """Records each part's colour and texture."""
+
+    def draw_part(self, kind, matrix, rgb, tex="white", glow=False):
+        super().draw_part(kind, matrix, rgb, tex, glow)
+        self.parts[-1] = (tuple(rgb), tex)
+
+
+def test_the_bare_player_is_ashen_grey():
+    """The player is one of the Ashen: a bare arm and hand are grey ash, grained with its texture,
+    never the villagers' flesh."""
+    from ashen_vault.render import models
+
+    gpu = _TexGpu()
+    r = rig.Rig(gpu)
+    hand, shade = models.arm(r, (0.9, -0.3, 0.3), 1)
+    models.fist(r, hand, shade)
+    assert (models.ASH_ARM, "ash_skin") in gpu.parts
+    assert (models.ASHEN, "white") in gpu.parts
+    assert all(rgb != models.SKIN for rgb, _ in gpu.parts)
+    gloved = _TexGpu()
+    models.fist(rig.Rig(gloved), *models.GLOVES["leather_gloves"], "leather_gloves")
+    assert all(tex == "white" for _, tex in gloved.parts)
+
+
+def test_the_player_s_hands_have_jointed_fingers_and_a_thumb():
+    """Four fingers of three bones each and a thumb: a human hand, not a block."""
+    from ashen_vault.render import models
+
+    for gloves in models.GLOVES:
+        for draw in (
+            lambda r, g=gloves: models.fist(r, *models.GLOVES[g], g),
+            lambda r, g=gloves: models._open_hand(r, *models.GLOVES[g], 1, g),
+        ):
+            gpu = _RecordingGpu()
+            draw(rig.Rig(gpu))
+            assert len(gpu.parts) >= 4 * 2 * len(models.BONES) + 3 + 1, gloves
+
+
+def test_every_finger_and_thumb_stays_on_its_hand():
+    """However a hand curls (gripping, clenched, relaxed or cupping a spell), no part of it strays
+    off the hand: a thumb once shot up out of the fist like a pole."""
+    from ashen_vault.render import models
+
+    hands = [(models.fist, c, (1,)) for c in (models.CURL, models.CLENCH)]
+    hands += [(models._open_hand, c, ()) for c in (models.OPEN_CURL, models.CUP_CURL)]
+    for gloves, rgb in models.GLOVES.items():
+        for draw, curl, side in hands:
+            gpu = _PlacingGpu()
+            if side:
+                draw(rig.Rig(gpu), *rgb, gloves, *side, curl=curl)
+            else:
+                draw(rig.Rig(gpu), *rgb, 1, gloves, curl=curl)
+            far = max(math.dist((0, 0, 0), p) for p in gpu.at)
+            assert far < 0.25, (draw.__name__, gloves, curl, far)
+
+
+def test_each_hand_rides_on_its_forearm():
+    """The heel of every gripping hand meets the end of its forearm, however the weapon is turned."""
+    from ashen_vault.render import models
+
+    for pose in ((0.9, -0.15, 0.26, 0.25, 0.7, -0.55), (0.8, 0.1, -0.1, 1.2, -0.4, 0.9)):
+        for side in (1, -1):
+            gpu = _PlacingGpu()
+            r = rig.Rig(gpu)
+            with models._pose_at(r, pose, side):
+                for grip in (None, models.GRIP_TURN):
+                    wrist, turn, _heel = models.hand_wrist(r, side, grip)
+                    models.fist(r, *models.GLOVES[None], None, side, turn)
+            nearest = min(math.dist(wrist, p) for p in gpu.at)
+            assert nearest < 0.06, (pose, side, nearest)
+
+
+def test_sword_trails_span_each_blade():
+    """The smear of a cut reaches the point of the (now longer) blade."""
+    from ashen_vault.render import models
+
+    for id_, spec in models.SWORDS.items():
+        assert models.WEAPON_LEN[id_] >= spec.get("base", 0.13) + spec["length"], id_
+
+
+def test_wrists_bend_only_so_far_through_every_swing():
+    """A swing turns the forearm with the hand: the wrist never breaks far off the forearm's line,
+    and the forearm still rises from below the hand."""
+    from ashen_vault.render import models
+
+    rest = (0.9, -0.19, 0.28, 0.25, 0.7, -0.55)
+    for motion in models.MOTIONS:
+        if motion in ("lash", "snare"):  # a whip's wrist snaps
+            continue
+        for i in range(21):
+            off = models._motion(motion, i / 20, 0.4)
+            pose = tuple(a + b for a, b in zip(rest, off, strict=True))
+            r = rig.Rig(_PlacingGpu())
+            with models._pose_at(r, pose, 1):
+                wrist, _turn, heel = models.hand_wrist(r, 1, models.GRIP_TURN)
+            elbow = models._elbow(wrist, 1, heel)
+            fore = [e - w for e, w in zip(elbow, wrist, strict=True)]
+            n = math.sqrt(sum(c * c for c in fore))
+            bend = math.degrees(math.acos(sum(f / n * h for f, h in zip(fore, heel, strict=True))))
+            assert bend < 80, (motion, i, bend)
+            assert fore[1] < 0, (motion, i)

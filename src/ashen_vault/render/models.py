@@ -2,7 +2,7 @@
 
 import functools
 import math
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass
 
 from ashen_vault.ai.enemy import COMBO_GAP
@@ -1475,9 +1475,12 @@ def _spider_leg(r, i, side, phase, amp, body, band, curl=0.0):
 
 
 def npc(r, look, t=0.0):
-    """A villager facing +X, built from a `villagers.Look`: boots and trousers (or a long robe), a belted
-    tunic, an apron or cloak, jointed arms with hands, a face with brows and a nose, hair, a beard, a hat
-    or hood, and whatever they hold. They idle by their trade (`look.idle`)."""
+    """A villager facing +X, built from a `villagers.Look` square and blocky, as the old PS1 crawlers
+    drew their folk: chunky boots and box legs (or a long robe flaring to its hem), a box chest with
+    square shoulders and a coat skirt flaring below the belt, trimmed at hem, collar and cuffs, an apron
+    or cloak, box arms hanging flush from the shoulders' corners ending in mitt hands, and an angular,
+    faceless head (a flat face, a brow and a nose, no eyes) sitting right on the collar, under block
+    hair, a beard, a hat or hood. They hold their trade's tool and idle by it (`look.idle`)."""
     hs, ws, stoop = villagers.BUILDS[look.build]
     sway = math.sin(t * 1.5) * 0.03
     beat = max(math.sin(t * 2.4), 0.0) ** 3  # the smith's hammer, the guard's shifting weight
@@ -1486,65 +1489,99 @@ def npc(r, look, t=0.0):
         with r.at(0, 0.95, 0, rz=-stoop):  # everything above the hips leans with the stoop
             _villager_torso(r, look, ws)
             _villager_arms(r, look, ws, t, beat)
-            with r.at(0.03, 0.72, 0, rz=stoop * 0.6 - (0.12 if look.idle == "pray" else 0.0)):
+            with r.at(0.03, HEAD_AT, 0, rz=stoop * 0.6 - (0.12 if look.idle == "pray" else 0.0)):
                 _villager_head(r, look)
             if look.blade:  # a sheathed curved sword slung across the back
-                with r.at(-0.2, 0.15, 0, rx=0.9):
+                with r.at(-0.22, 0.15, 0, rx=0.9):
                     r.part("cube", 0, 0, 0, 0.06, 1.1, 0.08, (30, 26, 30))
                     r.part("cube", 0, 0.62, 0, 0.05, 0.25, 0.05, (160, 30, 40))
 
 
+CHEST_TOP = 0.62  # the flat top of the chest, the shoulders' line, above the hips
+HEAD_AT = CHEST_TOP + 0.02  # the head sits on the collar; its short neck sinks into the chest
+FLIP = math.pi  # turns a frustum over, so it narrows downward
+
+
+def _chest_width(ws):
+    return 0.46 * ws
+
+
+def _trim(look):
+    """The darker band edging a villager's hem, collar and cuffs."""
+    return _dim(look.cloth, 0.68)
+
+
+def _mitt(r, rgb, size=0.15, grip=False, length=1.0):
+    """A blocky mitt of a hand hanging from the wrist at the origin (down -Y), fingers forward (+X): a
+    thick palm, the fingers as one block (curled forward under the palm when it grips) and a thumb."""
+    s, ln = size, size * length
+    r.part("cube", 0, -ln * 0.45, 0, s * 0.72, ln * 0.9, s, rgb)  # palm and back
+    if grip:
+        r.part("cube", s * 0.22, -ln * 0.95, 0, s * 0.66, ln * 0.32, s * 0.94, _dim(rgb, 0.94))
+    else:
+        r.part("cube", 0, -ln * 1.15, 0, s * 0.56, ln * 0.55, s * 0.9, _dim(rgb, 0.94))
+    r.part("cube", s * 0.42, -ln * 0.45, 0, s * 0.26, ln * 0.5, s * 0.3, _dim(rgb, 0.97), rz=0.4)  # thumb
+
+
 def _villager_legs(r, look, ws):
-    if look.garb == "robe":  # a robe falling to the ankles, hems of the boots peeping out
-        r.part("cyl", 0, 0.48, 0, 0.5 * ws, 0.96, 0.56 * ws, look.cloth)
-        r.part("cyl", 0, 0.06, 0, 0.56 * ws, 0.12, 0.62 * ws, _dim(look.cloth, 0.8))  # hem
+    if look.garb == "robe":  # a robe flaring to the ankles, the boots' toes peeping out
+        r.part("frustum", 0, 0.5, 0, 0.6 * ws, 1.0, 0.66 * ws, look.cloth)
+        r.part("frustum", 0, 0.05, 0, 0.63 * ws, 0.1, 0.69 * ws, _trim(look))  # hem band
+        r.part("cube", 0.17 * ws, 0.5, 0, 0.02, 0.9, 0.06, _trim(look))  # the seam down its front
         for z in (-0.1, 0.1):
-            r.part("cube", 0.2, 0.04, z * ws, 0.16, 0.08, 0.1, look.boots)
+            r.part("cube", 0.26 * ws, 0.04, z * ws, 0.14, 0.08, 0.11, look.boots)
         return
-    for z in (-0.11, 0.11):
-        r.part("cube", 0, 0.62, z * ws, 0.17, 0.5, 0.15, look.trousers)  # thigh
-        r.part("cube", 0, 0.28, z * ws, 0.15, 0.4, 0.13, _dim(look.trousers, 0.9))  # shin
-        r.part("cube", 0.04, 0.09, z * ws, 0.24, 0.18, 0.15, look.boots)  # boot
-        r.part("cube", 0.0, 0.2, z * ws, 0.17, 0.04, 0.16, _dim(look.boots, 0.75))  # boot cuff
+    for z in (-0.12, 0.12):
+        r.part("cube", 0, 0.7, z * ws, 0.19, 0.42, 0.18, look.trousers)  # thigh
+        r.part("cube", 0, 0.36, z * ws, 0.16, 0.34, 0.15, _dim(look.trousers, 0.9))  # shin
+        r.part("cube", 0, 0.14, z * ws, 0.19, 0.2, 0.18, look.boots)  # boot
+        r.part("frustum", 0, 0.27, z * ws, 0.23, 0.1, 0.22, _dim(look.boots, 0.82), rz=FLIP)  # flared cuff
+        r.part("cube", 0.07, 0.04, z * ws, 0.32, 0.08, 0.19, _dim(look.boots, 0.9))  # foot
 
 
 def _villager_torso(r, look, ws):
-    w = 0.42 * ws
-    r.part("cube", 0, 0.32, 0, 0.26, 0.5, w, look.cloth)  # chest
-    r.part("cube", 0, 0.05, 0, 0.27, 0.16, w * 0.92, _dim(look.cloth, 0.92))  # waist
-    r.part("cube", 0, 0.02, 0, 0.29, 0.06, w * 0.95, look.belt)  # belt
-    r.part("cube", 0.15, 0.02, 0, 0.02, 0.06, 0.06, (170, 150, 90))  # buckle
-    r.part("cube", 0, -0.12, 0, 0.27, 0.2, w * 0.98, look.cloth)  # tunic skirt over the hips
-    r.part("cube", 0.12, 0.5, 0, 0.04, 0.1, 0.16, _dim(look.cloth, 0.75))  # collar
+    w = _chest_width(ws)
+    trim = _trim(look)
+    r.part("cube", 0, CHEST_TOP - 0.24, 0, 0.28, 0.48, w, look.cloth)  # chest, square at the shoulders
+    r.part("cube", 0.145, CHEST_TOP - 0.24, 0, 0.012, 0.46, 0.05, trim)  # the coat's front edge
+    r.part("cube", 0, 0.08, 0, 0.26, 0.14, w * 0.9, _dim(look.cloth, 0.92))  # waist
+    r.part("cube", 0, 0.03, 0, 0.3, 0.07, w * 0.95, look.belt)  # belt
+    r.part("cube", 0.155, 0.03, 0, 0.02, 0.07, 0.07, (170, 150, 90))  # buckle
+    r.part("frustum", 0, -0.2, 0, 0.42, 0.42, w * 1.45, look.cloth)  # the coat's skirt, flaring below
+    r.part("frustum", 0, -0.38, 0, 0.44, 0.06, w * 1.5, trim)  # its hem
+    r.part("cube", 0, CHEST_TOP + 0.015, 0, 0.22, 0.05, 0.26, trim)  # collar
     if look.apron:
-        r.part("cube", 0.14, 0.05, 0, 0.02, 0.62, w * 0.62, look.apron)
-        r.part("cube", 0.14, 0.42, 0, 0.02, 0.18, w * 0.45, look.apron)  # bib
-        r.part("cube", 0.155, -0.08, 0, 0.01, 0.14, w * 0.3, _dim(look.apron, 0.8))  # pocket
+        r.part("cube", 0.15, CHEST_TOP - 0.24, 0, 0.02, 0.3, w * 0.5, look.apron)  # bib
+        r.part("cube", 0.185, -0.2, 0, 0.02, 0.44, w * 0.65, look.apron, rz=0.19)  # down the skirt
+        r.part("cube", 0.2, -0.26, 0, 0.01, 0.12, w * 0.3, _dim(look.apron, 0.8), rz=0.19)  # pocket
     if look.cloak:
-        r.part("cube", -0.16, 0.05, 0, 0.05, 0.95, w * 1.15, look.cloak)
-        r.part("cube", -0.05, 0.5, 0, 0.26, 0.08, w * 1.2, _dim(look.cloak, 1.1))  # mantle
-        r.part("cube", 0.13, 0.48, 0, 0.03, 0.06, 0.06, (170, 150, 90))  # clasp
+        r.part("cube", -0.22, 0.05, 0, 0.05, 0.98, w * 1.25, look.cloak, rz=-0.1)
+        r.part("cube", -0.02, CHEST_TOP - 0.02, 0, 0.34, 0.07, w + 0.36, _dim(look.cloak, 1.1))  # mantle
+        r.part("cube", 0.165, CHEST_TOP - 0.06, 0, 0.03, 0.06, 0.06, (170, 150, 90))  # clasp
 
 
 TOOL_WOOD = (96, 70, 44)
 TOOL_IRON = (110, 110, 118)
+ARM = 0.16  # a villager's arm, square in section
 
 
 def _villager_arms(r, look, ws, t, beat):
-    """Two arms from the shoulders, each an upper arm, an elbow and a forearm ending in a hand. The
-    right one (+Z) works the tool; the left rests, or both clasp in prayer."""
+    """Two box arms hanging flush from the chest's square shoulders, each an upper arm and a forearm
+    with a trimmed cuff, ending in a mitt. The right one (+Z) works the tool; the left rests, or both
+    clasp in prayer."""
     sleeve = (look.cloak or look.cloth) if look.garb == "robe" else look.cloth
+    reach = _chest_width(ws) / 2 + ARM / 2
     for side in (1, -1):
         sh, el, tool = _arm_pose(look, side, t, beat)
-        with r.at(0, 0.5, side * (0.25 * ws), rz=sh, rx=-side * 0.08):
-            r.part("cube", 0, -0.16, 0, 0.12, 0.34, 0.12, sleeve)
-            with r.at(0, -0.32, 0, rz=el):
-                r.part("cube", 0, -0.14, 0, 0.1, 0.3, 0.1, _dim(sleeve, 0.92))
-                r.part("cube", 0, -0.27, 0, 0.11, 0.05, 0.11, _dim(sleeve, 0.7))  # cuff
+        with r.at(0, CHEST_TOP - 0.07, side * reach, rz=sh, rx=-side * 0.06):
+            r.part("cube", 0, -0.11, 0, ARM, 0.36, ARM, sleeve)
+            with r.at(0, -0.29, 0, rz=el):
+                r.part("cube", 0, -0.14, 0, ARM * 0.92, 0.3, ARM * 0.92, _dim(sleeve, 0.92))
+                r.part("cube", 0, -0.27, 0, ARM * 1.12, 0.07, ARM * 1.12, _trim(look))  # cuff
                 with r.at(0, -0.3, 0):
-                    hand(r, look.skin, size=0.09, curl=0.6 if tool else 0.2)
+                    _mitt(r, look.skin, grip=tool)
                     if tool:
-                        with r.at(0, -0.06, 0):
+                        with r.at(0, -0.09, 0):
                             _villager_tool(r, look.tool, t)
 
 
@@ -1602,40 +1639,45 @@ def _villager_tool(r, tool, t):
 
 
 def _villager_head(r, look):
+    """An angular, faceless head on the collar: a faceted skull narrowing to the chin, a flat face
+    with only a brow and a nose (no eyes or mouth), block ears, block hair, and a short neck sunk
+    into the chest so no gap opens between head and body."""
     skin = look.skin
-    r.part("cube", 0, 0.0, 0, 0.12, 0.1, 0.12, skin)  # neck
-    r.part("sphere", 0, 0.16, 0, 0.27, 0.3, 0.25, skin)
-    r.part("cube", 0.125, 0.15, 0, 0.05, 0.06, 0.04, _dim(skin, 0.9))  # nose
-    for z in (-0.055, 0.055):
-        r.part("cube", 0.12, 0.2, z, 0.02, 0.03, 0.035, (24, 20, 18))  # eyes
-        r.part("cube", 0.125, 0.235, z, 0.02, 0.02, 0.05, _dim(look.hair, 0.9))  # brows
-        r.part("cube", 0.0, 0.17, z * 2.4, 0.06, 0.08, 0.03, _dim(skin, 0.92))  # ears
-    r.part("cube", 0.12, 0.09, 0, 0.015, 0.015, 0.06, _dim(skin, 0.6))  # mouth
-    if look.beard:
-        r.part("cube", 0.09, 0.06, 0, 0.1, 0.14, 0.2, look.hair)
-        r.part("cube", 0.11, 0.0, 0, 0.07, 0.1, 0.12, look.hair)
-    if look.hood:  # a deep hood that hides most of the face
-        r.part("sphere", -0.03, 0.2, 0, 0.36, 0.38, 0.34, look.cloak or look.cloth)
-        r.part("cube", -0.1, 0.0, 0, 0.2, 0.2, 0.4, look.cloak or look.cloth)
+    r.part("frustum", 0, -0.02, 0, 0.13, 0.14, 0.13, skin)  # neck, from inside the chest
+    r.part("frustum", 0, 0.17, 0, 0.24, 0.3, 0.22, skin, rz=FLIP)  # the skull, narrowing to the chin
+    r.part("cube", 0.1, 0.15, 0, 0.03, 0.2, 0.14, _dim(skin, 0.97))  # the flat face
+    r.part("cube", 0.115, 0.22, 0, 0.04, 0.035, 0.17, _dim(skin, 0.86))  # the brow
+    r.part("wedge", 0.13, 0.15, 0, 0.05, 0.08, 0.04, _dim(skin, 0.92))  # nose
+    for side in (-1, 1):
+        r.part("cube", 0, 0.17, side * 0.115, 0.06, 0.08, 0.03, _dim(skin, 0.9))  # ears
+    if look.beard:  # a block of beard falling from the jaw over the chest
+        r.part("cube", 0.09, 0.04, 0, 0.1, 0.18, 0.2, look.hair)
+        r.part("cube", 0.12, -0.09, 0, 0.08, 0.16, 0.16, _dim(look.hair, 0.94))
+    hood = look.cloak or look.cloth
+    if look.hood:  # a deep cowl over the head and shoulders, the face in its mouth
+        r.part("frustum", -0.05, 0.15, 0, 0.36, 0.46, 0.36, hood)
+        r.part("cube", -0.06, -0.02, 0, 0.26, 0.12, 0.44, hood)
         return
     style = look.hair_style
-    if style != "bald":
-        r.part("sphere", -0.03, 0.25, 0, 0.29, 0.17, 0.27, look.hair)
+    if style == "bald":
+        r.part("cube", -0.01, 0.325, 0, 0.22, 0.03, 0.2, _dim(skin, 0.95))  # a bare pate
     else:
-        r.part("sphere", -0.02, 0.26, 0, 0.25, 0.1, 0.23, _dim(skin, 0.95))  # a bare pate
+        r.part("cube", -0.02, 0.31, 0, 0.27, 0.08, 0.26, look.hair)  # a block of hair over the top
+        r.part("cube", -0.11, 0.2, 0, 0.06, 0.2, 0.25, look.hair)  # down the back
+        r.part("cube", 0.11, 0.28, 0, 0.04, 0.05, 0.22, _dim(look.hair, 0.92))  # the fringe
     if style == "long":
-        r.part("cube", -0.1, 0.08, 0, 0.1, 0.32, 0.26, look.hair)
+        r.part("cube", -0.12, 0.06, 0, 0.08, 0.36, 0.26, look.hair)
     elif style == "bun":
-        r.part("sphere", -0.13, 0.3, 0, 0.12, 0.12, 0.12, look.hair)
+        r.part("cube", -0.15, 0.32, 0, 0.1, 0.1, 0.1, look.hair)
     if look.hat == "brim":
-        r.part("cyl", 0, 0.3, 0, 0.44, 0.03, 0.44, look.hat_rgb)
-        r.part("cyl", 0, 0.37, 0, 0.24, 0.13, 0.24, look.hat_rgb)
-    elif look.hat == "cap":
-        r.part("sphere", -0.01, 0.29, 0, 0.29, 0.14, 0.27, look.hat_rgb)
-        r.part("cube", 0.13, 0.27, 0, 0.1, 0.02, 0.18, _dim(look.hat_rgb, 0.85))  # peak
+        r.part("frustum", 0, 0.35, 0, 0.46, 0.04, 0.46, look.hat_rgb)
+        r.part("frustum", 0, 0.44, 0, 0.26, 0.16, 0.26, look.hat_rgb)
+    elif look.hat == "cap":  # a squat skullcap on a band
+        r.part("frustum", -0.01, 0.37, 0, 0.29, 0.12, 0.28, look.hat_rgb)
+        r.part("cube", -0.01, 0.315, 0, 0.29, 0.04, 0.28, _dim(look.hat_rgb, 0.7))
     elif look.hat == "coif":  # a mail coif over the head and neck
-        r.part("sphere", -0.01, 0.2, 0, 0.3, 0.3, 0.28, look.hat_rgb)
-        r.part("cube", -0.04, 0.0, 0, 0.18, 0.12, 0.28, look.hat_rgb)
+        r.part("cube", -0.04, 0.2, 0, 0.27, 0.32, 0.28, look.hat_rgb)
+        r.part("cube", -0.05, -0.02, 0, 0.2, 0.12, 0.32, look.hat_rgb)
 
 
 THRONE_STONE = (118, 114, 108)
@@ -1675,7 +1717,8 @@ DUST_MOTE = (200, 196, 180)
 def enthroned(r, t):
     """The Enthroned: an ancient, gaunt figure far taller than a man, turned to stone where it sat on
     the cathedral throne, facing +X. Grey robes pool down the dais in stiff folds, long bony hands lie
-    on the arms, and a crown of spikes (two broken) rises over a cowled face with empty eyes. Cracks
+    on the arms, and a crown of spikes (two broken) rises over a cowled, faceless head. Built square
+    and blocky like the villagers, a broad flat mantle over its shoulders. Cracks
     run through it, lichen and moss creep up from the dais, and dust lies on every ledge. Only the dust
     drifting through the light moves."""
     # TODO(story): the Enthroned's petrification: when, why, and what still listens inside the stone.
@@ -1699,8 +1742,8 @@ def enthroned(r, t):
         # Torso: long and narrow, leaning back into the throne, a chain of office over the chest.
         with r.at(-0.15, 0.25, 0, rz=0.08):
             r.part("cube", 0, 0.55, 0, 0.36, 1.1, 0.62, robe)
-            r.part("cube", 0.05, 0.95, 0, 0.3, 0.28, 0.78, _dim(robe, 1.08))  # mantle
-            r.part("cube", 0.05, 1.095, 0, 0.26, 0.015, 0.74, SETTLED_DUST)  # dust on the shoulders
+            r.part("cube", 0.03, 0.98, 0, 0.42, 0.22, 1.04, _dim(robe, 1.08))  # a square mantle
+            r.part("cube", 0.03, 1.095, 0, 0.38, 0.015, 1.0, SETTLED_DUST)  # dust on the shoulders
             r.part("cube", -0.12, 0.45, 0, 0.14, 1.0, 0.7, under)  # its back
             for i in range(5):  # the chain of office, stone like the rest
                 a = (i - 2) * 0.32
@@ -1713,7 +1756,7 @@ def enthroned(r, t):
             # Arms hanging from the shoulders to the throne's arms, forearms laid along them and long
             # bony hands drooping over the carved scrolls.
             for side in (-1, 1):
-                with r.at(0, 0.98, side * 0.42, rx=-side * 0.12), r.at(0, 0, 0, rz=0.12):
+                with r.at(0, 0.94, side * 0.4, rx=-side * 0.06), r.at(0, 0, 0, rz=0.12):
                     r.part("cube", 0, -0.45, 0, 0.17, 0.9, 0.17, robe, tex="rough_stone")
                     with r.at(0, -0.88, 0, rz=1.5):
                         r.part("cube", 0, -0.32, 0, 0.15, 0.64, 0.15, robe)
@@ -1722,21 +1765,19 @@ def enthroned(r, t):
                         if side == 1:  # a crack ringing one forearm
                             r.part("cube", 0, -0.45, 0, 0.16, 0.012, 0.16, CRACK)
                         with r.at(0, -0.68, 0, rz=-1.3):
-                            hand(r, skin, size=0.16, bony=True, curl=0.9)
-            # Head: a long gaunt face under a cowl, the eyes empty hollows, the spiked crown.
+                            _mitt(r, skin, size=0.17, length=1.4)  # long, drooping over the scroll
+            # Head: long, gaunt and faceless under a square-browed cowl, and the spiked crown.
             with r.at(0.04, 1.2, 0, rz=0.12):
                 r.part("cube", 0, 0.05, 0, 0.12, 0.16, 0.14, skin)  # neck
-                r.part("sphere", 0, 0.32, 0, 0.3, 0.42, 0.28, skin)
-                r.part("cube", 0.12, 0.18, 0, 0.08, 0.14, 0.16, _dim(skin, 0.85))  # long jaw
-                r.part("cube", 0.13, 0.36, 0, 0.06, 0.14, 0.05, _dim(skin, 0.9))  # nose
-                for z in (-0.06, 0.06):
-                    r.part("cube", 0.14, 0.42, z, 0.02, 0.03, 0.045, CRACK)  # empty eyes
-                    r.part("cube", 0.1, 0.27, z * 1.9, 0.12, 0.08, 0.03, _dim(skin, 0.7))  # hollow cheeks
-                r.part("cube", 0.145, 0.3, 0.03, 0.01, 0.22, 0.012, CRACK, rx=0.35)  # a hairline crack
-                r.part("sphere", -0.1, 0.38, 0, 0.42, 0.5, 0.42, under)  # the cowl, framing the face
+                r.part("frustum", 0, 0.33, 0, 0.3, 0.46, 0.28, skin, rz=FLIP)  # the skull, to a long chin
+                r.part("cube", 0.12, 0.2, 0, 0.08, 0.14, 0.14, _dim(skin, 0.9))  # long jaw
+                r.part("cube", 0.125, 0.34, 0, 0.03, 0.3, 0.17, _dim(skin, 0.96))  # the flat face
+                r.part("cube", 0.14, 0.44, 0, 0.04, 0.04, 0.2, _dim(skin, 0.86))  # the brow
+                r.part("wedge", 0.16, 0.35, 0, 0.06, 0.12, 0.05, _dim(skin, 0.92))  # nose
+                r.part("frustum", -0.1, 0.38, 0, 0.44, 0.6, 0.44, under)  # the cowl, framing the face
                 r.part("cube", 0.05, 0.6, 0, 0.3, 0.06, 0.4, robe)  # its brim
                 r.part("cube", 0.05, 0.635, 0, 0.26, 0.012, 0.36, SETTLED_DUST)
-                r.part("cyl", -0.02, 0.66, 0, 0.36, 0.08, 0.36, under)  # crown band
+                r.part("frustum", -0.02, 0.66, 0, 0.36, 0.08, 0.36, under, rz=FLIP)  # crown band
                 for i in range(7):  # stone spikes, tallest at the front; two have snapped off
                     a = (i - 3) * 0.42
                     h = (0.5 - abs(i - 3) * 0.07) * (0.4 if i in (1, 5) else 1.0)
@@ -3427,7 +3468,8 @@ def _ease_in(k):
 # attack motion is three key poses (offsets from rest, (dx, dy, dz, rx, ry, rz)):
 #   wind  - drawn back, reached a little before the blow lands,
 #   strike - where the blow lands (at the attack's hit_at),
-#   follow - carried through past the target (overshooting a touch, then settling),
+#   follow - carried through past the target (overshooting a touch, then settling): a full cut
+#            carries the arm on out of the view, low or to the far side, as a real one would,
 # then it eases part of the way home (to SETTLE between follow and rest) as the swing ends, and the
 # view's PoseBlend (player/view_blend.py) carries it the rest of the way, slowing as it arrives, after
 # the swing. The wind -> strike leg accelerates, so swings snap rather than float.
@@ -3436,26 +3478,27 @@ REST = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 MOTIONS = {
     # Light cuts: high right, down across to the low left.
     "slash": (
-        (-0.05, 0.18, 0.2, 0.45, 0.3, 0.3),
-        (0.14, 0.0, -0.12, -0.6, -0.35, -1.2),
-        (0.06, -0.08, -0.3, -1.2, -0.55, -1.0),
+        (-0.08, 0.26, 0.3, 0.45, 0.4, 0.5),
+        (0.16, -0.04, -0.16, -0.6, -0.4, -1.25),
+        (0.0, -0.42, -0.72, -1.15, -0.75, -1.3),
     ),
     # A flat arc from right to left, the whole arm turning with it.
     "sweep": (
-        (0.0, 0.03, 0.32, 1.0, 0.6, -0.4),
-        (0.06, 0.05, -0.12, -0.6, -0.4, -1.0),
-        (0.0, 0.0, -0.5, -1.5, -0.9, -0.6),
+        (-0.04, 0.04, 0.42, 1.0, 0.75, -0.4),
+        (0.08, 0.03, -0.16, 0.2, -0.45, -1.0),
+        (-0.06, -0.16, -0.88, -0.9, -1.1, -0.7),
     ),
-    # Overhead: raised high over the shoulder, then straight down through the target.
+    # Overhead: raised high over the shoulder, then straight down through the target. The arm drops
+    # with the blow rather than the head tipping far past level, which would break the wrist.
     "chop": (
-        (-0.1, 0.2, -0.02, 0.0, 0.1, 0.85),
-        (0.16, -0.02, -0.1, 0.0, -0.05, -1.25),
-        (0.12, -0.12, -0.1, 0.0, -0.1, -1.55),
+        (-0.12, 0.26, -0.04, 0.0, 0.1, 0.95),
+        (0.18, -0.06, -0.12, 0.0, -0.05, -0.9),
+        (0.12, -0.61, -0.14, 0.0, -0.1, -1.15),
     ),
     "slam": (
-        (-0.1, 0.24, -0.05, 0.0, 0.1, 1.0),
-        (0.15, -0.2, -0.12, 0.0, 0.0, -1.4),
-        (0.15, -0.32, -0.12, 0.0, 0.0, -1.65),
+        (-0.12, 0.28, -0.06, 0.0, 0.1, 1.05),
+        (0.16, -0.22, -0.12, 0.0, 0.0, -1.0),
+        (0.14, -0.65, -0.14, 0.0, 0.0, -1.15),
     ),
     "thrust": (
         (-0.25, 0.08, -0.2, 0.0, -0.25, -1.15),
@@ -3480,20 +3523,20 @@ MOTIONS = {
     # Axes swing their weight: the head is hauled up behind the shoulder and falls through the
     # target bit first, biting low rather than sliding across like a sword's cut.
     "hew": (  # a falling diagonal chop from over the right shoulder
-        (-0.12, 0.22, 0.12, 0.25, 0.15, 1.05),
-        (0.18, -0.08, -0.06, -0.15, -0.1, -1.3),
-        (0.14, -0.2, -0.14, -0.25, -0.2, -1.6),
+        (-0.12, 0.26, 0.18, 0.25, 0.2, 1.1),
+        (0.18, -0.1, -0.1, -0.15, -0.12, -0.9),
+        (0.1, -0.59, -0.42, -0.25, -0.3, -1.1),
     ),
     "cleave": (  # the whole body behind it: wound far back overhead, buried low with a hard stop
-        (-0.16, 0.3, -0.02, 0.0, 0.05, 1.35),
-        (0.2, -0.16, -0.08, 0.0, -0.05, -1.4),
-        (0.18, -0.3, -0.08, 0.0, -0.05, -1.7),
+        (-0.16, 0.32, -0.02, 0.0, 0.05, 1.4),
+        (0.2, -0.18, -0.1, 0.0, -0.05, -1.0),
+        (0.16, -0.67, -0.12, 0.0, -0.05, -1.2),
     ),
     # Hammers and maces: a short, heavy overhand blow that drops straight onto the target.
     "pound": (
-        (-0.1, 0.2, 0.0, 0.0, 0.05, 0.85),
-        (0.2, -0.1, -0.08, 0.0, 0.0, -1.2),
-        (0.16, -0.2, -0.08, 0.0, 0.0, -1.45),
+        (-0.1, 0.22, 0.0, 0.0, 0.05, 0.9),
+        (0.2, -0.12, -0.08, 0.0, 0.0, -0.8),
+        (0.14, -0.51, -0.1, 0.0, 0.0, -0.95),
     ),
     "draw": (
         (-0.05, 0.0, -0.15, -0.25, -0.5, -1.0),
@@ -3507,8 +3550,8 @@ MOTIONS = {
     ),
     "leap": (
         (-0.05, 0.25, 0.0, 0.0, 0.0, 1.0),
-        (0.25, -0.25, -0.1, 0.0, 0.0, -1.5),
-        (0.2, -0.3, -0.1, 0.0, 0.0, -1.6),
+        (0.25, -0.25, -0.1, 0.0, 0.0, -1.1),
+        (0.2, -0.45, -0.1, 0.0, 0.0, -1.0),
     ),
 }
 
@@ -3557,30 +3600,44 @@ GRIPS = {
     "whip": (-0.04, -0.14),
     "mace": (-0.18, -0.18),
     "club": (-0.15, -0.15),
-    "axe": (-0.18, 0.25),
-    "hammer": (-0.18, 0.25),
+    "axe": (-0.2, 0.02),
+    "hammer": (-0.2, 0.02),
 }
 NODACHI_GRIP = (0.05, -0.3)
+# A two-handed axe or hammer: the leading (right) hand high on the haft, under the head, and the left
+# just below it, as a woodsman holds a felling axe.
+HEADED_GRIP = (0.02, -0.2)
 
-# Sleeve colour and trim for each body armor (None: a plain linen shirt).
+# The player is one of the Ashen: their bare skin is dark, sooty grey ash. The forearm carries the `ash_skin`
+# texture's grain and streaks; the hands are the same ash, drawn plain so the fingers stay clear at 320x240.
+ASHEN = (96, 94, 96)
+ASH_ARM = (88, 86, 88)  # the forearm: its grain lightens it, so a touch darker than the hands
+# Sleeve colour and trim for each body armor (None: the bare ashen forearm). Dull, dark tones, as the PS1
+# lit them.
 SLEEVES = {
-    None: ((190, 178, 150), (160, 148, 120)),
-    "padded_coat": ((120, 104, 80), (90, 76, 56)),
-    "ringmail": ((130, 132, 140), (70, 72, 80)),
-    "lamellar_vest": ((140, 52, 40), (200, 170, 90)),
-    "brigandine": ((150, 40, 40), (190, 190, 200)),
-    "blackened_plate": ((52, 52, 58), (150, 150, 160)),
+    None: (ASH_ARM, (118, 118, 128)),
+    "padded_coat": ((100, 86, 64), (70, 58, 42)),
+    "ringmail": ((112, 114, 120), (58, 60, 66)),
+    "lamellar_vest": ((112, 44, 36), (170, 146, 80)),
+    "brigandine": ((118, 36, 34), (168, 168, 176)),
+    "blackened_plate": ((48, 48, 54), (138, 138, 148)),
 }
 GLOVES = {
-    None: (SKIN, tuple(c - 20 for c in SKIN)),
-    "leather_gloves": ((96, 64, 40), (70, 46, 30)),
-    "chain_mitts": ((150, 152, 160), (90, 92, 100)),
-    "iron_gauntlets": ((120, 120, 130), (180, 180, 190)),
+    None: (ASHEN, (118, 118, 128)),
+    "leather_gloves": ((86, 58, 38), (58, 38, 26)),
+    "chain_mitts": ((128, 130, 138), (78, 80, 88)),
+    "iron_gauntlets": ((108, 108, 118), (168, 168, 178)),
 }
+FOREARM = 0.15  # the forearm's girth where it leaves the view; it tapers to TAPER of that at the wrist
+REACH = 1.3  # how far past the elbow (wrist 0, elbow 1) the forearm is drawn, out of the view
+# Where the elbow lies from the wrist (forward, up, outward): well below the view, so the forearm rises
+# steeply from the bottom of the screen into the hand.
+ELBOW = (-0.12, -0.8, 0.3)
 
 
-def _limb(r, a, b, thick, rgb):
-    """A box from point a to point b (camera space), `thick` across."""
+def _limb(r, a, b, thick, rgb, kind="cube", tex="white"):
+    """A box from point a to point b (camera space), `thick` across. As a `frustum` it is widest at a
+    and narrows toward b."""
     dx, dy, dz = b[0] - a[0], b[1] - a[1], b[2] - a[2]
     length = math.sqrt(dx * dx + dy * dy + dz * dz)
     if length < 1e-6:
@@ -3588,45 +3645,208 @@ def _limb(r, a, b, thick, rgb):
     yaw = math.atan2(-dz, dx)
     pitch = math.asin(max(-1.0, min(1.0, dy / length)))
     mid = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2)
-    r.part("cube", *mid, length, thick, thick, rgb, ry=yaw, rz=pitch)
+    if kind == "cube":
+        r.part("cube", *mid, length, thick, thick, rgb, tex=tex, ry=yaw, rz=pitch)
+        return
+    with r.at(*mid, ry=yaw, rz=pitch):  # the shape's +Y turned onto the limb's line
+        r.part(kind, 0, 0, 0, thick, length, thick, rgb, tex=tex, rz=-math.pi / 2)
 
 
-def arm(r, wrist, side, body=None, gloves=None):
-    """A forearm from off-screen to `wrist` (camera space), in the sleeve of the body armor.
-    side is +1 for the right arm, -1 for the left."""
-    elbow = (wrist[0] - 0.75, wrist[1] - 0.42, wrist[2] + 0.28 * side)
-    sleeve, trim = SLEEVES.get(body, SLEEVES[None])
-    cuff = _lerp(wrist, elbow, 0.12)
-    _limb(r, cuff, elbow, 0.15 if body == "blackened_plate" else 0.13, sleeve)
-    if body == "ringmail":  # rows of rings
-        for k in (0.35, 0.55, 0.75):
-            _limb(r, _lerp(wrist, elbow, k), _lerp(wrist, elbow, k + 0.04), 0.138, trim)
-    elif body in ("lamellar_vest", "brigandine"):  # laced plates / rivets
-        for k in (0.3, 0.5, 0.7):
-            _limb(r, _lerp(wrist, elbow, k), _lerp(wrist, elbow, k + 0.03), 0.14, trim)
-    elif body == "blackened_plate":  # a vambrace with a bright edge
-        _limb(r, _lerp(wrist, elbow, 0.14), _lerp(wrist, elbow, 0.2), 0.17, trim)
-    else:  # a cuff seam
-        _limb(r, _lerp(wrist, elbow, 0.14), _lerp(wrist, elbow, 0.19), 0.14, trim)
+def _girth(k, thick):
+    """The forearm's thickness `k` of the way from wrist (0) to elbow (1)."""
+    return thick * (shapes.TAPER + (1 - shapes.TAPER) * k / REACH)
+
+
+WRIST_GIVE = 0.25  # how far the forearm runs on along the hand's heel, rather than down to ELBOW
+
+
+def _elbow(wrist, side, heel=None, give=WRIST_GIVE):
+    """Where the forearm drawn to `wrist` comes from: below the view (ELBOW), bent toward the line the
+    heel of the hand points along (`heel`, a unit vector), as a wrist bends only so far."""
+    e = (ELBOW[0], ELBOW[1], ELBOW[2] * side)
+    if heel:
+        n = math.sqrt(sum(c * c for c in e))
+        d = [a / n * (1 - give) + b * give for a, b in zip(e, heel, strict=True)]
+        k = n / (math.sqrt(sum(c * c for c in d)) or 1.0)
+        e = _within_bend(tuple(c * k for c in d), heel, n)
+    return (wrist[0] + e[0], wrist[1] + e[1], wrist[2] + e[2])
+
+
+WRIST_BEND = math.radians(50)  # the most a wrist bends off its forearm's line, even mid-swing
+ELBOW_DROP = 0.3  # the forearm always falls at least this steeply (the sine of its slope) to the elbow
+
+
+def _within_bend(e, heel, n):
+    """The forearm `e` (wrist to elbow, length n) swung toward the heel's line until the wrist bends no
+    more than WRIST_BEND: in a hard swing the whole forearm turns with the hand, not the wrist alone.
+    It turns only so far that it still rises from below the view (ELBOW_DROP); past that the wrist
+    takes the rest."""
+    u = [c / n for c in e]
+    cos = max(-1.0, min(1.0, sum(a * b for a, b in zip(u, heel, strict=True))))
+    bend = math.acos(cos)
+    if bend <= WRIST_BEND:
+        return e
+    perp = [a - cos * b for a, b in zip(u, heel, strict=True)]
+    pn = math.sqrt(sum(c * c for c in perp))
+    if pn < 1e-6:
+        return e
+
+    def at(angle):  # the direction `angle` off the heel, in the plane of u and the heel
+        s, c = math.sin(angle), math.cos(angle)
+        return [h * c + p / pn * s for h, p in zip(heel, perp, strict=True)]
+
+    lo, hi = WRIST_BEND, bend  # find the least bend whose forearm still falls steeply enough
+    if at(lo)[1] > -ELBOW_DROP:
+        for _ in range(16):
+            mid = (lo + hi) / 2
+            lo, hi = (mid, hi) if at(mid)[1] > -ELBOW_DROP else (lo, mid)
+        lo = hi
+    return tuple(c * n for c in at(lo))
+
+
+def arm(r, wrist, side, body=None, gloves=None, heel=None, give=WRIST_GIVE):
+    """A forearm rising from below the view to `wrist` (camera space), where the heel of the hand
+    meets it: one smooth taper from below the elbow to the wrist, the same girth in any armor. Bare,
+    it is the player's sooty ash; in body armor, its sleeve's colour. Gloves sheathe the wrist end
+    close-fitting. side is +1 for the right arm, -1 for the left. Returns the hand's colour and shade."""
+    elbow = _elbow(wrist, side, heel, give)
+    sleeve, _trim = SLEEVES.get(body, SLEEVES[None])
     hand, shade = GLOVES.get(gloves, GLOVES[None])
-    if gloves == "iron_gauntlets":  # a flared cuff over the sleeve
-        _limb(r, _lerp(wrist, elbow, 0.02), _lerp(wrist, elbow, 0.2), 0.17, shade)
-    elif gloves:
-        _limb(r, _lerp(wrist, elbow, 0.02), _lerp(wrist, elbow, 0.15), 0.145, shade)
+    tex = "ash_skin" if body is None else "white"
+    _limb(r, _lerp(wrist, elbow, REACH), wrist, FOREARM, sleeve, "frustum", tex)
+    if gloves:  # the glove's cuff, hugging the wrist
+        cuff = 0.3 if gloves == "iron_gauntlets" else 0.22
+        _limb(r, _lerp(wrist, elbow, cuff), wrist, _girth(cuff, FOREARM) + 0.008, hand, "frustum")
     return hand, shade
 
 
-def fist(r, hand, shade, gloves=None):
-    """A closed hand around the grip at the origin of the current (weapon) frame; grip along +Y."""
-    big = 1.15 if gloves == "iron_gauntlets" else 1.0
-    r.part("cube", -0.02, 0, 0, 0.16 * big, 0.15 * big, 0.14 * big, hand)
-    r.part("cube", 0.06, 0, 0, 0.05 * big, 0.14 * big, 0.15 * big, shade)  # knuckles
-    r.part("cube", 0.02, 0.07, -0.06, 0.08, 0.05, 0.05, hand)  # thumb over the grip
-    if gloves == "iron_gauntlets":
-        for i in range(3):
-            r.part("cube", 0.09, -0.05 + i * 0.05, 0, 0.03, 0.035, 0.17, (190, 190, 200))
-    elif gloves == "chain_mitts":
-        r.part("cube", 0.085, 0, 0, 0.01, 0.12, 0.13, (110, 112, 120))
+# The closed hand, in its own frame: the grip runs along +Y through the origin (index finger toward +Y),
+# the back of the hand faces +Z (mirrored for the left hand) and the heel of the hand points -X, to the
+# wrist. The fingers wrap the grip on a ring round it: each rises from its knuckle on that ring and
+# curls through three joints.
+FINGERS = (
+    (0.047, 1.0, 1.0),
+    (0.015, 1.1, 1.04),
+    (-0.017, 1.02, 0.97),
+    (-0.047, 0.84, 0.88),
+)  # y, length, girth
+BONES = (0.058, 0.04, 0.03)  # a finger's three bones, knuckle to tip
+CURL = (1.44, 1.08, 0.74)  # how far each joint bends, wrapping the finger round the grip
+CLENCH = (1.55, 1.5, 1.2)  # with nothing in it: the fingertips curl back into the palm
+KNUCKLE = (0.034, 0.036)  # (x, z) of the knuckles, at the top of the ring the fingers wrap
+WRIST_AT = (-0.155, 0.0, 0.032)  # where the forearm meets the heel of the hand
+FIST_SCALE = 1.2  # a little over life, so the fingers read at 320x240
+FINGER = 0.036  # an index finger's thickness
+
+
+def _digit(r, bones, thick, rgb, bends, side=1, axis="ry", plate=None, ring=None):
+    """A finger from its knuckle at the current origin, pointing +X: for each bone, its joint turns
+    by the next of `bends` (about Y, mirrored by `side`, to curl it round a grip; about Z to cup an open
+    palm), a rounded joint, then the bone itself, each a little thinner than the last. `plate` lays an
+    iron plate of that colour on each bone's back, `ring` a band of mail."""
+    back = (0, 0, side) if axis == "ry" else (0, -1, 0)  # which way the bones' backs face
+    with ExitStack() as stack:
+        for k, (ln, bend) in enumerate(zip(bones, bends, strict=True)):
+            stack.enter_context(r.at(**{axis: bend * (side if axis == "ry" else 1)}))
+            j = thick * 1.1
+            r.part("sphere", 0, 0, 0, j, j, j, _bright(rgb, 1.08, 4) if k == 0 else rgb)
+            r.part("cyl", ln / 2, 0, 0, thick, ln, thick, rgb, rz=-math.pi / 2)
+            o = thick / 2 + 0.004
+            if plate:
+                r.part("cube", ln / 2, back[1] * o, back[2] * o, ln * 0.86, *_plate_size(axis, thick), plate)
+            if ring:
+                r.part("cyl", ln * 0.55, 0, 0, thick * 1.16, ln * 0.3, thick * 1.16, ring, rz=-math.pi / 2)
+            stack.enter_context(r.at(ln, 0, 0))
+            thick *= 0.88
+
+
+def _plate_size(axis, thick):
+    return (thick * 1.15, 0.01) if axis == "ry" else (0.01, thick * 1.15)
+
+
+# A hand on a weapon holds it as a sword is held, in a handshake: the front of the fist (the fingers'
+# middle bones) toward the edge, which leads every swing along +X, so the heel of the hand trails it
+# and the grip crosses the palm on the slant (the heel dropped GRIP_TILT toward the pommel). The hand
+# never turns about the grip; the forearm follows it (`arm`'s `heel`).
+GRIP_TURN = (0.0, 0.8)
+
+
+def _hand_turn(r, side):
+    """How to turn the grip frame at hand (grip along +Y) so the heel of the hand faces the forearm:
+    a turn about the grip, then a tilt dropping the heel toward the pommel, as a grip crosses the palm
+    on the slant. Worked out from where the elbow lies, so the hand always rides on its wrist."""
+    m = r.top
+    ex, ey, ez = ELBOW[0], ELBOW[1], ELBOW[2] * side
+    lx = m[0] * ex + m[4] * ey + m[8] * ez
+    ly = m[1] * ex + m[5] * ey + m[9] * ez
+    lz = m[2] * ex + m[6] * ey + m[10] * ez
+    tilt = 0.55 * math.atan2(-ly, math.hypot(lx, lz))
+    return math.atan2(lz, -lx), max(-0.3, min(0.75, tilt))
+
+
+@contextmanager
+def _in_hand(r, side, turn=None):
+    a, tilt = turn or _hand_turn(r, side)
+    with r.at(ry=a, rz=tilt, s=FIST_SCALE):
+        yield
+
+
+def hand_wrist(r, side, turn=None):
+    """The camera-space wrist of a hand closing on the grip at the current frame (see `fist`), the
+    turn that hand takes (`turn`, or worked out to face the elbow) and the way its heel points, along
+    the forearm (a unit vector): draw the arm to the first along the last, then the fist with the
+    second."""
+    turn = turn or _hand_turn(r, side)
+    with _in_hand(r, side, turn), r.at(WRIST_AT[0], WRIST_AT[1], WRIST_AT[2] * side):
+        m = r.top
+        with r.at(-1.0, 0, 0):
+            h = r.top
+    heel = (h[3] - m[3], h[7] - m[7], h[11] - m[11])
+    n = math.sqrt(sum(c * c for c in heel)) or 1.0
+    return (m[3], m[7], m[11]), turn, tuple(c / n for c in heel)
+
+
+def fist(r, hand, shade, gloves=None, side=1, turn=None, curl=CURL):
+    """A closed human hand round the grip at the origin of the current (weapon) frame, grip along +Y:
+    the palm against it, four fingers of human lengths, each a chain of rounded bones curling round it
+    (the index nearest the guard), and the thumb from the heel of the hand over the index and middle
+    fingers. It turns about the grip to ride on its forearm (`turn`, from `hand_wrist`). Gauntlets plate
+    each bone and the back of the hand; mitts band the fingers in mail. side -1 mirrors it (the left)."""
+    with _in_hand(r, side, turn):
+        _fist(r, hand, shade, gloves, side, curl)
+
+
+def _fist(r, hand, shade, gloves, side, curl):
+    iron = gloves == "iron_gauntlets"
+    mitt = gloves == "chain_mitts"
+    fat = 1.12 if mitt else 1.05 if iron else 1.0
+    kx, kz = KNUCKLE
+    # The palm, broad across the knuckles and narrowing to the heel, then the heel's rounded mound and
+    # the fleshy root of the thumb under the index side.
+    r.part("frustum", -0.058, 0, kz * side, 0.13 * fat, 0.19, 0.05 * fat, hand, rz=math.pi / 2)
+    r.part("sphere", -0.12, -0.006, 0.03 * side, 0.08, 0.1 * fat, 0.052 * fat, hand)
+    r.part("sphere", -0.08, 0.038, 0.004 * side, 0.09, 0.06 * fat, 0.05 * fat, _dim(hand, 0.94))
+    for i, (y, ln, th) in enumerate(FINGERS):
+        tone = hand if i % 2 == 0 else _dim(hand, 0.88)  # neighbours apart, so each finger reads
+        x = kx - (0.01 if i == 3 else 0.0) + (0.004 if i == 1 else 0.0)
+        with r.at(x, y, kz * side):
+            _digit(
+                r, [b * ln for b in BONES], FINGER * th * fat, tone, curl, side,
+                plate=shade if iron else None, ring=shade if mitt else None,
+            )  # fmt: skip
+    # The thumb: up from its root over the grip, across the index and middle fingers.
+    joints = [(-0.1, 0.03, -0.004), (-0.048, 0.056, -0.036), (-0.004, 0.056, -0.062), (0.036, 0.034, -0.068)]
+    joints = [(x, y, z * side) for x, y, z in joints]
+    for a, b, w in zip(joints, joints[1:], (0.048 * fat, 0.036 * fat, 0.031 * fat), strict=False):
+        r.part("sphere", *a, w * 1.1, w * 1.1, w * 1.1, hand)
+        _limb(r, a, b, w, hand, "cyl")
+        if iron:
+            _limb(r, a, b, w * 0.8, shade, "cube")
+    if iron:  # a plate over the back of the hand, its knuckle edge bright
+        r.part("frustum", -0.055, 0, (kz + 0.03) * side, 0.14, 0.17, 0.014, shade, rz=math.pi / 2)
+        r.part("cyl", kx - 0.008, 0, (kz + 0.03) * side, 0.02, 0.13, 0.02, (196, 196, 206))
+    elif gloves == "leather_gloves":  # a seam down the back
+        r.part("cube", -0.055, 0, (kz + 0.026) * side, 0.17, 0.006, 0.004, shade)
 
 
 def _pose_at(r, pose, side):
@@ -3657,6 +3877,8 @@ def _weapon_point(pose, side, ly):
 def _grips(item):
     if item.id == "nodachi":
         return NODACHI_GRIP
+    if item.two_handed and item.category in ("axe", "hammer"):
+        return HEADED_GRIP
     return GRIPS.get(item.category, (0.0, -0.12))
 
 
@@ -3693,6 +3915,7 @@ def weapon_view(r, player, bob, t=0.0, blends=None):
     return None
 
 
+SWORD_DROP = 0.1  # how much lower than other one-handers a sword is carried
 SWAY_SHIFT = 0.8  # metres the arms shift per radian they trail the view
 
 
@@ -3718,7 +3941,9 @@ def _held_weapon(r, player, hand, bob, sprint, armor, view=None, both=False):
     item = player.hand_item(hand)
     side = 1 if hand == "right" else -1
     heavy = _heavy_look(item)
-    x, y, z = 0.9, (-0.4 if heavy else -0.33), (0.2 if both else (0.32 if heavy else 0.27))
+    x, y, z = 0.9, (-0.25 if heavy else -0.19), (0.2 if both else (0.3 if heavy else 0.28))
+    if item.category == "sword":  # a one-handed sword rides lower and wider, so less of the arm shows
+        y, z = y - SWORD_DROP, z + 0.04
     rx, ry, rz = 0.25, 0.7, -0.55
     dx = dy = dz = drx = dry = drz = 0.0
     swinging = player.swing_t is not None and player.swing_hand == hand
@@ -3747,21 +3972,26 @@ def _held_weapon(r, player, hand, bob, sprint, armor, view=None, both=False):
     key, dur = _blend_key(player, hand, charge)
     x, y, z, rx, ry, rz = blends.hands[hand].apply(key, (x, y, z, rx, ry, rz), t, dur)
     pose = _swayed((x, y + bob, z, rx, ry, rz), side, sway)
-    hand_rgb, shade = arm(r, _weapon_point(pose, side, _grips(item)[0]), side, armor["body"], armor["gloves"])
+    grips = _grips(item)
+    with _pose_at(r, pose, side), r.at(0, grips[0], 0):
+        wrist, turn, heel = hand_wrist(r, side, GRIP_TURN)
+    hand_rgb, shade = arm(r, wrist, side, armor["body"], armor["gloves"], heel)
     if both:
-        lp = _weapon_point(pose, side, _grips(item)[1])
-        lhand, lshade = arm(r, lp, -1, armor["body"], armor["gloves"])
+        with _pose_at(r, pose, side), r.at(0, grips[1], 0):
+            lwrist, lturn, lheel = hand_wrist(r, -1, GRIP_TURN)
+        # The second hand's arm comes up from the left, across the body: its wrist bends further.
+        lhand, lshade = arm(r, lwrist, -1, armor["body"], armor["gloves"], lheel, WRIST_GIVE * 0.3)
     phase = player.swing_phase if swinging else None
     if swinging and item.category in TRAILS:
         rest = tuple(a - b for a, b in zip(pose, (dx, dy, dz, drx, dry, drz), strict=True))
         _swing_trail(r, item, player.attack, phase, rest, side)
     with _pose_at(r, pose, side):
         weapon(r, item.id, phase)
-        with r.at(0, _grips(item)[0], 0):
-            fist(r, hand_rgb, shade, armor["gloves"])
+        with r.at(0, grips[0], 0):
+            fist(r, hand_rgb, shade, armor["gloves"], side, turn)
         if both:
-            with r.at(0, _grips(item)[1], 0):
-                fist(r, lhand, lshade, armor["gloves"])
+            with r.at(0, grips[1], 0):
+                fist(r, lhand, lshade, armor["gloves"], -1, lturn)
 
 
 TRAILS = {"sword", "greatsword", "katana", "axe"}  # edged weapons leave a smear through the blow
@@ -3791,11 +4021,13 @@ def _swing_trail(r, item, a, phase, rest, side):
         off = _lerp(now, then, k)
         pose = tuple(b + o for b, o in zip(rest, off, strict=True))
         with _pose_at(r, pose, side):
-            col = _dim(rgb, 0.62 - 0.4 * k)
+            col = _dim(rgb, 0.8 - 0.55 * k)
+            # Each ghost is a pale sliver where the edge (on +X, `edge_turn`) passed: together they streak
+            # the plane the cut travels through.
             if headed:
-                r.part("blade", 0, length * 0.78, 0, 0.004, length * 0.55, 0.22, col)
+                r.part("blade", 0.1, length * 0.78, 0, 0.04, length * 0.5, 0.004, col, glow=True)
             else:
-                r.part("blade", 0, 0.2 + length / 2, 0, 0.004, length * 0.9, 0.16, col)
+                r.part("blade", 0.05, 0.2 + length / 2, 0, 0.035, length * 0.9, 0.004, col, glow=True)
 
 
 def fist_view(r, player, hand, bob, armor, view=None):
@@ -3818,15 +4050,20 @@ def fist_view(r, player, hand, bob, armor, view=None):
     pull = -0.1 * _ease(charge)
     wrist = (
         0.95 + jab + pull,
-        -0.34 + jab * 0.2,
-        (0.34 - jab * 0.5 * (1 if motion != "hook" else 0) + out) * side,
+        -0.23 + jab * 0.25,
+        (0.37 - jab * 0.5 * (1 if motion != "hook" else 0) + out) * side,
     )
     key, dur = _blend_key(player, hand, charge)
     wx, wy, wz = blends.hands[hand].apply(key, wrist, t, dur)
-    wrist = (wx, wy + bob + sway[1] * SWAY_SHIFT, wz + sway[0] * SWAY_SHIFT)
-    hand_rgb, shade = arm(r, wrist, side, armor["body"], armor["gloves"])
-    with r.at(*wrist, ry=0.25 * side, rz=0.2, s=0.8), r.at(0.06, 0, 0, rz=-math.pi / 2):
-        fist(r, hand_rgb, shade, armor["gloves"])
+    # Held as a sword hand is, closed on nothing (GRIP_TURN): thumb on top, the back of the hand out
+    # and the knuckles forward, levelling to lead the punch as it goes out.
+    frame = {"x": wx, "y": wy + bob + sway[1] * SWAY_SHIFT, "z": wz + sway[0] * SWAY_SHIFT}
+    frame.update(rx=0.25 * side, ry=0.7 * side, rz=-0.55 + 1.2 * jab, s=0.7)
+    with r.at(**frame):
+        wrist, turn, heel = hand_wrist(r, side, GRIP_TURN)
+    hand_rgb, shade = arm(r, wrist, side, armor["body"], armor["gloves"], heel)
+    with r.at(**frame):
+        fist(r, hand_rgb, shade, armor["gloves"], side, turn, curl=CLENCH)
 
 
 def shield_view(r, player, item, bob, side, armor, view=None):
@@ -3844,16 +4081,14 @@ def shield_view(r, player, item, bob, side, armor, view=None):
     z = (0.38 - 0.28 * up + reel * 0.3) * side + sway[0] * SWAY_SHIFT
     frame = {"ry": (-0.35 + 0.35 * up) * side, "rz": 0.1, "s": 0.75}
     gx, gy = SHIELD_GRIPS.get(item.id, (-0.09, 0.0))
-    # The fist closes on the strap behind the shield. It is nearer the camera than the shield, so with
-    # no depth test the shield goes first and the arm and hand over it: raised, you see your grip.
+    # The fist closes on the strap behind the shield, nearer the camera than it: raised, you see your grip.
+    with r.at(x, y, z, **frame), r.at(gx, gy, 0, s=0.85 / 0.75):
+        wrist, turn, _heel = hand_wrist(r, side)
     with r.at(x, y, z, **frame):
         shield(r, item.id)
-        with r.at(gx, gy, 0):
-            m = r.top
-    wrist = (m[3], m[7], m[11])
     hand_rgb, shade = arm(r, wrist, side, armor["body"], armor["gloves"])
     with r.at(x, y, z, **frame), r.at(gx, gy, 0, s=0.85 / 0.75):
-        fist(r, hand_rgb, shade, armor["gloves"])
+        fist(r, hand_rgb, shade, armor["gloves"], side, turn)
 
 
 # Where the fist closes behind each shield (its frame: x toward the face, y up), at the strap.
@@ -3871,14 +4106,24 @@ def spell_hand_view(r, player, bob, side, armor, t):
     cast = 1 - min(player.magic_gauge.value / 0.25, 1.0)  # just after casting
     thrust = 0.3 if spell and spell.id == "pyre" else 0.2  # Pyre: the palm shoved out, fingers spread
     x = 0.9 + thrust * _ease(cast)
-    y = -0.31 + bob
-    z = 0.3 * side
-    hand_rgb, shade = arm(r, (x - 0.06, y - 0.04, z), side, armor["body"], armor["gloves"])
-    with r.at(x, y, z, ry=0.2 * side, s=0.8):
-        r.part("cube", 0, 0, 0, 0.14, 0.05, 0.15, hand_rgb)  # palm up
-        for i in range(4):  # fingers, slightly curled
-            r.part("cube", 0.1, 0.02, (-0.06 + i * 0.04) * side, 0.08, 0.035, 0.03, shade)
-        r.part("cube", 0.03, 0.02, -0.09 * side, 0.07, 0.035, 0.035, hand_rgb)  # thumb
+    y = -0.24 - SPELL_DROP + bob
+    z = 0.34 * side
+    # Held up and out, as if offering the light: the fingers rise forward, the palm tipped back toward
+    # you and rolled a little toward the middle of the view, so you look into it.
+    frame = {"ry": 0.2 * side, "rz": SPELL_TIP, "rx": -0.35 * side, "s": 0.8}
+    with r.at(x, y, z, **frame), r.at(*OPEN_WRIST):
+        m = r.top
+    hand_rgb, shade = arm(r, (m[3], m[7], m[11]), side, armor["body"], armor["gloves"])
+    with r.at(x, y, z, **frame):
+        _open_hand(
+            r,
+            hand_rgb,
+            shade,
+            side,
+            armor["gloves"],
+            spread=0.5 if spell and spell.id == "pyre" else 0.2,
+            curl=OPEN_CURL if spell and spell.id == "pyre" else CUP_CURL,
+        )
         glow = SPELL_GLOW.get(spell.id, (220, 220, 220)) if spell else None
         if spell and spell.id in FIRE_SPELLS:
             # A small fire licks over the palm; it gutters to an ember while the gauge refills.
@@ -3891,6 +4136,43 @@ def spell_hand_view(r, player, bob, side, armor, t):
         elif spell and player.magic_gauge.full:
             pulse = 1 + math.sin(t * 5) * 0.12
             r.part("sphere", 0.02, 0.1, 0, 0.09 * pulse, 0.09 * pulse, 0.09 * pulse, glow, glow=True)
+
+
+OPEN_WRIST = (-0.115, -0.004, 0.0)  # where an open hand's heel meets the forearm
+SPELL_DROP = 0.06  # how much lower the spell hand is carried, so only the hand and wrist show
+SPELL_TIP = 0.45  # how far the spell hand's fingers rise from level
+OPEN_CURL = (0.1, 0.16, 0.12)  # a relaxed open hand's fingers: barely curled
+CUP_CURL = (0.38, 0.5, 0.42)  # a hand cupping a spell's orb: the fingers curl up round it
+
+
+def _open_hand(r, hand, shade, side, gloves=None, spread=0.2, curl=OPEN_CURL):
+    """An open human hand, palm up (+Y), fingers forward (+X), thumb inward: a palm narrowing to its
+    heel, four relaxed fingers of rounded bones, curled by `curl` and fanned by `spread`, and the
+    thumb out to the side from the fleshy root under the index side, rising as the fingers curl."""
+    iron = gloves == "iron_gauntlets"
+    mitt = gloves == "chain_mitts"
+    fat = 1.12 if mitt else 1.05 if iron else 1.0
+    r.part("frustum", -0.005, 0, 0, 0.042 * fat, 0.17, 0.13 * fat, hand, rz=math.pi / 2)  # palm
+    r.part("sphere", -0.07, -0.004, 0.006 * side, 0.07, 0.05 * fat, 0.1 * fat, hand)  # its heel
+    r.part("sphere", -0.035, 0.012, -0.04 * side, 0.08, 0.04 * fat, 0.05 * fat, _dim(hand, 0.94))
+    for i, (y, ln, th) in enumerate(FINGERS):
+        z = -y * side  # the index beside the thumb, inward
+        fan = (i - 1.5) * spread * 0.2 * side
+        tone = hand if i % 2 == 0 else _dim(hand, 0.88)
+        with r.at(0.075 - (0.01 if i == 3 else 0.0), 0.004, z, ry=fan):
+            _digit(
+                r, [b * ln for b in BONES], FINGER * th * fat, tone, curl, axis="rz",
+                plate=shade if iron else None, ring=shade if mitt else None,
+            )  # fmt: skip
+    # The thumb, resting out to the side of the palm and forward, nearly in its plane.
+    joints = [(-0.055, 0.0, -0.04), (-0.008, 0.01, -0.078), (0.032, 0.016, -0.095), (0.064, 0.02, -0.102)]
+    cup = curl[0] - OPEN_CURL[0]  # a cupping hand lifts its thumb toward the fingers
+    joints = [(x, y + cup * 0.12 * k, z * side * (1 - cup * 0.25 * k)) for k, (x, y, z) in enumerate(joints)]
+    for a, b, w in zip(joints, joints[1:], (0.048 * fat, 0.036 * fat, 0.031 * fat), strict=False):
+        r.part("sphere", *a, w * 1.1, w * 1.1, w * 1.1, hand)
+        _limb(r, a, b, w, hand, "cyl")
+    if iron:  # a plate over the back
+        r.part("frustum", 0, -0.028, 0, 0.014, 0.15, 0.13, shade, rz=math.pi / 2)
 
 
 SPELL_GLOW = {
@@ -3936,12 +4218,14 @@ OAK = (118, 84, 52)
 
 # Rough length of each weapon model (grip to tip), used to fit previews.
 WEAPON_LEN = {
-    "bastard_sword": 1.4,
-    "claymore": 1.85,
-    "zweihander": 2.1,
-    "katana": 1.35,
-    "moonless_tachi": 1.6,
-    "nodachi": 2.1,
+    "rusted_sword": 1.3,
+    "ashblade": 1.4,
+    "bastard_sword": 1.68,
+    "claymore": 2.2,
+    "zweihander": 2.5,
+    "katana": 1.7,
+    "moonless_tachi": 1.95,
+    "nodachi": 2.45,
     "war_hammer": 1.5,
     "heartwood_maul": 1.45,
     "felling_axe": 1.45,
@@ -3950,18 +4234,30 @@ WEAPON_LEN = {
     "butcher_cleaver": 1.0,
     "oak_cudgel": 1.0,
     "spiked_club": 1.05,
-    "stormbrand": 1.2,
+    "stormbrand": 1.45,
     "slagbreaker": 1.5,
 }
 
 
 def weapon(r, item_id, phase=None):
     """A weapon model with the grip at the origin, pointing up +Y; an edge or striking face leads
-    along +X (see HEADED)."""
-    if item_id in HEADED:
-        with r.at(0, 0, 0, ry=math.pi / 2):
+    along +X (see HEADED and `edge_turn`)."""
+    turn = edge_turn(item_id)
+    if turn:
+        with r.at(0, 0, 0, ry=turn):
             return _weapon(r, item_id, phase)
     return _weapon(r, item_id, phase)
+
+
+def edge_turn(item_id):
+    """The quarter turn about the grip that brings a weapon's edge onto +X, the way swings travel and the
+    hand's knuckles face: axe bits, hammer faces and straight blades are built on +-Z, a katana's edge
+    on -Z."""
+    if item_id in HEADED or item_id in SWORDS or item_id == "stormbrand":
+        return math.pi / 2
+    if item_id in KATANAS:
+        return -math.pi / 2
+    return 0.0
 
 
 def _weapon(r, item_id, phase=None):
@@ -4094,7 +4390,7 @@ def blade_parts(
 # The player's straight swords: blade_parts arguments per item.
 SWORDS = {
     "rusted_sword": {
-        "length": 0.88,
+        "length": 1.1,
         "width": 0.13,
         "steel": (142, 136, 126),
         "edge": (180, 176, 166),
@@ -4106,7 +4402,7 @@ SWORDS = {
         "pommel_rgb": (96, 80, 62),
     },
     "ashblade": {
-        "length": 0.95,
+        "length": 1.2,
         "width": 0.125,
         "steel": (190, 190, 202),
         "edge": (238, 238, 245),
@@ -4119,7 +4415,7 @@ SWORDS = {
         "pommel_rgb": (70, 66, 72),
     },
     "bastard_sword": {
-        "length": 1.12,
+        "length": 1.4,
         "width": 0.12,
         "steel": (176, 178, 190),
         "guard": "droop",
@@ -4131,7 +4427,7 @@ SWORDS = {
         "pommel_rgb": (112, 108, 102),
     },
     "claymore": {
-        "length": 1.38,
+        "length": 1.72,
         "width": 0.15,
         "thick": 0.04,
         "steel": (170, 172, 182),
@@ -4145,7 +4441,7 @@ SWORDS = {
         "ricasso": 0.12,
     },
     "zweihander": {
-        "length": 1.62,
+        "length": 2.0,
         "width": 0.17,
         "thick": 0.042,
         "base": 0.12,
@@ -4177,9 +4473,9 @@ def sword(r, item_id):
 
 # blade, edge (hamon), grip wrap, cord, segments, grip length
 KATANAS = {
-    "katana": ((205, 208, 218), (245, 245, 250), (40, 30, 40), (160, 30, 40), 3, 0.3),
-    "moonless_tachi": ((70, 72, 90), (200, 205, 220), (20, 18, 24), (60, 60, 80), 4, 0.32),
-    "nodachi": ((200, 202, 212), (245, 245, 250), (30, 26, 30), (200, 170, 70), 5, 0.5),
+    "katana": ((205, 208, 218), (245, 245, 250), (40, 30, 40), (160, 30, 40), 4, 0.3),
+    "moonless_tachi": ((70, 72, 90), (200, 205, 220), (20, 18, 24), (60, 60, 80), 5, 0.32),
+    "nodachi": ((200, 202, 212), (245, 245, 250), (30, 26, 30), (200, 170, 70), 6, 0.5),
 }
 
 
@@ -4363,8 +4659,7 @@ def heartwood_maul(r):
 
 
 def shield(r, item_id):
-    """Shields face +X (away from you); the arm holds them from behind at the origin. The first-person
-    view draws without depth testing, so the back (what you see) is drawn last."""
+    """Shields face +X (away from you); the arm holds them from behind at the origin."""
     if item_id == "buckler":
         with r.at(0, 0, 0, rz=math.pi / 2):
             r.part("cyl", 0, 0, 0, 0.42, 0.04, 0.42, (128, 128, 136))

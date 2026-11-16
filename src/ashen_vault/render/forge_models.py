@@ -566,7 +566,7 @@ def stormbrand(r):
     and a storm-grey stone in the pommel."""
     blade_parts(
         r,
-        1.02,
+        1.28,
         0.13,
         (150, 170, 200),
         edge=(215, 228, 245),
@@ -579,7 +579,7 @@ def stormbrand(r):
         wrap=(90, 100, 120),
         pommel_rgb=(120, 130, 150),
     )
-    for i in range(5):  # the frozen fork of lightning down the fuller, on both faces
+    for i in range(7):  # the frozen fork of lightning down the fuller, on both faces
         y = 0.27 + i * 0.15
         r.part("cube", 0, y, 0.012 * (-1) ** i, 0.04, 0.17, 0.016, THUNDER, rx=0.45 * (-1) ** i, glow=True)
     r.part("sphere", 0, -0.165, 0, 0.04, 0.04, 0.045, THUNDER, glow=True)  # the stone's glow

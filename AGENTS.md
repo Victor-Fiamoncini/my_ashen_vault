@@ -123,7 +123,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/world/elements.py` | Elements: lightning against `conductive` foes, fire against `fireproof` ones, which weapons burn |
 | `src/ashen_vault/render/fortress_props.py` | The Cinderhold's dressing: `gargoyle_statue` (`pose=snarl`; far ones drop their fine carving, `world.DETAIL_RANGE`), `barred_window`, `tool_rack` and `great_window` (wall props; `great_window rise=` hangs high in a wall over the moat, a landmark), `forge_hearth`, `crucible`, `quench_trough`, `ingot_pile`, `slag_heap`, `impaler`, the `battlement` landmark (a crenellated walk on a wall top) and `lava_spout` (`lavafall spout=gargoyle`) |
 | `src/ashen_vault/render/forge_models.py` | The Cinderhold's models (golem, bowman, hound, the gargoyles, Stormbrand and Slagbreaker, arrows, thunder and motes, flame jets, and the skyline: spires, bastions, smokestacks, the gatehouse, the keep, lavafalls); `models` imports it last and borrows its helpers |
-| `src/ashen_vault/render/town_models.py` | Harrowmere's models: gabled `roof`s (one per building, on its NW wall tile with `span=W,D ridge=x\|z`, `tex=terracotta eave=`), the `silent_bell`, the cathedral (`cathedral_spire base=` over the crossing, `cathedral_tower` with `shift=dx,dz` to centre it on a 2x2 footprint, `turret` for the small ones, `flying_buttress`, stained-glass `window` within and `stained_window` without, `rose_window`), the houses' faces (`shutters [flowers]`, `balcony`, `door_arch` on the doorway tile facing out; `rise=` sets a hung one's height, `world.RISE`), the realm's crest (`banner_pole`, `crest_plaque`), the square's `fountain`, `bench`es, `hand_cart`, `hay_wagon` and `cargo`, the trees (`tree kind=cypress|pine|olive`: slim cypresses, flat-crowned umbrella pines, gnarled olives, each a 3D trunk and limbs under clumps of crossed leaf cards: paper-thin cubes carrying the cut-out `leaf_card` texture), pews, beds, cupboards, shelves, hearths, fences, lamp posts and boats |
+| `src/ashen_vault/render/town_models.py` | Harrowmere's models: gabled `roof`s (one per building, on its NW wall tile with `span=W,D ridge=x\|z`, `tex=terracotta eave=`), the `silent_bell`, the cathedral (`cathedral_spire base=` over the crossing, `cathedral_tower` with `shift=dx,dz` to centre it on a 2x2 footprint, `turret` for the small ones, `flying_buttress`, stained-glass `window` within and `stained_window` without, `rose_window`), the houses' faces (`shutters`, `balcony`, `door_arch` on the doorway tile facing out; `rise=` sets a hung one's height, `world.RISE`), the realm's crest (`banner_pole`, `crest_plaque`), the square's `fountain`, `bench`es, `hand_cart`, `hay_wagon` and `cargo`, the trees (`tree kind=cypress|pine|olive`: slim cypresses, flat-crowned umbrella pines, gnarled olives, each a 3D trunk and limbs under clumps of crossed leaf cards: paper-thin cubes carrying the cut-out `leaf_card` texture), pews, beds, cupboards, shelves, hearths, fences, lamp posts and boats |
 | `src/ashen_vault/world/thin_walls.py` | Thin walls (`wall ... thin=<m>`): the slab each such tile stands as (hugging the side open to the sky, centred between two rooms), the margins it lends to its open neighbours (`Layout`), and how far a prop must move back to touch it (`inset`) |
 | `src/ashen_vault/world/villagers.py` | How each villager looks (`Look`: build, garb, hair, hat, beard, apron, cloak, held tool, idle) |
 | `src/ashen_vault/render/shapes.py` | Model primitives raylib lacks (`blade`, `lozenge`, `wedge`) as pure triangle lists; `Gpu.primitive` uploads them |
@@ -310,7 +310,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   compass marks the nearest great door whose boss lives (`World.boss_bearing`). A mouse action must never share a name with
   a movement key (`tests/test_input.py`): `"back"` once did, and a raised shield walked you backward. Items carry a `level` requirement: buying is
   allowed, equipping is not (`Inventory.equip_error`). The first-person arms (`models.weapon_view`)
-  take their sleeve and glove looks from `SLEEVES` / `GLOVES`, so new armor needs an entry there; a new
+  take their sleeve and glove looks from `SLEEVES` / `GLOVES`, so new armor needs an entry there (the player is one of the Ashen: bare, the forearm is grey ash, `models.ASH_ARM` with the `ash_skin` texture, and the hands `models.ASHEN`; a hand on a weapon holds it in a handshake grip, `models.GRIP_TURN`: knuckles toward the edge, which leads every swing, and the forearm bends to follow it (`arm`'s `heel`), swinging with the hand so the wrist never bends past `models.WRIST_BEND` (`test_wrists_bend_only_so_far_through_every_swing`); a bare fist is held the same way, closed on nothing, while a shield's turns about its grip to sit on its forearm. Either way draw the arm to `models.hand_wrist` and pass its turn to `fist`); a new
   shield needs its strap in `models.SHIELD_GRIPS`, where the fist closes (drawn after the shield, so a
   raised shield shows the hand).
 - Weapons, shields and armor carry a `mass` (kg). Their total sets the player's load tier
@@ -335,15 +335,17 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   attack's `hit_at`, and edged weapons (`TRAILS`) smear a fan of ghost blades through the blow. A motion
   ends part way home (`models._settle`); the view's `PoseBlend` (`player/view_blend.py`, kept by `Game`
   and passed to `models.weapon_view`) eases the arms the rest of the way, into each new swing, charge or
-  shield raise, and lets them trail the turning view (`Sway`). The viewmodel draws without depth
-  testing, so draw what faces the camera last.
+  shield raise, and lets them trail the turning view (`Sway`). The viewmodel draws over the world
+  on a depth buffer of its own (`Game` wipes only depth before it), so its parts sort among themselves:
+  a fist's fingers pass in front of the grip they close round and its palm behind.
 - Besides raylib's cube, sphere, cyl, cone and quad, models can draw `blade` (a lozenge-section slab
   that comes to a point), `lozenge` (the same section, straight) and `wedge` (a triangular prism),
   generated in `render/shapes.py`. Straight swords, the player's and the foes', are `models.blade_parts`
   (guard styles, pommels, ricasso, fuller, bevelled edges). Axe, cleaver and hammer heads are built with
-  their edge or face on +Z and `models.weapon` turns those in `HEADED` a quarter so it leads along +X,
-  the way swings travel (`test_axe_and_hammer_heads_lead_their_blows`; the jungle's Heartwood Maul
-  is one). Keys and relic sigils draw from
+  their edge or face on +Z, straight blades their edges on +-Z and katanas theirs on -Z;
+  `models.weapon` turns each a quarter (`models.edge_turn`) so the edge leads along +X, the way swings
+  travel and the hand's knuckles face (`test_edges_and_heads_lead_their_blows`; the jungle's Heartwood
+  Maul is in `HEADED`). A full cut's follow-through carries the arm out of the view before it comes home. Keys and relic sigils draw from
   `KEY_STYLES` / `SIGILS` (each key its own shape in `KEY_SHAPES`), in Belongings and on the ground (`models.pickup`). Enemy anatomy has helpers too: `skull`,
   `ribcage`, `hand`, `sack_hood` and `_bar` (a box between two points).
 - Secret attacks are listed in `weapons.secret()`; performing one adds a `secret:<category>` flag,

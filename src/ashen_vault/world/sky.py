@@ -43,17 +43,17 @@ class Sky:
 
 
 SKIES = {
-    # Harrowmere: a low grey ceiling with a pale, warm sun breaking through it.
+    # Harrowmere: a low, gloomy grey ceiling with a dim, wan sun barely breaking through it.
     "overcast": Sky(
-        zenith=(0.27, 0.33, 0.45),
-        sun=(1.0, 0.94, 0.78),
+        zenith=(0.17, 0.2, 0.27),
+        sun=(0.82, 0.78, 0.66),
         sun_at=SUN_AT,
         sun_size=2.6,
-        halo=(0.92, 0.8, 0.6),
+        halo=(0.6, 0.53, 0.42),
         halo_size=24.0,
-        clouds=(0.74, 0.74, 0.76),
-        cloud_under=(0.42, 0.44, 0.5),
-        mist=(0.6, 0.62, 0.66),
+        clouds=(0.48, 0.48, 0.5),
+        cloud_under=(0.27, 0.28, 0.32),
+        mist=(0.39, 0.4, 0.43),
     ),
     # The hollow: thick, humid green-gold haze over the canopy and a pale sun glaring through it.
     "jungle": Sky(

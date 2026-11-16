@@ -10,11 +10,17 @@ scales them the same way:
   segments, fullers, horn and claw shafts.
 - `wedge`: a triangular prism whose triangle (in X/Y) points up +Y: axe bits, spikes, teeth, fangs,
   quillon tips, horns.
+- `frustum`: an octagonal prism that narrows toward +Y to `TAPER` of its base: the faceted, tapering
+  limbs, fingers and necks of the first-person arms and the villagers.
 
 Faces are flat-shaded (each triangle carries its own normal), which suits the PS1 look."""
 
+import math
+
 SHOULDER = 0.16  # how far below the blade's tip its edges start converging
 SHOULDER_WIDTH = 0.82  # the blade's width at the shoulder, as a share of its base width
+TAPER = 0.62  # a frustum's top width, as a share of its base
+FACETS = 8
 
 
 def _sub(a, b):
@@ -34,7 +40,23 @@ def _norm(v):
     return (v[0] / length, v[1] / length, v[2] / length)
 
 
-def _solid(tris):
+def _planar_uv(p, _tri, _n):
+    return (p[2] + 0.5, p[1] + 0.5)
+
+
+def _wrapped_uv(p, tri, n):
+    """Wraps a texture twice round a solid of revolution about Y (its caps mapped flat), so every side
+    shows the texture's grain rather than one smeared column of it."""
+    if abs(n[1]) > 0.9:
+        return (p[0] + 0.5, p[2] + 0.5)
+    angles = [math.atan2(q[2], q[0]) for q in tri]
+    a = math.atan2(p[2], p[0])
+    if max(angles) - min(angles) > math.pi and a < 0:  # the face across the seam: unwrap it
+        a += 2 * math.pi
+    return (a / math.pi, p[1] + 0.5)
+
+
+def _solid(tris, uv=_planar_uv):
     """Flat-shaded triangle soup for a convex solid: each triangle is wound counter-clockwise seen
     from outside (raylib culls the other side) and given its outward face normal.
     Returns (vertices, normals, uvs) as flat float lists."""
@@ -51,7 +73,7 @@ def _solid(tris):
         for p in (a, b, c):
             verts.extend(p)
             normals.extend(n)
-            uvs.extend((p[2] + 0.5, p[1] + 0.5))
+            uvs.extend(uv(p, (a, b, c), n))
     return verts, normals, uvs
 
 
@@ -98,4 +120,20 @@ def wedge():
     return _solid(tris)
 
 
-SHAPES = {"blade": blade, "lozenge": lozenge, "wedge": wedge}
+def frustum():
+    def ring(y, w):
+        return [
+            (0.5 * w * math.cos(k * 2 * math.pi / FACETS), y, 0.5 * w * math.sin(k * 2 * math.pi / FACETS))
+            for k in range(FACETS)
+        ]
+
+    lo, hi = ring(-0.5, 1.0), ring(0.5, TAPER)
+    tris = [(lo[0], lo[k], lo[k + 1]) for k in range(1, FACETS - 1)]
+    tris += [(hi[0], hi[k], hi[k + 1]) for k in range(1, FACETS - 1)]
+    for i in range(FACETS):
+        j = (i + 1) % FACETS
+        tris += _quad(lo[i], lo[j], hi[j], hi[i])
+    return _solid(tris, _wrapped_uv)
+
+
+SHAPES = {"blade": blade, "lozenge": lozenge, "wedge": wedge, "frustum": frustum}

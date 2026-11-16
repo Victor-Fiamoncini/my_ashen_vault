@@ -1,8 +1,8 @@
 [meta]
 name = Harrowmere
-ambient = 0.62 0.58 0.62
-fog = 0.42 0.46 0.55
-fog_range = 12 56
+ambient = 0.40 0.38 0.42
+fog = 0.26 0.28 0.33
+fog_range = 10 48
 model_range = 40
 sky = overcast
 torch = 0 0 0 0
@@ -11,8 +11,8 @@ default = ,
 edge_top = -0.5
 entity_floor = auto
 
-// Harrowmere climbs from its harbour to the cathedral on the hill, a town of sun-warmed sandstone and
-// ochre render under terracotta roofs, paved in cobbles and setts. The pier where the morning boat
+// Harrowmere climbs from its harbour to the cathedral on the hill under a low, gloomy sky, a town of
+// sandstone and ochre render under terracotta roofs, all stone underfoot: cobbles, setts and flags. The pier where the morning boat
 // puts in, the quay and the market lanes; the Bell Square at the heart of town with the Silent Bell on
 // its plinth; the sunken court of the old well (down into the Sunken Keep) east of it, and the watch
 // house by the gap in the wall where the green trail leaves for the cave; Brannoc's forge and
@@ -20,19 +20,19 @@ entity_floor = auto
 // steps on the hill, the cathedral, where the Enthroned sits at the end of the nave.
 
 [legend]
-R = wall tex=rough_stone top=7 cap=grass
-A = wall tex=cliff_rock top=6 cap=grass
+R = wall tex=rough_stone top=7 cap=rough_stone
+A = wall tex=cliff_rock top=6 cap=rough_stone
 H = wall tex=ashlar top=5.6 cap=roof thin=0.5
 J = wall tex=stucco top=5.6 cap=roof thin=0.5
 C = wall tex=rough_stone h=2 top=11 cap=slate
 P = wall tex=flagstone top=0.8 cap=flagstone
 _ = wall tex=rough_stone top=2.2 cap=cobble
-, = floor tex=grass h=0
+, = floor tex=cobble h=0
 . = floor tex=cobble h=0
 s = floor tex=setts h=0
-q = floor tex=cobble_moss h=0
-- = floor tex=dirt h=0
-; = floor tex=grass h=2 side=rough_stone
+q = floor tex=cobble h=0
+- = floor tex=setts h=0
+; = floor tex=flagstone h=2 side=rough_stone
 = = floor tex=flagstone h=2 side=rough_stone
 4 = floor tex=flagstone h=1.6 side=rough_stone
 3 = floor tex=flagstone h=1.2 side=rough_stone
@@ -159,9 +159,9 @@ D = banner
 Ç = roof span=5,8 ridge=z top=5.6 pitch=1.3 eave=0.6 tex=terracotta wall=ashlar on=H
 È = roof span=6,6 ridge=x top=5.6 pitch=1.3 eave=0.6 tex=terracotta wall=stucco on=J
 Ñ = chimney height=8 on=H
-// The houses' faces: shuttered windows (some with flowers), balconies and arched front doors.
+// The houses' faces: shuttered windows, balconies and arched front doors.
 à = shutters
-á = shutters flowers
+á = shutters
 â = balcony
 ä = door_arch yaw=0 on=i
 å = door_arch yaw=90 on=i

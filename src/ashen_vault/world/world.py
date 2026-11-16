@@ -2039,7 +2039,7 @@ class World:
                 elif k == "crest_plaque":
                     town_models.crest_plaque(rig, seed)
                 elif k == "shutters":
-                    town_models.shutters(rig, seed, "flowers" in p.props)
+                    town_models.shutters(rig, seed)
                 else:
                     town_models.balcony(rig, seed)
         elif k == "door_arch":

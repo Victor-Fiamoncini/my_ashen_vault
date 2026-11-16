@@ -306,10 +306,9 @@ def crest_plaque(r, seed):
         realm_crest(r, GILT if seed % 3 else _dim(GILT, 0.9), cy=0.0, scale=1.45)
 
 
-def shutters(r, seed, flowers=False):
+def shutters(r, seed):
     """A window deep in a house wall at local -X: a dark casement faintly lit within, a cross of wooden
-    mullions, a stone sill and lintel, and two painted, louvred shutters folded back against the wall;
-    with `flowers`, a box of blooms on the sill."""
+    mullions, a stone sill and lintel, and two painted, louvred shutters folded back against the wall."""
     paint = SHUTTER_PAINT[seed % len(SHUTTER_PAINT)]
     stone = (236, 230, 218)
     r.part("cube", -0.985, 0, 0, 0.03, 1.2, 0.86, (36, 30, 26))  # the reveal, in shadow
@@ -323,13 +322,6 @@ def shutters(r, seed, flowers=False):
         r.part("cube", -0.96, 0, z, 0.04, 1.16, 0.5, paint, tex="wood_plank")
         for y in (-0.25, 0.25):  # louvred panels
             r.part("cube", -0.94, y, z, 0.02, 0.4, 0.38, _dim(paint, 0.72), tex="wood_plank")
-    if flowers:
-        r.part("cube", -0.78, -0.8, 0, 0.28, 0.22, 1.0, WOOD, tex="wood_plank")
-        r.part("cube", -0.76, -0.64, 0, 0.24, 0.14, 0.96, (70, 110, 50))  # leaves
-        for i in range(5):
-            rgb = ((200, 60, 70), (230, 200, 80), (240, 236, 220), (170, 80, 160))[(seed + i) % 4]
-            r.part("sphere", -0.72, -0.56 + (i % 2) * 0.05, -0.38 + i * 0.19, 0.1, 0.1, 0.1, rgb)
-        r.part("cube", -0.66, -1.0, 0.25, 0.04, 0.4, 0.06, (60, 96, 46), rx=0.15)  # trailing ivy
 
 
 def balcony(r, seed):
@@ -690,15 +682,13 @@ def boat(r, t, seed):
         r.part("cube", -0.8, 0.6, 0.3, 0.4, 0.12, 0.3, (120, 90, 60))  # coiled rope
 
 
-# Trees of a sun-warmed hill town: slim cypresses, flat-crowned umbrella pines and gnarled olives.
+# Trees of a gloomy hill town: slim cypresses, flat-crowned umbrella pines and gnarled olives, all in
+# the same dark, muted green on the same dark bark.
 # Each is a 3D trunk and limbs under leaf cards: thin slabs carrying the cut-out `leaf_card` spray,
 # crossed in clumps so the crown has body from any side and gaps you can see the sky through. Trees
 # never move, so they are baked with the town's other static props (`world.STATIC_PROPS`).
-CYPRESS = (60, 96, 62)
-PINE_NEEDLES = (92, 128, 70)
-OLIVE_LEAF = (168, 180, 140)
-OLIVE_BARK = (150, 136, 114)
-PINE_BARK = (150, 104, 72)
+TREE_LEAF = (52, 72, 50)
+TREE_BARK = (88, 76, 64)
 TREE_KINDS = ("olive", "cypress", "pine")
 CARD = 0.02  # a leaf card's thickness
 
@@ -732,18 +722,12 @@ def _clump(r, x, y, z, w, h, rgb, turn, cards=3):
     _card(r, x, y + h * 0.1, z, w * 0.9, w * 0.9, _dim(rgb, 1.08), ry=turn + 0.4, rx=math.pi / 2)
 
 
-def _shade(r, width):
-    """The dark pool of shade a tree's crown casts round its foot."""
-    r.part("cyl", 0, 0.02, 0, width, 0.02, width * 0.9, (22, 24, 18))
-
-
 def cypress(r, seed, t=0.0, near=True):
     """A tall, slim cypress: a straight trunk in a dense spindle of dark foliage, widest a third of the
     way up and drawn to a flame-like point."""
     h = 7.8 + (seed % 3) * 0.6
-    leaf = _dim(CYPRESS, 0.88 + (seed % 4) * 0.06)
-    bark = _dim(PINE_BARK, 0.7)
-    _shade(r, 1.8)
+    leaf = TREE_LEAF
+    bark = TREE_BARK
     _bough(r, [(0, 0.1, 0), (0, 1.4, 0), (0.04, h * 0.55, 0), (0, h * 0.85, 0)], 0.3, 0.08, bark)
     tiers = 9 if near else 5
     for k in range(tiers):
@@ -764,10 +748,8 @@ def umbrella_pine(r, seed, t=0.0, near=True):
     lean = 0.08 + (seed % 2) * 0.06
     lx, lz = math.cos(yaw) * h * lean, math.sin(yaw) * h * lean  # where the leaning trunk forks
     fork = h * 0.68
-    _shade(r, 4.2)
-    r.part("cyl", 0, 0.14, 0, 0.66, 0.28, 0.66, _dim(PINE_BARK, 0.8), tex="bark")  # the root flare
     bend = (lx * 0.3 - lz * 0.1, fork * 0.5, lz * 0.3 + lx * 0.1)  # a gentle S in the trunk
-    _bough(r, [(0, 0.22, 0), bend, (lx, fork, lz)], 0.44, 0.32, PINE_BARK)  # from inside the flare
+    _bough(r, [(0, 0.16, 0), bend, (lx, fork, lz)], 0.44, 0.32, TREE_BARK)  # straight from the ground
     limbs = 4 if near else 3
     tips = []
     for k in range(limbs):
@@ -775,18 +757,18 @@ def umbrella_pine(r, seed, t=0.0, near=True):
         d = 1.5 + 0.4 * ((k + seed) % 2)
         tip = (lx + math.cos(a) * d, h - 0.45, lz + math.sin(a) * d)
         mid = (lx + math.cos(a + 0.3) * d * 0.45, fork + (h - fork) * 0.55, lz + math.sin(a + 0.3) * d * 0.45)
-        _bough(r, [(lx, fork - 0.15, lz), mid, tip], 0.22, 0.12, PINE_BARK)
+        _bough(r, [(lx, fork - 0.15, lz), mid, tip], 0.22, 0.12, TREE_BARK)
         tips.append(tip)
     # The crown: a flat roof of clumps over the limbs' ends and between them, under a broad cap.
-    under = _dim(PINE_NEEDLES, 0.8)
-    _clump(r, lx, h - 0.05, lz, 3.0, 1.0, PINE_NEEDLES, yaw)
+    under = _dim(TREE_LEAF, 0.8)
+    _clump(r, lx, h - 0.05, lz, 3.0, 1.0, TREE_LEAF, yaw)
     for k, (tx, ty, tz) in enumerate(tips):
-        _clump(r, tx, ty + 0.35, tz, 2.6, 0.95, _dim(PINE_NEEDLES, 0.9 + 0.06 * (k % 3)), yaw + k)
+        _clump(r, tx, ty + 0.35, tz, 2.6, 0.95, _dim(TREE_LEAF, 0.9 + 0.06 * (k % 3)), yaw + k)
     if near:
         for k in range(limbs):  # between the limbs, so the rim reads round
             a = yaw + 0.5 + (k + 0.5) * math.tau / limbs
             _clump(r, lx + math.cos(a) * 1.9, h - 0.2, lz + math.sin(a) * 1.9, 2.0, 0.8, under, a)
-    _card(r, lx, h + 0.25, lz, 4.6, 4.2, _dim(PINE_NEEDLES, 1.1), ry=yaw, rx=math.pi / 2)
+    _card(r, lx, h + 0.25, lz, 4.6, 4.2, _dim(TREE_LEAF, 1.1), ry=yaw, rx=math.pi / 2)
     _card(r, lx, h - 0.3, lz, 4.2, 3.8, under, ry=yaw + 0.8, rx=math.pi / 2)
 
 
@@ -794,15 +776,14 @@ def olive(r, seed, t=0.0, near=True):
     """An old olive: a short, split and twisted trunk under a ragged crown of silvery clumps."""
     h = 3.2 + (seed % 3) * 0.3
     yaw = seed * 0.9
-    _shade(r, 3.0)
-    r.part("cyl", 0, 0.18, 0, 0.72, 0.36, 0.62, OLIVE_BARK, tex="bark")  # the gnarled bole
+    _limb(r, 0, 0.1, 0, 0, 0.5, 0, 0.42, TREE_BARK)  # a short thick bole, straight from the ground
     stems = 3
     tips = []
     for k in range(stems):
         a = yaw + k * math.tau / stems
         mx, mz = math.cos(a + 0.7) * 0.3, math.sin(a + 0.7) * 0.3  # each stem twists as it climbs
         tx, tz = math.cos(a) * 0.9, math.sin(a) * 0.9
-        _bough(r, [(0, 0.25, 0), (mx, 1.2, mz), (tx, h * 0.72, tz)], 0.3, 0.18, OLIVE_BARK)
+        _bough(r, [(0, 0.4, 0), (mx, 1.2, mz), (tx, h * 0.72, tz)], 0.3, 0.18, TREE_BARK)
         if near:  # a twig off each stem, reaching out
             b = a + 0.9
             _bough(
@@ -810,7 +791,7 @@ def olive(r, seed, t=0.0, near=True):
                 [(tx, h * 0.72, tz), (tx + math.cos(b) * 0.7, h * 0.85, tz + math.sin(b) * 0.7)],
                 0.12,
                 0.08,
-                OLIVE_BARK,
+                TREE_BARK,
             )
         tips.append((tx, tz))
     clumps = 8 if near else 4
@@ -820,8 +801,8 @@ def olive(r, seed, t=0.0, near=True):
         s = 1.4 + ((k * 7 + seed) % 3) * 0.25
         y = h * 0.8 + ((k + seed) % 2) * 0.45
         shade = 0.88 + ((k + seed) % 3) * 0.08
-        _clump(r, math.cos(a) * d, y, math.sin(a) * d, s, s * 0.8, _dim(OLIVE_LEAF, shade), a)
-    _clump(r, 0, h + 0.3, 0, 2.0, 1.2, _dim(OLIVE_LEAF, 1.05), yaw)
+        _clump(r, math.cos(a) * d, y, math.sin(a) * d, s, s * 0.8, _dim(TREE_LEAF, shade), a)
+    _clump(r, 0, h + 0.3, 0, 2.0, 1.2, _dim(TREE_LEAF, 1.05), yaw)
 
 
 def town_tree(r, kind, seed, t=0.0, near=True):
