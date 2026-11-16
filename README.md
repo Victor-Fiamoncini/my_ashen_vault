@@ -51,11 +51,11 @@ FromSoftware, Inc.
   </tr>
   <tr>
     <td><img src="docs/screenshots/silk.png" alt="The silk sealing the chapel's far door burning away from the bottom up, charred patches glowing at the edges, flames licking up its face"></td>
-    <td><img src="docs/screenshots/sexton.png" alt="The Ashen Sexton in its walled yard, flinging a spadeful of grave ash clods at you, its health bar above"></td>
+    <td><img src="docs/screenshots/sexton.png" alt="The Ashen Sexton in its walled yard, breathing a cloud of choking grave dust at you, its health bar above"></td>
   </tr>
   <tr>
     <td align="center"><sub>Flame Bolt burning the silk off the chapel door</sub></td>
-    <td align="center"><sub>The Ashen Sexton flings a spadeful of grave ash</sub></td>
+    <td align="center"><sub>The Ashen Sexton breathes choking grave dust</sub></td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/dialogue.png" alt="Talking to Odrin the bell-keeper"></td>
@@ -162,8 +162,10 @@ FromSoftware, Inc.
   cloud with a sun glowing through them and mist along the horizon.
 - **Deliberate, weighty combat**: an ATK gauge that refills between swings, enemy wind-ups you can read
   and interrupt, and bosses with poise and attacks of their own: the Ashen Sexton, keeper of the
-  cemetery's gate, flings spadefuls of grave ash that clog your stride, calls hands of ash up from the
-  ground to clutch at you and, once wounded, tolls its spade like a bell in rings of embers; the Ashen Warden cleaves all around,
+  cemetery's gate, fights with the ash it keeps: it breathes choking grave dust at you, dashes an urn
+  of the dead so their ash billows out all round, flings spadefuls of grave ash, calls hands of ash up
+  from the ground to clutch at you and raises whirlwinds of ash that hunt you, each clogging your
+  stride, and once wounded tolls its spade like a bell in rings of embers; the Ashen Warden cleaves all around,
   leaps, flings embers, chains three cuts together and slams a shockwave through the floor, and at
   half health his blade catches fire and he calls flame up from beneath your feet; above his hall the
   Butcher swings a cleaver all around him, lunges and hacks, and at half health flies into a frenzy
@@ -199,8 +201,8 @@ FromSoftware, Inc.
   levers, a flooded cellar and chests.
 - **A cemetery to wake in**: the story opens in the Cemetery of Ashes, walled and floored in grey ash,
   a short first level that teaches as you go. Climb out of your grave, find a rusted sword, cross a field
-  of headstones where Ashen Husks shamble and Shrouded Mourners stand bowed at the graves until you come
-  too close, burn the silk sealing the chapel with the Flame Bolt you find inside, and face the Ashen
+  of headstones where Ashen Husks shamble, the risen dead swing torn-up iron railings and Shrouded
+  Mourners stand bowed at the graves until you come too close, then stab or hurl grave-fire, burn the silk sealing the chapel with the Flame Bolt you find inside, and face the Ashen
   Sexton before its gate lets you out to Harrowmere, for good.
 - **A town to come home to**: Harrowmere's sandstone and ochre houses, under terracotta roofs and
   among cypresses, olives and umbrella pines, climb on cobbled lanes from its harbour past the market's
@@ -473,8 +475,8 @@ the Mourner is `uv run ashen-vault --map ashen_cemetery --at=11,22,-90 --smoke 4
 the burning silk is
 `uv run ashen-vault --map ashen_cemetery --at=12,18,-135 --smoke 90 --script "wait:0.3 cast wait:0.9" --shot silk.png`,
 the Sexton is
-`uv run ashen-vault --map ashen_cemetery --at=10,11,-90 --smoke 220 --script "wait:0.1 interact wait:1 forward:1.2 wait:1" --shot sexton.png`
-(its move is random, so take it again until it flings),
+`uv run ashen-vault --map ashen_cemetery --at=10,11,-90 --smoke 222 --script "wait:0.1 interact wait:1 forward:0.6" --shot sexton.png`
+(its move is random, so take it again until it breathes its dust),
 the forge is `uv run ashen-vault --map harrowmere --at=8,18,180 --smoke 40 --shot forge.png`,
 the Warden is `uv run ashen-vault --map sunken_keep --at=15,7,-90 --smoke 40 --shot warden.png`,
 the hollow's vine path is `uv run ashen-vault --map verdant_hollow --at=9,12,90 --smoke 40 --shot verdant_hollow.png`,
