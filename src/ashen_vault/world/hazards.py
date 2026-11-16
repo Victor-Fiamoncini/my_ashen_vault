@@ -281,16 +281,20 @@ class Eruption:
 
 class Shockwave:
     """The ring of dust and embers a slam sends along the floor. Only for show: the slam's damage is
-    dealt when it lands."""
+    dealt when it lands. Style "ash" is the Sexton's dashed urn: a billow of grave ash that rolls out
+    and hangs a moment before it settles."""
 
     TIME = 0.6
 
-    def __init__(self, x, z, floor, radius):
+    def __init__(self, x, z, floor, radius, style="dust"):
         self.x = x
         self.z = z
         self.floor = floor
         self.radius = radius
+        self.style = style
         self.t = 0.0
+        if style == "ash":
+            self.TIME = 1.1
 
     def update(self, dt):
         self.t += dt
@@ -430,3 +434,57 @@ class MagmaVent:
 
     def reaches(self, x, z):
         return math.hypot(x - self.x, z - self.z) <= self.radius
+
+
+class DustDevil:
+    """A whirlwind of grave ash the Sexton raises: it rises out of the ground, drifts after you for
+    LIFE seconds, slower than you walk, and then sinks away. Each time it catches you it hurts and
+    clogs your stride; it can catch you again only after HIT_GAP seconds. Outrun it, or keep a
+    headstone between you."""
+
+    LIFE = 5.0
+    RISE = 0.5  # seconds it takes to whirl up (it does no harm until then)
+    SINK = 0.6  # seconds it takes to die away at the end
+    SPEED = 2.1  # metres per second
+    RADIUS = 0.8  # metres from its eye that it catches you
+    HIT_GAP = 1.2
+
+    def __init__(self, x, z, floor=0.0, damage=6, source=""):
+        self.x = x
+        self.z = z
+        self.floor = floor
+        self.damage = damage
+        self.source = source
+        self.t = 0.0
+        self.cooldown = 0.0
+
+    @property
+    def done(self):
+        return self.t >= self.LIFE
+
+    @property
+    def strength(self):
+        """0..1 how tall and wide it whirls: rising, full, then dying away."""
+        return max(0.0, min(self.t / self.RISE, 1.0, (self.LIFE - self.t) / self.SINK))
+
+    def update(self, dt, px, pz, open_at):
+        """Drifts toward (px, pz), never into a spot `open_at(x, z)` refuses; returns the damage it
+        deals a body there this frame, or 0."""
+        self.t += dt
+        self.cooldown = max(self.cooldown - dt, 0.0)
+        dx, dz = px - self.x, pz - self.z
+        d = math.hypot(dx, dz)
+        if d > 1e-6 and self.t >= self.RISE:
+            step = min(self.SPEED * dt, d)
+            for nx, nz in (
+                (self.x + dx / d * step, self.z + dz / d * step),
+                (self.x + dx / d * step, self.z),
+                (self.x, self.z + dz / d * step),
+            ):
+                if open_at(nx, nz):
+                    self.x, self.z = nx, nz
+                    break
+        if self.cooldown > 0 or self.strength < 0.6 or math.hypot(px - self.x, pz - self.z) > self.RADIUS:
+            return 0
+        self.cooldown = self.HIT_GAP
+        return self.damage

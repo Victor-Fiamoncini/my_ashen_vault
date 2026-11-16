@@ -5,7 +5,7 @@ import random
 from dataclasses import dataclass
 
 from ashen_vault import map_path
-from ashen_vault.ai.enemy import MOVES, SLAM_RADIUS, Enemy
+from ashen_vault.ai.enemy import ASHFALL_RADIUS, EXHALE_CONE, EXHALE_REACH, MOVES, SLAM_RADIUS, Enemy
 from ashen_vault.ai.enemy_types import EnemyTypes
 from ashen_vault.ai.spawns import spawn_enemies
 from ashen_vault.player.player import Player
@@ -19,6 +19,7 @@ from ashen_vault.world.arena import Arena, flood
 from ashen_vault.world.ash import AshCloud, death_phases
 from ashen_vault.world.hazards import (
     CrumbleFloor,
+    DustDevil,
     Eruption,
     FlameJet,
     MagmaVent,
@@ -80,6 +81,7 @@ class Gout:
     dz: float
     reach: float
     age: float = 0.0
+    style: str = "fire"  # or "ash": the Sexton's breath of grave dust
     LIFE = 0.45  # seconds it burns
     RUSH = 0.12  # seconds its front takes to reach full length
     PUFFS = 9  # balls of flame along its length
@@ -374,6 +376,7 @@ class World:
         self.hazards = []
         self.eruptions = []  # fire columns the Warden calls up
         self.shockwaves = []  # rings sent out by his slam (only for show)
+        self.devils = []  # the Sexton's whirlwinds of ash
         self._safe = None  # centre of the last solid tile the player stood on
         self.ash = AshCloud()
         self._time = 0.0
@@ -641,6 +644,7 @@ class World:
         self.gouts = []
         self.eruptions = []
         self.shockwaves = []
+        self.devils = []
 
     def _lift_key(self, lift):
         return f"lift:{self.name}:{TileMap.tile_coord(lift.x)},{TileMap.tile_coord(lift.z)}"
@@ -971,6 +975,82 @@ class World:
             n += 1
         self.game.sfx("quake", 0.7)
 
+    def _choke(self, enemy, move, message):
+        """One of the Sexton's ash moves catches you: the blow, and the ash that clogs your stride."""
+        if self.enemy_strike(enemy, MOVES[move][2]) > 0:
+            self.player.webbed_t = max(self.player.webbed_t, GRASP_HOLD)
+            self.game.message(message)
+
+    def exhale(self, enemy):
+        """The Sexton breathes out a cone of grave dust from under its hood, EXHALE_REACH long:
+        caught in it, you choke and are slowed. Step aside out of it, or back out of its reach."""
+        player = self.player
+        dx, dz = player.x - enemy.x, player.z - enemy.z
+        d = math.hypot(dx, dz)
+        y = self.enemy_y(enemy) + 2.0
+        ux, uz = math.cos(enemy.yaw), math.sin(enemy.yaw)
+        g = Gout(
+            enemy.x + ux * enemy.radius,
+            y,
+            enemy.z + uz * enemy.radius,
+            ux,
+            -0.25,
+            uz,
+            EXHALE_REACH,
+            style="ash",
+        )
+        g.LIFE, g.RUSH = 0.9, 0.3
+        self.gouts.append(g)
+        self.game.sfx("breath", 0.6)
+        off = abs((math.atan2(dz, dx) - enemy.yaw + math.pi) % math.tau - math.pi)
+        if player.alive and d <= EXHALE_REACH + shots.PLAYER_RADIUS and off <= EXHALE_CONE:
+            self._choke(enemy, "exhale", "You choke on grave dust!")
+
+    def ashfall(self, enemy):
+        """The Sexton tears an urn of others' ashes from its back and dashes it down: the ash billows
+        out all round it, ASHFALL_RADIUS far, from any side. Be out of its reach when the urn breaks."""
+        floor = self.enemy_y(enemy)
+        self.shockwaves.append(Shockwave(enemy.x, enemy.z, floor, ASHFALL_RADIUS, style="ash"))
+        self.game.sfx("quake", 0.8)
+        self.game.sfx("crack", 0.7)
+        player = self.player
+        if player.alive and math.hypot(player.x - enemy.x, player.z - enemy.z) <= ASHFALL_RADIUS:
+            self._choke(enemy, "ashfall", "The ash of the dead engulfs you!")
+
+    def dust_devils(self, enemy):
+        """The Sexton whirls its spade and raises two whirlwinds of ash, one on either side of it,
+        that drift after you (`hazards.DustDevil`)."""
+        damage = rround(enemy.type.damage * MOVES["dust_devil"][2])
+        for side in (-1, 1):
+            a = enemy.yaw + side * math.pi / 2
+            x, z = enemy.x + math.cos(a) * (enemy.radius + 1.2), enemy.z + math.sin(a) * (enemy.radius + 1.2)
+            if not self._devil_open(x, z):
+                x, z = enemy.x + math.cos(enemy.yaw) * 1.5, enemy.z + math.sin(enemy.yaw) * 1.5
+            self.devils.append(DustDevil(x, z, self.map.tile_at(x, z).floor, damage, enemy.name))
+        self.game.sfx("breath", 0.8)
+        self.game.message("The ash rises and whirls about the Sexton!")
+
+    def _devil_open(self, x, z):
+        tile = self.map.tile_at(x, z)
+        return (
+            not tile.solid
+            and tile.walkable
+            and not self.blocker(TileMap.tile_coord(x), TileMap.tile_coord(z))
+        )
+
+    def _update_devils(self, dt):
+        player = self.player
+        # The whirlwinds die with the Sexton that raised them.
+        raisers = {e.name for e in self.enemies if e.alive}
+        self.devils = [d for d in self.devils if not d.done and d.source in raisers]
+        for d in self.devils:
+            dmg = d.update(dt, player.x, player.z, self._devil_open)
+            if dmg and player.alive:
+                hurt = max(rround(dmg - player.inventory.defense * 0.3), 1)
+                self.game.hurt_player(hurt, "The whirling ash")
+                player.webbed_t = max(player.webbed_t, GRASP_HOLD)
+                self.game.message("The whirling ash flays you and drags at your legs!")
+
     def knell(self, enemy, wave):
         """One ring of the Sexton's knell: KNELL_SHOTS embers flung out all round at chest height,
         the second `wave` turned half a gap from the first."""
@@ -1038,7 +1118,7 @@ class World:
         )
         lead = enemy.radius / speed  # leaves from the edge of its body
         damage = enemy.type.damage
-        if kind in ("web", "cinders", "spadeful"):
+        if kind in ("web", "cinders", "spadeful", "fireball"):
             damage = rround(damage * MOVES[kind][2])
         self.projectiles.append(
             Projectile(
@@ -1232,6 +1312,7 @@ class World:
         for w in self.shockwaves:
             w.update(dt)
         self.shockwaves = [w for w in self.shockwaves if not w.done]
+        self._update_devils(dt)
 
     def _update_crumble(self, h, dt, player_on):
         change = h.update(dt, player_on)
@@ -1848,15 +1929,31 @@ class World:
                 with rig.at(*bomb):
                     forge_models.magma_bomb(rig, self._time)
         for w in self.shockwaves:
-            gpu.model_light((1.6, 1.4, 1.2))
+            if w.style == "ash":  # grave ash, lit by the room rather than glowing
+                self._model_light(gpu, w.x, w.floor + 1.0, w.z)
+            else:
+                gpu.model_light((1.6, 1.4, 1.2))
             with rig.at(w.x, w.floor, w.z):
-                models.shockwave_ring(rig, w.progress, w.radius)
+                if w.style == "ash":
+                    cemetery_models.ash_billow(rig, w.progress, w.radius, self._time)
+                else:
+                    models.shockwave_ring(rig, w.progress, w.radius)
+        for d in self.devils:
+            self._model_light(gpu, d.x, d.floor + 1.0, d.z)
+            with rig.at(d.x, d.floor, d.z):
+                cemetery_models.dust_devil(rig, d.strength, self._time + d.x)
         self._draw_ash(rig, gpu, far)
         for g in self.gouts:
-            gpu.model_light((1.6, 1.4, 1.2))
+            if g.style == "ash":
+                self._model_light(gpu, g.x, g.y, g.z)
+            else:
+                gpu.model_light((1.6, 1.4, 1.2))
             for i, (x, y, z, size, heat) in enumerate(g.puffs()):
                 with rig.at(x, y, z):
-                    models.gout_puff(rig, size, heat, self._time, seed=i * 1.7)
+                    if g.style == "ash":
+                        cemetery_models.dust_puff(rig, size, heat, self._time, seed=i * 1.7)
+                    else:
+                        models.gout_puff(rig, size, heat, self._time, seed=i * 1.7)
         for pr_ in self.projectiles:
             gpu.model_light((1.6, 1.4, 1.2))
             if pr_.effect in ("arrow", "thunder"):  # these fly point first

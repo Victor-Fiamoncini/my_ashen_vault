@@ -42,7 +42,8 @@ class EnemyType:
     # Lurkers sit still until you come within `sight`, then give chase for `GIVE_UP` metres.
     lurk: bool = False
     # Special attacks mixed in (see enemy.MOVES): "sweep", "web", "pounce", "cinders", "combo",
-    # "slam", "eruption", "hook", "breath", "dive".
+    # "slam", "eruption", "hook", "breath", "dive", "exhale", "ashfall", "spadeful", "grasp",
+    # "dust_devil", "knell", "fireball".
     moves: tuple = ()
     # Enemy type a boss calls to its side once, when it drops to half HP.
     brood: str | None = None
@@ -483,7 +484,8 @@ class EnemyTypes:
                 name="Shrouded Mourner",
                 # Found only in the Cemetery of Ashes: a hooded thing in long dark robes that stands
                 # bowed over a grave, still as a stone, until you come close; then it glides at you
-                # and stabs with a crooked knife. Left far behind, it gives up and stands still again.
+                # and stabs with a crooked knife, and from further off kindles a ball of grave-fire in
+                # its bony palm and throws it. Left far behind, it gives up and stands still again.
                 hp=22,
                 speed=2.6,
                 damage=9,
@@ -497,6 +499,8 @@ class EnemyTypes:
                 height=1.0,
                 tall=2.2,
                 lurk=True,
+                moves=("fireball",),
+                shot_rgb=(255, 110, 40),
             ),
             EnemyType(
                 id="sexton",
@@ -517,11 +521,14 @@ class EnemyTypes:
                 dead_flag="sexton_dead",
                 epitaph="The Sexton sinks back into the ash it kept. The gate beyond stands open.",
                 poise=10,
-                # The first boss, and a gentle one: slow spade sweeps and a slam, and its own moves: a
-                # spadeful of grave ash flung in a fan, and hands of ash grasping up from the ground in
-                # a line. At half HP the ash in its chest catches the bell's note and kindles, and it
-                # tolls the knell: two rings of embers, one after the other.
-                moves=("sweep", "slam", "spadeful", "grasp"),
+                # The first boss, and a gentle one: slow spade chops, and the ash it keeps. Up close it
+                # breathes a cone of grave dust at you, or dashes an urn of ashes down so the ash
+                # billows out all round; further off it flings a spadeful of grave ash in a fan, calls
+                # hands of ash grasping up from the ground in a line, or whirls its spade and raises
+                # two whirlwinds of ash that hunt you. Each of them slows you. At half HP the ash in its
+                # chest catches the bell's note and kindles, and it tolls the knell: two rings of
+                # embers, one after the other.
+                moves=("exhale", "ashfall", "spadeful", "grasp", "dust_devil"),
                 phase_moves=("knell",),
                 rage="The bell's note rings through the Sexton. Its ash catches fire!",
                 shot_rgb=(255, 150, 60),

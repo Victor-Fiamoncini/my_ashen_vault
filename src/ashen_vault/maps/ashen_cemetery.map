@@ -99,7 +99,7 @@ C = chest item=rusted_sword
 Ä = hint text="{Left mouse} swings your Primary. Hold it for a heavy blow."
 Å = hint text="Every blow and every sprint ({Shift}) spends stamina.|Step back and let it refill."
 Ì = hint text="Urns break when struck, and spill what they hold.|The {wheel} picks a quick item; {middle mouse} uses it."
-B = bone_walker
+B = bone_walker model=grave
 A = ashen_husk
 X = mourner
 Z = brazier radius=8

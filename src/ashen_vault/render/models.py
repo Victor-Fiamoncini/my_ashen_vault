@@ -52,6 +52,8 @@ def enemy(r, e):
         "mourner": cemetery_models.mourner,
         "ashen_husk": cemetery_models.ashen_husk,
     }.get(e.type.id)
+    if e.type.id == "bone_walker" and getattr(e, "look", None) == "grave":
+        fn = cemetery_models.grave_walker  # the cemetery's own dead, risen in their winding sheets
     if fn:
         fn(r, e, t)
 

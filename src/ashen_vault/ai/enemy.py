@@ -21,11 +21,18 @@ MOVES = {
     "hook": (0.8, 6.0, 0.4),  # a hooked chain that drags you in
     "breath": (1.0, 7.0, 0.8),  # rakes a line of fire along the floor toward you and past you
     "dive": (0.9, 8.0, 1.2),  # swoops low straight through where you stood
-    # The Ashen Sexton's own: a spadeful of grave ash flung in a fan, grasping hands of ash bursting
-    # up in a line toward you, and (second phase) the knell, two rings of embers tolled outward.
+    # The Ashen Sexton's own: a cone of grave dust breathed out at you, an urn of ashes dashed down
+    # so the ash billows out all round, a spadeful of grave ash flung in a fan, grasping hands of ash
+    # bursting up in a line toward you, two whirlwinds of ash raised to hunt you, and (second phase)
+    # the knell, two rings of embers tolled outward.
+    "exhale": (0.9, 6.0, 0.7),
+    "ashfall": (1.1, 7.0, 1.0),
+    "dust_devil": (1.0, 12.0, 0.5),
     "spadeful": (0.8, 6.0, 0.4),
     "grasp": (1.0, 7.0, 0.7),
     "knell": (1.3, 9.0, 0.6),
+    # The Shrouded Mourner's own: a ball of grave-fire kindled in its bony palm and thrown.
+    "fireball": (0.9, 5.0, 0.8),
 }
 COMBO_SWINGS = 3
 COMBO_GAP = 0.45  # seconds between the swings of a combo
@@ -44,6 +51,11 @@ BREATH_RANGE = (3.0, 10.0)  # distances a gout of breath is loosed from
 DIVE_RANGE = (5.0, 13.0)
 SPADEFUL_RANGE = (3.5, 11.0)
 GRASP_RANGE = (2.5, 10.0)
+FIREBALL_RANGE = (2.5, 10.0)
+EXHALE_REACH = 5.0  # metres the Sexton's breath of grave dust carries
+EXHALE_CONE = 0.45  # half-angle (radians) of that breath: step aside out of it
+ASHFALL_RADIUS = 3.8  # metres the ash of a dashed urn billows out, from any side
+DEVIL_RANGE = (4.0, 13.0)  # distances the Sexton raises its whirlwinds of ash from
 KNELL_RANGE = 12.0  # it tolls only while you are this close
 KNELL_GAP = 0.5  # seconds between the knell's two rings
 TRAIL_HOLD = 0.6  # seconds the boss bar's damage trail waits before draining
@@ -63,6 +75,9 @@ ATTACK_TIMES = {
     "breath": 0.6,
     "grasp": 0.6,
     "spadeful": 0.35,
+    "exhale": 0.6,
+    "ashfall": 0.45,
+    "dust_devil": 0.5,
 }
 
 
@@ -395,12 +410,20 @@ class Enemy:
             options.append("spadeful")
         if "grasp" in ready and seen and GRASP_RANGE[0] <= dist <= GRASP_RANGE[1]:
             options.append("grasp")
+        if "exhale" in ready and seen and dist <= EXHALE_REACH * 0.8:
+            options.append("exhale")
+        if "ashfall" in ready and dist <= ASHFALL_RADIUS * 0.8:
+            options.append("ashfall")
+        if "dust_devil" in ready and seen and DEVIL_RANGE[0] <= dist <= DEVIL_RANGE[1]:
+            options.append("dust_devil")
+        if "fireball" in ready and seen and FIREBALL_RANGE[0] <= dist <= FIREBALL_RANGE[1]:
+            options.append("fireball")
         if "knell" in ready and dist <= KNELL_RANGE:
             options.append("knell")
         if not options:
             return None
         # Up close a special is only sometimes chosen, so the plain blow stays in the mix.
-        close = {"sweep", "combo", "slam"}
+        close = {"sweep", "combo", "slam", "exhale", "ashfall"}
         if set(options) <= close and self._rng.random() < 0.5:
             for m in options:
                 self.cooldowns[m] = 1.0
@@ -445,7 +468,7 @@ class Enemy:
             return self._knell(world)
         if not self._struck:
             self._struck = True
-            if kind in ("shot", "web", "cinders", "spadeful"):
+            if kind in ("shot", "web", "cinders", "spadeful", "fireball"):
                 world.enemy_fire(self, kind)
             elif kind == "summon":
                 world.summon(self, self.type.brood, 2)
@@ -461,6 +484,12 @@ class Enemy:
                 world.breath(self)
             elif kind == "grasp":
                 world.grasp(self)
+            elif kind == "exhale":
+                world.exhale(self)
+            elif kind == "ashfall":
+                world.ashfall(self)
+            elif kind == "dust_devil":
+                world.dust_devils(self)
             elif kind == "hook":
                 if dist <= HOOK_RANGE[1] + 0.5 and self._facing(world.player_x, world.player_z):
                     world.hook(self, MOVES["hook"][2], HOOK_PULL)

@@ -1,5 +1,6 @@
 """Models for the Cemetery of Ashes, where the Ashen wake: the Ashen Sexton that keeps its gate,
-the husks of the Ashen who failed before you, and its dressing (gravestones, the open grave you
+the husks of the Ashen who failed before you, its Shrouded Mourners, its risen dead (the
+Bone Walkers dressed as `grave_walker`), and its dressing (gravestones, the open grave you
 climb out of, the cemetery's wrought-iron gate). Original low-poly models assembled from primitives;
 like everything in `models`, they face +X."""
 
@@ -14,6 +15,7 @@ from ashen_vault.render.models import (
     ELBOW_REST,
     ELBOW_STRIKE,
     EMBER,
+    _bar,
     _dim,
     _ease,
     _flame,
@@ -21,12 +23,18 @@ from ashen_vault.render.models import (
     _spider_move,
     _warden_arms,
     aim_wrist,
+    blade_angle,
+    chop_angle,
     death_fall,
+    elbow_bend,
     hand,
     held,
+    ribcage,
+    skull,
     strike_angle,
     walk_cycle,
 )
+from ashen_vault.util import rround
 
 ASH_BODY = (104, 100, 98)  # the Ashen's grey, a shade paler than the player's own arms
 ASH_DARK = (70, 67, 66)
@@ -132,7 +140,14 @@ def sexton(r, e, t):
                 r.part("cube", 0, -0.18, 0, 0.15, 0.36, 0.15, body, tex="ash_skin")
                 r.part("cube", 0, -0.08, 0, 0.17, 0.06, 0.17, SHROUD_DARK)  # a wrapping
                 with r.at(0, -0.38, 0):
-                    hand(r, body, 0.15, curl=0.5)
+                    urn = (
+                        e.attack_kind == "ashfall" and e.state == "windup" and e.state_t > 0.3 * e.windup_time
+                    )
+                    hand(r, body, 0.15, curl=0.9 if urn else 0.5)
+                    if urn:  # an urn of others' ashes, torn from its back, about to be dashed down
+                        r.part("sphere", 0.02, -0.26, 0, 0.26, 0.32, 0.26, CLAY)
+                        r.part("cyl", 0.02, -0.08, 0, 0.14, 0.06, 0.14, _dim(CLAY, 0.75))
+                        r.part("cube", 0.02, -0.04, 0, 0.15, 0.03, 0.15, (58, 50, 44))
         # The spade arm: shoulder, elbow, and the grave-spade on its long haft turned at the wrist.
         # Slain, it leans on the spade, the blade on the ground ahead.
         with r.at(0, 1.66, 0.44, rz=hit - 0.5 * kneel):
@@ -148,16 +163,43 @@ def sexton(r, e, t):
                     grave_spade(r, lit, t)
 
 
+OWN_POSES = ("exhale", "ashfall", "dust_devil", "spadeful", "grasp", "knell")
+
+
 def sexton_arms(e, t):
     """(spade arm, free arm, spade direction, elbow, twist, crouch) for the Sexton's moves, in the
-    terms of `models._warden_arms` (which gives its sweep and slam). Spadeful: the spade dips low
-    and scoops back, then flings up and forward. Grasp: raised, then driven blade-down into the
-    ground. Knell: held straight up, trembling, then brought down like a clapper, twice."""
+    terms of `models._warden_arms` (which gives its plain chop). Exhale: it rears up, both arms
+    thrown wide, then hunches forward as the dust pours out. Ashfall: the free hand reaches back over
+    its shoulder for an urn and dashes it down in front. Dust devil: the spade raised overhead and
+    whirled round, then swept low. Spadeful: the spade dips low and scoops back, then flings up and
+    forward. Grasp: raised, then driven blade-down into the ground. Knell: held straight up,
+    trembling, then brought down like a clapper, twice."""
     hit, free, blade, elbow, twist, crouch, _ = _warden_arms(e, t)
     kind = e.attack_kind
-    if e.state not in ("windup", "attack") or kind not in ("spadeful", "grasp", "knell"):
+    if e.state not in ("windup", "attack") or kind not in OWN_POSES:
         return hit, free, blade, elbow, twist, crouch
     k = _ease(min(e.state_t / max(e.windup_time, 1e-3), 1)) if e.state == "windup" else 1.0
+    d = _ease(min(e.state_t / 0.15, 1))
+    if kind == "exhale":
+        if e.state == "windup":
+            return (
+                _mix(0.0, -0.6, k),
+                _mix(0.0, -0.6, k),
+                _mix(BLADE_REST, -0.8, k),
+                ELBOW_REST,
+                0.0,
+                0.08 * k,
+            )
+        return _mix(-0.6, 0.5, d), _mix(-0.6, 0.9, d), _mix(-0.8, -0.4, d), 0.4, 0.0, _mix(0.08, -0.18, d)
+    if kind == "ashfall":
+        if e.state == "windup":
+            return 0.2 * k, _mix(0.0, math.pi - 0.4, k), BLADE_REST, ELBOW_REST, -0.15 * k, 0.0
+        return 0.2, _mix(math.pi - 0.4, 1.3, d), BLADE_REST, ELBOW_REST, _mix(-0.15, 0.1, d), -0.3 * d
+    if kind == "dust_devil":
+        if e.state == "windup":
+            whirl = math.sin(e.state_t * 9) * 0.5 * k
+            return _mix(0.0, math.pi - 0.3, k), 0.5 * k, _mix(BLADE_REST, math.pi / 2, k), 0.2, whirl, 0.0
+        return _mix(math.pi - 0.3, 1.2, d), 0.5, _mix(math.pi / 2, -0.6, d), 0.2, _mix(0.4, -0.3, d), -0.2 * d
     if kind == "spadeful":
         if e.state == "windup":
             return (
@@ -168,7 +210,6 @@ def sexton_arms(e, t):
                 0.3 * k,
                 -0.2 * k,
             )
-        d = _ease(min(e.state_t / 0.15, 1))
         return _mix(-0.5, 2.0, d), 0.3, _mix(-1.0, 1.0, d), 0.1, _mix(0.3, -0.2, d), _mix(-0.2, 0.0, d)
     if kind == "grasp":
         if e.state == "windup":
@@ -215,47 +256,94 @@ def grave_spade(r, lit, t):
 
 
 HUSK = (98, 95, 94)
+HUSK_CRUST = (150, 146, 140)  # pale ash caked on its shoulders and crown
+HUSK_CHAR = (54, 50, 50)  # charred grey where the ash has burned through
+HUSK_SEAM = (170, 70, 30)  # the last heat smouldering in its cracks
 RAG = (82, 74, 62)
 
 
 def ashen_husk(r, e, t):
-    """One of the Ashen who woke before you and failed: a stooped, hollow figure of grey ash in the
-    rags of a shroud, its face worn smooth, reaching out with long cracked fingers. It lurches; it
-    claws with both hands. Slain, its knees give and it folds forward onto the ground."""
+    """One of the Ashen who woke before you and failed: a gaunt, hunched figure burned down to ash,
+    pale crust caked on its shoulders and crown, charred grey beneath, its last heat smouldering in
+    the cracks that split it and in the hollow where its heart burned out. The winding sheet it was
+    buried in hangs off it in strips. Its head hangs low, the face crumbled to a skull's sockets and a
+    slack jaw; its arms hang long to its knees, ending in cracked claws, and flakes of ash fall from
+    it as it drags one foot. It claws with both hands. Slain, its knees give, it folds forward onto the
+    ground, and its embers go out."""
     swing = walk_cycle(e, t) * 0.6
     fall = death_fall(e, 0.7)
+    alive = fall < 0.5
     arm = strike_angle(e)
     body = (236, 232, 226) if e.flashing else HUSK
-    dark = _dim(body, 0.7)
+    crust = (246, 244, 240) if e.flashing else HUSK_CRUST
+    char = _dim(body, 0.55)
+    heat = 0.6 + 0.4 * math.sin(t * 2.3) if alive else 0.0
+    seam = _dim(HUSK_SEAM, 0.55 + 0.45 * heat) if alive else COLD
     lurch = math.sin(t * 3.5) * 0.06 if e.state == "chase" else 0.0
-    with r.at(0, -0.3 * fall, 0), r.at(0, 0.9, 0, rz=-0.35 - lurch - 1.05 * fall), r.at(0, -0.9, 0):
-        for side, a in ((-0.12, swing), (0.12, -swing)):  # thin legs; dying, they fold back
-            with r.at(0, 0.88, side, rz=a + 1.3 * fall):
-                r.part("cube", 0, -0.22, 0, 0.12, 0.44, 0.12, body, tex="ash_skin")
-                with r.at(0, -0.44, 0, rz=-0.2 - 1.8 * fall):
-                    r.part("cube", 0, -0.2, 0, 0.11, 0.42, 0.11, body, tex="ash_skin")
-                    r.part("cube", 0.06, -0.41, 0, 0.2, 0.05, 0.11, dark)
-        r.part("cube", 0, 0.95, 0, 0.22, 0.2, 0.32, RAG)  # the rag round its hips
-        for z in (-0.1, 0.05, 0.13):
-            r.part("cube", 0.1, 0.78, z, 0.02, 0.26, 0.07, _dim(RAG, 0.85), rz=0.1)  # torn strips
-        r.part("cube", 0, 1.22, 0, 0.22, 0.42, 0.34, body, tex="ash_skin")  # a narrow chest
-        r.part("sphere", -0.06, 1.34, 0, 0.26, 0.3, 0.36, dark)  # the stoop of its back
-        for i in range(3):  # ribs pressing through
-            r.part("cube", 0.115, 1.3 - i * 0.08, 0, 0.02, 0.025, 0.26, _dim(body, 1.15))
-        r.part("cube", 0.115, 1.12, 0.06, 0.01, 0.18, 0.02, (40, 36, 34), rx=0.5)  # a crack
-        r.part("cube", -0.12, 1.4, 0, 0.04, 0.3, 0.36, RAG)  # a scrap of shroud over the shoulders
-        with r.at(0.06, 1.5, 0, rz=-0.3):  # the head hangs forward: smooth, eyeless, a dark mouth
-            r.part("sphere", 0, 0.1, 0, 0.22, 0.26, 0.2, body, tex="ash_skin")
-            r.part("cube", 0.1, 0.05, 0, 0.02, 0.03, 0.08, (34, 30, 30))
-            r.part("cube", 0.09, 0.14, 0, 0.02, 0.03, 0.14, dark)  # a brow worn to a ridge
-        for side in (-1, 1):  # both arms reach and claw together
-            reach = arm + swing * 0.3 * side + 0.9
-            with r.at(0, 1.4, side * 0.2, rz=reach * (1 - fall) + 0.2 * fall):
-                r.part("cube", 0, -0.18, 0, 0.09, 0.36, 0.09, body, tex="ash_skin")
-                with r.at(0, -0.36, 0, rz=0.4):
-                    r.part("cube", 0, -0.16, 0, 0.08, 0.32, 0.08, body, tex="ash_skin")
-                    with r.at(0, -0.34, 0):
-                        hand(r, body, 0.1, bony=True, curl=0.7)
+    with r.at(0, -0.3 * fall, 0), r.at(0, 0.9, 0, rz=-0.42 - lurch - 1.0 * fall), r.at(0, -0.9, 0):
+        # Legs, thin and knobbed at the knee; the left drags behind, its foot turned in.
+        for side, a, drag in ((-0.12, swing, 0.25), (0.12, -swing * 0.5, 0.0)):
+            with r.at(0, 0.88, side, rz=a + 1.3 * fall - drag * 0.4):
+                r.part("cube", 0, -0.22, 0, 0.11, 0.44, 0.11, body, tex="ash_skin")
+                r.part("sphere", 0.02, -0.44, 0, 0.13, 0.11, 0.13, char)  # the knee
+                with r.at(0, -0.44, 0, rz=-0.25 - 1.8 * fall + drag):
+                    r.part("cube", 0, -0.2, 0, 0.09, 0.42, 0.09, char, tex="ash_skin")
+                    r.part("cube", 0.05, -0.18, 0, 0.012, 0.22, 0.03, seam, glow=alive)  # a smouldering split
+                    r.part("cube", 0.06, -0.41, 0, 0.2, 0.05, 0.1, char, ry=drag * 1.2)  # the foot
+        # Its hips, and the winding sheet hanging from them in strips that sway as it lurches.
+        r.part("cube", 0, 0.93, 0, 0.2, 0.16, 0.3, char, tex="ash_skin")
+        for i, z in enumerate((-0.14, -0.04, 0.06, 0.15)):
+            drop = 0.3 + 0.08 * (i % 3)
+            with r.at(0.09 - 0.18 * (i % 2), 0.98, z, rz=0.12 + swing * 0.3 * (i % 2 * 2 - 1)):
+                r.part("cube", 0, -drop / 2, 0, 0.02, drop, 0.09, _dim(RAG, 0.8 + 0.1 * (i % 2)))
+        # A gaunt chest, its ribs pressing out, and the hollow where its heart burned out.
+        r.part("cube", -0.02, 1.2, 0, 0.2, 0.4, 0.3, body, tex="ash_skin")
+        for i in range(3):
+            for z in (-0.09, 0.09):
+                r.part("cube", 0.09, 1.31 - i * 0.075, z, 0.03, 0.025, 0.1, _dim(body, 1.15), ry=z * 3)
+        r.part("cube", 0.085, 1.12, 0.04, 0.03, 0.15, 0.1, PIT)  # the hollow
+        r.part("sphere", 0.08, 1.11, 0.04, 0.05 + 0.02 * heat, 0.05 + 0.02 * heat, 0.05, seam, glow=alive)
+        r.part("cube", 0.11, 1.25, -0.08, 0.012, 0.2, 0.025, seam, rx=0.5, glow=alive)  # a crack
+        r.part("cube", 0.11, 1.02, 0.11, 0.012, 0.14, 0.02, seam, rx=-0.6, glow=alive)
+        # The hunched back, crusted pale, a spine of knuckled bone down it, and the sheet's last
+        # band wound round its chest over one shoulder.
+        r.part("sphere", -0.08, 1.36, 0, 0.3, 0.3, 0.38, crust, tex="ash_skin")
+        for i in range(4):
+            r.part("cube", -0.21 + i * 0.01, 1.42 - i * 0.09, 0, 0.05, 0.05, 0.06, _dim(crust, 0.85))
+        r.part("cube", 0, 1.24, 0, 0.24, 0.07, 0.34, RAG, rx=0.55)  # the band of sheet
+        r.part("cube", -0.14, 1.12, -0.12, 0.02, 0.3, 0.1, _dim(RAG, 0.85), rz=0.15)  # its loose end
+        # The head, hung low and forward on a thin neck: a crumbled face, deep sockets with a spark
+        # left in each, a slack jaw, and the crust heaped on its crown.
+        with r.at(0.08, 1.46, 0, rz=-0.55 + math.sin(t * 1.7) * 0.06 * (1 - fall)):
+            r.part("cube", 0.02, 0.05, 0, 0.07, 0.12, 0.07, char)  # the neck
+            with r.at(0.06, 0.18, 0):
+                r.part("sphere", -0.02, 0.03, 0, 0.24, 0.24, 0.22, body, tex="ash_skin")
+                r.part("sphere", -0.05, 0.1, 0, 0.22, 0.12, 0.2, crust)  # the crust on its crown
+                r.part("cube", 0.09, 0.03, 0, 0.04, 0.035, 0.17, _dim(crust, 0.9))  # its brow
+                for z in (-0.045, 0.045):
+                    r.part("cube", 0.1, -0.01, z, 0.03, 0.05, 0.05, PIT)  # a socket
+                    r.part("cube", 0.11, -0.01, z, 0.012, 0.015, 0.015, seam, glow=alive)  # its spark
+                r.part("cube", 0.11, -0.05, 0, 0.02, 0.03, 0.025, PIT)  # where the nose was
+                with r.at(0.02, -0.08, 0, rz=-0.35 - 0.3 * (e.state == "windup")):
+                    r.part("cube", 0.05, -0.02, 0, 0.11, 0.04, 0.13, char)  # the slack jaw
+                    r.part("cube", 0.1, 0.0, 0, 0.02, 0.02, 0.1, _dim(BONE_PALE, 0.8))  # a few teeth
+        # Both arms hang long and reach and claw together, a shoulder knob crusted pale.
+        for side in (-1, 1):
+            reach = arm + swing * 0.3 * side + 0.75
+            with r.at(0, 1.38, side * 0.2, rz=reach * (1 - fall) + 0.2 * fall):
+                r.part("sphere", 0, 0.0, 0, 0.14, 0.13, 0.14, crust)
+                r.part("cube", 0, -0.2, 0, 0.08, 0.4, 0.08, body, tex="ash_skin")
+                with r.at(0, -0.4, 0, rz=0.35):
+                    r.part("cube", 0, -0.19, 0, 0.07, 0.38, 0.07, char, tex="ash_skin")
+                    r.part("cube", 0.04, -0.2, 0, 0.01, 0.16, 0.02, seam, glow=alive)
+                    with r.at(0, -0.39, 0):
+                        hand(r, char, 0.12, bony=True, curl=0.8 if e.state == "attack" else 0.55)
+    if alive:  # flakes of ash drift down off it
+        for i in range(3):
+            k = (t * 0.45 + i / 3) % 1
+            x = -0.05 + 0.1 * math.sin(i * 2.1 + t * 0.7)
+            z = 0.12 * math.sin(i * 3.7 + t)
+            r.part("cube", x, 1.45 - 1.3 * k, z, 0.025, 0.025, 0.025, crust, rx=t * 3 + i, ry=t * 2)
 
 
 def gravestone(r, seed):
@@ -357,6 +445,98 @@ def ash_hands(r, glow, rise, t):
                 hand(r, ASH_BODY, 0.2, bony=True, curl=1.2 - 0.8 * rise + 0.15 * math.sin(t * 12 + i))
 
 
+def dust_puff(r, size, heat, t, seed=0.0):
+    """One roiling ball of the Sexton's breath of grave dust (a `Gout` of style "ash"): dark and dense
+    where it leaves its hood (`heat` 1), paler and thinning at the front, a few motes tumbling in it."""
+    if size <= 0.02:
+        return
+    roil = 1 + 0.15 * math.sin(t * 17 + seed * 3)
+    grey = _mix_rgb((110, 106, 102), (176, 170, 162), 1 - heat)
+    s = size * roil * 0.55
+    for i in range(4):  # a cluster of smaller billows, not one ball
+        a = seed * 2.3 + i * math.tau / 4 + t * 1.5
+        k = 0.55 + 0.15 * (i % 2)
+        x, y, z = math.cos(a) * s * 0.35, (i - 1.5) * s * 0.12, math.sin(a) * s * 0.35
+        r.part("sphere", x, y, z, s * k, s * k * 0.8, s * k, _dim(grey, 0.9 + 0.08 * i))
+    for i in range(2):
+        a = t * 6 + seed + i * 3.1
+        r.part(
+            "cube",
+            math.cos(a) * s * 0.6,
+            math.sin(a * 1.3) * s * 0.4,
+            math.sin(a) * s * 0.6,
+            0.05,
+            0.05,
+            0.05,
+            ASH_DARK,
+            rx=a,
+            ry=a,
+        )
+
+
+def ash_billow(r, k, radius, t):
+    """The ash of an urn the Sexton dashes down (a `Shockwave` of style "ash"), `k` 0..1 through its
+    life: a ring of grey clouds rolls out to `radius`, swelling and rising, then thins and settles,
+    shards of the urn skittering out before it."""
+    out = radius * min(k / 0.45, 1.0)
+    fade = 1.0 - max(0.0, (k - 0.55) / 0.45)
+    for i in range(12):
+        a = i * math.tau / 12 + 0.3 * math.sin(i * 1.7)
+        size = (0.5 + 0.7 * min(k / 0.45, 1.0)) * fade * (0.85 + 0.15 * math.sin(i * 2.3))
+        if size <= 0.03:
+            continue
+        rise = 0.35 + 0.6 * k
+        grey = (184, 178, 170) if i % 2 else (150, 144, 138)
+        r.part("sphere", math.cos(a) * out, rise, math.sin(a) * out, size, size * 0.7, size, grey)
+        if i % 3 == 0:  # a shard of the urn, ahead of the cloud
+            d = min(radius * 1.05, out + 0.4)
+            r.part("cube", math.cos(a) * d, 0.04, math.sin(a) * d, 0.12, 0.05, 0.09, CLAY, ry=a + t)
+    if k < 0.5:  # where the urn broke, a heap of ash still smoking
+        r.part("sphere", 0, 0.1, 0, 0.7 * (1 - k), 0.25, 0.7 * (1 - k), ASH_DARK)
+
+
+def dust_devil(r, strength, t):
+    """A whirlwind of grave ash (`hazards.DustDevil`): a funnel of grey bands spinning, narrow at its
+    foot and wide at its crown, ash and grit flung round it; `strength` 0..1 as it rises and dies."""
+    if strength <= 0.02:
+        return
+    h = 2.4 * strength
+    for i in range(6):
+        k = i / 5
+        y = h * (0.08 + 0.85 * k)
+        w = (0.25 + 0.75 * k) * strength
+        spin = t * (7 - 2 * k) + i * 0.9
+        grey = (184, 178, 170) if i % 2 else (148, 142, 136)
+        for j in range(3):
+            a = spin + j * math.tau / 3
+            r.part("cube", math.cos(a) * w * 0.5, y, math.sin(a) * w * 0.5, w * 0.9, 0.2, 0.16, grey, ry=-a)
+    r.part(
+        "cyl", 0, h * 0.45, 0, 0.35 * strength, h * 0.9, 0.35 * strength, (120, 116, 110)
+    )  # its dense core
+    for i in range(4):  # grit flung round it, and embers still alight in it
+        a = t * 9 + i * 1.6
+        y = h * ((t * 0.7 + i * 0.25) % 1)
+        ember = i % 2 == 0
+        r.part(
+            "cube",
+            math.cos(a) * 0.8 * strength,
+            y,
+            math.sin(a) * 0.8 * strength,
+            0.06,
+            0.06,
+            0.06,
+            EMBER if ember else ASH_DARK,
+            rx=a,
+            ry=a,
+            glow=ember,
+        )
+    r.part("cyl", 0, 0.02, 0, 1.3 * strength, 0.03, 1.3 * strength, (62, 58, 56))  # the ash it scours up
+
+
+def _mix_rgb(a, b, k):
+    return tuple(rround(x + (y - x) * k) for x, y in zip(a, b, strict=True))
+
+
 def ash_clod(r, t):
     """A clod of grave ash from the Sexton's spadeful, shedding dust as it flies."""
     clod = _dim(ASH_BODY, 0.75)
@@ -380,6 +560,8 @@ def _mourner_arm(e, lurking):
     lurks, drawn back low on the windup, thrust straight out on the attack."""
     if lurking:
         return 0.55, 0.9, -1.2
+    if e.attack_kind == "fireball" and e.state in ("windup", "attack", "recover"):
+        return 0.3, 0.6, -0.6  # the free hand throws; the knife waits
     if e.state == "windup":
         k = _ease(min(e.state_t / max(e.type.windup, 1e-3), 1))
         return _mix(0.3, -0.5, k), _mix(0.6, 1.3, k), _mix(-0.6, 0.0, k)
@@ -392,12 +574,25 @@ def _mourner_arm(e, lurking):
     return 0.3, 0.6, -0.6
 
 
+def _mourner_cast(e):
+    """((shoulder, elbow), fire) for the mourner's free arm while it throws a fireball: the arm draws
+    back as the fire swells (fire 0..1), then flings forward and lets it go. (None, 0) otherwise."""
+    if e.attack_kind != "fireball" or e.state not in ("windup", "attack"):
+        return None, 0.0
+    if e.state == "windup":
+        k = _ease(min(e.state_t / max(e.windup_time, 1e-3), 1))
+        return (_mix(0.2, -0.7, k), _mix(0.4, 1.6, k)), 0.3 + 0.7 * k
+    d = _ease(min(e.state_t / 0.12, 1))
+    return (_mix(-0.7, 1.5, d), _mix(1.6, 0.1, d)), 0.0
+
+
 def mourner(r, e, t):
     """The Shrouded Mourner, found only in the cemetery: a tall, narrow figure in long robes of dark
     slate, a hood drawn into a peak over a hollow where a face should be (one pale gap in it, as of
     bone), a cowl spilling over its shoulders, and a robe whose hem hangs in uneven strips over bare,
     bony feet. Lurking, it stands bowed over a grave, hands folded; awake, it glides, hem swaying, and
-    stabs with a crooked knife. Slain, it folds forward and its robes settle in a heap."""
+    stabs with a crooked knife, or draws back its free hand as grave-fire swells in the palm and
+    throws it. Slain, it folds forward and its robes settle in a heap."""
     fall = death_fall(e, 0.8)
     lurking = e.state == "idle"
     cloth = (236, 232, 226) if e.flashing else ROBE
@@ -434,14 +629,42 @@ def mourner(r, e, t):
                 for z in (-0.12, 0.12):
                     r.part("cube", 0.15, 0.12, z, 0.07, 0.36, 0.05, dark)  # the hood's rim
             hit, elbow, point = _mourner_arm(e, lurking)
-            # The free arm, folded across the body (lurking) or held out a little (awake).
-            with r.at(0.02, 0.5, -0.24, rz=0.6 if lurking else 0.2 + sway):
+            # The free arm: folded across the body (lurking), held out a little (awake), or drawn
+            # back while grave-fire swells in its palm, then flung forward (its fireball).
+            cast, fire = _mourner_cast(e)
+            shoulder, bend = (0.6, 1.0) if lurking else cast or (0.2 + sway, 0.4)
+            with r.at(0.02, 0.5, -0.24, rz=shoulder):
                 r.part("cube", 0, -0.16, 0, 0.14, 0.32, 0.14, cloth)  # the sleeve
-                with r.at(0, -0.32, 0, rz=1.0 if lurking else 0.4):
+                with r.at(0, -0.32, 0, rz=bend):
                     r.part("cube", 0, -0.06, 0, 0.18, 0.14, 0.18, dark)  # its wide cuff
                     r.part("cube", 0, -0.18, 0, 0.05, 0.24, 0.05, bone)  # the forearm, all bone
                     with r.at(0, -0.3, 0):
-                        hand(r, bone, 0.11, bony=True, curl=0.5)
+                        hand(r, bone, 0.11, bony=True, curl=0.25 if fire else 0.5)
+                        if fire:  # the fire it kindles, cupped in its palm
+                            size = 0.05 + 0.1 * fire
+                            r.part(
+                                "sphere",
+                                0.02,
+                                -0.14,
+                                0,
+                                size * 1.6,
+                                size * 1.6,
+                                size * 1.6,
+                                (255, 150, 60),
+                                glow=True,
+                            )
+                            r.part(
+                                "sphere",
+                                0.02,
+                                -0.14,
+                                0,
+                                size * 0.8,
+                                size * 0.8,
+                                size * 0.8,
+                                (255, 236, 180),
+                                glow=True,
+                            )
+                            _flame(r, 0.02, -0.06, 0, size * 0.9, t)
             # The knife arm.
             with r.at(0.02, 0.5, 0.24, rz=hit):
                 r.part("cube", 0, -0.16, 0, 0.14, 0.32, 0.14, cloth)
@@ -454,3 +677,100 @@ def mourner(r, e, t):
                         r.part("cube", 0.07, 0, 0, 0.02, 0.1, 0.05, (70, 66, 60))  # a crossbar
                         r.part("cube", 0.2, 0.01, 0, 0.24, 0.05, 0.015, KNIFE)  # the blade
                         r.part("cube", 0.36, 0.04, 0, 0.12, 0.04, 0.015, KNIFE, rz=0.5)  # its crooked tip
+
+
+GRAVE_BONE = (190, 182, 162)  # bone grimed grey with grave ash
+WINDING = (112, 98, 78)  # a burial winding sheet, gone brown with the grave
+HEADSTONE_SHARD = (112, 110, 104)
+
+
+def grave_walker(r, e, t):
+    """The cemetery's own Bone Walkers (`bone_walker model=grave`): the long-buried dead, risen in what
+    they were buried in. Bones grimed grey with grave ash; the strip of winding sheet that bound the
+    jaw shut still knotted over the crown; the rest of the sheet hanging off the shoulders in shreds
+    and wound round the hips; a shard of its own headstone lashed to the free forearm as a
+    shield; and for a weapon a length of the cemetery's iron railing, pulled up spike and all. Embers
+    smoulder in the sockets. Slain, its knees give and it topples onto its back, and the embers go out."""
+    swing = walk_cycle(e, t)
+    fall = death_fall(e, 0.7)
+    lean = (-0.3 if e.state == "hurt" else 0) + 1.35 * fall
+    alive = fall < 0.5
+    bone = (255, 240, 220) if e.flashing else GRAVE_BONE
+    shade = _dim(bone, 0.72)
+    sheet = (240, 236, 228) if e.flashing else WINDING
+    flap = math.sin(t * 2.7) * 0.1 + swing * 0.15
+    with r.at(-0.2 * fall, 0.12 * fall, 0, rz=lean):
+        for side, a in ((-0.13, swing), (0.13, -swing)):
+            knee = 0.1 + 0.45 * max(0.0, a) + 0.4 * fall
+            with r.at(0, 0.9, side, rz=a + 0.35 * fall):
+                r.part("cube", 0, -0.22, 0, 0.065, 0.42, 0.065, bone)  # thigh bone
+                r.part("sphere", 0.01, -0.44, 0, 0.09, 0.08, 0.09, shade)  # knee
+                with r.at(0, -0.44, 0, rz=-knee):
+                    r.part("cube", 0, -0.21, 0.015, 0.05, 0.42, 0.04, bone)  # shin and calf bone
+                    r.part("cube", 0, -0.21, -0.02, 0.032, 0.4, 0.03, shade)
+                    r.part("cube", 0, -0.08, 0, 0.08, 0.06, 0.08, _dim(sheet, 0.8))  # a rag bound round it
+                    with r.at(0, -0.44, 0, rz=knee * 0.8):
+                        r.part("cube", 0.06, -0.01, 0, 0.18, 0.04, 0.09, bone)  # foot
+                        r.part("cube", 0.15, -0.01, 0, 0.04, 0.03, 0.1, shade)  # toes
+        # Pelvis, wound round with the winding sheet, its ends hanging.
+        r.part("cube", 0, 0.94, 0, 0.14, 0.1, 0.24, bone)
+        r.part("cube", 0, 0.97, 0, 0.17, 0.07, 0.29, sheet, rx=0.15)
+        for x, z, k in ((0.1, 0.06, 1), (-0.1, -0.08, -1), (0.1, -0.1, -1)):
+            with r.at(x, 0.92, z, rz=flap * k):
+                r.part("cube", 0, -0.17, 0, 0.02, 0.34, 0.08, _dim(sheet, 0.85))
+        for i in range(5):  # the spine
+            r.part("cube", -0.05, 1.03 + i * 0.075, 0, 0.06, 0.05, 0.06, shade if i % 2 else bone)
+        ribcage(r, bone, ribs=4, width=0.36, top=1.35, depth=0.18)
+        r.part("cube", 0.02, 1.2, 0, 0.16, 0.05, 0.38, _dim(sheet, 0.9), rx=-0.45)  # a band across the ribs
+        _bar(r, (0.03, 1.42, -0.27), (0.03, 1.42, 0.27), 0.05, bone)  # collarbones
+        # The rest of the sheet, hanging in shreds off its shoulders down its back.
+        r.part("cube", -0.12, 1.44, 0, 0.14, 0.06, 0.46, _dim(sheet, 0.8))
+        for i, z in enumerate((-0.2, -0.07, 0.07, 0.2)):
+            drop = 0.42 + 0.12 * ((i * 2) % 3)
+            with r.at(-0.17, 1.45, z, rz=-0.12 - flap * 0.6):
+                r.part("cube", 0, -drop / 2, 0, 0.025, drop, 0.07, _dim(sheet, 0.75 if i % 2 else 0.6))
+        with r.at(0.02, 1.62, 0, rz=math.sin(t * 2) * 0.1 * (1 - fall) - 0.5 * fall):
+            r.part("cube", -0.03, -0.08, 0, 0.05, 0.08, 0.05, shade)  # neck
+            skull(r, bone, EMBER if alive else COLD, glow=alive, jaw=0.04 + 0.08 * (e.state == "windup"))
+            # The strip that bound its jaw, knotted on the crown, and the hood fallen back behind it.
+            for z in (-0.118, 0.118):  # up the cheeks
+                r.part("cube", 0.05, -0.03, z, 0.05, 0.24, 0.02, sheet, rz=0.3)
+            r.part("cube", 0.09, -0.15, 0, 0.06, 0.03, 0.24, sheet)  # under the chin
+            r.part("cube", -0.01, 0.15, 0.0, 0.07, 0.05, 0.07, _dim(sheet, 0.85))  # the knot
+            r.part("cube", -0.05, 0.17, 0.02, 0.03, 0.1, 0.03, _dim(sheet, 0.85), rz=-0.7)  # its loose end
+        # The free arm, a shard of its own headstone lashed to the forearm, carved face out.
+        with r.at(0, 1.4, -0.27, rz=swing * 0.5 - 0.3 * fall + 0.4 * (e.state == "windup")):
+            r.part("cube", 0, -0.15, 0, 0.05, 0.3, 0.05, bone)
+            with r.at(0, -0.3, 0, rz=0.9 + 0.2 * swing):
+                r.part("cube", 0, -0.14, 0, 0.042, 0.28, 0.042, bone)
+                with r.at(0.02, -0.15, -0.07):
+                    r.part("cube", 0, 0, 0, 0.36, 0.42, 0.06, HEADSTONE_SHARD)
+                    r.part("wedge", 0.03, 0.25, 0, 0.3, 0.08, 0.06, HEADSTONE_SHARD)  # its broken top
+                    r.part(
+                        "cube", 0.0, 0.05, -0.035, 0.03, 0.22, 0.01, _dim(HEADSTONE_SHARD, 0.6)
+                    )  # the carved cross
+                    r.part("cube", 0.0, 0.1, -0.035, 0.14, 0.03, 0.01, _dim(HEADSTONE_SHARD, 0.6))
+                    for y in (-0.1, 0.1):
+                        r.part("cube", 0, y, 0.03, 0.38, 0.04, 0.03, _dim(sheet, 0.75))  # its lashings
+                with r.at(0, -0.29, 0):
+                    hand(r, bone, 0.09, bony=True, curl=0.6)
+        # The weapon arm swings a length of iron railing, its spike leading.
+        shoulder, elbow = chop_angle(e) - 0.5 * fall, elbow_bend(e) * (1 - fall)
+        wrist = aim_wrist(_mix(blade_angle(e), -lean, fall), shoulder + elbow)
+        with r.at(0, 1.4, 0.27, rz=shoulder):
+            r.part("cube", 0, -0.15, 0, 0.05, 0.3, 0.05, bone)
+            with r.at(0, -0.3, 0, rz=elbow):
+                r.part("cube", 0, -0.15, 0, 0.042, 0.3, 0.042, bone)
+                with r.at(0, -0.32, 0), held(r, wrist, bone, size=0.08, splay=0.45):
+                    railing(r)
+
+
+def railing(r):
+    """A length of the cemetery's wrought-iron railing, torn up and swung like a mace, in a `held`
+    frame: the bar along +X, a spear-head finial at its end, a collar and a stub of the cross-rail."""
+    r.part("cube", 0.32, 0, 0, 0.95, 0.045, 0.045, GRAVE_IRON)  # the bar
+    r.part("cube", -0.15, 0, 0, 0.06, 0.07, 0.07, RUST)  # its broken foot
+    r.part("cube", 0.55, 0, 0, 0.06, 0.08, 0.08, RUST)  # a collar
+    r.part("cube", 0.55, 0.0, 0, 0.04, 0.04, 0.22, GRAVE_IRON)  # the cross-rail's stub
+    r.part("cube", 0.8, 0, 0, 0.08, 0.09, 0.09, GRAVE_IRON)  # the finial's knob
+    r.part("wedge", 0.97, 0, 0, 0.13, 0.26, 0.03, GRAVE_IRON, rz=-math.pi / 2)  # its spear head

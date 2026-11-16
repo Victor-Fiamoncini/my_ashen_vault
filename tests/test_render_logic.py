@@ -756,11 +756,19 @@ def test_the_sextons_own_moves_each_strike_their_own_pose():
 
     type_ = EnemyTypes.get("sexton")
     poses = set()
-    for move in ("spadeful", "grasp", "knell"):
+    for move in cemetery_models.OWN_POSES:
         e = Enemy(type_, 0, 0, rng=random.Random(0))
         e.state, e.state_t, e.attack_kind = "windup", 5.0, move
         poses.add(tuple(round(v, 2) for v in cemetery_models.sexton_arms(e, 0.0)))
-    assert len(poses) == 3
+    assert len(poses) == len(cemetery_models.OWN_POSES)
+    gpu = _RecordingGpu()
+    r = rig.Rig(gpu)
+    for k in (0.1, 0.5, 0.9):
+        cemetery_models.ash_billow(r, k, 3.8, 1.0)
+        cemetery_models.dust_devil(r, k, 1.0)
+        cemetery_models.dust_puff(r, k, k, 1.0)
+    cemetery_models.dust_devil(r, 0.0, 1.0)  # not yet risen: nothing
+    assert len(gpu.parts) > 100
 
 
 def test_a_burning_web_glows_only_while_it_burns():
@@ -1548,3 +1556,41 @@ def test_wrists_bend_only_so_far_through_every_swing():
             bend = math.degrees(math.acos(sum(f / n * h for f, h in zip(fore, heel, strict=True))))
             assert bend < 80, (motion, i, bend)
             assert fore[1] < 0, (motion, i)
+
+
+def test_the_mourner_kindles_fire_in_its_palm_before_it_throws():
+    from ashen_vault.ai.enemy import Enemy
+    from ashen_vault.ai.enemy_types import EnemyTypes
+    from ashen_vault.render import models
+
+    def glows(state, kind):
+        e = Enemy(EnemyTypes.get("mourner"), 0, 0, rng=random.Random(0))
+        e.state, e.state_t, e.anim_t, e.attack_kind = state, 0.6, 1.0, kind
+        gpu = _ExtentGpu()
+        models.enemy(rig.Rig(gpu), e)
+        return gpu.glows
+
+    assert glows("chase", None) == 0 and glows("windup", "melee") == 0
+    assert glows("windup", "fireball") > 0
+
+
+def test_the_cemeterys_bone_walkers_rise_in_their_own_grave_clothes():
+    from ashen_vault.ai.enemy import Enemy
+    from ashen_vault.ai.enemy_types import EnemyTypes
+    from ashen_vault.render import models
+
+    def drawn(look, state="chase", state_t=0.5):
+        e = Enemy(EnemyTypes.get("bone_walker"), 0, 0, rng=random.Random(0), look=look)
+        e.state, e.state_t, e.anim_t = state, state_t, 1.3
+        gpu, count = _ExtentGpu(), _RecordingGpu()
+        models.enemy(rig.Rig(gpu), e)
+        models.enemy(rig.Rig(count), e)
+        return e, gpu, count.parts
+
+    *_, keep_parts = drawn(None)
+    e, alive, grave_parts = drawn("grave")
+    assert len(grave_parts) >= 30 and grave_parts != keep_parts
+    _, dead, _ = drawn("grave", "dead", 3.0)
+    assert dead.top < alive.top and dead.top <= e.type.height * 1.1
+    assert dead.bottom >= min(alive.bottom, 0.0) - 0.15
+    assert alive.glows > 0 and dead.glows == 0

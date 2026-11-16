@@ -148,7 +148,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/player/guard.py` | Shield blocking: what a raised shield stops and what it costs in ST |
 | `src/ashen_vault/world/relics.py` | Boss relics (Ember, Verdant and Iron Sigils), their drop/taken flags, `boss_falls` (twins fall together) and the three-sigil ending (the prophecy names four; the fourth's place is a TODO) |
 | `src/ashen_vault/world/hints.py` | Tutorial hints (`hint text="...\|..."`): shown once, the first time you step onto any of its marker's tiles (`hint:<map>:<marker>` flag); `World._update_hints` fires them |
-| `src/ashen_vault/render/cemetery_models.py` | The Cemetery of Ashes' models: the Ashen Sexton (its `grave_spade`, and `sexton_arms`, its poses for each move), the Ashen Husk, the Shrouded Mourner (the cemetery's own lurker), `ash_hands` (the Sexton's grasping ash) and `ash_clod` (its spadeful), `gravestone`, `open_grave` and `cemetery_gate` (also the gate exit's `model=`, swung open once its `requires=` flag is set) |
+| `src/ashen_vault/render/cemetery_models.py` | The Cemetery of Ashes' models: the Ashen Sexton (its `grave_spade`, and `sexton_arms`, its poses for each move; `dust_puff`, `ash_billow` and `dust_devil` draw its ash), the Ashen Husk, the Shrouded Mourner (the cemetery's own lurker), `grave_walker` (the cemetery's Bone Walkers, `bone_walker model=grave`: risen in their winding sheets, a headstone shard for a shield and a length of iron railing for a weapon; the keep's keep their own look), `ash_hands` (the Sexton's grasping ash) and `ash_clod` (its spadeful), `gravestone`, `open_grave` and `cemetery_gate` (also the gate exit's `model=`, swung open once its `requires=` flag is set) |
 | `src/ashen_vault/dialogue.py` | NPC conversations and the shop list |
 | `tests/` | pytest suite; `conftest.py` has a small test map |
 | `docs/logo/make_logo.py` | Regenerates `docs/logo/ashen_vault.svg` |
@@ -227,9 +227,14 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   relic: his cleaver is an entity `item=`). Any type picks special attacks from `moves` (see `MOVES` in
   `ai/enemy.py`: `sweep`, `web`, `pounce`, `cinders`, `combo`, `slam`, `eruption`, `hook`, `breath`
   (a line of `Eruption`s raking toward you and past), `dive` (a swoop through where you stood), and the
-  Ashen Sexton's own: `spadeful` (a fan of five ash clods that slow you, `effect="ash"`), `grasp` (a line
+  Ashen Sexton's own, all of ash: `exhale` (a cone of grave dust breathed `EXHALE_REACH` ahead, a `Gout`
+  of style "ash"), `ashfall` (an urn of ashes dashed down: it hurts all round within `ASHFALL_RADIUS`, a
+  `Shockwave` of style "ash"), `dust_devil` (two `hazards.DustDevil` whirlwinds that drift after you
+  and die with it, `World.devils`), `spadeful` (a fan of five ash clods that slow you, `effect="ash"`), `grasp` (a line
   of `Eruption(style="hands")`: ash hands that hurt and hold you) and `knell` (second phase: two rings of
-  embers, `KNELL_GAP` apart, the second turned half a gap; `World.knell`); no other foe uses them). At half
+  embers, `KNELL_GAP` apart, the second turned half a gap; `World.knell`); each of the ash moves also
+  slows you, and no other foe uses them), and the Shrouded Mourner's `fireball` (grave-fire kindled in
+  its palm and thrown from afar; up close it stabs). At half
   HP a boss with a `brood` calls it and one with a `rage` kindles it (the Warden's burning blade);
   either way it enters its second phase (`Enemy.phase2`), fights faster and adds its `phase_moves`.
   `perch` spawns a statue (`Enemy.perched`) that wakes when it sees you, or is struck. `twin=<type>`

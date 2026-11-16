@@ -140,13 +140,12 @@ def sexton_at(world, distance, phase2=False):
 
 
 def test_only_the_sexton_knows_its_own_moves():
-    own = {"spadeful", "grasp", "knell"}
+    own = {"exhale", "ashfall", "dust_devil", "spadeful", "grasp", "knell"}
     for t in EnemyTypes.ALL.values():
         if t.id != "sexton":
             assert not own & set(t.moves + t.phase_moves), t.id
     sexton = EnemyTypes.get("sexton")
-    assert {"spadeful", "grasp"} <= set(sexton.moves) and sexton.phase_moves == ("knell",)
-    assert not {"pounce", "eruption"} & set(sexton.moves + sexton.phase_moves)
+    assert set(sexton.moves) == own - {"knell"} and sexton.phase_moves == ("knell",)
 
 
 def test_the_sexton_picks_each_move_at_its_range():
@@ -227,3 +226,85 @@ def test_the_mourners_stand_bowed_at_their_graves_until_you_come_close():
     for _ in range(10):
         world.update(1 / 30)
     assert m.state != "idle"
+
+
+def test_the_mourner_throws_grave_fire_from_afar_and_stabs_up_close():
+    for t in EnemyTypes.ALL.values():
+        if t.id != "mourner":
+            assert "fireball" not in t.moves + t.phase_moves, t.id
+    game, world = cemetery(at=(10, 6), yaw=0.0)
+    world.enemies = []
+    p = game.player
+
+    def mourner(distance):
+        e = Enemy(EnemyTypes.get("mourner"), p.x + distance, p.z, yaw=math.pi, rng=random.Random(1))
+        e.state, e.cooldowns = "chase", {"fireball": 0.0}
+        return e
+
+    assert mourner(6.0)._pick_move(world, 6.0) == "fireball"
+    assert mourner(1.2)._pick_move(world, 1.2) is None  # up close it stabs
+    e = mourner(6.0)
+    world.enemies.append(e)
+    world.enemy_fire(e, "fireball")
+    (ball,) = world.projectiles
+    assert ball.hostile and ball.rgb == e.type.shot_rgb
+    assert ball.damage == round(e.type.damage * MOVES["fireball"][2])
+    for _ in range(120):
+        world._update_projectiles(1 / 60)
+    assert game.wounds
+
+
+def test_the_sextons_breath_of_grave_dust_chokes_you_only_in_front_of_it():
+    from ashen_vault.ai.enemy import EXHALE_REACH
+
+    game, world = cemetery(at=(10, 6), yaw=0.0)
+    e = sexton_at(world, 3.0)
+    e.yaw = math.pi  # facing you
+    world.exhale(e)
+    assert game.wounds and game.player.webbed_t > 0 and "You choke on grave dust!" in game.messages
+    assert world.gouts and world.gouts[0].style == "ash"
+    game, world = cemetery(at=(10, 6), yaw=0.0)
+    e = sexton_at(world, 3.0)
+    e.yaw = math.pi / 2  # turned aside
+    world.exhale(e)
+    assert not game.wounds
+    game, world = cemetery(at=(10, 6), yaw=0.0)
+    e = sexton_at(world, EXHALE_REACH + 1.5)
+    e.yaw = math.pi
+    world.exhale(e)
+    assert not game.wounds  # out of its reach
+
+
+def test_a_dashed_urn_billows_ash_all_round_the_sexton():
+    from ashen_vault.ai.enemy import ASHFALL_RADIUS
+
+    game, world = cemetery(at=(10, 6), yaw=0.0)
+    e = sexton_at(world, 2.0)
+    e.yaw = 0.0  # its back to you: the ash reaches every side
+    world.ashfall(e)
+    assert game.wounds and game.player.webbed_t > 0
+    assert world.shockwaves[0].style == "ash"
+    game, world = cemetery(at=(10, 6), yaw=0.0)
+    world.ashfall(sexton_at(world, ASHFALL_RADIUS + 1.0))
+    assert not game.wounds
+
+
+def test_whirlwinds_of_ash_hunt_you_and_die_with_the_sexton():
+    from ashen_vault.world.hazards import DustDevil
+
+    game, world = cemetery(at=(10, 6), yaw=0.0)
+    e = sexton_at(world, 6.0)
+    world.dust_devils(e)
+    assert len(world.devils) == 2
+    p = game.player
+    start = [math.hypot(d.x - p.x, d.z - p.z) for d in world.devils]
+    for _ in range(60):
+        world._update_fire(1 / 60)
+    assert all(math.hypot(d.x - p.x, d.z - p.z) < s for d, s in zip(world.devils, start, strict=True))
+    for _ in range(int(DustDevil.LIFE * 60) - 70):
+        world._update_fire(1 / 60)
+    assert game.wounds and p.webbed_t > 0
+    world.dust_devils(e)
+    e.hp, e.state = 0, "dead"
+    world._update_fire(1 / 60)
+    assert not world.devils
