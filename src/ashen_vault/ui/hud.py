@@ -863,17 +863,24 @@ def _icon_felling_axe(cx, cy, t, a, ready):
 
 
 def _icon_butcher_cleaver(cx, cy, t, a, ready):
-    """Broad as a shovel, a hole to hang it by, and never quite clean."""
-    _line(cx, cy, (-7, 6), (-3, 2), 2, color(90, 60, 40, a))
-    pr.draw_rectangle(cx - 3, cy - 6, 10, 7, color(150, 150, 160, a))
-    pr.draw_rectangle(cx - 3, cy, 10, 1, color(220, 220, 230, a))  # the edge
-    _dot(cx, cy, 4, -4, color(20, 16, 14, a))  # the hang hole
+    """Broad as a shovel: a riveted handle runs into the spine of a deep square blade, its edge
+    toward the bottom right, a hole to hang it by, and never quite clean."""
+    _line(cx, cy, (-7, 7), (-2, 2), 2, color(96, 64, 42, a))
+    for dx, dy in ((-5, 4), (-3, 2)):
+        _dot(cx, cy, dx, dy, color(196, 186, 160, a))  # rivets
+    spine0, spine1, edge0, edge1 = (-3, 1), (3, -5), (1, 5), (7, -1)
+    steel = color(146, 146, 156, a)
+    _tri(cx, cy, spine0, spine1, edge1, steel)
+    _tri(cx, cy, spine0, edge1, edge0, steel)
+    _line(cx, cy, spine0, spine1, 1, color(96, 96, 106, a))  # the thick spine
+    _line(cx, cy, edge0, edge1, 1, color(222, 222, 232, a))  # the edge
+    _dot(cx, cy, 3, -3, color(20, 16, 14, a))  # the hang hole
     glisten = 0.6 + 0.4 * math.sin(t * 2)
-    blood = color(150, 30, 30, rround(a * glisten))
-    _dot(cx, cy, 0, -2, blood, 2, 2)
-    _dot(cx, cy, 2, -1, blood)
+    blood = color(140, 26, 26, rround(a * glisten))
+    for dx, dy in ((2, 2), (3, 1), (5, 0), (4, 2)):
+        _dot(cx, cy, dx, dy, blood)  # smeared along the edge
     if ready:
-        _glint(cx, cy, [(-3, 0), (6, 0)], t, a)
+        _glint(cx, cy, [edge0, edge1], t, a)
 
 
 WEAPON_ICONS = {
