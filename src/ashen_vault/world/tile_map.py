@@ -42,6 +42,9 @@ class Tile:
     # (`roof=` in the legend; the mesh builder defaults it to just over the ceiling).
     roof: float | None = None
     roof_tex: str | None = None
+    # How a wall is dressed along the faces it turns to open ground (`dress=rampart`: the town's
+    # great walls, `world/ramparts.py`); None for a bare wall.
+    dress: str | None = None
 
     @property
     def hazardous(self):
@@ -97,6 +100,10 @@ class TileMap:
         if tx < 0 or tz < 0 or tx >= self.width or tz >= self.depth:
             return self._edge
         return self._tiles[tz * self.width + tx]
+
+    def inside(self, tx, tz):
+        """Whether (tx, tz) lies on the grid (beyond it is the map's rim)."""
+        return 0 <= tx < self.width and 0 <= tz < self.depth
 
     def set_override(self, key, tile):
         """Swaps the tile at `key` (tx, tz) at runtime, e.g. a floor that crumbles; None restores it."""

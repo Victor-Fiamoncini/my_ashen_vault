@@ -1167,3 +1167,95 @@ def town_tree(r, kind, seed, t=0.0, near=True):
     """A tree by `kind`: one of the town's (`TREE_KINDS`) or the cemetery's `dead` one; far ones drop
     some limbs and clumps."""
     {"cypress": cypress, "pine": umbrella_pine, "olive": olive, "dead": dead_tree}[kind](r, seed, t, near)
+
+
+RAMPART_STONE = (236, 230, 220)  # pale, under the rough stone's grain, like the wall it dresses
+RAMPART_SHADOW = _dim(RAMPART_STONE, 0.42)  # the depth of a blind arch
+
+
+def rampart_bay(r, kind, height, seed):
+    """One 2 m bay of the town's great wall, carved onto its face (the plane x=0, facing +X, the
+    ground at y=0, the wall's top at `height`): a stepped plinth, a corbel table under a parapet with
+    two merlons on the wall top, and either a `pier` (a cluster of three engaged columns rising to a
+    moulded capital) or an `arch` (a tall blind round-headed arch, a deep shadow within its jambs and
+    voussoirs, a round oculus over every other one). Nothing stands out more than 0.4 m, so you walk
+    along it as along the bare wall."""
+    stone = RAMPART_STONE
+    light, dark = _dim(stone, 1.08), _dim(stone, 0.82)
+    h = height
+    r.part("cube", 0, 0.45, 0, 0.5, 0.9, T, dark, tex="rough_stone")  # the plinth
+    r.part("cube", 0, 1.05, 0, 0.3, 0.3, T, stone, tex="rough_stone")  # its upper course
+    for z in (-0.66, 0.0, 0.66):  # the corbel table
+        r.part("cube", 0, h - 0.95, z, 0.56, 0.3, 0.24, light, tex="rough_stone")
+        r.part("cube", 0, h - 1.18, z, 0.34, 0.18, 0.18, dark, tex="rough_stone")  # its lower step
+    r.part("cube", 0, h - 0.62, 0, 0.7, 0.36, T, stone, tex="rough_stone")  # the parapet's lip
+    r.part("cube", -0.1, h + 0.18, 0, 0.9, 0.36, T, stone, tex="rough_stone")  # the breastwork
+    for z in (-0.5, 0.5):  # merlons
+        r.part("cube", -0.1, h + 0.72, z, 0.9, 0.72, 0.55, stone, tex="rough_stone")
+    spring = max(h * 0.6, 2.6)
+    if kind == "pier":
+        _rampart_pier(r, h, stone, light, dark)
+    else:
+        _rampart_arch(r, h, spring, seed, stone, light, dark)
+
+
+def _rampart_pier(r, h, stone, light, dark):
+    """Three engaged columns on a deep base, the middle one broadest, their fillets in shadow."""
+    top = h - 1.15
+    r.part("cube", 0, 0.75, 0, 0.8, 1.5, 1.5, dark, tex="rough_stone")  # the base
+    r.part("cube", 0, 1.56, 0, 0.7, 0.12, 1.4, light, tex="rough_stone")  # its torus
+    span = top - 1.62
+    mid = 1.62 + span / 2
+    r.part("cyl", 0, mid, 0, 0.64, span, 0.64, light, tex="rough_stone")
+    for z in (-0.42, 0.42):
+        r.part("cyl", -0.04, mid, z, 0.44, span, 0.44, stone, tex="rough_stone")
+        r.part("cube", 0.14, mid, z * 0.62, 0.06, span, 0.05, RAMPART_SHADOW)  # the fillet between
+    r.part("cube", 0, top + 0.08, 0, 0.74, 0.16, 1.44, light, tex="rough_stone")  # the capital
+    r.part("sphere", 0.1, top - 0.04, 0, 0.5, 0.26, 0.5, light, tex="rough_stone")  # its cushion
+    r.part("cube", 0, top * 0.6, 0, 0.72, 0.16, 1.42, stone, tex="rough_stone")  # a band round the cluster
+
+
+def _rampart_arch(r, h, spring, seed, stone, light, dark):
+    """A tall blind arch: its shadowed recess, jambs, imposts, a ring of voussoirs with a keystone,
+    a sill, and an oculus over it where the wall has room."""
+    half = 0.62
+    sill = 1.2
+    rise = spring - sill
+    r.part("cube", 0.01, sill + rise / 2, 0, 0.04, rise, half * 2, RAMPART_SHADOW)  # the recess
+    for k in range(4):  # its round head, in slices
+        y0 = k * half / 4
+        w = 2 * math.sqrt(max(half * half - (y0 + half / 8) ** 2, 0.0))
+        r.part("cube", 0.01, spring + y0 + half / 8, 0, 0.04, half / 4 + 0.01, w, RAMPART_SHADOW)
+    r.part("cube", 0, sill, 0, 0.36, 0.14, half * 2 + 0.3, light, tex="rough_stone")  # the sill
+    for s in (-1, 1):
+        z = s * (half + 0.12)
+        r.part("cube", 0, sill + rise / 2, z, 0.36, rise, 0.24, stone, tex="rough_stone")  # a jamb
+        r.part("cube", 0, spring, z + s * 0.04, 0.44, 0.16, 0.34, light, tex="rough_stone")  # its impost
+        r.part(
+            "cube", 0, spring, s * 0.84, 0.24, 0.18, 0.32, light, tex="rough_stone"
+        )  # the string course, out to the piers
+    ring = half + 0.12
+    n = 9
+    for i in range(n):
+        a = i * math.pi / (n - 1)
+        key = i == n // 2
+        r.part(
+            "cube",
+            0,
+            spring + math.sin(a) * ring,
+            math.cos(a) * ring,
+            0.44 if key else 0.36,
+            0.2,
+            0.36 if key else 0.26,
+            light if key else stone,
+            tex="rough_stone",
+            rx=-a,
+        )
+    room = h - 1.25 - (spring + ring + 0.15)
+    if seed % 2 == 0 and room > 0.75:
+        y = spring + ring + 0.15 + room / 2
+        d = min(room * 0.8, 0.7)
+        r.part(
+            "cyl", 0, y, 0, d + 0.18, 0.3, d + 0.18, stone, rz=math.pi / 2, tex="rough_stone"
+        )  # the oculus's ring
+        r.part("cyl", 0.02, y, 0, d, 0.3, d, RAMPART_SHADOW, rz=math.pi / 2)

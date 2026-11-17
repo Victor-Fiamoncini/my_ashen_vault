@@ -6,6 +6,7 @@ import raylib as rl
 from raylib import ffi
 
 from ashen_vault import dialogue as dialogue_data
+from ashen_vault import map_path
 from ashen_vault.ai.enemy import Enemy
 from ashen_vault.audio.synth import Audio
 from ashen_vault.input import CONTROLS, Input
@@ -19,6 +20,7 @@ from ashen_vault.render import models
 from ashen_vault.render.gpu import Gpu
 from ashen_vault.render.rig import Rig
 from ashen_vault.render.sky import SkyPass
+from ashen_vault.save import slots
 from ashen_vault.save.save_system import SaveSystem
 from ashen_vault.save.settings import Settings
 from ashen_vault.screen import (
@@ -46,7 +48,8 @@ from ashen_vault.ui import belongings, compare, smallfont
 from ashen_vault.ui import hud as ui
 from ashen_vault.ui.tally import GoldTally
 from ashen_vault.util import clamp, rround
-from ashen_vault.world import darkness, doors, elements, loot, relics, shots
+from ashen_vault.world import darkness, doors, elements, footsteps, loot, relics, shots
+from ashen_vault.world.map_loader import map_title
 from ashen_vault.world.rest import RestSequence
 from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.world import World, beside_shrine
@@ -62,6 +65,11 @@ CONTROLS_LIST = (20, 6, 280)
 # Controls rows that fit: the panel (title, rows, footer) ends a margin above the screen's bottom.
 CONTROLS_ROWS = (H - 2 * CONTROLS_LIST[1] - ROW_TOP - 14) // ROW_H
 PICK_LIST = (24, 60, 190)  # the "which slot?" chooser over Belongings
+SLOTS_LIST = (40, 108, 240)  # the title's save slot chooser
+CONFIRM_LIST = (90, 120, 140)  # "Overwrite Slot N?" over it
+CONFIRM_OPTIONS = ["No", "Yes"]
+# Scenes that count toward a save's play time: the title, pause and its submenus, and the ending don't.
+PLAYED_SCENES = ("play", "dialogue", "menu", "shop", "rest", "dead")
 TITLE_Y, TITLE_STEP = 140, 14
 TITLE_ORBIT = (25, 24)  # the title camera circles Harrowmere's Silent Bell (its tile)
 # Comparing gear: a better stat green, a worse one red (keyed by compare.better).
@@ -104,7 +112,7 @@ class Game:
         self._audio = Audio()
         self._input = Input(self.opts.get("script"))
         self._saves = SaveSystem()
-        self.settings = Settings.beside(self._saves.path)
+        self.settings = Settings.beside(self._saves.base)  # shared by every slot
         self._audio.set_volume(self.settings.gain)
         self._camera = _camera((0, 0, 0), (1, 0, 0), FOV)
         self._view_camera = _camera((0, 0, 0), (1, 0, 0), 55)
@@ -137,6 +145,9 @@ class Game:
         self._step_phase = 0.0
         self._dialogue = None
         self._controls_from = None  # the scene Controls or Options returns to
+        self._slots_for = "new"  # what the slot chooser picks a slot for: "new" or "load"
+        self._slot_rows = []  # what the slot chooser shows: a SlotSummary (or None) per slot
+        self._overwrite = None  # the used slot New Game would overwrite, while it asks
         self._back_index = 0  # the menu row selected when it opened
         self._scroll_hold = 0  # frames Up / Down has been held on the Controls screen
         self._dead_t = 0.0
@@ -210,6 +221,7 @@ class Game:
             self._dark_k = target if self._dark_k is None else darkness.ease_toward(self._dark_k, target, dt)
         handler = {
             "title": lambda: self._update_title(),
+            "slots": lambda: self._update_slots(),
             "play": lambda: self._update_play(dt),
             "dialogue": lambda: self._update_dialogue(),
             "menu": lambda: self._update_menu(dt),
@@ -223,6 +235,8 @@ class Game:
         }.get(self.scene)
         if handler:
             handler()
+        if self.scene in PLAYED_SCENES:
+            self.player.play_time += dt
 
     def _mouse_look(self, on):
         if self.opts.get("smoke") or on == self._mouse_captured:
@@ -251,8 +265,8 @@ class Game:
         self._mouse_look(False)
 
     def _title_options(self):
-        if self._saves.exists():
-            return ["Continue", "New Game", "Options", "Controls", "Quit"]
+        if any(s.exists() for s in self._saves.all_slots()):
+            return ["Continue", "New Game", "Load Game", "Options", "Controls", "Quit"]
         return ["New Game", "Options", "Controls", "Quit"]
 
     def _update_title(self):
@@ -265,15 +279,103 @@ class Game:
             return
         choice = opts[self._menu_index]
         if choice == "Continue":
-            self.continue_game()
+            self._continue_latest()
         elif choice == "New Game":
-            self.start_story()
+            self._open_slots("new")
+        elif choice == "Load Game":
+            self._open_slots("load")
         elif choice == "Options":
             self._open_options()
         elif choice == "Controls":
             self._open_controls()
         elif choice == "Quit":
             self._running = False
+
+    # --- save slots ------------------------------------------------------------
+
+    def _use_slot(self, n):
+        self._saves = self._saves.in_slot(n)
+
+    def _continue_latest(self):
+        """Continue: the slot saved most recently."""
+        n = slots.latest(s.summary() for s in self._saves.all_slots())
+        if n is None:
+            return self.message("The save file could not be read.")
+        self._use_slot(n)
+        self.continue_game()
+
+    def _open_slots(self, purpose):
+        """The slot chooser: New Game picks a slot to begin in (asking before it overwrites one), Load
+        Game a used slot to wake in."""
+        self._slots_for = purpose
+        self._slot_rows = [s.summary() for s in self._saves.all_slots()]
+        self._back_index = self._menu_index
+        self._overwrite = None
+        rows = self._slot_rows
+        if purpose == "new":  # the first empty slot, else the first
+            self._menu_index = next((i for i, r in enumerate(rows) if r is None), 0)
+        else:  # the slot saved most recently
+            self._menu_index = (slots.latest(rows) or 1) - 1
+        self.scene = "slots"
+
+    def _update_slots(self):
+        if self._overwrite is not None:
+            return self._update_overwrite()
+        if self._back():
+            self.scene = "title"
+            self._menu_index = self._back_index
+            return
+        self._menu_nav(slots.SLOTS)
+        clicked = self._menu_pointer(lambda px, py: list_row_at(*SLOTS_LIST, slots.SLOTS, px, py))
+        if not (clicked or self._input.pressed("confirm")):
+            return
+        n = self._menu_index + 1
+        used = self._slot_rows[self._menu_index] is not None
+        if self._slots_for == "load":
+            if used:
+                self._use_slot(n)
+                self.continue_game()
+        elif used:
+            self._overwrite = n
+            self._menu_index = 0  # "No"
+        else:
+            self._use_slot(n)
+            self.start_story()
+
+    def _update_overwrite(self):
+        n = self._overwrite
+        if self._back():
+            self._overwrite = None
+            self._menu_index = n - 1
+            return
+        self._menu_nav(len(CONFIRM_OPTIONS))
+        clicked = self._menu_pointer(lambda px, py: list_row_at(*CONFIRM_LIST, len(CONFIRM_OPTIONS), px, py))
+        if not (clicked or self._input.pressed("confirm")):
+            return
+        self._overwrite = None
+        if CONFIRM_OPTIONS[self._menu_index] == "Yes":
+            self._use_slot(n)
+            self.start_story()
+        else:
+            self._menu_index = n - 1
+
+    def _slot_row(self, n, summary):
+        if summary is None:
+            return (f"Slot {n}   - empty -", None, True)
+        place = map_title(map_path(summary.map))
+        return (f"Slot {n}   {place}", f"Lv {summary.level}  {slots.format_play_time(summary.play_time)}")
+
+    def _draw_slots(self):
+        pr.draw_rectangle(0, 0, W, H, ui.color(0, 0, 0, 90))
+        ui.big("ASHEN VAULT", W // 2, 50, ui.HIGHLIGHT, px=3)
+        title = "New Game: choose a slot" if self._slots_for == "new" else "Load Game"
+        rows = [self._slot_row(i + 1, r) for i, r in enumerate(self._slot_rows)]
+        n = self._overwrite
+        ui.list_menu(title, *SLOTS_LIST, rows, (n - 1) if n else self._menu_index)
+        if n:
+            pr.draw_rectangle(0, 0, W, H, ui.color(0, 0, 0, 110))
+            options = [(o,) for o in CONFIRM_OPTIONS]
+            ui.list_menu(f"Overwrite Slot {n}?", *CONFIRM_LIST, options, self._menu_index)
 
     def _menu_nav(self, n):
         self._menu_index = self._step_index(self._menu_index, n)
@@ -493,7 +595,9 @@ class Game:
         if phase == self._step_phase:
             return
         self._step_phase = phase
-        self.sfx("step", 0.35)
+        tile = self.world.map.tile_at(self.player.x, self.player.z)
+        name = footsteps.sound(tile, self.world.terrain.under)
+        self.sfx(name, footsteps.VOLUME, random.uniform(0.92, 1.08))
 
     def _update_hands(self, dt):
         """Each mouse button works its slot (left button = Primary, right = Secondary): a weapon swings
@@ -1457,7 +1561,7 @@ class Game:
         dark = self._dark_k or 0.0
         veil = self.player.veil_t > 0
         self._sky.draw(meta, (cam.x, cam.y, cam.z), fog, fog_range, dark, veil, self._time)
-        self.world.draw(self._rig, gpu)
+        self.world.draw(self._rig, gpu, fog_range, dark, veil)
         pr.end_mode_3d()
 
         if self.scene not in ("play", "dialogue", "menu", "shop", "rest") or not self.player.alive:
@@ -1501,7 +1605,7 @@ class Game:
 
     def _setup_camera(self):
         cam = self._camera
-        if self.scene == "title" or (
+        if self.scene in ("title", "slots") or (
             self.scene in ("controls", "options") and self._controls_from == "title"
         ):
             a = self._time * 0.08
@@ -1525,6 +1629,8 @@ class Game:
         s = self.scene
         if s == "title":
             self._draw_title()
+        elif s == "slots":
+            self._draw_slots()
         elif s == "play":
             ui.hud(self)
         elif s == "dialogue":

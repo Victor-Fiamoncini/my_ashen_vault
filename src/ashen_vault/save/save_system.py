@@ -4,15 +4,26 @@ import os
 from ashen_vault.player.inventory import Inventory
 from ashen_vault.player.player import Player
 from ashen_vault.player.stats import Stats
+from ashen_vault.save.slots import SLOTS, SlotSummary, slot_path
 
 
 class SaveSystem:
-    """Persists the run to a single JSON slot."""
+    """Persists the run to one JSON file: save slot `slot` (1..SLOTS) beside the base save path.
+    Slot 1 is the base path itself (`save.json`), so older single-slot saves load as slot 1."""
 
     DEFAULT_PATH = os.path.join(os.path.expanduser("~"), ".local", "share", "ashen_vault", "save.json")
 
-    def __init__(self, path=None):
-        self.path = path or os.environ.get("ASHEN_VAULT_SAVE", self.DEFAULT_PATH)
+    def __init__(self, path=None, slot=1):
+        self.base = path or os.environ.get("ASHEN_VAULT_SAVE", self.DEFAULT_PATH)
+        self.slot = slot
+        self.path = slot_path(self.base, slot)
+
+    def in_slot(self, slot):
+        """The same save base, another slot."""
+        return SaveSystem(self.base, slot)
+
+    def all_slots(self):
+        return [self.in_slot(n) for n in range(1, SLOTS + 1)]
 
     def exists(self):
         return os.path.exists(self.path)
@@ -22,6 +33,25 @@ class SaveSystem:
         data = {"version": 1, "map": map, "player": player.to_h(), "flags": sorted(flags)}
         with open(self.path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
+
+    def summary(self):
+        """What the slot chooser shows of this slot (`slots.SlotSummary`), or None if it is empty or
+        can't be read."""
+        if not self.exists():
+            return None
+        try:
+            with open(self.path, encoding="utf-8") as f:
+                data = json.load(f)
+            p = data["player"]
+            return SlotSummary(
+                slot=self.slot,
+                map=data["map"],
+                level=int(p["stats"]["level"]),
+                play_time=float(p.get("play_time", 0.0)),
+                saved_at=os.path.getmtime(self.path),
+            )
+        except (OSError, ValueError, KeyError, TypeError):
+            return None
 
     def load_spot(self):
         """Where the last save was made: (map_name, x, z, yaw), or None."""
@@ -47,6 +77,7 @@ class SaveSystem:
             player.yaw = p["yaw"]
             player.quick = p.get("quick", player.quick)
             player.remnant = p.get("remnant")
+            player.play_time = float(p.get("play_time", 0.0))
             if p.get("spell"):
                 player.equip_spell(p["spell"])
             return data["map"], player, set(data["flags"])

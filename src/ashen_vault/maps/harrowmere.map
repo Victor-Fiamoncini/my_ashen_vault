@@ -9,6 +9,7 @@ torch = 4 0.55 0.5 0.45
 start = 2 29 0
 default = ,
 edge_top = -0.5
+open_sea = true
 entity_floor = auto
 
 // Harrowmere climbs from its harbour to the cathedral on the hill under a low, darkening dusk, a walled
@@ -22,7 +23,7 @@ entity_floor = auto
 // steps on the hill, the cathedral, where the Enthroned sits at the end of the nave.
 
 [legend]
-R = wall tex=rough_stone top=7 cap=rough_stone
+R = wall tex=rough_stone top=7 cap=rough_stone dress=rampart
 A = wall tex=cliff_rock top=6 cap=rough_stone
 H = wall tex=ashlar top=5.6 cap=roof thin=0.5
 J = wall tex=timber top=5.6 cap=roof thin=0.5

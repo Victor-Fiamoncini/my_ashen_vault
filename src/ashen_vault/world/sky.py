@@ -25,7 +25,8 @@ MIST_REPEATS = 10
 # Where the sun stands over every map: low in the south, over Harrowmere's sea. Every map shares the
 # same axes (+x east, +z south), so one bearing keeps it in the same place wherever you travel.
 SUN_AT = (90.0, 13.0)
-SUN_THROUGH_CLOUD = 0.2  # how far the disc takes the cloud undersides' colour, as if seen through them
+SUN_THROUGH_CLOUD = 0.1  # how far the disc takes the cloud undersides' colour, as if seen through them
+SUN_GLARE = 0.4  # how far the disc's colour runs toward white, so it glares against the sky
 STAR_COUNT = 220
 STAR_BAND = (16.0, 88.0)  # elevations the stars fill, above the horizon's mist and the low cloud bank
 STAR_SIZE = (0.22, 0.45)  # a star's radius, degrees: one to three pixels at 320x240
@@ -53,10 +54,10 @@ SKIES = {
     # The cemetery: a low, gloomy grey ceiling with a dim, wan sun barely breaking through it.
     "overcast": Sky(
         zenith=(0.17, 0.2, 0.27),
-        sun=(0.82, 0.78, 0.66),
+        sun=(0.95, 0.9, 0.76),
         sun_at=SUN_AT,
         sun_size=2.6,
-        halo=(0.6, 0.53, 0.42),
+        halo=(0.7, 0.62, 0.49),
         halo_size=24.0,
         clouds=(0.48, 0.48, 0.5),
         cloud_under=(0.27, 0.28, 0.32),
@@ -66,10 +67,10 @@ SKIES = {
     # Harrowmere: dusk under a bruised ceiling of cloud, a dull copper sun sinking through it.
     "dusk": Sky(
         zenith=(0.07, 0.07, 0.12),
-        sun=(0.78, 0.5, 0.32),
+        sun=(0.92, 0.6, 0.38),
         sun_at=SUN_AT,
         sun_size=2.4,
-        halo=(0.36, 0.24, 0.2),
+        halo=(0.43, 0.29, 0.23),
         halo_size=18.0,
         clouds=(0.24, 0.22, 0.27),
         cloud_under=(0.12, 0.12, 0.17),
@@ -79,10 +80,10 @@ SKIES = {
     # The hollow: thick, humid green-gold haze over the canopy and a pale sun glaring through it.
     "jungle": Sky(
         zenith=(0.16, 0.26, 0.2),
-        sun=(0.95, 0.92, 0.66),
+        sun=(1.0, 0.98, 0.76),
         sun_at=SUN_AT,
         sun_size=3.0,
-        halo=(0.55, 0.6, 0.36),
+        halo=(0.64, 0.7, 0.42),
         halo_size=34.0,
         clouds=(0.26, 0.34, 0.24),
         cloud_under=(0.1, 0.17, 0.11),
@@ -93,10 +94,10 @@ SKIES = {
     # The Cinderhold: smoke lit from beneath by the forges, and a blood-orange sun through it.
     "ember": Sky(
         zenith=(0.08, 0.03, 0.03),
-        sun=(1.0, 0.5, 0.2),
+        sun=(1.0, 0.6, 0.26),
         sun_at=SUN_AT,
         sun_size=3.4,
-        halo=(0.62, 0.2, 0.08),
+        halo=(0.72, 0.24, 0.1),
         halo_size=26.0,
         clouds=(0.2, 0.12, 0.11),
         cloud_under=(0.55, 0.2, 0.08),
@@ -222,16 +223,22 @@ def _halo(mesh, spec, fog, zenith, dark, veil):
             mesh.quad(*corners)
 
 
+def sun_color(spec, dark=0.0, veil=False):
+    """The sun's disc colour as the eye sees it (also the glints it lays on the sea): glaring toward
+    white, a little of the clouds' undersides if it shines through them."""
+    rgb = _mix(spec.sun, (1.0, 1.0, 1.0), SUN_GLARE)
+    if spec.clouds:
+        rgb = _mix(rgb, spec.cloud_under, SUN_THROUGH_CLOUD)
+    return shade(rgb, dark, veil)
+
+
 def sun(spec, dark=0.0, veil=False):
     """The sun's disc, drawn over the cloud banks so no sky hides it; under clouds it takes a little
     of their undersides' colour, as if it shone through them. None for a sky without a sun."""
     if not spec.sun:
         return None
     mesh = SkyMesh()
-    rgb = spec.sun
-    if spec.clouds:
-        rgb = _mix(rgb, spec.cloud_under, SUN_THROUGH_CLOUD)
-    rgb = shade(rgb, dark, veil)
+    rgb = sun_color(spec, dark, veil)
     d = direction(*spec.sun_at)
     u, v = _basis(d)
     steps = 20

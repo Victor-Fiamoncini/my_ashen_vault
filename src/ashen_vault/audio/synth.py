@@ -206,6 +206,48 @@ def sounds():
             ),
         ),
         "step": gen(0.08, lambda t, p: lowpass(0.3) * 0.5 * env(p, 0.05)),
+        # Footsteps, one per surface underfoot (`world/footsteps.py`).
+        # Stone: a short, bright scuff of grit and a hard heel.
+        "step_stone": gen(
+            0.07, lambda t, p: (lowpass(0.55) * 0.45 + math.sin(t * TAU * 180) * 0.15) * env(p, 0.04)
+        ),
+        # Wood: a hollow knock that rings low in the boards.
+        "step_wood": gen(
+            0.13,
+            lambda t, p: (
+                (math.sin(t * TAU * 130) * 0.5 + math.sin(t * TAU * 210) * 0.2) * (1 - p) ** 3
+                + lowpass(0.35) * 0.25 * env(p, 0.03)
+            ),
+        ),
+        # Soft earth, ash and leaves: a dull, muffled pad.
+        "step_soft": gen(0.1, lambda t, p: lowpass(0.08) * 1.4 * env(p, 0.15)),
+        # Mud: a wet squelch, its low-pass closing as the foot sinks in.
+        "step_mud": gen(
+            0.2,
+            lambda t, p: (
+                (lowpass(0.04 + 0.2 * (1 - p)) * 1.6 + math.sin(t * TAU * (95 - p * 45)) * 0.2) * env(p, 0.2)
+            ),
+        ),
+        # Shallow water: a little slosh and spray.
+        "step_water": gen(
+            0.22, lambda t, p: (lowpass(0.4 - p * 0.3) * 1.0 + lowpass(0.05) * 0.6) * env(p, 0.1)
+        ),
+        # Iron plate and grates: a tap with a faint ring.
+        "step_metal": gen(
+            0.18,
+            lambda t, p: (
+                (
+                    lowpass(0.5) * 0.3 * (1 - p) ** 6
+                    + (math.sin(t * TAU * 620) * 0.18 + math.sin(t * TAU * 1430) * 0.08) * (1 - p) ** 3
+                )
+                * env(p, 0.01)
+            ),
+        ),
+        # Slag and loose scree: a crunch of a few gritty bursts.
+        "step_gravel": gen(
+            0.12,
+            lambda t, p: noise() * 0.5 * env(p, 0.05) * (0.35 + 0.65 * (math.sin(t * TAU * 55) > 0.2)),
+        ),
         "heavy": gen(
             0.4,
             lambda t, p: (

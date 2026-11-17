@@ -2691,25 +2691,14 @@ SHRINE_FLAME_Y = 2.36  # where the shrine's flame burns (mesh_builder.LIGHT_Y li
 
 
 def save_statue(r, t):
-    """A shrine: a waist-high stone post on a stepped base, runes cut in its faces, a carved collar,
-    and on top a cradle of wrought iron heaped with coals, where a flame always burns."""
+    """A shrine: a plain waist-high stone post on a stepped base, a carved collar, and on top an
+    iron dish heaped with coals, where a flame always burns."""
     r.part("cube", 0, 0.1, 0, 1.1, 0.2, 1.1, WHITE, tex="rough_stone")  # the steps
     r.part("cube", 0, 0.28, 0, 0.84, 0.16, 0.84, WHITE, tex="rough_stone")
     r.part("cube", 0, 1.03, 0, 0.44, 1.34, 0.44, WHITE, tex="rough_stone")  # the post
-    for a in range(4):  # a rune cut in each face: a flame's tongue over an open eye
-        with r.at(0, 0, 0, ry=a * math.pi / 2):
-            r.part("cube", 0.222, 1.08, 0, 0.01, 0.07, 0.07, (40, 36, 34), rx=math.pi / 4)
-            r.part("cube", 0.222, 1.08, 0, 0.01, 0.03, 0.2, (40, 36, 34))
-            r.part("cube", 0.222, 1.26, 0, 0.01, 0.2, 0.04, (40, 36, 34))
-            r.part("cube", 0.222, 1.24, 0.05, 0.01, 0.12, 0.03, (40, 36, 34), rx=0.5)
     r.part("cube", 0, 1.76, 0, 0.6, 0.12, 0.6, WHITE, tex="rough_stone")  # the collar
     r.part("cube", 0, 1.88, 0, 0.5, 0.12, 0.5, _dim(WHITE, 0.85), tex="rough_stone")
-    r.part("cyl", 0, 1.97, 0, 0.42, 0.06, 0.42, DARK_IRON)  # the cradle's foot
-    for sx, sz in ((1, 1), (1, -1), (-1, 1), (-1, -1)):  # four bars curling up and out
-        mid = (sx * 0.3, 2.3, sz * 0.3)
-        _bar(r, (sx * 0.14, 1.98, sz * 0.14), mid, 0.045, DARK_IRON)
-        _bar(r, mid, (sx * 0.22, 2.52, sz * 0.22), 0.04, DARK_IRON)
-    r.part("cyl", 0, 2.3, 0, 0.86, 0.035, 0.86, DARK_IRON)  # a band round them
+    r.part("cyl", 0, 1.97, 0, 0.42, 0.06, 0.42, DARK_IRON)  # the iron dish
     r.part("sphere", 0, 2.1, 0, 0.44, 0.18, 0.44, SHRINE_COALS)  # the heap of coals
     for i in range(3):
         a = i * 2.1 + 0.4

@@ -25,6 +25,7 @@ def all_textures():
         "ashlar": ashlar(),
         "terracotta": terracotta(),
         "water": water(),
+        "glitter": glitter(),
         "roof": roof(),
         "iron_bars": iron_bars(),
         "mossy_brick": mossy_brick(),
@@ -371,6 +372,21 @@ def water():
     def px(x, y):
         w = math.sin(x * 0.3 + noise(x, y, 8, 3) * 4) * math.sin(y * 0.2) * 0.12
         return tint([38, 64, 78], 0.8 + w + fbm(x, y, 101) * 0.25)
+
+    return build(px)
+
+
+def glitter():
+    """The sun's glints on the sea: short bright dashes lying across the swell, cut out against
+    nothing (alpha 0 between them), white so the sun's colour tints them."""
+
+    def px(x, y):
+        row = y // 4
+        if y % 4 > 1 or hash_(x // 6, row, 611) < 0.55:
+            return (0, 0, 0, 0)
+        if x % 6 == 5:  # a gap between neighbouring dashes
+            return (0, 0, 0, 0)
+        return (*tint([255, 250, 240], 0.85 + hash_(x // 6, row, 612) * 0.15), 255)
 
     return build(px)
 

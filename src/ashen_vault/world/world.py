@@ -22,10 +22,22 @@ from ashen_vault.player import remnant
 from ashen_vault.player.player import Player
 from ashen_vault.player.spells import Spells
 from ashen_vault.render import cemetery_models, forge_models, fortress_props, models, prop_bake, town_models
-from ashen_vault.render.mesh_builder import KINDLING, MeshBuilder
+from ashen_vault.render.mesh_builder import KINDLING, Batch, MeshBuilder
 from ashen_vault.render.rig import Rig
 from ashen_vault.util import rround
-from ashen_vault.world import collision, elements, hints, loot, relics, shots, terrain, villagers
+from ashen_vault.world import (
+    collision,
+    elements,
+    hints,
+    loot,
+    ramparts,
+    relics,
+    sea,
+    shots,
+    sky,
+    terrain,
+    villagers,
+)
 from ashen_vault.world.arena import Arena, flood
 from ashen_vault.world.ash import AshCloud, death_phases, rise_phases
 from ashen_vault.world.hazards import (
@@ -278,6 +290,7 @@ LANDMARKS = (
     "banner_pole",
     "roof_turret",
     "wall_tower",
+    "rampart_bay",
 )
 # Props that never move, open, break or flicker: they are baked once into world-space batches
 # (`render/prop_bake.py`) instead of being drawn part by part every frame. A prop drawn with the time
@@ -291,7 +304,7 @@ STATIC_PROPS = frozenset(
         *("shackles", "cobweb", "mushrooms", "slag_heap", "ingot_pile", "gatehouse", "bastion"),
         *("gravestone", "open_grave", "cemetery_gate", "mourning_statue", "crypt_front", "grave_railing"),
         *("shop_sign", "forge_bellows", "grindstone", "town_statue", "forge_statue", "ore_cart"),
-        *("roof_turret", "wall_tower"),
+        *("roof_turret", "wall_tower", "rampart_bay"),
         "ash_mound",
         "spire",
     }
@@ -304,8 +317,11 @@ FACING_PROPS = (
     *("bench", "hand_cart", "hay_wagon", "mourning_statue", "forge_bellows", "town_statue", "forge_statue"),
     "ore_cart",
 )
+# Ways through a wall that its rampart bays keep clear of (`World._dress_ramparts`).
+RAMPART_GATES = ("exit", "cemetery_gate", "door", "gate", "door_arch")
 # Harrowmere's buildings, furniture and street dressing (`render/town_models.py`).
 TOWN_PROPS = (
+    "rampart_bay",
     "roof",
     "silent_bell",
     "cathedral_spire",
@@ -434,6 +450,8 @@ class World:
         self.name = name
         self.map = MapLoader.load_file(map_path(name))
         self._meshes = []
+        self._sea = None  # the open sea's mesh (`world/sea.py`), drawn with its own thin fog
+        self._glitter = None  # (key, mesh) of the sun's path of glints on it
         self._baked = []  # (mesh, tex, chunk, landmark) of the static props, `prop_bake`
         self._baking = False
         self._bake()
@@ -481,11 +499,17 @@ class World:
         )
         self.builder = MeshBuilder(self.map, lights=lights).build()
         self._meshes = [(self.game.gpu.upload_batch(b), tex) for tex, b in self.builder.batches.items()]
+        if self.builder.sea.vertex_count:
+            self._sea = self.game.gpu.upload_batch(self.builder.sea)
 
     def unload(self):
         for mesh, _ in self._meshes:
             self.game.gpu.unload_mesh(mesh)
         self._meshes = []
+        if self._sea is not None:
+            self.game.gpu.unload_mesh(self._sea)
+            self._sea = None
+        self._unload_glitter()
         self._unload_baked()
 
     def _unload_baked(self, chunks=None):
@@ -630,6 +654,7 @@ class World:
                 self.props.append(prop)
                 if spec.kind in SPILLING_PROPS and prop.open_t > 0:
                     self._spill(prop)  # a potion left lying in an earlier visit is still there
+        self._dress_ramparts()
         self._respill_slain_loot()
         self._place_call_levers()
         if (
@@ -2089,10 +2114,83 @@ class World:
 
     # --- rendering ---------------------------------------------------------------
 
-    def draw(self, rig, gpu):
+    def _dress_ramparts(self):
+        """Carved bays along the great walls (`world/ramparts.py`), kept clear of gates and of anything
+        already hung on the wall."""
+        clear = set()
+        for e in self.map.entities:
+            if e.kind in WALL_PROPS:
+                clear.add((e.tx, e.tz))
+            elif e.kind in RAMPART_GATES:
+                clear.update((e.tx + i, e.tz + j) for i in (-1, 0, 1) for j in (-1, 0, 1))
+        for bay in ramparts.bays(self.map, frozenset(clear)):
+            self.props.append(
+                Prop(
+                    kind="rampart_bay",
+                    x=bay.x,
+                    z=bay.z,
+                    y=bay.y,
+                    tx=bay.tx,
+                    tz=bay.tz,
+                    props={"kind": bay.kind, "height": f"{bay.height:g}"},
+                    key=None,
+                    yaw=bay.yaw,
+                )
+            )
+
+    def _unload_glitter(self):
+        if self._glitter is not None:
+            self.game.gpu.unload_mesh(self._glitter[1])
+            self._glitter = None
+
+    def glitter_batch(self, dark=0.0, veil=False):
+        """The sun's path of glints on the open sea as an uploadable batch, for where you stand now;
+        None without an open sea or a sun over it."""
+        spec = sky.get(self.meta)
+        if self._sea is None or spec is None or not spec.sun:
+            return None
+        z_from = min(tz for _tx, tz, _ in sea.deep_tiles(self.map)) * TileMap.TILE
+        frame = int(self._time / sea.GLITTER_FRAME)
+        built = sea.glitter(
+            rround(self.player.x), rround(self.player.z), z_from, sea.level(self.map), spec.sun_at, frame
+        )
+        if built is None:
+            return None
+        verts, uvs, weights = built
+        rgb = sky.sun_color(spec, dark, veil)
+        batch = Batch(verts=verts, uvs=uvs)
+        for w in weights:
+            batch.colors.extend(c * w for c in rgb)
+        return batch
+
+    def _draw_sea(self, gpu, fog_range, dark, veil):
+        """The open sea under its own thin fog, so it runs on to the horizon, and the sun's glints."""
+        if self._sea is None:
+            return
+        gpu.set_vec2("fogRange", sea.fog_range(fog_range))
+        gpu.draw_world_batch(self._sea, "water")
+        key = (
+            rround(self.player.x),
+            rround(self.player.z),
+            int(self._time / sea.GLITTER_FRAME),
+            rround(dark * 48),
+            veil,
+        )
+        if self._glitter is None or self._glitter[0] != key:
+            self._unload_glitter()
+            batch = self.glitter_batch(dark, veil)
+            if batch is not None:
+                self._glitter = (key, gpu.upload_batch(batch))
+        if self._glitter is not None:
+            gpu.set_vec2("fogRange", sea.glitter_fog_range(fog_range))
+            gpu.draw_world_batch(self._glitter[1], "glitter")
+        gpu.set_vec2("fogRange", fog_range)
+
+    def draw(self, rig, gpu, fog_range=(8.0, 40.0), dark=0.0, veil=False):
         player = self.player
         for mesh, tex in self._meshes:
             gpu.draw_world_batch(mesh, tex)
+        self._draw_sea(gpu, fog_range, dark, veil)
         gpu.set_float("isModel", 1.0)
         sight = self.meta.get("fog_range", [0, 40])[1] + 2
         # Small models stop being drawn sooner than the fog's end on a map that sees far (the
@@ -2604,6 +2702,8 @@ class World:
                     float(p.props.get("radius", "0.9")),
                     float(p.props.get("cap", "3.6")),
                 )
+        elif k == "rampart_bay":
+            town_models.rampart_bay(rig, p.props["kind"], float(p.props["height"]), seed)
         elif k == "wall_tower":
             dx, dz = (float(v) for v in p.props.get("shift", "0,0").split(","))
             with rig.at(dx, 0, dz):

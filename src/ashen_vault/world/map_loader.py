@@ -17,6 +17,7 @@ import os
 import re
 import shlex
 from collections import Counter
+from functools import cache
 
 from ashen_vault.world.tile_map import EntitySpec, Tile, TileMap
 
@@ -168,6 +169,7 @@ class MapLoader:
         if "roof" in p:
             tile.roof = float(p["roof"])
         tile.roof_tex = p.get("roof_tex")
+        tile.dress = p.get("dress")
         return tile
 
     @staticmethod
@@ -231,3 +233,21 @@ class MapLoader:
             k, _, v = pair.partition("=")
             out[k] = v if "=" in pair else None
         return out
+
+
+@cache
+def map_title(path):
+    """A map's `[meta] name` (its display name, "The Sunken Keep"), read without parsing the grid; the
+    file's own name if it has none or can't be read."""
+    fallback = os.path.splitext(os.path.basename(path))[0].replace("_", " ").title()
+    try:
+        with open(path, encoding="utf-8") as f:
+            text = f.read()
+    except OSError:
+        return fallback
+    meta = MapLoader(text)._split_sections().get("meta", [])
+    for line in MapLoader._content_lines(meta):
+        key, _, value = line.partition("=")
+        if key.strip() == "name" and value.strip():
+            return value.strip()
+    return fallback

@@ -238,7 +238,7 @@ FromSoftware, Inc.
   the shrines once you reach their far side.
 - **Everything procedural**: textures, low-poly models and sound effects are all generated at startup.
   The game itself ships no image or audio files.
-- **Save shrines**: pray at a shrine, a stone post with a flame burning in an iron cradle, to heal and
+- **Save shrines**: pray at a shrine, a stone post with a flame burning in an iron dish, to heal and
   record your journey. The fallen rise again when
   you do; only bosses and mimics stay dead.
 
@@ -380,9 +380,12 @@ The same list is in the game under **Controls** on the title and pause menus.
 
 ## Save file
 
-The game saves only at shrines, to `~/.local/share/ashen_vault/save.json` (Windows:
-`%USERPROFILE%\.local\share\ashen_vault\save.json`). Set the `ASHEN_VAULT_SAVE` environment variable
-to use a different path.
+The game saves only at shrines. It keeps three save slots, each with its own journey and play time:
+New Game and Load Game on the title let you choose one, and Continue wakes you in the one saved last.
+Slot 1 is `~/.local/share/ashen_vault/save.json` (Windows:
+`%USERPROFILE%\.local\share\ashen_vault\save.json`); slots 2 and 3 are `save_2.json` and `save_3.json`
+beside it. Set the `ASHEN_VAULT_SAVE` environment variable to use a different path for slot 1 (the
+others follow it).
 
 ## Development
 

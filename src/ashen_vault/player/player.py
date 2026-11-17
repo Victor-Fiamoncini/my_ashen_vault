@@ -33,6 +33,7 @@ class Player:
         self.spell_index = 0
         self.quick = "red_tonic"  # consumable on the middle mouse button
         self.remnant = None  # the gold you left where you died: {map, x, z, gold} (`player/remnant.py`)
+        self.play_time = 0.0  # seconds played on this save (`Game.update` counts them)
         self.x = self.z = self.y = 0.0
         self.yaw = 0.0
         self.pitch = 0.0
@@ -424,4 +425,5 @@ class Player:
             "spell": self.current_spell().id if self.spells else None,
             "quick": self.quick,
             "remnant": self.remnant,
+            "play_time": self.play_time,
         }

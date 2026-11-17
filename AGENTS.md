@@ -42,7 +42,8 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 ```
 
 - Always set `ASHEN_VAULT_SAVE` to a throwaway path so you never touch the player's real save
-  (`~/.local/share/ashen_vault/save.json`).
+  (`~/.local/share/ashen_vault/save.json`). That path is save slot 1; slots 2 and 3 are `save_2.json`
+  and `save_3.json` beside it (`save/slots.py`), and a `--map` run saves to slot 1.
   Options (sound on/off, volume) live in `settings.json` in the same directory as the save
   (`save/settings.py`), so a throwaway save keeps its own.
 - `--script` steps: `action` presses once, `action:1.5` holds for 1.5 s, `wait:1` pauses. Actions are
@@ -97,8 +98,8 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   kit instead: `--map ashen_cemetery` (the waking grave and the first hint), `--map ashen_cemetery
   --at=10,19,-90 --script "wait:0.3 cast"` (burn the chapel's silk with Flame Bolt), `--map
   ashen_cemetery --at=10,3,-90 --script "wait:0.1 interact"` (the gate out, refusing while the
-  Sexton lives). Without `--map`, `--script "wait:0.3 confirm"` presses New Game on the title (with
-  a throwaway save that doesn't exist yet).
+  Sexton lives). Without `--map`, `--script "wait:0.3 confirm confirm"` presses New Game on the title
+  and picks the first empty slot in the chooser (with a throwaway save that doesn't exist yet).
 - Boss doors: `--map sunken_keep --at=15,11,-90` faces the Warden's great door, `--at=28,10,-116` the
   Butcher's, `--map verdant_hollow --at=15,11,-90` the Loom Mother's, `--map cinder_keep --at=22,5,180`
   the gargoyles', `--map ashen_cemetery --at=10,11,-90` the Sexton's. The fog appears only
@@ -132,7 +133,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/world/elements.py` | Elements: lightning against `conductive` foes, fire against `fireproof` ones, which weapons burn |
 | `src/ashen_vault/render/fortress_props.py` | The Cinderhold's dressing: `gargoyle_statue` (`pose=snarl`; far ones drop their fine carving, `world.DETAIL_RANGE`), `barred_window`, `tool_rack` and `great_window` (wall props; `great_window rise=` hangs high in a wall over the moat, a landmark), `forge_hearth`, `crucible`, `quench_trough`, `ingot_pile`, `slag_heap`, `impaler`, the `battlement` landmark (a crenellated walk on a wall top), `lava_spout` (`lavafall spout=gargoyle`), the smith-knight `forge_statue` and the `ore_cart` |
 | `src/ashen_vault/render/forge_models.py` | The Cinderhold's models (golem, bowman, hound, the gargoyles, Stormbrand and Slagbreaker, arrows, thunder and motes, flame jets, and the skyline: spires, bastions, smokestacks, the gatehouse, the keep, lavafalls); `models` imports it last and borrows its helpers |
-| `src/ashen_vault/render/town_models.py` | Harrowmere's models: gabled `roof`s (one per building, on its NW wall tile with `span=W,D ridge=x\|z`, `tex=violet_slate eave=`), a `roof_turret` corbelled out on a house's corner (`shift=` to the corner, `rise=`, a witch-hat cone; only on an L of two walls, `test_every_harrowmere_turret_is_seated_on_a_corner_of_its_house`), the town wall's round `wall_tower`s (landmarks, `shift=`, `radius=`, `capped=false`), the `house_door` swinging in each house's `door_arch`, each shop's `shop_sign` (`emblem=anvil|scroll|flask|blades`: an oval painted plaque hung from a wrought-iron bracket by its door, a wall prop), the `silent_bell`, the cathedral (`cathedral_spire base=` over the crossing, `cathedral_tower` with `shift=dx,dz` to centre it on a 2x2 footprint, `turret` for the small ones, `flying_buttress`, stained-glass `window` within and `stained_window` without, `rose_window`), the houses' faces (`shutters`, `balcony`, `door_arch` on the doorway tile facing out; `rise=` sets a hung one's height, `world.RISE`), the realm's crest (`banner_pole`, `crest_plaque`), the square's `fountain`, `bench`es, `hand_cart`, `hay_wagon` and `cargo` (their spoked wheels are `cart_wheel`), the founder's bronze `town_statue`, the trees (`tree kind=cypress|pine|olive|dead`, the last the cemetery's bare one: slim cypresses, flat-crowned umbrella pines, gnarled olives, each a 3D trunk and limbs under clumps of crossed leaf cards: paper-thin cubes carrying the cut-out `leaf_card` texture), pews, beds, cupboards, shelves, hearths, fences, lamp posts, boats, and Brannoc's `forge_bellows` and `grindstone` |
+| `src/ashen_vault/render/town_models.py` | Harrowmere's models: gabled `roof`s (one per building, on its NW wall tile with `span=W,D ridge=x\|z`, `tex=violet_slate eave=`), a `roof_turret` corbelled out on a house's corner (`shift=` to the corner, `rise=`, a witch-hat cone; only on an L of two walls, `test_every_harrowmere_turret_is_seated_on_a_corner_of_its_house`), the town wall's round `wall_tower`s (landmarks, `shift=`, `radius=`, `capped=false`), the `rampart_bay`s carved along its great walls (laid out by `world/ramparts.py`, never placed by hand), the `house_door` swinging in each house's `door_arch`, each shop's `shop_sign` (`emblem=anvil|scroll|flask|blades`: an oval painted plaque hung from a wrought-iron bracket by its door, a wall prop), the `silent_bell`, the cathedral (`cathedral_spire base=` over the crossing, `cathedral_tower` with `shift=dx,dz` to centre it on a 2x2 footprint, `turret` for the small ones, `flying_buttress`, stained-glass `window` within and `stained_window` without, `rose_window`), the houses' faces (`shutters`, `balcony`, `door_arch` on the doorway tile facing out; `rise=` sets a hung one's height, `world.RISE`), the realm's crest (`banner_pole`, `crest_plaque`), the square's `fountain`, `bench`es, `hand_cart`, `hay_wagon` and `cargo` (their spoked wheels are `cart_wheel`), the founder's bronze `town_statue`, the trees (`tree kind=cypress|pine|olive|dead`, the last the cemetery's bare one: slim cypresses, flat-crowned umbrella pines, gnarled olives, each a 3D trunk and limbs under clumps of crossed leaf cards: paper-thin cubes carrying the cut-out `leaf_card` texture), pews, beds, cupboards, shelves, hearths, fences, lamp posts, boats, and Brannoc's `forge_bellows` and `grindstone` |
 | `src/ashen_vault/world/thin_walls.py` | Thin walls (`wall ... thin=<m>`): the slab each such tile stands as (hugging the side open to the sky, else a full wall it backs onto, centred between two rooms; a run keeps one line, `test_harrowmere_has_no_slits_between_its_thin_walls`), the margins it lends to its open neighbours (`Layout`), and how far a prop must move back to touch it (`inset`) |
 | `src/ashen_vault/world/villagers.py` | How each villager looks (`Look`: build, garb, hair, hat, beard, apron, cloak, held tool, idle) |
 | `src/ashen_vault/render/shapes.py` | Model primitives raylib lacks (`blade`, `lozenge`, `wedge`) as pure triangle lists; `Gpu.primitive` uploads them |
@@ -140,7 +141,11 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/world/rest.py` | The shrine rest: timing and the pixelated ember fog pattern drawn while you pray |
 | `src/ashen_vault/ui/smallfont.py` | The small mixed-case pixel font for all game text: menus, dialogue, messages, prompts and the boss bar (`hud.text` draws with it) |
 | `src/ashen_vault/ui/tinyfont.py` | The HUD's tiny fonts: 3x5 `GLYPHS` (the HP/MP/ST labels and numbers, `hud.tiny`) and 3x4 `MICRO` (the HUD mouse's PRI / SEC labels and the quick item's count, `hud.micro_centered`; only the characters they use) |
-| `src/ashen_vault/save/settings.py` | Player options (sound on/off, volume) in `settings.json` beside the save; the title and pause menus' Options screen edits them and `Audio.set_volume` applies them as the master gain |
+| `src/ashen_vault/save/slots.py` | Save slots: three journeys side by side (`SLOTS`), slot 1 the base save path (an old single save) and `save_<n>.json` beside it; each records `Player.play_time` (counted by `Game.update` in `PLAYED_SCENES`). The title's New Game and Load Game open the slot chooser (New Game asks before overwriting a used slot), Continue loads the slot saved last (`latest`) |
+| `src/ashen_vault/world/sea.py` | The open sea (`[meta] open_sea = true`, Harrowmere only): the deep water and its far reaches past the grid's south edge (`far_cells`, bands of cells doubling in size out to `FAR`) go into the mesh builder's own `sea` batch, which `World._draw_sea` draws under a fog `SEA_REACH` times thinner than the land's, so it runs on to the horizon; the sun lays a twinkling path of glints on it (`glitter`, the cut-out `glitter` texture, coloured by `sky.sun_color`) |
+| `src/ashen_vault/world/ramparts.py` | The great walls' dressing: every face of a `dress=rampart` wall turned to open sky-lit ground at least `MIN_HEIGHT` below its top gets a static `rampart_bay` (`town_models.rampart_bay`: a stepped plinth, a corbelled parapet with merlons, and a `pier` of three engaged columns every `PIER_EVERY` tiles and at each run's ends, blind round arches between), kept clear of wall towers, gates (`world.RAMPART_GATES`) and wall props. Nothing stands out past the player's radius, so bays need no collision |
+| `src/ashen_vault/world/footsteps.py` | Footsteps: each floor `tex` belongs to a surface (stone, wood, soft, mud, water, metal, gravel; the platform under you overrides it), and `Game._footstep` plays its `step_<surface>` sound. A new floor texture needs a surface (`tests/test_footsteps.py`) |
+| `src/ashen_vault/save/settings.py` | Player options (sound on/off, volume) in `settings.json` beside the save (shared by every slot); the title and pause menus' Options screen edits them and `Audio.set_volume` applies them as the master gain |
 | `src/ashen_vault/ui/atk_bar.py` | What a weapon button's two-row bar shows (ATK gauge, heavy charge, a ready art), as data; `hud.draw_atk_bar` draws it |
 | `src/ashen_vault/ui/tally.py` | `GoldTally`: the top-right gold counter's bookkeeping (a gain lingers as "+N", then rolls in; spending shows at once). `Game.update` feeds it |
 | `src/ashen_vault/ui/logofont.py` | The logo's 5x7 capitals, shared by `docs/logo/make_logo.py` and big headings (`hud.big`: the title, the death screen) |
@@ -222,6 +227,8 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   gets a roof (`roof=<h>` in its legend, at least `mesh_builder.ROOF_SLAB` over its ceiling;
   `roof_tex=`), the walls rising past a roof show their faces above it, and every wall tile is capped.
   A passage through a wall is roofed at the wall's height (`roof=16`), so the wall runs on over it.
+  A wall tile may set `dress=rampart` (Harrowmere's great walls): carved bays along its open faces
+  (`world/ramparts.py`).
   A wall tile may set `thin=<m>` (the town's houses use 0.5): it stands as a slab that thick, joined to
   its solid neighbours and hugging the side open to the sky, so outlines, roofs and outdoor collision
   stay put while the room inside runs on up to the slab (`world/thin_walls.py`). `TileMap.tile_at` gives
@@ -302,7 +309,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   A wall prop must hang on stone that rises past it (at least 2.5 m over its floor, or the ceiling):
   `test_wall_props_hang_on_a_wall_tall_enough_to_hold_them`.
   Light comes from `mesh_builder.LIGHT_KINDS` (torches, braziers, fungus, bonfires, the glowing
-  toadstools, and every shrine, `save_statue`: a stone post with a flame burning in an iron cradle). A `brazier unlit` or `bonfire unlit` stays cold until Pyre or a Flame Bolt kindles it
+  toadstools, and every shrine, `save_statue`: a stone post with a flame burning in an iron dish). A `brazier unlit` or `bonfire unlit` stays cold until Pyre or a Flame Bolt kindles it
   (`World.kindle`); it then burns for good under a `lit:<map>:<tx>,<tz>` flag, and its light is added
   to the baked mesh in place (`MeshBuilder.add_light`).
   Every house's `door_arch` (all but the cathedral's `rose` one, or one marked `open`) hangs a `house_door`

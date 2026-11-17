@@ -6,6 +6,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 
 from ashen_vault.util import rround
+from ashen_vault.world import sea
 from ashen_vault.world.tile_map import TileMap
 
 
@@ -178,6 +179,11 @@ class MeshBuilder:
         self.ambient = map_.meta.get("ambient", [0.2, 0.2, 0.2])
         self.batches = defaultdict(Batch)
         self.roofs = map_.meta.get("roofs") == "true"
+        # On a map whose sea is open (`world/sea.py`), the deep water and the far water past the grid's
+        # edge go into a batch of their own, which `World` draws with the sea's thinner fog.
+        self.open_sea = sea.is_open(map_)
+        self.sea = Batch()
+        self._into = None  # the batch quads go into instead of their texture's, while it is set
         self._model_light = {}  # light for models, by spot on a MODEL_LIGHT_GRID
 
     @staticmethod
@@ -281,7 +287,21 @@ class MeshBuilder:
                 self._build_solid(tx, tz, tile)
             else:
                 self._build_open(tx, tz, tile)
+        if self.open_sea:
+            self._build_far_sea()
         return self
+
+    def _build_far_sea(self):
+        """The open water past the grid's edge, lit by the ambient light alone (no lamp reaches it)."""
+        y = sea.level(self.map)
+        self._into = self.sea
+        try:
+            for x0, z0, x1, z1 in sea.far_cells(self.map):
+                pts = [(x0, y, z0), (x0, y, z1), (x1, y, z1), (x1, y, z0)]
+                uvs = [(p[0] / T, p[2] / T) for p in pts]
+                self._quad("water", pts, uvs, (0.0, 1.0, 0.0), 0.85, flat=self.ambient)
+        finally:
+            self._into = None
 
     def roof(self, tile):
         """Height of a ceilinged open tile's roof seen from above, on a map with `[meta] roofs = true`
@@ -294,7 +314,10 @@ class MeshBuilder:
         x0 = tx * T
         z0 = tz * T
         glow = tile.floor_tex in GLOWING_FLOORS
+        open_sea = self.open_sea and tile.deep
+        self._into = self.sea if open_sea else None
         self._horizontal(tile.floor_tex, x0, z0, tile.floor, 1, 0.85 if tile.liquid else 1.0, glow=glow)
+        self._into = None
         if tile.ceil is not None:
             self._horizontal(tile.ceil_tex, x0, z0, tile.ceil, -1, 0.75)
         roof = self.roof(tile)
@@ -305,6 +328,8 @@ class MeshBuilder:
             nb = self.map[tx + dx, tz + dz]
             if nb.thin:
                 continue  # the slab draws its own faces, out at its margin
+            if open_sea and not self.map.inside(tx + dx, tz + dz):
+                continue  # the sea runs on past the edge: no lip of the map's rim stands out of it
             if nb.solid:
                 top = tile.ceil if tile.ceil is not None else nb.top
                 if top > tile.floor:
@@ -513,19 +538,21 @@ class MeshBuilder:
                 uvs = [((p[0] + p[2]) / T, -p[1] / T) for p in pts]
                 self._quad(tex, pts, uvs, normal, shade, ao_floor=y0)
 
-    def _quad(self, tex, pts, uvs, normal, shade, ao_floor=None, glow=False):
+    def _quad(self, tex, pts, uvs, normal, shade, ao_floor=None, glow=False, flat=None):
         a, b, c = pts[0], pts[1], pts[2]
         if _dot(_cross(_sub(b, a), _sub(c, a)), normal) < 0:
             pts = pts[::-1]
             uvs = uvs[::-1]
-        batch = self.batches[tex]
+        batch = self._into if self._into is not None else self.batches[tex]
         colors = []
         lit = []
         for p in pts:
             k = shade
             if ao_floor is not None:
                 k *= 0.7 + 0.3 * min((p[1] - ao_floor) / 0.8, 1.0)
-            raw = [1.0, 1.0, 1.0] if glow else self.light_at(p[0], p[1], p[2], *normal)
+            raw = (
+                [1.0, 1.0, 1.0] if glow else list(flat) if flat else self.light_at(p[0], p[1], p[2], *normal)
+            )
             colors.append([min(max(ch * k, 0.0), 1.0) for ch in raw])
             lit.append((k, *normal, raw))
         for i in (0, 1, 2, 0, 2, 3):
