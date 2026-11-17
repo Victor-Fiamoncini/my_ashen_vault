@@ -22,6 +22,10 @@ COLUMN_H = EQUIPPED_H + MENU_SPACE + STATS_H  # the list's height too, so both e
 SIDE_X = W - MENU_SPACE - SIDE_W
 MENU_LIST = (MENU_SPACE, MENU_SPACE, SIDE_X - 2 * MENU_SPACE)  # (x, y, width) of the Belongings list
 SHOP_LIST = (MENU_SPACE, MENU_SPACE, W - 2 * MENU_SPACE)
+# The shrine store: what you carry and what is stored, side by side over the item panel.
+STORE_W = (W - 3 * MENU_SPACE) // 2
+STORE_LIST = (MENU_SPACE, MENU_SPACE, STORE_W)
+STASH_LIST = (W - MENU_SPACE - STORE_W, MENU_SPACE, STORE_W)
 EQUIPPED_PANEL = (SIDE_X, MENU_SPACE, SIDE_W)
 STATS_PANEL = (SIDE_X, MENU_SPACE + EQUIPPED_H + MENU_SPACE, SIDE_W)
 ITEM_Y = MENU_SPACE + COLUMN_H + MENU_SPACE

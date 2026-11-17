@@ -81,6 +81,8 @@ def wrap(s, width):
 
 
 STAMINA_RGB = (70, 170, 80)
+DURABILITY_RGB = (176, 184, 196)  # a shield's durability on its mouse button: pale steel
+WORN_RGB = (200, 70, 60)  # ... once it is badly worn
 STAMINA_TIRED_RGB = (40, 85, 45)
 
 
@@ -314,9 +316,14 @@ def mouse_button(player, hand, x, y, w):
         # The other half of a two-hander, dimmed: only the left button swings it.
         weapon_icon(item, cx, cy, t, 70)
     elif item.kind == "shield":
-        up = player.guarding
-        gauge_bar(bx, by, bw, player.stamina.value if up else 0, STAMINA_RGB)
-        shield_icon(item, cx, cy, 110 if player.guard_break_t > 0 else 255, up)
+        # Its durability, not ST (the vitals box shows that): pale steel, red once badly worn.
+        inv = player.inventory
+        left, top = inv.durability(item.id), inv.max_durability(item.id)
+        gauge_bar(bx, by, bw, left / top, WORN_RGB if inv.worn(item.id) else DURABILITY_RGB)
+        dim = player.guard_break_t > 0 or inv.broken(item.id)
+        shield_icon(item, cx, cy, 110 if dim else 255, player.guarding)
+        if inv.broken(item.id):
+            broken_mark(x + 2, by + GAUGE_H + 3)
     elif item.kind == "spell":
         spell = player.current_spell()
         g = player.magic_gauge
@@ -329,13 +336,23 @@ def mouse_button(player, hand, x, y, w):
     else:
         g = player.gauge(hand)
         draw_atk_bar(atk_bar.state(player, hand), player.charge_t, bx, by, bw)
-        weapon_icon(item, cx, cy, t, 255 if g.full else 110, g.full)
+        broken = player.inventory.broken(item.id)  # a broken weapon stays dim, marked with a crack
+        weapon_icon(item, cx, cy, t, 255 if g.full and not broken else 110, g.full and not broken)
+        if broken:
+            broken_mark(x + 2, by + GAUGE_H + 3)
         pulse = g
     if pulse is not None and pulse.full and pulse.full_t < SLOT_PULSE:
         # The button flashes once when its gauge fills.
         k = pulse.full_t / SLOT_PULSE
         edge = color(255, 250, 230, rround(230 * (1 - k)))
         pr.draw_rectangle_lines(x - 1, by - 2, w + 2, MOUSE_SPLIT - HUD_PAD - 1, edge)
+
+
+def broken_mark(x, y):
+    """A small red crack in a button's corner: what the slot holds is broken (player/durability.py)."""
+    col = color(*WORN_RGB)
+    for dx, dy in ((0, 0), (1, 1), (2, 1), (2, 2), (3, 3), (4, 3)):
+        pr.draw_rectangle(x + dx, y + dy, 1, 1, col)
 
 
 def wheel(player, cx, top, h):

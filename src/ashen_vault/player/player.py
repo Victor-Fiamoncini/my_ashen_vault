@@ -1,7 +1,7 @@
 import dataclasses
 import math
 
-from ashen_vault.player import burden, guard, weapons
+from ashen_vault.player import burden, durability, guard, weapons
 from ashen_vault.player.combat import Gauge, Stamina
 from ashen_vault.player.inventory import HANDS, RIGHT, Inventory
 from ashen_vault.player.items import Items
@@ -34,6 +34,9 @@ class Player:
         self.quick = "red_tonic"  # consumable on the middle mouse button
         self.remnant = None  # the gold you left where you died: {map, x, z, gold} (`player/remnant.py`)
         self.play_time = 0.0  # seconds played on this save (`Game.update` counts them)
+        self.stash = {}  # items put away at a shrine: id -> count (`player/stash.py`)
+        self.stashed_spells = []  # spells put away at a shrine, not castable until taken back
+        self.wear_news = []  # (item, "worn" | "broken") for `Game` to announce (`wear`)
         self.x = self.z = self.y = 0.0
         self.yaw = 0.0
         self.pitch = 0.0
@@ -310,8 +313,15 @@ class Player:
 
     def art_primed(self, hand=RIGHT):
         """The weapon's art, if it has one and both its ATK gauge and the heavy charge are full."""
-        a = weapons.art(self.hand_weapon(hand))
-        if a is None or not self.gauge(hand).full or self.charge_hand != hand or self.charge_frac < 1:
+        item = self.hand_weapon(hand)
+        a = weapons.art(item)
+        if (
+            a is None
+            or self.inventory.broken(item.id)
+            or not self.gauge(hand).full
+            or self.charge_hand != hand
+            or self.charge_frac < 1
+        ):
             return None
         return a
 
@@ -402,9 +412,12 @@ class Player:
         self.since_hit = 0.0
         if not self.guarding:
             return dmg, None
-        shield = self.hand_item(self.inventory.shield_hand())
+        held = self.hand_item(self.inventory.shield_hand())
+        shield = durability.effective_shield(held, self.inventory.broken(held.id))
         fx, fz = self.forward()
         b = guard.block(dmg, guard.facing_cos(self.x, self.z, fx, fz, ax, az), shield, self.stamina.value)
+        if b.stopped > 0 or b.broken:
+            self.wear(held.id, durability.block_wear(b.stopped, b.broken))
         if b.stamina:
             self.stamina.spend(b.stamina * self.burden.cost)
         if b.broken:
@@ -413,6 +426,25 @@ class Player:
         elif b.blocked:
             self.since_block = 0.0
         return b.taken, b
+
+    # --- durability ----------------------------------------------------------------
+
+    def wear(self, id_, n):
+        """Wears item `id_` by `n`, queueing word of it if it just broke or grew badly worn."""
+        news = self.inventory.wear_down(id_, n)
+        if news:
+            self.wear_news.append((Items.get(id_), news))
+        return news
+
+    def wear_weapon(self):
+        """The swing just landed: wears the weapon swung (fists never wear)."""
+        return self.wear(self.swing_weapon.id, durability.WEAPON_WEAR)
+
+    def wear_armor(self):
+        """A foe's blow landed: wears every armor piece worn."""
+        for a in (self.inventory.body_item(), self.inventory.hands_item()):
+            if a:
+                self.wear(a.id, durability.ARMOR_WEAR)
 
     def to_h(self):
         return {
@@ -426,4 +458,6 @@ class Player:
             "quick": self.quick,
             "remnant": self.remnant,
             "play_time": self.play_time,
+            "stash": dict(self.stash),
+            "stashed_spells": list(self.stashed_spells),
         }

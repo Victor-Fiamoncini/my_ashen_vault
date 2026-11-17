@@ -10,7 +10,7 @@ from ashen_vault import map_path
 from ashen_vault.ai.enemy import Enemy
 from ashen_vault.audio.synth import Audio
 from ashen_vault.input import CONTROLS, Input
-from ashen_vault.player import burden, remnant, view_blend, weapons
+from ashen_vault.player import burden, durability, remnant, stash, view_blend, weapons
 from ashen_vault.player.combat import Combat
 from ashen_vault.player.inventory import LEFT, PRIMARY, RIGHT, SECONDARY, SLOT_ALIASES, SLOT_NAMES, SPELL
 from ashen_vault.player.items import Item, Items
@@ -35,9 +35,11 @@ from ashen_vault.screen import (
     ROW_H,
     ROW_TOP,
     SHOP_LIST,
+    STASH_LIST,
     STATS_H,
     STATS_PANEL,
     STATS_ROW,
+    STORE_LIST,
     H,
     W,
     centered_row_at,
@@ -55,7 +57,7 @@ from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.world import World, beside_shrine
 
 HIT_PITCH = (0.92, 1.08)  # each blow's sound is pitched at random within this, so no two ring alike
-KIND_ORDER = ["weapon", "shield", "armor", "spell", "consumable", "scroll", "key"]
+KIND_ORDER = ["service", "weapon", "shield", "armor", "spell", "consumable", "repair", "scroll", "key"]
 HAND_BUTTON = {RIGHT: "attack", LEFT: "cast"}  # input actions: left mouse = Primary, right = Secondary
 PAUSE_OPTIONS = ["Resume", "Options", "Controls", "Return to Title", "Quit"]
 # (x, y, width) of each ui.list_menu panel, shared by drawing and mouse hit-testing.
@@ -67,9 +69,19 @@ CONTROLS_ROWS = (H - 2 * CONTROLS_LIST[1] - ROW_TOP - 14) // ROW_H
 PICK_LIST = (24, 60, 190)  # the "which slot?" chooser over Belongings
 SLOTS_LIST = (40, 108, 240)  # the title's save slot chooser
 CONFIRM_LIST = (90, 120, 140)  # "Overwrite Slot N?" over it
+SHRINE_LIST = (110, 84, 100)  # what to do at a shrine
+SHRINE_OPTIONS = ["Rest", "Storage", "Leave"]
+STORE_SIDES = ("carried", "stored")
+# Brannoc's first row: not an item for sale but his mending (scene "repair").
+MEND_ROW = Item(
+    id="mend_gear",
+    name="Mend gear",
+    kind="service",
+    desc="Worn steel ground true, split straps restitched, dented plate beaten back. Paid by the piece.",
+)
 CONFIRM_OPTIONS = ["No", "Yes"]
 # Scenes that count toward a save's play time: the title, pause and its submenus, and the ending don't.
-PLAYED_SCENES = ("play", "dialogue", "menu", "shop", "rest", "dead")
+PLAYED_SCENES = ("play", "dialogue", "menu", "shop", "repair", "rest", "shrine", "storage", "dead")
 TITLE_Y, TITLE_STEP = 140, 14
 TITLE_ORBIT = (25, 24)  # the title camera circles Harrowmere's Silent Bell (its tile)
 # Comparing gear: a better stat green, a worse one red (keyed by compare.better).
@@ -142,6 +154,9 @@ class Game:
         self._pick = None  # item waiting for a hand in the Belongings chooser
         self._pick_index = 0
         self._shop_id = "pell"
+        self._store_side = STORE_SIDES[0]  # the shrine store's focused list
+        self._store_at = dict.fromkeys(STORE_SIDES, 0)  # its highlighted row on each side
+        self._store_top = dict.fromkeys(STORE_SIDES, 0)  # and the first row shown
         self._step_phase = 0.0
         self._dialogue = None
         self._controls_from = None  # the scene Controls or Options returns to
@@ -226,6 +241,9 @@ class Game:
             "dialogue": lambda: self._update_dialogue(),
             "menu": lambda: self._update_menu(dt),
             "shop": lambda: self._update_shop(),
+            "repair": lambda: self._update_repair(),
+            "shrine": lambda: self._update_shrine(),
+            "storage": lambda: self._update_storage(),
             "pause": lambda: self._update_pause(),
             "rest": lambda: self._update_rest(dt),
             "controls": lambda: self._update_controls(),
@@ -235,6 +253,7 @@ class Game:
         }.get(self.scene)
         if handler:
             handler()
+        self._announce_wear()
         if self.scene in PLAYED_SCENES:
             self.player.play_time += dt
 
@@ -688,6 +707,7 @@ class Game:
         targets = self._strike(weapon, a)
         if targets:
             p.land_hit(targets[0])
+            p.wear_weapon()
         if a.pulses > 1:
             self._pulse = [a.pulse_gap, a, weapon, a.pulses - 1]
         if p.swing_art:
@@ -745,7 +765,12 @@ class Game:
                 strength=p.stats.strength,
                 gauge=p.swing_power,
                 defense=4 if target.type.boss and not a.pierce_def else 0,
-                mult=a.damage * back * mult * elements.mult(target.type, element) * self._hands_mult(weapon),
+                mult=a.damage
+                * back
+                * mult
+                * elements.mult(target.type, element)
+                * self._hands_mult(weapon)
+                * self._worn_mult(weapon),
             )
             if back > 1:
                 self.message(f"You strike the {target.name}'s weak spot!")
@@ -756,6 +781,20 @@ class Game:
             if a.pull and target.alive:
                 self._pull(target, a.pull)
         return targets
+
+    def _worn_mult(self, weapon):
+        """A broken weapon lands only `durability.BROKEN_POWER` of its blows."""
+        return durability.BROKEN_POWER if self.player.inventory.broken(weapon.id) else 1.0
+
+    def _announce_wear(self):
+        """Word of gear that just broke or grew badly worn (`Player.wear_news`)."""
+        news, self.player.wear_news = self.player.wear_news, []
+        for item, state in news:
+            if state == "broken":
+                self.sfx("crack", 0.8)
+                self.message(f"Your {{{item.name}}} breaks!")
+            else:
+                self.message(f"Your {{{item.name}}} is badly worn.")
 
     def _pull(self, enemy, dist):
         """The whip's Snare: drags `enemy` up to `dist` metres toward you, stopping short of you."""
@@ -934,6 +973,11 @@ class Game:
                 self.player.equip_spell(item.spell)
             self.sfx("levelup")
             self.message(f"You learned {{{Spells.get(item.spell).name}}}. Ready it from Belongings.")
+        elif item.kind == "repair":
+            if self._mendable():
+                self._open_pick(item)  # ask which piece to mend
+            else:
+                self.message("Nothing needs mending.")
         elif item.kind == "spell":
             self._open_pick(item)  # like a weapon: always ask which slot it goes in
         elif item.kind in ("weapon", "shield", "armor"):
@@ -1024,7 +1068,7 @@ class Game:
         elif k in ("brazier", "bonfire"):
             self.message("Cold ashes. It wants a flame.")
         elif k == "save_statue":
-            self._start_rest()
+            self._open_shrine()
         elif k == "remnant":
             self.gather_remnant()
         elif k == "altar":
@@ -1048,7 +1092,7 @@ class Game:
         elif k == "pickup":
             item = Items.get(prop.props["item"])
             p = self.player
-            kept, spare = loot.claim(p.inventory, p.spells, item.id)
+            kept, spare = loot.claim(p.inventory, stash.known_spells(p), item.id, p.stash)
             if kept:
                 p.inventory.add(kept)
             p.inventory.gold += spare
@@ -1132,7 +1176,7 @@ class Game:
         count = int(prop.props.get("count", "1"))
         gold = int(prop.props.get("gold", "0"))
         p = self.player
-        kept, spare = loot.claim(p.inventory, p.spells, item) if item else (None, 0)
+        kept, spare = loot.claim(p.inventory, stash.known_spells(p), item, p.stash) if item else (None, 0)
         if kept:
             p.inventory.add(kept, count)
         p.inventory.gold += gold + spare
@@ -1210,7 +1254,18 @@ class Game:
         spell = self.player.current_spell()
         return spell.name if spell else None
 
+    def _mendable(self):
+        """Every piece of gear carried or stored that has lost durability."""
+        p = self.player
+        return p.inventory.damaged([*p.inventory.counts, *p.stash])
+
+    def _wear_mark(self, item):
+        inv = self.player.inventory
+        return f"{inv.durability(item.id)}/{inv.max_durability(item.id)}"
+
     def _pick_options(self):
+        if self._pick.kind == "repair":
+            return [(f"{i.name}  {self._wear_mark(i)}", i.id) for i in self._mendable()]
         spell = self.player.current_spell()
         return belongings.pick_options(
             self.player.inventory, self._pick, self._spell_name(), spell.id if spell else None
@@ -1227,11 +1282,30 @@ class Game:
             return
         item, (_, hand) = self._pick, opts[self._pick_index]
         self._pick = None
+        if item.kind == "repair":
+            return self._mend(hand, kit=True)
         if hand is None:
             self.player.inventory.unequip(belongings.held_id(item))
             self.message(f"Unequipped {item.name}.")
         else:
             self._equip_in(item, hand)
+
+    def _mend(self, id_, kit=False):
+        """Mends `id_` whole: with a Mender's Kit (`kit`), or paying Brannoc. False if you can't pay."""
+        inv = self.player.inventory
+        item = Items.get(id_)
+        if kit:
+            inv.remove(durability.KIT)
+        else:
+            cost = durability.repair_cost(item, inv.missing(id_))
+            if inv.gold < cost:
+                self.message("You can't afford that.")
+                return False
+            inv.gold -= cost
+        inv.repair(id_)
+        self.sfx("anvil", 0.7)
+        self.message(f"Your {{{item.name}}} is mended whole.")
+        return True
 
     def _equip_in(self, item, slot):
         """Puts a weapon, shield or spell row into `slot` (a two-hander takes both)."""
@@ -1318,13 +1392,16 @@ class Game:
         self.player.guarding = False
 
     def _shop_stock(self):
+        """What the shop offers: Brannoc's mending first, then whatever you don't own yet (stored
+        things count as owned)."""
         p = self.player
-        out = []
+        out = [MEND_ROW] if self._shop_id in dialogue_data.REPAIRERS else []
+        known = stash.known_spells(p)
         for id_ in dialogue_data.SHOPS[self._shop_id]:
             item = Items.get(id_)
-            if item.kind == "scroll" and (item.spell in p.spells or p.inventory.has(id_)):
+            if item.kind == "scroll" and (item.spell in known or stash.owns(p, id_)):
                 continue
-            if item.kind in ("weapon", "shield", "armor") and p.inventory.has(id_):
+            if item.kind in ("weapon", "shield", "armor") and stash.owns(p, id_):
                 continue
             out.append(item)
         return out
@@ -1342,6 +1419,8 @@ class Game:
         if not (clicked or self._input.pressed("confirm")):
             return
         item = stock[self._menu_index]
+        if item is MEND_ROW:
+            return self._open_repair()
         if self.player.inventory.buy(item.id):
             self.sfx("pickup")
             self.message(f"Bought {{{item.name}}}.")
@@ -1349,6 +1428,135 @@ class Game:
                 self.message(f"You will need level {item.level} to use it.")
         else:
             self.message("You can't afford that.")
+
+    # --- the smith's mending ------------------------------------------------------
+
+    def _open_repair(self):
+        if not self._mendable():
+            return self.message("Nothing needs mending.")
+        self.scene = "repair"
+        self._menu_index = 0
+        self._menu_top = 0
+
+    def _leave_repair(self):
+        self.scene = "shop"
+        self._menu_index = 0
+        self._menu_top = 0
+
+    def _update_repair(self):
+        worn = self._mendable()
+        if self._back() or not worn:
+            return self._leave_repair()
+        self._menu_nav(len(worn))
+        self._menu_index = clamp(self._menu_index, 0, len(worn) - 1)
+        self._menu_top = scroll_into_view(self._menu_top, self._menu_index, len(worn))
+        clicked = self._menu_pointer(
+            lambda px, py: list_row_at(*SHOP_LIST, len(worn), px, py, self._menu_top, LIST_ROWS)
+        )
+        if clicked or self._input.pressed("confirm"):
+            self._mend(worn[self._menu_index].id)
+
+    def _repair_cost(self, item):
+        return durability.repair_cost(item, self.player.inventory.missing(item.id))
+
+    # --- shrine and its store --------------------------------------------------------
+
+    def _open_shrine(self):
+        """Kneel at the shrine: rest, open the store, or leave."""
+        self.scene = "shrine"
+        self._menu_index = 0
+        self._mouse_look(False)
+        self.player.guarding = False
+        self.player.charge_t = 0.0
+        self._held = dict.fromkeys(self._held, False)
+
+    def _update_shrine(self):
+        if self._back():
+            return self._enter_play()
+        self._menu_nav(len(SHRINE_OPTIONS))
+        clicked = self._menu_pointer(lambda px, py: list_row_at(*SHRINE_LIST, len(SHRINE_OPTIONS), px, py))
+        if not (clicked or self._input.pressed("confirm")):
+            return
+        choice = SHRINE_OPTIONS[self._menu_index]
+        if choice == "Rest":
+            self._mouse_look(True)
+            self._start_rest()
+        elif choice == "Storage":
+            self._open_storage()
+        else:
+            self._enter_play()
+
+    def _open_storage(self):
+        self.scene = "storage"
+        self._store_side = STORE_SIDES[0]
+        self._store_at = dict.fromkeys(STORE_SIDES, 0)
+        self._store_top = dict.fromkeys(STORE_SIDES, 0)
+
+    @staticmethod
+    def _spell_rows(ids):
+        return [
+            Item(id=f"spell_{s.id}", name=s.name, kind="spell", spell=s.id, desc=s.desc)
+            for s in (Spells.get(i) for i in ids)
+        ]
+
+    def _store_rows(self, side):
+        """The store's lists: what you carry that may be stored, or what waits in the store."""
+        p = self.player
+        if side == "carried":
+            items = [i for i in p.inventory.items() if stash.can_store(i)] + self._spell_rows(p.spells)
+        else:
+            items = [Items.get(i) for i in p.stash] + self._spell_rows(p.stashed_spells)
+        return sorted(items, key=lambda i: (KIND_ORDER.index(i.kind), i.name))
+
+    def _store_count(self, side, item):
+        if item.kind == "spell":
+            return 1
+        return (
+            self.player.inventory.count(item.id) if side == "carried" else self.player.stash.get(item.id, 0)
+        )
+
+    def _store_list(self, side):
+        return STORE_LIST if side == "carried" else STASH_LIST
+
+    def _update_storage(self):
+        if self._back():
+            self.scene = "shrine"
+            self._menu_index = SHRINE_OPTIONS.index("Storage")
+            return
+        for action, side in (("tab_prev", "carried"), ("tab_next", "stored")):
+            if self._input.pressed(action):
+                self._store_side = side
+        ptr = self._input.pointer()
+        clicked = False
+        if ptr:  # the pointer picks a side and a row
+            px, py, moved = ptr
+            for side in STORE_SIDES:
+                rows = self._store_rows(side)
+                i = list_row_at(*self._store_list(side), len(rows), px, py, self._store_top[side], LIST_ROWS)
+                if i is not None and (moved or self._input.pressed("click")):
+                    self._store_side = side
+                    self._store_at[side] = i
+                    clicked = bool(self._input.pressed("click"))
+        side = self._store_side
+        rows = self._store_rows(side)
+        if not rows:
+            return
+        self._store_at[side] = clamp(self._step_index(self._store_at[side], len(rows)), 0, len(rows) - 1)
+        self._store_top[side] = scroll_into_view(self._store_top[side], self._store_at[side], len(rows))
+        if clicked or self._input.pressed("confirm"):
+            self._store_move(side, rows[self._store_at[side]])
+
+    def _store_move(self, side, item):
+        """Moves one of `item` across: into the store from your pack, or back."""
+        p = self.player
+        if item.kind == "spell":
+            moved = (stash.deposit_spell if side == "carried" else stash.withdraw_spell)(p, item.spell)
+        else:
+            moved = (stash.deposit if side == "carried" else stash.withdraw)(p, item.id)
+        if not moved:
+            return
+        self.sfx("pickup", 0.4)
+        self.message(f"Stored {{{item.name}}}." if side == "carried" else f"Took {{{item.name}}}.")
 
     # --- pause / death / ending ----------------------------------------------------
 
@@ -1510,7 +1718,7 @@ class Game:
     # --- rendering ---------------------------------------------------------------
 
     def render(self):
-        if self.scene in ("menu", "shop"):
+        if self.scene in ("menu", "shop", "repair", "storage"):
             self._render_preview(self._selected_item())
         pr.begin_texture_mode(self._target)
         meta = self.world.meta
@@ -1564,7 +1772,7 @@ class Game:
         self.world.draw(self._rig, gpu, fog_range, dark, veil)
         pr.end_mode_3d()
 
-        if self.scene not in ("play", "dialogue", "menu", "shop", "rest") or not self.player.alive:
+        if self.scene not in ("play", "dialogue", "menu", "shop", "rest", "shrine") or not self.player.alive:
             return
         p = self.player
         pr.begin_mode_3d(self._view_camera)
@@ -1580,8 +1788,14 @@ class Game:
         pr.end_mode_3d()
 
     def _selected_item(self):
-        """The highlighted row of the inventory or shop list, or None."""
-        items = self._menu_items() if self.scene == "menu" else self._shop_stock()
+        """The highlighted row of the inventory, shop, mending or store list, or None."""
+        if self.scene == "storage":
+            items, i = self._store_rows(self._store_side), self._store_at[self._store_side]
+            return items[i] if i < len(items) else None
+        if self.scene == "repair":
+            items = self._mendable()
+        else:
+            items = self._menu_items() if self.scene == "menu" else self._shop_stock()
         return items[self._menu_index] if self._menu_index < len(items) else None
 
     def _render_preview(self, item):
@@ -1642,6 +1856,14 @@ class Game:
             self._draw_menu()
         elif s == "shop":
             self._draw_shop()
+        elif s == "repair":
+            self._draw_repair()
+        elif s == "shrine":
+            ui.hud(self)
+            pr.draw_rectangle(0, 0, W, H, ui.color(0, 0, 0, 90))
+            ui.list_menu("Shrine", *SHRINE_LIST, [(o,) for o in SHRINE_OPTIONS], self._menu_index)
+        elif s == "storage":
+            self._draw_storage()
         elif s == "rest":
             ui.hud(self)
             ui.rest_fog(self._rest, self._time)
@@ -1690,14 +1912,15 @@ class Game:
             self._item_detail(item) if item else "",
             "A/D: tab   1/2: Primary/Secondary   Enter: choose",
         )
-        for text, _ in self._weight_mark(item) if item else ():
-            ui.text(text, self._item_right() - ui.measure(text), self._item_name_y(), ui.DIM)
+        self._draw_marks(self._gear_marks(item) if item else [])
         if self._pick:
             x, y, w = PICK_LIST
             rows = [(label,) for label, _ in self._pick_options()]
-            ui.list_menu(f"Equip {self._pick.name}", *PICK_LIST, rows, self._pick_index)
+            mending = self._pick.kind == "repair"
+            title = "Mend which?" if mending else f"Equip {self._pick.name}"
+            ui.list_menu(title, *PICK_LIST, rows, self._pick_index)
             for i, (_, slot) in enumerate(self._pick_options()):
-                if slot is not None:
+                if slot is not None and not mending:
                     ui.mini_mouse(x + w - 11, y + ROW_TOP + i * ROW_H, belongings.SLOT_BUTTONS[slot])
 
     def _changes(self, item):
@@ -1707,6 +1930,8 @@ class Game:
         spell = self.player.current_spell()
         spell_id = spell.id if spell else None
         kw = {"magic": self.player.stats.magic, "spell": spell_id}
+        if self._pick and self._pick.kind == "repair":
+            return {}
         if self._pick:
             opts = self._pick_options()
             _, slot = opts[min(self._pick_index, len(opts) - 1)]
@@ -1729,7 +1954,7 @@ class Game:
 
     def _menu_right(self, item):
         """A Belongings row's right column: how many, a spell's MP cost, or the level it needs."""
-        if item.kind == "consumable":
+        if item.kind in ("consumable", "repair"):
             return f"x{self.player.inventory.count(item.id)}"
         if item.kind == "spell":
             return f"{Spells.get(item.spell).cost} MP"
@@ -1812,6 +2037,22 @@ class Game:
 
     def _level_mark(self, item):
         return f"Lv{item.level}" if item.level > 1 else None
+
+    def _gear_marks(self, item):
+        """[(text, good)] beside an item's name: its durability (red once badly worn) and its weight."""
+        inv = self.player.inventory
+        marks = []
+        if inv.max_durability(item.id) is not None:
+            marks.append((f"Dur {self._wear_mark(item)}", -1 if inv.worn(item.id) else 0))
+        return marks + self._weight_mark(item)
+
+    def _draw_marks(self, marks):
+        """Marks along the item panel's name line, right-aligned, the last one rightmost."""
+        x = self._item_right()
+        for text, good in reversed(marks):
+            x -= ui.measure(text)
+            ui.text(text, x, self._item_name_y(), COMPARE_COLORS[good] if good else ui.DIM)
+            x -= 8
 
     @staticmethod
     def _weight_mark(item):
@@ -1900,6 +2141,11 @@ class Game:
             return f"Scroll   {spell.name}   {spell.cost} MP"
         if item.kind == "spell":
             return f"Spell   {Spells.get(item.spell).cost} MP"
+        if item.kind == "repair":
+            return f"Repair   x{self.player.inventory.count(item.id)}"
+        if item.kind == "service":
+            n = len(self._mendable())
+            return f"{n} piece{'s' if n != 1 else ''} to mend" if n else "Nothing needs mending"
         return "Key item"
 
     def _draw_shop(self):
@@ -1908,7 +2154,9 @@ class Game:
         gold = self.player.inventory.gold
         level = self.player.stats.level
         rows = [
-            (i.name, f"{f'Lv{i.level}  ' if i.level > level else ''}{i.price}g", i.price > gold)
+            (i.name, None, not self._mendable())
+            if i is MEND_ROW
+            else (i.name, f"{f'Lv{i.level}  ' if i.level > level else ''}{i.price}g", i.price > gold)
             for i in stock
         ]
         title = f"{dialogue_data.SHOP_NAMES[self._shop_id]}  (you have {gold}g)"
@@ -1922,7 +2170,14 @@ class Game:
             height=COLUMN_H,
         )
         item = self._selected_item()
-        detail = f"{self._item_detail(item)}   {item.price}g" if item else ""
+        priced = item and item is not MEND_ROW
+        detail = (
+            f"{self._item_detail(item)}   {item.price}g"
+            if priced
+            else self._item_detail(item)
+            if item
+            else ""
+        )
         self._draw_item_panel(item, detail, "Enter/Click: buy   Esc/R-click: leave")
         if item:  # what wearing it would change, beside its name
             x = self._item_right()
@@ -1931,6 +2186,56 @@ class Game:
                 x -= ui.measure(text)
                 ui.text(text, x, self._item_name_y(), COMPARE_COLORS[good] if good else ui.DIM)
                 x -= 8
+
+    def _draw_repair(self):
+        pr.draw_rectangle(0, 0, W, H, ui.color(0, 0, 0, 120))
+        worn = self._mendable()
+        gold = self.player.inventory.gold
+        rows = []
+        for i in worn:
+            cost = self._repair_cost(i)
+            rows.append((i.name, f"{self._wear_mark(i)}   {cost}g", cost > gold))
+        ui.list_menu(
+            f"Mend gear  (you have {gold}g)",
+            *SHOP_LIST,
+            rows,
+            self._menu_index,
+            first=self._menu_top,
+            visible=LIST_ROWS,
+            height=COLUMN_H,
+        )
+        item = self._selected_item()
+        detail = f"{self._item_detail(item)}   {self._repair_cost(item)}g" if item else ""
+        self._draw_item_panel(item, detail, "Enter/Click: mend   Esc/R-click: back")
+        if item:
+            self._draw_marks(self._gear_marks(item))
+
+    def _draw_storage(self):
+        pr.draw_rectangle(0, 0, W, H, ui.color(0, 0, 0, 120))
+        for side, title in zip(STORE_SIDES, ("Carried", "Stored"), strict=True):
+            items = self._store_rows(side)
+            rows = []
+            for i in items:
+                n = self._store_count(side, i)
+                mark = self._equipped_mark(i) if side == "carried" else ""
+                rows.append((f"{i.name}{mark}", f"x{n}" if n > 1 else None))
+            on = side == self._store_side
+            ui.list_menu(
+                title,
+                *self._store_list(side),
+                rows,
+                self._store_at[side] if on else -1,
+                first=self._store_top[side],
+                visible=LIST_ROWS,
+                height=COLUMN_H,
+            )
+        item = self._selected_item()
+        verb = "store" if self._store_side == "carried" else "take"
+        self._draw_item_panel(
+            item, self._item_detail(item) if item else "", f"A/D: side   Enter/Click: {verb}   Esc: back"
+        )
+        if item:
+            self._draw_marks(self._gear_marks(item))
 
     def _draw_dead(self):
         pr.draw_rectangle(0, 0, W, H, ui.color(40, 0, 0, rround(min(self._dead_t * 120, 200))))

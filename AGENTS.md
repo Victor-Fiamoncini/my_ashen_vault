@@ -125,6 +125,8 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/world/doors.py` | One-way doors (`door from=`): which side lifts the bar |
 | `src/ashen_vault/world/arena.py` | Boss arenas behind a `door boss=<dead_flag>`: the flood-filled lair, the fight that seals the great door, and the fog (`fog:<map>:<tx>,<tz>`) left after you die in there |
 | `src/ashen_vault/player/burden.py` | Equipment load: each item's `mass` against `capacity(STR)` gives a tier (Light / Medium / Heavy / Overloaded) scaling walk speed, ST refill and every ST cost |
+| `src/ashen_vault/player/durability.py` | Gear durability: each weapon, shield and armor piece's maximum (`max_durability`, by weight, stability or slot; `Item.durability` overrides it), how a landed swing, a block and a foe's blow wear it, what a broken piece loses (`BROKEN_POWER`, `effective_shield`, no DEF) and Brannoc's `repair_cost`. What is left lives in `Inventory.wear` (per item id, absent = whole); `Player.wear` queues `wear_news` that `Game._announce_wear` turns into messages |
+| `src/ashen_vault/player/stash.py` | The shrine store: deposit and withdraw items and spells, what may be stored, and what still counts as owned |
 | `src/ashen_vault/player/remnant.py` | The gold you drop when you die (`Player.remnant`, saved with the player): a heap of your ashes (`cemetery_models.remnant`) at `World.death_spot` (the last solid ground if you died down a chasm, in water or lava); walk over it or interact to gather it, die again first and it is lost |
 | `src/ashen_vault/ui/compare.py` | ATK / DEF / Block / SPL / Load now and after equipping (or taking off) an item or spell: the Belongings stats panel, its slot chooser and the shop show it before you choose |
 | `src/ashen_vault/render/prop_bake.py` | Bakes static props (`world.STATIC_PROPS`) once into lit world-space batches, grouped by 8x8-tile chunk and texture and culled per chunk (`World._draw_baked`); the shader draws them with `isModel` -1, doubling their halved vertex colours and lighting them with the light baked into their normals (`Batch.light`) plus your torch, as it lights a live model. Kindling a fire bakes the chunks round it again |
@@ -353,8 +355,13 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 - `game.message()` text may wrap spans in braces, e.g. `f"Obtained {{{item.name}}}."`: the HUD draws
   them in the highlight colour (`util.highlight_runs`). `tests/test_ui_logic.py` checks the small font
   has a glyph for every character used in game messages and names.
-- Praying at a shrine plays the `rest` scene; it heals, respawns normal enemies and saves while the fog
-  covers the screen. Dying keeps everything the player carries but its gold, and every flag: the gold is
+- Interacting with a shrine opens the `shrine` scene (Rest / Storage / Leave; `SHRINE_OPTIONS`), so a
+  smoke run rests with `--script "interact confirm"`. Rest plays the `rest` scene; it heals, respawns
+  normal enemies and saves while the fog covers the screen (it never mends gear). Storage is the shrine
+  store (`player/stash.py`, scene `storage`): `Player.stash` and `Player.stashed_spells`, shared by every
+  shrine, saved with the player. Keys and sigils can't be stored; a stored spell leaves `Player.spells`
+  until taken back; shops (`Game._shop_stock`) and finds (`loot.claim`'s `stored`) count stored things as
+  owned (`stash.owns`, `stash.known_spells`). Dying keeps everything the player carries but its gold, and every flag: the gold is
   left in a heap of your ashes (`player/remnant.py`, `Game._drop_remnant`) to gather on your next life,
   lost if you die again first; you wake at the last shrine (`Game._wake_at_shrine`) and only normal
   enemies (and a living boss's HP) come back.
@@ -386,6 +393,15 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   unless gloves add power), while a shield's turns about its grip to sit on its forearm. Either way draw the arm to `models.hand_wrist` and pass its turn to `fist`); a new
   shield needs its strap in `models.SHIELD_GRIPS`, where the fist closes (drawn after the shield, so a
   raised shield shows the hand).
+- Weapons, shields and armor wear (`player/durability.py`): a swing that connects wears the weapon once
+  (`Game._resolve_swing`, not the pulses after it), a block wears the shield by what it stopped
+  (`Player.take_blow`, `Block.stopped`), a foe's blow that lands wears each armor piece
+  (`World.strike_player`); traps, falls and lava wear nothing. Broken gear stays usable but weak, and a
+  broken weapon looses no art. The shield's mouse button shows its durability, not ST (`hud.mouse_button`);
+  broken gear carries `hud.broken_mark`. Belongings shows `Dur n/max` by the item's name and `(Broken)` in
+  Equipped. Brannoc (`dialogue.REPAIRERS`) opens his shop with `MEND_ROW`, leading to the `repair` scene;
+  the `menders_kit` (kind `repair`, Items tab, not a quick item) mends one piece through the slot
+  chooser. Kits are sold, gifted, in a few chests and in breakables (`loot.KIT_CHANCE`).
 - Weapons, shields and armor carry a `mass` (kg). Their total sets the player's load tier
   (`player/burden.py`, `Player.burden`): heavier gear walks slower, refills ST slower and pays more ST
   for attacks, sprinting and blocking. New gear needs a `mass` (`tests/test_burden.py`).

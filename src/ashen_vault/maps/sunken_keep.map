@@ -71,7 +71,7 @@ c = chest item=cell_key on=-
 s = mire_slime on=-
 v = lever id=north_lever
 q = chest item=scroll_ward gold=20
-r = chest item=red_tonic count=2
+r = chest item=menders_kit
 a = bone_walker
 t = torch radius=9
 C = door key=cell_key

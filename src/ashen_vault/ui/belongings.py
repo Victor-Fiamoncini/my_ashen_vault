@@ -13,7 +13,7 @@ SLOT_BUTTONS = {RIGHT: "left", LEFT: "right"}  # the mouse button each slot answ
 # teach them share a tab; keys and boss sigils are the unique items).
 TABS = ("Items", "Weapons", "Armor", "Spells", "Unique")
 TAB_KINDS = {
-    "Items": ("consumable",),
+    "Items": ("consumable", "repair"),
     "Weapons": ("weapon", "shield"),
     "Armor": ("armor",),
     "Spells": ("spell", "scroll"),
@@ -78,7 +78,7 @@ def occupant(inv, slot, spell_name):
         return spell_name or "Spell"
     if held is None:
         return Items.FISTS.name if slot in (RIGHT, LEFT) else "-"
-    return Items.get(held).name
+    return Items.get(held).name + (" (Broken)" if inv.broken(held) else "")
 
 
 def equipped_rows(inv, spell_name):

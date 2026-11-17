@@ -5,7 +5,7 @@ Pure logic, no raylib, shared by the Belongings stats panel and the shop.
 
 Each stat comes as (now, then); `better` says which way is an improvement (a lighter load is)."""
 
-from ashen_vault.player import burden
+from ashen_vault.player import burden, durability
 from ashen_vault.player.inventory import SPELL, Inventory
 from ashen_vault.player.spells import Spells
 from ashen_vault.util import rround
@@ -38,10 +38,14 @@ def numbers(inv, magic=0, spell=None):
     a slot holds it) and Load (kg) of what `inv` has equipped now."""
     shield = inv.shield_hand()
     weapon, gloves = inv.weapon_item(), inv.hands_item()
+    worn = durability.BROKEN_POWER if inv.broken(weapon.id) else 1.0
+    guard = inv.hand_item(shield) if shield else None
+    if guard:
+        guard = durability.effective_shield(guard, inv.broken(guard.id))
     return {
-        "ATK": max(rround(swing_power(weapon, gloves) * strike_mult(weapon, gloves)), 1),
+        "ATK": max(rround(swing_power(weapon, gloves) * strike_mult(weapon, gloves) * worn), 1),
         "DEF": inv.defense,
-        "Block": rround(inv.hand_item(shield).guard * 100) if shield else 0,
+        "Block": rround(guard.guard * 100) if guard else 0,
         "SPL": Spells.power(spell, magic) if spell and inv.equipped(SPELL) else 0,
         "Load": burden.load(inv.slots),
     }

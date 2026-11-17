@@ -24,6 +24,7 @@ class Item:
     element: str | None = None  # weapons: "lightning" or "fire" (see world/elements.py)
     weight: str | None = None  # weapons: "light", "medium", "heavy" or "great" (see weapons.WEIGHTS)
     mass: float = 0.0  # kilograms it adds to your load when equipped (see player/burden.py)
+    durability: int | None = None  # gear: overrides its maximum (see player/durability.py)
 
 
 class Items:
@@ -473,6 +474,13 @@ class Items:
                 price=25,
                 mana=15,
                 desc="Glowing moss from the cliffs. Restores 15 MP.",
+            ),
+            Item(
+                id="menders_kit",
+                name="Mender's Kit",
+                kind="repair",
+                price=150,
+                desc="Whetstone, rivets and waxed thread. Mends one piece of gear whole.",
             ),
             Item(
                 id="scroll_flame",

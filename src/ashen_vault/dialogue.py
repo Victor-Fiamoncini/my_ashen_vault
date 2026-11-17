@@ -1,6 +1,7 @@
 """NPC conversations. Each entry returns (speaker, lines, after) where `after`
 is an optional callable run with the game when the conversation closes."""
 
+from ashen_vault.player import stash
 from ashen_vault.world import loot, relics
 
 SHOPS = {
@@ -8,6 +9,7 @@ SHOPS = {
     "pell": ["scroll_mend", "leather_whip", "ashblade", "thornlash"],
     # Brannoc forges the rest: honest steel, shields and armour.
     "brannoc": [
+        "menders_kit",
         "leather_gloves",
         "oak_cudgel",
         "buckler",
@@ -36,6 +38,7 @@ SHOP_NAMES = {
     "tamsin": "Tamsin's Remedies",
     "corvane": "Corvane's Blades",
 }
+REPAIRERS = {"brannoc"}  # smiths whose shop opens with a "Mend gear" row (`Game` scene "repair")
 CORVANE_LEVEL = 5  # the swordsmith won't speak to anyone greener than this
 
 
@@ -312,13 +315,14 @@ def corvane(level, flags):
 GIFTS = {
     "brannoc": (
         "Brannoc",
-        {"hatchet": 1},
+        {"hatchet": 1, "menders_kit": 2},
         [
             "Mind the sparks. Brannoc, smith of Harrowmere, for my sins.",
             "You're going down that well with a rusted sword? No. Take this hatchet. It bites.",
-            "When you've coin, come back. Everything I sell, I forged on this anvil.",
+            "And two mender's kits. Steel dulls, straps tear, plate splits. Mend it before it fails you.",
+            "When you've coin, come back. Everything I sell, I forged on this anvil, and I mend what I sell.",
         ],
-        ["Steel doesn't sharpen itself. What'll it be?"],
+        ["Steel doesn't sharpen itself. What'll it be? A blade, or one mended?"],
         "brannoc",
     ),
     "garrick": (
@@ -385,7 +389,7 @@ def gift_giver(id_, flags):
         g.flags.add(flag)
         spare = 0
         for item, n in items.items():
-            kept, gold = loot.claim(g.player.inventory, g.player.spells, item)
+            kept, gold = loot.claim(g.player.inventory, stash.known_spells(g.player), item, g.player.stash)
             if kept:
                 g.player.inventory.add(kept, n)
             spare += gold

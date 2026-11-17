@@ -17,7 +17,12 @@ def test_mostly_small_gold_or_nothing_potions_rare():
     assert 0 < potions < len(rolls) * 0.25
     assert len(gold) > len(rolls) * 0.3
     assert all(g in loot.GOLD for g in gold)
-    assert {item for _, item in rolls if item} <= set(loot.POTIONS)
+    assert {item for _, item in rolls if item} <= {*loot.POTIONS, loot.KIT}
+
+
+def test_a_few_breakables_hold_a_menders_kit():
+    kits = sum(1 for _, item in (loot.roll(k) for k in keys()) if item == loot.KIT)
+    assert 0 < kits < len(keys()) * 0.08
 
 
 def test_map_props_override_the_roll():
@@ -50,7 +55,7 @@ def test_no_spell_gear_or_key_can_be_found_twice():
     from ashen_vault.player.items import Items
 
     counts = Counter(_free_sources())
-    twice = {i: n for i, n in counts.items() if n > 1 and Items.get(i).kind != "consumable"}
+    twice = {i: n for i, n in counts.items() if n > 1 and Items.get(i).kind not in ("consumable", "repair")}
     assert not twice
 
 

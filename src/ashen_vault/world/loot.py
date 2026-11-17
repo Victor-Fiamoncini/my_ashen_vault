@@ -9,6 +9,8 @@ POTION_CHANCE = 12  # percent
 GOLD_CHANCE = 50  # percent, after the potion roll
 GOLD = range(2, 10)
 POTIONS = ("red_tonic", "blue_moss")
+KIT_CHANCE = 3  # percent, rolled apart from the rest: a Mender's Kit (player/durability.py)
+KIT = "menders_kit"
 
 
 def roll(key, props=None):
@@ -17,6 +19,8 @@ def roll(key, props=None):
     if "item" in props or "gold" in props:
         return int(props.get("gold") or 0), props.get("item")
     h = zlib.crc32(key.encode())
+    if (h >> 20) % 100 < KIT_CHANCE:
+        return 0, KIT
     pick = h % 100
     if pick < POTION_CHANCE:
         return 0, POTIONS[(h >> 8) % len(POTIONS)]
@@ -29,22 +33,24 @@ GEAR = ("weapon", "shield", "armor")
 SPARE_SCROLL_GOLD = 40  # what a scroll you have already learned fetches (scrolls carry no price)
 
 
-def already_owned(inv, spells, item_id):
-    """True if `item_id` is gear (weapon, shield, armor) you already carry, or a scroll whose spell
-    you know or whose copy you carry: something a second copy of would only clutter Belongings."""
+def already_owned(inv, spells, item_id, stored=()):
+    """True if `item_id` is gear (weapon, shield, armor) you already carry or keep in the shrine store
+    (`stored`), or a scroll whose spell you know or whose copy you have: something a second copy of
+    would only clutter Belongings. `spells` should include stored spells (`stash.known_spells`)."""
     item = Items.get(item_id)
+    have = inv.has(item_id) or item_id in stored
     if item.kind in GEAR:
-        return inv.has(item_id)
+        return have
     if item.kind == "scroll":
-        return item.spell in spells or inv.has(item_id)
+        return item.spell in spells or have
     return False
 
 
-def claim(inv, spells, item_id):
+def claim(inv, spells, item_id, stored=()):
     """(item to add or None, gold instead) for finding `item_id`: a spare copy of something you already
     own is worth half its price in gold (a learned scroll a flat SPARE_SCROLL_GOLD) rather than a
     duplicate in your pack."""
-    if not already_owned(inv, spells, item_id):
+    if not already_owned(inv, spells, item_id, stored):
         return item_id, 0
     item = Items.get(item_id)
     return None, (SPARE_SCROLL_GOLD if item.kind == "scroll" else item.price // 2)

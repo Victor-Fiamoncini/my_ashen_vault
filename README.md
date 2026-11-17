@@ -195,6 +195,10 @@ FromSoftware, Inc.
   the Slagbreaker maul sets what it strikes alight.
 - **Stamina**: sprinting, swinging and blocking drain a green stamina bar. Run it dry and you are
   winded until it recovers.
+- **Durability**: weapons wear as they strike, shields as they block (the shield's button shows what
+  is left of it), armor as blows land on you. Broken gear still works, only badly: a broken blade bites
+  for a fraction, a broken shield leaks, broken armor guards nothing. Brannoc the smith mends it for
+  gold, and a Mender's Kit mends one piece anywhere.
 - **Five hand-built areas**: the Cemetery of Ashes where you wake, the town of Harrowmere, the Sunken Keep below its well, the
   Verdant Hollow at the end of the green trail and the Cinderhold up the north road (its keep a map of
   its own), with locked doors,
@@ -238,9 +242,10 @@ FromSoftware, Inc.
   the shrines once you reach their far side.
 - **Everything procedural**: textures, low-poly models and sound effects are all generated at startup.
   The game itself ships no image or audio files.
-- **Save shrines**: pray at a shrine, a stone post with a flame burning in an iron dish, to heal and
-  record your journey. The fallen rise again when
-  you do; only bosses and mimics stay dead.
+- **Save shrines**: kneel at a shrine, a stone post with a flame burning in an iron dish, and rest to
+  heal and record your journey. The fallen rise again when
+  you do; only bosses and mimics stay dead. Every shrine also opens the same store: put away items,
+  weapons, armor and even spells you know, and take them back at any shrine.
 
 ## Installing
 

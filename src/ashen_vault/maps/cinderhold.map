@@ -186,7 +186,7 @@ X = chest item=scroll_thunder gold=40 model=iron
 M = mimic model=iron
 N = anvil
 Y = chest item=forge_key gold=50 model=iron
-U = chest item=red_tonic count=3 gold=90 model=iron
+U = chest item=menders_kit count=2 gold=90 model=iron
 D = lift top=0 locked on=|
 // The ashworks: a gauntlet of flame jets, and a forge with a false wall.
 I = chest item=blue_moss count=3 gold=120 model=iron

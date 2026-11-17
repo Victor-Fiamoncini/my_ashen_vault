@@ -2,6 +2,7 @@ import json
 import os
 
 from ashen_vault.player.inventory import Inventory
+from ashen_vault.player.items import Items
 from ashen_vault.player.player import Player
 from ashen_vault.player.stats import Stats
 from ashen_vault.save.slots import SLOTS, SlotSummary, slot_path
@@ -78,6 +79,12 @@ class SaveSystem:
             player.quick = p.get("quick", player.quick)
             player.remnant = p.get("remnant")
             player.play_time = float(p.get("play_time", 0.0))
+            renamed = Items.RENAMED.get
+            for id_, n in (p.get("stash") or {}).items():  # the shrine store (saves before it have none)
+                key = renamed(id_, id_)
+                if key in Items.ALL:
+                    player.stash[key] = player.stash.get(key, 0) + int(n)
+            player.stashed_spells = list(p.get("stashed_spells") or [])
             if p.get("spell"):
                 player.equip_spell(p["spell"])
             return data["map"], player, set(data["flags"])

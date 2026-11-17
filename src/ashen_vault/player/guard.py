@@ -20,6 +20,7 @@ class Block:
     taken: int  # damage that still lands
     stamina: float  # ST the block costs
     broken: bool  # the guard gave way
+    stopped: float = 0.0  # damage the shield itself took (wears it, player/durability.py)
 
     @property
     def blocked(self):
@@ -43,7 +44,8 @@ def block(dmg, cos, shield, stamina):
     stopped = dmg * shield.guard
     cost = stopped / shield.stability
     if cost <= stamina:
-        return Block(rround(dmg - stopped), cost, False)
+        return Block(rround(dmg - stopped), cost, False, stopped)
     # Not enough ST: the shield takes what ST can pay for and the rest comes through.
     held = stamina * shield.stability
-    return Block(max(rround(dmg - held), 1), stamina, True)
+    taken = max(rround(dmg - held), 1)
+    return Block(taken, stamina, True, dmg - taken)

@@ -5793,6 +5793,8 @@ def item(r, id_, t):
         ):
             r.part("sphere", x, y, z, d, d * 0.8, d, (60, 140, 190), glow=True)
         r.part("cyl", 0, -0.32, 0, 0.6, 0.06, 0.6, (70, 60, 44))
+    elif id_ in ("menders_kit", "mend_gear"):
+        menders_kit(r)
     elif Items.ALL.get(id_) and Items.get(id_).kind == "scroll":
         with r.at(0, 0, 0, s=1.2):
             scroll(r, id_, t)
@@ -5804,6 +5806,21 @@ def item(r, id_, t):
         spell_orb(r, id_.removeprefix("spell_"), t)
     else:
         r.part("cube", 0, 0, 0, 0.5, 0.5, 0.5, (130, 100, 70))
+
+
+def menders_kit(r):
+    """A Mender's Kit: a leather roll tied with cord, a grey whetstone and an awl laid across it, and a
+    few rivets spilled beside them."""
+    leather, cord = (112, 70, 40), (190, 170, 120)
+    r.part("cyl", 0, -0.1, 0, 0.32, 0.7, 0.32, leather, rz=math.pi / 2)  # the rolled leather
+    r.part("cyl", 0.36, -0.1, 0, 0.3, 0.02, 0.3, _dim(leather, 0.7), rz=math.pi / 2)  # its rolled end
+    for x in (-0.2, 0.2):  # the cords that tie it
+        r.part("cyl", x, -0.1, 0, 0.34, 0.05, 0.34, cord, rz=math.pi / 2)
+    r.part("cube", -0.05, 0.13, 0.02, 0.5, 0.1, 0.16, (120, 124, 128), ry=0.3)  # the whetstone
+    r.part("cube", 0.08, 0.2, -0.04, 0.42, 0.03, 0.03, (170, 170, 176), ry=-0.6)  # the awl's spike
+    r.part("cyl", -0.14, 0.2, 0.08, 0.06, 0.14, 0.06, (90, 60, 34), rz=math.pi / 2, ry=-0.6)  # its haft
+    for x, z in ((0.3, 0.3), (0.38, 0.22), (0.24, 0.36)):  # spilled rivets
+        r.part("sphere", x, -0.24, z, 0.06, 0.04, 0.06, (150, 140, 120))
 
 
 PARCHMENT = (214, 198, 160)

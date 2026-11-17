@@ -208,7 +208,9 @@ def test_pells_old_stock_is_split_between_the_smith_the_herbalist_and_pell():
     town = ("pell", "brannoc", "tamsin")
     for id_ in OLD_PELL_STOCK:
         assert sum(id_ in dialogue.SHOPS[s] for s in town) == 1, id_
-    assert all(Items.get(i).kind in ("weapon", "shield", "armor") for i in dialogue.SHOPS["brannoc"])
+    assert all(
+        Items.get(i).kind in ("weapon", "shield", "armor", "repair") for i in dialogue.SHOPS["brannoc"]
+    )
     assert set(dialogue.SHOPS["tamsin"]) == {"red_tonic", "blue_moss"}
 
 

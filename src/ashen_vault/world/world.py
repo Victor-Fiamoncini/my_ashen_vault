@@ -1023,6 +1023,7 @@ class World:
         if block is not None and block.blocked:
             self.game.blocked(block)
         if taken > 0:
+            self.player.wear_armor()  # a foe's blow wears what you wear; traps and falls don't
             self.game.hurt_player(taken, source)
         return taken
 
