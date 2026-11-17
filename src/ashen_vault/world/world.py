@@ -365,6 +365,8 @@ FROG_CROAK = 1.2  # seconds the stone frog's throat swells after a pat
 FROG_GOLD = 33  # coins the frog coughs up the first time it is patted
 # Turns that put a drawbridge model's hinge (its local -X edge) on the named side of its tile.
 BRIDGE_YAW = {"w": 0.0, "e": math.pi, "n": -math.pi / 2, "s": math.pi / 2}
+FOG_WALK_SPEED = 1.6  # m/s: you push through a boss's fog at a slow, steady walk (World.cross_fog)
+HIT_RED = (2.2, 0.6, 0.5)  # the light a foe glows in the moment a blow lands (Enemy.flashing)
 STATUS_TINT = {"poison": (0.45, 1.1, 0.3), "burn": (1.5, 0.7, 0.25)}
 KINDLE_REACH = 1.2  # a flame bolt passing this close to a cold brazier sets it alight
 SLAG_GOUTS = 8  # tongues of molten flame Slag Burst throws out around you
@@ -464,6 +466,7 @@ class World:
         # Thorn floors grow spiked plants; each one's spikes rise (0..1) when stepped in.
         self._thorns = {(tx, tz): 0.0 for tx, tz, tile in self.map.each_tile() if tile.hurt}
         self.arenas = []
+        self.fog_walk = None  # (x, z) you walk to while pushing through a fog, input locked
         self.hints = hints.build(self.map)
         self._spawn_entities()
         self._bake_props()
@@ -840,13 +843,31 @@ class World:
         return any(a.gate == (tx, tz) and a.fogged(self.flags) for a in self.arenas)
 
     def cross_fog(self, arena):
-        """Walks the player through the fog to the tile beyond it."""
+        """Starts the player walking through the fog: from where they stand, straight through the gate,
+        to just clear of it on the far side (`_update_fog_walk`). No jump: you see yourself go in."""
         player = self.player
-        px, pz = TileMap.tile_coord(player.x), TileMap.tile_coord(player.z)
-        tx, tz = arena.crossing(arena.door.axis, px, pz)
-        player.x, player.z = TileMap.center(tx, tz)
+        gx, gz = TileMap.center(*arena.gate)
+        reach = TileMap.TILE / 2 + Player.RADIUS + 0.05
+        if arena.door.axis == "x":
+            self.fog_walk = (gx + (reach if player.x <= gx else -reach), gz)
+        else:
+            self.fog_walk = (gx, gz + (reach if player.z <= gz else -reach))
         self.game.sfx("spell", 0.5)
         self.game.message("You pass through the fog.")
+
+    def _update_fog_walk(self, dt):
+        """Carries the player a step further through the fog, drifting onto the gate's centre line."""
+        player = self.player
+        tx, tz = self.fog_walk
+        dx, dz = tx - player.x, tz - player.z
+        dist = math.hypot(dx, dz)
+        step = FOG_WALK_SPEED * dt
+        if dist <= step:
+            player.x, player.z = tx, tz
+            self.fog_walk = None
+        else:
+            player.x += dx / dist * step
+            player.z += dz / dist * step
 
     def mist_arenas(self):
         """You fell: every arena you were fighting in (or stood in, its boss alive) fills with fog."""
@@ -1283,6 +1304,8 @@ class World:
 
     def update(self, dt):
         self._time += dt
+        if self.fog_walk:
+            self._update_fog_walk(dt)
         for e in self.enemies:
             was, rose = e.state, e.rise_progress
             e.update(dt, self)
@@ -2283,7 +2306,7 @@ class World:
             gpu.draw_baked_batch(mesh, tex)
 
     def _model_light(self, gpu, x, y, z, flash=False, tint=None):
-        light = (2.0, 1.6, 1.6) if flash else [min(c, 1.6) for c in self.builder.model_light_at(x, y, z)]
+        light = HIT_RED if flash else [min(c, 1.6) for c in self.builder.model_light_at(x, y, z)]
         if tint and not flash:
             pulse = 0.6 + 0.4 * math.sin(self._time * 6)
             light = [c * (1 - 0.5 * pulse) + t * pulse for c, t in zip(light, tint, strict=True)]
@@ -2506,7 +2529,7 @@ class World:
         elif k == "open_grave":
             cemetery_models.open_grave(rig, p.tx * 3 + p.tz)
         elif k == "cemetery_gate":
-            cemetery_models.cemetery_gate(rig)
+            cemetery_models.cemetery_gate(rig, sentinels=p.props.get("sentinels") != "false")
         elif k == "mourning_statue":
             cemetery_models.mourning_statue(rig, p.tx * 7 + p.tz * 3)
         elif k == "crypt_front":

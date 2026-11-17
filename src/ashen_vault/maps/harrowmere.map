@@ -88,7 +88,7 @@ RHiLiH·..-q,,,,,,qssssssPPPsssssÛ...q,ø,qHÒiiHRwwVVVwwVAAAAAA
 RHZiiä----q,,T,,,qsssSsssssssssss....q,qáHiiiHRwõVAVwwVAAAAAA
 RHiiÏH....q,,,,,,qsssssssssssssss-----q..«HåHHRwwVAVwUVAAAAAA
 RHHHHH.....qq,T,q.sXsssssssssssXs-----------h-RvvVAVwwVAAAAAA
-Rüqá..à......q,q..sssssssssssssss....---------vvvVAVwwVVVVVAA
+Rü¿á..à......q,q..sssssssssssssss....---------vvvVAVwwVVVVVAA
 R¥,qÂHHHH¡...àq..â..ss.X....Ø......à.¶à-------vvöVAVwwVVyx¢KA
 R,ø,H%iiLHá.ÃJJæJJJ£ss............ÄHæHH¡.....§RVVVAVwwVVyyVAA
 Rq,qHiiÒiH..JLiii%iJss....Õ.Ô.Ö..DH%iiLH......RAAAAVwõVVFyVAA
@@ -242,7 +242,9 @@ T = tree kind=olive
 Ú = tree kind=cypress on=;
 // The gate of the Cemetery of Ashes in the west wall: the Ashen come through it into town, and it
 // shuts behind them for good.
-ü = cemetery_gate yaw=0
+ü = cemetery_gate yaw=0 sentinels=false
+// A cold grey light falling on it, so its stone shows against the dark beyond.
+¿ = light y=4.5 color=0.5,0.52,0.62 radius=7
 // The well down into the Sunken Keep, in its sunken court.
 W = exit map=sunken_keep at=15,27,-90 label=Descend_the_well model=well
 // The jungle trail east of the square: a hedged path winding under a canopy that closes in and
@@ -259,4 +261,4 @@ U = torch radius=5 on=w
 F = fungus radius=4 on=y
 z = mushrooms on=y
 // The north road, out through the wall to the Cinderhold.
-N = exit map=cinderhold at=30,69,-90 label=Take_the_north_road model=road_gate yaw=-90 on=-
+N = exit map=cinderhold at=30,68,-90 label=Take_the_north_road model=road_gate yaw=-90 on=-

@@ -67,10 +67,15 @@ class EnemyType:
     # A boss's entrance: "ash" waits as a smouldering heap in its lair and rises out of the burning
     # ash when you step in (see enemy.ASH_RISE). A `perch` statue cracks and tears free instead.
     rise: str | None = None
+    # What a blow on it sounds like: the `hit_<material>` sound (audio/synth.py, MATERIALS).
+    material: str = "flesh"
 
     @property
     def rooted(self):
         return self.speed <= 0
+
+
+MATERIALS = ("flesh", "bone", "iron", "stone", "wood", "ash")  # what blows can land on
 
 
 class EnemyTypes:
@@ -79,6 +84,7 @@ class EnemyTypes:
         for t in [
             EnemyType(
                 id="bone_walker",
+                material="bone",
                 name="Bone Walker",
                 hp=24,
                 speed=1.7,
@@ -113,6 +119,7 @@ class EnemyTypes:
             ),
             EnemyType(
                 id="cinder_wisp",
+                material="ash",
                 name="Cinder Wisp",
                 hp=12,
                 speed=1.4,
@@ -132,6 +139,7 @@ class EnemyTypes:
             ),
             EnemyType(
                 id="ashen_warden",
+                material="iron",
                 name="Ashen Warden",
                 hp=150,
                 speed=2.0,
@@ -188,6 +196,7 @@ class EnemyTypes:
             ),
             EnemyType(
                 id="mimic",
+                material="wood",
                 name="Mimic",
                 hp=60,
                 speed=2.0,
@@ -207,6 +216,7 @@ class EnemyTypes:
             ),
             EnemyType(
                 id="snare_bloom",
+                material="wood",
                 flammable=True,
                 name="Snare Bloom",
                 hp=22,
@@ -230,6 +240,7 @@ class EnemyTypes:
             ),
             EnemyType(
                 id="bark_husk",
+                material="wood",
                 flammable=True,
                 name="Bark Husk",
                 hp=70,
@@ -251,6 +262,7 @@ class EnemyTypes:
             ),
             EnemyType(
                 id="stump_mimic",
+                material="wood",
                 flammable=True,
                 name="Stump Mimic",
                 hp=34,
@@ -310,6 +322,7 @@ class EnemyTypes:
             ),
             EnemyType(
                 id="gaoler",
+                material="iron",
                 name="Gaoler",
                 hp=55,
                 speed=1.3,
@@ -329,6 +342,7 @@ class EnemyTypes:
             ),
             EnemyType(
                 id="bone_crawler",
+                material="bone",
                 name="Bone Crawler",
                 hp=18,
                 speed=2.8,
@@ -347,6 +361,7 @@ class EnemyTypes:
             ),
             EnemyType(
                 id="forge_golem",
+                material="stone",
                 name="Forge Golem",
                 hp=90,
                 speed=0.9,
@@ -370,6 +385,7 @@ class EnemyTypes:
             ),
             EnemyType(
                 id="iron_bowman",
+                material="iron",
                 name="Iron Bowman",
                 hp=26,
                 speed=1.3,
@@ -410,6 +426,7 @@ class EnemyTypes:
             ),
             EnemyType(
                 id="brand",
+                material="iron",
                 name="Brand",
                 hp=260,
                 speed=2.1,
@@ -440,6 +457,7 @@ class EnemyTypes:
             ),
             EnemyType(
                 id="bellows",
+                material="stone",
                 name="Bellows",
                 hp=220,
                 speed=1.9,
@@ -472,6 +490,7 @@ class EnemyTypes:
             # --- the Cemetery of Ashes -----------------------------------------------------------
             EnemyType(
                 id="ashen_husk",
+                material="ash",
                 name="Ashen Husk",
                 # One of the Ashen who woke before you and failed: grey, stooped and empty, it
                 # shambles at you and claws.
@@ -490,6 +509,7 @@ class EnemyTypes:
             ),
             EnemyType(
                 id="mourner",
+                material="bone",
                 name="Shrouded Mourner",
                 # Found only in the Cemetery of Ashes: a hooded thing in long dark robes that stands
                 # bowed over a grave, still as a stone, until you come close; then it glides at you
@@ -513,6 +533,7 @@ class EnemyTypes:
             ),
             EnemyType(
                 id="sexton",
+                material="ash",
                 name="Ashen Sexton",
                 hp=95,
                 speed=1.5,

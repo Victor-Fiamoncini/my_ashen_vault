@@ -63,7 +63,7 @@ TRAIL_RATE = 0.35  # fraction of max HP the trail drains per second
 VEIL_NOTICE = 1.8  # a foe notices you through a Veil of Mist only this close
 VEIL_LOSE = 4.0  # a chaser loses you in the mist beyond this
 STATUS_TICK = 1.0  # seconds between the bites of poison or fire
-FLASH_TIME = 0.15  # seconds a body glows white after any direct blow, staggered or not
+FLASH_TIME = 0.15  # seconds a body glows red after any direct blow, staggered or not
 # A boss's entrance (`EnemyType.rise`): one of ash waits as a smouldering heap until you step into its
 # lair, then builds itself from the feet up out of the burning ash; a statue cracks and tears free.
 ASH_RISE = 3.0  # seconds, the first time you meet it
@@ -129,7 +129,7 @@ class Enemy:
         self.state_t = 0.0
         self.rise_time = 0.0  # how long the current rise takes
         self.anim_t = 0.0
-        self.flash_t = 0.0  # counts down after a direct blow: the white hit flash
+        self.flash_t = 0.0  # counts down after a direct blow: the red hit flash
         self._wander_dir = None
         self._struck = False
         # "melee", "shot", "bite" or a boss move: what the current windup will turn into.
@@ -146,8 +146,13 @@ class Enemy:
         return self.state != "dead"
 
     @property
+    def hit_sound(self):
+        """The sound a blow on it makes: its material's (an iron-chest mimic rings like iron)."""
+        return "hit_iron" if self.look == "iron" else f"hit_{self.type.material}"
+
+    @property
     def flashing(self):
-        """Whether the body glows white: just struck (even when the blow didn't stagger it), or reeling."""
+        """Whether the body glows red: just struck (even when the blow didn't stagger it), or reeling."""
         return self.flash_t > 0 or self.state == "hurt"
 
     @property

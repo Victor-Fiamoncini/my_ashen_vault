@@ -464,3 +464,19 @@ def test_a_house_door_still_will_not_shut_on_you_in_its_doorway():
     for spot in ((19.0, 67.0), (19.9, 66.2)):
         _game, _world, door, shut = _close_from(spot, math.pi)
         assert not shut and door.goal == 1.0
+
+
+def test_a_struck_foe_glows_red():
+    from ashen_vault.world.world import HIT_RED
+
+    _, world = keep()
+    lights = []
+
+    class Gpu:
+        def model_light(self, rgb):
+            lights.append(tuple(rgb))
+
+    world._model_light(Gpu(), 0, 1, 0, flash=True, tint=(0.45, 1.1, 0.3))
+    assert lights == [HIT_RED]
+    red, green, blue = HIT_RED
+    assert red > max(green, blue) * 1.5  # red leads, without drowning the body's own look

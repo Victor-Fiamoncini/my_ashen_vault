@@ -702,3 +702,18 @@ def test_a_struck_statue_cracks_and_tears_free_before_it_fights():
     assert boss.state == "rising" and boss.rise_time == STATUE_RISE
     tick(boss, FakeWorld(3, 0), STATUE_RISE + 0.1)
     assert boss.state not in ("perched", "rising")
+
+
+def test_every_foe_is_made_of_a_known_material_with_its_own_hit_sound():
+    from ashen_vault.ai.enemy_types import MATERIALS
+
+    assert {t.material for t in EnemyTypes.ALL.values()} <= set(MATERIALS)
+    walker = Enemy(EnemyTypes.get("bone_walker"), 0, 0)
+    assert walker.hit_sound == "hit_bone"
+    assert Enemy(EnemyTypes.get("forge_golem"), 0, 0).hit_sound == "hit_stone"
+    assert Enemy(EnemyTypes.get("butcher"), 0, 0).hit_sound == "hit_flesh"
+
+
+def test_an_iron_chest_mimic_rings_like_iron():
+    assert Enemy(EnemyTypes.get("mimic"), 0, 0).hit_sound == "hit_wood"
+    assert Enemy(EnemyTypes.get("mimic"), 0, 0, look="iron").hit_sound == "hit_iron"

@@ -114,12 +114,12 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/render/` | Shaders (`shaders/ps1.*`), procedural textures, mesh builder, matrix rig, models |
 | `src/ashen_vault/game.py` | Scenes and the main loop |
 | `src/ashen_vault/ui/hud.py` | HUD, menus, dialogue boxes |
-| `src/ashen_vault/audio/synth.py` | Synthesized sound effects. Ambient fire (jets, vents, bombs) plays through `World.sfx_near`, which fades it with distance |
+| `src/ashen_vault/audio/synth.py` | Synthesized sound effects (a blow on a foe plays its material's `hit_<material>`; `hit` is a blocked blow). Ambient fire (jets, vents, bombs) plays through `World.sfx_near`, which fades it with distance |
 | `src/ashen_vault/input.py` | Key bindings and the `--script` driver |
 | `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. `ashen_cemetery` (the linear first level, the tutorial: the waking grave and its shrine, the lane with the Rusted Sword, the field of headstones, its husks and the Shrouded Mourners bowed at its graves, the chapel with the Flame Bolt's scroll and its silk-sealed far door, the shrine court, and the Sexton's yard with the one-way gate out to the town; walled and floored in its own ash textures, `ash_rock`, `ash_stone`, `ash_brick`, `ash_ground`, `ash_grass`, `ash_flagstone`), `harrowmere` (the walled town of stone and half-timbered houses under steep violet-slate roofs, turrets on their corners and round towers along its wall, thin-walled (`thin=0.5`), paved in cobbles and setts, a canal running up from the harbour, climbing from its harbour past the market's fountain and the Bell Square, with the Silent Bell, to the twin-towered cathedral on the hill where the Enthroned sits; you arrive by the cemetery's gate in its west wall, its `start`; the sunken well court, the trail gap and the north gate lead out), `sunken_keep` (the dungeon below the well, with the Undercroft below its cells and the Warden's Gallery above the boss door, the Butcher's slaughter hall north of it), `verdant_hollow` (the jungle through the cave at the end of the village's east trail: Mossmouth cave, the Root Caverns below the bog, the Canopy Walk to the boss), `cinderhold` (the lava fortress up the north road: the long bridge, the gatehouse and postern, the foundry and the smelter pits below it, the ashworks, the rampart and the tower stair up to the keep), `cinder_keep` (the keep, a map of its own
   behind the door at the top of the tower stair: the postern landing, the great hall, the switchback stair,
   the antechamber's shrine and the walled rooftop where the twin gargoyles perch) |
-| `src/ashen_vault/world/sky.py`, `render/sky.py` | Skies (`[meta] sky = overcast\|dusk\|jungle\|ember`): a gradient dome meeting the fog at the horizon, a sun and halo, drifting cloud banks and an overhead cap, horizon mist; every sky's sun stands at `SUN_AT` (low in the west, as over the town), its disc drawn over the clouds (`sky.sun`) and its halo behind them; dimmed by darkness and the Veil. Built pure in `world/sky.py`, drawn first each frame without fog or depth by `render/sky.py` |
+| `src/ashen_vault/world/sky.py`, `render/sky.py` | Skies (`[meta] sky = overcast\|dusk\|jungle\|ember`): a gradient dome meeting the fog at the horizon, a sun and halo, drifting cloud banks and an overhead cap, horizon mist; every sky's sun stands at `SUN_AT` (low in the south, over the town's sea), stars glint behind the clouds (`Sky.stars`, their brightness; none in the jungle's daylight), its disc drawn over the clouds (`sky.sun`) and its halo behind them; dimmed by darkness and the Veil. Built pure in `world/sky.py`, drawn first each frame without fog or depth by `render/sky.py` |
 | `src/ashen_vault/world/darkness.py` | Dark tiles: how your light and the fog close in, Lumen and the Veil of Mist |
 | `src/ashen_vault/world/doors.py` | One-way doors (`door from=`): which side lifts the bar |
 | `src/ashen_vault/world/arena.py` | Boss arenas behind a `door boss=<dead_flag>`: the flood-filled lair, the fight that seals the great door, and the fog (`fog:<map>:<tx>,<tz>`) left after you die in there |
@@ -150,7 +150,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/player/guard.py` | Shield blocking: what a raised shield stops and what it costs in ST |
 | `src/ashen_vault/world/relics.py` | Boss relics (Ember, Verdant and Iron Sigils), their drop/taken flags, `boss_falls` (twins fall together) and the three-sigil ending (the prophecy names four; the fourth's place is a TODO) |
 | `src/ashen_vault/world/hints.py` | Tutorial hints (`hint text="...\|..."`): shown once, the first time you step onto any of its marker's tiles (`hint:<map>:<marker>` flag); `World._update_hints` fires them |
-| `src/ashen_vault/render/cemetery_models.py` | The Cemetery of Ashes' models: the Ashen Sexton (its `grave_spade`, and `sexton_arms`, its poses for each move; `dust_puff`, `ash_billow` and `dust_devil` draw its ash), the Ashen Husk, the Shrouded Mourner (the cemetery's own lurker), `grave_walker` (the cemetery's Bone Walkers, `bone_walker model=grave`: risen in their winding sheets, a headstone shard for a shield and a length of iron railing for a weapon; the keep's keep their own look), `ash_hands` (the Sexton's grasping ash) and `ash_clod` (its spadeful), `gravestone`, `open_grave` and `cemetery_gate` (also the gate exit's `model=`, swung open once its `requires=` flag is set) |
+| `src/ashen_vault/render/cemetery_models.py` | The Cemetery of Ashes' models: the Ashen Sexton (its `grave_spade`, and `sexton_arms`, its poses for each move; `dust_puff`, `ash_billow` and `dust_devil` draw its ash), the Ashen Husk, the Shrouded Mourner (the cemetery's own lurker), `grave_walker` (the cemetery's Bone Walkers, `bone_walker model=grave`: risen in their winding sheets, a headstone shard for a shield and a length of iron railing for a weapon; the keep's keep their own look), `ash_hands` (the Sexton's grasping ash) and `ash_clod` (its spadeful), `gravestone`, `open_grave` and `cemetery_gate` (a pointed stone arch built out of the wall, black passage behind its iron leaves, a hooded mourner in a niche over the lintel and, unless `sentinels=false` as in town, hooded stone wardens either side; also the gate exit's `model=`, swung open once its `requires=` flag is set) |
 | `src/ashen_vault/dialogue.py` | NPC conversations and the shop list |
 | `tests/` | pytest suite; `conftest.py` has a small test map |
 | `docs/logo/make_logo.py` | Regenerates `docs/logo/ashen_vault.svg` |
@@ -269,8 +269,12 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   more from Pyre and keep burning. Enemies carry lingering harm in `Enemy.status` (`poison` from Venom
   Dart, `burn` from Pyre), one bite a second (`status_tick`) that never staggers.
 - An enemy type's `height` is the top of its body as it dies: the ash dissolve crumbles that span.
-  Any direct blow lights a foe white for `FLASH_TIME` (`Enemy.flashing`), stagger or not; a model
-  that whitens itself when hit keys on `e.flashing`, its reeling pose on `state == "hurt"`.
+  Any direct blow lights a foe red for `FLASH_TIME` (`Enemy.flashing`, `world.HIT_RED`), stagger or
+  not; a model that recolours itself when hit keys on `e.flashing` (`models.hit_tint`, its strength in
+  `HIT_TINT`), its glowing parts turn `models.HIT_GLOW`, and its reeling pose keys on `state == "hurt"`. A type's `material`
+  (`enemy_types.MATERIALS`: flesh, bone, iron, stone, wood, ash) picks the `hit_<material>` sound a blow
+  on it makes (`Enemy.hit_sound`; an iron-chest mimic rings as iron), pitched at random within
+  `game.HIT_PITCH`.
   A hovering foe's shot span reaches from its hover height up to its `tall` (`shots.body_span`).
   Every model has a death pose (eased by `models.death_fall`); `tests/test_render_logic.py` checks
   that each one collapses, stays above the floor and fits its `height`, so update both together.
@@ -305,7 +309,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   (`world.hinged`): shut whenever the map loads, never saved; interact swings it open or shut (`World.swing_door`,
   which won't shut it on anyone in the doorway), and shut it fills its tile.
   `chest model=iron` is the Cinderhold's iron chest (`models.chest` style), and `mimic model=iron` hides as
-  one (`Enemy.look`). An exit's `model=` draws its way through (`road_gate` with `style=town|forge` for the north road's two ends, `well`, `cave_mouth`, `keep_door`, `cemetery_gate`, else a `rope`); each is a landmark of some detail (`test_every_way_between_maps_is_built_in_detail`). An `exit` with `boss=<dead_flag>` is a way on to a boss on another map: the compass
+  one (`Enemy.look`). An exit's `model=` draws its way through (`road_gate` for both ends of the north road (each stands out in the open before its wall, never sunk between rock; `style=forge` is a sooty variant), `well`, `cave_mouth`, `keep_door`, `cemetery_gate`, else a `rope`); each is a landmark of some detail (`test_every_way_between_maps_is_built_in_detail`), and one set against a wall shows black passage through it (`models.PASSAGE_DARK`), never the wall, so the way on stays unseen; a cold `light` hangs over the cemetery's gate on both sides, and a warm one before the north road's Cinderhold end, so their stone shows. An `exit` with `boss=<dead_flag>` is a way on to a boss on another map: the compass
   points at it while that boss lives (`World.boss_target`). `exit requires=<flag> shut="..."` stays shut
   (saying `shut=`) until that flag is set (`World.exit_open`), and `exit oneway` never leads back: going
   through records the journey on the far side at once, so you wake by its shrines, and sets `left:<map>`
@@ -322,7 +326,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   (`models.boss_door`, dressed for its boss by `BOSS_DOORS` / `DOOR_ARCHES` / `DOOR_LEAVES`, keyed by
   the `dead_flag`; a new boss door needs an entry in each): the arena behind it seals once you are inside with its boss awake, opens when
   the boss dies, and after you die in there becomes a fog gate (`models.fog_gate`) the boss walks
-  through freely and you cross with interact. Each arena must stay closed behind its one door
+  through freely and you cross with interact: you walk through it slowly (`World.fog_walk`, `FOG_WALK_SPEED`), never jump. Each arena must stay closed behind its one door
   (`tests/test_arena.py`). `door from=n|s|e|w` is barred on that side: it
   only opens from there. `door model=iron` is the Cinderhold's riveted iron door, set in a stone frame
   that rises to the passage's ceiling (`world.DOOR_FRAME_SKY` under the open sky).

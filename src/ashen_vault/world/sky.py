@@ -1,5 +1,5 @@
-"""Skies over open ground: a gradient dome that meets the fog at the horizon, banks of cloud drifting
-around it, a sun glowing through them and a band of mist along the horizon. A map names its sky in
+"""Skies over open ground: a gradient dome that meets the fog at the horizon, stars, banks of cloud
+drifting around it, a sun glowing through them and a band of mist along the horizon. A map names its sky in
 `[meta]` (`sky = overcast`); maps without one keep the plain fog colour.
 
 Pure: this builds the geometry (vertices around the camera, uv, vertex colours) and the colours,
@@ -7,6 +7,7 @@ which darken with the darkness where you stand and turn pale under the Veil, as 
 `render/sky.py` uploads it and draws it before the world."""
 
 import math
+import random
 from dataclasses import dataclass, field
 from itertools import pairwise
 
@@ -21,10 +22,15 @@ CAP_FROM = 40.0  # elevation where the overhead cloud cap starts
 CAP_SCALE = 1 / 60.0  # uv per metre of the overhead cap
 MIST_BAND = (-6.0, 8.0)
 MIST_REPEATS = 10
-# Where the sun stands over every map: low in the west, as Harrowmere first shows it. Every map shares
-# the same axes (+x east, +z south), so one bearing keeps it in the same place wherever you travel.
-SUN_AT = (180.0, 13.0)
+# Where the sun stands over every map: low in the south, over Harrowmere's sea. Every map shares the
+# same axes (+x east, +z south), so one bearing keeps it in the same place wherever you travel.
+SUN_AT = (90.0, 13.0)
 SUN_THROUGH_CLOUD = 0.2  # how far the disc takes the cloud undersides' colour, as if seen through them
+STAR_COUNT = 220
+STAR_BAND = (16.0, 88.0)  # elevations the stars fill, above the horizon's mist and the low cloud bank
+STAR_SIZE = (0.22, 0.45)  # a star's radius, degrees: one to three pixels at 320x240
+STAR_SEED = 1709  # the same sky of stars over every map, every time
+STAR_TINTS = ((0.92, 0.95, 1.0), (1.0, 0.94, 0.82), (0.78, 0.86, 1.0))  # cool white, warm white, pale blue
 
 
 @dataclass(frozen=True)
@@ -40,6 +46,7 @@ class Sky:
     drift: float = 0.004  # rad/s the cloud banks turn around you
     cap: bool = True  # a thinner layer of cloud overhead
     mist: tuple | None = None  # the haze along the horizon
+    stars: float = 0.0  # how brightly the stars show through it (0: none)
 
 
 SKIES = {
@@ -54,6 +61,7 @@ SKIES = {
         clouds=(0.48, 0.48, 0.5),
         cloud_under=(0.27, 0.28, 0.32),
         mist=(0.39, 0.4, 0.43),
+        stars=0.32,
     ),
     # Harrowmere: dusk under a bruised ceiling of cloud, a dull copper sun sinking through it.
     "dusk": Sky(
@@ -66,6 +74,7 @@ SKIES = {
         clouds=(0.24, 0.22, 0.27),
         cloud_under=(0.12, 0.12, 0.17),
         mist=(0.18, 0.18, 0.23),
+        stars=0.5,
     ),
     # The hollow: thick, humid green-gold haze over the canopy and a pale sun glaring through it.
     "jungle": Sky(
@@ -93,6 +102,7 @@ SKIES = {
         cloud_under=(0.55, 0.2, 0.08),
         drift=0.006,
         mist=(0.36, 0.13, 0.07),
+        stars=0.24,
     ),
 }
 
@@ -232,6 +242,38 @@ def sun(spec, dark=0.0, veil=False):
     return mesh
 
 
+def star_field():
+    """[(direction, radius in degrees, tint, brightness)] for every star, the same each time: spread
+    evenly over the band's share of the sphere (uniform in the sine of the elevation)."""
+    rng = random.Random(STAR_SEED)
+    lo, hi = (math.sin(math.radians(e)) for e in STAR_BAND)
+    out = []
+    for _ in range(STAR_COUNT):
+        elev = math.degrees(math.asin(rng.uniform(lo, hi)))
+        d = direction(rng.uniform(0.0, 360.0), elev)
+        out.append((d, rng.uniform(*STAR_SIZE), rng.choice(STAR_TINTS), rng.uniform(0.45, 1.0)))
+    return out
+
+
+def stars(spec, fog, dark=0.0, veil=False):
+    """Small diamonds of light over the dome, behind the clouds so the banks hide some and they glint
+    in the gaps. None where the light hides them (`spec.stars` 0); none within the sun's halo."""
+    if not spec.stars:
+        return None
+    mesh = SkyMesh()
+    zenith = shade(spec.zenith, dark, veil)
+    away = math.cos(math.radians(spec.halo_size)) if spec.sun else 2.0
+    sun_d = direction(*spec.sun_at)
+    for d, size, tint, bright in star_field():
+        if sum(a * b for a, b in zip(d, sun_d, strict=True)) > away:
+            continue
+        rgb = _mix(dome_color(_elev(d), fog, zenith), shade(tint, dark, veil), spec.stars * bright)
+        u, v = _basis(d)
+        tips = [(_around(d, u, v, size, a * math.pi / 2), (0, 0), rgb, RADIUS * 0.98) for a in range(4)]
+        mesh.quad(tips[0], tips[1], tips[3], tips[2])
+    return mesh
+
+
 def clouds(spec, dark=0.0, veil=False):
     """Banks of cloud in rings around the horizon (the `clouds` texture cuts their shapes and thins
     them toward their edges). Tops are lit, undersides take `cloud_under`. None for a clear sky."""
@@ -294,15 +336,23 @@ def mist(spec, dark=0.0, veil=False):
     return mesh
 
 
-TEXTURES = {"dome": "white", "cap": "cloud_cap", "clouds": "clouds", "sun": "white", "mist": "mist"}
+TEXTURES = {
+    "dome": "white",
+    "stars": "white",
+    "cap": "cloud_cap",
+    "clouds": "clouds",
+    "sun": "white",
+    "mist": "mist",
+}
 DRIFTING = ("cap", "clouds")  # layers that turn slowly around you
 
 
 def layers(spec, fog, dark=0.0, veil=False):
-    """[(layer, mesh)] for a sky, back to front: the dome (with the sun's halo), the overhead cap, the
-    cloud banks, the sun's disc and the mist. Layers the sky lacks are left out."""
+    """[(layer, mesh)] for a sky, back to front: the dome (with the sun's halo), the stars, the overhead
+    cap, the cloud banks, the sun's disc and the mist. Layers the sky lacks are left out."""
     built = (
         ("dome", dome(spec, fog, dark, veil)),
+        ("stars", stars(spec, fog, dark, veil)),
         ("cap", cap(spec, dark, veil)),
         ("clouds", clouds(spec, dark, veil)),
         ("sun", sun(spec, dark, veil)),

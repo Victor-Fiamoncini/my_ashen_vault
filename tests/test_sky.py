@@ -92,12 +92,57 @@ def test_dark_places_darken_every_layer():
         assert max(lit[layer].colors) > 0.05, layer
 
 
-def test_every_sky_puts_the_sun_low_in_the_west_as_the_town_does():
+def test_every_sky_puts_the_sun_low_in_the_south_over_the_towns_sea():
     assert {spec.sun_at for spec in sky.SKIES.values()} == {sky.SUN_AT}
-    assert sky.SKIES["overcast"].sun_at == sky.SUN_AT
     azimuth, elevation = sky.SUN_AT
     d = sky.direction(azimuth, elevation)
-    assert d[0] < -0.9 and 0 < elevation < 20  # west (-x), low over the horizon
+    assert d[2] > 0.9 and 0 < elevation < 20  # south (+z), low over the horizon
+    town = MapLoader.load_file(os.path.join(MAP_DIR, "harrowmere.map"))
+    sea = [town[tx, town.depth - 2] for tx in range(town.width // 2)]  # its southern shore
+    assert sum(t is not None and t.deep for t in sea) > len(sea) // 2  # the open sea lies south
+
+
+def test_the_stars_are_the_same_every_time_and_fill_their_band():
+    field = sky.star_field()
+    assert field == sky.star_field() and len(field) == sky.STAR_COUNT
+    lo, hi = sky.STAR_BAND
+    for d, size, _, _ in field:
+        assert lo - 1e-6 <= sky._elev(d) <= hi + 1e-6
+        assert sky.STAR_SIZE[0] <= size <= sky.STAR_SIZE[1]
+
+
+def test_the_town_has_stars_and_none_shine_in_the_suns_halo():
+    spec = sky.SKIES["dusk"]
+    mesh = sky.stars(spec, FOG)
+    assert mesh.vertex_count >= sky.STAR_COUNT  # most of them, two triangles each
+    sun_d = sky.direction(*spec.sun_at)
+    for i in range(mesh.vertex_count):
+        p = mesh.verts[i * 3 : i * 3 + 3]
+        r = math.dist((0, 0, 0), p)
+        assert sum(a * b / r for a, b in zip(p, sun_d, strict=True)) < math.cos(
+            math.radians(spec.halo_size - 1)
+        )
+
+
+def test_the_stars_are_brighter_than_the_sky_behind_them():
+    spec = sky.SKIES["dusk"]
+    mesh = sky.stars(spec, FOG)
+    zenith = sky.shade(spec.zenith, 0.0)
+    for i in range(0, mesh.vertex_count, 6):
+        p = mesh.verts[i * 3 : i * 3 + 3]
+        behind = sky.dome_color(sky._elev([c / math.dist((0, 0, 0), p) for c in p]), FOG, zenith)
+        assert sum(mesh.colors[i * 3 : i * 3 + 3]) > sum(behind)
+
+
+def test_the_jungles_daylight_hides_the_stars():
+    assert sky.stars(sky.SKIES["jungle"], FOG) is None
+    assert "stars" not in dict(sky.layers(sky.SKIES["jungle"], FOG))
+
+
+@pytest.mark.parametrize("name", ["dusk", "overcast", "ember"])
+def test_the_stars_shine_behind_the_clouds(name):
+    order = [layer for layer, _ in sky.layers(sky.SKIES[name], FOG)]
+    assert order.index("dome") < order.index("stars") < order.index("cap") < order.index("clouds")
 
 
 @pytest.mark.parametrize("name", sorted(sky.SKIES))

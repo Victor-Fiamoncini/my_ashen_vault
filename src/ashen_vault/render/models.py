@@ -17,6 +17,16 @@ RUST = (120, 70, 44)
 IRON = (92, 92, 98)
 ASH = (96, 92, 88)
 EMBER = (255, 140, 50)
+HIT_GLOW = (255, 105, 85)  # a glowing part in the moment a blow lands: red, like the body's flash
+PASSAGE_DARK = (6, 5, 6)  # the black of a way on into the unknown, seen through a gate
+HIT_TINT = (1.0, 0.45, 0.4)  # how far a struck body's pale flash colour leans to red (1 keeps a channel)
+
+
+def hit_tint(rgb):
+    """The colour a body part flashes when struck: its pale flash colour, leaning red by HIT_TINT."""
+    return tuple(rround(c * k) for c, k in zip(rgb, HIT_TINT, strict=True))
+
+
 WHITE = (255, 255, 255)
 SKIN = (196, 158, 120)
 LEAF = (58, 104, 44)
@@ -269,7 +279,7 @@ def bone_walker(r, e, t):
     fall = death_fall(e, 0.7)
     lean = (-0.3 if e.state == "hurt" else 0) + 1.35 * fall
     alive = fall < 0.5
-    bone = (255, 240, 220) if e.flashing else BONE
+    bone = hit_tint((255, 240, 220)) if e.flashing else BONE
     with r.at(-0.2 * fall, 0.12 * fall, 0, rz=lean):
         for side, a in ((-0.13, swing), (0.13, -swing)):
             knee = 0.1 + 0.45 * max(0.0, a) + 0.4 * fall
@@ -337,7 +347,7 @@ def mire_slime(r, e, t):
     fall = death_fall(e, 0.8)
     if e.state == "dead":
         squash = 1 + 1.2 * fall
-    green = (200, 220, 160) if e.flashing else SLIME
+    green = hit_tint((200, 220, 160)) if e.flashing else SLIME
     h = 0.7 / squash  # body height
     r.part("sphere", 0.05, 0.14, 0, 1.12 * squash, 0.28, 1.12 * squash, (46, 84, 40))  # the spreading foot
     r.part("sphere", 0, 0.32 / squash, 0, 0.95 * squash, h, 0.95 * squash, green)
@@ -724,7 +734,7 @@ def gaoler(r, e, t):
     dead = e.state == "dead"
     hooking = e.attack_kind == "hook" and e.state in ("windup", "attack")
     k = min(e.state_t / max(e.windup_time, 1e-3), 1) if e.state == "windup" else 1.0
-    skin = (240, 220, 200) if e.flashing else (150, 120, 100)
+    skin = hit_tint((240, 220, 200)) if e.flashing else (150, 120, 100)
     with r.at(0, 0.45 - 0.4 * kneel, 0, rz=-1.25 * pitch), r.at(0, -0.45, 0):
         for side, a in ((-0.22, swing), (0.22, -swing)):
             with r.at(0, 0.85, side, rz=a - 1.5 * kneel):
@@ -859,7 +869,7 @@ def butcher(r, e, t):
     rage = e.phase2 and not dead
     lift, spin, _, _ = _spider_move(e, t, 0.0, 1.0)
     hit, free, blade, elbow, twist, crouch, _ = _warden_arms(e, t)
-    skin = (240, 220, 200) if e.flashing else (176, 110, 92) if rage else MEAT
+    skin = hit_tint((240, 220, 200)) if e.flashing else (176, 110, 92) if rage else MEAT
     apron = (110, 26, 22) if e.phase2 else APRON
     with (
         r.at(0, lift * 0.6 + crouch + 0.55 - 0.4 * kneel, 0, s=1.3, ry=spin + twist),
@@ -946,7 +956,7 @@ def bone_crawler(r, e, t):
         rear = -0.5 * min(e.state_t / e.type.windup, 1)
     elif e.state == "attack":
         rear = 0.3
-    bone = (255, 240, 220) if e.flashing else BONE
+    bone = hit_tint((255, 240, 220)) if e.flashing else BONE
     rise = 0.32 * (1 - fall)
     lit = fall < 0.5
     with r.at(0, rise, 0, rz=rear * (1 - fall)):
@@ -1101,8 +1111,8 @@ def snare_bloom(r, e, t):
     gape = jaw_open(e, t)
     lunge = 0.35 if e.state == "windup" else (0.55 if e.state == "attack" else 0)
     sway = math.sin(t * 1.3) * 0.08 * (1 - wilt)
-    stalk = (236, 230, 220) if hurt else SNARE_STALK
-    leaf = (226, 232, 220) if hurt else SNARE_LEAF
+    stalk = hit_tint((236, 230, 220)) if hurt else SNARE_STALK
+    leaf = hit_tint((226, 232, 220)) if hurt else SNARE_LEAF
     # The root bulb and its star of blade leaves splayed on the floor.
     r.part("frustum", 0, 0.12, 0, 0.62, 0.24, 0.62, _dim(stalk, 0.8))
     r.part("sphere", 0, 0.22, 0, 0.42, 0.26, 0.42, _dim(stalk, 0.9))
@@ -1142,7 +1152,7 @@ def _snare_stalk(r, angles, stalk, leaf, gape, hurt, t, wilt, k=0):
 
 def _snare_head(r, gape, hurt, stalk, leaf, t, wilt):
     """The ruff of leaves, the two-lipped pod and its crest, from the top of the stalk."""
-    flesh = (240, 210, 210) if hurt else SNARE_FLESH
+    flesh = hit_tint((240, 210, 210)) if hurt else SNARE_FLESH
     # The ruff: broad pointed leaves fanning out and down beneath the pod, stirring.
     for i in range(5):
         a = i * math.tau / 5 + 0.3
@@ -1217,8 +1227,8 @@ def bark_husk(r, e, t):
     dead = e.state == "dead"
     moving = e.state in ("chase", "idle")
     slump = death_fall(e, 0.8)
-    bark = (240, 220, 200) if hurt else HUSK_BARK
-    dark = (200, 180, 160) if hurt else DARK_BARK
+    bark = hit_tint((240, 220, 200)) if hurt else HUSK_BARK
+    dark = hit_tint((200, 180, 160)) if hurt else DARK_BARK
     lean = -0.25 if e.state == "windup" else (0.12 if e.state == "hurt" else -0.06)
     lean -= 0.85 * slump  # keels over forward on its face as it dies
     _husk_roots(r, t, moving, dark)
@@ -1330,7 +1340,7 @@ def _husk_heart(r, t, hurt, dead=False):
     """A split down the back (-X) with the pulsing heart-fungus inside. It gutters out on death."""
     pulse = 1 + math.sin(t * 3.1) * 0.12 * (not dead)
     r.part("cube", -0.21, 0.3, 0, 0.08, 1.0, 0.22, (16, 10, 8))
-    glow = (255, 255, 255) if hurt else (60, 90, 76) if dead else (110, 240, 190)
+    glow = HIT_GLOW if hurt else (60, 90, 76) if dead else (110, 240, 190)
     r.part("sphere", -0.2, 0.35, 0, 0.2 * pulse, 0.55 * pulse, 0.24 * pulse, glow, glow=not dead)
     for y, z in ((0.0, 0.1), (0.7, -0.08), (-0.25, -0.1)):
         r.part("sphere", -0.24, y, z, 0.12, 0.07, 0.12, (80, 220, 170), glow=not dead)
@@ -1344,7 +1354,7 @@ def stump_mimic(r, e, t):
     settle = death_fall(e, 0.5)
     awake = e.state not in ("idle", "dead")
     hurt = e.flashing
-    bark = (240, 220, 200) if hurt else BARK
+    bark = hit_tint((240, 220, 200)) if hurt else BARK
     gape = jaw_open(e, t) if awake else 0.0
     rise = 0.22 if awake else 0.22 * (1 - settle) if e.state == "dead" else 0.0
     if awake:
@@ -1419,7 +1429,7 @@ def stump_mimic(r, e, t):
 def loom_mother(r, e, t):
     """Giant spider: eight jointed legs in a skittering gait, a swollen patterned abdomen, glowing eyes."""
     hurt = e.flashing
-    body = (150, 130, 150) if hurt else SPIDER
+    body = hit_tint((150, 130, 150)) if hurt else SPIDER
     band = (196, 150, 90)
     moving = e.state in ("chase", "idle")
     gait = t * 11 if moving else t * 2

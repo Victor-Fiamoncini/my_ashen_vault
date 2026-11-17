@@ -51,6 +51,7 @@ from ashen_vault.world.rest import RestSequence
 from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.world import World, beside_shrine
 
+HIT_PITCH = (0.92, 1.08)  # each blow's sound is pitched at random within this, so no two ring alike
 KIND_ORDER = ["weapon", "shield", "armor", "spell", "consumable", "scroll", "key"]
 HAND_BUTTON = {RIGHT: "attack", LEFT: "cast"}  # input actions: left mouse = Primary, right = Secondary
 PAUSE_OPTIONS = ["Resume", "Options", "Controls", "Return to Title", "Quit"]
@@ -406,7 +407,8 @@ class Game:
                 p.look(-md.y * 0.0032)
         # Scripted smoke runs tilt the view with held look_up / look_down steps.
         p.look((inp.down("look_up") - inp.down("look_down")) * 1.5 * dt)
-        falling = self.world.terrain.plunging  # over the brink: nothing to walk on
+        # Over the brink there is nothing to walk on; in the fog you are already walking.
+        falling = self.world.terrain.plunging or self.world.fog_walk is not None
         moved = not falling and p.walk(
             self.world.map,
             self._axis("forward", "back"),
@@ -629,7 +631,8 @@ class Game:
         targets = self.world.melee_targets(weapon.reach * a.reach, a.cone, a.targets)
         if not targets:
             return targets
-        self.sfx("hit")
+        for sound in sorted({t.hit_sound for t in targets}):  # one per material struck
+            self.sfx(sound, pitch=random.uniform(*HIT_PITCH))
         for target in targets:
             back = target.hit_mult(p.x, p.z)
             element = weapon.element
@@ -1061,8 +1064,8 @@ class Game:
     def message(self, text):
         self.messages.append([text, 0.0])
 
-    def sfx(self, name, volume=1.0):
-        self._audio.play(name, volume=volume)
+    def sfx(self, name, volume=1.0, pitch=1.0):
+        self._audio.play(name, volume=volume, pitch=pitch)
 
     # --- dialogue ------------------------------------------------------------
 

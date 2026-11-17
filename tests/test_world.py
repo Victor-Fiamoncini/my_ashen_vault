@@ -608,6 +608,11 @@ def test_harrowmere_has_the_north_road():
     (back,) = _spec(m, "exit", map="harrowmere")
     tx, tz, _ = (int(v) for v in back.props["at"].split(","))
     assert (tx, tz) == (gate.tx, gate.tz + 1)  # you come back through the gate, onto the track
+    # The Cinderhold's end stands out in the open before the cliff, never sunk between its rock.
+    assert m[back.tx, back.tz + 1].solid
+    assert m[back.tx - 1, back.tz].walkable and m[back.tx + 1, back.tz].walkable
+    ax, az, _ = (int(v) for v in gate.props["at"].split(","))
+    assert (ax, az) == (back.tx, back.tz - 1)  # you arrive just before it, not inside it
     start = tuple(int(v) for v in m.meta["start"][:2])
     assert tuple(int(v) for v in gate.props["at"].split(",")[:2]) == start
     assert (back.tx, back.tz) == (start[0], start[1] + 1)  # the gate out is right behind you

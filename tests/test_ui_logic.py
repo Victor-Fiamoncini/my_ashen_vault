@@ -301,6 +301,9 @@ def test_every_sound_the_game_plays_is_synthesized():
     for path in SRC.rglob("*.py"):
         played |= set(re.findall(r'sfx\(\s*"([a-z_]+)"', path.read_text()))
     assert played and not played - made, sorted(played - made)
+    from ashen_vault.ai.enemy_types import MATERIALS
+
+    assert not {f"hit_{m}" for m in MATERIALS} - made  # a blow on each material (Enemy.hit_sound)
 
 
 # --- Weapon icons ---------------------------------------------------------------------

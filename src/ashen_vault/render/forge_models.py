@@ -9,6 +9,8 @@ from ashen_vault.render.models import (
     EMBER,
     GOUT_COOL,
     GOUT_HOT,
+    HIT_GLOW,
+    PASSAGE_DARK,
     _ease,
     _flame,
     _lerp,
@@ -16,6 +18,7 @@ from ashen_vault.render.models import (
     blade_parts,
     death_fall,
     fireball,
+    hit_tint,
     realm_crest,
     strike_angle,
     walk_cycle,
@@ -66,7 +69,7 @@ def forge_golem(r, e, t):
             crouch = -0.2 * min(e.state_t / 0.15, 1)
     elif e.attack_kind == "sweep" and e.state in ("windup", "attack"):
         both = -1.55  # arms held out level while it spins
-    hot = (255, 240, 200) if e.flashing else MOLTEN
+    hot = HIT_GLOW if e.flashing else MOLTEN
     fire = CRUST if dead else hot
     with (
         r.at(0, lift * 0.4 + crouch - 0.5 * kneel + 0.95 * topple, 0, ry=spin),
@@ -222,7 +225,7 @@ def slag_hound(r, e, t):
     gait = math.sin(t * 15) * 0.6 if e.state == "chase" else math.sin(t * 2) * 0.05
     lift, _, rear, _ = _spider_move(e, t, 0.0, 1.0)
     bite = strike_angle(e) * 0.2
-    crack = CRUST if dead else (255, 230, 160) if e.flashing else MOLTEN
+    crack = CRUST if dead else HIT_GLOW if e.flashing else MOLTEN
     tooth = WHITE_HOT if not dead else CRUST
     with r.at(0, lift * 0.7 + 0.15 * fall, 0, rx=1.4 * fall), r.at(0, 0, 0, rz=-rear):
         for x, ph in ((0.42, 0), (-0.42, math.pi)):
@@ -437,7 +440,7 @@ def gargoyle(r, e, t):
         head = -0.3 * fall
         fold = fall
     hurt = e.flashing
-    live = (200, 196, 200) if hurt else iron
+    live = hit_tint((200, 196, 200)) if hurt else iron
     body = _blend(live, STATUE, stone)
     dark = _blend(horn, STATUE_DARK, stone)
     rib = _blend(RIVET, body, stone)
@@ -864,9 +867,21 @@ def road_gate(r, t=0.0, style="town"):
     """The gatehouse over the north road, its passage running along X: two piers on plinths carrying a
     round arch of voussoirs under a crenellated lintel, the portcullis wound up into the arch with its
     teeth showing, and an iron lantern hung on each pier's either face. The town's (`style="town"`)
-    is sandstone with the realm's crest over the arch; the Cinderhold's end (`"forge"`) is the same
-    gate gone black with soot, its lanterns burning with ember and iron spikes on its merlons."""
+    is sandstone with the realm's crest over the arch, and both ends of the road use it; `"forge"` is the
+    same gate gone black with soot, its lanterns burning with ember and iron spikes on its merlons."""
     stone, tex, trim, flame = GATE_STYLES[style]
+    # The road running on into darkness through the wall behind (+X), so the far end stays unseen: a
+    # black tunnel (its end hard against the wall, its sides and roof) you can walk right up to without
+    # ever seeing past it.
+    r.part("cube", 0.97, 1.95, 0, 0.04, 3.9, 1.72, PASSAGE_DARK)
+    for side in (-1, 1):
+        r.part("cube", 0.68, 1.95, side * 0.84, 0.6, 3.9, 0.04, PASSAGE_DARK)
+    r.part("cube", 0.68, 3.88, 0, 0.6, 0.04, 1.72, PASSAGE_DARK)
+    # The gatehouse's flanks, its masonry carried back from the piers and the lintel to the wall, so the
+    # tunnel is walled in stone and shows no black from the side.
+    for side in (-1, 1):
+        r.part("cube", 0.7, 2.3, side * 1.07, 0.6, 4.6, 0.5, stone, tex=tex)
+    r.part("cube", 0.7, 4.25, 0, 0.6, 0.7, 1.7, stone, tex=tex)
     for side in (-1, 1):
         z = side * 1.05
         r.part("cube", 0, 0.2, z, 0.98, 0.4, 0.72, trim, tex=tex)  # the plinth

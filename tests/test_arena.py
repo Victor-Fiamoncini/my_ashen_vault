@@ -4,9 +4,10 @@ import math
 
 import pytest
 
+from ashen_vault.player.player import Player
 from ashen_vault.world.arena import Arena, flood
 from ashen_vault.world.tile_map import TileMap
-from ashen_vault.world.world import World
+from ashen_vault.world.world import FOG_WALK_SPEED, World
 from test_keep_world import FakeGame
 
 
@@ -96,9 +97,19 @@ def test_dying_in_the_fight_leaves_fog_that_only_the_boss_walks_through():
     assert not world2.blocked_tile(15, 9)  # the boss can come through after you
     assert world2.player_blocked(15, 9)  # you only cross on purpose
     assert world2.fog_gate(fog.door) is fog and world2._interactable(fog.door)
+    start = (world2.player.x, world2.player.z)
     world2.cross_fog(fog)
+    assert (world2.player.x, world2.player.z) == start  # no jump: you walk through
+    steps = []
+    while world2.fog_walk:
+        world2._update_fog_walk(0.05)
+        steps.append((world2.player.x, world2.player.z))
+    assert all(
+        math.dist(a, b) <= 0.05 * FOG_WALK_SPEED + 1e-9
+        for a, b in zip([start, *steps[:-1]], steps, strict=True)
+    )
     here = (TileMap.tile_coord(world2.player.x), TileMap.tile_coord(world2.player.z))
-    assert here == (15, 8)
+    assert here == (15, 8) and fog.clear_of_gate(world2.player.x, world2.player.z, Player.RADIUS)
     world2._update_arenas()
     assert fog.sealed and world2.blocked_tile(15, 9)  # crossing in starts the fight
     assert world2.fog_gate(fog.door) is None

@@ -15,6 +15,7 @@ from ashen_vault.render.models import (
     ELBOW_REST,
     ELBOW_STRIKE,
     EMBER,
+    PASSAGE_DARK,
     _bar,
     _dim,
     _ease,
@@ -29,6 +30,7 @@ from ashen_vault.render.models import (
     elbow_bend,
     hand,
     held,
+    hit_tint,
     ribcage,
     skull,
     strike_angle,
@@ -50,7 +52,9 @@ MOSS = (70, 96, 56)
 EARTH = (74, 58, 44)
 PIT = (22, 18, 16)
 BONE_ASH = (190, 180, 160)  # a bone half burnt
-GATE_SET_BACK = 0.7  # the cemetery gate stands this far back toward the wall behind its tile
+GATE_SPRING = 3.2  # the height where the cemetery gate's pointed arch springs from its piers
+GATE_HALF = 0.8  # half the width of its doorway
+SENTINEL_OUT = 1.8  # how far out from its middle the stone wardens beside it stand
 
 
 def sexton(r, e, t):
@@ -66,7 +70,7 @@ def sexton(r, e, t):
     lift, spin, _, _ = _spider_move(e, t, 0.0, 1.0)
     hit, free, blade, elbow, twist, crouch = sexton_arms(e, t)
     lit = e.phase2 and not dead
-    body = (236, 232, 226) if e.flashing else ASH_BODY
+    body = hit_tint((236, 232, 226)) if e.flashing else ASH_BODY
     dark = _dim(body, 0.68)
     heart = EMBER if lit else (COLD if dead else COAL)
     cloth = math.sin(t * 1.8) * 0.08 + swing * 0.12
@@ -275,8 +279,8 @@ def ashen_husk(r, e, t):
     fall = death_fall(e, 0.7)
     alive = fall < 0.5
     arm = strike_angle(e)
-    body = (236, 232, 226) if e.flashing else HUSK
-    crust = (246, 244, 240) if e.flashing else HUSK_CRUST
+    body = hit_tint((236, 232, 226)) if e.flashing else HUSK
+    crust = hit_tint((246, 244, 240)) if e.flashing else HUSK_CRUST
     char = _dim(body, 0.55)
     heat = 0.6 + 0.4 * math.sin(t * 2.3) if alive else 0.0
     seam = _dim(HUSK_SEAM, 0.55 + 0.45 * heat) if alive else COLD
@@ -555,33 +559,95 @@ def open_grave(r, seed):
         r.part("cube", math.cos(a) * 0.4, 0.05, 0.9 * math.sin(a), 0.22, 0.02, 0.18, ASH_BODY, ry=a)
 
 
-def cemetery_gate(r, open_t=0.0):
-    """The Cemetery of Ashes' gate: two stone piers capped with urns and a pair of wrought-iron leaves
-    between them, barred and spiked along the top, a ring of iron for a lock. It spans its tile across
-    Z, set back against the wall behind it (-X); `open_t` swings the leaves apart, away from +X."""
-    with r.at(-GATE_SET_BACK, 0, 0):
-        stone = (118, 114, 108)
-        for z in (-0.95, 0.95):
-            r.part("cube", 0, 1.3, z, 0.5, 2.6, 0.4, stone, tex="rough_stone")
-            r.part("cube", 0, 2.66, z, 0.6, 0.12, 0.5, _dim(stone, 1.1), tex="rough_stone")  # the cap
-            r.part("sphere", 0, 2.9, z, 0.3, 0.36, 0.3, CLAY)  # an urn on each
-            r.part("cyl", 0, 3.1, z, 0.16, 0.08, 0.16, _dim(CLAY, 0.75))
-        swing = min(max(open_t, 0.0), 1.0) * 1.4
+def cemetery_gate(r, open_t=0.0, sentinels=True):
+    """The Cemetery of Ashes' gate, built out of the wall behind its tile (-X) and facing +X: a pointed
+    arch of grave-stone on two piers, black passage behind it so whatever lies beyond stays unseen, a
+    pair of wrought-iron leaves in it, barred and spiked, a hooded mourner praying in a niche over the
+    lintel, and (`sentinels`) a hooded stone warden on a stepped plinth either side, a sword grounded
+    before it. It spans past its tile along Z. `open_t` swings the leaves out toward +X."""
+    stone, dark = _dim(HEADSTONE, 1.4), _dim(HEADSTONE, 1.0)
+    spring, half = GATE_SPRING, GATE_HALF  # where the arch springs, and half the doorway's width
+    radius = 2 * half  # an equilateral arch: each side's arc is centred on the far jamb
+    mid = radius + 0.18  # the middle of the ring of voussoirs
+    r.part("cube", -0.97, (spring + 0.2) / 2, 0, 0.04, spring + 0.2, 2 * half + 0.04, PASSAGE_DARK)
+    for side in (-1, 1):
+        z = side * (half + 0.18)
+        # the reveal, falling into shadow
+        r.part("cube", -0.86, (spring + 0.1) / 2, side * (half - 0.01), 0.22, spring + 0.1, 0.02,
+               _dim(dark, 0.45))  # fmt: skip
+        r.part("cube", -0.68, 0.22, z, 0.72, 0.44, 0.5, dark, tex="rough_stone")  # the pier's base
+        r.part("cube", -0.7, spring / 2, z, 0.6, spring, 0.36, stone, tex="rough_stone")  # the pier
+        r.part("cube", -0.68, spring - 0.08, z, 0.7, 0.16, 0.46, dark, tex="rough_stone")  # its capital
+        span = math.pi - math.acos(-half / mid)
+        for i in range(5):  # the arch's voussoirs, an arc centred on the far jamb
+            a = math.pi - (i + 0.5) * span / 5
+            vz, vy = half + mid * math.cos(a), spring + mid * math.sin(a)
+            rgb = stone if i % 2 else _dim(stone, 0.9)
+            r.part("cube", -0.7, vy, side * vz, 0.6, 0.36, 0.42, rgb, tex="rough_stone",
+                   rx=side * (math.pi / 2 - a))  # fmt: skip
+    apex = spring + math.sqrt(mid * mid - half * half)
+    r.part("cube", -0.66, apex, 0, 0.7, 0.56, 0.36, _dim(stone, 1.08), tex="rough_stone")  # the keystone
+    r.part("cube", -0.72, spring + 0.08, 0, 0.5, 0.16, 2 * half + 0.04, dark, tex="rough_stone")  # lintel
+    for k in range(6):  # the tympanum, walled in between the lintel and the arch
+        h = 0.16 + k * 0.21
+        w = math.sqrt(radius * radius - h * h) - half + 0.05
+        r.part("cube", -0.86, spring + h + 0.105, 0, 0.2, 0.21, 2 * w, stone, tex="rough_stone")
+    with r.at(-0.74, spring + 0.32, 0):  # its niche, and the hooded mourner praying in it
+        r.part("cube", 0, 0.4, 0, 0.04, 0.8, 0.5, PIT)
+        r.part("cube", 0, 0.8, 0, 0.04, 0.36, 0.36, PIT, rx=math.pi / 4)
+        r.part("cube", 0.06, 0.02, 0, 0.2, 0.06, 0.6, dark, tex="rough_stone")  # its sill
+        r.part("cone", 0.08, 0.32, 0, 0.18, 0.56, 0.18, stone, tex="rough_stone")  # the robe
+        r.part("sphere", 0.09, 0.66, 0, 0.13, 0.15, 0.13, stone, tex="rough_stone")  # the hood
+        r.part("cube", 0.17, 0.64, 0, 0.04, 0.1, 0.08, PIT)  # the dark under it
+        r.part("cube", 0.17, 0.44, 0, 0.06, 0.14, 0.06, _dim(stone, 1.1))  # hands pressed in prayer
+    swing = min(max(open_t, 0.0), 1.0) * 1.4
+    for side in (-1, 1):  # the leaves, hung on the jambs and swinging out
+        with r.at(-0.62, 0, side * half, ry=-side * swing), r.at(0, 0, -side * half / 2):
+            for k in range(4):  # upright bars, each spiked
+                z = -0.3 + k * 0.2
+                r.part("cube", 0, 1.45, z, 0.04, 2.7, 0.04, GRAVE_IRON)
+                r.part("cone", 0, 2.86, z, 0.06, 0.14, 0.06, GRAVE_IRON)
+            for y in (0.25, 1.3, 2.65):  # rails across them
+                r.part("cube", 0, y, 0, 0.05, 0.06, half - 0.02, GRAVE_IRON)
+            r.part("cube", 0, 1.9, 0, 0.03, 0.46, 0.46, GRAVE_IRON, rx=math.pi / 4)  # a diamond of scrollwork
+            r.part("cube", 0.03, 1.9, 0, 0.03, 0.28, 0.28, _dim(GRAVE_IRON, 1.3), rx=math.pi / 4)
+    if open_t <= 0.0:  # the lock's ring, where the leaves meet
+        r.part("cyl", -0.56, 1.3, 0, 0.14, 0.03, 0.14, (120, 100, 70), rz=math.pi / 2)
+    r.part("cube", -0.45, 0.04, 0, 0.9, 0.08, 2 * half + 0.6, dark, tex="rough_stone")  # the threshold
+    for i in range(4):  # flagstones heaved and broken before it
+        a = i * 1.9 + 0.4
+        r.part("cube", 0.25 + 0.2 * (i % 2), 0.03, -0.9 + i * 0.6, 0.42, 0.06, 0.34, _dim(dark, 0.9 + 0.06 * i),
+               tex="rough_stone", ry=a)  # fmt: skip
+    if sentinels:
         for side in (-1, 1):
-            with r.at(0, 0, side * 0.75, ry=side * swing), r.at(0, 0, -side * 0.375):
-                for k in range(5):  # upright bars, each spiked
-                    z = -0.3 + k * 0.15
-                    r.part("cube", 0, 1.1, z, 0.04, 2.0, 0.04, GRAVE_IRON)
-                    r.part("cone", 0, 2.16, z, 0.06, 0.14, 0.06, GRAVE_IRON)
-                for y in (0.25, 1.1, 1.95):  # rails across them
-                    r.part("cube", 0, y, 0, 0.05, 0.06, 0.74, GRAVE_IRON)
-                r.part(
-                    "cube", 0, 1.55, 0, 0.03, 0.5, 0.5, GRAVE_IRON, rx=math.pi / 4
-                )  # a diamond of scrollwork
-                r.part("cube", 0.03, 1.55, 0, 0.03, 0.3, 0.3, _dim(GRAVE_IRON, 1.3), rx=math.pi / 4)
-        if open_t <= 0.0:  # the lock's ring, where the leaves meet
-            r.part("cyl", 0.06, 1.1, 0, 0.14, 0.03, 0.14, (120, 100, 70), rz=math.pi / 2)
-        r.part("cube", 0, 0.03, 0, 0.6, 0.06, 2.3, _dim(stone, 0.8), tex="rough_stone")  # the threshold
+            with r.at(-0.62, 0, side * SENTINEL_OUT, s=1.15):
+                _gate_sentinel(r, side, stone, dark)
+
+
+def _gate_sentinel(r, side, stone, dark):
+    """A hooded stone warden on a stepped plinth beside the cemetery's gate, facing +X: a tall robed
+    figure, its face lost in its hood, both hands folded on the pommel of a sword grounded before it.
+    `side` is which side of the gate it stands, the steps climbing away from the doorway."""
+    r.part("cube", 0, 0.4, 0, 0.62, 0.8, 0.62, dark, tex="rough_stone")  # the plinth
+    r.part("cube", 0, 0.84, 0, 0.7, 0.08, 0.7, stone, tex="rough_stone")  # its moulding
+    r.part("cube", -0.05, 0.45, side * 0.48, 0.5, 0.9, 0.36, _dim(dark, 0.9), tex="rough_stone")  # steps
+    r.part("cube", -0.12, 1.15, side * 0.5, 0.36, 0.5, 0.3, _dim(dark, 0.8), tex="rough_stone")
+    with r.at(0, 0.88, 0):
+        r.part("cone", 0, 0.9, 0, 0.58, 1.8, 0.56, stone, tex="rough_stone")  # the robe
+        r.part("cube", 0, 0.07, 0, 0.58, 0.14, 0.58, dark, tex="rough_stone")  # its hem
+        r.part("cube", -0.04, 1.5, 0, 0.34, 0.38, 0.56, stone, tex="rough_stone")  # the shoulders
+        with r.at(0.03, 1.86, 0, rz=-0.2):  # the hood, its head a little bowed
+            r.part("sphere", 0, 0, 0, 0.26, 0.32, 0.26, stone, tex="rough_stone")
+            r.part("cone", -0.04, 0.2, 0, 0.2, 0.2, 0.2, stone, tex="rough_stone", rz=0.35)  # its peak
+            r.part("cube", 0.11, -0.03, 0, 0.06, 0.22, 0.16, PIT)  # nothing inside it
+        for s in (-1, 1):  # the sleeves, bent forward to the pommel
+            r.part("cube", 0.1, 1.28, s * 0.17, 0.32, 0.14, 0.14, stone, tex="rough_stone", rz=-0.6)
+        r.part("cube", 0.27, 1.12, 0, 0.14, 0.16, 0.26, _dim(stone, 1.05))  # the hands, folded
+        r.part("sphere", 0.28, 1.24, 0, 0.08, 0.08, 0.08, dark)  # the pommel
+        r.part("cube", 0.28, 1.0, 0, 0.05, 0.24, 0.05, dark)  # the grip
+        r.part("cube", 0.28, 0.86, 0, 0.06, 0.06, 0.4, dark)  # the crossguard
+        r.part("blade", 0.28, 0.38, 0, 0.03, 0.9, 0.12, _dim(stone, 0.95), rz=math.pi)  # the blade, grounded
+        r.part("cube", 0.24, 0.6, side * 0.2, 0.02, 0.5, 0.03, _dim(stone, 0.6))  # a streak of weathering
 
 
 def ash_hands(r, glow, rise, t):
@@ -759,9 +825,9 @@ def mourner(r, e, t):
     throws it. Slain, it folds forward and its robes settle in a heap."""
     fall = death_fall(e, 0.8)
     lurking = e.state == "idle"
-    cloth = (236, 232, 226) if e.flashing else ROBE
-    dark = (210, 206, 200) if e.flashing else ROBE_DARK
-    bone = (250, 248, 244) if e.flashing else BONE_PALE
+    cloth = hit_tint((236, 232, 226)) if e.flashing else ROBE
+    dark = hit_tint((210, 206, 200)) if e.flashing else ROBE_DARK
+    bone = hit_tint((250, 248, 244)) if e.flashing else BONE_PALE
     bob = math.sin(t * 2.6) * 0.03 if e.state == "chase" else 0.0
     bow = 0.45 if lurking else 0.15
     sway = math.sin(t * 3.2) * (0.12 if e.state == "chase" else 0.04)
@@ -859,9 +925,9 @@ def grave_walker(r, e, t):
     fall = death_fall(e, 0.7)
     lean = (-0.3 if e.state == "hurt" else 0) + 1.35 * fall
     alive = fall < 0.5
-    bone = (255, 240, 220) if e.flashing else GRAVE_BONE
+    bone = hit_tint((255, 240, 220)) if e.flashing else GRAVE_BONE
     shade = _dim(bone, 0.72)
-    sheet = (240, 236, 228) if e.flashing else WINDING
+    sheet = hit_tint((240, 236, 228)) if e.flashing else WINDING
     flap = math.sin(t * 2.7) * 0.1 + swing * 0.15
     with r.at(-0.2 * fall, 0.12 * fall, 0, rz=lean):
         for side, a in ((-0.13, swing), (0.13, -swing)):
