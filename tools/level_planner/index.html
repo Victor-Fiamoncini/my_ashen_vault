@@ -1,0 +1,867 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ashen Vault Level Planner</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+Sans+SC:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+[hidden] { display: none !important; }
+
+/* Layout: a cartographer's bench. Tools on the left, the tile map in the middle, the selected marker and level notes on the right. */
+:root {
+  --bg: #ecebf0; --panel: #f7f6fa; --well: #e2e0e9; --line: #cfccd9;
+  --fg: #1f1d26; --muted: #615d70; --accent: #6b4fa0; --accent-ink: #ffffff;
+  --ok: #2f7a4a; --warn: #a3621a; --danger: #a33a3a;
+  --stage: #d9d6e1;
+  --f-display: "Alegreya Sans SC", "Trebuchet MS", sans-serif;
+  --f-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #16151b; --panel: #1e1c25; --well: #121117; --line: #33303f;
+  --fg: #e9e6f2; --muted: #9a95ad; --accent: #a58ae0; --accent-ink: #16121f;
+  --ok: #6cc28d; --warn: #e0a35c; --danger: #e07a7a; --stage: #0e0d12; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #16151b; --panel: #1e1c25; --well: #121117; --line: #33303f;
+  --fg: #e9e6f2; --muted: #9a95ad; --accent: #a58ae0; --accent-ink: #16121f;
+  --ok: #6cc28d; --warn: #e0a35c; --danger: #e07a7a; --stage: #0e0d12; color-scheme: dark }
+
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 13px;
+  padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px));
+  padding-block: 10px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; }
+* { box-sizing: border-box; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+header h1 { font-family: var(--f-display); font-weight: 700; font-size: 20px; letter-spacing: .04em; margin: 0; }
+.grow { flex: 1; }
+.row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.btn { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.danger { color: var(--danger); }
+.btn.danger.armed { background: var(--danger); color: var(--panel); border-color: var(--danger); }
+select, input[type=text], input[type=number], textarea { background: var(--well); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; min-width: 0; }
+#status { font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+#status.ok { color: var(--ok); } #status.warn { color: var(--warn); }
+
+main { flex: 1; min-height: 0; display: grid; grid-template-columns: 212px minmax(0, 1fr) 272px; gap: 10px; }
+.side { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+.side h2 { font-family: var(--f-display); font-weight: 500; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
+.tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.tool { background: var(--well); border: 1px solid var(--line); border-radius: 6px; padding: 6px 2px; font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.tool kbd { font-family: var(--f-mono); font-size: 10px; color: var(--muted); }
+.tool[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.tool[aria-pressed=true] kbd { color: inherit; opacity: .8; }
+.swatches { display: flex; flex-direction: column; gap: 2px; }
+.swatch { display: grid; grid-template-columns: 20px 1fr auto; gap: 8px; align-items: center; background: none; border: 1px solid transparent; border-radius: 6px; padding: 3px 5px; text-align: left; }
+.swatch:hover { background: var(--well); }
+.swatch[aria-pressed=true] { border-color: var(--accent); background: var(--well); }
+.swatch canvas { width: 20px; height: 20px; border-radius: 3px; display: block; }
+.swatch code { font-family: var(--f-mono); font-size: 10px; color: var(--muted); }
+.group-label { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 6px 0 2px 4px; }
+.seg { display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { flex: 1; border: 0; background: var(--well); padding: 4px; font-size: 11px; }
+.seg button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); }
+.check { display: flex; gap: 6px; align-items: center; font-size: 12px; }
+
+#stage { position: relative; background: var(--stage); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; min-height: 320px; touch-action: none; }
+#map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#hud { position: absolute; left: 8px; bottom: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font-family: var(--f-mono); font-size: 11px; pointer-events: none; font-variant-numeric: tabular-nums; }
+#zoombox { position: absolute; right: 8px; bottom: 8px; display: flex; gap: 4px; }
+#zoombox .btn { padding: 2px 9px; font-family: var(--f-mono); }
+#empty { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 20px; color: var(--muted); }
+#empty strong { display: block; font-family: var(--f-display); font-size: 18px; color: var(--fg); margin-bottom: 6px; }
+
+.field { display: flex; flex-direction: column; gap: 3px; }
+.field label { font-size: 11px; color: var(--muted); }
+.field textarea { resize: vertical; min-height: 64px; }
+.kinds { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px; }
+.kind { display: flex; gap: 6px; align-items: center; background: var(--well); border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; font-size: 11.5px; text-align: left; }
+.kind[aria-pressed=true] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.dot { width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center; font-family: var(--f-mono); font-size: 9px; font-weight: 600; color: #fff; flex: none; border: 1.5px solid rgba(0,0,0,.35); }
+.mlist { display: flex; flex-direction: column; gap: 1px; }
+.mitem { display: grid; grid-template-columns: 16px 1fr auto; gap: 6px; align-items: center; background: none; border: 0; border-radius: 5px; padding: 3px 4px; text-align: left; }
+.mitem:hover, .mitem[aria-current=true] { background: var(--well); }
+.mitem span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mitem code { font-family: var(--f-mono); font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.hint { font-size: 11.5px; color: var(--muted); line-height: 1.45; margin: 0; }
+
+dialog { background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 10px; padding: 16px; width: min(520px, calc(100vw - 32px)); }
+dialog::backdrop { background: rgba(10, 8, 16, .45); }
+dialog h3 { font-family: var(--f-display); margin: 0 0 10px; font-size: 17px; }
+dialog form { display: flex; flex-direction: column; gap: 10px; }
+dialog textarea { width: 100%; min-height: 220px; font-family: var(--f-mono); font-size: 11px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+@media (max-width: 980px) {
+  html, body { height: auto; }
+  main { grid-template-columns: 1fr; }
+  #stage { height: 62vh; order: -1; }
+  .side { overflow: visible; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Level Planner</h1>
+  <div class="row">
+    <select id="levelSel" aria-label="Level"></select>
+    <button class="btn" id="newBtn">New level</button>
+    <button class="btn" id="dupBtn">Duplicate</button>
+  </div>
+  <div class="grow"></div>
+  <div class="row">
+    <button class="btn" id="undoBtn" title="Ctrl+Z">Undo</button>
+    <button class="btn" id="redoBtn" title="Ctrl+Shift+Z">Redo</button>
+    <button class="btn" id="exportBtn">Export</button>
+    <button class="btn" id="importBtn">Import</button>
+    <span id="status">Connecting…</span>
+  </div>
+</header>
+
+<main>
+  <aside class="side" aria-label="Tools">
+    <section>
+      <h2>Tool</h2>
+      <div class="tools" id="tools"></div>
+      <div id="rectMode" class="seg" style="margin-top:6px" hidden>
+        <button data-mode="fill" aria-pressed="true">Filled</button>
+        <button data-mode="outline" aria-pressed="false">Outline</button>
+        <button data-mode="room" aria-pressed="false" title="Walls in the brush, floor inside">Building</button>
+      </div>
+    </section>
+    <section>
+      <h2>Tiles</h2>
+      <div class="swatches" id="swatches"></div>
+    </section>
+    <section>
+      <h2>View</h2>
+      <label class="check"><input type="checkbox" id="showGrid" checked> Grid lines</label>
+      <label class="check"><input type="checkbox" id="showLabels" checked> Marker labels</label>
+      <label class="check"><input type="checkbox" id="showDoors"> Door markers</label>
+    </section>
+  </aside>
+
+  <div id="stage">
+    <canvas id="map"></canvas>
+    <div id="empty" hidden><div><strong>No levels yet</strong>Press <em>New level</em> to start a map, or <em>Import</em> to paste one.</div></div>
+    <div id="hud">–</div>
+    <div id="zoombox"><button class="btn" id="zoomOut" aria-label="Zoom out">−</button><button class="btn" id="zoomFit">Fit</button><button class="btn" id="zoomIn" aria-label="Zoom in">+</button></div>
+  </div>
+
+  <aside class="side" aria-label="Markers and level">
+    <section>
+      <h2>Marker to place</h2>
+      <div class="kinds" id="kinds"></div>
+    </section>
+    <section id="inspector">
+      <h2>Selected marker</h2>
+      <p class="hint" id="noSel">Pick the Marker tool and click a tile to place one. With Select, drag a marker to move it; Delete removes it.</p>
+      <div id="selForm" hidden style="display:flex;flex-direction:column;gap:8px">
+        <div class="field"><label for="mKind">Kind</label><select id="mKind"></select></div>
+        <div class="field"><label for="mLabel">Name</label><input type="text" id="mLabel"></div>
+        <div class="field"><label for="mNote">Notes</label><textarea id="mNote" placeholder="Role, shop stock, where it leads…"></textarea></div>
+        <div class="row"><code id="mPos" style="font-family:var(--f-mono);font-size:11px;color:var(--muted)"></code><div class="grow"></div><button class="btn danger" id="mDel">Delete</button></div>
+      </div>
+    </section>
+    <section>
+      <h2>Markers <span id="mCount" style="font-family:var(--f-mono);font-size:11px"></span></h2>
+      <div class="mlist" id="mlist"></div>
+    </section>
+    <section>
+      <h2>Level</h2>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="field"><label for="lvName">Name</label><input type="text" id="lvName"></div>
+        <div class="grid2">
+          <div class="field"><label for="lvW">Width (tiles)</label><input type="number" id="lvW" min="4" max="200"></div>
+          <div class="field"><label for="lvH">Height (tiles)</label><input type="number" id="lvH" min="4" max="200"></div>
+        </div>
+        <div class="row"><button class="btn" id="resizeBtn">Resize</button><span class="hint">Keeps the top-left corner.</span></div>
+        <div class="field"><label for="lvNotes">Design notes</label><textarea id="lvNotes" placeholder="What this level is for, its route, its mood…"></textarea></div>
+        <div class="row"><div class="grow"></div><button class="btn danger" id="delLevel">Delete level</button></div>
+      </div>
+    </section>
+  </aside>
+</main>
+
+<dialog id="newDlg">
+  <form method="dialog" id="newForm">
+    <h3 id="newTitle">New level</h3>
+    <div class="field"><label for="nName">Name</label><input type="text" id="nName" required placeholder="e.g. Harrowmere (redesign)"></div>
+    <div class="grid2">
+      <div class="field"><label for="nW">Width (tiles)</label><input type="number" id="nW" value="48" min="4" max="200"></div>
+      <div class="field"><label for="nH">Height (tiles)</label><input type="number" id="nH" value="40" min="4" max="200"></div>
+    </div>
+    <div class="field"><label for="nBase">Start filled with</label><select id="nBase"></select></div>
+    <p class="hint">One tile is 2 m in the game. x runs east along a row, z south down the columns, as in <code>--at x,z</code>.</p>
+    <div class="row"><div class="grow"></div><button class="btn" value="cancel" formnovalidate>Cancel</button><button class="btn primary" value="ok">Create</button></div>
+  </form>
+</dialog>
+
+<dialog id="ioDlg">
+  <form method="dialog" id="ioForm">
+    <h3 id="ioTitle">Export</h3>
+    <div class="seg" id="ioFmt"><button type="button" data-fmt="json" aria-pressed="true">JSON</button><button type="button" data-fmt="ascii" aria-pressed="false">ASCII grid + legend</button></div>
+    <textarea id="ioText" spellcheck="false"></textarea>
+    <p class="hint" id="ioHint"></p>
+    <div class="row"><div class="grow"></div><button class="btn" value="cancel" formnovalidate>Close</button><button class="btn primary" type="button" id="ioAct">Copy</button></div>
+  </form>
+</dialog>
+
+<script>
+(() => {
+"use strict";
+// ---------- Tile and marker vocabulary ----------
+const TILES = [
+  // [char, name, colour, group, solid]
+  ["x", "Unbuilt", "#24222b", "Ground", false],
+  [".", "Street (cobble)", "#a39d90", "Ground", false],
+  ["s", "Plaza (setts)", "#c8b791", "Ground", false],
+  ["=", "Raised terrace", "#bcb4a3", "Ground", false],
+  ["/", "Steps", "#ddd4c0", "Ground", false],
+  ["o", "Sunken court", "#7a7468", "Ground", false],
+  ["v", "Grass / garden", "#6f8b49", "Ground", false],
+  ["j", "Jungle path", "#4e6b34", "Ground", false],
+  ["c", "Cave (dark)", "#3a342d", "Ground", false],
+  ["i", "House interior", "#caa77b", "Indoors", false],
+  ["n", "Hall / nave", "#8f84a8", "Indoors", false],
+  ["#", "Town wall", "#3c3944", "Walls", true],
+  ["^", "Cliff / rock", "#5a554c", "Walls", true],
+  ["H", "Stone house", "#7c7192", "Walls", true],
+  ["J", "Timber house", "#7f5b3c", "Walls", true],
+  ["C", "Cathedral / great wall", "#4c3f66", "Walls", true],
+  ["_", "Low wall / plinth", "#6d6a63", "Walls", true],
+  ["G", "Hedge / vine wall", "#2f4a22", "Walls", true],
+  ["~", "Sea (deep)", "#22466b", "Water", false],
+  ["r", "Canal (shallow)", "#3f7aa3", "Water", false],
+  ["p", "Pier / boards", "#9c6b3e", "Water", false],
+];
+const TILE = Object.fromEntries(TILES.map(t => [t[0], { ch: t[0], name: t[1], color: t[2], group: t[3], solid: t[4] }]));
+const KINDS = [
+  // [id, name, colour, glyph]
+  ["npc", "NPC", "#3f8fd6", "N"],
+  ["shop", "Shop", "#d6a33f", "$"],
+  ["gate", "Gate / exit", "#c25b3a", "G"],
+  ["well", "Well / descent", "#2f9f8f", "W"],
+  ["cave", "Cave mouth", "#6f8b49", "C"],
+  ["shrine", "Shrine", "#e0c070", "S"],
+  ["boss", "Boss", "#b8323d", "B"],
+  ["enemy", "Enemy", "#8a3b56", "E"],
+  ["chest", "Chest / item", "#b07a2f", "I"],
+  ["landmark", "Landmark", "#8e6fd0", "L"],
+  ["door", "Door", "#8c8478", "D"],
+  ["start", "Player start", "#ffffff", "P"],
+  ["note", "Note", "#5f6b7a", "?"],
+];
+const KIND = Object.fromEntries(KINDS.map(k => [k[0], { id: k[0], name: k[1], color: k[2], glyph: k[3] }]));
+const TOOLS = [
+  ["paint", "Paint", "B"], ["rect", "Rectangle", "R"], ["fill", "Fill", "F"],
+  ["pick", "Eyedrop", "I"], ["marker", "Marker", "M"], ["select", "Select", "V"],
+];
+
+// ---------- State ----------
+const CLIENT = Math.random().toString(36).slice(2, 10);
+const ls = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+};
+const S = {
+  levels: new Map(), id: null, lv: null,
+  tool: "paint", brush: ".", kind: "npc", rectMode: "fill",
+  zoom: 14, ox: 40, oy: 40, sel: null, hover: null,
+  undo: [], redo: [], dirty: false, saving: false,
+  showGrid: true, showLabels: true, showDoors: false,
+};
+const $ = id => document.getElementById(id);
+const cv = $("map"), cx = cv.getContext("2d"), stage = $("stage");
+
+// ---------- Persistence ----------
+let store = null;
+function setStatus(t, cls = "") { const s = $("status"); s.textContent = t; s.className = cls; }
+async function initStore() {
+  let db = null;
+  try { db = window.claude?.use ? await window.claude.use("db") : null; } catch { db = null; }
+  if (db) {
+    const col = db.collection("levels");
+    let loaded = false;
+    const timer = setTimeout(() => { if (!loaded) setStatus("Store is slow to answer…", "warn"); }, 10000);
+    col.onSnapshot(snap => {
+      loaded = true; clearTimeout(timer);
+      onLevels(snap.docs.filter(d => d.exists).map(d => ({ id: d.id, ...d.data() })));
+    }, err => { clearTimeout(timer); setStatus("Can't read levels: " + (err?.message || err?.code || "error"), "warn"); });
+    store = {
+      kind: "db",
+      save: (id, data) => col.doc(id).set(data),
+      remove: id => col.doc(id).delete(),
+    };
+    setStatus("Loading levels…");
+  } else {
+    let all = {};
+    try { all = JSON.parse(ls.get("levels") || "{}"); } catch {}
+    store = {
+      kind: "local",
+      save: async (id, data) => { all[id] = data; ls.set("levels", JSON.stringify(all)); },
+      remove: async id => { delete all[id]; ls.set("levels", JSON.stringify(all)); onLevels(Object.entries(all).map(([id, d]) => ({ id, ...d }))); },
+    };
+    onLevels(Object.entries(all).map(([id, d]) => ({ id, ...d })));
+    setStatus("Saved in this browser only", "warn");
+  }
+}
+function onLevels(list) {
+  const prev = S.levels;
+  S.levels = new Map(list.map(l => [l.id, l]));
+  renderLevelSel();
+  if (!S.id || !S.levels.has(S.id)) {
+    const want = ls.get("lastLevel");
+    const first = [...S.levels.values()].sort((a, b) => (a.name || "").localeCompare(b.name || ""))[0];
+    openLevel(S.levels.has(want) ? want : first?.id || null);
+  } else {
+    const d = S.levels.get(S.id);
+    const old = prev.get(S.id);
+    if (d.client !== CLIENT && !S.dirty && !S.saving && (!old || d.savedAt !== old.savedAt)) openLevel(S.id, true);
+  }
+  if (store.kind === "db" && !S.dirty && !S.saving) setStatus(S.levels.size ? "All changes saved" : "No levels yet", S.levels.size ? "ok" : "");
+}
+function cleanLevel(d) {
+  const w = clampInt(d.w, 4, 200, 40), h = clampInt(d.h, 4, 200, 30);
+  const rows = [];
+  for (let y = 0; y < h; y++) {
+    const r = (Array.isArray(d.rows) ? String(d.rows[y] ?? "") : "");
+    let out = "";
+    for (let x = 0; x < w; x++) { const c = r[x]; out += TILE[c] ? c : "x"; }
+    rows.push(out.split(""));
+  }
+  const marks = (Array.isArray(d.marks) ? d.marks : []).filter(m => m && Number.isFinite(+m.x) && Number.isFinite(+m.y)).map((m, i) => ({
+    id: String(m.id || "m" + i + Date.now()), kind: KIND[m.kind] ? m.kind : "note",
+    x: clampInt(m.x, 0, w - 1, 0), y: clampInt(m.y, 0, h - 1, 0),
+    label: String(m.label ?? "").slice(0, 120), note: String(m.note ?? "").slice(0, 2000),
+  }));
+  return { name: String(d.name || "Untitled").slice(0, 80), w, h, rows, marks, notes: String(d.notes ?? "").slice(0, 8000) };
+}
+function clampInt(v, lo, hi, dflt) { v = Math.round(+v); return Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : dflt; }
+function serial(lv) {
+  return { name: lv.name, w: lv.w, h: lv.h, rows: lv.rows.map(r => r.join("")), marks: lv.marks, notes: lv.notes, client: CLIENT, savedAt: new Date().toISOString() };
+}
+let saveTimer = null;
+function touch() {
+  S.dirty = true; setStatus("Unsaved changes…");
+  clearTimeout(saveTimer); saveTimer = setTimeout(flush, 900);
+}
+async function flush() {
+  if (!S.lv || !S.id) return;
+  if (S.saving) { clearTimeout(saveTimer); saveTimer = setTimeout(flush, 400); return; }
+  S.saving = true; S.dirty = false; setStatus("Saving…");
+  try {
+    await store.save(S.id, serial(S.lv));
+    setStatus(store.kind === "db" ? "All changes saved" : "Saved in this browser only", store.kind === "db" ? "ok" : "warn");
+  } catch (e) {
+    S.dirty = true;
+    setStatus(e?.code === "permission_denied" || e?.code === "not_granted" ? "View only: changes are not saved" : "Save failed, will retry", "warn");
+    if (!(e?.code === "permission_denied" || e?.code === "not_granted")) saveTimer = setTimeout(flush, 4000);
+  } finally { S.saving = false; }
+}
+
+// ---------- Levels ----------
+function renderLevelSel() {
+  const sel = $("levelSel");
+  const list = [...S.levels.values()].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  sel.replaceChildren(...list.map(l => { const o = document.createElement("option"); o.value = l.id; o.textContent = l.name || "Untitled"; return o; }));
+  if (S.id) sel.value = S.id;
+  sel.disabled = !list.length;
+}
+function openLevel(id, keepView = false) {
+  S.id = id; S.lv = id && S.levels.has(id) ? cleanLevel(S.levels.get(id)) : null;
+  if (!keepView) { S.undo = []; S.redo = []; S.sel = null; }
+  else if (S.sel && !S.lv?.marks.find(m => m.id === S.sel)) S.sel = null;
+  if (id) ls.set("lastLevel", id);
+  $("empty").hidden = !!S.lv;
+  $("levelSel").value = id || "";
+  fillLevelForm(); renderInspector(); renderMarkList();
+  if (!keepView) fit(); else draw();
+}
+function slug(name) { return (name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "level") + "-" + Math.random().toString(36).slice(2, 6); }
+async function createLevel(data) {
+  const id = slug(data.name);
+  const lv = cleanLevel(data);
+  S.levels.set(id, { id, ...serial(lv) });
+  renderLevelSel();
+  openLevel(id);
+  S.dirty = true; await flush();
+}
+function fillLevelForm() {
+  const lv = S.lv;
+  for (const id of ["lvName", "lvW", "lvH", "lvNotes", "resizeBtn", "delLevel", "dupBtn", "exportBtn"]) $(id).disabled = !lv;
+  if (!lv) { $("lvName").value = ""; $("lvNotes").value = ""; return; }
+  $("lvName").value = lv.name; $("lvW").value = lv.w; $("lvH").value = lv.h; $("lvNotes").value = lv.notes;
+}
+
+// ---------- Undo ----------
+function snapshot() { return JSON.stringify({ rows: S.lv.rows.map(r => r.join("")), marks: S.lv.marks, w: S.lv.w, h: S.lv.h }); }
+function pushUndo() { if (!S.lv) return; S.undo.push(snapshot()); if (S.undo.length > 150) S.undo.shift(); S.redo = []; }
+function restore(s) {
+  const d = JSON.parse(s);
+  S.lv.w = d.w; S.lv.h = d.h; S.lv.rows = d.rows.map(r => r.split("")); S.lv.marks = d.marks;
+  if (S.sel && !S.lv.marks.find(m => m.id === S.sel)) S.sel = null;
+  fillLevelForm(); renderInspector(); renderMarkList(); draw(); touch();
+}
+function undo() { if (!S.lv || !S.undo.length) return; S.redo.push(snapshot()); restore(S.undo.pop()); }
+function redo() { if (!S.lv || !S.redo.length) return; S.undo.push(snapshot()); restore(S.redo.pop()); }
+
+// ---------- Drawing ----------
+function resize() {
+  const r = stage.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  cv.width = Math.max(1, Math.round(r.width * dpr)); cv.height = Math.max(1, Math.round(r.height * dpr));
+  draw();
+}
+function fit() {
+  if (!S.lv) { draw(); return; }
+  const r = stage.getBoundingClientRect();
+  const z = Math.max(4, Math.min(40, Math.floor(Math.min((r.width - 60) / S.lv.w, (r.height - 60) / S.lv.h))));
+  S.zoom = z; S.ox = Math.round((r.width - S.lv.w * z) / 2 + 10); S.oy = Math.round((r.height - S.lv.h * z) / 2 + 8);
+  draw();
+}
+function shade(hex, f) {
+  const n = parseInt(hex.slice(1), 16); let r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  const t = f < 0 ? 0 : 255, p = Math.abs(f);
+  r = Math.round((t - r) * p + r); g = Math.round((t - g) * p + g); b = Math.round((t - b) * p + b);
+  return `rgb(${r},${g},${b})`;
+}
+function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function paintTile(c, ch, px, py, z, x, y) {
+  const t = TILE[ch] || TILE.x;
+  c.fillStyle = t.color; c.fillRect(px, py, z, z);
+  if (ch === "x") {
+    c.fillStyle = "rgba(255,255,255,0.04)";
+    if ((x + y) % 2 === 0) c.fillRect(px, py, z, z);
+    return;
+  }
+  if (t.solid) {
+    const b = Math.max(1, Math.round(z / 7));
+    c.fillStyle = shade(t.color, 0.18); c.fillRect(px, py, z, b); c.fillRect(px, py, b, z);
+    c.fillStyle = shade(t.color, -0.35); c.fillRect(px, py + z - b, z, b); c.fillRect(px + z - b, py, b, z);
+  } else if (ch === "/") {
+    c.strokeStyle = "rgba(60,50,40,0.45)"; c.lineWidth = 1; c.beginPath();
+    for (let k = 1; k < 4; k++) { const yy = py + Math.round(k * z / 4) + 0.5; c.moveTo(px, yy); c.lineTo(px + z, yy); }
+    c.stroke();
+  } else if (ch === "~" || ch === "r") {
+    if (z >= 8 && (x * 3 + y * 7) % 5 === 0) {
+      c.strokeStyle = "rgba(200,225,255,0.35)"; c.lineWidth = 1; c.beginPath();
+      const yy = py + z * 0.55; c.moveTo(px + z * 0.2, yy); c.quadraticCurveTo(px + z * 0.5, yy - z * 0.2, px + z * 0.8, yy); c.stroke();
+    }
+  } else if (ch === "p") {
+    c.fillStyle = "rgba(40,20,5,0.35)";
+    for (let k = 1; k < 3; k++) c.fillRect(px + Math.round(k * z / 3), py, 1, z);
+  } else if (ch === "v" || ch === "j") {
+    if (z >= 8 && (x * 5 + y * 3) % 4 === 0) { c.fillStyle = "rgba(20,40,10,0.35)"; c.fillRect(px + z * 0.3, py + z * 0.4, Math.max(1, z / 8), Math.max(1, z / 8)); }
+  }
+}
+function draw() {
+  const dpr = window.devicePixelRatio || 1;
+  cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const W = cv.width / dpr, H = cv.height / dpr;
+  cx.clearRect(0, 0, W, H);
+  const lv = S.lv; if (!lv) { $("hud").textContent = "–"; return; }
+  const z = S.zoom;
+  const x0 = Math.max(0, Math.floor(-S.ox / z)), y0 = Math.max(0, Math.floor(-S.oy / z));
+  const x1 = Math.min(lv.w, Math.ceil((W - S.ox) / z)), y1 = Math.min(lv.h, Math.ceil((H - S.oy) / z));
+  cx.imageSmoothingEnabled = false;
+  for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) paintTile(cx, lv.rows[y][x], S.ox + x * z, S.oy + y * z, z, x, y);
+  // rect preview
+  if (drag && drag.type === "rect" && drag.cur) {
+    const [ax, ay, bx, by] = rectOf(drag.start, drag.cur);
+    for (let y = ay; y <= by; y++) for (let x = ax; x <= bx; x++) {
+      const ch = rectChar(x, y, ax, ay, bx, by); if (ch == null) continue;
+      cx.globalAlpha = 0.75; paintTile(cx, ch, S.ox + x * z, S.oy + y * z, z, x, y); cx.globalAlpha = 1;
+    }
+    cx.strokeStyle = "#fff"; cx.lineWidth = 1.5; cx.setLineDash([4, 3]);
+    cx.strokeRect(S.ox + ax * z + .5, S.oy + ay * z + .5, (bx - ax + 1) * z - 1, (by - ay + 1) * z - 1); cx.setLineDash([]);
+  }
+  // grid
+  if (S.showGrid && z >= 6) {
+    cx.beginPath(); cx.strokeStyle = "rgba(0,0,0,0.16)"; cx.lineWidth = 1;
+    for (let x = x0; x <= x1; x++) { const px = S.ox + x * z + .5; cx.moveTo(px, S.oy + y0 * z); cx.lineTo(px, S.oy + y1 * z); }
+    for (let y = y0; y <= y1; y++) { const py = S.oy + y * z + .5; cx.moveTo(S.ox + x0 * z, py); cx.lineTo(S.ox + x1 * z, py); }
+    cx.stroke();
+    cx.beginPath(); cx.strokeStyle = "rgba(0,0,0,0.32)";
+    for (let x = Math.ceil(x0 / 10) * 10; x <= x1; x += 10) { const px = S.ox + x * z + .5; cx.moveTo(px, S.oy + y0 * z); cx.lineTo(px, S.oy + y1 * z); }
+    for (let y = Math.ceil(y0 / 10) * 10; y <= y1; y += 10) { const py = S.oy + y * z + .5; cx.moveTo(S.ox + x0 * z, py); cx.lineTo(S.ox + x1 * z, py); }
+    cx.stroke();
+  }
+  // border + rulers
+  cx.strokeStyle = cssVar("--muted"); cx.lineWidth = 1; cx.strokeRect(S.ox - .5, S.oy - .5, lv.w * z + 1, lv.h * z + 1);
+  cx.fillStyle = cssVar("--muted"); cx.font = "10px " + cssVar("--f-mono");
+  const step = z >= 14 ? 5 : 10;
+  cx.textAlign = "center"; cx.textBaseline = "bottom";
+  for (let x = 0; x < lv.w; x += step) cx.fillText(x, S.ox + x * z + z / 2, S.oy - 3);
+  cx.textAlign = "right"; cx.textBaseline = "middle";
+  for (let y = 0; y < lv.h; y += step) cx.fillText(y, S.ox - 4, S.oy + y * z + z / 2);
+  // hover
+  if (S.hover && inBounds(S.hover.x, S.hover.y) && !(drag && drag.type === "pan")) {
+    cx.strokeStyle = "#fff"; cx.lineWidth = 2; cx.strokeRect(S.ox + S.hover.x * z + 1, S.oy + S.hover.y * z + 1, z - 2, z - 2);
+  }
+  // markers
+  const r = Math.max(5, Math.min(14, z * 0.42));
+  const labels = [];
+  for (const m of lv.marks) {
+    if (m.kind === "door" && !S.showDoors && m.id !== S.sel) continue;
+    const k = KIND[m.kind], px = S.ox + m.x * z + z / 2, py = S.oy + m.y * z + z / 2;
+    if (px < -40 || py < -40 || px > W + 40 || py > H + 40) continue;
+    cx.beginPath(); cx.arc(px, py, r, 0, Math.PI * 2);
+    cx.fillStyle = k.color; cx.fill();
+    cx.lineWidth = m.id === S.sel ? 3 : 1.5; cx.strokeStyle = m.id === S.sel ? cssVar("--accent") : "rgba(0,0,0,0.55)"; cx.stroke();
+    if (m.id === S.sel) { cx.beginPath(); cx.arc(px, py, r + 3.5, 0, Math.PI * 2); cx.strokeStyle = "#fff"; cx.lineWidth = 1.5; cx.stroke(); }
+    if (r >= 6) {
+      cx.fillStyle = m.kind === "start" || m.kind === "shrine" ? "#222" : "#fff";
+      cx.font = `600 ${Math.round(r * 1.05)}px ${cssVar("--f-mono")}`; cx.textAlign = "center"; cx.textBaseline = "middle";
+      cx.fillText(k.glyph, px, py + .5);
+    }
+    if (S.showLabels && m.label && z >= 10 && m.kind !== "door") labels.push([m.label, px, py + r + 2]);
+  }
+  cx.font = `500 11px ${cssVar("--f-body")}`; cx.textAlign = "center"; cx.textBaseline = "top";
+  for (const [t, px, py] of labels) {
+    const w = cx.measureText(t).width + 8;
+    cx.fillStyle = "rgba(16,14,22,0.78)"; roundRect(px - w / 2, py, w, 15, 3); cx.fill();
+    cx.fillStyle = "#f2eefa"; cx.fillText(t, px, py + 2);
+  }
+  updateHud();
+}
+function roundRect(x, y, w, h, r) { cx.beginPath(); cx.moveTo(x + r, y); cx.arcTo(x + w, y, x + w, y + h, r); cx.arcTo(x + w, y + h, x, y + h, r); cx.arcTo(x, y + h, x, y, r); cx.arcTo(x, y, x + w, y, r); cx.closePath(); }
+function updateHud() {
+  const h = S.hover, lv = S.lv;
+  if (!lv) { $("hud").textContent = "–"; return; }
+  if (!h || !inBounds(h.x, h.y)) { $("hud").textContent = `${lv.w}×${lv.h} tiles · ${lv.w * 2}×${lv.h * 2} m`; return; }
+  const m = markerAt(h.x, h.y);
+  $("hud").textContent = `x ${h.x}, z ${h.y} · ${TILE[lv.rows[h.y][h.x]].name}${m ? " · " + (m.label || KIND[m.kind].name) : ""}`;
+}
+
+// ---------- Editing ----------
+const inBounds = (x, y) => S.lv && x >= 0 && y >= 0 && x < S.lv.w && y < S.lv.h;
+function cellAt(e) { const r = cv.getBoundingClientRect(); return { x: Math.floor((e.clientX - r.left - S.ox) / S.zoom), y: Math.floor((e.clientY - r.top - S.oy) / S.zoom) }; }
+function markerAt(x, y) {
+  const ms = S.lv.marks.filter(m => m.x === x && m.y === y && (m.kind !== "door" || S.showDoors || m.id === S.sel));
+  return ms[ms.length - 1] || null;
+}
+function setCell(x, y, ch) { if (!inBounds(x, y) || S.lv.rows[y][x] === ch) return false; S.lv.rows[y][x] = ch; return true; }
+function line(a, b, f) {
+  let x0 = a.x, y0 = a.y; const dx = Math.abs(b.x - x0), dy = -Math.abs(b.y - y0), sx = x0 < b.x ? 1 : -1, sy = y0 < b.y ? 1 : -1;
+  let err = dx + dy;
+  for (;;) { f(x0, y0); if (x0 === b.x && y0 === b.y) break; const e2 = 2 * err; if (e2 >= dy) { err += dy; x0 += sx; } if (e2 <= dx) { err += dx; y0 += sy; } }
+}
+function rectOf(a, b) { return [Math.min(a.x, b.x), Math.min(a.y, b.y), Math.max(a.x, b.x), Math.max(a.y, b.y)]; }
+function rectChar(x, y, ax, ay, bx, by) {
+  const edge = x === ax || x === bx || y === ay || y === by;
+  if (S.rectMode === "fill") return S.brush;
+  if (S.rectMode === "outline") return edge ? S.brush : null;
+  const wall = TILE[S.brush].solid ? S.brush : "H";
+  return edge ? wall : (wall === "C" ? "n" : "i");
+}
+function flood(x, y, ch) {
+  const from = S.lv.rows[y][x]; if (from === ch) return;
+  const st = [[x, y]];
+  while (st.length) {
+    const [a, b] = st.pop();
+    if (!inBounds(a, b) || S.lv.rows[b][a] !== from) continue;
+    S.lv.rows[b][a] = ch; st.push([a + 1, b], [a - 1, b], [a, b + 1], [a, b - 1]);
+  }
+}
+function addMarker(x, y) {
+  pushUndo();
+  const k = KIND[S.kind];
+  const n = S.lv.marks.filter(m => m.kind === S.kind).length + 1;
+  const m = { id: "m" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), kind: S.kind, x, y, label: S.kind === "start" ? "Start" : `${k.name} ${n}`, note: "" };
+  if (S.kind === "start") S.lv.marks = S.lv.marks.filter(o => o.kind !== "start");
+  S.lv.marks.push(m); S.sel = m.id;
+  renderInspector(); renderMarkList(); draw(); touch();
+  setTimeout(() => { $("mLabel").focus(); $("mLabel").select(); }, 0);
+}
+
+// ---------- Pointer ----------
+let drag = null, spaceDown = false;
+const pointers = new Map();
+cv.addEventListener("contextmenu", e => e.preventDefault());
+cv.addEventListener("pointerdown", e => {
+  cv.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pointers.size === 2) { const [a, b] = [...pointers.values()]; drag = { type: "pinch", d: Math.hypot(a.x - b.x, a.y - b.y), z: S.zoom }; return; }
+  if (!S.lv) return;
+  const c = cellAt(e);
+  if (e.button === 1 || e.button === 2 || spaceDown) { drag = { type: "pan", sx: e.clientX, sy: e.clientY, ox: S.ox, oy: S.oy }; cv.style.cursor = "grabbing"; return; }
+  if (e.button !== 0) return;
+  const hit = inBounds(c.x, c.y) ? markerAt(c.x, c.y) : null;
+  if ((S.tool === "select" || S.tool === "marker") && hit) {
+    S.sel = hit.id; renderInspector(); renderMarkList();
+    drag = { type: "move", m: hit, moved: false }; draw(); return;
+  }
+  if (!inBounds(c.x, c.y)) { if (S.tool === "select") { S.sel = null; renderInspector(); renderMarkList(); draw(); } return; }
+  switch (S.tool) {
+    case "paint": pushUndo(); setCell(c.x, c.y, S.brush); drag = { type: "paint", last: c, changed: true }; draw(); break;
+    case "rect": drag = { type: "rect", start: c, cur: c }; draw(); break;
+    case "fill": pushUndo(); flood(c.x, c.y, S.brush); draw(); touch(); break;
+    case "pick": setBrush(S.lv.rows[c.y][c.x]); setTool("paint"); break;
+    case "marker": addMarker(c.x, c.y); break;
+    case "select": S.sel = null; renderInspector(); renderMarkList(); draw(); break;
+  }
+});
+cv.addEventListener("pointermove", e => {
+  if (pointers.has(e.pointerId)) pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (drag?.type === "pinch" && pointers.size === 2) {
+    const [a, b] = [...pointers.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y);
+    const r = cv.getBoundingClientRect(); zoomAt(Math.max(3, Math.min(48, drag.z * d / drag.d)), (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top); return;
+  }
+  const c = cellAt(e);
+  const changedHover = !S.hover || S.hover.x !== c.x || S.hover.y !== c.y;
+  S.hover = c;
+  if (!drag) { if (changedHover) draw(); return; }
+  if (drag.type === "pan") { S.ox = drag.ox + e.clientX - drag.sx; S.oy = drag.oy + e.clientY - drag.sy; draw(); return; }
+  if (!changedHover) return;
+  if (drag.type === "paint") { line(drag.last, c, (x, y) => setCell(x, y, S.brush)); drag.last = c; draw(); }
+  else if (drag.type === "rect") { drag.cur = { x: Math.max(0, Math.min(S.lv.w - 1, c.x)), y: Math.max(0, Math.min(S.lv.h - 1, c.y)) }; draw(); }
+  else if (drag.type === "move" && inBounds(c.x, c.y)) {
+    if (!drag.moved) { pushUndo(); drag.moved = true; }
+    drag.m.x = c.x; drag.m.y = c.y; renderInspector(); draw();
+  }
+});
+function endDrag(e) {
+  pointers.delete(e.pointerId);
+  if (!drag) return;
+  const d = drag; drag = null; cv.style.cursor = "";
+  if (d.type === "paint") touch();
+  else if (d.type === "rect") {
+    pushUndo();
+    const [ax, ay, bx, by] = rectOf(d.start, d.cur);
+    for (let y = ay; y <= by; y++) for (let x = ax; x <= bx; x++) { const ch = rectChar(x, y, ax, ay, bx, by); if (ch != null) setCell(x, y, ch); }
+    touch();
+  } else if (d.type === "move" && d.moved) { renderMarkList(); touch(); }
+  draw();
+}
+cv.addEventListener("pointerup", endDrag);
+cv.addEventListener("pointercancel", endDrag);
+cv.addEventListener("pointerleave", () => { S.hover = null; if (!drag) draw(); });
+cv.addEventListener("wheel", e => {
+  e.preventDefault();
+  const r = cv.getBoundingClientRect();
+  if (e.ctrlKey || Math.abs(e.deltaY) >= Math.abs(e.deltaX)) zoomAt(S.zoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15), e.clientX - r.left, e.clientY - r.top);
+  else { S.ox -= e.deltaX; draw(); }
+}, { passive: false });
+function zoomAt(nz, mx, my) {
+  nz = Math.max(3, Math.min(48, nz));
+  const k = nz / S.zoom; S.ox = mx - (mx - S.ox) * k; S.oy = my - (my - S.oy) * k; S.zoom = nz; draw();
+}
+$("zoomIn").onclick = () => { const r = stage.getBoundingClientRect(); zoomAt(S.zoom * 1.25, r.width / 2, r.height / 2); };
+$("zoomOut").onclick = () => { const r = stage.getBoundingClientRect(); zoomAt(S.zoom / 1.25, r.width / 2, r.height / 2); };
+$("zoomFit").onclick = fit;
+
+// ---------- Keyboard ----------
+const typing = () => /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName);
+document.addEventListener("keydown", e => {
+  if (typing() || document.querySelector("dialog[open]")) return;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") { e.preventDefault(); redo(); return; }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === " ") { spaceDown = true; cv.style.cursor = "grab"; e.preventDefault(); return; }
+  if ((e.key === "Delete" || e.key === "Backspace") && S.sel) { deleteSel(); e.preventDefault(); return; }
+  if (e.key === "Escape") { S.sel = null; renderInspector(); renderMarkList(); draw(); return; }
+  if (e.key === "+" || e.key === "=") { $("zoomIn").click(); return; }
+  if (e.key === "-") { $("zoomOut").click(); return; }
+  if (e.key === "0") { fit(); return; }
+  const t = TOOLS.find(t => t[2].toLowerCase() === e.key.toLowerCase());
+  if (t) setTool(t[0]);
+});
+document.addEventListener("keyup", e => { if (e.key === " ") { spaceDown = false; cv.style.cursor = ""; } });
+
+// ---------- Side panels ----------
+function swatchCanvas(ch) {
+  const c = document.createElement("canvas"); c.width = 20; c.height = 20;
+  paintTile(c.getContext("2d"), ch, 0, 0, 20, 0, 0); return c;
+}
+function buildPanels() {
+  $("tools").replaceChildren(...TOOLS.map(([id, name, key]) => {
+    const b = document.createElement("button"); b.className = "tool"; b.dataset.tool = id; b.title = `${name} (${key})`;
+    b.innerHTML = `<span></span><kbd>${key}</kbd>`; b.firstChild.textContent = name; b.onclick = () => setTool(id); return b;
+  }));
+  const sw = $("swatches"); let group = null;
+  for (const [ch, name, , g] of TILES) {
+    if (g !== group) { const l = document.createElement("div"); l.className = "group-label"; l.textContent = g; sw.append(l); group = g; }
+    const b = document.createElement("button"); b.className = "swatch"; b.dataset.ch = ch;
+    const nm = document.createElement("span"); nm.textContent = name; const code = document.createElement("code"); code.textContent = ch;
+    b.append(swatchCanvas(ch), nm, code); b.onclick = () => { setBrush(ch); if (["pick", "marker", "select"].includes(S.tool)) setTool("paint"); };
+    sw.append(b);
+  }
+  $("kinds").replaceChildren(...KINDS.map(([id, name, color, glyph]) => {
+    const b = document.createElement("button"); b.className = "kind"; b.dataset.kind = id;
+    const d = document.createElement("span"); d.className = "dot"; d.style.background = color; d.textContent = glyph; if (id === "start" || id === "shrine") d.style.color = "#222";
+    const n = document.createElement("span"); n.textContent = name; b.append(d, n);
+    b.onclick = () => { S.kind = id; setTool("marker"); syncButtons(); }; return b;
+  }));
+  $("mKind").replaceChildren(...KINDS.map(([id, name]) => { const o = document.createElement("option"); o.value = id; o.textContent = name; return o; }));
+  $("nBase").replaceChildren(...TILES.map(([ch, name]) => { const o = document.createElement("option"); o.value = ch; o.textContent = name; return o; }));
+  $("nBase").value = "x";
+  $("rectMode").querySelectorAll("button").forEach(b => b.onclick = () => { S.rectMode = b.dataset.mode; syncButtons(); });
+}
+function setTool(t) { S.tool = t; syncButtons(); }
+function setBrush(ch) { S.brush = ch; syncButtons(); }
+function syncButtons() {
+  document.querySelectorAll(".tool").forEach(b => b.setAttribute("aria-pressed", b.dataset.tool === S.tool));
+  document.querySelectorAll(".swatch").forEach(b => b.setAttribute("aria-pressed", b.dataset.ch === S.brush));
+  document.querySelectorAll(".kind").forEach(b => b.setAttribute("aria-pressed", b.dataset.kind === S.kind && S.tool === "marker"));
+  $("rectMode").hidden = S.tool !== "rect";
+  $("rectMode").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === S.rectMode));
+  cv.style.cursor = S.tool === "pick" ? "copy" : S.tool === "select" ? "default" : "crosshair";
+}
+function selMarker() { return S.lv?.marks.find(m => m.id === S.sel) || null; }
+function renderInspector() {
+  const m = selMarker();
+  $("noSel").hidden = !!m; $("selForm").hidden = !m; $("selForm").style.display = m ? "flex" : "none";
+  if (!m) return;
+  if (document.activeElement !== $("mLabel")) $("mLabel").value = m.label;
+  if (document.activeElement !== $("mNote")) $("mNote").value = m.note;
+  $("mKind").value = m.kind;
+  $("mPos").textContent = `x ${m.x}, z ${m.y}  (${m.x * 2 + 1}, ${m.y * 2 + 1} m)`;
+}
+function renderMarkList() {
+  const lv = S.lv; const list = $("mlist");
+  if (!lv) { list.replaceChildren(); $("mCount").textContent = ""; return; }
+  const order = Object.fromEntries(KINDS.map((k, i) => [k[0], i]));
+  const ms = lv.marks.filter(m => m.kind !== "door" || S.showDoors).sort((a, b) => order[a.kind] - order[b.kind] || a.label.localeCompare(b.label));
+  $("mCount").textContent = `(${lv.marks.length})`;
+  list.replaceChildren(...ms.map(m => {
+    const b = document.createElement("button"); b.className = "mitem"; b.setAttribute("aria-current", m.id === S.sel);
+    const k = KIND[m.kind]; const d = document.createElement("span"); d.className = "dot"; d.style.background = k.color; d.textContent = k.glyph;
+    if (m.kind === "start" || m.kind === "shrine") d.style.color = "#222";
+    const n = document.createElement("span"); n.textContent = m.label || k.name; n.title = m.note || "";
+    const c = document.createElement("code"); c.textContent = `${m.x},${m.y}`;
+    b.append(d, n, c);
+    b.onclick = () => { S.sel = m.id; centerOn(m.x, m.y); renderInspector(); renderMarkList(); draw(); };
+    return b;
+  }));
+}
+function centerOn(x, y) {
+  const r = stage.getBoundingClientRect();
+  const px = S.ox + x * S.zoom, py = S.oy + y * S.zoom;
+  if (px < 30 || py < 30 || px > r.width - 30 || py > r.height - 30) { S.ox = r.width / 2 - x * S.zoom; S.oy = r.height / 2 - y * S.zoom; }
+}
+function deleteSel() {
+  const m = selMarker(); if (!m) return;
+  pushUndo(); S.lv.marks = S.lv.marks.filter(o => o.id !== m.id); S.sel = null;
+  renderInspector(); renderMarkList(); draw(); touch();
+}
+let textUndoArmed = false;
+function editSel(field, v) {
+  const m = selMarker(); if (!m) return;
+  if (!textUndoArmed) { pushUndo(); textUndoArmed = true; }
+  m[field] = v; draw(); touch();
+}
+$("mLabel").addEventListener("input", e => editSel("label", e.target.value.slice(0, 120)));
+$("mNote").addEventListener("input", e => editSel("note", e.target.value.slice(0, 2000)));
+for (const id of ["mLabel", "mNote", "lvName", "lvNotes"]) $(id).addEventListener("blur", () => { textUndoArmed = false; renderMarkList(); });
+$("mKind").addEventListener("change", e => { textUndoArmed = false; editSel("kind", e.target.value); textUndoArmed = false; renderInspector(); renderMarkList(); });
+$("mDel").onclick = deleteSel;
+$("lvName").addEventListener("input", e => { if (!S.lv) return; S.lv.name = e.target.value.slice(0, 80) || "Untitled"; const l = S.levels.get(S.id); if (l) l.name = S.lv.name; touch(); });
+$("lvName").addEventListener("change", renderLevelSel);
+$("lvNotes").addEventListener("input", e => { if (!S.lv) return; S.lv.notes = e.target.value.slice(0, 8000); touch(); });
+$("resizeBtn").onclick = () => {
+  if (!S.lv) return;
+  const w = clampInt($("lvW").value, 4, 200, S.lv.w), h = clampInt($("lvH").value, 4, 200, S.lv.h);
+  if (w === S.lv.w && h === S.lv.h) return;
+  pushUndo();
+  const rows = [];
+  for (let y = 0; y < h; y++) { const r = []; for (let x = 0; x < w; x++) r.push(S.lv.rows[y]?.[x] ?? "x"); rows.push(r); }
+  S.lv.rows = rows; S.lv.w = w; S.lv.h = h;
+  S.lv.marks = S.lv.marks.filter(m => m.x < w && m.y < h);
+  if (S.sel && !selMarker()) S.sel = null;
+  fillLevelForm(); renderInspector(); renderMarkList(); fit(); touch();
+};
+function armed(btn, label, action) {
+  if (btn.classList.contains("armed")) { btn.classList.remove("armed"); btn.textContent = label; action(); return; }
+  btn.classList.add("armed"); btn.textContent = "Click again to confirm";
+  setTimeout(() => { btn.classList.remove("armed"); btn.textContent = label; }, 3000);
+}
+$("delLevel").onclick = e => armed(e.currentTarget, "Delete level", async () => {
+  const id = S.id; clearTimeout(saveTimer); S.dirty = false;
+  S.levels.delete(id); S.id = null; renderLevelSel();
+  const next = [...S.levels.values()].sort((a, b) => (a.name || "").localeCompare(b.name || ""))[0];
+  openLevel(next?.id || null);
+  try { await store.remove(id); setStatus("Level deleted", "ok"); } catch { setStatus("Delete failed", "warn"); }
+});
+["showGrid", "showLabels", "showDoors"].forEach(id => $(id).addEventListener("change", e => {
+  S[id] = e.target.checked; ls.set("view:" + id, e.target.checked ? "1" : "0"); renderMarkList(); draw();
+}));
+$("levelSel").addEventListener("change", async e => { if (S.dirty) { clearTimeout(saveTimer); await flush(); } openLevel(e.target.value); });
+$("undoBtn").onclick = undo; $("redoBtn").onclick = redo;
+
+// ---------- New / duplicate ----------
+$("newBtn").onclick = () => { $("newTitle").textContent = "New level"; $("nName").value = ""; $("newDlg").dataset.dup = ""; $("newDlg").showModal(); };
+$("dupBtn").onclick = () => {
+  if (!S.lv) return;
+  $("newTitle").textContent = "Duplicate level"; $("nName").value = S.lv.name + " (copy)";
+  $("nW").value = S.lv.w; $("nH").value = S.lv.h; $("newDlg").dataset.dup = "1"; $("newDlg").showModal();
+};
+$("newDlg").addEventListener("close", async () => {
+  const dlg = $("newDlg"); if (dlg.returnValue !== "ok") return;
+  const name = $("nName").value.trim() || "Untitled";
+  const w = clampInt($("nW").value, 4, 200, 48), h = clampInt($("nH").value, 4, 200, 40);
+  if (dlg.dataset.dup && S.lv) {
+    const src = serial(S.lv);
+    await createLevel({ ...src, name, w, h });
+  } else {
+    const base = $("nBase").value;
+    await createLevel({ name, w, h, rows: Array.from({ length: h }, () => base.repeat(w)), marks: [], notes: "" });
+  }
+});
+
+// ---------- Export / import ----------
+let ioMode = "export", ioFmt = "json";
+function asciiExport() {
+  const lv = S.lv;
+  const used = new Set(lv.rows.flat());
+  const legend = TILES.filter(t => used.has(t[0])).map(t => `${t[0]} = ${t[1]}`).join("\n");
+  const marks = lv.marks.map(m => `${KIND[m.kind].name.padEnd(14)} x=${String(m.x).padStart(3)} z=${String(m.y).padStart(3)}  ${m.label}${m.note ? " — " + m.note.replace(/\n/g, " ") : ""}`).join("\n");
+  return `# ${lv.name} (${lv.w}x${lv.h} tiles, 2 m each)\n\n[legend]\n${legend}\n\n[grid]\n${lv.rows.map(r => r.join("")).join("\n")}\n\n[markers]\n${marks}\n${lv.notes ? "\n[notes]\n" + lv.notes + "\n" : ""}`;
+}
+function setIo() {
+  $("ioFmt").hidden = ioMode !== "export";
+  $("ioFmt").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.dataset.fmt === ioFmt));
+  if (ioMode === "export") {
+    $("ioTitle").textContent = "Export " + (S.lv?.name || "");
+    $("ioText").readOnly = true;
+    $("ioText").value = S.lv ? (ioFmt === "json" ? JSON.stringify({ ...serial(S.lv), client: undefined, savedAt: undefined }, null, 1) : asciiExport()) : "";
+    $("ioAct").textContent = "Copy"; $("ioHint").textContent = "Paste either format back to Claude to build the level in the game.";
+  } else {
+    $("ioTitle").textContent = "Import a level"; $("ioText").readOnly = false; $("ioText").value = "";
+    $("ioText").placeholder = '{"name": "...", "w": 40, "h": 30, "rows": ["...."], "marks": []}';
+    $("ioAct").textContent = "Import as new level"; $("ioHint").textContent = "Paste JSON exported from this planner.";
+  }
+}
+$("ioFmt").querySelectorAll("button").forEach(b => b.onclick = () => { ioFmt = b.dataset.fmt; setIo(); });
+$("exportBtn").onclick = () => { if (!S.lv) return; ioMode = "export"; setIo(); $("ioDlg").showModal(); };
+$("importBtn").onclick = () => { ioMode = "import"; setIo(); $("ioDlg").showModal(); };
+$("ioAct").onclick = async () => {
+  if (ioMode === "export") {
+    const t = $("ioText");
+    try { await navigator.clipboard.writeText(t.value); $("ioHint").textContent = "Copied."; }
+    catch { t.focus(); t.select(); $("ioHint").textContent = "Copy was blocked here. The text is selected: press Ctrl+C."; }
+  } else {
+    let d; try { d = JSON.parse($("ioText").value); } catch { $("ioHint").textContent = "That isn't valid JSON. Check for a missing bracket or quote."; return; }
+    if (!d || !Array.isArray(d.rows)) { $("ioHint").textContent = "The JSON needs a \"rows\" list of strings."; return; }
+    d.w = d.w || Math.max(...d.rows.map(r => String(r).length)); d.h = d.h || d.rows.length;
+    $("ioDlg").close(); await createLevel(d);
+  }
+};
+
+// ---------- Boot ----------
+for (const id of ["showGrid", "showLabels", "showDoors"]) { const v = ls.get("view:" + id); if (v != null) { S[id] = v === "1"; $(id).checked = S[id]; } }
+buildPanels(); syncButtons(); fillLevelForm();
+new ResizeObserver(() => resize()).observe(stage);
+resize();
+window.addEventListener("beforeunload", () => { if (S.dirty) flush(); });
+initStore();
+})();
+</script>
+</body>
+</html>
