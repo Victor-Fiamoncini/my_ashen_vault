@@ -1,17 +1,17 @@
 [meta]
 name = Harrowmere
-ambient = 0.40 0.38 0.42
-fog = 0.26 0.28 0.33
-fog_range = 10 48
-model_range = 40
-sky = overcast
-torch = 0 0 0 0
+ambient = 0.25 0.24 0.29
+fog = 0.14 0.14 0.19
+fog_range = 8 40
+model_range = 36
+sky = dusk
+torch = 4 0.55 0.5 0.45
 start = 2 29 0
 default = ,
 edge_top = -0.5
 entity_floor = auto
 
-// Harrowmere climbs from its harbour to the cathedral on the hill under a low, gloomy sky, a town of
+// Harrowmere climbs from its harbour to the cathedral on the hill under a low, darkening dusk, a town of
 // sandstone and ochre render under terracotta roofs, all stone underfoot: cobbles, setts and flags. The
 // cemetery's gate in the west wall, shut behind each Ashen who comes through it; the pier, the quay and
 // the market lanes; the Bell Square at the heart of town with the Silent Bell on

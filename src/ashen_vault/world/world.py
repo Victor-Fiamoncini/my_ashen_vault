@@ -2144,7 +2144,11 @@ class World:
         elif k == "door" and p.props.get("boss"):
             a = self.arena_at_door(p)
             if a and a.fogged(self.flags):
-                models.fog_gate(rig, t, p.axis, a.sealed)
+                tile = self.map[p.tx, p.tz]
+                height = models.BOSS_DOOR_TOP
+                if tile.ceil is not None:
+                    height = min(height, tile.ceil - tile.floor)
+                models.fog_gate(rig, t, p.axis, a.sealed, height)
             else:
                 lit = not (a and a.cleared(self.flags))
                 models.boss_door(rig, p.open_t, p.axis, t, lit=lit, boss=p.props.get("boss"))

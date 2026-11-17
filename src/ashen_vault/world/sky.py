@@ -43,7 +43,7 @@ class Sky:
 
 
 SKIES = {
-    # Harrowmere: a low, gloomy grey ceiling with a dim, wan sun barely breaking through it.
+    # The cemetery: a low, gloomy grey ceiling with a dim, wan sun barely breaking through it.
     "overcast": Sky(
         zenith=(0.17, 0.2, 0.27),
         sun=(0.82, 0.78, 0.66),
@@ -54,6 +54,18 @@ SKIES = {
         clouds=(0.48, 0.48, 0.5),
         cloud_under=(0.27, 0.28, 0.32),
         mist=(0.39, 0.4, 0.43),
+    ),
+    # Harrowmere: dusk under a bruised ceiling of cloud, a dull copper sun sinking through it.
+    "dusk": Sky(
+        zenith=(0.07, 0.07, 0.12),
+        sun=(0.78, 0.5, 0.32),
+        sun_at=SUN_AT,
+        sun_size=2.4,
+        halo=(0.36, 0.24, 0.2),
+        halo_size=18.0,
+        clouds=(0.24, 0.22, 0.27),
+        cloud_under=(0.12, 0.12, 0.17),
+        mist=(0.18, 0.18, 0.23),
     ),
     # The hollow: thick, humid green-gold haze over the canopy and a pale sun glaring through it.
     "jungle": Sky(

@@ -1184,13 +1184,30 @@ def test_every_boss_has_its_own_great_door_and_its_lamps_go_out_when_cleared():
         lit, cold = _GlowGpu(), _GlowGpu()
         models.boss_door(rig.Rig(lit), 0.0, "x", 0.5, lit=True, boss=boss)
         models.boss_door(rig.Rig(cold), 0.0, "z", 0.5, lit=False, boss=boss)
-        assert len(lit.parts) >= 80, boss
+        assert 20 <= len(lit.parts) <= 60, boss  # simple, but dressed for its boss
         assert lit.glows > 0 and cold.glows == 0, boss
         looks[boss] = frozenset(lit.looks)
     assert len(set(looks.values())) == len(looks)  # each door is dressed differently
     plain = _GlowGpu()
     models.boss_door(rig.Rig(plain), 0.5, "x", 0.0, boss="no_such_boss")  # unknown bosses get the Warden's
     assert len(plain.parts) == len(_door_parts(models, models.DEFAULT_DOOR))
+
+
+def test_the_fog_gate_fills_the_doorway_from_the_floor_to_the_top():
+    from ashen_vault.render import bounds, models
+
+    for height in (models.BOSS_DOOR_TOP, 2.6):
+        for t in (0.0, 1.3, 2.9):
+            for axis, across in (("x", 2), ("z", 0)):
+                lo, hi = bounds.measure(lambda r, t=t, h=height, a=axis: models.fog_gate(r, t, a, height=h))
+                assert abs(lo[1]) < 0.01 and abs(hi[1] - height) < 0.01
+                assert lo[across] <= -0.99 and hi[across] >= 0.99  # wall to wall
+    rising = []
+    for t in (0.0, 0.5):  # its billows climb
+        gpu = _RecordingGpu()
+        models.fog_gate(rig.Rig(gpu), t, "x")
+        rising.append(gpu.parts)
+    assert rising[0] != rising[1]
 
 
 def _door_parts(models, boss):

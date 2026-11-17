@@ -18,7 +18,7 @@ def _meta(name):
 def test_each_outdoor_map_names_a_sky_and_the_keep_has_none():
     names = {name: sky.get(_meta(name)) for name in ("harrowmere", "verdant_hollow", "cinderhold")}
     assert names == {
-        "harrowmere": sky.SKIES["overcast"],
+        "harrowmere": sky.SKIES["dusk"],
         "verdant_hollow": sky.SKIES["jungle"],
         "cinderhold": sky.SKIES["ember"],
     }
