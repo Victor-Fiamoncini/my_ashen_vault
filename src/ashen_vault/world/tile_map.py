@@ -20,6 +20,8 @@ class Tile:
     wall_tex: str | None = None
     ceil_tex: str | None = None
     liquid: bool = False
+    # Deep water (the open sea off the town's quays): no one is cast back ashore from it; you drown.
+    deep: bool = False
     pit: bool = False  # falling in hurts and sends you back to solid ground
     # Hazards: HP lost per tick while standing here, a current (m/s along x, z) that pushes
     # bodies, a walk-speed multiplier (sucking mud), and a sheer chasm (a ravine) that only a

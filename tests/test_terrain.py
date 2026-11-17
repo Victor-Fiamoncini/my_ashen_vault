@@ -794,3 +794,53 @@ def test_an_empty_shaft_is_a_drop_from_above_but_no_way_under_a_raised_cage():
     bottom.y = -6.0
     run(h2, bottom, 0.1)
     assert not h2.open_to(2, 1)
+
+
+SEA = """[meta]
+name = Sea
+start = 1 1 0
+
+[legend]
+# = wall
+. = floor h=0
+~ = water h=-0.8 deep
+r = water h=-0.8
+
+[grid]
+######
+#..r.#
+#....#
+#~~~~#
+######
+"""
+
+
+def test_walking_off_the_quay_into_deep_water_drowns_you():
+    m = MapLoader(SEA, name="sea").parse()
+    assert m[1, 3].deep and m[1, 3].liquid and not m[3, 1].deep
+    h = terrain.Terrain(m)
+    body = Body(1, 2)
+    run(h, body, 0.1)
+    body.x, body.z = TileMap.center(1, 3)  # off the edge
+    hits, events = run(h, body, 0.05)
+    assert events == ["drown"] and h.plunging and h.fell_into == "sea"
+    assert ("splash", 1.0) in h.sounds
+    # Nothing casts you back: you sink, slowly, and the sea keeps you.
+    hits, events = run(h, body, terrain.DROWN_TIME - 0.2)
+    assert "fell_dead" not in events and body.stats.hp > 0 and hits == []
+    assert body.y < 0 and (body.x, body.z) == TileMap.center(1, 3)
+    assert body.y >= m[1, 3].floor - terrain.DROWN_DEPTH  # sunk to the eye, not down to the bottom
+    _hits, events = run(h, body, 0.4)
+    assert events.count("fell_dead") == 1 and body.stats.hp == 0
+    assert h.safe == TileMap.center(1, 2)  # where the dead leave their ashes
+
+
+def test_shallow_water_beside_the_sea_still_casts_you_back():
+    m = MapLoader(SEA, name="sea").parse()
+    h = terrain.Terrain(m)
+    body = Body(3, 2)
+    run(h, body, 0.1)
+    body.x, body.z = TileMap.center(3, 1)  # into the canal
+    _hits, events = run(h, body, 0.05)
+    assert events == ["fell"] and not h.plunging and body.stats.hp > 0
+    assert (body.x, body.z) == TileMap.center(3, 2)

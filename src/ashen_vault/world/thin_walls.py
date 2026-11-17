@@ -66,16 +66,25 @@ def _index(cuts, v):
     return 0
 
 
+def _outwardness(tile):
+    """How much a neighbour counts as the outside a slab hugs: the open sky most, then a full wall
+    (a town wall or a low court wall the house backs onto, which the slab runs along), then a room
+    or another thin wall not at all."""
+    if not tile.solid:
+        return 2 if tile.open_sky else 0
+    return 0 if tile.thin else 1
+
+
 def _band(map_, tx, tz, before, after, size, thick):
     """Where the slab's band lies across one axis: against whichever side (`before` at 0, `after` at
-    `size`) is open to the sky, centred when both or neither are."""
-    a = map_[tx + before[0], tz + before[1]]
-    b = map_[tx + after[0], tz + after[1]]
-    sky_a = not a.solid and a.open_sky
-    sky_b = not b.solid and b.open_sky
-    if sky_a and not sky_b:
+    `size`) is more outward (`_outwardness`), centred when they tie. A full wall counts, so a run of
+    slab hugging the sky keeps its line where a corner or one tile of it backs onto a low wall
+    instead: centring that tile would leave see-through slits at both its ends."""
+    a = _outwardness(map_[tx + before[0], tz + before[1]])
+    b = _outwardness(map_[tx + after[0], tz + after[1]])
+    if a > b:
         return 0.0
-    if sky_b and not sky_a:
+    if b > a:
         return size - thick
     return (size - thick) / 2
 

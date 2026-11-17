@@ -1,7 +1,9 @@
 import math
+import os
 
 import pytest
 
+from ashen_vault import MAP_DIR
 from ashen_vault.render.mesh_builder import MeshBuilder
 from ashen_vault.world import collision, thin_walls
 from ashen_vault.world.map_loader import MapLoader
@@ -158,3 +160,85 @@ def test_a_point_on_the_far_edge_of_a_tile_still_finds_its_cell(house):
     lay = house.layout(2, 2)
     assert lay.owner_at(2.0, 2.0) == (3, 3)  # the room's corner, at the tile's very edge
     assert lay.owner_at(0.0, 0.0) is None  # the slab's outer corner
+
+
+def _edge_slab(map_, tx, tz, d):
+    """The spans of slab along the edge of tile (tx, tz) toward d, merged: the whole edge for a full
+    wall, nothing for an open tile."""
+    tile = map_[tx, tz]
+    if not tile.solid:
+        return []
+    lay = map_.layout(tx, tz)
+    if lay is None:
+        a = (tz if d[0] else tx) * thin_walls.TILE
+        return [(a, a + thin_walls.TILE)]
+    spans = []
+    for x0, z0, x1, z1 in lay.boxes():
+        edge = {
+            (1, 0): math.isclose(x1, (tx + 1) * thin_walls.TILE),
+            (-1, 0): math.isclose(x0, tx * thin_walls.TILE),
+            (0, 1): math.isclose(z1, (tz + 1) * thin_walls.TILE),
+            (0, -1): math.isclose(z0, tz * thin_walls.TILE),
+        }[d]
+        if edge:
+            spans.append((z0, z1) if d[0] else (x0, x1))
+    merged = []
+    for a, b in sorted(spans):
+        if merged and a <= merged[-1][1] + 1e-6:
+            merged[-1] = (merged[-1][0], max(b, merged[-1][1]))
+        else:
+            merged.append((a, b))
+    return [(round(a, 3), round(b, 3)) for a, b in merged]
+
+
+def _seams(map_):
+    """Every edge where two thin tiles meet with their slabs out of line: each slab's end is left
+    open there (the other's margin lies against it), a see-through slit from the street."""
+    seams = []
+    for tx, tz, tile in map_.each_tile():
+        if not tile.thin:
+            continue
+        for d in ((1, 0), (0, 1)):
+            nx, nz = tx + d[0], tz + d[1]
+            if not (nx < map_.width and nz < map_.depth) or not map_[nx, nz].thin:
+                continue
+            if _edge_slab(map_, tx, tz, d) != _edge_slab(map_, nx, nz, (-d[0], -d[1])):
+                seams.append(((tx, tz), (nx, nz)))
+    return seams
+
+
+# A house backing onto a low court wall (`_`) at its north-west corner and one tile of its west side.
+BACKED = """[meta]
+name = Backed
+start = 1 1 0
+
+[legend]
+# = wall tex=stone_brick top=6
+_ = wall tex=stone_brick top=2
+H = wall tex=plaster top=4 thin=0.5
+. = floor h=0
+i = floor h=0.2 ceil=3
+
+[grid]
+##########
+#...._...#
+#....HHHH#
+#....HiiH#
+#..._HiiH#
+#....HiiH#
+#....HHHH#
+##########
+"""
+
+
+def test_a_slab_backing_onto_a_low_wall_keeps_the_line_of_its_run():
+    backed = MapLoader(BACKED, name="backed").parse()
+    assert backed.layout(5, 3).xs[1] == 0.0  # hugs the sky to the west
+    assert backed.layout(5, 4).xs[1] == 0.0  # backs onto the low wall, in line with the run
+    assert backed.layout(5, 2).zs[1] == 0.0  # the corner under the low wall hugs it, like its run
+    assert _seams(backed) == []
+
+
+def test_harrowmere_has_no_slits_between_its_thin_walls():
+    town = MapLoader.load_file(os.path.join(MAP_DIR, "harrowmere.map"))
+    assert _seams(town) == []

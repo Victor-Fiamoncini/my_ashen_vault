@@ -57,6 +57,7 @@ class Prop:
     axis: str | None = None
     wall: bool = False  # hung on the wall behind it (at local -X)
     lift: object = None  # the terrain.Platform a lift_call lever summons
+    goal: float = 0.0  # the open_t a house door is swinging toward (0 shut, 1 open)
 
 
 @dataclass(eq=False)
@@ -131,6 +132,8 @@ FALL_MESSAGES = {
     "river": "The river drags you under and casts you back ashore.",
 }
 FALL_DEATH = "You fall to your death."
+DROWN_DEATH = "The sea drags you under."
+DROWN_MESSAGE = "You plunge into the sea, and it will not let you go."
 HAZARD_MESSAGES = {
     "landed": "You land hard.",
     "logs_first": "A rotten rope snaps above, and the woodpile starts to roll!",
@@ -256,7 +259,7 @@ WALL_PROPS = (
     "rose_window",
     "flying_buttress",
     "crypt_front",
-    "smith_sign",
+    "shop_sign",
 )
 # Props drawn as far as the fog lets you see, however far that is: they make a skyline.
 LANDMARKS = (
@@ -273,6 +276,8 @@ LANDMARKS = (
     "cathedral_spire",
     "cathedral_tower",
     "banner_pole",
+    "roof_turret",
+    "wall_tower",
 )
 # Props that never move, open, break or flicker: they are baked once into world-space batches
 # (`render/prop_bake.py`) instead of being drawn part by part every frame. A prop drawn with the time
@@ -285,7 +290,8 @@ STATIC_PROPS = frozenset(
         *("gargoyle_statue", "pillar", "sarcophagus", "headsman_block", "rack", "rubble", "bones"),
         *("shackles", "cobweb", "mushrooms", "slag_heap", "ingot_pile", "gatehouse", "bastion"),
         *("gravestone", "open_grave", "cemetery_gate", "mourning_statue", "crypt_front", "grave_railing"),
-        *("smith_sign", "forge_bellows", "grindstone", "town_statue", "forge_statue", "ore_cart"),
+        *("shop_sign", "forge_bellows", "grindstone", "town_statue", "forge_statue", "ore_cart"),
+        *("roof_turret", "wall_tower"),
         "ash_mound",
         "spire",
     }
@@ -327,9 +333,12 @@ TOWN_PROPS = (
     "hay_wagon",
     "cargo",
     "town_statue",
-    "smith_sign",
+    "shop_sign",
     "forge_bellows",
     "grindstone",
+    "roof_turret",
+    "wall_tower",
+    "house_door",
 )
 ANVIL_SOUND = (0.35, 14.0)  # (volume, metres to silence) of the smith's hammer on his anvil
 HAZARD_KINDS = ("spikes", "pendulum", "crumble", "flame_jet", "magma_vent")
@@ -338,6 +347,7 @@ FALL_DEPTH = 1.5  # metres below the pit's rim before a fall counts
 LAVA_SHARE = 0.35  # share of your max HP a dip in lava burns away
 SECRET_FALL_RATE = 0.7  # per second: a struck fake wall sears and crumbles over about 1.4 s
 OPEN_RATE = 0.8  # per second: how fast doors, lids and levers swing
+HOUSE_DOOR_RATE = 1.7  # per second: a house door swings open or shut in about 0.6 s
 SHIMMER_NEAR = 4.0  # metres within which a fake wall's motes give it away
 FOE_DAMAGE = 1.5  # every blow, shot and spell a foe lands on you hits this much harder
 LAVA_MIN = 20
@@ -598,6 +608,20 @@ class World:
                     prop.open_t = 1.0
                 if spec.kind in ("door", "gate"):
                     prop.axis = self._door_axis(spec.tx, spec.tz)
+                if spec.kind == "door_arch" and hinged(spec.props):
+                    self.props.append(
+                        Prop(
+                            kind="house_door",
+                            x=x,
+                            z=z,
+                            y=y,
+                            tx=spec.tx,
+                            tz=spec.tz,
+                            props=spec.props,
+                            key=f"house_door:{self.name}:{spec.tx},{spec.tz}",
+                            yaw=yaw,
+                        )
+                    )  # shut whenever you come: it is never saved
                 if spec.kind == "pickup" and key in self.flags:
                     continue
                 self.props.append(prop)
@@ -877,7 +901,7 @@ class World:
             a = self.arena_at_door(p)
             if a is not None:
                 return a.blocks(self.flags, p.open_t < 0.9)
-        if p.kind in ("door", "gate"):
+        if p.kind in ("door", "gate", "house_door"):
             return p.open_t < 0.9
         if p.kind in BREAKABLE_PROPS:
             return p.open_t == 0
@@ -1230,10 +1254,15 @@ class World:
         if event == "fell":
             self.game.sfx("hurt")
             self.game.message(FALL_MESSAGES[self.terrain.fell_into])
+        elif event == "fell_dead" and self.terrain.plunging and self.terrain.fell_into == "sea":
+            self.game.sfx("hurt")
+            self.game.message(DROWN_DEATH)
         elif event == "fell_dead":
             self.game.sfx("hurt")
             self.game.sfx("crack", 0.8)
             self.game.message(FALL_DEATH)
+        elif event == "drown":
+            self.game.message(DROWN_MESSAGE)
         else:
             if event in HAZARD_MESSAGES:
                 self.game.message(HAZARD_MESSAGES[event])
@@ -1268,6 +1297,9 @@ class World:
                 p.open_t = p.open_t + dt * 1.6 if p.open_t + dt * 1.6 < 1.0 else 0.0
             elif p.kind == "frog_idol" and p.open_t > 0:
                 p.open_t = p.open_t + dt if p.open_t + dt < FROG_CROAK else 0.0
+            elif p.kind == "house_door":
+                step = dt * HOUSE_DOOR_RATE
+                p.open_t = min(p.open_t + step, p.goal) if p.goal > p.open_t else max(p.open_t - step, p.goal)
             elif 0 < p.open_t < 1.0:
                 p.open_t = min(p.open_t + dt * self._open_rate(p), 1.0)
         self._update_remnant()
@@ -1802,7 +1834,76 @@ class World:
                 return True
         if p.kind in ("chest", "lever", "door", "altar"):
             return p.open_t == 0
+        if p.kind == "house_door":
+            return p.open_t == p.goal  # not while it swings
         return p.kind in KINDLING and not self.is_lit(p)  # a cold fire: you can look at its ashes
+
+    def swing_door(self, p):
+        """Opens a shut house door, or shuts an open one. It will not shut on someone standing in its
+        doorway; you, on its step or just inside with only a shoulder over the threshold, step back
+        clear of it as it shuts (the leaf hangs at the arch and a shut door fills its tile, so a body
+        left overlapping the tile would be wedged). Returns whether it moved."""
+        if p.goal >= 1.0 and (self._doorway_occupied(p) or not self._clear_doorway(p)):
+            return False
+        p.goal = 0.0 if p.goal >= 1.0 else 1.0
+        self.game.sfx("door", 0.5)
+        return True
+
+    def _doorway_rect(self, p):
+        x0, z0 = p.tx * TileMap.TILE, p.tz * TileMap.TILE
+        return x0, z0, x0 + TileMap.TILE, z0 + TileMap.TILE
+
+    def _doorway_occupied(self, p):
+        """Whether anyone stands in the doorway: you with your feet on its floor (its tile, or the
+        margin of a thin jamb it lends, where the open leaf rests), or a villager or a foe anywhere
+        over it (they don't step aside)."""
+        x0, z0, x1, z1 = self._doorway_rect(p)
+        player = self.player
+        if x0 <= player.x <= x1 and z0 <= player.z <= z1:
+            return True
+        tx, tz = TileMap.tile_coord(player.x), TileMap.tile_coord(player.z)
+        lay = self.map.layout(tx, tz)
+        if lay is not None and lay.owner_at(player.x - tx * TileMap.TILE, player.z - tz * TileMap.TILE) == (
+            p.tx,
+            p.tz,
+        ):
+            return True
+        pad = 0.4  # a body's girth: a shoulder in the doorway counts
+        bodies = [(q.x, q.z) for q in self.props if q.kind == "npc"]
+        bodies += [(e.x, e.z) for e in self.enemies if e.alive]
+        return any(x0 - pad < x < x1 + pad and z0 - pad < z < z1 + pad for x, z in bodies)
+
+    def _clear_doorway(self, p):
+        """Steps you back out of the doorway if your body would still overlap the shut door (your feet
+        already outside it). Returns False if a wall behind you won't let you clear it."""
+        player = self.player
+        r = player.RADIUS
+
+        def shut(tx, tz):
+            return (tx, tz) == (p.tx, p.tz) or self.blocked_tile(tx, tz)
+
+        def wedged(x, z):
+            home = (TileMap.tile_coord(x), TileMap.tile_coord(z))
+            return not collision.circle_clear(self.map, x, z, r, self.map.floor_at(x, z), shut, home)
+
+        if not wedged(player.x, player.z):
+            return True
+        x0, z0, x1, z1 = self._doorway_rect(p)
+        pushes = []
+        if player.x < x0:
+            pushes.append((x0 - r - player.x, 0.0))
+        elif player.x > x1:
+            pushes.append((x1 + r - player.x, 0.0))
+        if player.z < z0:
+            pushes.append((0.0, z0 - r - player.z))
+        elif player.z > z1:
+            pushes.append((0.0, z1 + r - player.z))
+        for dx, dz in sorted(pushes, key=lambda d: abs(d[0]) + abs(d[1])):
+            nx, nz = collision.move(self.map, player.x, player.z, dx * 1.01, dz * 1.01, r, self.blocked_tile)
+            if not wedged(nx, nz):
+                player.x, player.z = nx, nz
+                return True
+        return False
 
     def open_prop(self, p):
         p.open_t = 0.01
@@ -2460,7 +2561,31 @@ class World:
                 float(p.props.get("height", "3.2")),
                 float(p.props.get("spring", "2.2")),
                 "rose" in p.props,
+                leaf=not hinged(p.props),  # a house's own door is drawn apart, as it swings
             )
+        elif k == "house_door":
+            town_models.house_door(rig, p.open_t, float(p.props.get("spring", "2.2")), seed)
+        elif k == "roof_turret":  # `shift=dx,dz` sets it out on the house's corner
+            dx, dz = (float(v) for v in p.props.get("shift", "0,0").split(","))
+            with rig.at(dx, float(p.props.get("rise", "4.2")), dz):
+                town_models.roof_turret(
+                    rig,
+                    seed,
+                    float(p.props.get("height", "3.2")),
+                    float(p.props.get("radius", "0.9")),
+                    float(p.props.get("cap", "3.6")),
+                )
+        elif k == "wall_tower":
+            dx, dz = (float(v) for v in p.props.get("shift", "0,0").split(","))
+            with rig.at(dx, 0, dz):
+                town_models.wall_tower(
+                    rig,
+                    seed,
+                    float(p.props.get("height", "10")),
+                    float(p.props.get("radius", "2.2")),
+                    float(p.props.get("cap", "5")),
+                    p.props.get("capped", "true") != "false",
+                )
         elif k == "banner_pole":
             town_models.banner_pole(rig, t, seed)
         elif k == "fountain":
@@ -2493,12 +2618,18 @@ class World:
             town_models.lamp_post(rig, t + p.tx)
         elif k == "boat":
             town_models.boat(rig, t, seed)
-        elif k == "smith_sign":
-            town_models.smith_sign(rig, seed)
+        elif k == "shop_sign":
+            town_models.shop_sign(rig, p.props.get("emblem", "anvil"))
         elif k == "forge_bellows":
             town_models.forge_bellows(rig, seed)
         elif k == "grindstone":
             town_models.grindstone(rig, seed)
+
+
+def hinged(props):
+    """Whether a `door_arch` hangs a door that opens and shuts (a house's): every one but the
+    cathedral's (`rose`) and one left standing `open`."""
+    return "rose" not in props and "open" not in props
 
 
 def maiden_door(t):

@@ -275,6 +275,54 @@ def test_every_harrowmere_gate_has_a_watchman_beside_it():
         assert any(abs(gx - x) + abs(gz - z) <= 3 for x, z in watch), (gx, gz)
 
 
+def test_harrowmere_wall_is_towered_and_its_houses_turreted():
+    """Round towers stand in the town wall, at its corners and along it, never beside a way out;
+    turrets sit on the houses' walls, and every roof is of violet slate."""
+    m = MapLoader.load_file(os.path.join(MAP_DIR, "harrowmere.map"))
+    towers = {(s.tx, s.tz) for s in _spec(m, "wall_tower")}
+    assert all(m[x, z].solid for x, z in towers)
+    ways = [(s.tx, s.tz) for s in m.entities if s.kind in ("exit", "cemetery_gate")]
+    gap = next((46, z) for z in range(m.depth) if m[46, z].walkable)
+    for x, z in towers:
+        assert all(abs(x - gx) + abs(z - gz) > 2 for gx, gz in [*ways, gap]), (x, z)
+    assert {(0, 0), (46, 0)} <= towers and len(towers) >= 10
+    turrets = _spec(m, "roof_turret")
+    assert len(turrets) >= 9 and all(m[s.tx, s.tz].thin for s in turrets)
+    assert all(s.props["tex"] == "violet_slate" for s in _spec(m, "roof"))
+    signs = {s.props["emblem"]: s for s in _spec(m, "shop_sign")}
+    for keeper, emblem in (
+        ("brannoc", "anvil"),
+        ("pell", "scroll"),
+        ("tamsin", "flask"),
+        ("corvane", "blades"),
+    ):
+        (npc,) = _spec(m, "npc", id=keeper)  # each shop's sign hangs by its keeper's house
+        assert abs(signs[emblem].tx - npc.tx) + abs(signs[emblem].tz - npc.tz) <= 8, keeper
+
+
+def test_every_harrowmere_turret_is_seated_on_a_corner_of_its_house():
+    """A roof turret is corbelled out of a house's corner: its tile is an L of two walls, its `shift`
+    leans out toward the corner those walls turn round (both its faces open to the sky), its axis stands
+    on the slab there and its drum rests on both arms of the L. A turret on the end of a lone wall (the
+    forge's open front) hangs in the air."""
+    m = MapLoader.load_file(os.path.join(MAP_DIR, "harrowmere.map"))
+    for s in _spec(m, "roof_turret"):
+        dx, dz = (float(v) for v in s.props["shift"].split(","))
+        sx, sz = (1 if dx > 0 else -1), (1 if dz > 0 else -1)
+        where = (s.tx, s.tz)
+        assert m[s.tx - sx, s.tz].solid and m[s.tx, s.tz - sz].solid, where  # the L's two arms
+        for nb in ((s.tx + sx, s.tz), (s.tx, s.tz + sz)):
+            assert not m[nb].solid and m[nb].open_sky, where  # the outer corner, open to the sky
+        cx, cz = TileMap.center(s.tx, s.tz)
+        x, z = cx + dx, cz + dz
+        slabs = m.layout(s.tx, s.tz).boxes()
+        assert any(x0 <= x <= x1 and z0 <= z <= z1 for x0, z0, x1, z1 in slabs), where
+        radius = float(s.props.get("radius", "0.9"))
+        for ax, az in ((-sx * radius, 0), (0, -sz * radius)):  # the drum reaches back over each arm
+            px, pz = x + ax, z + az
+            assert any(x0 <= px <= x1 and z0 <= pz <= z1 for x0, z0, x1, z1 in slabs), where
+
+
 def test_harrowmere_has_the_jungle_cave():
     """The jungle is reached by a trail out of the square's east side, ending at a cave mouth."""
     m = MapLoader.load_file(os.path.join(MAP_DIR, "harrowmere.map"))

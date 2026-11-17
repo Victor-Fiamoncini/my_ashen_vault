@@ -373,3 +373,94 @@ def test_town_props_hang_on_the_thin_house_walls_and_the_stalls_are_gone():
     assert world.map[3, 17].thin
     assert hearth.x == pytest.approx(TileMap.center(4, 17)[0] - world.map.wall_inset(4, 17, -1, 0))
     assert world.map.wall_inset(4, 17, -1, 0) == pytest.approx(1.5)
+
+
+def _town_door(at=(9, 33)):
+    """Harrowmere with you on the step outside Pell's door (a door arch at 9,33 facing east)."""
+    game = FakeGame()
+    world = World(game, "harrowmere")
+    game.player.place(*TileMap.center(at[0] + 1, at[1]), math.pi, world.map)
+    door = next(p for p in world.props if p.kind == "house_door" and (p.tx, p.tz) == at)
+    return game, world, door
+
+
+def _swing(world, seconds=1.0):
+    for _ in range(round(seconds / 0.05)):
+        world.update(0.05)
+
+
+def test_house_doors_start_shut_and_bar_the_doorway():
+    _game, world, door = _town_door()
+    assert door.open_t == 0 and world.blocked_tile(9, 33)
+    assert world.focus() is door
+    # Every house's arch hangs a door; the cathedral's great west door stands open, with none.
+    arches = [p for p in world.props if p.kind == "door_arch"]
+    doors = {(p.tx, p.tz) for p in world.props if p.kind == "house_door"}
+    assert {(p.tx, p.tz) for p in arches if "rose" not in p.props} == doors
+    assert all((p.tx, p.tz) not in doors for p in arches if "rose" in p.props)
+    assert len(doors) >= 8
+
+
+def test_a_house_door_opens_lets_you_in_and_shuts_again():
+    game, world, door = _town_door()
+    assert world.swing_door(door) and "door" in game.sounds
+    world.update(0.05)
+    assert 0 < door.open_t < 1 and not world._interactable(door)  # not while it swings
+    _swing(world)
+    assert door.open_t == 1.0 and not world.blocked_tile(9, 33)
+    assert world._interactable(door)
+    assert world.swing_door(door)
+    _swing(world)
+    assert door.open_t == 0.0 and world.blocked_tile(9, 33)
+
+
+def test_a_house_door_will_not_shut_on_you_and_is_shut_again_when_you_return():
+    game, world, door = _town_door()
+    world.swing_door(door)
+    _swing(world)
+    game.player.x, game.player.z = TileMap.center(9, 33)  # standing in the doorway
+    assert not world.swing_door(door) and door.goal == 1.0
+    assert not any(k.startswith("house_door") for k in game.flags)  # never saved
+    again = World(game, "harrowmere")
+    assert next(p for p in again.props if p.kind == "house_door" and (p.tx, p.tz) == (9, 33)).open_t == 0
+
+
+def _close_from(spot, yaw):
+    """Opens Pell's door, then stands you at `spot` facing `yaw` and shuts it with what the prompt
+    offers there, the way a player does: interact on whatever `focus` finds."""
+    game, world, door = _town_door()
+    world.swing_door(door)
+    _swing(world)
+    p = game.player
+    p.x, p.z, p.yaw = *spot, yaw
+    assert world.focus() is door
+    return game, world, door, world.swing_door(door)
+
+
+@pytest.mark.parametrize(
+    "spot, yaw",
+    [
+        ((20.13, 67.0), math.pi),  # stepped back out onto the step, a shoulder still over the sill
+        ((20.6, 67.6), math.pi),  # on the step, off to one side
+        ((17.85, 67.0), 0.0),  # just inside, having walked in and turned round
+        ((17.4, 66.3), 0.0),  # inside, beside the jamb
+    ],
+)
+def test_a_house_door_shuts_from_wherever_you_stand_beside_it(spot, yaw):
+    game, world, door, shut = _close_from(spot, yaw)
+    assert shut and door.goal == 0.0
+    _swing(world)
+    assert door.open_t == 0.0 and world.blocked_tile(9, 33)
+    p = game.player
+    assert not (18.0 - p.RADIUS < p.x < 20.0 + p.RADIUS and 66.0 - p.RADIUS < p.z < 68.0 + p.RADIUS)
+    # Nothing left you wedged against the shut leaf: you walk away from it freely.
+    x0, z0 = p.x, p.z
+    p.yaw = yaw + math.pi
+    p.walk(world.map, 1, 0, 0.1, blocked=world.blocked_tile)
+    assert math.hypot(p.x - x0, p.z - z0) > 0.1
+
+
+def test_a_house_door_still_will_not_shut_on_you_in_its_doorway():
+    for spot in ((19.0, 67.0), (19.9, 66.2)):
+        _game, _world, door, shut = _close_from(spot, math.pi)
+        assert not shut and door.goal == 1.0

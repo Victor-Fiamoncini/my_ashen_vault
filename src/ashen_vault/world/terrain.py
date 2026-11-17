@@ -28,6 +28,9 @@ FALL_SAFE = 1.8  # metres you can drop without getting hurt
 FALL_PER_M = 15  # HP per metre dropped past FALL_SAFE
 FALL_LETHAL = 8.0  # metres: a drop this far kills you outright
 PLUNGE_TIME = 1.2  # seconds you fall into a chasm before the fall kills you
+DROWN_TIME = 1.6  # seconds deep water takes to drag you under for good
+DROWN_SINK = 1.2  # m/s you go down through deep water: slower than a fall
+DROWN_DEPTH = 1.3  # metres under the water's floor level your feet sink to, the eye just above it
 GRAVITY = 9.8  # m/s² you plunge at
 LOG_R = 0.35  # rolling log radius
 LOG_HALF = 0.85  # half its length, across the lane
@@ -551,9 +554,10 @@ def _coords(value, tx, tz):
 class Terrain:
     """What the land does to the player each frame.
     `body` needs x, z, y, RADIUS and stats; damage goes through the `hurt(dmg, source)` callback.
-    After a fall, `fell_into` says whether it was the "river" or the "ravine".
+    After a fall, `fell_into` says whether it was the "river", the "ravine" or the "sea".
     Nothing invisible bars the edges: the player walks where `open_to` allows, water casts you back
-    ashore, but a chasm is a plunge (`plunging`) that ends in death."""
+    ashore, but a chasm is a plunge (`plunging`) that ends in death, and so is `deep` water: you
+    drown in it (the plunge again, sinking slowly)."""
 
     def __init__(self, map_, platforms=None):
         self.map = map_
@@ -716,7 +720,7 @@ class Terrain:
         self.under = self.support(body.x, body.z)
         if tile.needs_footing and self.under is None:
             if tile.liquid:
-                return self._fall(body, hurt, "river")
+                return self._drown(body) if tile.deep else self._fall(body, hurt, "river")
             ground = body.y if self._ground is None else self._ground
             if ground - tile.floor > FALL_SAFE:
                 return self._plunge(body)
@@ -786,18 +790,38 @@ class Terrain:
         self.sounds.append(("swoosh", 0.9))
         return "plunge"
 
+    def _drown(self, body):
+        """You went off the quay into deep water: there is no shore to be cast back to. Like a plunge,
+        nothing you do saves you; you only sink (`_plunging`)."""
+        self.fell_into = "sea"
+        self.plunge = 0.0
+        self._vy = 0.0
+        self.under = None
+        self.sounds.append(("splash", 1.0))
+        return "drown"
+
+    @property
+    def _plunge_time(self):
+        return DROWN_TIME if self.fell_into == "sea" else PLUNGE_TIME
+
     def _plunging(self, dt, body):
         """Down the chasm: you drop faster and faster until the fall, or the rocks below, kill you.
-        Returns "fell_dead" the moment it does, else None."""
-        if self.plunge >= PLUNGE_TIME:
+        In deep water you sink slowly instead, until it closes over you. Returns "fell_dead" the
+        moment you die, else None."""
+        end = self._plunge_time
+        if self.plunge >= end:
             return None  # already dead
         self.plunge += dt
-        self._vy += GRAVITY * dt
         floor = self.map.floor_at(body.x, body.z)
+        if self.fell_into == "sea":
+            self._vy = DROWN_SINK
+            floor -= DROWN_DEPTH  # the water stands over you; there is no bottom to land on
+        else:
+            self._vy += GRAVITY * dt
         body.y = max(body.y - self._vy * dt, floor)
-        if self.plunge < PLUNGE_TIME and body.y > floor:
+        if self.plunge < end and (body.y > floor or self.fell_into == "sea"):
             return None
-        self.plunge = PLUNGE_TIME
+        self.plunge = end
         body.stats.hurt(body.stats.hp)
         return "fell_dead"
 

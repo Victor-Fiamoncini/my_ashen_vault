@@ -50,6 +50,7 @@ def all_textures():
         "slag": slag(),
         "ash_road": ash_road(),
         "slate": slate(),
+        "violet_slate": violet_slate(),
         "clouds": clouds(),
         "cloud_cap": cloud_cap(),
         "mist": mist(),
@@ -849,6 +850,26 @@ def slate():
             return tint([22, 22, 26], 0.9 + n * 0.2)
         k = 0.7 + hash_(ox // 16, row, 362) * 0.25 + (n - 0.5) * 0.3
         return tint([70, 74, 84], k)
+
+    return build(px)
+
+
+def violet_slate():
+    """Fish-scale roof slates of a dusky violet, laid in staggered courses: each scale rounded at its
+    foot, lit along its crown and shadowed where it laps the course below, edged with soot."""
+
+    def px(x, y):
+        row = y // 4
+        ox = (x + (2 if row % 2 else 0)) % 4
+        dy = y % 4
+        # The scale's rounded foot: the lower edge curves up toward the scale's sides.
+        foot = 3 - abs(ox - 1.5) ** 2 / 2.0
+        n = fbm(x, y, 371)
+        if dy > foot:
+            return tint([56, 40, 68], 0.85 + n * 0.25)
+        k = 0.72 + hash_((x + (2 if row % 2 else 0)) // 4, row, 372) * 0.22 + (n - 0.5) * 0.3
+        k += (1 - dy / 4) * 0.08  # lit along the crown, darker toward the lap
+        return tint([92, 66, 118], k)
 
     return build(px)
 

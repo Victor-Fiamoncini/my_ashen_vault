@@ -1,13 +1,14 @@
 """Harrowmere's models: tiled roofs, the Silent Bell, the cathedral (its towers, spire, buttresses and
-stained glass), pews, the dressing of its sun-warmed stone houses (shuttered windows, balconies, arched
-doorways), the realm's crest on poles and plaques, the furniture and the street dressing of a harbour
+stained glass), pews, the dressing of its stone and half-timbered houses (shuttered windows, balconies, arched
+doorways and the doors that swing in them, corner turrets), the round towers of its wall, the shops'
+hanging signs, the realm's crest on poles and plaques, the furniture and the street dressing of a harbour
 town (beds, cupboards, shelves, hearths, a fountain, benches, carts and cargo, fences, lamp posts, a
-moored boat, the smith's sign, bellows and grindstone). Pure part lists drawn through a Rig, like `models`."""
+moored boat, the smith's bellows and grindstone). Pure part lists drawn through a Rig, like `models`."""
 
 import itertools
 import math
 
-from ashen_vault.render.models import IRON, WHITE, _dim, _flame, realm_crest
+from ashen_vault.render.models import IRON, REALM_VIOLET, WHITE, _bar, _dim, _flame, realm_crest
 from ashen_vault.world.tile_map import TileMap
 
 T = TileMap.TILE
@@ -24,7 +25,7 @@ LEAD = (28, 26, 30)
 GILT = (214, 176, 84)
 SANDSTONE = (186, 160, 120)
 SHUTTER_PAINT = ((70, 104, 78), (62, 86, 120), (120, 84, 50), (128, 56, 44))
-REALM_CLOTH = ((122, 30, 32), (36, 48, 92))
+REALM_CLOTH = REALM_VIOLET
 HAY = (200, 168, 88)
 SACK = (160, 136, 98)
 
@@ -71,7 +72,9 @@ def silent_bell(r, t):
     r.part("cube", 0, base + 6.2, 0, 0.6, 0.5, 3.8, WOOD, tex="wood_plank")  # the headstock
     for sx in (-1, 1):
         r.part("cube", sx * 2.0, base + 6.55, 0, 0.5, 0.3, 3.8, DARK_WOOD, tex="wood_plank")
-    r.part("wedge", 0, base + 7.1, 0, 4.8, 1.0, 4.2, WHITE, tex="slate", ry=math.pi / 2)  # a small roof
+    r.part(
+        "wedge", 0, base + 7.1, 0, 4.8, 1.0, 4.2, WHITE, tex="violet_slate", ry=math.pi / 2
+    )  # a small roof
     # The bell: crown, waist flaring to the sound bow and lip, a band of raised lettering.
     with r.at(0, base + 2.4, 0):
         r.part("cube", 0, 3.4, 0, 0.3, 0.6, 0.3, IRON)  # the hanger
@@ -117,7 +120,7 @@ def cathedral_spire(r, height=18.0):
     for sx in (-1, 1):
         for sz in (-1, 1):
             r.part("cone", sx * w / 2, height + 1.0, sz * w / 2, 0.5, 2.0, 0.5, _dim(PALE_STONE, 1.05))
-    r.part("cone", 0, height + 4.0, 0, w * 0.85, 8.0, w * 0.85, WHITE, tex="slate")
+    r.part("cone", 0, height + 4.0, 0, w * 0.85, 8.0, w * 0.85, WHITE, tex="violet_slate")
     r.part("cube", 0, height + 8.3, 0, 0.08, 0.9, 0.08, IRON)  # a finial
     r.part("cube", 0, height + 8.5, 0, 0.08, 0.08, 0.5, IRON)
 
@@ -279,27 +282,90 @@ def hearth(r, t):
 SIGN_IRON = (52, 50, 54)
 
 
-def smith_sign(r, seed):
-    """The smith's sign, hung from the wall at local -X: a wrought bracket and its brace standing out
-    over the street, two short chains and a painted board swinging from them, an iron anvil and
-    hammer on each face."""
-    r.part("cube", -0.5, 2.95, 0, 0.94, 0.05, 0.05, SIGN_IRON)  # the bracket's arm
-    r.part("cube", -0.97, 2.75, 0, 0.06, 0.5, 0.12, SIGN_IRON)  # its wall plate
-    r.part("cube", -0.68, 2.72, 0, 0.6, 0.035, 0.035, SIGN_IRON, rz=0.62)  # the brace
-    r.part("cube", -0.04, 2.95, 0, 0.08, 0.08, 0.08, SIGN_IRON)  # a knob at its end
-    for x in (-0.68, -0.22):  # chains
-        r.part("cube", x, 2.84, 0, 0.02, 0.18, 0.02, SIGN_IRON)
-    board = SHUTTER_PAINT[seed % len(SHUTTER_PAINT)]
-    r.part("cube", -0.45, 2.48, 0, 0.62, 0.56, 0.05, board, tex="wood_plank")
-    r.part("cube", -0.45, 2.48, 0, 0.66, 0.6, 0.035, DARK_WOOD)  # its frame
-    for side in (-1, 1):  # the anvil and hammer, on both faces
-        z = side * 0.03
-        r.part("cube", -0.45, 2.4, z, 0.3, 0.06, 0.01, SIGN_IRON)  # the anvil's face
-        r.part("cube", -0.45, 2.33, z, 0.12, 0.08, 0.01, SIGN_IRON)  # its waist
-        r.part("cube", -0.45, 2.27, z, 0.24, 0.04, 0.01, SIGN_IRON)  # its foot
-        r.part("cube", -0.63, 2.41, z, 0.08, 0.03, 0.01, SIGN_IRON)  # the horn
-        r.part("cube", -0.39, 2.58, z, 0.24, 0.03, 0.01, (150, 110, 70), rz=-0.6)  # the hammer's haft
-        r.part("cube", -0.5, 2.66, z, 0.1, 0.06, 0.01, SIGN_IRON, rz=-0.6)  # its head
+def _disc(r, x, y, w, h, thick, rgb, tex="white"):
+    """An upright oval in the XY plane, `w` across and `h` tall, `thick` through along Z."""
+    r.part("cyl", x, y, 0, w, thick, h, rgb, tex=tex, rx=math.pi / 2)
+
+
+def _sign_anvil(r, x, y, z):
+    r.part("cube", x, y + 0.05, z, 0.3, 0.06, 0.012, SIGN_IRON)  # the anvil's face
+    r.part("cube", x - 0.19, y + 0.06, z, 0.1, 0.035, 0.012, SIGN_IRON)  # its horn
+    r.part("cube", x + 0.01, y - 0.03, z, 0.11, 0.1, 0.012, SIGN_IRON)  # its waist
+    r.part("cube", x + 0.01, y - 0.1, z, 0.24, 0.045, 0.012, SIGN_IRON)  # its foot
+    r.part("cube", x + 0.06, y + 0.2, z, 0.24, 0.03, 0.012, (120, 84, 50), rz=-0.7)  # the hammer's haft
+    r.part("cube", x - 0.02, y + 0.27, z, 0.06, 0.11, 0.012, SIGN_IRON, rz=-0.7)  # its head
+
+
+def _sign_scroll(r, x, y, z):
+    paper = (216, 198, 152)
+    r.part("cube", x, y, z, 0.26, 0.3, 0.012, paper)  # the sheet
+    for dy in (-0.16, 0.16):  # its rolled ends
+        r.part("cube", x, y + dy, z, 0.32, 0.05, 0.016, _dim(paper, 0.82))
+    for k in range(3):  # lines of writing
+        r.part("cube", x - 0.01, y + 0.07 - k * 0.06, z, 0.17 - k * 0.03, 0.015, 0.016, (70, 52, 40))
+    r.part("cube", x + 0.07, y - 0.1, z, 0.06, 0.06, 0.02, (150, 30, 30))  # its wax seal
+
+
+def _sign_flask(r, x, y, z):
+    r.part("cube", x, y - 0.06, z, 0.24, 0.22, 0.012, (150, 34, 40))  # the bottle's belly
+    r.part("cube", x, y - 0.06, z, 0.18, 0.28, 0.012, (150, 34, 40))  # rounded above and below
+    r.part("cube", x - 0.05, y - 0.02, z, 0.04, 0.08, 0.016, (226, 150, 140))  # a glint
+    r.part("cube", x, y + 0.13, z, 0.08, 0.12, 0.012, (170, 186, 180))  # its glass neck
+    r.part("cube", x, y + 0.21, z, 0.1, 0.05, 0.016, (130, 96, 60))  # its cork
+    r.part("cube", x + 0.15, y + 0.12, z, 0.1, 0.04, 0.012, (70, 120, 60), rz=0.6)  # a sprig of herb
+    r.part("cube", x + 0.17, y + 0.04, z, 0.08, 0.035, 0.012, (70, 120, 60), rz=-0.4)
+
+
+def _sign_blades(r, x, y, z):
+    steel, hilt = (196, 200, 206), (60, 40, 30)
+    for side in (-1, 1):  # two blades crossed, points up
+        turn = side * 0.62
+        ux, uy = -math.sin(turn), math.cos(turn)
+        r.part("cube", x + ux * 0.05, y + uy * 0.05, z, 0.035, 0.42, 0.012, steel, rz=turn)  # the blade
+        gx, gy = x - ux * 0.16, y - uy * 0.16
+        r.part("cube", gx, gy, z + side * 0.002, 0.13, 0.03, 0.016, GILT, rz=turn)  # its guard
+        r.part("cube", gx - ux * 0.06, gy - uy * 0.06, z, 0.03, 0.1, 0.014, hilt, rz=turn)  # its grip
+
+
+# What each shop paints on its sign: the board's colour and the emblem drawn on both its faces.
+SIGN_EMBLEMS = {
+    "anvil": ((178, 160, 126), _sign_anvil),
+    "scroll": ((84, 52, 104), _sign_scroll),
+    "flask": ((176, 162, 128), _sign_flask),
+    "blades": ((96, 40, 40), _sign_blades),
+}
+SIGN_W, SIGN_H = 0.62, 0.84  # the plaque's painted oval, metres
+
+
+def shop_sign(r, emblem="anvil"):
+    """A shop's sign, hung from the wall at local -X: a wrought-iron bracket standing out over the
+    street (its wall plate, the arm with a curled scroll and a finial, a brace beneath), and from two
+    rings on it an oval plaque in a gilt rim and a dark frame, a little crest atop and a drop below,
+    painted on both faces with the shop's emblem (`SIGN_EMBLEMS`: anvil, scroll, flask, blades)."""
+    board, draw = SIGN_EMBLEMS.get(emblem, SIGN_EMBLEMS["anvil"])
+    arm_y, cx = 3.35, -0.42
+    r.part("cube", -0.97, 3.1, 0, 0.05, 0.7, 0.14, SIGN_IRON)  # the wall plate
+    _bar(r, (-0.97, arm_y, 0), (0.02, arm_y, 0), 0.045, SIGN_IRON)  # the arm
+    r.part("sphere", 0.04, arm_y, 0, 0.09, 0.09, 0.09, SIGN_IRON)  # its finial
+    r.part("cone", 0.04, arm_y + 0.1, 0, 0.05, 0.12, 0.05, SIGN_IRON)
+    _bar(r, (-0.97, 2.85, 0), (-0.38, arm_y, 0), 0.035, SIGN_IRON)  # the brace
+    curl = [(-0.92, 2.95), (-0.78, 3.0), (-0.68, 3.1), (-0.7, 3.22), (-0.8, 3.24), (-0.84, 3.15)]
+    for a, b in itertools.pairwise(curl):  # a scroll curled between arm and brace
+        _bar(r, (a[0], a[1], 0), (b[0], b[1], 0), 0.028, SIGN_IRON)
+    _bar(r, (-0.38, arm_y, 0), (-0.2, 3.22, 0), 0.028, SIGN_IRON)  # a smaller curl beyond
+    _bar(r, (-0.2, 3.22, 0), (-0.14, 3.3, 0), 0.028, SIGN_IRON)
+    top = 2.62 + SIGN_H / 2
+    for x in (cx - 0.16, cx + 0.16):  # the rings it hangs by
+        r.part("cube", x, (top + arm_y) / 2, 0, 0.03, arm_y - top + 0.04, 0.03, SIGN_IRON)
+    y = 2.62
+    _disc(r, cx, y, SIGN_W + 0.14, SIGN_H + 0.14, 0.04, DARK_WOOD)  # the frame
+    _disc(r, cx, y, SIGN_W + 0.07, SIGN_H + 0.07, 0.05, GILT)  # the gilt rim
+    _disc(r, cx, y, SIGN_W, SIGN_H, 0.06, board)  # the painted face
+    r.part("cube", cx, top + 0.06, 0, 0.26, 0.08, 0.05, DARK_WOOD)  # the crest's base
+    r.part("wedge", cx, top + 0.14, 0, 0.2, 0.12, 0.05, GILT)  # the crest atop
+    r.part("sphere", cx, y - SIGN_H / 2 - 0.08, 0, 0.08, 0.1, 0.05, GILT)  # the drop below
+    for side in (-1, 1):  # the emblem on each face
+        draw(r, cx, y - 0.02, side * 0.034)
 
 
 def forge_bellows(r, seed):
@@ -412,11 +478,12 @@ def balcony(r, seed):
         r.part("sphere", -0.32, 0.42, 0.7, 0.34, 0.28, 0.34, (70, 110, 50))
 
 
-def door_arch(r, seed, height=3.2, spring=2.2, rose=False):
+def door_arch(r, seed, height=3.2, spring=2.2, rose=False, leaf=True):
     """A house's front door, set in the doorway tile and facing out along +X: a round arch of dressed
     voussoirs on two pilasters at the wall's outer face (x = 1), filled solid above it to the room's
-    ceiling, and a studded plank door standing open against the jamb inside. With `rose`, a rose window
-    glows in the tympanum (the cathedral's west door)."""
+    ceiling, and a studded plank door standing open against the jamb inside (without `leaf`, the
+    `house_door` that swings in it is drawn apart). With `rose`, a rose window glows in the tympanum
+    (the cathedral's west door)."""
     stone = (236, 230, 218) if not rose else (226, 222, 214)
     tex = "rough_stone" if rose else "ashlar"
     half = 0.9
@@ -465,11 +532,92 @@ def door_arch(r, seed, height=3.2, spring=2.2, rose=False):
         with r.at(1.04, spring + half + 0.02, 0):
             r.part("cube", 0, 0, 0, 0.06, 0.2, 0.2, GILT, rx=math.pi / 4)  # a gilt boss on the keystone
     r.part("cube", 1.02, 0.03, 0, 0.2, 0.06, 2.0, _dim(stone, 0.85), tex="flagstone")  # the threshold
+    if not leaf:
+        return
     # The door, open against the jamb inside: planks, iron straps, a ring.
     r.part("cube", 0.0, spring / 2 + 0.1, -0.86, 1.5, spring + 0.1, 0.08, DARK_WOOD, tex="door_wood", ry=0.08)
     for y in (0.5, 1.3, 2.0):
         r.part("cube", 0.0, y, -0.81, 1.4, 0.07, 0.03, IRON, ry=0.08)
     r.part("cyl", -0.55, 1.1, -0.79, 0.14, 0.03, 0.14, IRON, rx=math.pi / 2)
+
+
+DOOR_HINGE = (0.8, -0.86)  # (x, z) of a house door's hinge, just inside the arch's outer face
+DOOR_SWING = 1.45  # radians a house door turns, inward, when it stands open
+DOOR_HALF = 0.86  # half the leaf's width: it fills the arch's opening
+
+
+def house_door(r, open_t, spring=2.2, seed=0):
+    """A house's own front door in its `door_arch`: a leaf of dark planks filling the arch, round at
+    the top, banded with iron straps and a ring on each face, hung on the jamb at `DOOR_HINGE` and
+    swung inward (toward -X) by `open_t` (0 shut, 1 open) of `DOOR_SWING`. Drawn every frame, so lean."""
+    w = DOOR_HALF * 2
+    wood = _dim(DARK_WOOD, 0.9 + 0.1 * (seed % 3))
+    with r.at(DOOR_HINGE[0], 0, DOOR_HINGE[1], ry=-open_t * DOOR_SWING):
+        r.part("cube", 0, spring / 2 + 0.05, w / 2, 0.08, spring + 0.1, w, wood, tex="door_wood")
+        strips = 4  # the round head, built up in strips under the arch
+        for i in range(strips):
+            zc = -DOOR_HALF + w * (i + 0.5) / strips
+            h = math.sqrt(max(DOOR_HALF * DOOR_HALF - zc * zc, 0.0)) * 0.96
+            r.part("cube", 0, spring + h / 2, w / 2 + zc, 0.08, h, w / strips, wood, tex="door_wood")
+        for y in (0.5, 1.45):  # iron straps through both faces, nailed at the hinge
+            r.part("cube", 0, y, w / 2 - 0.05, 0.1, 0.08, w - 0.1, IRON)
+            r.part("cube", 0, y, 0.12, 0.12, 0.14, 0.16, IRON)
+        for side in (-1, 1):  # a ring on each face, by the latch
+            r.part("cyl", side * 0.07, 1.1, w - 0.3, 0.14, 0.03, 0.14, IRON, rz=math.pi / 2)
+            r.part("cube", side * 0.05, 1.18, w - 0.3, 0.03, 0.08, 0.08, IRON)
+
+
+VIOLET_TRIM = (60, 44, 70)  # the dark painted timber of turrets
+
+
+def roof_turret(r, seed, height=3.2, radius=0.9, cap=3.6):
+    """A little round turret set out on a house's corner, its foot at the origin: a cone of corbels
+    swelling out of the wall below, a plastered drum with a slit window or two lit from within, a
+    timber band at the eaves, and a tall witch-hat cone of violet slate with an iron finial."""
+    d = radius * 2
+    stone = (176, 166, 152)
+    r.part("cone", 0, -0.6, 0, d, 1.2, d, _dim(stone, 0.85), tex="ashlar", rx=math.pi)  # the corbelling
+    r.part("cyl", 0, height / 2, 0, d, height, d, stone, tex="plaster" if seed % 2 else "ashlar")
+    r.part("cyl", 0, 0.05, 0, d + 0.1, 0.16, d + 0.1, VIOLET_TRIM)  # string course at its foot
+    r.part("cyl", 0, height - 0.08, 0, d + 0.12, 0.18, d + 0.12, VIOLET_TRIM)  # band at the eaves
+    for k in range(2 if seed % 3 else 1):  # slit windows, warm behind
+        a = seed * 0.7 + k * math.pi * 0.8
+        x, z = math.cos(a) * (radius - 0.02), math.sin(a) * (radius - 0.02)
+        r.part("cube", x, height * 0.55, z, 0.08, 0.7, 0.22, (32, 26, 24), ry=-a)
+        r.part("cube", x * 1.01, height * 0.55, z * 1.01, 0.06, 0.56, 0.12, (150, 108, 62), ry=-a, glow=True)
+    r.part("cone", 0, height + cap / 2, 0, d + 0.5, cap, d + 0.5, WHITE, tex="violet_slate")  # witch's hat
+    r.part("cyl", 0, height + 0.1, 0, d + 0.56, 0.12, d + 0.56, _dim(VIOLET_TRIM, 0.8))  # its flared eave
+    r.part("cube", 0, height + cap + 0.3, 0, 0.06, 0.7, 0.06, IRON)  # the finial
+    r.part("sphere", 0, height + cap + 0.2, 0, 0.14, 0.14, 0.14, IRON)
+
+
+def wall_tower(r, seed, height=10.0, radius=2.2, cap=5.0, capped=True):
+    """A round tower in the town wall: a battered plinth, coursed rough stone with arrow slits, a ring
+    of machicolation corbels carrying a crenellated parapet and, `capped`, a steep cone of violet
+    slate rising inside it to a gilt finial."""
+    d = radius * 2
+    stone = (196, 190, 180)
+    r.part("cone", 0, 1.2, 0, d + 1.2, 2.4, d + 1.2, _dim(stone, 0.85), tex="rough_stone")  # the batter
+    r.part("cyl", 0, height / 2, 0, d, height, d, stone, tex="rough_stone")
+    r.part("cyl", 0, height * 0.45, 0, d + 0.14, 0.2, d + 0.14, _dim(stone, 1.08))  # a string course
+    for k in range(3):  # arrow slits, staggered up the drum
+        a = seed * 0.9 + k * 2.1
+        x, z = math.cos(a) * (radius - 0.02), math.sin(a) * (radius - 0.02)
+        r.part("cube", x, height * (0.3 + 0.2 * k), z, 0.08, 1.0, 0.16, (24, 22, 26), ry=-a)
+    top = height + 0.6
+    r.part("cyl", 0, top, 0, d + 0.7, 1.2, d + 0.7, stone, tex="rough_stone")  # the parapet's ring
+    n = 10
+    for k in range(n):
+        a = k * 2 * math.pi / n
+        x, z = math.cos(a) * (radius + 0.25), math.sin(a) * (radius + 0.25)
+        r.part("cube", x, height - 0.2, z, 0.4, 0.5, 0.4, _dim(stone, 0.8), ry=-a)  # machicolation corbel
+        if k % 2 == 0:  # merlons, every other bay
+            x, z = math.cos(a) * (radius + 0.2), math.sin(a) * (radius + 0.2)
+            r.part("cube", x, top + 0.95, z, 0.4, 0.7, 0.9, stone, tex="rough_stone", ry=-a)
+    if capped:
+        r.part("cone", 0, top + 0.6 + cap / 2, 0, d + 0.2, cap, d + 0.2, WHITE, tex="violet_slate")
+        r.part("cube", 0, top + 0.6 + cap + 0.4, 0, 0.08, 0.8, 0.08, IRON)
+        r.part("sphere", 0, top + 0.6 + cap + 0.85, 0, 0.22, 0.22, 0.22, GILT)
 
 
 def cathedral_tower(r, height=15.0, width=3.8, belfry=True, helm=7.0):
@@ -544,7 +692,9 @@ def cathedral_tower(r, height=15.0, width=3.8, belfry=True, helm=7.0):
             r.part("cube", x, height + 1.0, z, 0.5, 0.9, 0.5, stone)
             r.part("cone", x, height + 2.1, z, 0.5, 1.6, 0.5, _dim(stone, 1.05))
             r.part("sphere", x, height + 2.95, z, 0.14, 0.14, 0.14, GILT)
-    r.part("cone", 0, height + 0.7 + helm / 2, 0, w * 0.82, helm, w * 0.82, WHITE, tex="slate")  # the helm
+    r.part(
+        "cone", 0, height + 0.7 + helm / 2, 0, w * 0.82, helm, w * 0.82, WHITE, tex="violet_slate"
+    )  # the helm
     top = height + 0.7 + helm
     r.part("cube", 0, top + 0.5, 0, 0.08, 1.0, 0.08, IRON)
     r.part("cyl", 0, top + 1.0, 0, 0.36, 0.06, 0.36, GILT, rx=math.pi / 2)  # the gilt sun

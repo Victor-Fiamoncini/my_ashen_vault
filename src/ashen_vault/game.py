@@ -866,6 +866,8 @@ class Game:
             return "[E] Open chest"
         if p.kind == "door" and self.world.fog_gate(p):
             return "[E] Pass through the fog"
+        if p.kind == "house_door":
+            return "[E] Close door" if p.goal >= 1.0 else "[E] Open door"
         return {
             "npc": "[E] Talk",
             "chest": "[E] Open chest",
@@ -901,6 +903,8 @@ class Game:
             self.world.cross_fog(self.world.fog_gate(prop))
         elif k == "door":
             self._open_door(prop)
+        elif k == "house_door":
+            self.world.swing_door(prop)
         elif k == "lift_call":
             self.world.call_lift(prop)
         elif k == "lever":

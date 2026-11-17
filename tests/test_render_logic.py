@@ -1020,6 +1020,43 @@ def test_town_props_draw_and_roofs_cover_their_buildings():
         assert lo_y >= 4.0 and hi_y == pytest.approx(4.2 + 2.4, abs=0.2)
 
 
+def test_house_doors_fill_their_arch_shut_and_swing_inside_open():
+    """A house door shut fills the arch's opening, standing at its outer face; open, it has swung in
+    against the jamb, clear of the way through. It is drawn every frame, so it stays lean."""
+    from ashen_vault.render import bounds, town_models
+
+    (lo_x, lo_y, lo_z), (hi_x, hi_y, hi_z) = bounds.measure(lambda r: town_models.house_door(r, 0.0))
+    assert lo_z == pytest.approx(-0.86, abs=0.05) and hi_z == pytest.approx(0.86, abs=0.05)
+    assert lo_x > 0.6 and hi_x < 1.0 and lo_y >= -0.01 and hi_y == pytest.approx(2.2 + 0.86, abs=0.1)
+    (lo_x, _, lo_z), (hi_x, _, hi_z) = bounds.measure(lambda r: town_models.house_door(r, 1.0))
+    assert lo_x < -0.6 and hi_z < -0.5  # in along the jamb, out of the doorway
+    gpu = _RecordingGpu()
+    town_models.house_door(rig.Rig(gpu), 0.5)
+    assert len(gpu.parts) <= 16
+
+
+def test_turrets_towers_and_the_shop_signs_draw():
+    from ashen_vault.render import bounds, town_models
+
+    (_, lo_y, _), (_, hi_y, _) = bounds.measure(lambda r: town_models.roof_turret(r, 3, 3.2, 0.9, 3.6))
+    assert lo_y < 0 and hi_y > 3.2 + 3.6  # corbelled out below its foot, its cone's finial above
+    (lo_x, lo_y, _), (hi_x, hi_y, _) = bounds.measure(lambda r: town_models.wall_tower(r, 1, 10, 2.2, 5))
+    assert lo_y >= -0.01 and hi_y > 16 and hi_x - lo_x > 4.4
+    (_, _, _), (_, flat, _) = bounds.measure(lambda r: town_models.wall_tower(r, 1, 10, 2.2, 5, capped=False))
+    assert flat < 12.5
+    for emblem in town_models.SIGN_EMBLEMS:  # each sign hangs from its wall out over the street
+        (lo_x, lo_y, lo_z), (hi_x, hi_y, hi_z) = bounds.measure(
+            lambda r, e=emblem: town_models.shop_sign(r, e)
+        )
+        assert lo_x >= -1.0 and hi_x < 0.2 and lo_y > 2.0 and hi_y < 3.6 and hi_z - lo_z < 1.0
+    drawn = {}
+    for emblem in town_models.SIGN_EMBLEMS:
+        gpu = _RecordingGpu()
+        town_models.shop_sign(rig.Rig(gpu), emblem)
+        drawn[emblem] = gpu.parts
+    assert len({repr(parts) for parts in drawn.values()}) == len(drawn)  # no two signs alike
+
+
 def test_town_trees_stand_on_the_ground_and_differ_in_shape():
     from ashen_vault.render import bounds, town_models
 
@@ -1406,7 +1443,8 @@ def test_a_burnt_banner_is_darker_and_more_ragged_than_a_clean_one():
     clean, burnt = Colours(), Colours()
     models.banner(rig.Rig(clean), 0.5, 2)
     models.banner(rig.Rig(burnt), 0.5, 2, burnt=True)
-    assert models.CLOTH_RED in clean.parts and models.CLOTH_RED not in burnt.parts
+    violet = models.REALM_VIOLET[0]
+    assert violet in clean.parts and violet not in burnt.parts  # the realm flies violet
     assert models.CHAR in burnt.parts and models.CHAR not in clean.parts
     assert burnt.glows > 0 == clean.glows  # a tip or two still smoulders
     assert len(burnt.parts) <= len(clean.parts) + 30  # it sways, so it stays lean

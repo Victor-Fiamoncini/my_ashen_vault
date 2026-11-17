@@ -11,11 +11,12 @@ default = ,
 edge_top = -0.5
 entity_floor = auto
 
-// Harrowmere climbs from its harbour to the cathedral on the hill under a low, darkening dusk, a town of
-// sandstone and ochre render under terracotta roofs, all stone underfoot: cobbles, setts and flags. The
-// cemetery's gate in the west wall, shut behind each Ashen who comes through it; the pier, the quay and
-// the market lanes; the Bell Square at the heart of town with the Silent Bell on
-// its plinth; the sunken court of the old well (down into the Sunken Keep) east of it, and the watch
+// Harrowmere climbs from its harbour to the cathedral on the hill under a low, darkening dusk, a walled
+// town of stone and half-timbered houses under steep violet-slate roofs, witch-hatted turrets on their
+// corners and round towers along its wall, all stone underfoot: cobbles, setts and flags. The
+// cemetery's gate in the west wall, shut behind each Ashen who comes through it; the pier, the quay,
+// the canal running up from the harbour and the market lanes; the Bell Square at the heart of town
+// with the Silent Bell on its plinth; the sunken court of the old well (down into the Sunken Keep) east of it, and the watch
 // house by the gap in the wall where the green trail leaves for the cave; Brannoc's forge and
 // Corvane's hut to the west; the north road winding up past Odrin's house to the gate; and up the
 // steps on the hill, the cathedral, where the Enthroned sits at the end of the nave.
@@ -24,7 +25,7 @@ entity_floor = auto
 R = wall tex=rough_stone top=7 cap=rough_stone
 A = wall tex=cliff_rock top=6 cap=rough_stone
 H = wall tex=ashlar top=5.6 cap=roof thin=0.5
-J = wall tex=stucco top=5.6 cap=roof thin=0.5
+J = wall tex=timber top=5.6 cap=roof thin=0.5
 C = wall tex=rough_stone h=2 top=11 cap=slate
 P = wall tex=flagstone top=0.8 cap=flagstone
 _ = wall tex=rough_stone top=2.2 cap=cobble
@@ -46,7 +47,10 @@ k = floor tex=flagstone h=0 ceil=3.4 ceil_tex=wood_plank side=rough_stone
 o = floor tex=cobble h=-0.8 side=rough_stone
 5 = floor tex=cobble h=-0.4 side=rough_stone
 p = floor tex=wood_plank h=0.1 side=wood_plank
-~ = water tex=water h=-0.8 side=rough_stone
+// The open sea off the quays and the pier is deep: whoever goes in drowns. The canal (r) runs
+// shallow between its banks and only casts you back ashore.
+~ = water tex=water h=-0.8 side=rough_stone deep
+r = water tex=water h=-0.8 side=rough_stone
 G = wall tex=vine_wall top=3.4 cap=canopy
 V = wall tex=vine_wall top=5.5 cap=canopy
 w = floor tex=jungle_floor h=0 ceil=4.2 ceil_tex=canopy side=vine_wall dark=0.2
@@ -55,7 +59,7 @@ v = floor tex=jungle_floor h=0
 c = floor tex=rough_stone h=0 ceil=3.4 ceil_tex=cliff_rock side=cliff_rock dark=0.45
 
 [grid]
-RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRAAAAAAAAAAAAAA
+®RRRRRRRRRRR¯RRRRRRRRR¯RRRRRRRRRRRRRRRRR¯RRRRR°AAAAAAAAAAAAAA
 R;;;;;;;;;;;;;;;;;;;;;;;;,,,,ÌßNßÿ,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;Ú;;;;í;ìí;ìí;ìí;;CC;;Ú;,,,,,ÞsÞù,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;;ÉCCCCCCCCCCCCCCCèC;;;;,,,,,,s,,,,AAAAAAAAAARAAAAAAAAAAAAAA
@@ -64,38 +68,38 @@ R;;CaannIQQIQQIQQInC====;,,,,,,s,,,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;;CîEÓnnnnÊnnnnnnnï====;,,,,,,sX,,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;;CaannIQQIQQIQQInC====;qqsssss.qqq..AAAAAAAARAAAAAAAAAAAAAA
 R;;ëDaYenOònOónOnnnCË==Ë;q.s......à.á.AAAAAAAARAAAAAAAAAAAAAA
-R;;CCCCCCCCCCCCCCCCéC==;;,qs|...ÆHHHHH...á.à..RAAAAAAAAAAAAAA
+R;;CCCCCCCCCCCCCCCCéC==;;,qs|...ÆHHHH¡...á.à..RAAAAAAAAAAAAAA
 R;;;;;;í;ìí;ìí;ìí;;CC44;;ù,s|...H%ii+H.ÈJJJJJ.RAAAAAAAAAAAAAA
 R;Ú;;;;;;;Ú;;;;;;;Ú;;33;;,qs|...çiiiiH.J+ii&J.RAAAAAAAAAAAAAA
-R;;;;;Ú;;;;;;;Ú;;;;;;22Ú;q.s|...HiÒiiHâJiiiiJâRAAAAAAAAAAAAAA
+±;;;;;Ú;;;;;;;Ú;;;;;;22Ú;q.s|...HiÒiiHâJiiiiJâ²AAAAAAAAAAAAAA
 R;;;;;;;;;Ú;;;;;;;;;;11;;..ssss.Hiii$H.JÒiiiJ.RAAAAAAAAAAAAAA
-R....á.à.......q,q...ss.ÅJJJJ.s.HHHHHH.Jiii$J.RAAAAAAAAAAAAAA
-R..ÀHHHHHH..q.q,T,q..ssàJ+i$Jás..q,q...JJåJJJ.RAAAAAAAAAAAAAA
+R....á.à.......q,q...ss.ÅJJJ£.s.HHHHHH.Jiii$J.RAAAAAAAAAAAAAA
+R..ÀHHHHH¡..q.q,T,q..ssàJ+i$Jás..q,q...ªJåJJ©.RAAAAAAAAAAAAAA
 R..HûkãkÏHþq,q.q,q...ssDJiiiJ.sÜq,T,q.....q,q.RAAAAAAAAAAAAAA
 R..H×kkkkkq,T,q.q....ss.Jii&J.s..q________,ø,qRAAAAAAAAAAAAAA
 R..Hôkbkkk.q,q.......ss.JJåJJ.s..._tooooo_q,q.RAAAAAAAAAAAAAA
 R..HÍkúkkk..q.....sssssssssssssss._oooooo_.q..RAAAAAAAAAAAAAA
-R..HkkkýÎk........sXsssss¦sssssXs.5oooWooÇHHHHRAAAAAAAAAAAAAA
+±..HkkkýÎk........sXsssss¦sssssXs.5oooWooÇHHHH²AAAAAAAAAAAAAA
 R..ÑHHHHHH........sssssssssssssss._ooooooH+iiHRAAAAAAAAAAAAAA
 R...q,T,â.........sssssssssssssss._oooogÏHiiÍHRVVVVVVVVAAAAAA
 R..à.q,q...qqqqqq.ssssssPPPssssss._______HLiiHRwUwvvwwVAAAAAA
-RÁHHHHq..-q,,,,,,qÞsssssPBPsMsssÞ....q,qàHiiÍHRwwwvvwwVAAAAAA
-RHiLiH...-q,,,,,,qssssssPPPsssssÛ...q,ø,qHÒiiHRwwVVVwwVAAAAAA
+RÁHHH¡q..-q,,,,,,qÞsssssPBPsMsssÞ....q,qàHiiÍHRwwwvvwwVAAAAAA
+RHiLiH·..-q,,,,,,qssssssPPPsssssÛ...q,ø,qHÒiiHRwwVVVwwVAAAAAA
 RHZiiä----q,,T,,,qsssSsssssssssss....q,qáHiiiHRwõVAVwwVAAAAAA
-RHiiÏH....q,,,,,,qsssssssssssssss-----q..HHåHHRwwVAVwUVAAAAAA
+RHiiÏH....q,,,,,,qsssssssssssssss-----q..«HåHHRwwVAVwUVAAAAAA
 RHHHHH.....qq,T,q.sXsssssssssssXs-----------h-RvvVAVwwVAAAAAA
 Rüqá..à......q,q..sssssssssssssss....---------vvvVAVwwVVVVVAA
-R¥,qÂHHHHH...àq..â..ss.X....Ø......à.-à-------vvöVAVwwVVyx¢KA
-R,ø,H%iiLHá.ÃJJæJJJJss............ÄHæHHH.....§RVVVAVwwVVyyVAA
+R¥,qÂHHHH¡...àq..â..ss.X....Ø......à.¶à-------vvöVAVwwVVyx¢KA
+R,ø,H%iiLHá.ÃJJæJJJ£ss............ÄHæHH¡.....§RVVVAVwwVVyyVAA
 Rq,qHiiÒiH..JLiii%iJss....Õ.Ô.Ö..DH%iiLH......RAAAAVwõVVFyVAA
 R.q.H&imiä..JiiiiliJás............HiidiH..RRRRRAAAAVwwyyyyVAA
-R...HiiÒiH..JiÒiiiiJDs......Ù....áH%iiiH..RRRRRAAAAVUwyzyyVAA
+R...HiiÒiHµ.JiÒiiiiJDs......Ù....áH%iiiH..RRRRRAAAAVUwyzyyVAA
 RRR.H%iiiHâ.J$iiÒiÏJss............HiÒi$Hq.RRRRRAAAAVVVVVVVVAA
-RRRqHHHHHH..JiiiiiÏJss....Ð.......HHHHHH,qRRRRRAAAAAAAAAAAAAA
-RRR,,,,,,q..JJJJJJJJss¨........Ï......q,ø,RRRRRAAAAAAAAAAAAAA
-RRR,,,,,ø,q.........ss.................q,qRRRRRAAAAAAAAAAAAAA
-RRRqqqqqqqX.........ss..Ý.....X.........q.RRRRRAAAAAAAAAAAAAA
-RRR.........Ý....Ð.ÞssÞÝ..Û...............RRRRRAAAAAAAAAAAAAA
+RRRqHHHHH¤..JiiiiiÏJss....Ð.......HHHHH¤,qRRRRRAAAAAAAAAAAAAA
+RRR,,,,,,qrrJJJJJJJ©ss¨........Ï......q,ø,RRRRRAAAAAAAAAAAAAA
+RRR,,,,,ø,pp........ss.................q,qRRRRRAAAAAAAAAAAAAA
+RRRqqqqqqXrr........ss..Ý.....X.........q.RRRRRAAAAAAAAAAAAAA
+±RR.......÷rÝ....Ð.ÞssÞÝ..Û...............RRRR²AAAAAAAAAAAAAA
 R~~~~~~~~~~~~~~~~~~~pp~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
 R~~~~~~~~~~~~~~~~~~~pp~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
 R~~~~~~~~~@~~~~~~~~~pp~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
@@ -106,7 +110,7 @@ R~~~~~~~~~~~~~~~~~~~pf~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
 R~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
 R~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
 R~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
-R~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
+³~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~´AAAAAAAAAAAAAA
 
 [entities]
 // Villagers.
@@ -134,7 +138,7 @@ X = lamp_post
 // The cathedral: its roof, the spire over the crossing, twin towers at the west front and two
 // turrets at the apse, flying buttresses, stained glass within and without, a rose window over the
 // door and another above the throne, pillars, pews facing the throne, candles and banners.
-É = roof span=17,7 ridge=x top=9 pitch=3.5 tex=slate wall=rough_stone on=C
+É = roof span=17,7 ridge=x top=9 pitch=3.5 tex=violet_slate wall=rough_stone on=C
 Ê = cathedral_spire height=15 base=11 on=n
 è = cathedral_tower height=15 shift=1,-1 on=C
 é = cathedral_tower height=15 shift=1,1 on=C
@@ -155,17 +159,24 @@ O = window
 Y = candles
 Ó = light y=6 color=0.62,0.66,0.82 radius=9
 D = banner
-// Roofs of terracotta, low and wide-eaved, each on its building's north-west corner.
-À = roof span=7,7 ridge=z top=5.6 pitch=1.4 eave=0.6 tex=terracotta wall=ashlar on=H
-Á = roof span=5,5 ridge=x top=5.6 pitch=1.2 eave=0.6 tex=terracotta wall=ashlar on=H
-Â = roof span=6,7 ridge=z top=5.6 pitch=1.3 eave=0.6 tex=terracotta wall=ashlar on=H
-Ã = roof span=8,7 ridge=x top=5.6 pitch=1.5 eave=0.6 tex=terracotta wall=stucco on=J
-Ä = roof span=6,6 ridge=x top=5.6 pitch=1.3 eave=0.6 tex=terracotta wall=ashlar on=H
-Å = roof span=5,5 ridge=z top=5.6 pitch=1.2 eave=0.6 tex=terracotta wall=stucco on=J
-Æ = roof span=6,6 ridge=x top=5.6 pitch=1.3 eave=0.6 tex=terracotta wall=ashlar on=H
-Ç = roof span=5,8 ridge=z top=5.6 pitch=1.3 eave=0.6 tex=terracotta wall=ashlar on=H
-È = roof span=6,6 ridge=x top=5.6 pitch=1.3 eave=0.6 tex=terracotta wall=stucco on=J
+// Steep roofs of violet slate, each on its building's north-west corner.
+À = roof span=7,7 ridge=z top=5.6 pitch=4.4 eave=0.45 tex=violet_slate wall=ashlar on=H
+Á = roof span=5,5 ridge=x top=5.6 pitch=3.6 eave=0.45 tex=violet_slate wall=ashlar on=H
+Â = roof span=6,7 ridge=z top=5.6 pitch=4.3 eave=0.45 tex=violet_slate wall=ashlar on=H
+Ã = roof span=8,7 ridge=x top=5.6 pitch=4.4 eave=0.45 tex=violet_slate wall=timber on=J
+Ä = roof span=6,6 ridge=x top=5.6 pitch=4.3 eave=0.45 tex=violet_slate wall=ashlar on=H
+Å = roof span=5,5 ridge=z top=5.6 pitch=3.6 eave=0.45 tex=violet_slate wall=timber on=J
+Æ = roof span=6,6 ridge=x top=5.6 pitch=4.3 eave=0.45 tex=violet_slate wall=ashlar on=H
+Ç = roof span=5,8 ridge=z top=5.6 pitch=3.6 eave=0.45 tex=violet_slate wall=ashlar on=H
+È = roof span=6,6 ridge=x top=5.6 pitch=4.3 eave=0.45 tex=violet_slate wall=timber on=J
 Ñ = chimney height=8 on=H
+// Round turrets corbelled out from the houses' corners under witch-hat cones of violet slate.
+¡ = roof_turret shift=0.8,-0.8 on=H
+£ = roof_turret shift=0.8,-0.8 on=J
+¤ = roof_turret shift=0.8,0.8 on=H
+© = roof_turret shift=0.8,0.8 on=J
+ª = roof_turret shift=-0.8,0.8 on=J
+« = roof_turret shift=-0.8,0.8 on=H
 // The houses' faces: shuttered windows, balconies and arched front doors.
 à = shutters
 á = shutters
@@ -189,6 +200,21 @@ D = banner
 // The founder's statue in bronze, gone green: one north of the bell, one over the market.
 ¦ = town_statue yaw=90
 ¨ = town_statue yaw=0
+// The town wall's round towers, capped in violet slate: its corners, along the walls, and the two
+// at the harbour's mouth.
+® = wall_tower shift=-0.8,-0.8 radius=1.8 on=R
+¯ = wall_tower shift=0,-0.8 radius=1.8 on=R
+° = wall_tower shift=0.8,-0.8 radius=1.8 on=R
+± = wall_tower shift=-0.8,0 radius=1.8 on=R
+² = wall_tower shift=0.8,0 radius=1.8 on=R
+³ = wall_tower shift=-0.8,0.8 radius=2.2 height=9 on=R
+´ = wall_tower shift=0.8,0.8 radius=2.2 height=9 on=R
+// The shops' signs, each hung from an iron bracket by its door and painted with what it sells:
+// Brannoc's anvil by the forge, Pell's scroll, Tamsin's flask and Corvane's crossed blades.
+þ = shop_sign emblem=anvil
+µ = shop_sign emblem=scroll
+¶ = shop_sign emblem=flask on=-
+· = shop_sign emblem=blades
 // Furniture and street dressing.
 × = forge_hearth
 û = forge_bellows
@@ -196,7 +222,6 @@ D = banner
 ã = tool_rack
 ú = grindstone
 ý = ingot_pile
-þ = smith_sign
 Í = rack
 Î = crate
 Ï = barrel
@@ -210,6 +235,7 @@ $ = hearth
 + = bed
 | = fence
 @ = boat on=~
+÷ = boat on=r
 T = tree kind=olive
 ø = tree kind=pine
 ù = tree kind=cypress

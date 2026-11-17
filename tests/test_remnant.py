@@ -6,6 +6,7 @@ import math
 from ashen_vault.player import remnant
 from ashen_vault.player.player import Player
 from ashen_vault.save.save_system import SaveSystem
+from ashen_vault.world import terrain
 from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.world import World
 from test_verdant_world import JungleGame
@@ -105,3 +106,40 @@ def test_the_heap_lies_on_solid_ground_when_you_die_in_a_chasm():
     world.terrain.safe = TileMap.center(3, 3)
     world.terrain.plunge = 0.5
     assert world.death_spot() == TileMap.center(3, 3)
+
+
+def _harbour():
+    game = AshenGame(())
+    world = World(game, "harrowmere")
+    game.world = world
+    return game, world
+
+
+def _step_off(world, game, start, into, seconds):
+    p = game.player
+    p.x, p.z = TileMap.center(*start)
+    p.y = world.map[start].floor
+    for _ in range(4):
+        world.update_terrain(0.05)
+    p.x, p.z = TileMap.center(*into)
+    for _ in range(round(seconds / 0.05)):
+        world.update_terrain(0.05)
+
+
+def test_walking_off_the_quay_into_the_sea_drowns_you_and_leaves_your_ashes_ashore():
+    game, world = _harbour()
+    assert world.map[5, 41].deep and world.map[20, 44].walkable  # the sea, and the pier over it
+    _step_off(world, game, (5, 40), (5, 41), terrain.DROWN_TIME + 0.2)
+    assert not game.player.alive
+    assert "The sea drags you under." in game.messages
+    assert world.death_spot() == TileMap.center(5, 40)  # the heap lies on the quay, not in the sea
+
+
+def test_off_the_pier_is_the_sea_too_but_the_canal_only_casts_you_back():
+    game, world = _harbour()
+    _step_off(world, game, (20, 45), (19, 45), terrain.DROWN_TIME + 0.2)
+    assert not game.player.alive
+    game, world = _harbour()
+    assert not world.map[10, 39].deep and world.map[10, 39].liquid
+    _step_off(world, game, (9, 39), (10, 39), 0.3)
+    assert game.player.alive and (game.player.x, game.player.z) == TileMap.center(9, 39)

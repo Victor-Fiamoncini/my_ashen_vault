@@ -192,6 +192,7 @@ class MapLoader:
                 floor=floor,
                 ceil=ceil,
                 liquid=True,
+                deep="deep" in p,
                 floor_tex=p.get("tex", "water"),
                 wall_tex=p.get("side", "stone_brick"),
                 ceil_tex=p.get("ceil_tex", "rough_stone"),

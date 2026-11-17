@@ -4024,6 +4024,7 @@ FLAME = (255, 170, 60)
 FLAME_CORE = (255, 235, 150)
 STONE = (128, 124, 118)
 CLOTH_RED = (120, 30, 30)
+REALM_VIOLET = ((84, 40, 116), (62, 34, 92))  # the realm's banners, everywhere
 
 
 def _flame(r, x, y, z, size, t):
@@ -4062,7 +4063,7 @@ def banner(r, t, seed, burnt=False):
     r.part("cyl", -0.9, 2.55, 0, 0.05, 1.0, 0.05, pole, rx=math.pi / 2)
     for end in (-0.5, 0.5):
         r.part("sphere", -0.9, 2.55, end, 0.08, 0.08, 0.08, _dim(BRASS, 0.5) if burnt else BRASS)
-    cloth = CLOTH_RED if seed % 2 == 0 else (40, 50, 80)
+    cloth = REALM_VIOLET[seed % 2]
     if burnt:
         with r.at(-0.9, 2.5, 0, rz=sway):
             _burnt_banner(r, t, seed, cloth)
