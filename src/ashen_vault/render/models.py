@@ -1575,12 +1575,13 @@ def _spider_leg(r, i, side, phase, amp, body, band, curl=0.0):
                 r.part("wedge", 0.45, 0.05, 0, 0.04, 0.09, 0.04, (40, 32, 40), rz=-0.5)  # a bristling spine
 
 
-def npc(r, look, t=0.0):
+def npc(r, look, t=0.0, near=True):
     """A villager facing +X, built from a `villagers.Look` square and blocky, as the old PS1 crawlers
     drew their folk: chunky boots and box legs (or a long robe flaring to its hem, or a kimono's wide
     hakama), a box chest with square shoulders and a coat skirt flaring below the belt, trimmed at hem,
     collar and cuffs, an apron or cloak, box arms hanging flush from the shoulders' corners ending in
-    mitt hands, and an angular, faceless head (a flat face, a brow and a nose, no eyes) sitting right on
+    faceted hands (a flat palm, four jointed fingers and a thumb, closed round what they hold; three
+    parts each beyond `world.DETAIL_RANGE`, `near` False), and an angular, faceless head (a flat face, a brow and a nose, no eyes) sitting right on
     the collar, under block hair, a beard, a hat or hood. They hold their trade's tool and idle by it
     (`look.idle`): the smith works a billet on the anvil before him (`villagers.smith_cycle`), the
     swordmaster stands ready by his blades (`villagers.half_draw`)."""
@@ -1597,7 +1598,7 @@ def npc(r, look, t=0.0):
             _smith_anvil(r, t)
         with r.at(0, 0.95, 0, rz=-stoop - lean):  # everything above the hips leans with the stoop
             _villager_torso(r, look, ws)
-            _villager_arms(r, look, ws, t, beat)
+            _villager_arms(r, look, ws, t, beat, near)
             with r.at(
                 0.03, HEAD_AT, 0, rz=stoop * 0.6 + lean * 0.5 - nod - (0.12 if look.idle == "pray" else 0.0)
             ):
@@ -1652,6 +1653,75 @@ def _mitt(r, rgb, size=0.15, grip=False, length=1.0):
     else:
         r.part("cube", 0, -ln * 1.15, 0, s * 0.56, ln * 0.55, s * 0.9, _dim(rgb, 0.94))
     r.part("cube", s * 0.42, -ln * 0.45, 0, s * 0.26, ln * 0.5, s * 0.3, _dim(rgb, 0.97), rz=0.4)  # thumb
+
+
+HAND_SIZE = 1.3  # the hand's scale: a little smaller than the arm is wide, yet readable from afar
+# Where a closed hand holds its haft: (below the wrist, toward the palm), the fingers wrapped round it.
+GRIP_AT = (-0.155, -0.026)
+POLE_TOOLS = ("staff", "spear")
+# A villager's four fingers, index (+X, by the thumb) to little: (offset along the knuckles, first
+# and second segment lengths). The middle finger is the longest, the little one the shortest.
+VILLAGER_FINGERS = (
+    (0.034, 0.042, 0.034),
+    (0.0115, 0.047, 0.037),
+    (-0.0115, 0.044, 0.035),
+    (-0.033, 0.034, 0.028),
+)
+KNUCKLES_AT = -0.1  # the finger roots, below the wrist
+VILLAGER_BONES = 0.62  # a villager's finger bones against the player's (before HAND_SIZE)
+VILLAGER_GIRTH = 0.68  # and their thickness: stouter for their length, so they read from afar
+REST_CURL = 0.35  # a hanging hand's loosely bent fingers
+GRIP_CURL = 1.45  # fingers closed round a haft
+
+
+def _villager_hand(r, rgb, side, curl=REST_CURL, thumb=0.45, thin=1.0, fat=1.0, knotty=False, seam=None):
+    """A villager's hand hanging from the wrist at the origin (down -Y), faceted rather than round
+    but shaped like a hand: smaller than the arm, a flat palm narrowing to the heel, the thumb toward
+    +X and the palm toward the body (-`side` Z). Four fingers of two segments each curl in toward
+    the palm by `curl` per joint (wrapping a haft along X at GRIP_CURL), and a two-segment thumb
+    swings forward off the palm by `thumb`. `thin` slims the bones (an old hand, `knotty` at the
+    joints), `fat` thickens them (a work glove, `seam` stitched down its back)."""
+    # Built as the player's fist is (`_fist`: FINGERS' lengths and girths, three BONES a finger curling
+    # by CURL's share at each joint, a three-bone thumb from the heel), but faceted like the villagers.
+    k = VILLAGER_BONES / FIST_SCALE
+    shade = _dim(rgb, 0.86)
+    r.part("frustum", 0, -0.01, 0, 0.085 * fat, 0.05, 0.058 * fat, rgb, rz=FLIP)  # the wrist, narrowing
+    r.part("frustum", 0, -0.058, 0, 0.1 * fat, 0.09, 0.044 * fat * thin, rgb)  # palm, wide at the knuckles
+    r.part("frustum", -0.012, -0.03, -side * 0.006, 0.07 * fat, 0.04, 0.05 * fat, _dim(rgb, 0.95), rz=FLIP)
+    if seam:
+        r.part("cube", 0, -0.055, side * 0.023 * fat, 0.008, 0.08, 0.004, seam)
+    for i, ((_, ln, girth), x) in enumerate(zip(FINGERS, (0.034, 0.0115, -0.0115, -0.033), strict=True)):
+        tone = rgb if i % 2 == 0 else _dim(rgb, 0.9)  # neighbours apart, so each finger reads
+        thick = FINGER * girth * VILLAGER_GIRTH * fat * thin
+        with ExitStack() as stack:
+            stack.enter_context(r.at(x * fat, KNUCKLES_AT, 0))
+            j = thick * (1.35 if knotty else 1.15)
+            r.part("cube", 0, 0, 0, j, j * 0.8, j, _bright(tone, 1.06, 4))  # the knuckle
+            for bone, bend in zip(BONES, CURL, strict=True):
+                stack.enter_context(r.at(0, 0, 0, rx=side * curl * bend / CURL[0]))
+                length = bone * ln * k
+                r.part("frustum", 0, -length / 2, 0, thick, length, thick, tone, rz=FLIP)
+                stack.enter_context(r.at(0, -length, 0))
+                thick *= 0.88
+    # The thumb: from the heel's fleshy root on the index side, out and forward, closing across the
+    # fingers by `thumb`.
+    thick = FINGER * 1.2 * VILLAGER_GIRTH * fat * thin
+    with ExitStack() as stack:
+        stack.enter_context(r.at(0.04 * fat, -0.03, -side * 0.012, rz=0.3 - 0.1 * thumb))
+        for n, (length, bend) in enumerate(((0.03, 0.25), (0.026, 0.55), (0.02, 0.45))):
+            stack.enter_context(r.at(0, 0, 0, rx=side * (bend * thumb + (0.25 if n == 0 else 0.0))))
+            r.part("frustum", 0, -length / 2, 0, thick, length, thick, rgb if n % 2 == 0 else shade, rz=FLIP)
+            stack.enter_context(r.at(0, -length, 0))
+            thick *= 0.88
+
+
+def _villager_hand_far(r, rgb, side, curl=REST_CURL, fat=1.0):
+    """The same hand for a villager seen from afar, in three parts: palm, the fingers as one curled
+    slab and the thumb."""
+    r.part("frustum", 0, -0.055, 0, 0.098 * fat, 0.1, 0.046 * fat, rgb)
+    with r.at(0, KNUCKLES_AT, 0, rx=side * curl):
+        r.part("cube", 0, -0.035, 0, 0.088 * fat, 0.07, 0.022 * fat, _dim(rgb, 0.92))
+    r.part("cube", 0.05 * fat, -0.07, -side * 0.01, 0.022, 0.06, 0.022, rgb, rz=0.6)
 
 
 def _villager_legs(r, look, ws):
@@ -1731,9 +1801,9 @@ ARM = 0.16  # a villager's arm, square in section
 LACING = (150, 64, 44)  # the cords that lace a pauldron's plates
 
 
-def _villager_arms(r, look, ws, t, beat):
+def _villager_arms(r, look, ws, t, beat, near=True):
     """Two box arms hanging flush from the chest's square shoulders, each an upper arm and a forearm
-    with a trimmed cuff, ending in a mitt. The right one (+Z) works the tool; the left rests, holds
+    with a trimmed cuff, ending in a hand (`_hand_of`). The right one (+Z) works the tool; the left rests, holds
     the smith's tongs or the swordmaster's scabbard, or both clasp in prayer."""
     sleeve = (look.cloak or look.cloth) if look.garb == "robe" else look.cloth
     reach = _chest_width(ws) / 2 + ARM / 2
@@ -1757,11 +1827,39 @@ def _villager_arms(r, look, ws, t, beat):
                         r.part("cube", 0, -0.27, 0, ARM * 1.12, 0.07, ARM * 1.12, _trim(look))  # cuff
                 if look.gloves:  # a work glove's flared cuff
                     r.part("frustum", 0, -0.26, 0, ARM * 1.25, 0.09, ARM * 1.25, _dim(look.gloves, 0.85))
-                with r.at(0, -0.3, 0):
-                    _mitt(r, hand, grip=tool is not None)
+                pole = tool in POLE_TOOLS
+                # A held tool turns the hand at the wrist: a haft along its knuckles, a staff or spear
+                # cocked upright through the fist.
+                turn = (math.pi / 2 - sh - el) if pole else wrist if tool else 0.0
+                with r.at(0, -0.3, 0, rz=turn):
+                    _hand_of(r, look, side, t, tool, hand, near)
                     if tool:
-                        with r.at(0, -0.09, 0, rz=wrist):
+                        with r.at(0, GRIP_AT[0], side * GRIP_AT[1], rz=-math.pi / 2 if pole else 0.0):
                             _villager_tool(r, tool, t)
+
+
+def _hand_of(r, look, side, t, tool, rgb, near):
+    """Draws one villager hand at the wrist: closed round the tool it holds, else resting by the idle
+    (the swordmaster's left on his scabbard, his right closing as it nears the hilt)."""
+    curl, thumb = (GRIP_CURL, 1.0) if tool else (REST_CURL, 0.2)
+    if look.idle == "ready":
+        if side == -1:  # round the scabbard's mouth, the thumb pressed forward on the guard
+            curl, thumb = 1.1, 0.0
+        else:
+            near_hilt = min(villagers.half_draw(t) / villagers.DRAW_SHOWN * 3, 1.0)
+            curl, thumb = REST_CURL + (GRIP_CURL - REST_CURL) * near_hilt, 0.2 + 0.8 * near_hilt
+    elif look.idle == "pray":
+        curl = 0.7
+    fat = 1.15 if look.gloves else 1.0
+    with r.at(0, 0, 0, s=HAND_SIZE):
+        if not near:
+            _villager_hand_far(r, rgb, side, curl, fat)
+            return
+        bony = look.build == "stooped"
+        _villager_hand(
+            r, rgb, side, curl, thumb, thin=0.92 if bony else 1.0, fat=fat, knotty=bony,
+            seam=_dim(look.gloves, 0.7) if look.gloves else None,
+        )  # fmt: skip
 
 
 def _pauldron(r, rgb):

@@ -425,7 +425,10 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   own pays gold instead (`loot.claim`). No spell scroll, gear or key may be placed twice across maps and
   gifts (`tests/test_loot.py`): give a new find a new item.
 - Villagers are drawn by `models.npc` from a `world/villagers.Look` (build, clothes, hair, hat, held tool,
-  idle); a new villager needs an entry in `villagers.LOOKS`. Brannoc's idle is `smith`: a loop of four
+  idle); a new villager needs an entry in `villagers.LOOKS`. Their hands (`models._villager_hand`) are the player's
+  fist made faceted: three-boned fingers of `FINGERS`' lengths curling by `CURL`'s shares and a
+  three-boned thumb, closed round a held tool (a staff or spear stands upright through the fist,
+  `POLE_TOOLS`); beyond `world.DETAIL_RANGE` they drop to three parts (`_villager_hand_far`). Brannoc's idle is `smith`: a loop of four
   blows on a billet at the anvil his model carries before him, a turn of it in the tongs, a look at it
   and a wipe of the brow (`villagers.smith_cycle`); each blow throws sparks and rings the anvil through
   `World.sfx_near` (`smith_blows`). Corvane, an old swordmaster, wears a `kimono` over hakama, a long

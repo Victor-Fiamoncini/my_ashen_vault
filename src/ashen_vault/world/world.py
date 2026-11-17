@@ -2201,7 +2201,8 @@ class World:
             if npc_id == "enthroned":
                 models.enthroned(rig, t)
             else:
-                models.npc(rig, villagers.look(npc_id), t + p.tx)
+                near = self._baking or math.hypot(p.x - self.player.x, p.z - self.player.z) < DETAIL_RANGE
+                models.npc(rig, villagers.look(npc_id), t + p.tx, near)
         elif k == "barrel":
             models.barrel(rig, p.tx * 7 + p.tz, broken=p.open_t > 0)
         elif k == "secret_wall":

@@ -835,7 +835,7 @@ def test_every_weapon_preview_is_centred_and_fits_its_window():
 
 
 def test_every_villager_draws_as_a_person_in_every_idle():
-    """Each villager has legs, a square-shouldered torso, two jointed arms with mitts and a faceless
+    """Each villager has legs, a square-shouldered torso, two jointed arms with hands and a faceless
     head sitting on the collar; whatever they do, nothing sinks below the floor and they stand about a
     person's height."""
     from ashen_vault.render import bounds, models
@@ -1622,3 +1622,24 @@ def test_a_thorn_shot_and_a_flying_flame_draw_a_steady_number_of_glowing_parts()
         sizes = {len(count(draw, t / 7)) for t in range(20)}
         assert len(sizes) == 1, draw  # nothing pops in and out from frame to frame
     assert len(count(flame, 0.0)) <= 20  # a flame stays lean: one is drawn for every bolt and spark
+
+
+def test_villager_hands_are_smaller_than_the_arm_and_close_round_what_they_hold():
+    """A villager's hand is a hand, not a mitt: narrower than the arm, four three-boned fingers and a
+    thumb, and closing it round a haft draws the fingertips up into a fist; from afar it is three parts."""
+    from ashen_vault.render import bounds, models
+
+    for side in (1, -1):
+        lo, hi = bounds.measure(lambda r, s=side: models._villager_hand(r, (200, 160, 120), s))
+        assert hi[0] - lo[0] < models.ARM and hi[2] - lo[2] < models.ARM
+        gpu = _RecordingGpu()
+        models._villager_hand(rig.Rig(gpu), (200, 160, 120), side)
+        assert len(gpu.parts) == 3 + 4 * 4 + 3  # palm, wrist, thumb root; knuckle and bones; thumb
+        rest = bounds.measure(lambda r, s=side: models._villager_hand(r, (200, 160, 120), s))[0][1]
+        fist = bounds.measure(
+            lambda r, s=side: models._villager_hand(r, (200, 160, 120), s, curl=models.GRIP_CURL, thumb=1.0)
+        )[0][1]
+        assert fist > rest + 0.02  # the fingertips curl up toward the palm
+        far = _RecordingGpu()
+        models._villager_hand_far(rig.Rig(far), (200, 160, 120), side)
+        assert len(far.parts) == 3

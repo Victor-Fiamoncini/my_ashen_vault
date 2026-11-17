@@ -464,11 +464,11 @@ uv run ashen-vault --map sunken_keep --at 15,21,180 --smoke 100 --script "wait:1
 The README screenshots were taken this way, each with `ASHEN_VAULT_SAVE` pointing at a fresh throwaway
 file. The title is `uv run ashen-vault --smoke 60 --shot title.png` and the village
 `uv run ashen-vault --map harrowmere --at=22,30,-60 --smoke 40 --shot village.png`; Odrin is
-`uv run ashen-vault --map harrowmere --at=28,25,-90 --smoke 40 --script "wait:0.2 interact" --shot dialogue.png`,
+`uv run ashen-vault --map harrowmere --at=28,25,-90 --level 10 --equip primary=mace --smoke 40 --script "wait:0.2 interact" --shot dialogue.png`,
 Belongings is
 `uv run ashen-vault --map harrowmere --at=20,44,-90 --level 6 --equip primary=katana,secondary=round_shield,body=brigandine,hands=chain_mitts --smoke 40 --script "wait:0.2 menu" --shot inventory.png`,
 Corvane's shop is
-`uv run ashen-vault --map harrowmere --at=6,26,180 --level 7 --smoke 220 --script "forward:2 interact wait:0.3 confirm wait:0.3 confirm wait:0.3 confirm wait:0.3 confirm" --shot corvane.png`,
+`uv run ashen-vault --map harrowmere --at=6,26,180 --level 10 --equip primary=flamberge --smoke 220 --script "forward:2 interact wait:0.3 confirm wait:0.3 confirm wait:0.3 confirm wait:0.3 confirm" --shot corvane.png`,
 the cathedral is `uv run ashen-vault --map harrowmere --at=18,6,180 --smoke 40 --shot cathedral.png`,
 the cemetery is `uv run ashen-vault --map ashen_cemetery --smoke 40 --shot cemetery.png`,
 the Mourner is `uv run ashen-vault --map ashen_cemetery --at=11,22,-90 --smoke 40 --shot mourner.png`,
@@ -477,7 +477,7 @@ the burning silk is
 the Sexton is
 `uv run ashen-vault --map ashen_cemetery --at=10,11,-90 --smoke 222 --script "wait:0.1 interact wait:1 forward:0.6" --shot sexton.png`
 (its move is random, so take it again until it breathes its dust),
-the forge is `uv run ashen-vault --map harrowmere --at=8,18,180 --smoke 40 --shot forge.png`,
+the forge is `uv run ashen-vault --map harrowmere --at=8,18,180 --level 10 --equip primary=bastard_sword --smoke 40 --shot forge.png`,
 the Warden is `uv run ashen-vault --map sunken_keep --at=15,7,-90 --smoke 40 --shot warden.png`,
 the hollow's vine path is `uv run ashen-vault --map verdant_hollow --at=9,12,90 --smoke 40 --shot verdant_hollow.png`,
 the Bark Husk is `uv run ashen-vault --map verdant_hollow --at=26,17,-90 --smoke 60 --shot bark_husk.png`,
