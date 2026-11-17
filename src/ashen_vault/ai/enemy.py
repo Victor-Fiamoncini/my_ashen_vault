@@ -191,9 +191,12 @@ class Enemy:
             ask = getattr(world, "rise_time", None)
             seconds = ask(self) if ask else (ASH_RISE if self._notices(world, dist) else None)
             if seconds:
+                self.face(world.player_x, world.player_z)  # the heap has no front: it forms facing you
                 self.begin_rise(seconds)
             return
         if self.state == "rising":
+            if self.type.rise == "ash":
+                self.face(world.player_x, world.player_z, dt)  # and keeps turning to you as you move
             if self.state_t >= self.rise_time:
                 self.face(world.player_x, world.player_z)
                 self._switch("chase")

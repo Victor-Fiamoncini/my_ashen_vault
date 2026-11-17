@@ -683,6 +683,16 @@ def test_the_world_says_when_a_heap_rises_and_how_fast():
     assert boss.state == "rising" and boss.rise_time == 1.5
 
 
+def test_a_boss_of_ash_rises_facing_you_and_turns_as_you_move():
+    world = FakeWorld(0, 3)  # you stand to its south, not where its yaw points
+    boss = Enemy(EnemyTypes.get("sexton"), 0, 0, yaw=0.0, rng=random.Random(0))
+    boss.update(0.05, world)
+    assert boss.state == "rising" and abs(boss.yaw - math.pi / 2) < 1e-6
+    world.player_x, world.player_z = -3, 0  # you step round to its west while it forms
+    tick(boss, world, 2.0)
+    assert boss.state == "rising" and abs(abs(boss.yaw) - math.pi) < 0.05
+
+
 def test_a_struck_statue_cracks_and_tears_free_before_it_fights():
     from ashen_vault.ai.enemy import STATUE_RISE
 
