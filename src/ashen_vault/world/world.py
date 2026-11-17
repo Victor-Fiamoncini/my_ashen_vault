@@ -192,6 +192,9 @@ BLOCKING_PROPS = (
     "grave_railing",
     "forge_bellows",
     "grindstone",
+    "town_statue",
+    "forge_statue",
+    "ore_cart",
 )
 # How high a low blocking prop reaches above its floor, in metres: a shot flying higher passes over it
 # (a bolt over a table, a casket or a barrel). Anything not listed stands full height.
@@ -220,6 +223,7 @@ PROP_TOP = {
     "hand_cart": 1.2,
     "hay_wagon": 1.8,
     "cargo": 1.2,
+    "ore_cart": 1.2,
     "forge_bellows": 1.1,
     "grindstone": 1.2,
 }
@@ -280,7 +284,7 @@ STATIC_PROPS = frozenset(
         *("gargoyle_statue", "pillar", "sarcophagus", "headsman_block", "rack", "rubble", "bones"),
         *("shackles", "cobweb", "mushrooms", "slag_heap", "ingot_pile", "gatehouse", "bastion"),
         *("gravestone", "open_grave", "cemetery_gate", "mourning_statue", "crypt_front", "grave_railing"),
-        *("smith_sign", "forge_bellows", "grindstone"),
+        *("smith_sign", "forge_bellows", "grindstone", "town_statue", "forge_statue", "ore_cart"),
         "ash_mound",
         "spire",
     }
@@ -290,7 +294,8 @@ RISE = {"rose_window": "6", "crest_plaque": "3", "shutters": "1.7", "balcony": "
 # Props that turn to face into the room.
 FACING_PROPS = (
     *("chest", "altar", "table", "bed", "cupboard", "gargoyle_statue", "forge_hearth"),
-    *("bench", "hand_cart", "hay_wagon", "mourning_statue", "forge_bellows"),
+    *("bench", "hand_cart", "hay_wagon", "mourning_statue", "forge_bellows", "town_statue", "forge_statue"),
+    "ore_cart",
 )
 # Harrowmere's buildings, furniture and street dressing (`render/town_models.py`).
 TOWN_PROPS = (
@@ -320,6 +325,7 @@ TOWN_PROPS = (
     "hand_cart",
     "hay_wagon",
     "cargo",
+    "town_statue",
     "smith_sign",
     "forge_bellows",
     "grindstone",
@@ -2234,13 +2240,13 @@ class World:
             models.iron_maiden(rig, maiden_door(p.open_t))
         elif k == "exit":
             if p.props.get("model") == "well":
-                models.well(rig)
+                models.well(rig, t)
             elif p.props.get("model") == "vine_door":
                 models.vine_door(rig, t)
             elif p.props.get("model") == "cave_mouth":
                 models.cave_mouth(rig, t)
             elif p.props.get("model") == "road_gate":
-                forge_models.road_gate(rig)
+                forge_models.road_gate(rig, t, p.props.get("style", "town"))
             elif p.props.get("model") == "keep_door":
                 forge_models.keep_door(rig, t)
             elif p.props.get("model") == "cemetery_gate":  # it swings open once its keeper falls
@@ -2295,6 +2301,10 @@ class World:
             fortress_props.slag_heap(rig, p.tx * 7 + p.tz * 3)
         elif k == "impaler":
             fortress_props.impaler(rig, t, p.tx * 7 + p.tz * 3)
+        elif k == "forge_statue":
+            fortress_props.forge_statue(rig, p.tx * 7 + p.tz * 3)
+        elif k == "ore_cart":
+            fortress_props.ore_cart(rig, p.tx * 7 + p.tz * 3)
         elif k == "anvil":
             forge_models.anvil(rig, t + p.tx)
         elif k == "chimney":
@@ -2378,6 +2388,8 @@ class World:
             town_models.bench(rig, seed)
         elif k == "hand_cart":
             town_models.hand_cart(rig, seed)
+        elif k == "town_statue":
+            town_models.town_statue(rig, seed)
         elif k == "hay_wagon":
             town_models.hay_wagon(rig, seed)
         elif k == "cargo":

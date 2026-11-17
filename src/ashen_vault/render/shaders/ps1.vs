@@ -9,7 +9,7 @@ uniform mat4 mvp;
 uniform mat4 matModel;
 
 uniform vec2 snapRes;      // grid that vertices snap to (PS1 integer screen coords)
-uniform float isModel;     // 1 = lit by modelLight + normal, 0 = baked vertex light, -1 = baked prop (x2)
+uniform float isModel;     // 1 = lit by modelLight + normal, 0 = baked vertex light, -1 = baked prop (colour x2, light in normal)
 uniform vec3 modelLight;
 uniform vec3 torchColor;
 uniform float torchRadius;
@@ -33,17 +33,17 @@ void main()
     float depth = max(clip.w, 0.0);
     float torch = clamp(1.0 - depth / max(torchRadius, 0.001), 0.0, 1.0);
 
-    vec3 base;
     if (isModel > 0.5) {
         vec3 n = normalize(mat3(matModel) * vertexNormal);
         float shade = 0.55 + 0.45 * max(dot(n, normalize(vec3(0.35, 1.0, 0.25))), 0.0);
-        base = modelLight * shade;
+        fragLight = modelLight * shade + torchColor * torch;
     } else if (isModel < -0.5) {
-        base = vertexColor.rgb * 2.0;  // prop_bake halves its colours to fit a byte
+        // A baked prop: its colour (halved by prop_bake to fit a byte) lit by the light baked into
+        // its normals and by the torch, as a model's colour is: the torch never washes it out.
+        fragLight = vertexColor.rgb * 2.0 * (vertexNormal + torchColor * torch);
     } else {
-        base = vertexColor.rgb;
+        fragLight = vertexColor.rgb + torchColor * torch;
     }
-    fragLight = base + torchColor * torch;
     fragDepth = depth;
     fragWorld = (matModel * vec4(vertexPosition, 1.0)).xyz;
 }

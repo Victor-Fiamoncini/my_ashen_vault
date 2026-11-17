@@ -49,10 +49,11 @@ class PropBaker:
         if batch is None:
             batch = self.batches[(self.group, tex)] = Batch()
         light = (GLOW_LIGHT,) * 3 if glow else self._light
-        tint = [max(0, min(255, int(c))) / 255 * BAKE_SCALE * li for c, li in zip(rgb, light, strict=True)]
+        tint = [max(0, min(255, int(c))) / 255 * BAKE_SCALE for c in rgb]
+        l0, l1, l2 = light
         m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11 = m[:12]
         verts, normals, uvs = self.tris(kind)
-        out_v, out_c = batch.verts, batch.colors
+        out_v, out_c, out_l = batch.verts, batch.colors, batch.light
         sx, sy, sz = SUN
         for i in range(0, len(verts), 3):
             x, y, z = verts[i], verts[i + 1], verts[i + 2]
@@ -67,5 +68,6 @@ class PropBaker:
             nx, ny, nz = m0 * x + m1 * y + m2 * z, m4 * x + m5 * y + m6 * z, m8 * x + m9 * y + m10 * z
             length = math.sqrt(nx * nx + ny * ny + nz * nz) or 1.0
             shade = 0.55 + 0.45 * max((nx * sx + ny * sy + nz * sz) / length, 0.0)
-            out_c.extend((min(tint[0] * shade, 1.0), min(tint[1] * shade, 1.0), min(tint[2] * shade, 1.0)))
+            out_c.extend(tint)
+            out_l.extend((l0 * shade, l1 * shade, l2 * shade))
         batch.uvs.extend(uvs)

@@ -13,8 +13,20 @@ BUILDS = {
 }
 GARBS = ("tunic", "robe", "kimono")
 HAIR_STYLES = ("short", "long", "bald", "bun", "topknot")
-HATS = (None, "brim", "cap", "coif")
-TOOLS = (None, "hammer", "spear", "ladle", "staff", "ledger", "rod", "whetstone", "tankard", "lantern")
+HATS = (None, "brim", "cap", "coif", "helm")
+TOOLS = (
+    None,
+    "hammer",
+    "spear",
+    "ladle",
+    "staff",
+    "ledger",
+    "rod",
+    "whetstone",
+    "tankard",
+    "lantern",
+    "halberd",
+)
 IDLES = ("sway", "hammer", "watch", "stir", "pray", "count", "smith", "ready")
 BEARDS = (None, "short", "long")
 BLADES = (None, "back", "hip")
@@ -69,6 +81,21 @@ def half_draw(t):
     return DRAW_SHOWN * min(k / 0.35, 1.0, (1 - k) / 0.35)
 
 
+# A sentry's watch: every so often he turns his head to look down the road, holds it, and turns back.
+GLANCE_EVERY = 7.0  # seconds between glances
+GLANCE_TIME = 3.0  # how long one takes, there and back
+GLANCE_TURN = 0.55  # radians his head turns at most
+
+
+def glance(t):
+    """How far (radians, + to his left) a sentry's head is turned at time `t`: 0 most of the time."""
+    k = (t % GLANCE_EVERY) / GLANCE_TIME
+    if k >= 1:
+        return 0.0
+    side = 1 if int(t // GLANCE_EVERY) % 2 == 0 else -1
+    return side * GLANCE_TURN * min(k / 0.25, 1.0, (1 - k) / 0.25)
+
+
 @dataclass(frozen=True)
 class Look:
     cloth: tuple = (110, 110, 110)  # tunic or robe
@@ -93,6 +120,8 @@ class Look:
     gloves: tuple | None = None  # work gloves over the mitts
     pauldron: tuple | None = None  # a lacquered plate shoulder guard on the left shoulder
     sash: tuple = (60, 30, 30)  # a kimono's obi
+    tabard: tuple | None = None  # the watch's surcoat over mail, the realm's crest on its breast
+    shield: tuple | None = None  # a kite shield slung on the left arm, its face painted this colour
     idle: str = "sway"
 
     def __post_init__(self):
@@ -137,6 +166,28 @@ LOOKS = {
     "garrick": Look(
         cloth=(100, 40, 36), hair=(110, 90, 60), build="tall", cloak=(76, 30, 28), hat="coif",
         hat_rgb=(130, 130, 136), tool="spear", idle="watch", beard="short",
+    ),
+    # The town watch at its gates, in the realm's colours: a kettle helm over mail, a tabard with the
+    # crest on the breast, a halberd or a spear, and a kite shield on the arm.
+    "aldous": Look(
+        cloth=(92, 94, 100), hair=(96, 74, 50), skin=(184, 146, 110), build="stout", hat="helm",
+        hat_rgb=(122, 124, 130), tool="halberd", idle="watch", beard="short", tabard=(118, 36, 34),
+        shield=(118, 36, 34), trousers=(60, 54, 50), gloves=(76, 60, 44),
+    ),
+    "tobin": Look(
+        cloth=(86, 88, 96), hair=(150, 104, 56), skin=(204, 166, 128), build="slight", hat="helm",
+        hat_rgb=(112, 114, 120), tool="spear", idle="watch", tabard=(108, 34, 32), shield=(40, 52, 82),
+        trousers=(66, 58, 48),
+    ),
+    "reyna": Look(
+        cloth=(90, 90, 98), hair=(58, 40, 30), skin=(168, 128, 96), build="tall", hair_style="long",
+        hat="helm", hat_rgb=(128, 128, 134), tool="halberd", idle="watch", tabard=(112, 38, 36),
+        cloak=(64, 40, 36), trousers=(54, 50, 48), gloves=(70, 56, 42),
+    ),
+    "fenn": Look(
+        cloth=(84, 86, 92), hair=(170, 168, 160), skin=(190, 150, 116), build="average", hat="helm",
+        hat_rgb=(104, 106, 112), tool="spear", idle="watch", beard="long", beard_tip=(210, 208, 200),
+        tabard=(104, 32, 30), shield=(118, 36, 34),
     ),
     "tamsin": Look(
         cloth=(84, 110, 66), hair=(60, 40, 30), build="slight", hair_style="bun", apron=(170, 160, 130),

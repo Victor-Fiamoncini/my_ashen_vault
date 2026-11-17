@@ -41,8 +41,29 @@ def test_the_thunder_spear_and_a_mote_glow_and_change_as_they_fly():
 
 
 def test_thunder_and_motes_have_their_own_previews_not_the_plain_orb():
-    plain = len(_draw(models.spell_orb, "lumen", 0.0))
-    for id_ in ("thunder", "motes"):
+    plain = len(_draw(models.spell_orb, "venom", 0.0))
+    for id_ in ("thunder", "motes", "mend", "lumen"):
         parts = _draw(models.spell_orb, id_, 0.4)
         assert len(parts) > plain * 2, id_
         assert parts != _draw(models.spell_orb, id_, 0.9), id_  # it moves
+
+
+def test_mend_and_lumen_look_unlike_each_other_and_glow():
+    mend, lumen = _draw(models.spell_orb, "mend", 0.4), _draw(models.spell_orb, "lumen", 0.4)
+    assert all(glow for *_, glow in mend + lumen)  # all light
+    assert {rgb for _, rgb, *_ in mend}.isdisjoint({rgb for _, rgb, *_ in lumen})
+    rays = [p for p in lumen if p[0] == "cube" and p[1] == models.LUMEN_CORE]
+    assert len(rays) == models.LUMEN_RAYS
+
+
+def test_mend_and_lumen_have_their_own_light_over_the_palm():
+    def palm(fn, t, ready, cast):
+        gpu = _Parts()
+        fn(rig.Rig(gpu), t, ready, cast)
+        return gpu.parts
+
+    for fn in (models._palm_mend, models._palm_lumen):
+        ready = palm(fn, 0.3, True, 0.0)
+        assert len(ready) >= 5, fn.__name__
+        assert ready != palm(fn, 0.8, True, 0.0), fn.__name__  # it moves
+        assert len(palm(fn, 0.3, False, 0.8)) > len(palm(fn, 0.3, False, 0.0)), fn.__name__  # a cast shows

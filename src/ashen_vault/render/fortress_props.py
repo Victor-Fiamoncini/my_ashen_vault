@@ -22,6 +22,7 @@ from ashen_vault.render.forge_models import (
     _slit,
 )
 from ashen_vault.render.models import EMBER, RUST, _bar, _flame
+from ashen_vault.render.town_models import cart_wheel
 
 BRICK = (86, 60, 52)
 SOOT = (30, 24, 24)
@@ -121,6 +122,82 @@ def gargoyle_statue(r, t, seed, pose="hunched", detail=True):
 
 
 # --- the forge -----------------------------------------------------------------------------------
+
+
+def forge_statue(r, seed):
+    """A statue of a smith-knight on a soot-blackened plinth: an armoured figure in iron gone dark, his
+    great hammer's head resting on the anvil before him and both gauntlets on its haft, a helm with a
+    slit visor, a cloak of beaten plates and a ring of iron spikes round the plinth's cornice."""
+    iron = _dim_rgb(BLACK_IRON, 1.15 if seed % 2 else 1.0)
+    dark = _dim_rgb(iron, 0.7)
+    r.part("cube", 0, 0.15, 0, 1.8, 0.3, 1.8, STONE)  # the plinth's foot
+    r.part("cube", 0, 0.8, 0, 1.3, 1.0, 1.3, STONE_LIGHT)  # its die
+    r.part("cube", 0, 1.36, 0, 1.5, 0.12, 1.5, STONE)  # the cornice
+    for k in range(8):  # spikes round its edge
+        a = k * math.pi / 4 + math.pi / 8
+        r.part("cube", math.cos(a) * 0.68, 1.52, math.sin(a) * 0.68, 0.05, 0.22, 0.05, BLACK_IRON)
+    r.part("cube", 0.66, 0.8, 0, 0.02, 0.5, 0.7, SOOT)  # soot licked up its face
+    r.part("cube", 0.665, 0.95, 0, 0.02, 0.2, 0.34, (60, 50, 46))  # a cast iron plaque
+    with r.at(0, 1.42, 0):
+        for z in (-0.16, 0.16):  # sabatons, greaves and cuisses
+            r.part("cube", 0.04, 0.06, z, 0.3, 0.12, 0.16, dark)
+            r.part("cube", 0, 0.38, z, 0.16, 0.56, 0.17, iron)
+            r.part("cube", 0.08, 0.66, z, 0.06, 0.12, 0.14, dark)  # the knee cop
+            r.part("cube", 0, 0.92, z, 0.2, 0.48, 0.2, iron)
+        r.part("frustum", 0, 1.16, 0, 0.5, 0.2, 0.62, dark)  # the fauld, flaring over the hips
+        r.part("cube", 0, 1.5, 0, 0.36, 0.56, 0.58, iron)  # the breastplate
+        r.part("cube", 0.19, 1.52, 0, 0.02, 0.44, 0.06, _dim_rgb(iron, 1.3))  # its ridge
+        for z in (-1, 1):
+            r.part("cube", 0, 1.8, z * 0.34, 0.36, 0.14, 0.24, dark, rx=z * 0.3)  # pauldrons
+            r.part("cube", 0.16, 1.42, z * 0.3, 0.14, 0.44, 0.14, iron, rz=0.75)  # the arms, reaching down
+            r.part("cube", 0.36, 1.18, z * 0.12, 0.14, 0.12, 0.14, dark)  # gauntlets on the haft
+        for k in range(4):  # the cloak of beaten plates hanging behind
+            r.part("cube", -0.25, 1.62 - k * 0.32, 0, 0.06, 0.3, 0.7 - k * 0.04, _dim_rgb(dark, 1 - k * 0.05),
+                   rz=-0.06)  # fmt: skip
+        r.part("cube", 0.02, 2.0, 0, 0.3, 0.32, 0.28, iron)  # the helm
+        r.part("frustum", 0.0, 2.2, 0, 0.3, 0.1, 0.28, dark)  # its brow
+        r.part("cube", 0.17, 2.02, 0, 0.02, 0.03, 0.2, (16, 12, 12))  # the visor's slit
+        r.part("cube", 0.0, 2.27, 0, 0.24, 0.05, 0.04, _dim_rgb(iron, 1.2))  # a crest along its top
+        r.part("cube", 0.38, 0.85, 0, 0.06, 0.66, 0.06, TIMBER)  # the hammer's haft, standing upright
+        r.part("cube", 0.38, 0.38, 0, 0.26, 0.24, 0.38, BLACK_IRON)  # its head, resting on the anvil
+        r.part("cube", 0.4, 0.13, 0, 0.42, 0.2, 0.3, dark)  # the anvil's face
+        r.part("cube", 0.4, 0.02, 0, 0.3, 0.06, 0.22, dark)
+
+
+def ore_cart(r, seed):
+    """A mine cart left on a short run of rails: an iron tub riveted at its seams and banded, on four
+    small spoked wheels, heaped with ore and cooling slag, a shovel thrust in it and its towing chain
+    hanging from the front."""
+    for z in (-0.42, 0.42):  # the rails on their sleepers
+        r.part("cube", 0, 0.05, z, 2.0, 0.06, 0.06, BLACK_IRON)
+    for x in (-0.8, -0.27, 0.27, 0.8):
+        r.part("cube", x, 0.01, 0, 0.18, 0.04, 1.2, TIMBER)
+    for x in (-0.4, 0.4):
+        r.part("cube", x, 0.28, 0, 0.07, 0.07, 1.0, BLACK_IRON)  # the axle
+        for z in (-0.42, 0.42):
+            cart_wheel(r, x, 0.24, z, 0.2, 6, wood=BLACK_IRON)
+    tub = _dim_rgb(BLACK_IRON, 1.2)
+    r.part("cube", 0, 0.42, 0, 1.3, 0.1, 0.76, tub)  # the tub's floor
+    for z in (-1, 1):  # its sides, flaring out
+        r.part("cube", 0, 0.68, z * 0.42, 1.36, 0.5, 0.06, tub, rx=z * 0.15)
+    for x in (-1, 1):
+        r.part("cube", x * 0.68, 0.68, 0, 0.06, 0.5, 0.86, tub, rz=-x * 0.15)
+    for x in (-0.5, 0.0, 0.5):  # bands round it, and rivets
+        for z in (-1, 1):
+            r.part("cube", x, 0.68, z * 0.455, 0.08, 0.52, 0.02, RUST, rx=z * 0.15)
+            r.part("cube", x, 0.88, z * 0.47, 0.04, 0.04, 0.03, RIVET)
+    rng = random.Random(seed)
+    for k in range(7):  # the load: lumps of ore and slag, one still warm
+        x, z = rng.uniform(-0.45, 0.45), rng.uniform(-0.25, 0.25)
+        rgb = WARM if k == 0 else SLAG_LIGHT if k % 2 else COOL_SLAG
+        r.part("cube", x, 0.95 + rng.uniform(0, 0.1), z, 0.24, 0.18, 0.22, rgb, ry=rng.uniform(0, 3), rz=0.3,
+               glow=k == 0)  # fmt: skip
+    with r.at(-0.2, 1.2, 0.15, rz=-0.4):  # a shovel thrust into it
+        r.part("cube", 0, 0.3, 0, 0.04, 0.8, 0.04, TIMBER)
+        r.part("cube", 0, 0.72, 0, 0.12, 0.04, 0.04, TIMBER)
+        r.part("cube", 0, -0.12, 0, 0.03, 0.22, 0.2, BLACK_IRON)
+    for k in range(4):  # its towing chain, hanging from the front to the ground
+        r.part("cube", 0.74 + k * 0.06, 0.5 - k * 0.12, 0, 0.05, 0.1, 0.03 if k % 2 else 0.06, BLACK_IRON)
 
 
 def barred_window(r, t, seed):

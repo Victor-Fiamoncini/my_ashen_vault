@@ -59,7 +59,8 @@ def test_odrin_greets_a_woken_ashen_with_the_prophecy_of_four_sigils():
 def test_nobody_in_town_takes_the_ashen_for_a_sailor():
     from ashen_vault import dialogue
 
-    for npc in ("odrin", "garrick", "ilse", "wren", "enthroned", "brannoc", "tamsin", "hollis", "pell"):
+    for npc in ("odrin", "garrick", "ilse", "wren", "enthroned", "brannoc", "tamsin", "hollis", "pell",
+                "aldous", "tobin", "fenn", "reyna"):  # fmt: skip
         _, text = talk(npc, FakeGame())
         assert "off the boat" not in text and "the tide brings" not in text, npc
     assert "fourth" in " ".join(dialogue.ENTHRONED_LINES[-1])
@@ -253,3 +254,14 @@ def test_the_enthroned_stirs_a_little_more_with_each_sigil_held():
         assert speaker == "The Enthroned"
         texts.append(text)
     assert len(set(texts)) == 4
+
+
+def test_the_watch_talks_of_the_road_its_gate_keeps():
+    for id_ in dialogue.WATCH:
+        speaker, text = talk(id_, FakeGame())
+        assert speaker != "Stranger" and text != "...", id_
+    assert "north road" in talk("aldous", FakeGame())[1]
+    assert talk("aldous", FakeGame()) != talk("aldous", FakeGame(flags={"gargoyles_dead"}))
+    assert "cave" in talk("reyna", FakeGame())[1]
+    assert talk("reyna", FakeGame()) != talk("reyna", FakeGame(flags={"spider_dead"}))
+    assert "cemetery" in talk("fenn", FakeGame())[1]

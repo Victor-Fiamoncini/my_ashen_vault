@@ -94,7 +94,10 @@ class Gpu:
         mesh.triangleCount = n // 3
         mesh.vertices = self._alloc("float *", array("f", batch.verts).tobytes())
         mesh.texcoords = self._alloc("float *", array("f", batch.uvs).tobytes())
-        normals = array("f", [0.0, 1.0, 0.0]) * n
+        # A baked prop's light rides in the normals (`Batch.light`); the world needs none.
+        normals = (
+            array("f", light) if (light := getattr(batch, "light", None)) else array("f", [0.0, 1.0, 0.0]) * n
+        )
         mesh.normals = self._alloc("float *", normals.tobytes())
         rgb = bytes(int(c * 255) for c in batch.colors)
         rgba = bytearray(b"\xff") * (n * 4)

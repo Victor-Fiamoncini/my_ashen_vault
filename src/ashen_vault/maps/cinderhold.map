@@ -86,11 +86,11 @@ KKKKppORRRRRRCRRTRRRBRRRRÀRRRRRÀRRRRRÀRRRRRRLRTRRRRppKKKKKKK
 KKKKppRTRRFRRRRRRRRRRRRRRRRRRRRRRRTRRRRRRRBRRRRRRRÜppKKKKKKK
 KK#####P#############ppppppppppppPÖPpppppppppppppppppKKKKKKK
 KK#.X...ll..M.llÂ..T##:abcdefhijkmn:::####################KK
-KK#.....ll.W..gg..N.##::::::::::::::::#############..ÃÅ.I#KK
+KK#.....ll.W..gg..N.##::¡:::::::::::::#############..ÃÅ.I#KK
 KK#.....ll..å.ll...Á##::::::::W:::::::######Í######.N....#KK
-KK#T....ll.F..ll......::::::::::::::::#############.....Á#KK
+KK#T....ll.F..ll......::::::::::::¢:::#############.....Á#KK
 KK#..W..ll....ll.Æ..##::::::H:::::::::T..J..Þ..ß........T#KK
-KK#À....gg....ll.N..##:::Z:::::::::Z::#############......#KK
+KK#À....gg..£.ll.N..##:::Z:::::::::Z::#############......#KK
 KK#.....llÀ.T.llÅ.Ã.##::::::::::::::::#############Â..F..#KK
 KK#1##################::::::::::::::::#############......#KK
 KK#2TssvvsHsssssvvT##########..######K######...Ï..Ù......#KK
@@ -146,7 +146,7 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 
 [entities]
 // The road down to Harrowmere and the wayside shrine.
-Ð = exit map=harrowmere at=31,2,90 label=Return_to_Harrowmere model=road_gate yaw=90
+Ð = exit map=harrowmere at=31,2,90 label=Return_to_Harrowmere model=road_gate style=forge yaw=90
 Ñ = save_statue
 T = torch radius=7
 // The long bridge: vents in the lava lob bombs onto it; hounds and bowmen hold it.
@@ -207,6 +207,10 @@ L = gargoyle_statue pose=snarl
 Æ = ingot_pile
 Ï = slag_heap
 Ú = impaler
+// A smith-knight cast in iron over the foundry, and ore carts left on their rails.
+¡ = forge_statue yaw=0
+¢ = ore_cart yaw=90
+£ = ore_cart yaw=0
 Û = rubble
 Ý = bones
 à = crate

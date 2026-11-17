@@ -1660,3 +1660,40 @@ def test_villager_hands_are_smaller_than_the_arm_and_close_round_what_they_hold(
         far = _RecordingGpu()
         models._villager_hand_far(rig.Rig(far), (200, 160, 120), side)
         assert len(far.parts) == 3
+
+
+def test_every_way_between_maps_is_built_in_detail():
+    """The gates, doors, wells, caves and ropes that lead from map to map are landmarks of their own,
+    not a handful of boxes; the road gate's two ends differ."""
+    from ashen_vault.render import cemetery_models, forge_models, models
+
+    def parts(fn):
+        gpu = _RecordingGpu()
+        fn(rig.Rig(gpu))
+        return gpu.parts
+
+    exits = {
+        "road_gate": lambda r: forge_models.road_gate(r, 0.3),
+        "road_gate forge": lambda r: forge_models.road_gate(r, 0.3, "forge"),
+        "keep_door": lambda r: forge_models.keep_door(r, 0.3),
+        "well": lambda r: models.well(r, 0.3),
+        "cave_mouth": lambda r: models.cave_mouth(r, 0.3),
+        "rope": lambda r: models.rope(r, 0.3),
+        "cemetery_gate": lambda r: cemetery_models.cemetery_gate(r, 0.0),
+    }
+    for name, fn in exits.items():
+        assert len(parts(fn)) >= 25, name
+        assert min(y for _, y in parts(fn)) > -0.1, name
+    assert parts(exits["road_gate"]) != parts(exits["road_gate forge"])
+
+
+def test_town_and_fortress_statues_and_carts_are_detailed():
+    from ashen_vault.render import fortress_props, town_models
+
+    for fn in (town_models.hand_cart, town_models.hay_wagon, town_models.cargo, town_models.town_statue,
+               fortress_props.forge_statue, fortress_props.ore_cart):  # fmt: skip
+        for seed in (0, 1, 2):
+            gpu = _RecordingGpu()
+            fn(rig.Rig(gpu), seed)
+            assert len(gpu.parts) >= 30, (fn.__name__, seed)
+            assert min(y for _, y in gpu.parts) > -0.1, fn.__name__

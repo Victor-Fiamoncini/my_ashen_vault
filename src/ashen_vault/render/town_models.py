@@ -634,79 +634,190 @@ def bench(r, seed):
         r.part("cube", -0.1, 0.52, 0.4, 0.3, 0.02, 0.3, (70, 100, 60))  # a cloak left on it
 
 
+def cart_wheel(r, x, y, z, radius, spokes=8, wood=DARK_WOOD):
+    """A spoked wheel turning about Z: an iron tyre over a rim of felloes, `spokes` spokes and a hub
+    with its iron cap and linchpin."""
+    for k in range(8):  # the rim, eight felloes round it, and the iron tyre over them
+        a = k * math.pi / 4
+        rim = radius * 0.92
+        r.part("cube", x + math.cos(a) * rim, y + math.sin(a) * rim, z, radius * 0.8, 0.09, 0.1, wood,
+               rz=a + math.pi / 2)  # fmt: skip
+        r.part("cube", x + math.cos(a) * radius, y + math.sin(a) * radius, z, radius * 0.8, 0.03, 0.08, IRON,
+               rz=a + math.pi / 2)  # fmt: skip
+    for k in range(spokes // 2):  # each spoke runs through the hub to the far rim
+        r.part("cube", x, y, z, radius * 1.75, 0.045, 0.045, _dim(wood, 1.2), rz=k * math.tau / spokes)
+    r.part("cyl", x, y, z, radius * 0.4, 0.2, radius * 0.4, wood, rx=math.pi / 2)  # the hub
+    r.part("cyl", x, y, z + math.copysign(0.11, z), radius * 0.26, 0.04, radius * 0.26, IRON, rx=math.pi / 2)
+
+
+def _sack(r, x, y, z, k, rgb, ry=0.0):
+    """A tied grain sack lying on its side: a plump body, a gathered neck and the cord round it."""
+    r.part("sphere", x, y, z, 0.5 * k, 0.36 * k, 0.42 * k, rgb, ry=ry)
+    with r.at(x, y, z, ry=ry):
+        r.part("cube", 0.27 * k, 0.04 * k, 0, 0.1 * k, 0.12 * k, 0.12 * k, _dim(rgb, 0.92))
+        r.part("cube", 0.24 * k, 0.04 * k, 0, 0.03, 0.13 * k, 0.13 * k, (86, 66, 40))
+
+
+def _cask(r, x, y, z, length, rad, lying=True):
+    """A coopered cask: a bulging belly of staves, its ends, and two iron hoops round each end."""
+    turn = {"rz": math.pi / 2} if lying else {}
+    with r.at(x, y, z, **turn):
+        r.part("cyl", 0, 0, 0, rad * 2, length, rad * 2, WOOD, tex="wood_plank")
+        r.part("cyl", 0, 0, 0, rad * 2.12, length * 0.6, rad * 2.12, _dim(WOOD, 1.05), tex="wood_plank")
+        for y_ in (-0.42, -0.3, 0.3, 0.42):
+            r.part("cyl", 0, y_ * length, 0, rad * 2.1, 0.035, rad * 2.1, IRON)
+        r.part("cyl", 0, length * 0.5, 0, rad * 1.6, 0.02, rad * 1.6, _dim(WOOD, 0.75))  # the head
+
+
 def hand_cart(r, seed):
-    """A two-wheeled hand cart, its handles toward +X and its bed tipped back onto its wheels, heaped
-    with sacks or a pair of casks."""
+    """A two-wheeled hand cart, its handles toward +X and its bed tipped forward onto a prop leg: plank
+    sides held by stakes, a tailboard, an iron-bound axle under it on two spoked wheels, heaped with
+    sacks and a crate or with a pair of casks, a coil of rope thrown over the side."""
     wood = _dim(WOOD, 0.9 + (seed % 3) * 0.05)
-    for z in (-0.62, 0.62):  # the wheels
-        r.part("cyl", -0.25, 0.45, z, 0.9, 0.08, 0.9, DARK_WOOD, rx=math.pi / 2)
-        r.part("cyl", -0.25, 0.45, z, 0.18, 0.12, 0.18, IRON, rx=math.pi / 2)
-        for k in range(3):
-            r.part("cube", -0.25, 0.45, z, 0.06, 0.82, 0.04, _dim(DARK_WOOD, 1.2), rz=k * math.pi / 3)
-    with r.at(0, 0.7, 0, rz=0.12):  # the bed
+    r.part("cube", -0.25, 0.45, 0, 0.1, 0.1, 1.4, IRON)  # the axle
+    for z in (-0.66, 0.66):
+        cart_wheel(r, -0.25, 0.45, z, 0.45)
+    with r.at(0, 0.72, 0, rz=0.12):  # the bed
         r.part("cube", 0, 0, 0, 1.3, 0.08, 1.0, wood, tex="wood_plank")
         for z in (-0.5, 0.5):
-            r.part("cube", 0, 0.18, z, 1.3, 0.36, 0.06, wood, tex="wood_plank")  # sides
-            r.part("cube", 1.05, -0.05, z * 0.8, 0.9, 0.06, 0.06, DARK_WOOD)  # handles
-        r.part("cube", -0.65, 0.18, 0, 0.06, 0.36, 1.0, wood, tex="wood_plank")
+            r.part("cube", 0, 0.2, z, 1.3, 0.32, 0.05, wood, tex="wood_plank")  # sides
+            r.part("cube", 0, 0.37, z, 1.34, 0.04, 0.07, _dim(wood, 0.8))  # their top rails
+            for x in (-0.6, -0.1, 0.4):  # the stakes holding them
+                r.part("cube", x, 0.18, z * 1.08, 0.06, 0.42, 0.04, DARK_WOOD)
+            r.part("cube", 1.05, -0.05, z * 0.8, 0.9, 0.07, 0.07, DARK_WOOD)  # handles
+            r.part("cube", 1.42, -0.05, z * 0.8, 0.16, 0.08, 0.08, _dim(DARK_WOOD, 0.75))  # worn grips
+            r.part("cube", -0.25, -0.1, z * 0.8, 0.12, 0.14, 0.06, IRON)  # the axle's strap
+        r.part("cube", -0.65, 0.2, 0, 0.05, 0.32, 1.0, wood, tex="wood_plank")  # the tailboard
+        r.part("cube", 0.65, 0.12, 0, 0.05, 0.18, 1.0, wood, tex="wood_plank")  # the low front
         if seed % 2:
-            for i, (x, z) in enumerate(((-0.3, -0.2), (0.2, 0.15), (-0.2, 0.25), (0.15, -0.25))):
-                r.part("sphere", x, 0.3 + (i // 2) * 0.12, z, 0.5, 0.36, 0.42, _dim(SACK, 0.9 + i * 0.04))
+            for i, (x, z) in enumerate(((-0.3, -0.2), (0.2, 0.15), (-0.2, 0.25))):
+                _sack(r, x, 0.27 + (i // 2) * 0.14, z, 1.0, _dim(SACK, 0.9 + i * 0.04), ry=i * 0.9)
+            r.part(
+                "cube", 0.3, 0.3, -0.22, 0.4, 0.4, 0.4, _dim(WOOD, 1.1), tex="wood_plank", ry=0.2
+            )  # a crate
+            r.part("cube", 0.3, 0.3, -0.22, 0.42, 0.06, 0.42, DARK_WOOD, ry=0.2)
         else:
             for z in (-0.24, 0.24):
-                r.part("cyl", 0, 0.32, z, 0.5, 0.9, 0.5, WOOD, tex="wood_plank", rz=math.pi / 2)
-                for x in (-0.3, 0.3):
-                    r.part("cyl", x, 0.32, z, 0.52, 0.05, 0.52, IRON, rz=math.pi / 2)
-    r.part("cube", 0.75, 0.25, 0, 0.06, 0.5, 0.06, DARK_WOOD)  # a prop leg
+                _cask(r, 0, 0.3, z, 0.95, 0.24)
+        with r.at(0.1, 0.38, 0.52):  # a coil of rope hung over the side
+            r.part("cyl", 0, -0.1, 0, 0.36, 0.05, 0.36, (150, 124, 80), rx=math.pi / 2)
+            r.part("cyl", 0, -0.1, 0.02, 0.3, 0.05, 0.3, (138, 112, 72), rx=math.pi / 2)
+    r.part("cube", 0.75, 0.27, 0, 0.06, 0.54, 0.06, DARK_WOOD)  # a prop leg
+    r.part("cube", 0.75, 0.03, 0, 0.14, 0.06, 0.14, (110, 106, 100))  # on a flat stone
 
 
 def hay_wagon(r, seed):
-    """A four-wheeled farm wagon heaped with hay, its shaft tilted down to the ground toward +X."""
+    """A four-wheeled farm wagon heaped with hay, its shaft tilted down to the ground toward +X: big
+    spoked wheels behind and smaller ones before on their axles, a plank bed with slatted rails and
+    stakes, the load roped down, a pitchfork stuck in it and a lantern on a hook at the front."""
     wood = _dim(WOOD, 0.85)
-    for x in (-0.6, 0.55):
-        for z in (-0.62, 0.62):
-            r.part("cyl", x, 0.38, z, 0.76, 0.08, 0.76, DARK_WOOD, rx=math.pi / 2)
-            r.part("cyl", x, 0.38, z, 0.16, 0.12, 0.16, IRON, rx=math.pi / 2)
-    r.part("cube", 0, 0.78, 0, 1.8, 0.1, 1.1, wood, tex="wood_plank")  # the bed
-    for z in (-0.56, 0.56):  # rails and stakes
-        r.part("cube", 0, 1.15, z, 1.8, 0.06, 0.06, DARK_WOOD)
-        for x in (-0.8, -0.27, 0.27, 0.8):
-            r.part("cube", x, 1.0, z, 0.06, 0.45, 0.06, DARK_WOOD)
-    r.part("cube", 0, 1.15, 0, 1.7, 0.6, 1.05, HAY)  # the hay
-    r.part("sphere", -0.1, 1.45, 0, 1.6, 0.6, 1.0, _dim(HAY, 1.05))
-    for i in range(6):  # loose wisps
-        r.part(
-            "cube",
-            -0.7 + i * 0.28,
-            1.55 + (i % 2) * 0.1,
-            (i % 3 - 1) * 0.3,
-            0.3,
-            0.04,
-            0.05,
-            _dim(HAY, 1.15),
-            ry=i,
-        )
-    with r.at(0.9, 0.62, 0, rz=-0.32):  # the shaft
+    for x, rad in ((-0.6, 0.42), (0.6, 0.34)):
+        r.part("cube", x, rad, 0, 0.1, 0.1, 1.42, IRON)  # the axle
+        for z in (-0.66, 0.66):
+            cart_wheel(r, x, rad, z, rad)
+    r.part("cube", 0, 0.68, 0, 1.6, 0.12, 0.16, DARK_WOOD)  # the reach pole joining the axles
+    r.part("cube", 0, 0.8, 0, 1.9, 0.1, 1.15, wood, tex="wood_plank")  # the bed
+    for z in (-0.58, 0.58):  # slatted rails and stakes
+        for y in (0.98, 1.18):
+            r.part("cube", 0, y, z, 1.9, 0.06, 0.05, DARK_WOOD)
+        for x in (-0.9, -0.45, 0.0, 0.45, 0.9):
+            r.part("cube", x, 1.04, z, 0.07, 0.5, 0.07, DARK_WOOD)
+    for x in (-0.95, 0.95):  # the end boards
+        r.part("cube", x, 1.04, 0, 0.06, 0.44, 1.12, wood, tex="wood_plank")
+    r.part("cube", 0, 1.2, 0, 1.75, 0.6, 1.05, HAY)  # the hay
+    r.part("sphere", -0.1, 1.5, 0, 1.6, 0.6, 1.0, _dim(HAY, 1.05))
+    for x in (-0.45, 0.4):  # ropes thrown over the load
+        r.part("cube", x, 1.62, 0, 0.04, 0.05, 1.1, (120, 96, 60))
+        for z in (-0.56, 0.56):
+            r.part("cube", x, 1.32, z, 0.04, 0.6, 0.04, (120, 96, 60))
+    for i in range(8):  # loose wisps
+        r.part("cube", -0.8 + i * 0.23, 1.62 + (i % 2) * 0.12, (i % 3 - 1) * 0.32, 0.32, 0.04, 0.05,
+               _dim(HAY, 1.15), ry=i)  # fmt: skip
+    with r.at(0.95, 0.62, 0, rz=-0.32):  # the shaft
         for z in (-0.3, 0.3):
             r.part("cube", 0.75, 0, z, 1.5, 0.08, 0.08, DARK_WOOD)
         r.part("cube", 1.45, 0, 0, 0.08, 0.08, 0.66, DARK_WOOD)
-    if seed % 2:
-        r.part("cube", 0.2, 1.75, 0.25, 0.08, 0.08, 1.2, DARK_WOOD, rx=0.4)  # a pitchfork left on top
+        r.part("cube", 0.75, 0, 0, 0.08, 0.08, 0.6, DARK_WOOD)  # a crossbar
+    with r.at(0.98, 1.3, 0.5):  # a lantern on its hook at the front, unlit
+        r.part("cube", 0, 0.12, 0, 0.04, 0.24, 0.04, IRON)
+        r.part("cube", 0, -0.06, 0, 0.12, 0.16, 0.12, (60, 58, 56))
+        r.part("cube", 0, -0.06, 0, 0.09, 0.12, 0.13, (150, 132, 96))
+    if seed % 2:  # a pitchfork stuck in the hay
+        with r.at(0.2, 1.75, 0.25, rx=0.4):
+            r.part("cube", 0, 0, 0, 0.05, 1.2, 0.05, DARK_WOOD)
+            r.part("cube", 0, -0.62, 0, 0.05, 0.05, 0.26, IRON)
+            for dz in (-0.11, 0.0, 0.11):
+                r.part("cube", 0, -0.75, dz, 0.03, 0.26, 0.03, IRON)
+    else:  # a sack thrown up on the hay
+        _sack(r, -0.4, 1.85, -0.2, 0.9, SACK, ry=0.7)
 
 
 def cargo(r, seed):
-    """Goods hauled up from the quay and left in a heap: sacks, a rope-bound bale, a cask or two."""
+    """Goods hauled up from the quay and left in a heap: tied sacks, a bale in rope-bound sacking, a
+    crate stencilled with a merchant's mark, a cask or two and a fishing net heaped over a corner."""
     for i, (x, z) in enumerate(((-0.4, -0.4), (0.1, -0.5), (-0.5, 0.1))):
-        r.part("sphere", x, 0.25, z, 0.6, 0.5, 0.5, _dim(SACK, 0.85 + 0.06 * ((seed + i) % 3)), ry=i)
-    r.part("sphere", -0.25, 0.62, -0.25, 0.55, 0.42, 0.45, SACK, ry=0.6)
+        _sack(r, x, 0.25, z, 1.15, _dim(SACK, 0.85 + 0.06 * ((seed + i) % 3)), ry=i * 1.1)
+    _sack(r, -0.25, 0.6, -0.25, 1.0, SACK, ry=0.6)
     r.part("cube", 0.4, 0.35, 0.3, 0.8, 0.7, 0.7, (150, 128, 80), ry=0.2)  # the bale, in sacking
-    for x in (0.2, 0.6):
-        r.part("cube", x, 0.35, 0.3, 0.04, 0.74, 0.74, (86, 66, 40), ry=0.2)  # its ropes
-    for k in range(1 + seed % 2):  # casks
+    with r.at(0.4, 0.35, 0.3, ry=0.2):
+        for x in (-0.2, 0.2):  # its ropes, round it and across the top
+            r.part("cube", x, 0, 0, 0.04, 0.74, 0.74, (86, 66, 40))
+        r.part("cube", 0, 0.36, 0, 0.82, 0.03, 0.04, (86, 66, 40))
+        r.part("cube", 0.41, 0.05, 0, 0.01, 0.2, 0.2, (90, 40, 34))  # a merchant's mark stencilled on it
+        r.part("cube", 0.415, 0.05, 0, 0.01, 0.06, 0.26, (90, 40, 34))
+    if seed % 3 == 0:
+        r.part(
+            "cube", -0.45, 0.25, 0.55, 0.5, 0.5, 0.5, _dim(WOOD, 1.1), tex="wood_plank", ry=-0.3
+        )  # a crate
+        with r.at(-0.45, 0.25, 0.55, ry=-0.3):
+            for y in (-0.2, 0.2):
+                r.part("cube", 0, y, 0, 0.52, 0.06, 0.52, DARK_WOOD)
+    for k in range(1 + seed % 2):  # casks, stood on end
         x, z = (0.5, -0.45) if k == 0 else (-0.55, 0.6)
-        r.part("cyl", x, 0.45, z, 0.6, 0.9, 0.6, WOOD, tex="wood_plank")
-        for y in (0.15, 0.75):
-            r.part("cyl", x, y, z, 0.62, 0.05, 0.62, IRON)
+        _cask(r, x, 0.45, z, 0.9, 0.3, lying=False)
+    for k in range(4):  # a net heaped over the corner, its floats strung along it
+        r.part("cube", 0.55 + k * 0.05, 0.05 + k * 0.06, -0.85 + k * 0.08, 0.6 - k * 0.1, 0.06, 0.4,
+               _dim((100, 92, 72), 1 - k * 0.06), ry=k * 0.4)  # fmt: skip
+        r.part("cube", 0.4 + k * 0.12, 0.12 + k * 0.05, -0.75, 0.08, 0.06, 0.08, (170, 120, 60))
+
+
+def town_statue(r, seed):
+    """A statue of the realm's founder on a stepped plinth in the square: a cloaked, hooded figure in
+    weathered bronze gone green, the crest's shield held before it and a sword's point resting at its
+    feet, a carved band round the plinth and offerings left on its step."""
+    stone = (170, 160, 140)
+    bronze = (92, 120, 104) if seed % 2 == 0 else (110, 116, 96)
+    dark = _dim(bronze, 0.7)
+    r.part("cube", 0, 0.1, 0, 1.8, 0.2, 1.8, _dim(stone, 0.85), tex="ashlar")  # the plinth's steps
+    r.part("cube", 0, 0.3, 0, 1.5, 0.2, 1.5, _dim(stone, 0.92), tex="ashlar")
+    r.part("cube", 0, 0.85, 0, 1.1, 0.9, 1.1, stone, tex="ashlar")  # its die
+    r.part("cube", 0, 1.33, 0, 1.24, 0.1, 1.24, _dim(stone, 1.05))  # the cornice
+    r.part("cube", 0, 0.62, 0, 1.13, 0.08, 1.13, _dim(stone, 0.8))  # a carved band
+    r.part("cube", 0.56, 0.9, 0, 0.02, 0.36, 0.6, _dim(stone, 0.75))  # the inscription's panel
+    for k in range(3):  # its lines of letters, worn shallow
+        r.part("cube", 0.57, 1.0 - k * 0.1, 0, 0.01, 0.03, 0.46 - k * 0.08, _dim(stone, 0.6))
+    with r.at(0, 1.38, 0):
+        for z in (-0.13, 0.13):  # feet and legs under the robe
+            r.part("cube", 0.12, 0.05, z, 0.24, 0.1, 0.14, dark)
+        r.part("frustum", 0, 0.6, 0, 0.72, 1.2, 0.72, bronze)  # the robe, falling in folds
+        for k in range(5):  # the folds
+            a = -0.9 + k * 0.45
+            r.part("cube", math.cos(a) * 0.3, 0.55, math.sin(a) * 0.3, 0.06, 1.0, 0.06, dark, ry=-a, rz=0.08)
+        r.part("cube", -0.05, 1.45, 0, 0.42, 0.55, 0.62, bronze)  # the chest and shoulders
+        r.part("cube", -0.22, 0.95, 0, 0.12, 1.5, 0.82, dark, rz=-0.08)  # the cloak behind
+        r.part("cube", -0.05, 1.74, 0, 0.5, 0.1, 0.78, _dim(bronze, 0.9))  # its mantle over the shoulders
+        r.part("frustum", 0.0, 1.98, 0, 0.32, 0.38, 0.3, bronze)  # the hood
+        r.part("cube", 0.12, 1.94, 0, 0.06, 0.24, 0.18, _dim(bronze, 0.4))  # the face in its shadow
+        for z in (-1, 1):  # the arms, both hands on the shield's top
+            r.part("cube", 0.12, 1.4, z * 0.3, 0.14, 0.4, 0.14, bronze, rz=0.6)
+        with r.at(0.34, 1.05, 0):  # the shield stood before it, the crest raised on its face
+            r.part("cube", 0, 0.1, 0, 0.06, 0.5, 0.5, bronze)
+            r.part("cube", 0, -0.22, 0, 0.06, 0.3, 0.3, bronze, rx=math.pi / 4)
+            realm_crest(r, _dim(bronze, 1.25), cy=0.05, scale=0.62)
+        r.part("cube", 0.48, 0.2, 0.26, 0.04, 0.5, 0.06, dark)  # the sword, point down by its feet
+        r.part("cube", 0.48, 0.5, 0.26, 0.04, 0.04, 0.2, dark)
+    r.part("cube", 0.8, 0.44, 0.3, 0.12, 0.08, 0.12, (150, 80, 60))  # offerings on the step: a pot,
+    r.part("cube", 0.8, 0.43, -0.25, 0.08, 0.06, 0.24, (180, 170, 120))  # a sheaf of wheat
 
 
 def fence(r, seed):

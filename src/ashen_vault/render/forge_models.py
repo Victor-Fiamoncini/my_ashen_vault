@@ -16,6 +16,7 @@ from ashen_vault.render.models import (
     blade_parts,
     death_fall,
     fireball,
+    realm_crest,
     strike_angle,
     walk_cycle,
 )
@@ -852,16 +853,62 @@ def magma_vent(r, t):
                0.08, 0.08, 0.08, (255, 200, 90), glow=True)  # fmt: skip
 
 
-def road_gate(r):
-    """A stone arch over the road with an iron grille raised in its throat: the way out of town."""
-    stone = (120, 116, 110)
-    for z in (-1.0, 1.0):
-        r.part("cube", 0, 1.6, z, 0.7, 3.2, 0.5, stone)
-    r.part("cube", 0, 3.4, 0, 0.8, 0.5, 2.6, stone)
-    r.part("cube", 0, 3.75, 0, 0.9, 0.2, 2.8, (96, 92, 88))
-    for i in range(5):  # the grille, wound up into the arch
-        r.part("cube", 0, 2.8, -0.6 + i * 0.3, 0.06, 0.6, 0.06, BLACK_IRON)
-    r.part("cube", 0, 2.55, 0, 0.06, 0.06, 1.4, BLACK_IRON)
+GATE_STYLES = {
+    # (stone, its texture, the cornice and plinth, the lanterns' light)
+    "town": ((200, 186, 160), "ashlar", (170, 156, 132), (255, 206, 130)),
+    "forge": ((92, 84, 86), "rough_stone", (70, 62, 64), MOLTEN),
+}
+
+
+def road_gate(r, t=0.0, style="town"):
+    """The gatehouse over the north road, its passage running along X: two piers on plinths carrying a
+    round arch of voussoirs under a crenellated lintel, the portcullis wound up into the arch with its
+    teeth showing, and an iron lantern hung on each pier's either face. The town's (`style="town"`)
+    is sandstone with the realm's crest over the arch; the Cinderhold's end (`"forge"`) is the same
+    gate gone black with soot, its lanterns burning with ember and iron spikes on its merlons."""
+    stone, tex, trim, flame = GATE_STYLES[style]
+    for side in (-1, 1):
+        z = side * 1.05
+        r.part("cube", 0, 0.2, z, 0.98, 0.4, 0.72, trim, tex=tex)  # the plinth
+        r.part("cube", 0, 1.6, z, 0.82, 2.8, 0.56, stone, tex=tex)  # the pier
+        r.part("cube", 0, 3.05, z, 0.92, 0.14, 0.66, trim, tex=tex)  # its impost, where the arch springs
+        r.part("cube", 0, 1.5, side * 0.765, 0.14, 2.6, 0.04, (24, 22, 24))  # the portcullis's groove
+    for i in range(7):  # the arch's voussoirs, a half ring over the passage
+        a = math.pi * i / 6
+        z, y = math.cos(a) * 0.86, 3.05 + math.sin(a) * 0.86
+        rgb = trim if i == 3 else stone
+        r.part("cube", 0, y, z, 0.9 if i == 3 else 0.86, 0.34 if i == 3 else 0.28, 0.4, rgb, tex=tex,
+               rx=math.pi / 2 - a)  # fmt: skip
+    for side in (-1, 1):  # the spandrels, walling in over the arch's haunches
+        r.part("cube", 0, 3.55, side * 1.05, 0.74, 1.0, 0.56, stone, tex=tex)
+    r.part("cube", 0, 4.25, 0, 0.74, 0.5, 2.66, stone, tex=tex)  # the lintel wall
+    r.part("cube", 0, 4.55, 0, 0.9, 0.12, 2.82, trim, tex=tex)  # the cornice
+    for i in range(4):  # the merlons
+        z = -1.2 + i * 0.8
+        r.part("cube", 0, 4.86, z, 0.78, 0.5, 0.42, stone, tex=tex)
+        if style == "forge":
+            r.part("lozenge", 0, 5.28, z, 0.05, 0.36, 0.05, BLACK_IRON)
+    # The portcullis, raised: bars hanging down out of the arch, a rail across them and their teeth.
+    for i in range(6):
+        z = -0.6 + i * 0.24
+        r.part("cube", 0, 3.0, z, 0.06, 0.9, 0.06, BLACK_IRON)
+        r.part("lozenge", 0, 2.45, z, 0.05, 0.22, 0.05, BLACK_IRON, rz=math.pi)
+    for y in (2.75, 3.25):
+        r.part("cube", 0, y, 0, 0.07, 0.07, 1.36, BLACK_IRON)
+    if style == "town":
+        with r.at(0, 4.15, 0):  # the realm's crest over the arch, carved through the lintel
+            realm_crest(r, (214, 184, 112), cy=0.0, scale=0.75, through=0.78)
+    else:
+        for side in (-1, 1):  # soot licking up both faces of the arch
+            r.part("cube", side * 0.38, 3.9, 0, 0.02, 0.9, 1.2, (40, 34, 34))
+    for side in (-1, 1):  # the lanterns, one on each face of each pier
+        for face in (-1, 1):
+            flick = 0.85 + 0.15 * math.sin(t * 6 + side * 2 + face)
+            with r.at(face * 0.42, 2.35, side * 1.05):
+                r.part("cube", face * 0.12, 0.12, 0, 0.24, 0.04, 0.04, BLACK_IRON)  # the bracket
+                r.part("cube", face * 0.22, -0.08, 0, 0.16, 0.22, 0.16, BLACK_IRON)  # the lantern's cage
+                r.part("cube", face * 0.22, -0.08, 0, 0.12, 0.17, 0.17, _dim_rgb(flame, flick), glow=True)
+                r.part("frustum", face * 0.22, 0.08, 0, 0.2, 0.1, 0.2, BLACK_IRON)  # its hood
 
 
 def keep_door(r, t):
@@ -883,6 +930,22 @@ def keep_door(r, t):
             r.part("cyl", 0.16, 1.5, side * 0.14, 0.2, 0.03, 0.2, RIVET, rz=math.pi / 2)  # ring
         r.part("cube", 0.12, 1.55, 0, 0.04, 3.1, 0.06, BLACK_IRON)  # the seam
         r.part("cube", 0.1, 0.03, 0, 0.6, 0.06, 2.2, STONE)  # the threshold
+        for side in (-1, 1):  # the arch's outer ring of voussoirs, and the portcullis's grooves
+            for k in range(3):
+                a = 0.25 + k * 0.42
+                r.part("cube", 0.08, 3.1 + math.sin(a) * 0.95, side * math.cos(a) * 1.05, 0.46, 0.3, 0.32,
+                       STONE, rx=side * (math.pi / 2 - a))  # fmt: skip
+            r.part("cube", 0.22, 1.7, side * 0.84, 0.04, 3.2, 0.06, (20, 18, 20))
+        for k in range(5):  # the portcullis's teeth, showing under the arch
+            r.part("lozenge", 0.2, 3.25, -0.5 + k * 0.25, 0.04, 0.24, 0.04, BLACK_IRON, rz=math.pi)
+        r.part("cube", 0.2, 3.42, 0, 0.05, 0.08, 1.2, BLACK_IRON)
+        r.part("cube", 0.26, 4.0, 0, 0.06, 0.28, 0.24, (110, 96, 80))  # a skull carved in the keystone
+        r.part("cube", 0.29, 3.98, 0, 0.02, 0.06, 0.16, (30, 26, 26))
+        for side in (-1, 1):  # iron fire baskets on brackets either side of the door
+            with r.at(0.42, 2.7, side * 0.95):  # out from the jamb's face
+                r.part("cube", -0.12, -0.14, 0, 0.26, 0.05, 0.05, BLACK_IRON, rz=-0.5)
+                r.part("frustum", 0.06, 0, 0, 0.28, 0.2, 0.28, BLACK_IRON)
+                fireball(r, MOLTEN, t, 0.55, seed=side * 2.0, lean=True)
 
 
 # --- the skyline --------------------------------------------------------------------------------

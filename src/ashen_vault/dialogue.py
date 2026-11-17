@@ -48,6 +48,9 @@ def for_npc(id_, game):
         return "Pell", pell_lines(flags), lambda g: g.open_shop("pell")
     if id_ == "hollis":
         return "Hollis", hollis_lines(flags), None
+    if id_ in WATCH:
+        name, lines = WATCH[id_]
+        return name, lines(flags), None
     if id_ == "maeve":
         return maeve(game, flags)
     if id_ == "corvane":
@@ -200,6 +203,58 @@ def hollis_lines(flags):
         lines.append("The north road's open again. Folk say the fortress on the ridge has its forges lit.")
         lines.append("Iron men walk its walls, and something on the roof watches the bridge. Bring a shield.")
     return lines
+
+
+def north_gate_lines(flags):
+    if "gargoyles_dead" in flags:
+        return [
+            "The fires on the ridge burn low now. Carters are asking about the road again.",
+            "I tell them to wait. Iron men don't always know when they're beaten.",
+        ]
+    return [
+        "The north road. It climbs to the Cinderhold, the fortress on the ridge.",
+        "Past the long bridge the ground runs with fire. Mind your feet and keep off the edges.",
+        "Iron bowmen walk the walls. Close on them fast, or bring a shield.",
+    ]
+
+
+def north_gate_second_lines(flags):
+    if "gargoyles_dead" in flags:
+        return ["Sergeant says we can stand easy. I'll stand easy when the smoke stops."]
+    return [
+        "Nobody's come back down that road since the forges were lit again.",
+        "If you're going up, go before the smoke thickens. It's worse after dark.",
+    ]
+
+
+def east_gap_lines(flags):
+    if "spider_dead" in flags:
+        return [
+            "The trail's quiet. No more silk in the hedges, and the flowers keep to themselves.",
+            "Whatever you killed in that hollow, the whole wood breathed out when it died.",
+        ]
+    return [
+        "The green trail. It wasn't there when I was a girl. Now it runs to a cave full of jungle.",
+        "Take a light. Past the cave mouth the dark is thick enough to lose your hand in.",
+    ]
+
+
+def west_gate_lines(flags):
+    lines = [
+        "The cemetery gate. It opens one way only: out. Nobody's walked back in.",
+        "You came through it, didn't you? Grey as the ash. You're not the first I've seen.",
+    ]
+    if "quest" not in flags:
+        lines.append("Old Odrin by the bell will want a word with you. Up the lane, in the square.")
+    return lines
+
+
+WATCH = {  # the town watch at its gates: (name, lines)
+    "aldous": ("Sergeant Aldous", north_gate_lines),
+    "tobin": ("Tobin", north_gate_second_lines),
+    "reyna": ("Reyna", east_gap_lines),
+    "fenn": ("Old Fenn", west_gate_lines),
+}
 
 
 def maeve(game, flags):

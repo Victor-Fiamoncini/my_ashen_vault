@@ -25,6 +25,9 @@ class Batch:
     colors: list = field(default_factory=list)
     # Per vertex, what a light added later needs: shade factor, normal and the unclamped light.
     lit: list = field(default_factory=list)
+    # Baked props only (`prop_bake`): per vertex, the light (rgb) that falls on it; uploaded in the
+    # normals, so the shader can light the colour and the player's torch alike, as it lights a model.
+    light: list = field(default_factory=list)
 
     @property
     def vertex_count(self):

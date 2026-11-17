@@ -94,25 +94,50 @@ def test_a_baked_part_is_placed_and_lit_as_the_shader_lights_a_model():
     assert batch.vertex_count == 36 and len(batch.uvs) == 72
     xs, ys, zs = batch.verts[0::3], batch.verts[1::3], batch.verts[2::3]
     assert (min(xs), max(xs), min(ys), max(ys), min(zs), max(zs)) == pytest.approx((9, 11, 1, 2, -5, -3))
-    # The top face looks up: it takes the most of the sun; the bottom one the least (0.55).
+    # The colour is baked halved and unlit; the light rides beside it. The top face looks up: it
+    # takes the most of the sun; the bottom one the least (0.55).
     up = 0.55 + 0.45 * prop_bake.SUN[1]
-    tops = [batch.colors[i * 3 : i * 3 + 3] for i in range(36) if ys[i] == pytest.approx(2.0)]
-    expect = [
-        c / 255 * prop_bake.BAKE_SCALE * (li + 0.12)
-        for c, li in zip((200, 100, 50), (0.5, 0.4, 0.3), strict=True)
-    ]
-    assert any(col == pytest.approx([c * up for c in expect]) for col in tops)
-    assert all(0.0 <= c <= 1.0 for c in batch.colors)
+    assert batch.colors[:3] == pytest.approx([c / 255 * prop_bake.BAKE_SCALE for c in (200, 100, 50)])
+    tops = [batch.light[i * 3 : i * 3 + 3] for i in range(36) if ys[i] == pytest.approx(2.0)]
+    assert any(li == pytest.approx([(c + 0.12) * up for c in (0.5, 0.4, 0.3)]) for li in tops)
+    assert len(batch.light) == len(batch.colors)
+    assert all(0.0 <= c <= 0.5 for c in batch.colors)
 
 
-def test_a_glowing_part_is_baked_at_glow_light_and_clamped():
+def _shade_baked(color, light, torch):
+    """`ps1.vs`'s baked branch (isModel -1), then `ps1.fs`'s colour on a white texture."""
+    return [c * 2.0 * (li + t) for c, li, t in zip(color, light, torch, strict=True)]
+
+
+def _shade_live(rgb, model_light, shade, torch):
+    """`ps1.vs`'s model branch with the colour in `colDiffuse`, as `Gpu.draw_part` draws."""
+    return [c / 255 * (m * shade + t) for c, m, t in zip(rgb, model_light, torch, strict=True)]
+
+
+@pytest.mark.parametrize("torch", [(0.0, 0.0, 0.0), (0.9, 0.7, 0.5)])
+def test_a_baked_part_takes_the_torch_as_a_live_one_does(torch):
+    """Walking up to a baked prop must not wash it out: the torch is scaled by its colour."""
+    baker = prop_bake.PropBaker(_tris)
+    baker.group = "g"
+    baker.model_light((0.34, 0.3, 0.28))
+    Rig(baker).part("cube", 0, 0, 0, 1, 1, 1, (110, 105, 100))
+    batch = baker.batches[("g", "white")]
+    up = 0.55 + 0.45 * prop_bake.SUN[1]
+    i = max(range(36), key=lambda i: batch.light[i * 3])  # a vertex of the sunlit top face
+    baked = _shade_baked(batch.colors[i * 3 : i * 3 + 3], batch.light[i * 3 : i * 3 + 3], torch)
+    live = _shade_live((110, 105, 100), (0.46, 0.42, 0.40), up, torch)
+    assert baked == pytest.approx(live)
+    assert max(baked) < 0.8  # a grey stone stays grey right under the torch
+
+
+def test_a_glowing_part_is_baked_at_glow_light():
     baker = prop_bake.PropBaker(_tris)
     baker.group = "g"
     Rig(baker).part("cube", 0, 0, 0, 1, 1, 1, (255, 255, 255), glow=True)
-    colors = baker.batches[("g", "white")].colors
+    batch = baker.batches[("g", "white")]
     up = 0.55 + 0.45 * prop_bake.SUN[1]  # the top face, the most sunlit
-    assert max(colors) == pytest.approx(min(1.0, prop_bake.BAKE_SCALE * prop_bake.GLOW_LIGHT * up))
-    assert max(colors) <= 1.0
+    assert max(batch.light) == pytest.approx(prop_bake.GLOW_LIGHT * up)
+    assert max(batch.colors) == pytest.approx(prop_bake.BAKE_SCALE)
 
 
 def test_chunks_group_tiles_by_eight():
