@@ -1,5 +1,7 @@
 """Boss arenas: the great door, the fight that seals it, and the fog left after you fall."""
 
+import math
+
 import pytest
 
 from ashen_vault.world.arena import Arena, flood
@@ -158,3 +160,32 @@ def test_the_butcher_rises_without_a_doubled_article():
     game, world = world_on("sunken_keep", {"door:sunken_keep:28,10"}, at=(28, 7))
     world.update(1 / 30)
     assert "The Butcher rises from the ashes!" in game.messages
+
+
+def test_the_fight_waits_until_you_stand_clear_of_the_doorway():
+    """Sealing while your body still overlaps the doorway would put a shut door under you, and the next
+    step would snap you out of it to the far edge of your tile."""
+    game, world, arena, warden = warden_fight()
+    player = game.player
+    player.place(15 * TileMap.TILE + 1.0, 9 * TileMap.TILE - 0.3, 0.0, world.map)  # in (15, 8), over the gate
+    assert TileMap.tile_coord(player.z) == 8
+    assert not arena.clear_of_gate(player.x, player.z, player.RADIUS)
+    world.update(1 / 30)
+    assert warden.state == "ashes" and not arena.sealed
+    player.place(*TileMap.center(15, 8), 0.0, world.map)
+    assert arena.clear_of_gate(player.x, player.z, player.RADIUS)
+    world.update(1 / 30)
+    assert warden.state == "rising" and arena.sealed
+
+
+def test_stepping_into_the_lair_never_jumps_you_forward():
+    game, world, arena, warden = warden_fight()
+    player = game.player
+    z = 9 * TileMap.TILE - 0.1  # walking in from the door, heading north (-z)
+    player.place(15 * TileMap.TILE + 1.0, z, -math.pi / 2, world.map)
+    for _ in range(30):
+        before = player.z
+        player.walk(world.map, 1, 0, 1 / 30, blocked=world.player_blocker)
+        world.update(1 / 30)
+        assert abs(player.z - before) < 0.3  # one step's worth, never a snap to the tile's edge
+    assert arena.sealed and warden.state == "rising"

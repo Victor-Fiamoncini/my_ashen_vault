@@ -255,7 +255,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   boss as a smouldering heap (state `"ashes"`, `cemetery_models.ash_heap`) until you step into its arena
   (`World.rise_time`), then it forms from the feet up over `ASH_RISE` (`ASH_RISE_AGAIN` back through its
   fog): the death dissolve played backwards (`ash.rise_phases`) while `AshCloud.gather` draws embers in.
-  The door slams as it starts; nothing strikes or touches it while `Enemy.unseen`, and the boss bar
+  The door slams as it starts (once you stand clear of the doorway, `Arena.clear_of_gate`); nothing strikes or touches it while `Enemy.unseen`, and the boss bar
   fills with `rise_progress`. Tests skip the entrance with `conftest.risen`. `twin=<type>`
   pairs two bosses: waking one wakes the other (`World.rouse_twin`), they take turns with special moves
   (`World.twin_busy`), the survivor enters phase two when the other falls (not at half HP), they share a

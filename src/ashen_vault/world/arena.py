@@ -11,6 +11,8 @@ starts the fight. When the boss dies, the way out opens and stays open."""
 
 from dataclasses import dataclass
 
+from ashen_vault.world.tile_map import TileMap
+
 ARENA_LIMIT = 900  # tiles; a flood that spills further has leaked out of its walls
 
 
@@ -59,6 +61,14 @@ class Arena:
         if any(tile not in self.tiles for tile, _ in bosses):
             return False
         return self.fogged(flags) or any(awake for _, awake in bosses)
+
+    def clear_of_gate(self, x, z, radius):
+        """Whether a body of `radius` at (x, z) stands off the gate's tile (its bounding box, as
+        collision tests it). The door only shuts on a body wholly inside: one still over the threshold
+        would have a shut door under it, and its next step would snap it clear."""
+        gx, gz = self.gate
+        tc = TileMap.tile_coord
+        return not (tc(x - radius) <= gx <= tc(x + radius) and tc(z - radius) <= gz <= tc(z + radius))
 
     def blocks(self, flags, door_shut):
         """Whether the gate stops anything right now: a sealed fight shuts it, open fog lets bodies

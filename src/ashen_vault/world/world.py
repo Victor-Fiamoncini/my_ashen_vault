@@ -855,6 +855,12 @@ class World:
             if not a.cleared(self.flags) and (a.sealed or here in a.tiles):
                 self.flags.add(a.fog_key)
 
+    def _player_inside(self, arena):
+        """Whether you stand wholly inside `arena`: on one of its tiles and clear of its doorway."""
+        p = self.player
+        here = (TileMap.tile_coord(p.x), TileMap.tile_coord(p.z))
+        return here in arena.tiles and arena.clear_of_gate(p.x, p.z, Player.RADIUS)
+
     def _update_arenas(self):
         here = (TileMap.tile_coord(self.player.x), TileMap.tile_coord(self.player.z))
         for a in self.arenas:
@@ -873,7 +879,8 @@ class World:
                 for e in self.enemies
                 if e.alive and e.type.dead_flag == a.flag
             ]
-            if not self.player.alive or not a.should_seal(self.flags, here, bosses):
+            inside = here if self._player_inside(a) else None
+            if not self.player.alive or not a.should_seal(self.flags, inside, bosses):
                 continue
             a.sealed = True
             if a.fogged(self.flags):
@@ -1498,8 +1505,7 @@ class World:
         if arena is None:
             near = math.hypot(self.player.x - enemy.x, self.player.z - enemy.z) <= enemy.type.sight
             return ASH_RISE if near and self.can_see(enemy.x, enemy.z, self.player.x, self.player.z) else None
-        here = (TileMap.tile_coord(self.player.x), TileMap.tile_coord(self.player.z))
-        if not self.player.alive or here not in arena.tiles:
+        if not self.player.alive or not self._player_inside(arena):
             return None
         return ASH_RISE_AGAIN if arena.fogged(self.flags) else ASH_RISE
 
