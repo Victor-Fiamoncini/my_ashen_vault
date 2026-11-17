@@ -67,7 +67,7 @@ FromSoftware, Inc.
   </tr>
   <tr>
     <td><img src="docs/screenshots/warden.png" alt="The Ashen Warden boss in its hall"></td>
-    <td><img src="docs/screenshots/inventory.png" alt="The Belongings screen: the Moonless Tachi in the Primary slot, a kite shield in Secondary, a lamellar vest and leather gloves, the Equipped panel and the stats"></td>
+    <td><img src="docs/screenshots/inventory.png" alt="The Belongings screen: Stormbrand in the Primary slot, a round shield in Secondary, a lamellar vest and leather gloves, the Equipped panel and the stats"></td>
   </tr>
   <tr>
     <td align="center"><sub>The Ashen Warden</sub></td>
@@ -106,7 +106,7 @@ FromSoftware, Inc.
     <td align="center"><sub>A bonfire in the Root Caverns, under the bog</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/combat.png" alt="A bastard sword in iron gauntlets, a tower shield on the other arm, facing a bone walker"></td>
+    <td><img src="docs/screenshots/combat.png" alt="The Ashblade in iron gauntlets, a kite shield on the other arm, facing a bone walker"></td>
     <td><img src="docs/screenshots/corvane.png" alt="Corvane's shop of curved blades"></td>
   </tr>
   <tr>
@@ -463,46 +463,46 @@ uv run ashen-vault --map sunken_keep --at 15,21,180 --smoke 100 --script "wait:1
 
 The README screenshots were taken this way, each with `ASHEN_VAULT_SAVE` pointing at a fresh throwaway
 file. The title is `uv run ashen-vault --smoke 60 --shot title.png` and the village
-`uv run ashen-vault --map harrowmere --at=22,30,-60 --level 10 --equip primary=claymore --smoke 40 --shot village.png`; Odrin is
-`uv run ashen-vault --map harrowmere --at=28,25,-90 --level 10 --equip primary=mace,secondary=spell:mend --smoke 40 --script "wait:0.2 interact" --shot dialogue.png`,
+`uv run ashen-vault --map harrowmere --at=22,30,-60 --level 10 --equip primary=zweihander --smoke 40 --shot village.png`; Odrin is
+`uv run ashen-vault --map harrowmere --at=28,25,-90 --level 10 --equip primary=katana,secondary=spell:mend --smoke 40 --script "wait:0.2 interact" --shot dialogue.png`,
 Belongings is
-`uv run ashen-vault --map harrowmere --at=20,44,-90 --level 10 --equip primary=moonless_tachi,secondary=kite_shield,body=lamellar_vest,hands=leather_gloves --smoke 40 --script "wait:0.2 menu" --shot inventory.png`,
+`uv run ashen-vault --map harrowmere --at=20,44,-90 --level 10 --equip primary=stormbrand,secondary=round_shield,body=lamellar_vest,hands=leather_gloves --smoke 40 --script "wait:0.2 menu" --shot inventory.png`,
 Corvane's shop is
-`uv run ashen-vault --map harrowmere --at=6,26,180 --level 10 --equip primary=flamberge --smoke 220 --script "forward:2 interact wait:0.3 confirm wait:0.3 confirm wait:0.3 confirm wait:0.3 confirm" --shot corvane.png`,
-the cathedral is `uv run ashen-vault --map harrowmere --at=18,6,180 --level 10 --equip primary=moonless_tachi,secondary=spell:thunder --smoke 40 --shot cathedral.png`,
-the cemetery is `uv run ashen-vault --map ashen_cemetery --level 10 --equip primary=hatchet,secondary=spell:lumen --smoke 40 --shot cemetery.png`,
-the Mourner is `uv run ashen-vault --map ashen_cemetery --at=11,22,-90 --level 10 --equip primary=oak_cudgel,secondary=spell:venom --smoke 40 --shot mourner.png`,
+`uv run ashen-vault --map harrowmere --at=6,26,180 --level 10 --equip primary=nodachi --smoke 220 --script "forward:2 interact wait:0.3 confirm wait:0.3 confirm wait:0.3 confirm wait:0.3 confirm" --shot corvane.png`,
+the cathedral is `uv run ashen-vault --map harrowmere --at=18,6,180 --level 10 --equip primary=ashblade,secondary=spell:lumen --smoke 40 --shot cathedral.png`,
+the cemetery is `uv run ashen-vault --map ashen_cemetery --level 10 --equip primary=bastard_sword,secondary=spell:mend --smoke 40 --shot cemetery.png`,
+the Mourner is `uv run ashen-vault --map ashen_cemetery --at=11,22,-90 --level 10 --equip primary=hatchet,secondary=spell:venom --smoke 40 --shot mourner.png`,
 the burning silk is
-`uv run ashen-vault --map ashen_cemetery --at=12,18,-135 --level 10 --equip primary=leather_whip,secondary=spell:flame --smoke 90 --script "wait:0.3 cast wait:0.9" --shot silk.png`,
+`uv run ashen-vault --map ashen_cemetery --at=12,18,-135 --level 10 --equip primary=mace,secondary=spell:flame --smoke 90 --script "wait:0.3 cast wait:0.9" --shot silk.png`,
 the Sexton is
-`uv run ashen-vault --map ashen_cemetery --at=10,11,-90 --level 10 --equip primary=bearded_axe,secondary=spell:ward --smoke 603 --script "wait:0.1 interact wait:2.5 forward:1.0" --shot sexton.png`
+`uv run ashen-vault --map ashen_cemetery --at=10,11,-90 --level 10 --equip primary=thornlash,secondary=spell:ward --smoke 603 --script "wait:0.1 interact wait:2.5 forward:1.0" --shot sexton.png`
 (its move is random, so take it again until its ash bursts round it),
-the forge is `uv run ashen-vault --map harrowmere --at=8,18,180 --level 10 --equip primary=bastard_sword,secondary=spell:ward --smoke 40 --shot forge.png`,
-the Warden is `uv run ashen-vault --map sunken_keep --at=15,7,-90 --level 10 --equip primary=zweihander --smoke 40 --shot warden.png`,
-the hollow's vine path is `uv run ashen-vault --map verdant_hollow --at=9,12,90 --level 10 --equip primary=thornlash,secondary=spell:veil --smoke 40 --shot verdant_hollow.png`,
-the Bark Husk is `uv run ashen-vault --map verdant_hollow --at=26,17,-90 --level 10 --equip primary=butcher_cleaver,secondary=spell:pyre --smoke 60 --shot bark_husk.png`,
-the log rack is `uv run ashen-vault --map verdant_hollow --at=51,6,180 --level 10 --equip primary=spiked_club,secondary=buckler --smoke 40 --shot log_rack.png`,
+the forge is `uv run ashen-vault --map harrowmere --at=8,18,180 --level 10 --equip primary=bearded_axe,secondary=spell:lumen --smoke 40 --shot forge.png`,
+the Warden is `uv run ashen-vault --map sunken_keep --at=15,7,-90 --level 10 --equip primary=claymore --smoke 40 --shot warden.png`,
+the hollow's vine path is `uv run ashen-vault --map verdant_hollow --at=9,12,90 --level 10 --equip primary=katana,secondary=spell:veil --smoke 40 --shot verdant_hollow.png`,
+the Bark Husk is `uv run ashen-vault --map verdant_hollow --at=26,17,-90 --level 10 --equip primary=moonless_tachi,secondary=spell:pyre --smoke 60 --shot bark_husk.png`,
+the log rack is `uv run ashen-vault --map verdant_hollow --at=51,6,180 --level 10 --equip primary=leather_whip,secondary=buckler --smoke 40 --shot log_rack.png`,
 the flame bolt shot is
-`uv run ashen-vault --map sunken_keep --at 15,22,0 --level 10 --equip primary=ashblade,secondary=spell:flame --smoke 40 --script "wait:0.3 cast" --shot flame_bolt.png`,
-the Loom Mother is `uv run ashen-vault --map verdant_hollow --at=15,7,-90 --level 10 --equip primary=nodachi --smoke 40 --shot loom_mother.png`,
+`uv run ashen-vault --map sunken_keep --at 15,22,0 --level 10 --equip primary=stormbrand,secondary=spell:flame --smoke 40 --script "wait:0.3 cast" --shot flame_bolt.png`,
+the Loom Mother is `uv run ashen-vault --map verdant_hollow --at=15,7,-90 --level 10 --equip primary=flamberge --smoke 40 --shot loom_mother.png`,
 the lift ride is
-`uv run ashen-vault --map sunken_keep --at 4,24,90 --level 10 --equip primary=slagbreaker --smoke 680 --script "forward:0.15 wait:5 forward:0.6 wait:7" --shot undercroft_lift.png`,
-the Butcher is `uv run ashen-vault --map sunken_keep --at=27,7,-90 --level 10 --equip primary=claymore --smoke 20 --shot gallery.png`,
-the jungle trail is `uv run ashen-vault --map harrowmere --at=56,34,-90 --level 10 --equip primary=hatchet,secondary=spell:motes --smoke 40 --shot jungle_trail.png`,
+`uv run ashen-vault --map sunken_keep --at 4,24,90 --level 10 --equip primary=great_iron_hammer --smoke 680 --script "forward:0.15 wait:5 forward:0.6 wait:7" --shot undercroft_lift.png`,
+the Butcher is `uv run ashen-vault --map sunken_keep --at=27,7,-90 --level 10 --equip primary=war_hammer --smoke 20 --shot gallery.png`,
+the jungle trail is `uv run ashen-vault --map harrowmere --at=56,34,-90 --level 10 --equip primary=spiked_club,secondary=spell:lumen --smoke 40 --shot jungle_trail.png`,
 Mossmouth is
-`uv run ashen-vault --map verdant_hollow --at=15,31,180 --script "wait:0.3 cast wait:3" --level 10 --equip primary=spiked_club,secondary=spell:pyre --smoke 120 --shot mossmouth.png`,
-the canopy is `uv run ashen-vault --map verdant_hollow --at=31,3,180 --script "look_down:0.12" --level 10 --equip primary=katana,secondary=spell:motes --smoke 40 --shot canopy_walk.png`,
-the Root Caverns are `uv run ashen-vault --map verdant_hollow --at=6,38,-100 --level 10 --equip primary=great_iron_hammer --smoke 25 --shot root_caverns.png`,
-the long bridge is `uv run ashen-vault --map cinderhold --at=29,52,-90 --script "look_up:0.15" --level 10 --equip primary=ashblade,secondary=spell:thunder --smoke 60 --shot cinderhold_bridge.png`,
-the postern ledge is `uv run ashen-vault --map cinderhold --at=28,30,180 --level 10 --equip primary=katana,secondary=round_shield --smoke 190 --shot postern_ledge.png`,
-the foundry is `uv run ashen-vault --map cinderhold --at=18,17,180 --level 10 --equip primary=war_hammer --smoke 40 --shot foundry.png`,
+`uv run ashen-vault --map verdant_hollow --at=15,31,180 --script "wait:0.3 cast wait:3" --level 10 --equip primary=hatchet,secondary=spell:pyre --smoke 120 --shot mossmouth.png`,
+the canopy is `uv run ashen-vault --map verdant_hollow --at=31,3,180 --script "look_down:0.12" --level 10 --equip primary=butcher_cleaver,secondary=spell:motes --smoke 40 --shot canopy_walk.png`,
+the Root Caverns are `uv run ashen-vault --map verdant_hollow --at=6,38,-100 --level 10 --equip primary=slagbreaker --smoke 25 --shot root_caverns.png`,
+the long bridge is `uv run ashen-vault --map cinderhold --at=29,52,-90 --script "look_up:0.15" --level 10 --equip primary=moonless_tachi,secondary=spell:thunder --smoke 60 --shot cinderhold_bridge.png`,
+the postern ledge is `uv run ashen-vault --map cinderhold --at=28,30,180 --level 10 --equip primary=bastard_sword,secondary=kite_shield --smoke 190 --shot postern_ledge.png`,
+the foundry is `uv run ashen-vault --map cinderhold --at=18,17,180 --level 10 --equip primary=zweihander --smoke 40 --shot foundry.png`,
 the gargoyles are
-`uv run ashen-vault --map cinder_keep --at=9,6,180 --level 10 --equip primary=stormbrand,secondary=spell:ward --smoke 200 --script "wait:1 attack wait:1" --shot gargoyles.png`,
-the keep's hall is `uv run ashen-vault --map cinder_keep --at=17,18,180 --level 10 --equip primary=flamberge --smoke 40 --shot keep_hall.png`,
+`uv run ashen-vault --map cinder_keep --at=9,6,180 --level 10 --equip primary=katana,secondary=spell:ward --smoke 200 --script "wait:1 attack wait:1" --shot gargoyles.png`,
+the keep's hall is `uv run ashen-vault --map cinder_keep --at=17,18,180 --level 10 --equip primary=nodachi --smoke 40 --shot keep_hall.png`,
 the scroll is
-`uv run ashen-vault --map cinderhold --at=4,15,-90 --level 10 --equip primary=thornlash,secondary=buckler --smoke 280 --script "interact wait:1.5 menu wait:0.2 tab_next wait:0.2 tab_next wait:0.2 tab_next wait:0.2 down wait:3" --shot thunder_scroll.png`,
+`uv run ashen-vault --map cinderhold --at=4,15,-90 --level 10 --equip primary=oak_cudgel,secondary=tower_shield --smoke 280 --script "interact wait:1.5 menu wait:0.2 tab_next wait:0.2 tab_next wait:0.2 tab_next wait:0.2 down wait:3" --shot thunder_scroll.png`,
 and the sword and shield shot is
-`uv run ashen-vault --map sunken_keep --at 15,22,0 --level 10 --equip primary=bastard_sword,secondary=tower_shield,body=blackened_plate,hands=iron_gauntlets --smoke 100 --shot combat.png`.
+`uv run ashen-vault --map sunken_keep --at 15,22,0 --level 10 --equip primary=ashblade,secondary=kite_shield,body=blackened_plate,hands=iron_gauntlets --smoke 100 --shot combat.png`.
 
 ## Contributing
 
