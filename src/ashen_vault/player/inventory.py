@@ -201,10 +201,15 @@ class Inventory:
     @classmethod
     def from_h(cls, h):
         """Reads a save; saves from before hand slots had one `weapon` and one `armor`, and the spell in
-        the right mouse button (now the left hand)."""
-        counts = dict(h.get("counts") or {})
+        the right mouse button (now the left hand). Items since taken out of the game come back as what
+        replaced them (`Items.RENAMED`)."""
+        new = Items.RENAMED.get
+        counts = {}
+        for id_, n in (h.get("counts") or {}).items():
+            counts[new(id_, id_)] = counts.get(new(id_, id_), 0) + n
         if "right" in h:
             inv = cls(counts=counts, right=None, left=None, body=None, gold=h.get("gold"))
-            inv.slots.update({k: h.get(k) for k in (*HANDS, *ARMOR_SLOTS)})
+            inv.slots.update({k: new(h.get(k), h.get(k)) for k in (*HANDS, *ARMOR_SLOTS)})
             return inv
-        return cls(counts=counts, right=h.get("weapon"), left=SPELL, body=h.get("armor"), gold=h.get("gold"))
+        weapon = new(h.get("weapon"), h.get("weapon"))
+        return cls(counts=counts, right=weapon, left=SPELL, body=h.get("armor"), gold=h.get("gold"))

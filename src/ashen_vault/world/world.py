@@ -190,6 +190,8 @@ BLOCKING_PROPS = (
     "cemetery_gate",
     "mourning_statue",
     "grave_railing",
+    "forge_bellows",
+    "grindstone",
 )
 # How high a low blocking prop reaches above its floor, in metres: a shot flying higher passes over it
 # (a bolt over a table, a casket or a barrel). Anything not listed stands full height.
@@ -218,6 +220,8 @@ PROP_TOP = {
     "hand_cart": 1.2,
     "hay_wagon": 1.8,
     "cargo": 1.2,
+    "forge_bellows": 1.1,
+    "grindstone": 1.2,
 }
 # Props that block only until they are broken or revealed.
 BREAKABLE_PROPS = ("barrel", "crate", "urn", "cocoon", "secret_wall")
@@ -247,6 +251,7 @@ WALL_PROPS = (
     "rose_window",
     "flying_buttress",
     "crypt_front",
+    "smith_sign",
 )
 # Props drawn as far as the fog lets you see, however far that is: they make a skyline.
 LANDMARKS = (
@@ -275,6 +280,7 @@ STATIC_PROPS = frozenset(
         *("gargoyle_statue", "pillar", "sarcophagus", "headsman_block", "rack", "rubble", "bones"),
         *("shackles", "cobweb", "mushrooms", "slag_heap", "ingot_pile", "gatehouse", "bastion"),
         *("gravestone", "open_grave", "cemetery_gate", "mourning_statue", "crypt_front", "grave_railing"),
+        *("smith_sign", "forge_bellows", "grindstone"),
         "ash_mound",
         "spire",
     }
@@ -284,7 +290,7 @@ RISE = {"rose_window": "6", "crest_plaque": "3", "shutters": "1.7", "balcony": "
 # Props that turn to face into the room.
 FACING_PROPS = (
     *("chest", "altar", "table", "bed", "cupboard", "gargoyle_statue", "forge_hearth"),
-    *("bench", "hand_cart", "hay_wagon", "mourning_statue"),
+    *("bench", "hand_cart", "hay_wagon", "mourning_statue", "forge_bellows"),
 )
 # Harrowmere's buildings, furniture and street dressing (`render/town_models.py`).
 TOWN_PROPS = (
@@ -314,7 +320,11 @@ TOWN_PROPS = (
     "hand_cart",
     "hay_wagon",
     "cargo",
+    "smith_sign",
+    "forge_bellows",
+    "grindstone",
 )
+ANVIL_SOUND = (0.35, 14.0)  # (volume, metres to silence) of the smith's hammer on his anvil
 HAZARD_KINDS = ("spikes", "pendulum", "crumble", "flame_jet", "magma_vent")
 FALL_DAMAGE = 25
 FALL_DEPTH = 1.5  # metres below the pit's rim before a fall counts
@@ -1133,7 +1143,7 @@ class World:
     def _fire_one(self, enemy, kind, spread=0.0):
         web = kind == "web"
         ash = kind == "spadeful"
-        y = self.enemy_y(enemy) + (enemy.type.hover or 1.2)
+        y = self.enemy_y(enemy) + (enemy.type.hover or enemy.type.mouth or 1.2)
         player = self.player
         speed = 7.5 if web else 11 if enemy.type.shot == "arrow" else 6
         dx, dy, dz = shots.toward(
@@ -1215,7 +1225,9 @@ class World:
         self.enemies = [e for e in self.enemies if not e.gone]
         self.ash.update(dt)
         for p in self.props:
-            if p.kind == "iron_maiden":
+            if p.kind == "npc":
+                self._update_smith(p, dt)
+            elif p.kind == "iron_maiden":
                 self._update_maiden(p, dt)
             elif p.kind == "lift_call" and p.open_t > 0:  # thrown, then it springs back
                 p.open_t = p.open_t + dt * 1.6 if p.open_t + dt * 1.6 < 1.0 else 0.0
@@ -1297,6 +1309,14 @@ class World:
                 dmg, px, pz = hit
                 self.game.hurt_player(dmg, "The pendulum")
                 self._knock_player(px, pz)
+
+    def _update_smith(self, p, dt):
+        """A smith at work rings his anvil each time his hammer lands (his model keeps the same time)."""
+        if villagers.look(p.props.get("id")).idle != "smith":
+            return
+        t = self._time + p.tx  # the villager's own clock, as `_draw_props` gives `models.npc`
+        if villagers.smith_blows(t - dt, t):
+            self.sfx_near("anvil", p.x, p.z, *ANVIL_SOUND)
 
     def sfx_near(self, name, x, z, volume, reach):
         """Plays a sound from (x, z), fading with your distance from it to silence at `reach`."""
@@ -2021,7 +2041,7 @@ class World:
                         models.gout_puff(rig, size, heat, self._time, seed=i * 1.7)
         for pr_ in self.projectiles:
             gpu.model_light((1.6, 1.4, 1.2))
-            if pr_.effect in ("arrow", "thunder", "thorn"):  # these fly point first
+            if pr_.effect in ("arrow", "thunder", "thorn", "mote"):  # these fly point first
                 heading = -math.atan2(pr_.dz, pr_.dx)
                 climb = math.atan2(pr_.dy, math.hypot(pr_.dx, pr_.dz))
                 with rig.at(pr_.x, pr_.y, pr_.z, ry=heading, rz=climb):
@@ -2029,6 +2049,8 @@ class World:
                         forge_models.arrow(rig, pr_.rgb)
                     elif pr_.effect == "thorn":
                         models.thorn_shot(rig, pr_.rgb, self._time)
+                    elif pr_.effect == "mote":
+                        forge_models.mote(rig, self._time + id(pr_) % 7)
                     else:
                         forge_models.thunder_spear(rig, self._time)
                 continue
@@ -2373,6 +2395,12 @@ class World:
             town_models.lamp_post(rig, t + p.tx)
         elif k == "boat":
             town_models.boat(rig, t, seed)
+        elif k == "smith_sign":
+            town_models.smith_sign(rig, seed)
+        elif k == "forge_bellows":
+            town_models.forge_bellows(rig, seed)
+        elif k == "grindstone":
+            town_models.grindstone(rig, seed)
 
 
 def maiden_door(t):

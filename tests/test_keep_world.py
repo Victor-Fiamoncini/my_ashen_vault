@@ -368,8 +368,8 @@ def test_town_props_hang_on_the_thin_house_walls_and_the_stalls_are_gone():
     kinds = {p.kind for p in world.props}
     assert "stall" not in kinds
     assert {"fountain", "bench", "banner_pole", "shutters", "door_arch", "cathedral_tower"} <= kinds
-    # Brannoc's hearth hangs on the west wall of his forge: its slab, not the tile's edge.
-    hearth = next(p for p in world.props if p.kind == "hearth" and (p.tx, p.tz) == (4, 17))
+    # Brannoc's forge hearth stands back against the west wall of his forge: its slab, not the tile's edge.
+    hearth = next(p for p in world.props if p.kind == "forge_hearth" and (p.tx, p.tz) == (4, 17))
     assert world.map[3, 17].thin
     assert hearth.x == pytest.approx(TileMap.center(4, 17)[0] - world.map.wall_inset(4, 17, -1, 0))
     assert world.map.wall_inset(4, 17, -1, 0) == pytest.approx(1.5)

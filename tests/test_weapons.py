@@ -99,12 +99,12 @@ def test_every_weapon_gauge_refills_slower_than_its_speed():
 
 
 def test_weight_classes_scale_cost_damage_and_tempo():
-    hatchet, felling = Items.get("hatchet"), Items.get("felling_axe")
-    assert (weapons.weight(hatchet), weapons.weight(felling)) == ("light", "heavy")
+    hatchet, great = Items.get("hatchet"), Items.get("great_iron_hammer")
+    assert (weapons.weight(hatchet), weapons.weight(great)) == ("light", "great")
     for kind in (weapons.LIGHT, weapons.HEAVY):
-        assert weapons.attack(hatchet, kind).stamina < weapons.attack(felling, kind).stamina
-    assert weapons.attack(hatchet, weapons.HEAVY).damage < weapons.attack(felling, weapons.HEAVY).damage
-    assert weapons.tempo(hatchet) < weapons.tempo(felling)
+        assert weapons.attack(hatchet, kind).stamina < weapons.attack(great, kind).stamina
+    assert weapons.attack(hatchet, weapons.HEAVY).damage < weapons.attack(great, weapons.HEAVY).damage
+    assert weapons.tempo(hatchet) < weapons.tempo(great)
     base = weapons.MOVESETS["sword"][weapons.HEAVY]
     sizes = ["light", "medium", "heavy", "great"]
     costs = [weapons.WEIGHTS[w][weapons.HEAVY][0] for w in sizes]
@@ -146,7 +146,7 @@ def ctx(**kw):
 def test_secret_attacks_need_their_moment():
     katana, whip, axe, club, hammer, sword = (
         Items.get(i)
-        for i in ("katana", "leather_whip", "felling_axe", "oak_cudgel", "war_hammer", "ashblade")
+        for i in ("katana", "leather_whip", "bearded_axe", "oak_cudgel", "war_hammer", "ashblade")
     )
     H, L = weapons.HEAVY, weapons.LIGHT
     assert weapons.secret(katana, H, ctx(charge_t=1.3, still_t=2.0)).name == "Sheathed Draw"

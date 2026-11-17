@@ -140,19 +140,19 @@ class Items:
                 desc="Iron flanges that ignore armor. Its heavy always staggers.",
             ),
             Item(
-                id="heartwood_maul",
-                name="Heartwood Maul",
+                id="great_iron_hammer",
+                name="Great Iron Hammer",
                 kind="weapon",
-                mass=7.5,
+                mass=12.5,
                 category="hammer",
-                weight="heavy",
-                price=240,
-                power=17,
-                reach=1.9,
-                speed=2.2,
-                level=4,
+                weight="great",
+                price=0,
+                power=23,
+                reach=2.0,
+                speed=2.6,
+                level=5,
                 two_handed=True,
-                desc="A burl of petrified heartwood bound to a root haft. Moss still grows in its cracks.",
+                desc="A smith's sledge forged for a giant: a riveted block of iron, banded and spiked.",
             ),
             Item(
                 id="war_hammer",
@@ -201,18 +201,19 @@ class Items:
                 desc="A foundry maul whose head never cooled. What it strikes catches fire.",
             ),
             Item(
-                id="felling_axe",
-                name="Felling Axe",
+                id="flamberge",
+                name="Flamberge",
                 kind="weapon",
                 mass=6.5,
-                category="axe",
+                category="greatsword",
                 weight="heavy",
                 price=0,
                 power=19,
-                reach=2.2,
-                speed=2.3,
+                reach=2.7,
+                speed=2.2,
+                level=4,
                 two_handed=True,
-                desc="A woodcutter's axe, long lost to the hollow. Run into a heavy and you leap with it.",
+                desc="A greatsword whose blade ripples like a flame. Its waves tear what they cut.",
             ),
             Item(
                 id="moonless_tachi",
@@ -610,6 +611,9 @@ class Items:
         speed=0.9,
         desc="Your own two fists.",
     )
+
+    # Items taken out of the game, and what an old save holding one gets in its place.
+    RENAMED: ClassVar[dict[str, str]] = {"heartwood_maul": "great_iron_hammer", "felling_axe": "flamberge"}
 
     @classmethod
     def get(cls, id_):

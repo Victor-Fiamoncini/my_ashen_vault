@@ -130,7 +130,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/world/elements.py` | Elements: lightning against `conductive` foes, fire against `fireproof` ones, which weapons burn |
 | `src/ashen_vault/render/fortress_props.py` | The Cinderhold's dressing: `gargoyle_statue` (`pose=snarl`; far ones drop their fine carving, `world.DETAIL_RANGE`), `barred_window`, `tool_rack` and `great_window` (wall props; `great_window rise=` hangs high in a wall over the moat, a landmark), `forge_hearth`, `crucible`, `quench_trough`, `ingot_pile`, `slag_heap`, `impaler`, the `battlement` landmark (a crenellated walk on a wall top) and `lava_spout` (`lavafall spout=gargoyle`) |
 | `src/ashen_vault/render/forge_models.py` | The Cinderhold's models (golem, bowman, hound, the gargoyles, Stormbrand and Slagbreaker, arrows, thunder and motes, flame jets, and the skyline: spires, bastions, smokestacks, the gatehouse, the keep, lavafalls); `models` imports it last and borrows its helpers |
-| `src/ashen_vault/render/town_models.py` | Harrowmere's models: gabled `roof`s (one per building, on its NW wall tile with `span=W,D ridge=x\|z`, `tex=terracotta eave=`), the `silent_bell`, the cathedral (`cathedral_spire base=` over the crossing, `cathedral_tower` with `shift=dx,dz` to centre it on a 2x2 footprint, `turret` for the small ones, `flying_buttress`, stained-glass `window` within and `stained_window` without, `rose_window`), the houses' faces (`shutters`, `balcony`, `door_arch` on the doorway tile facing out; `rise=` sets a hung one's height, `world.RISE`), the realm's crest (`banner_pole`, `crest_plaque`), the square's `fountain`, `bench`es, `hand_cart`, `hay_wagon` and `cargo`, the trees (`tree kind=cypress|pine|olive|dead`, the last the cemetery's bare one: slim cypresses, flat-crowned umbrella pines, gnarled olives, each a 3D trunk and limbs under clumps of crossed leaf cards: paper-thin cubes carrying the cut-out `leaf_card` texture), pews, beds, cupboards, shelves, hearths, fences, lamp posts and boats |
+| `src/ashen_vault/render/town_models.py` | Harrowmere's models: gabled `roof`s (one per building, on its NW wall tile with `span=W,D ridge=x\|z`, `tex=terracotta eave=`), the `silent_bell`, the cathedral (`cathedral_spire base=` over the crossing, `cathedral_tower` with `shift=dx,dz` to centre it on a 2x2 footprint, `turret` for the small ones, `flying_buttress`, stained-glass `window` within and `stained_window` without, `rose_window`), the houses' faces (`shutters`, `balcony`, `door_arch` on the doorway tile facing out; `rise=` sets a hung one's height, `world.RISE`), the realm's crest (`banner_pole`, `crest_plaque`), the square's `fountain`, `bench`es, `hand_cart`, `hay_wagon` and `cargo`, the trees (`tree kind=cypress|pine|olive|dead`, the last the cemetery's bare one: slim cypresses, flat-crowned umbrella pines, gnarled olives, each a 3D trunk and limbs under clumps of crossed leaf cards: paper-thin cubes carrying the cut-out `leaf_card` texture), pews, beds, cupboards, shelves, hearths, fences, lamp posts, boats, and Brannoc's `smith_sign`, `forge_bellows` and `grindstone` |
 | `src/ashen_vault/world/thin_walls.py` | Thin walls (`wall ... thin=<m>`): the slab each such tile stands as (hugging the side open to the sky, centred between two rooms), the margins it lends to its open neighbours (`Layout`), and how far a prop must move back to touch it (`inset`) |
 | `src/ashen_vault/world/villagers.py` | How each villager looks (`Look`: build, garb, hair, hat, beard, apron, cloak, held tool, idle) |
 | `src/ashen_vault/render/shapes.py` | Model primitives raylib lacks (`blade`, `lozenge`, `wedge`) as pure triangle lists; `Gpu.primitive` uploads them |
@@ -255,6 +255,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   lightning and are jolted (`staggers`); `fireproof` ones take half from fire and never burn. `shot=arrow`
   draws a ranged foe's shots as arrows (and they fly faster), `shot=thorn` as barbed thorns
   (`models.thorn_shot`, the Snare Bloom's, and Thornlash's Thorn Volley, whose thorns poison).
+  A type's `mouth` sets the height its shots leave from (the Snare Bloom's tall pod), else 1.2 m.
   An enemy entity's `item=` is loot it drops when slain. `flammable` types (the jungle's plants) take
   more from Pyre and keep burning. Enemies carry lingering harm in `Enemy.status` (`poison` from Venom
   Dart, `burn` from Pyre), one bite a second (`status_tick`) that never staggers.
@@ -275,7 +276,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 - Props that fill their tile are listed in `world/world.py` (`BLOCKING_PROPS`, `BREAKABLE_PROPS`;
   the keep adds `pillar`, `sarcophagus` and `headsman_block`, the jungle `bonfire`, `giant_mushroom` and
   `totem`, the town `pew`, `bed`, `cupboard`, `fence`, `lamp_post`, `banner_pole`, `fountain`, `bench`,
-  `hand_cart`, `hay_wagon`, `cargo`, `flying_buttress` and `tree`, the cemetery `gravestone`, `cemetery_gate`, `mourning_statue` and `grave_railing`; `test_harrowmere_trees_cut_off_no_part_of_the_town`
+  `hand_cart`, `hay_wagon`, `cargo`, `flying_buttress`, `tree`, `forge_bellows` and `grindstone`, the cemetery `gravestone`, `cemetery_gate`, `mourning_statue` and `grave_railing`; `test_harrowmere_trees_cut_off_no_part_of_the_town`
   keeps the trees out of the only way anywhere). Decor that blocks nothing:
   `boat` rides on water, `ash_mound` and `bones` lie on the floor, `crypt_front` is built out of a wall, `shelf`, `hearth` and `window` hang on a wall (the last two are lights), `cage`, `roots` and `meat_hooks` hang from the ceiling, `grate` sits in the
   floor, `mushrooms` dot it, and `cobweb`, `skull_niche`, `winch`, `lever` and `shelf_fungus` mount on
@@ -385,8 +386,10 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   (guard styles, pommels, ricasso, fuller, bevelled edges). Axe, cleaver and hammer heads are built with
   their edge or face on +Z, straight blades their edges on +-Z and katanas theirs on -Z;
   `models.weapon` turns each a quarter (`models.edge_turn`) so the edge leads along +X, the way swings
-  travel and the hand's knuckles face (`test_edges_and_heads_lead_their_blows`; the jungle's Heartwood
-  Maul is in `HEADED`). A full cut's follow-through carries the arm out of the view before it comes home. Keys and relic sigils draw from
+  travel and the hand's knuckles face (`test_edges_and_heads_lead_their_blows`; the jungle's Great Iron
+  Hammer is in `HEADED`). The jungle's Flamberge is a `SWORDS` entry with `waves`, its blade a run of
+  straight segments stepped from side to side (`models._wavy_blade`). An old save holding an item since
+  taken out of the game loads with its replacement (`Items.RENAMED`, `Inventory.from_h`). A full cut's follow-through carries the arm out of the view before it comes home. Keys and relic sigils draw from
   `KEY_STYLES` / `SIGILS` (each key its own shape in `KEY_SHAPES`), in Belongings and on the ground (`models.pickup`). Enemy anatomy has helpers too: `skull`,
   `ribcage`, `hand`, `sack_hood` and `_bar` (a box between two points).
 - Secret attacks are listed in `weapons.secret()`; performing one adds a `secret:<category>` flag,
@@ -422,7 +425,12 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   own pays gold instead (`loot.claim`). No spell scroll, gear or key may be placed twice across maps and
   gifts (`tests/test_loot.py`): give a new find a new item.
 - Villagers are drawn by `models.npc` from a `world/villagers.Look` (build, clothes, hair, hat, held tool,
-  idle); a new villager needs an entry in `villagers.LOOKS`. The Enthroned (`npc id=enthroned`) is its own
+  idle); a new villager needs an entry in `villagers.LOOKS`. Brannoc's idle is `smith`: a loop of four
+  blows on a billet at the anvil his model carries before him, a turn of it in the tongs, a look at it
+  and a wipe of the brow (`villagers.smith_cycle`); each blow throws sparks and rings the anvil through
+  `World.sfx_near` (`smith_blows`). Corvane, an old swordmaster, wears a `kimono` over hakama, a long
+  white beard, a `topknot` and a laced `pauldron`, his blades thrust through the obi (`blade="hip"`), and
+  stands `ready`, now and then easing a hand's width of steel out (`villagers.half_draw`). The Enthroned (`npc id=enthroned`) is its own
   model, petrified on `models.throne`: all stone, nothing glows but the drifting dust, and the stone king's
   lines whisper from it (`dialogue.ENTHRONED_LINES`).
 - The story: the player is one of the Ashen, woken in the Cemetery of Ashes by a toll of the town's bell

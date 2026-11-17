@@ -122,7 +122,7 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 [entities]
 v = snare_bloom on=,
 S = save_statue
-k = chest item=heartwood_maul
+k = chest item=great_iron_hammer
 q = chest item=red_tonic count=3 gold=80
 c = chest item=blue_moss count=2 gold=30
 x = chest item=red_tonic count=2
@@ -145,7 +145,7 @@ U = loom_mother yaw=90
 V = torch radius=6
 b = boards deck=3.9 on=e
 z = chest item=briar_key on=e
-y = stump_mimic item=felling_axe on=3
+y = stump_mimic item=flamberge on=3
 X = ledge deck=1.2 on=_
 Z = spore_pod every=3.6
 a = gate lever=hollow_lever

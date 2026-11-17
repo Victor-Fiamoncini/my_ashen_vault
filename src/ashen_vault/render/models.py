@@ -397,62 +397,71 @@ def mire_slime(r, e, t):
 CHAR = (52, 42, 38)
 
 
+WISP_SHELLS = (  # (radius, height, tongues, colour) of each shell of a wisp's flame, outer first
+    (0.42, 0.95, 6, (200, 58, 24)),
+    (0.32, 0.78, 5, (255, 132, 38)),
+    (0.22, 0.58, 4, (255, 214, 110)),
+)
+WISP_CINDERS = 5  # sparks rising off it
+
+
 def cinder_wisp(r, e, t):
-    """A burnt skull afloat in its own pyre: a crown of flame behind it, ember shards wheeling round it
-    and a guttering tail of fire beneath. Slain, it gutters out and sinks, cooling as it falls."""
+    """A burnt skull in a living flame. Three shells of flickering tongues, deep red outside, then
+    orange, then a yellow core, wrap a blackened skull whose sockets glow. Below it a tail of embers
+    gutters away and above it cinders drift up and fade. Winding up, the flame draws in and burns
+    white, then flares as it throws; slain, it gutters into smoke and the cooled skull drops."""
     fade = death_fall(e, 0.9)
-    bob = math.sin(t * 3) * 0.15 * (1 - fade)
-    lit = fade < 0.5
-    hot = (255, 230, 140) if e.state == "windup" else EMBER
-    flame = hot if lit else (90, 60, 50)
-    with r.at(0, e.type.hover + bob - 0.3 * fade, 0, s=1 - 0.35 * fade):
-        for i in range(3):  # the crown of flame behind the skull
-            a = (i - 1) * 0.5
-            k = 1 + 0.15 * math.sin(t * 9 + i * 2)
+    lit = fade < 0.6
+    bob = math.sin(t * 3) * 0.12 * (1 - fade)
+    charge = min(e.state_t / max(e.type.windup, 1e-3), 1.0) if e.state == "windup" else 0.0
+    flare = 1.0 - min(e.state_t / 0.25, 1.0) if e.state == "attack" else 0.0
+    size = (1 - fade) * (1 - 0.3 * charge + 0.35 * flare)
+    with r.at(0, e.type.hover + bob - 0.5 * fade, 0):
+        if size > 0.05:
+            for j, (rad, h, n, rgb) in enumerate(WISP_SHELLS):
+                hot = _blend(rgb, (255, 250, 230), charge * (0.4 + 0.2 * j))
+                for i in range(n):
+                    a = i * math.tau / n + t * (0.9 + 0.5 * j) * (-1) ** j
+                    k = 1 + 0.25 * math.sin(t * (9 + 2 * j) + i * 2.3)
+                    lean = 0.25 + 0.1 * math.sin(t * 5 + i)
+                    with r.at(
+                        math.cos(a) * rad * 0.55 * size - 0.08, -0.3, math.sin(a) * rad * 0.55 * size, ry=-a
+                    ):
+                        r.part("cone", 0, h * k * size * 0.5, 0, rad * size, h * k * size, rad * 0.8 * size,
+                               hot, rz=-lean, glow=True)  # fmt: skip
             r.part(
-                "cone",
-                -0.08,
-                0.2 + 0.05 * (i == 1),
-                a * 0.4,
-                0.26,
-                0.5 * k * (1 - fade),
-                0.26,
-                flame,
-                rz=a * 0.3,
-                glow=lit,
-            )
-        r.part("sphere", -0.1, 0.0, 0, 0.42, 0.46, 0.42, (200, 70, 30) if lit else (80, 50, 40), glow=lit)
-        with r.at(0.06, 0.0, 0, s=1.35):
-            skull(r, CHAR, hot if lit else (40, 20, 14), glow=lit, jaw=0.25 + 0.3 * (e.state == "windup"))
-        for i in range(4):  # ember shards wheeling round it
-            a = t * 3.5 + i * math.pi / 2
-            r.part(
-                "wedge",
-                math.cos(a) * 0.48,
-                math.sin(t * 5 + i) * 0.15,
-                math.sin(a) * 0.48,
-                0.06,
-                0.14,
-                0.04,
-                (255, 200, 90) if lit else (90, 60, 50),
-                ry=-a,
-                rz=t * 4 + i,
-                glow=lit,
-            )
-        for i in range(3):  # the tail, guttering away below
-            k = 1 + 0.2 * math.sin(t * 11 + i)
-            r.part(
-                "cone",
-                -0.05 * i,
-                -0.3 - i * 0.18,
-                0,
-                0.3 - i * 0.08,
-                0.3 * k,
-                0.3 - i * 0.08,
-                flame,
-                rz=math.pi,
-                glow=lit,
-            )
+                "sphere", 0, 0.02, 0, 0.3 * size, 0.28 * size, 0.3 * size, (255, 236, 170), glow=True
+            )  # core
+        with r.at(0.16, -0.6 * fade * fade, 0, s=1.2, rz=-0.8 * fade):  # the skull, dropping as it cools
+            eye = (255, 230, 150) if charge > 0.3 else EMBER
+            skull(r, CHAR, eye if lit else (36, 22, 18), glow=lit, jaw=0.2 + 0.4 * charge + 0.3 * flare)
+        for i in range(4):  # the tail: embers guttering away below, lagging behind as it drifts
+            k = (t * 1.6 + i / 4) % 1.0
+            y = -0.25 - k * 0.55
+            sz = 0.09 * (1 - k) * (1 - fade)
+            if sz > 0.01:
+                r.part("cube", -0.12 * k + 0.05 * math.sin(t * 7 + i), y, 0.06 * math.cos(t * 5 + i * 2), sz, sz, sz,
+                       (255, rround(170 - 110 * k), 40), glow=True)  # fmt: skip
+        for i in range(WISP_CINDERS if fade == 0 else 0):  # cinders drifting up off the flame, going out
+            k = (t * 0.7 + i / WISP_CINDERS) % 1.0
+            a = i * 2.4 + t * 0.8
+            sz = 0.045 * (1 - k)
+            rgb = (255, rround(200 - 120 * k), rround(90 - 60 * k))
+            r.part("cube", math.cos(a) * (0.2 + 0.3 * k), 0.3 + k * 0.45, math.sin(a) * (0.2 + 0.3 * k), sz, sz, sz,
+                   rgb, glow=True)  # fmt: skip
+        if fade > 0:  # the flame gone, smoke rising where it burned
+            k = min(fade * 1.2, 1.0)
+            g = rround(70 - 20 * k)
+            for i in range(3):
+                sz = 0.2 * (1 - 0.6 * k)
+                r.part("cube", 0.08 * math.sin(i * 2.1), 0.05 + 0.2 * k + i * 0.1, 0.08 * math.cos(i * 1.7),
+                       sz, sz, sz, (g, g, g))  # fmt: skip
+
+
+def _blend(a, b, k):
+    """Colour `a` blended a share `k` (0..1) toward `b`."""
+    k = min(max(k, 0.0), 1.0)
+    return tuple(rround(p + (q - p) * k) for p, q in zip(a, b, strict=True))
 
 
 def _warden_arms(e, t):
@@ -1051,40 +1060,6 @@ def jaw_open(e, t):
     return 0.22 + math.sin(t * 2.3) * 0.12
 
 
-def snare_bloom(r, e, t):
-    """Rooted carnivorous plant: a leafy base, a swaying stem and a fanged pod ringed with petals."""
-    hurt = e.flashing
-    wilt = death_fall(e)
-    gape = jaw_open(e, t)
-    lunge = 0.35 if e.state == "windup" else (0.55 if e.state == "attack" else 0)
-    sway = math.sin(t * 1.7) * 0.12 * (1 - wilt)
-    # Root mound and broad leaves on the floor.
-    r.part("sphere", 0, 0.08, 0, 0.9, 0.24, 0.9, (60, 50, 34))
-    for i in range(5):
-        a = i * 2 * math.pi / 5 + 0.3
-        with r.at(math.cos(a) * 0.35, 0.12, math.sin(a) * 0.35, ry=-a, rz=-0.25):
-            r.part("sphere", 0.28, 0, 0, 0.7, 0.07, 0.3, LEAF if i % 2 else DARK_LEAF)
-    # Stem: three segments that curl back on windup and whip forward on the strike. In death the
-    # stem wilts forward and the head hangs.
-    bend = sway - lunge * 0.5
-    a1 = bend * 0.5 - 0.45 * wilt
-    a2 = bend * 0.4 + lunge * 0.9 - 0.75 * wilt
-    a3 = -0.7 - lunge * 0.4 - 0.3 * wilt
-    with r.at(0, 0, 0, s=1.2), r.at(0, 0.15, 0, rz=a1):
-        r.part("cyl", 0, 0.3, 0, 0.16, 0.62, 0.16, (70, 110, 50))
-        _thorns(r, 0.62, 0.08, 4)
-        with r.at(0, 0.35, 0.06, rx=0.9 + sway):  # a leaf unfurling from the stem
-            r.part("sphere", 0, 0.18, 0, 0.05, 0.4, 0.2, DARK_LEAF)
-        with r.at(0, 0.58, 0, rz=a2):
-            r.part("cyl", 0, 0.28, 0, 0.13, 0.58, 0.13, (80, 120, 54))
-            _thorns(r, 0.58, 0.065, 3)
-            with r.at(0, 0.55, 0, rz=a3):
-                r.part("cyl", 0, 0.12, 0, 0.11, 0.26, 0.11, (80, 120, 54))
-                # Undo the stem's bends so the mouth faces forward, dipping a little as it lunges.
-                with r.at(0, 0.26, 0, rz=-(a1 + a2 + a3) - lunge * 0.4 - 1.1 * wilt):
-                    _bloom_head(r, gape, hurt, t)
-
-
 def _thorns(r, length, radius, n, rgb=(176, 150, 96)):
     """Hooked thorns spiralling up a stem (along +Y from the origin)."""
     for k in range(n):
@@ -1104,39 +1079,105 @@ def _thorns(r, length, radius, n, rgb=(176, 150, 96)):
         )
 
 
-def _bloom_head(r, gape, hurt, t):
-    """Head at the stem tip, mouth facing +X (the stem frame is pitched so +X points forward)."""
-    flesh = (230, 200, 190) if hurt else (150, 40, 60)
-    petal = (210, 190, 200) if hurt else (196, 60, 92)
-    # Petal ruff behind the mouth; it flares as the jaws open.
+SNARE_STALK = (112, 126, 100)  # a pale, grey-green stalk
+SNARE_RIB = (78, 92, 70)
+SNARE_LEAF = (100, 128, 86)
+SNARE_LEAF_DARK = (70, 94, 62)
+SNARE_FLESH = (176, 28, 44)
+SNARE_THROAT = (236, 70, 56)
+SNARE_TOOTH = (232, 226, 200)
+SNARE_SEGMENTS = 4  # the stalk's segments, each this long
+SNARE_SEGMENT = 0.32
+
+
+def snare_bloom(r, e, t):
+    """A man-eating plant on one tall stalk. A flared root bulb sits in a star of blade-like leaves;
+    a pale, ribbed stalk rises from it, curling back on the windup and lashing forward on the strike;
+    under its head a ruff of broad pointed leaves fans out, and the head itself is an upright pod of
+    two ribbed, leafy lips that part sideways to bare red flesh lined with teeth and a glowing throat,
+    crowned with spiky leaves. Slain, the stalk folds over and the lips hang slack."""
+    hurt = e.flashing
+    wilt = death_fall(e)
+    gape = jaw_open(e, t)
+    lunge = 0.35 if e.state == "windup" else (0.55 if e.state == "attack" else 0)
+    sway = math.sin(t * 1.3) * 0.08 * (1 - wilt)
+    stalk = (236, 230, 220) if hurt else SNARE_STALK
+    leaf = (226, 232, 220) if hurt else SNARE_LEAF
+    # The root bulb and its star of blade leaves splayed on the floor.
+    r.part("frustum", 0, 0.12, 0, 0.62, 0.24, 0.62, _dim(stalk, 0.8))
+    r.part("sphere", 0, 0.22, 0, 0.42, 0.26, 0.42, _dim(stalk, 0.9))
     for i in range(6):
-        a = i * math.pi / 3
-        with r.at(0, 0, 0, rx=a), r.at(-0.05, 0.18, 0, rz=0.5 + gape * 0.6):
-            r.part("sphere", 0, 0.2, 0, 0.16, 0.42, 0.24, petal)
-    r.part("sphere", -0.08, 0, 0, 0.34, 0.34, 0.34, (60, 96, 44))
-    for i in range(5):  # sepals, spiked, cupping the head from behind
-        a = i * 2 * math.pi / 5
-        with r.at(-0.2, 0, 0, rx=a):
-            r.part("wedge", -0.04, 0.16, 0, 0.04, 0.22, 0.08, DARK_LEAF, rz=0.9)
-    # Throat glows faintly so the open mouth reads in the dark.
-    r.part("sphere", 0.05, 0, 0, 0.24, 0.2, 0.24, (220, 80, 60), glow=gape > 0.6)
-    for side in (1, -1):
-        with r.at(0, 0, 0, rz=side * gape * 0.5):
-            r.part("sphere", 0.24, side * 0.08, 0, 0.56, 0.2, 0.44, flesh)
-            r.part("sphere", 0.26, side * 0.14, 0, 0.5, 0.12, 0.4, (110, 150, 60))
-            for k in range(4):
-                z = -0.15 + k * 0.1
-                r.part(
-                    "cone",
-                    0.42,
-                    -side * 0.04,
-                    z,
-                    0.05,
-                    0.12,
-                    0.05,
-                    (236, 230, 200),
-                    rz=0 if side < 0 else math.pi,
-                )
+        a = i * math.tau / 6 + 0.25
+        with r.at(math.cos(a) * 0.2, 0.08, math.sin(a) * 0.2, ry=-a, rz=-1.35 + 0.08 * math.sin(t + i)):
+            r.part("blade", 0, 0.38, 0, 0.03, 0.75, 0.22, leaf if i % 2 else _dim(leaf, 0.82))
+            r.part("cube", 0.012, 0.3, 0, 0.012, 0.56, 0.02, SNARE_RIB)  # its midrib
+    # The stalk: segments bending back on the windup, lashing forward on the strike, folding in death.
+    bend = sway * 0.6 - lunge * 0.22
+    angles = [bend + lunge * (0.32 if k >= 2 else -0.05) - 0.42 * wilt for k in range(SNARE_SEGMENTS)]
+    with r.at(0, 0.3, 0):
+        _snare_stalk(r, angles, stalk, leaf, gape, hurt, t, wilt)
+
+
+def _snare_stalk(r, angles, stalk, leaf, gape, hurt, t, wilt, k=0):
+    """One segment of the stalk, then the next on top of it, and the head on the last."""
+    if k == len(angles):
+        # Undo the stalk's bends so the pod stands upright, its mouth toward +X; it droops in death.
+        with r.at(0, 0, 0, rz=-sum(angles) - 1.1 * wilt):
+            _snare_head(r, gape, hurt, stalk, leaf, t, wilt)
+        return
+    with r.at(0, 0, 0, rz=angles[k]):
+        w = 0.2 - 0.025 * k
+        r.part("cyl", 0, SNARE_SEGMENT / 2, 0, w, SNARE_SEGMENT + 0.02, w, stalk)
+        for i in range(3):  # ribs running up it
+            a = i * math.tau / 3 + k
+            r.part("cube", math.cos(a) * w * 0.45, SNARE_SEGMENT / 2, math.sin(a) * w * 0.45, 0.03,
+                   SNARE_SEGMENT, 0.03, SNARE_RIB, ry=-a)  # fmt: skip
+        r.part("cyl", 0, 0.0, 0, w * 1.15, 0.04, w * 1.15, _dim(stalk, 0.78))  # the node
+        if k == 1:  # a single blade leaf springing from the stalk
+            with r.at(0, 0.16, 0, ry=2.0, rz=-0.9 + 0.1 * math.sin(t * 1.7)):
+                r.part("blade", 0, 0.3, 0, 0.025, 0.6, 0.16, _dim(leaf, 0.9))
+        with r.at(0, SNARE_SEGMENT, 0):
+            _snare_stalk(r, angles, stalk, leaf, gape, hurt, t, wilt, k + 1)
+
+
+def _snare_head(r, gape, hurt, stalk, leaf, t, wilt):
+    """The ruff of leaves, the two-lipped pod and its crest, from the top of the stalk."""
+    flesh = (240, 210, 210) if hurt else SNARE_FLESH
+    # The ruff: broad pointed leaves fanning out and down beneath the pod, stirring.
+    for i in range(5):
+        a = i * math.tau / 5 + 0.3
+        flare = 1.05 + 0.25 * min(gape, 1.0) - 0.5 * wilt + 0.05 * math.sin(t * 2 + i)
+        with r.at(0, 0.02, 0, ry=-a), r.at(0, 0, 0, rz=-flare):
+            r.part(
+                "blade", 0, 0.34, 0, 0.03, 0.7, 0.36, leaf if i % 2 else SNARE_LEAF_DARK if not hurt else leaf
+            )
+            r.part("cube", 0.016, 0.28, 0, 0.012, 0.5, 0.025, SNARE_RIB)  # midrib
+    r.part("sphere", 0, 0.1, 0, 0.3, 0.22, 0.3, _dim(stalk, 0.85))  # the pod's base
+    # The pod: two lips hinged at its back (-X), standing upright, parting sideways (+-Z).
+    with r.at(-0.14, 0.55, 0, s=1.2):
+        slack = 0.35 * wilt
+        r.part("sphere", 0.02, 0, 0, 0.3, 0.72, 0.18, SNARE_THROAT, glow=gape > 0.6 and wilt < 0.5)  # throat
+        for side in (1, -1):
+            with r.at(0, 0, 0, ry=-side * (gape * 0.55 + slack)):
+                _snare_lip(r, side, stalk, flesh)
+    # The crest: spiky leaves standing up over the pod.
+    for i, (a, h) in enumerate(((0.0, 0.42), (0.5, 0.32), (-0.5, 0.32))):
+        with r.at(-0.1, 1.02, 0, rx=a, rz=-0.15 + 0.05 * math.sin(t * 1.5 + i)):
+            r.part("wedge", 0, h / 2, 0, 0.04, h, 0.12, _dim(leaf, 0.95))
+
+
+def _snare_lip(r, side, stalk, flesh):
+    """One lip of the pod on side `side` (+-Z), its hinge at the origin: a ribbed leafy shell, red
+    flesh on its inner face and a row of teeth down its front edge pointing across the mouth."""
+    z = side * 0.11
+    r.part("sphere", 0.17, 0, z, 0.42, 0.86, 0.2, stalk)  # the shell
+    r.part("sphere", 0.17, 0, z - side * 0.035, 0.36, 0.78, 0.13, flesh)  # its inner flesh
+    for dy in (-0.22, 0.0, 0.22):  # ribs across the shell
+        r.part("cube", 0.17, dy, z + side * 0.09, 0.32, 0.03, 0.02, SNARE_RIB)
+    r.part("cube", 0.17, 0, z + side * 0.1, 0.03, 0.72, 0.02, SNARE_RIB)  # the spine
+    for k in range(6):  # teeth down the front edge
+        y = -0.3 + k * 0.12
+        r.part("cone", 0.36, y, z - side * 0.05, 0.035, 0.09, 0.035, SNARE_TOOTH, rx=-side * math.pi / 2)
 
 
 HUSK_BARK = (112, 94, 80)  # grey-brown dead wood
@@ -1536,30 +1577,60 @@ def _spider_leg(r, i, side, phase, amp, body, band, curl=0.0):
 
 def npc(r, look, t=0.0):
     """A villager facing +X, built from a `villagers.Look` square and blocky, as the old PS1 crawlers
-    drew their folk: chunky boots and box legs (or a long robe flaring to its hem), a box chest with
-    square shoulders and a coat skirt flaring below the belt, trimmed at hem, collar and cuffs, an apron
-    or cloak, box arms hanging flush from the shoulders' corners ending in mitt hands, and an angular,
-    faceless head (a flat face, a brow and a nose, no eyes) sitting right on the collar, under block
-    hair, a beard, a hat or hood. They hold their trade's tool and idle by it (`look.idle`)."""
+    drew their folk: chunky boots and box legs (or a long robe flaring to its hem, or a kimono's wide
+    hakama), a box chest with square shoulders and a coat skirt flaring below the belt, trimmed at hem,
+    collar and cuffs, an apron or cloak, box arms hanging flush from the shoulders' corners ending in
+    mitt hands, and an angular, faceless head (a flat face, a brow and a nose, no eyes) sitting right on
+    the collar, under block hair, a beard, a hat or hood. They hold their trade's tool and idle by it
+    (`look.idle`): the smith works a billet on the anvil before him (`villagers.smith_cycle`), the
+    swordmaster stands ready by his blades (`villagers.half_draw`)."""
     hs, ws, stoop = villagers.BUILDS[look.build]
     sway = math.sin(t * 1.5) * 0.03
-    beat = max(math.sin(t * 2.4), 0.0) ** 3  # the smith's hammer, the guard's shifting weight
-    with r.at(0, 0, 0, rz=sway, s=hs):
+    shift = 0.0
+    lean, nod = _idle_lean(look, t)
+    if look.idle == "ready":  # a swordmaster stands still, his weight easing from foot to foot
+        sway, shift = math.sin(t * 0.9) * 0.008, math.sin(t * 0.45) * 0.025
+    beat = max(math.sin(t * 2.4), 0.0) ** 3  # the old hammer idle, the guard's shifting weight
+    with r.at(0, 0, 0, rz=sway, rx=shift, s=hs):
         _villager_legs(r, look, ws)
-        with r.at(0, 0.95, 0, rz=-stoop):  # everything above the hips leans with the stoop
+        if look.idle == "smith":
+            _smith_anvil(r, t)
+        with r.at(0, 0.95, 0, rz=-stoop - lean):  # everything above the hips leans with the stoop
             _villager_torso(r, look, ws)
             _villager_arms(r, look, ws, t, beat)
-            with r.at(0.03, HEAD_AT, 0, rz=stoop * 0.6 - (0.12 if look.idle == "pray" else 0.0)):
-                _villager_head(r, look)
-            if look.blade:  # a sheathed curved sword slung across the back
+            with r.at(
+                0.03, HEAD_AT, 0, rz=stoop * 0.6 + lean * 0.5 - nod - (0.12 if look.idle == "pray" else 0.0)
+            ):
+                _villager_head(r, look, t)
+            if look.blade == "back":  # a sheathed curved sword slung across the back
                 with r.at(-0.22, 0.15, 0, rx=0.9):
                     r.part("cube", 0, 0, 0, 0.06, 1.1, 0.08, (30, 26, 30))
                     r.part("cube", 0, 0.62, 0, 0.05, 0.25, 0.05, (160, 30, 40))
+            elif look.blade == "hip":
+                _hip_blades(r, look, ws, t)
 
 
 CHEST_TOP = 0.62  # the flat top of the chest, the shoulders' line, above the hips
 HEAD_AT = CHEST_TOP + 0.02  # the head sits on the collar; its short neck sinks into the chest
 FLIP = math.pi  # turns a frustum over, so it narrows downward
+
+
+def _idle_lean(look, t):
+    """(forward lean of the body, downward nod of the head) for the idle: the smith leans into each
+    blow and bends his head over the billet, then straightens to look at it."""
+    if look.idle != "smith":
+        return 0.0, 0.0
+    stage, k = villagers.smith_cycle(t)
+    if stage == "strike":
+        land = villagers.SMITH_LAND
+        bow = _ease((k - 0.4) / (land - 0.4)) if k < land else 1 - _ease((k - land) / (1 - land))
+        return 0.08 + 0.1 * bow, 0.12 + 0.08 * bow
+    if stage == "turn":
+        return 0.08, 0.2
+    if stage == "inspect":
+        up = _ease(min(k / 0.25, (1 - k) / 0.25, 1.0))
+        return 0.08 - 0.1 * up, 0.15 - 0.3 * up
+    return 0.02, -0.1 * math.sin(k * math.pi)  # wiping his brow, his head tipped back
 
 
 def _chest_width(ws):
@@ -1591,6 +1662,18 @@ def _villager_legs(r, look, ws):
         for z in (-0.1, 0.1):
             r.part("cube", 0.26 * ws, 0.04, z * ws, 0.14, 0.08, 0.11, look.boots)
         return
+    if look.garb == "kimono":  # wide pleated hakama, split for each leg, over tabi and sandals
+        pleat = _dim(look.trousers, 0.72)
+        for z in (-0.13, 0.13):
+            r.part("frustum", 0, 0.52, z * ws, 0.42, 0.86, 0.34, look.trousers)
+            r.part("frustum", 0, 0.12, z * ws, 0.44, 0.06, 0.36, pleat)  # the hem
+            for dz in (-0.07, 0.0, 0.07):  # pleats down the front
+                r.part("cube", 0.17, 0.5, z * ws + dz, 0.012, 0.8, 0.012, pleat, rz=0.06)
+            r.part("cube", 0.04, 0.05, z * ws, 0.26, 0.08, 0.13, look.boots)  # tabi
+            r.part("cube", 0.04, 0.01, z * ws, 0.3, 0.025, 0.15, (96, 80, 52))  # the sandal's sole
+            r.part("cube", 0.12, 0.07, z * ws, 0.08, 0.015, 0.03, (40, 30, 26))  # its thong
+        r.part("cube", -0.08, 0.86, 0, 0.12, 0.16, 0.38 * ws, look.trousers)  # the stiff back panel
+        return
     for z in (-0.12, 0.12):
         r.part("cube", 0, 0.7, z * ws, 0.19, 0.42, 0.18, look.trousers)  # thigh
         r.part("cube", 0, 0.36, z * ws, 0.16, 0.34, 0.15, _dim(look.trousers, 0.9))  # shin
@@ -1603,6 +1686,20 @@ def _villager_torso(r, look, ws):
     w = _chest_width(ws)
     trim = _trim(look)
     r.part("cube", 0, CHEST_TOP - 0.24, 0, 0.28, 0.48, w, look.cloth)  # chest, square at the shoulders
+    if look.garb == "kimono":
+        # The kimono's crossed front: the right panel under the left, each edged in a dark band, and a
+        # pale under-collar showing in the V at the throat; an obi wound round the waist.
+        for side in (1, -1):
+            r.part("cube", 0.143, CHEST_TOP - 0.2, side * 0.05, 0.012, 0.42, 0.055, trim, rx=side * 0.36)
+            r.part(
+                "cube", 0.141, CHEST_TOP - 0.1, side * 0.025, 0.01, 0.2, 0.04, (222, 216, 200), rx=side * 0.36
+            )
+        r.part("cube", 0.142, CHEST_TOP - 0.3, -0.03, 0.006, 0.3, 0.08, _dim(look.cloth, 0.9))  # the overlap
+        r.part("cube", 0, 0.06, 0, 0.3, 0.16, w * 0.98, look.sash)  # the obi
+        r.part("cube", 0, 0.06, 0, 0.31, 0.03, w * 0.99, _dim(look.sash, 0.7))  # a cord bound round it
+        r.part("cube", -0.17, 0.06, 0, 0.06, 0.12, 0.16, _dim(look.sash, 0.85))  # its knot behind
+        r.part("cube", 0, CHEST_TOP + 0.015, 0, 0.22, 0.05, 0.26, trim)  # collar
+        return
     r.part("cube", 0.145, CHEST_TOP - 0.24, 0, 0.012, 0.46, 0.05, trim)  # the coat's front edge
     r.part("cube", 0, 0.08, 0, 0.26, 0.14, w * 0.9, _dim(look.cloth, 0.92))  # waist
     r.part("cube", 0, 0.03, 0, 0.3, 0.07, w * 0.95, look.belt)  # belt
@@ -1611,9 +1708,17 @@ def _villager_torso(r, look, ws):
     r.part("frustum", 0, -0.38, 0, 0.44, 0.06, w * 1.5, trim)  # its hem
     r.part("cube", 0, CHEST_TOP + 0.015, 0, 0.22, 0.05, 0.26, trim)  # collar
     if look.apron:
+        long = look.idle == "smith"  # a smith's leather apron, down to his shins
         r.part("cube", 0.15, CHEST_TOP - 0.24, 0, 0.02, 0.3, w * 0.5, look.apron)  # bib
-        r.part("cube", 0.185, -0.2, 0, 0.02, 0.44, w * 0.65, look.apron, rz=0.19)  # down the skirt
+        r.part("cube", 0.185, -0.2 - 0.15 * long, 0, 0.02, 0.44 + 0.3 * long, w * 0.65, look.apron, rz=0.19)
         r.part("cube", 0.2, -0.26, 0, 0.01, 0.12, w * 0.3, _dim(look.apron, 0.8), rz=0.19)  # pocket
+        if long:
+            for side in (1, -1):  # straps over the shoulders, and a scorch on the leather
+                r.part(
+                    "cube", 0.08, CHEST_TOP - 0.02, side * w * 0.22, 0.16, 0.03, 0.04, _dim(look.apron, 0.8)
+                )
+            r.part("cube", 0.215, -0.44, w * 0.12, 0.008, 0.1, 0.08, _dim(look.apron, 0.55), rz=0.19)
+            r.part("cube", 0.2, -0.26, -w * 0.18, 0.02, 0.16, 0.03, TOOL_IRON, rz=0.19)  # tongs in a loop
     if look.cloak:
         r.part("cube", -0.22, 0.05, 0, 0.05, 0.98, w * 1.25, look.cloak, rz=-0.1)
         r.part("cube", -0.02, CHEST_TOP - 0.02, 0, 0.34, 0.07, w + 0.36, _dim(look.cloak, 1.1))  # mantle
@@ -1623,47 +1728,145 @@ def _villager_torso(r, look, ws):
 TOOL_WOOD = (96, 70, 44)
 TOOL_IRON = (110, 110, 118)
 ARM = 0.16  # a villager's arm, square in section
+LACING = (150, 64, 44)  # the cords that lace a pauldron's plates
 
 
 def _villager_arms(r, look, ws, t, beat):
     """Two box arms hanging flush from the chest's square shoulders, each an upper arm and a forearm
-    with a trimmed cuff, ending in a mitt. The right one (+Z) works the tool; the left rests, or both
-    clasp in prayer."""
+    with a trimmed cuff, ending in a mitt. The right one (+Z) works the tool; the left rests, holds
+    the smith's tongs or the swordmaster's scabbard, or both clasp in prayer."""
     sleeve = (look.cloak or look.cloth) if look.garb == "robe" else look.cloth
     reach = _chest_width(ws) / 2 + ARM / 2
+    hand = look.gloves or look.skin
     for side in (1, -1):
-        sh, el, tool = _arm_pose(look, side, t, beat)
-        with r.at(0, CHEST_TOP - 0.07, side * reach, rz=sh, rx=-side * 0.06):
+        sh, el, tool, roll, wrist = _arm_pose(look, side, t, beat)
+        with r.at(0, CHEST_TOP - 0.07, side * reach, rz=sh, rx=-side * 0.06 + roll):
             r.part("cube", 0, -0.11, 0, ARM, 0.36, ARM, sleeve)
+            if look.pauldron and side == -1:
+                _pauldron(r, look.pauldron)
             with r.at(0, -0.29, 0, rz=el):
-                r.part("cube", 0, -0.14, 0, ARM * 0.92, 0.3, ARM * 0.92, _dim(sleeve, 0.92))
-                r.part("cube", 0, -0.27, 0, ARM * 1.12, 0.07, ARM * 1.12, _trim(look))  # cuff
+                if look.sleeves == "rolled":  # the sleeve rolled to the elbow, the forearm bare
+                    r.part("cube", 0, 0.0, 0, ARM * 1.14, 0.08, ARM * 1.14, _trim(look))
+                    r.part("cube", 0, -0.14, 0, ARM * 0.86, 0.3, ARM * 0.86, look.skin)
+                else:
+                    r.part("cube", 0, -0.14, 0, ARM * 0.92, 0.3, ARM * 0.92, _dim(sleeve, 0.92))
+                    if look.garb == "kimono":  # the wide sleeve hanging from the forearm
+                        r.part("cube", -0.06, -0.12, 0, 0.26, 0.34, ARM * 1.08, sleeve)
+                        r.part("cube", -0.06, -0.3, 0, 0.27, 0.03, ARM * 1.1, _trim(look))
+                    else:
+                        r.part("cube", 0, -0.27, 0, ARM * 1.12, 0.07, ARM * 1.12, _trim(look))  # cuff
+                if look.gloves:  # a work glove's flared cuff
+                    r.part("frustum", 0, -0.26, 0, ARM * 1.25, 0.09, ARM * 1.25, _dim(look.gloves, 0.85))
                 with r.at(0, -0.3, 0):
-                    _mitt(r, look.skin, grip=tool)
+                    _mitt(r, hand, grip=tool is not None)
                     if tool:
-                        with r.at(0, -0.09, 0):
-                            _villager_tool(r, look.tool, t)
+                        with r.at(0, -0.09, 0, rz=wrist):
+                            _villager_tool(r, tool, t)
+
+
+def _pauldron(r, rgb):
+    """A lacquered shoulder guard on the upper arm's outer face (-Z): a cap over the shoulder, then
+    four plates hanging in a stack, each lapping the one below, laced together with cords."""
+    r.part("cube", 0, 0.02, -0.02, 0.24, 0.05, 0.22, _dim(rgb, 1.15))  # the cap
+    for k in range(4):
+        y = -0.04 - k * 0.075
+        z = -ARM / 2 - 0.025 - k * 0.006
+        r.part("cube", 0, y, z, 0.26 + k * 0.01, 0.07, 0.03, rgb, rx=-0.12)
+        r.part("cube", 0, y - 0.034, z, 0.27 + k * 0.01, 0.012, 0.034, _dim(rgb, 1.35), rx=-0.12)  # the rim
+        for dx in (-0.07, 0.07):
+            r.part("cube", dx, y, z - 0.016, 0.018, 0.06, 0.008, LACING)
+    r.part("cube", 0, -0.37, -ARM / 2 - 0.05, 0.08, 0.03, 0.012, LACING)  # a cord's tassel
 
 
 def _arm_pose(look, side, t, beat):
-    """(shoulder, elbow, holds the tool) angles for one arm, from the idle."""
+    """(shoulder, elbow, the tool held or None, inward roll, wrist) for one arm, from the idle. The
+    shoulder and elbow swing the arm forward (+X), the roll turns it in across the body, and the wrist
+    tips what the hand holds."""
     working = side == 1 and look.tool is not None
     idle = look.idle
+    if idle == "smith":
+        return _smith_arm(side, t)
+    if idle == "ready":
+        return _ready_arm(side, t)
     if idle == "pray":
-        return 0.5, 1.2, side == 1 and look.tool == "staff"
+        return 0.5, 1.2, look.tool if side == 1 and look.tool == "staff" else None, 0.0, 0.0
     if not working:
-        return (0.05 + 0.03 * math.sin(t * 1.3 + side), 0.15, False) if idle != "count" else (0.3, 1.1, False)
+        if idle == "count":
+            return 0.3, 1.1, None, 0.0, 0.0
+        return 0.05 + 0.03 * math.sin(t * 1.3 + side), 0.15, None, 0.0, 0.0
     if idle == "hammer":
-        return 0.2 + 1.4 * beat, 0.9 + 0.6 * (1 - beat), True
+        return 0.2 + 1.4 * beat, 0.9 + 0.6 * (1 - beat), look.tool, 0.0, 0.0
     if idle == "stir":
-        return 0.6 + 0.15 * math.sin(t * 3), 0.9 + 0.2 * math.cos(t * 3), True
+        return 0.6 + 0.15 * math.sin(t * 3), 0.9 + 0.2 * math.cos(t * 3), look.tool, 0.0, 0.0
     if idle == "count":
-        return 0.35, 1.25 + 0.08 * math.sin(t * 4), True
+        return 0.35, 1.25 + 0.08 * math.sin(t * 4), look.tool, 0.0, 0.0
     if look.tool in ("spear", "staff"):
-        return 0.15, 0.55, True
+        return 0.15, 0.55, look.tool, 0.0, 0.0
     if look.tool == "rod":
-        return 0.7, 0.4, True
-    return 0.3, 1.0, True
+        return 0.7, 0.4, look.tool, 0.0, 0.0
+    return 0.3, 1.0, look.tool, 0.0, 0.0
+
+
+# The smith's hammer arm: (shoulder, elbow, wrist) at rest between blows, raised over his shoulder
+# and landed on the billet; his tongs arm holding the billet on the anvil, and up to the light.
+HAMMER_REST = (0.85, 0.5, -1.1)
+HAMMER_TOP = (2.3, 0.75, -0.35)
+HAMMER_LAND = (0.5, 0.5, -1.3)
+TONGS_HOLD = (0.36, 0.1, -0.5)
+TONGS_UP = (1.25, 0.95, -1.7)
+SMITH_ROLL = (0.45, 0.45)  # how far the hammer arm and the tongs arm turn in toward the anvil
+
+
+def _lerp3(a, b, k):
+    return tuple(p + (q - p) * k for p, q in zip(a, b, strict=True))
+
+
+def _smith_arm(side, t):
+    stage, k = villagers.smith_cycle(t)
+    roll = side * SMITH_ROLL[0 if side == 1 else 1]
+    if side == 1:  # the hammer
+        if stage == "strike":
+            land = villagers.SMITH_LAND
+            if k < 0.4:
+                pose = _lerp3(HAMMER_REST, HAMMER_TOP, _ease(k / 0.4))
+            elif k < land:
+                pose = _lerp3(HAMMER_TOP, HAMMER_LAND, _ease_in((k - 0.4) / (land - 0.4)))
+            elif k < 0.7:
+                pose = HAMMER_LAND
+            else:
+                pose = _lerp3(HAMMER_LAND, HAMMER_REST, _ease((k - 0.7) / 0.3))
+        elif stage == "wipe":  # the back of the wrist drawn across the brow, the hammer still in hand
+            up = math.sin(k * math.pi)
+            pose = _lerp3(HAMMER_REST, (2.0, 1.45, -0.2), _ease(min(up * 1.6, 1.0)))
+            roll = SMITH_ROLL[0] + 0.5 * up + 0.25 * math.sin(k * math.tau * 2) * up
+        else:  # resting the hammer while he works the billet
+            pose = (0.35, 0.55, -0.5)
+            if stage == "turn" and k > 0.85:
+                pose = _lerp3(pose, HAMMER_REST, _ease((k - 0.85) / 0.15))
+            if stage == "turn" and k < 0.15:
+                pose = _lerp3(HAMMER_REST, pose, _ease(k / 0.15))
+        sh, el, wrist = pose
+        return sh, el, "hammer", roll, wrist
+    if stage == "inspect":  # the billet raised to the light, then set back on the anvil
+        up = _ease(min(k / 0.25, (1 - k) / 0.25, 1.0))
+        sh, el, wrist = _lerp3(TONGS_HOLD, TONGS_UP, up)
+        return sh, el, "tongs", roll * (1 - up), wrist
+    if stage == "turn":  # lifted a hand's breadth, turned over, laid down again
+        lift = math.sin(k * math.pi) * 0.25
+        sh, el, wrist = TONGS_HOLD
+        return sh + lift, el, "tongs", roll, wrist - lift
+    sh, el, wrist = TONGS_HOLD
+    return sh, el, "tongs", roll, wrist
+
+
+def _ready_arm(side, t):
+    """The swordmaster's arms: the left hand rests on the scabbard by its mouth, the thumb on the guard;
+    the right hangs easy, coming across to the hilt as he eases a hand's width of steel out."""
+    shown = villagers.half_draw(t) / villagers.DRAW_SHOWN
+    if side == -1:
+        return 0.38, 0.7, None, -0.34, 0.0
+    near = min(shown * 3, 1.0) if shown > 0 else 0.0
+    return 0.12 + 0.5 * near, 0.2 + 0.75 * near, None, 0.62 * near, 0.0
 
 
 def _villager_tool(r, tool, t):
@@ -1671,6 +1874,19 @@ def _villager_tool(r, tool, t):
     if tool == "hammer":  # held by the haft, head forward
         r.part("cube", 0.12, 0, 0, 0.34, 0.04, 0.04, TOOL_WOOD)
         r.part("cube", 0.3, 0, 0, 0.08, 0.1, 0.16, TOOL_IRON)
+        r.part("cube", 0.3, -0.055, 0, 0.09, 0.02, 0.17, _dim(TOOL_IRON, 1.25))  # the worn face
+    elif tool == "tongs":  # two long jaws, a glowing billet gripped at their tips
+        stage, k = villagers.smith_cycle(t)
+        turn = math.pi * _ease(k) if stage == "turn" else 0.0
+        with r.at(0, 0, 0, rx=turn):
+            for dz in (-0.018, 0.018):
+                r.part("cube", 0.22, 0, dz, 0.46, 0.022, 0.016, (60, 58, 62), rx=dz * 3)
+            r.part("cube", 0.04, 0, 0, 0.03, 0.03, 0.05, (60, 58, 62))  # the rivet
+            heat = _billet_heat(t)
+            hot = tuple(
+                rround(c * heat + d * (1 - heat)) for c, d in zip((255, 190, 90), (90, 64, 54), strict=True)
+            )
+            r.part("cube", 0.47, 0, 0, 0.14, 0.035, 0.05, hot, glow=heat > 0.35)
     elif tool in ("spear", "staff"):  # an upright pole through the fist
         r.part("cube", 0, 0.4, 0, 0.04, 1.9, 0.04, TOOL_WOOD)
         if tool == "spear":
@@ -1698,7 +1914,76 @@ def _villager_tool(r, tool, t):
         r.part("cube", 0, -0.12, 0, 0.08, 0.1, 0.08, (255, 200, 110), glow=True)
 
 
-def _villager_head(r, look):
+def _billet_heat(t):
+    """How hot the smith's billet glows (0..1): white-hot out of the fire, dulling as he works it."""
+    stage, k = villagers.smith_cycle(t)
+    done = 0.0
+    for name, d in villagers.SMITH_STAGES:
+        if name == stage:
+            break
+        done += d
+    elapsed = done + (k * d if stage != "strike" else (t % villagers.SMITH_LOOP))
+    return 1.0 - 0.75 * elapsed / villagers.SMITH_LOOP
+
+
+ANVIL_AT = 0.66  # metres before the smith that his anvil stands
+ANVIL_TOP = 0.8  # the height of its face
+ANVIL_IRON = (64, 62, 68)
+STUMP = (98, 72, 48)
+
+
+def _smith_anvil(r, t):
+    """The smith's anvil before him on its stump: a waisted body, a broad face, a tapering horn toward
+    his left and a square heel; sparks fly from it as each blow lands."""
+    with r.at(ANVIL_AT, 0, 0):
+        r.part("frustum", 0, 0.24, 0, 0.5, 0.48, 0.5, STUMP)  # the stump
+        r.part("frustum", 0, 0.49, 0, 0.52, 0.03, 0.52, _dim(STUMP, 0.75))  # its cut ring
+        r.part("cube", 0, 0.56, 0, 0.3, 0.12, 0.42, ANVIL_IRON)  # the foot
+        r.part("cube", 0, 0.7, 0, 0.18, 0.18, 0.26, _dim(ANVIL_IRON, 0.9))  # the waist
+        r.part("cube", 0, ANVIL_TOP - 0.05, 0, 0.26, 0.1, 0.46, ANVIL_IRON)  # the face's block
+        r.part("cube", 0, ANVIL_TOP - 0.003, 0, 0.24, 0.006, 0.44, _dim(ANVIL_IRON, 1.5))  # the worn face
+        r.part("wedge", 0, ANVIL_TOP - 0.05, -0.36, 0.14, 0.26, 0.09, ANVIL_IRON, rx=-math.pi / 2)  # horn
+        r.part("cube", 0, ANVIL_TOP - 0.04, 0.27, 0.2, 0.08, 0.08, ANVIL_IRON)  # heel
+        r.part("cube", 0.05, ANVIL_TOP - 0.001, 0.18, 0.04, 0.004, 0.04, (24, 22, 24))  # the hardy hole
+    stage, k = villagers.smith_cycle(t)
+    land = villagers.SMITH_LAND
+    if stage != "strike" or not land <= k < land + 0.3:
+        return
+    s = (k - land) / 0.3
+    for i in range(6):  # sparks thrown off the billet
+        a = i * 1.9 + 0.4
+        out = 0.12 + 0.5 * s * (0.7 + 0.3 * math.sin(i * 3.1))
+        y = ANVIL_TOP + 0.05 + s * 0.45 * (1 + 0.3 * math.cos(i)) - s * s * 0.6
+        size = 0.03 * (1 - s) + 0.008
+        r.part("cube", ANVIL_AT + math.cos(a) * out * 0.7, y, math.sin(a) * out, size, size, size,
+               (255, rround(230 - 90 * s), rround(140 - 100 * s)), glow=True)  # fmt: skip
+
+
+def _hip_blades(r, look, ws, t):
+    """A katana and a shorter wakizashi thrust through the obi on the left hip, hilts forward and up,
+    scabbards sloping back and down; a hand's width of the long blade shows as he half-draws it."""
+    w = _chest_width(ws)
+    shown = villagers.half_draw(t)
+    saya, wrap, tsuba = (34, 30, 36), (210, 204, 190), (70, 64, 50)
+    for z, length, grip, drop, drawn in (
+        (-w / 2 - 0.05, 0.78, 0.26, 0.42, shown),
+        (-w / 2 - 0.0, 0.5, 0.18, 0.3, 0.0),
+    ):
+        with r.at(0.06, 0.06, z, rz=drop):
+            r.part("cube", -length / 2, 0, 0, length, 0.05, 0.04, saya)  # the scabbard
+            r.part("cube", -0.02, 0, 0, 0.04, 0.056, 0.046, _dim(saya, 1.6))  # its mouth
+            r.part("cube", -length + 0.03, 0, 0, 0.06, 0.054, 0.044, _dim(saya, 1.6))  # its tip
+            if drawn:
+                r.part("cube", drawn / 2, 0.004, 0, drawn, 0.034, 0.012, (212, 214, 224))  # bare steel
+            with r.at(drawn, 0, 0):
+                r.part("cube", 0.01, 0, 0, 0.02, 0.09, 0.09, tsuba)  # the guard
+                r.part("cube", 0.02 + grip / 2, 0, 0, grip, 0.045, 0.04, (30, 26, 30))  # the grip
+                for k in range(int(grip / 0.05)):  # its wrapped cord's diamonds
+                    r.part("cube", 0.045 + k * 0.05, 0, 0, 0.02, 0.05, 0.044, wrap)
+                r.part("cube", 0.03 + grip, 0, 0, 0.02, 0.05, 0.046, tsuba)  # the pommel cap
+
+
+def _villager_head(r, look, t=0.0):
     """An angular, faceless head on the collar: a faceted skull narrowing to the chin, a flat face
     with only a brow and a nose (no eyes or mouth), block ears, block hair, and a short neck sunk
     into the chest so no gap opens between head and body."""
@@ -1710,9 +1995,11 @@ def _villager_head(r, look):
     r.part("wedge", 0.13, 0.15, 0, 0.05, 0.08, 0.04, _dim(skin, 0.92))  # nose
     for side in (-1, 1):
         r.part("cube", 0, 0.17, side * 0.115, 0.06, 0.08, 0.03, _dim(skin, 0.9))  # ears
-    if look.beard:  # a block of beard falling from the jaw over the chest
+    if look.beard == "short":  # a block of beard falling from the jaw over the chest
         r.part("cube", 0.09, 0.04, 0, 0.1, 0.18, 0.2, look.hair)
         r.part("cube", 0.12, -0.09, 0, 0.08, 0.16, 0.16, _dim(look.hair, 0.94))
+    elif look.beard == "long":
+        _long_beard(r, look, t)
     hood = look.cloak or look.cloth
     if look.hood:  # a deep cowl over the head and shoulders, the face in its mouth
         r.part("frustum", -0.05, 0.15, 0, 0.36, 0.46, 0.36, hood)
@@ -1721,6 +2008,15 @@ def _villager_head(r, look):
     style = look.hair_style
     if style == "bald":
         r.part("cube", -0.01, 0.325, 0, 0.22, 0.03, 0.2, _dim(skin, 0.95))  # a bare pate
+    elif style == "topknot":  # swept back from a high brow and tied in a knot on the crown
+        r.part("cube", -0.05, 0.31, 0, 0.21, 0.07, 0.25, look.hair)  # swept back over the top
+        r.part("cube", -0.115, 0.19, 0, 0.06, 0.24, 0.25, look.hair)  # down the back
+        for side in (-1, 1):  # wild locks over the temples, falling past the ears
+            r.part("cube", -0.03, 0.2, side * 0.125, 0.16, 0.22, 0.035, look.hair, rx=side * 0.12)
+            r.part("cube", -0.09, 0.02, side * 0.12, 0.08, 0.22, 0.04, _dim(look.hair, 0.92), rx=side * 0.2)
+        r.part("cube", -0.06, 0.37, 0, 0.07, 0.05, 0.07, _dim(look.hair, 0.7))  # the tie
+        r.part("cube", -0.12, 0.4, 0, 0.12, 0.05, 0.06, look.hair, rz=0.3)  # the knot's tuft, swept back
+        r.part("cube", -0.15, 0.03, 0, 0.06, 0.34, 0.2, _dim(look.hair, 0.95), rz=-0.1)  # a mane behind
     else:
         r.part("cube", -0.02, 0.31, 0, 0.27, 0.08, 0.26, look.hair)  # a block of hair over the top
         r.part("cube", -0.11, 0.2, 0, 0.06, 0.2, 0.25, look.hair)  # down the back
@@ -1738,6 +2034,31 @@ def _villager_head(r, look):
     elif look.hat == "coif":  # a mail coif over the head and neck
         r.part("cube", -0.04, 0.2, 0, 0.27, 0.32, 0.28, look.hat_rgb)
         r.part("cube", -0.05, -0.02, 0, 0.2, 0.12, 0.32, look.hat_rgb)
+
+
+LONG_BEARD_TIERS = (  # (x, y, height, width, depth): blocks narrowing down the chest to the belt
+    (0.1, 0.03, 0.2, 0.22, 0.1),
+    (0.14, -0.15, 0.2, 0.18, 0.08),
+    (0.155, -0.33, 0.2, 0.13, 0.07),
+)
+BEARD_RING = (130, 124, 116)
+
+
+def _long_beard(r, look, t):
+    """A long beard in the head's frame: a drooping moustache, then tiers that narrow down over the
+    chest to the belt, stirring a little, its tip bound in an iron ring (and greying, if `beard_tip`)."""
+    hair, tip = look.hair, look.beard_tip or look.hair
+    for side in (-1, 1):  # the moustache, drooping past the corners of the mouth
+        r.part("cube", 0.13, 0.095, side * 0.045, 0.04, 0.035, 0.07, hair, rx=side * 0.3)
+        r.part("cube", 0.135, 0.04, side * 0.085, 0.035, 0.1, 0.03, _dim(hair, 0.94))
+    stir = math.sin(t * 1.1) * 0.025
+    with r.at(0, 0.1, 0, rz=stir):
+        for i, (x, y, h, w, d) in enumerate(LONG_BEARD_TIERS):
+            rgb = tuple(rround(a + (b - a) * i / 2) for a, b in zip(hair, tip, strict=True))
+            r.part("cube", x, y - 0.1, 0, d, h, w, rgb)
+            r.part("cube", x + d / 2, y - 0.1, w * 0.18, 0.006, h * 0.9, 0.02, _dim(rgb, 0.85))  # a strand
+        r.part("cube", 0.155, -0.53, 0, 0.08, 0.04, 0.1, BEARD_RING)  # the binding ring
+        r.part("wedge", 0.155, -0.6, 0, 0.06, 0.1, 0.08, tip, rz=math.pi)  # the tip below it
 
 
 THRONE_STONE = (118, 114, 108)
@@ -3754,6 +4075,12 @@ def spell_orb(r, id_, t):
     if id_ in FIRE_SPELLS:
         fireball(r, rgb, t, 2.0)
         return
+    if id_ == "thunder":
+        forge_models.thunder_orb(r, t)
+        return
+    if id_ == "motes":
+        forge_models.motes_orb(r, t)
+        return
     pulse = 1 + math.sin(t * 3) * 0.06
     r.part("sphere", 0, 0, 0, 0.7 * pulse, 0.7 * pulse, 0.7 * pulse, rgb, glow=True)
     for i in range(3):
@@ -4319,7 +4646,7 @@ TRAILS = {"sword", "greatsword", "katana", "axe"}  # edged weapons leave a smear
 # Weapons whose striking head is built with its edge (or face) on +Z, as models of its kind are, and
 # turned a quarter about the haft by `weapon` so it leads along +X: the way every swing travels.
 HEADED = {
-    "felling_axe", "hatchet", "bearded_axe", "butcher_cleaver", "war_hammer", "heartwood_maul", "slagbreaker",
+    "hatchet", "bearded_axe", "butcher_cleaver", "war_hammer", "great_iron_hammer", "slagbreaker",
 }  # fmt: skip
 TRAIL_LAG = 0.08  # how far back (in swing phase) the smear reaches
 TRAIL_GHOSTS = 6
@@ -4454,9 +4781,40 @@ def spell_hand_view(r, player, bob, side, armor, t):
             if spell.id == "pyre" and cast > 0:  # the gout bursts from the palm: a white-hot flash
                 with r.at(0.25, 0.06, 0):
                     fireball(r, GOUT_HOT, t, 0.15 + 0.3 * cast, seed=3.0)
+        elif spell and spell.id == "thunder" and player.magic_gauge.full:
+            _palm_lightning(r, t)
+        elif spell and spell.id == "motes":
+            _palm_motes(r, t, player.magic_gauge.value)
         elif spell and player.magic_gauge.full:
             pulse = 1 + math.sin(t * 5) * 0.12
             r.part("sphere", 0.02, 0.1, 0, 0.09 * pulse, 0.09 * pulse, 0.09 * pulse, glow, glow=True)
+
+
+def _palm_lightning(r, t):
+    """Thunder Spear readied: a bright knot of lightning over the palm, arcs crackling from it to the
+    cupped fingertips, struck anew many times a second."""
+    seed = math.floor(t * forge_models.BOLT_FLICKER)
+    r.part("sphere", 0.02, 0.1, 0, 0.07, 0.07, 0.07, (240, 248, 255), glow=True)
+    for i in range(3):  # to three of the fingertips, in turn flickering
+        if forge_models._jitter(seed, i + 3) < -0.4:
+            continue
+        tip = (0.11 + 0.02 * i, 0.06 + 0.02 * i, (i - 1) * 0.045)
+        mid = tuple((p + q) / 2 + forge_models._jitter(seed, i * 3 + k) * 0.02 for k, (p, q) in
+                    enumerate(zip((0.02, 0.1, 0.0), tip, strict=True)))  # fmt: skip
+        forge_models._segment(r, (0.02, 0.1, 0.0), mid, 0.012, SPELL_GLOW["thunder"])
+        forge_models._segment(r, mid, tip, 0.012, SPELL_GLOW["thunder"])
+
+
+def _palm_motes(r, t, gauge):
+    """Arcane Motes readied: three motes wheeling over the palm. Each is loosed by a cast and they come
+    back one by one as the gauge refills."""
+    shown = 3 if gauge >= 1.0 else min(int(gauge * 3.0), 2)
+    r.part("sphere", 0.02, 0.1, 0, 0.035, 0.035, 0.035, _dim(SPELL_GLOW["motes"], 0.7), glow=True)
+    for i in range(shown):
+        a = t * 4 + i * math.tau / 3
+        y = 0.12 + 0.025 * math.sin(t * 3 + i * 2)
+        r.part("sphere", 0.02 + math.cos(a) * 0.07, y, math.sin(a) * 0.07, 0.026, 0.026, 0.026,
+               SPELL_GLOW["motes"], glow=True)  # fmt: skip
 
 
 OPEN_WRIST = (-0.115, -0.004, 0.0)  # where an open hand's heel meets the forearm
@@ -4548,8 +4906,8 @@ WEAPON_LEN = {
     "moonless_tachi": 1.95,
     "nodachi": 2.45,
     "war_hammer": 1.5,
-    "heartwood_maul": 1.45,
-    "felling_axe": 1.45,
+    "great_iron_hammer": 1.55,
+    "flamberge": 2.15,
     "bearded_axe": 1.15,
     "hatchet": 0.9,
     "butcher_cleaver": 1.0,
@@ -4592,10 +4950,8 @@ def _weapon(r, item_id, phase=None):
         club(r, item_id == "spiked_club")
     elif item_id == "war_hammer":
         hammer(r)
-    elif item_id == "heartwood_maul":
-        heartwood_maul(r)
-    elif item_id == "felling_axe":
-        felling_axe(r)
+    elif item_id == "great_iron_hammer":
+        great_iron_hammer(r)
     elif item_id in ("hatchet", "bearded_axe"):
         hand_axe(r, item_id == "bearded_axe")
     elif item_id == "butcher_cleaver":
@@ -4633,6 +4989,7 @@ def blade_parts(
     ricasso=0.0,
     ricasso_rgb=LEATHER,
     glow=False,
+    waves=0,
 ):
     """A straight sword with its grip at the origin and its blade up +Y (the blade's flat faces +-X):
     pommel, grip (with `wrap` bands), a crossguard in one of a few `guard` styles, an optional
@@ -4641,7 +4998,8 @@ def blade_parts(
 
     guard: "straight", "droop" (quillons bent toward the hand), "quatrefoil" (drooping, with
     trefoil knobs), "flared" (bent up toward the blade) or "hooks" (flared, with parrying hooks above
-    the ricasso). pommel: "disc", "wheel" or "stopper"."""
+    the ricasso). pommel: "disc", "wheel" or "stopper". `waves` > 0 ripples the blade like a flame
+    (`_wavy_blade`), that many crests up each edge."""
     edge = edge or _bright(steel)
     fuller = fuller or _dim(steel, 0.62)
     # Grip and pommel.
@@ -4687,6 +5045,9 @@ def blade_parts(
                     guard_rgb,
                     rx=side * 1.0,
                 )
+    if waves:
+        _wavy_blade(r, base + ricasso, length - ricasso, width, thick, steel, edge, fuller, waves)
+        return
     # The blade.
     r.part("blade", 0, base + length / 2, 0, thick, length, width, steel, glow=glow)
     body = length * (1 - shapes.SHOULDER)
@@ -4706,6 +5067,30 @@ def blade_parts(
         )
     fl = (body - ricasso) * 0.72
     r.part("cube", 0, base + ricasso + 0.03 + fl / 2, 0, thick * 1.12, fl, width * 0.2, fuller, glow=glow)
+
+
+WAVE_STEPS = 4  # segments to each crest of a flame-bladed sword's ripple
+
+
+def _wavy_blade(r, y0, length, width, thick, steel, edge, fuller, waves):
+    """A flame-bladed sword's blade from `y0` up: a run of short, straight lozenge segments, each
+    stepped sideways so the blade snakes from side to side in `waves` crests, its bright edges and
+    fuller rippling with it, narrowing toward a straight `blade` point."""
+    point = length * 0.16
+    body = length - point
+    n = waves * 2 * WAVE_STEPS
+    seg = body / n
+    amp = width * 0.2
+    for k in range(n):
+        z = amp * math.sin((k + 0.5) / (2 * WAVE_STEPS) * math.tau)
+        y = y0 + (k + 0.5) * seg
+        w = width * (1 - 0.22 * k / n)
+        r.part("cube", 0, y, z, thick, seg * 1.05, w * 0.82, steel)
+        for side in (1, -1):
+            r.part("cube", 0, y, z + side * w * 0.45, thick * 0.4, seg * 1.05, w * 0.1, edge)
+        if k < n - WAVE_STEPS:
+            r.part("cube", 0, y, z, thick * 1.12, seg * 1.05, w * 0.18, fuller)
+    r.part("blade", 0, y0 + body + point / 2, 0, thick, point, width * 0.78, steel)
 
 
 # The player's straight swords: blade_parts arguments per item.
@@ -4776,6 +5161,26 @@ SWORDS = {
         "pommel": "stopper",
         "pommel_rgb": (120, 110, 90),
         "ricasso": 0.26,
+    },
+    "flamberge": {
+        "length": 1.78,
+        "width": 0.14,
+        "thick": 0.036,
+        "base": 0.12,
+        "steel": (178, 180, 192),
+        "edge": (232, 232, 240),
+        "fuller": (110, 110, 122),
+        "guard": "hooks",
+        "guard_w": 0.56,
+        "guard_rgb": (62, 58, 64),
+        "grip": 0.42,
+        "grip_rgb": (34, 28, 26),
+        "wrap": (110, 30, 30),
+        "pommel": "stopper",
+        "pommel_rgb": (62, 58, 64),
+        "ricasso": 0.22,
+        "ricasso_rgb": (70, 46, 34),
+        "waves": 5,
     },
 }
 SWORD_RUST = (118, 92, 72)
@@ -4878,17 +5283,6 @@ def club(r, spiked):
         r.part("sphere", 0, 0.76, 0, 0.18, 0.16, 0.18, (104, 74, 46))
 
 
-def felling_axe(r):
-    """A woodcutter's long-hafted axe: a heavy wedge head, notched and patched with moss."""
-    r.part("cube", 0, 0.35, 0, 0.06, 1.25, 0.06, WOOD)
-    r.part("cube", 0, -0.2, 0, 0.075, 0.2, 0.075, LEATHER)
-    r.part("cube", 0, 1.02, 0.12, 0.08, 0.28, 0.32, (120, 116, 112))  # the wedge
-    r.part("wedge", 0, 1.02, 0.31, 0.07, 0.1, 0.42, (175, 175, 180), rx=math.pi / 2)  # bit, the cutting edge
-    r.part("cube", 0, 1.02, -0.1, 0.1, 0.18, 0.12, (96, 92, 90))  # poll
-    r.part("cube", 0.045, 1.08, 0.16, 0.01, 0.08, 0.1, MOSS)
-    r.part("cube", 0, 0.92, 0.0, 0.08, 0.06, 0.08, LEATHER)  # wedge binding
-
-
 def hand_axe(r, bearded):
     """A one-handed axe. The bearded one has a long lower edge that hooks down past the haft."""
     haft = 0.85 if bearded else 0.6
@@ -4939,44 +5333,38 @@ def hammer(r):
     r.part("cube", 0, 1.26, 0, 0.05, 0.12, 0.05, STEEL)  # top spike
 
 
-HEARTWOOD = (104, 72, 46)
-HEARTWOOD_CORE = (138, 96, 58)
+HAMMER_IRON = (92, 92, 100)
+HAMMER_BAND = (60, 58, 64)
 
 
-def heartwood_maul(r):
-    """The Heartwood Maul: a gnarled root haft, bark-ringed and knotted, ending in a burl of petrified
-    heartwood bound on with living roots. Its striking face is a worn knot of wood on +Z with river
-    stones grown into it; moss fills the cracks and a few roots trail from its back."""
-    for k in range(6):  # the haft: a twisting root, each segment a little askew
-        y = -0.2 + k * 0.2
-        r.part("cube", 0.012 * math.sin(k * 1.9), y, 0.01 * math.cos(k * 2.3), 0.075, 0.22, 0.07, BARK,
-               rz=0.05 * math.sin(k * 1.3), rx=0.05 * math.cos(k * 1.7))  # fmt: skip
-        r.part("cube", 0, y + 0.1, 0, 0.088, 0.025, 0.084, _dim(BARK, 0.75))  # bark ring
-    for y, z in ((0.25, 0.04), (0.55, -0.045)):  # knots
-        r.part("sphere", 0, y, z, 0.07, 0.08, 0.06, _dim(BARK, 0.85))
-    r.part("cube", 0, -0.18, 0, 0.09, 0.24, 0.09, LEATHER)  # a grip of bound hide
-    for k in range(3):
-        r.part("cube", 0, -0.27 + k * 0.08, 0, 0.1, 0.02, 0.1, _dim(LEATHER, 0.7))
-    r.part("sphere", 0, -0.34, 0, 0.12, 0.1, 0.12, _dim(BARK, 0.9))  # a root-knot pommel
-    with r.at(0, 1.07, 0.02):  # the burl
-        r.part("sphere", 0, 0, 0, 0.34, 0.3, 0.46, HEARTWOOD, tex="wood_plank")
-        r.part("sphere", 0, 0.04, 0.12, 0.3, 0.26, 0.3, _dim(HEARTWOOD, 1.08))
-        r.part("sphere", 0.04, -0.05, -0.12, 0.26, 0.24, 0.3, _dim(HEARTWOOD, 0.9))
-        r.part("cyl", 0, 0, 0.22, 0.28, 0.06, 0.28, HEARTWOOD_CORE, rx=math.pi / 2)  # striking face
-        for i in range(3):  # its growth rings
-            rad = 0.22 - i * 0.07
-            r.part("cyl", 0, 0, 0.255 + i * 0.004, rad, 0.01, rad, _dim(HEARTWOOD_CORE, 0.8 + 0.1 * i),
-                   rx=math.pi / 2)  # fmt: skip
-        for x, y, z, sz in ((0.1, 0.08, 0.2, 0.08), (-0.11, -0.06, 0.18, 0.07), (0.13, -0.1, 0.08, 0.06)):
-            r.part("sphere", x, y, z, sz, sz * 0.8, sz, (120, 118, 112))  # river stones grown in
-        for x, y, z in ((0.16, 0.06, -0.05), (-0.15, 0.1, 0.02), (0.0, 0.15, -0.12), (-0.1, -0.12, -0.15)):
-            r.part("cube", x, y, z, 0.05, 0.03, 0.12, MOSS)  # moss in the cracks
-        for ang in (-0.5, 0.5):  # roots lashing the burl to the haft
-            r.part("cube", 0, -0.04, 0, 0.36, 0.035, 0.035, _dim(BARK, 0.8), rz=ang)
-            r.part("cube", 0, -0.04, 0, 0.035, 0.035, 0.42, _dim(BARK, 0.8), rx=ang)
-        for k in range(3):  # roots trailing from its back
-            r.part("cube", 0.04 * (k - 1), -0.1 - k * 0.04, -0.34 - k * 0.04, 0.025, 0.025, 0.16,
-                   _dim(BARK, 0.7), rx=-0.6 - 0.2 * k)  # fmt: skip
+def great_iron_hammer(r):
+    """The Great Iron Hammer: a long haft bound in iron rings, steel langets riveted up its top, and a
+    massive squared block of a head, ringed by two riveted bands, a studded striking face on +Z and a
+    short, square back spike."""
+    r.part("cube", 0, 0.38, 0, 0.07, 1.32, 0.07, (70, 52, 36))  # the haft
+    for k in range(4):  # iron rings down the haft
+        r.part("cube", 0, 0.05 + k * 0.17, 0, 0.082, 0.03, 0.082, HAMMER_BAND)
+    r.part("cube", 0, -0.2, 0, 0.085, 0.26, 0.085, LEATHER)  # the grip
+    r.part("cube", 0, -0.36, 0, 0.11, 0.06, 0.11, HAMMER_BAND)  # butt cap
+    r.part("wedge", 0, -0.42, 0, 0.07, 0.06, 0.07, HAMMER_BAND, rz=math.pi)
+    for dz in (-0.04, 0.04):  # langets
+        r.part("cube", 0, 0.82, dz, 0.045, 0.36, 0.012, STEEL)
+        for k in range(2):
+            r.part("cube", 0, 0.72 + k * 0.16, dz * 1.25, 0.022, 0.022, 0.012, HAMMER_BAND)
+    with r.at(0, 1.1, 0.04):  # the head, its face on +Z
+        r.part("cube", 0, 0, 0, 0.26, 0.28, 0.46, HAMMER_IRON)
+        for dz in (-0.13, 0.13):  # riveted bands round it
+            r.part("cube", 0, 0, dz, 0.28, 0.3, 0.05, HAMMER_BAND)
+            for dx, dy in ((-0.14, 0.0), (0.14, 0.0), (0.0, 0.15)):
+                r.part("cube", dx, dy, dz, 0.025, 0.025, 0.025, (150, 150, 158))
+        r.part("cube", 0, 0, 0.24, 0.3, 0.32, 0.03, _dim(HAMMER_IRON, 1.2))  # striking face
+        for dx in (-0.08, 0.08):  # its studs
+            for dy in (-0.08, 0.08):
+                r.part("cube", dx, dy, 0.265, 0.05, 0.05, 0.03, (170, 170, 178))
+        r.part("cube", 0, 0, -0.26, 0.16, 0.16, 0.06, HAMMER_BAND)  # spike root
+        r.part("wedge", 0, 0, -0.36, 0.12, 0.16, 0.12, STEEL, rx=-math.pi / 2)  # the back spike
+        r.part("cube", 0, 0.16, 0, 0.12, 0.04, 0.2, HAMMER_BAND)  # cap over the eye
+        r.part("wedge", 0, 0.22, 0, 0.08, 0.1, 0.08, STEEL)  # top spike
 
 
 def shield(r, item_id):

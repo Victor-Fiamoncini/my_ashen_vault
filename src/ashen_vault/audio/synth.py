@@ -209,6 +209,19 @@ def sounds():
                 * (1 - p) ** 1.5
             ),
         ),
+        # A hammer ringing on the anvil: a bright clink over a short, falling metallic ring (the smith).
+        "anvil": gen(
+            0.45,
+            lambda t, p: (
+                noise() * 0.5 * max(1 - p * 25, 0.0)
+                + (
+                    math.sin(t * TAU * 1870) * 0.35
+                    + math.sin(t * TAU * 2650) * 0.2
+                    + math.sin(t * TAU * 940) * 0.2
+                )
+                * (1 - p) ** 3
+            ),
+        ),
         # Three glassy chimes, rising (Arcane Motes).
         "motes": gen(
             0.6,

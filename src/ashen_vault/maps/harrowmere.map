@@ -71,11 +71,11 @@ R;;;;;Ú;;;;;;;Ú;;;;;;22Ú;q.s|...HiÒiiHâJiiiiJâRAAAAAAAAAAAAAA
 R;;;;;;;;;Ú;;;;;;;;;;11;;..ssss.Hiii$H.JÒiiiJ.RAAAAAAAAAAAAAA
 R....á.à.......q,q...ss.ÅJJJJ.s.HHHHHH.Jiii$J.RAAAAAAAAAAAAAA
 R..ÀHHHHHH..q.q,T,q..ssàJ+i$Jás..q,q...JJåJJJ.RAAAAAAAAAAAAAA
-R..HkkkkÏH.q,q.q,q...ssDJiiiJ.sÜq,T,q.....q,q.RAAAAAAAAAAAAAA
-R..H$kkkkkq,T,q.q....ss.Jii&J.s..q________,ø,qRAAAAAAAAAAAAAA
-R..Hkkbkkk.q,q.......ss.JJåJJ.s..._tooooo_q,q.RAAAAAAAAAAAAAA
-R..HÍkÌkkk..q.....sssssssssssssss._oooooo_.q..RAAAAAAAAAAAAAA
-R..HkkkkÎk........sXsssssssssssXs.5oooWooÇHHHHRAAAAAAAAAAAAAA
+R..HûkãkÏHþq,q.q,q...ssDJiiiJ.sÜq,T,q.....q,q.RAAAAAAAAAAAAAA
+R..H×kkkkkq,T,q.q....ss.Jii&J.s..q________,ø,qRAAAAAAAAAAAAAA
+R..Hôkbkkk.q,q.......ss.JJåJJ.s..._tooooo_q,q.RAAAAAAAAAAAAAA
+R..HÍkúkkk..q.....sssssssssssssss._oooooo_.q..RAAAAAAAAAAAAAA
+R..HkkkýÎk........sXsssssssssssXs.5oooWooÇHHHHRAAAAAAAAAAAAAA
 R..ÑHHHHHH........sssssssssssssss._ooooooH+iiHRAAAAAAAAAAAAAA
 R...q,T,â.........sssssssssssssss._oooogÏHiiÍHRVVVVVVVVAAAAAA
 R..à.q,q...qqqqqq.ssssssPPPssssss._______HLiiHRwUwvvwwVAAAAAA
@@ -115,7 +115,7 @@ m = npc id=pell yaw=0
 g = npc id=hollis yaw=180
 f = npc id=maeve yaw=90 on=p
 Z = npc id=corvane yaw=0
-b = npc id=brannoc yaw=90
+b = npc id=brannoc
 h = npc id=garrick yaw=180
 d = npc id=tamsin yaw=-90
 e = npc id=ilse yaw=-90
@@ -181,7 +181,13 @@ D = banner
 Ü = hay_wagon yaw=-90
 Ý = cargo
 // Furniture and street dressing.
-Ì = anvil
+× = forge_hearth
+û = forge_bellows
+ô = quench_trough
+ã = tool_rack
+ú = grindstone
+ý = ingot_pile
+þ = smith_sign
 Í = rack
 Î = crate
 Ï = barrel

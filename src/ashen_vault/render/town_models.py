@@ -2,7 +2,7 @@
 stained glass), pews, the dressing of its sun-warmed stone houses (shuttered windows, balconies, arched
 doorways), the realm's crest on poles and plaques, the furniture and the street dressing of a harbour
 town (beds, cupboards, shelves, hearths, a fountain, benches, carts and cargo, fences, lamp posts, a
-moored boat). Pure part lists drawn through a Rig, like `models`."""
+moored boat, the smith's sign, bellows and grindstone). Pure part lists drawn through a Rig, like `models`."""
 
 import itertools
 import math
@@ -274,6 +274,69 @@ def hearth(r, t):
     r.part("sphere", -0.36, 0.7, 0, 0.32, 0.26, 0.32, (40, 38, 40))  # the pot
     for i in range(2):
         r.part("cyl", -0.42, 1.34, -0.4 + i * 0.8, 0.1, 0.16, 0.1, (170, 150, 110))  # mantel jars
+
+
+SIGN_IRON = (52, 50, 54)
+
+
+def smith_sign(r, seed):
+    """The smith's sign, hung from the wall at local -X: a wrought bracket and its brace standing out
+    over the street, two short chains and a painted board swinging from them, an iron anvil and
+    hammer on each face."""
+    r.part("cube", -0.5, 2.95, 0, 0.94, 0.05, 0.05, SIGN_IRON)  # the bracket's arm
+    r.part("cube", -0.97, 2.75, 0, 0.06, 0.5, 0.12, SIGN_IRON)  # its wall plate
+    r.part("cube", -0.68, 2.72, 0, 0.6, 0.035, 0.035, SIGN_IRON, rz=0.62)  # the brace
+    r.part("cube", -0.04, 2.95, 0, 0.08, 0.08, 0.08, SIGN_IRON)  # a knob at its end
+    for x in (-0.68, -0.22):  # chains
+        r.part("cube", x, 2.84, 0, 0.02, 0.18, 0.02, SIGN_IRON)
+    board = SHUTTER_PAINT[seed % len(SHUTTER_PAINT)]
+    r.part("cube", -0.45, 2.48, 0, 0.62, 0.56, 0.05, board, tex="wood_plank")
+    r.part("cube", -0.45, 2.48, 0, 0.66, 0.6, 0.035, DARK_WOOD)  # its frame
+    for side in (-1, 1):  # the anvil and hammer, on both faces
+        z = side * 0.03
+        r.part("cube", -0.45, 2.4, z, 0.3, 0.06, 0.01, SIGN_IRON)  # the anvil's face
+        r.part("cube", -0.45, 2.33, z, 0.12, 0.08, 0.01, SIGN_IRON)  # its waist
+        r.part("cube", -0.45, 2.27, z, 0.24, 0.04, 0.01, SIGN_IRON)  # its foot
+        r.part("cube", -0.63, 2.41, z, 0.08, 0.03, 0.01, SIGN_IRON)  # the horn
+        r.part("cube", -0.39, 2.58, z, 0.24, 0.03, 0.01, (150, 110, 70), rz=-0.6)  # the hammer's haft
+        r.part("cube", -0.5, 2.66, z, 0.1, 0.06, 0.01, SIGN_IRON, rz=-0.6)  # its head
+
+
+def forge_bellows(r, seed):
+    """A smith's great bellows on a trestle: two tapering boards with a pleated leather bag between,
+    an iron nozzle at the narrow end pointing toward the forge (+X), and a pole to work it."""
+    leather = (92, 62, 40)
+    for z in (-0.25, 0.25):  # the trestle's legs
+        for x in (-0.5, 0.3):
+            r.part("cube", x, 0.3, z, 0.08, 0.6, 0.08, DARK_WOOD)
+    r.part("cube", -0.1, 0.6, 0, 0.9, 0.06, 0.6, WOOD, tex="wood_plank")  # its top
+    r.part("wedge", -0.1, 0.7, 0, 0.12, 1.0, 0.6, WOOD, rz=-math.pi / 2)  # the lower board
+    for k in range(3):  # the leather's pleats, narrowing toward the nozzle
+        r.part("wedge", -0.12 - k * 0.02, 0.8 + k * 0.06, 0, 0.1, 0.92 - k * 0.1, 0.58 - k * 0.04,
+               _dim(leather, 1 - 0.1 * (k % 2)), rz=-math.pi / 2)  # fmt: skip
+    r.part("wedge", -0.16, 1.0, 0, 0.1, 0.9, 0.56, WOOD, rz=-math.pi / 2)  # the upper board
+    r.part("cube", 0.48, 0.74, 0, 0.24, 0.06, 0.06, IRON)  # the nozzle
+    r.part("cube", -0.6, 1.0, 0, 0.12, 0.08, 0.08, DARK_WOOD)  # the handle's yoke
+    r.part("cube", -0.62, 1.4, 0, 0.05, 0.8, 0.05, DARK_WOOD, rz=0.25)  # the pole to work it
+
+
+def grindstone(r, seed):
+    """A grindstone on a wooden frame: a sandstone wheel on an iron axle, a crank, a drip pot above
+    it and a trough of water beneath for the wheel to run through."""
+    for z in (-0.3, 0.3):
+        r.part("cube", 0, 0.45, z, 0.1, 0.9, 0.1, DARK_WOOD, rz=0.15)  # the frame's legs
+        r.part("cube", 0, 0.45, z, 0.1, 0.9, 0.1, DARK_WOOD, rz=-0.15)
+        r.part("cube", 0, 0.88, z, 0.12, 0.1, 0.12, WOOD)  # bearing blocks
+    r.part("cube", 0, 0.25, 0, 0.6, 0.06, 0.66, WOOD)  # a stretcher
+    r.part("cube", 0, 0.42, 0, 0.62, 0.22, 0.32, DARK_WOOD, tex="wood_plank")  # the trough
+    r.part("cube", 0, 0.52, 0, 0.56, 0.02, 0.26, (60, 80, 90))  # its water
+    r.part("cyl", 0, 0.88, 0, 0.62, 0.14, 0.62, SANDSTONE, rx=math.pi / 2)  # the wheel
+    r.part("cyl", 0, 0.88, 0, 0.66, 0.1, 0.66, _dim(SANDSTONE, 0.8), rx=math.pi / 2)  # its worn rim
+    r.part("cyl", 0, 0.88, 0, 0.05, 0.8, 0.05, IRON, rx=math.pi / 2)  # the axle
+    r.part("cube", 0.1, 0.88, 0.42, 0.24, 0.04, 0.04, IRON)  # the crank
+    r.part("cube", 0.2, 0.88, 0.48, 0.04, 0.04, 0.14, DARK_WOOD)  # its handle
+    r.part("cube", 0, 1.32, 0, 0.06, 0.12, 0.06, DARK_WOOD)  # the drip pot's post
+    r.part("cube", 0, 1.42, 0, 0.14, 0.1, 0.14, (120, 96, 70))  # the drip pot
 
 
 def banner_pole(r, t, seed):

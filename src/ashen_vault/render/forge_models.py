@@ -1,6 +1,7 @@
 """Models for the Cinderhold: its iron foes, the twin gargoyles and the fortress dressing.
 Original low-poly models assembled from primitives; like everything in `models`, they face +X."""
 
+import itertools
 import math
 
 from ashen_vault.ai.enemy import COMBO_GAP, STATUE_BURST
@@ -658,25 +659,137 @@ def arrow(r, rgb):
     r.part("cube", -0.35, 0, 0, 0.16, 0.01, 0.08, (170, 166, 160))
 
 
+BOLT_FLICKER = 25.0  # times a second a lightning bolt's kinks are struck anew
+BOLT_KINKS = 7  # segments in a thunder spear's zigzag core
+
+
+def _jitter(seed, i):
+    """A repeatable pseudo-random value in -1..1 for kink `i` of flicker `seed`."""
+    return math.sin(seed * 12.9898 + i * 78.233) * 43758.5453 % 2.0 - 1.0
+
+
+def bolt_points(t, n=BOLT_KINKS, length=1.3, spread=0.09):
+    """The joints of a jagged bolt along +X, from its tail (-X) to its point: each kink jumps sideways
+    at random and they are all struck anew BOLT_FLICKER times a second (the ends stay put)."""
+    seed = math.floor(t * BOLT_FLICKER)
+    pts = []
+    for i in range(n + 1):
+        x = -length / 2 + length * i / n
+        edge = 0.0 if i in (0, n) else 1.0
+        pts.append((x, _jitter(seed, i) * spread * edge, _jitter(seed + 0.5, i + 17) * spread * edge))
+    return pts
+
+
+def _segment(r, a, b, w, rgb, glow=True):
+    """A thin box from point `a` to point `b`."""
+    dx, dy, dz = (q - p for p, q in zip(a, b, strict=True))
+    ln = math.sqrt(dx * dx + dy * dy + dz * dz) or 1e-6
+    yaw = -math.atan2(dz, dx)
+    pitch = math.atan2(dy, math.hypot(dx, dz))
+    mid = tuple((p + q) / 2 for p, q in zip(a, b, strict=True))
+    with r.at(*mid, ry=yaw, rz=pitch):
+        r.part("cube", 0, 0, 0, ln + w * 0.5, w, w, rgb, glow=glow)
+
+
 def thunder_spear(r, t):
-    """A spear of lightning: a white-blue core with jagged forks crackling around it. Along +X."""
-    r.part("cube", 0, 0, 0, 1.1, 0.07, 0.07, (240, 248, 255), glow=True)
-    for i in range(4):
-        a = t * 30 + i * 1.7
-        r.part(
-            "cube", -0.3 + i * 0.2, math.sin(a) * 0.12, math.cos(a) * 0.12, 0.28, 0.03, 0.03,
-            THUNDER, rz=math.sin(a * 1.3) * 0.8, glow=True,
-        )  # fmt: skip
-    r.part("sphere", 0.5, 0, 0, 0.18, 0.18, 0.18, THUNDER, glow=True)
+    """A spear of lightning flying along +X: a white-hot zigzag core whose kinks are struck anew many
+    times a second inside a pale blue sheath, a bright lance head at its point, forks that snap out
+    from the kinks and vanish, and a fading afterimage of the last flicker trailing behind."""
+    pts = bolt_points(t)
+    for a, b in itertools.pairwise(pts):
+        _segment(r, a, b, 0.05, (245, 250, 255))  # the core
+        _segment(r, a, b, 0.1, _dim_rgb(THUNDER, 0.75))  # its sheath
+    ghost = [(x - 0.35, y * 1.4, z * 1.4) for x, y, z in bolt_points(t - 1 / BOLT_FLICKER)]
+    for a, b in itertools.pairwise(ghost[:4]):
+        _segment(r, a, b, 0.03, _dim_rgb(THUNDER, 0.5))  # the afterimage of the last flicker
+    seed = math.floor(t * BOLT_FLICKER)
+    for i in (2, 4):  # forks snapping out from two kinks, there for a flicker or two
+        if _jitter(seed, i + 40) > -0.2:
+            x, y, z = pts[i]
+            tip = (x - 0.25, y + _jitter(seed, i + 50) * 0.3, z + _jitter(seed, i + 60) * 0.3)
+            _segment(r, pts[i], tip, 0.03, THUNDER)
+    x, y, z = pts[-1]
+    r.part("cube", x + 0.08, 0, 0, 0.22, 0.09, 0.09, (255, 255, 255), rx=math.pi / 4, glow=True)  # the head
+    r.part("sphere", x, 0, 0, 0.24, 0.24, 0.24, THUNDER, glow=True)
 
 
-def mote(r, t):
-    """An arcane mote: a violet spark wrapped in two tiny orbiting glints."""
-    r.part("sphere", 0, 0, 0, 0.18, 0.18, 0.18, ARCANE, glow=True)
-    for i in range(2):
-        a = t * 12 + i * math.pi
-        r.part("cube", math.cos(a) * 0.25, math.sin(a * 0.7) * 0.1, math.sin(a) * 0.25, 0.06, 0.06, 0.06,
-               (240, 210, 255), glow=True)  # fmt: skip
+MOTE_TAIL = 5  # ghosts trailing behind an arcane mote
+
+
+def mote(r, t, tail=MOTE_TAIL):
+    """An arcane mote flying along +X: a pulsing violet nucleus with a bright heart, a comet tail of
+    shrinking ghosts behind it, and two glints wheeling round it on tilted orbits."""
+    pulse = 1 + 0.15 * math.sin(t * 14)
+    r.part("sphere", 0, 0, 0, 0.2 * pulse, 0.2 * pulse, 0.2 * pulse, ARCANE, glow=True)
+    r.part("sphere", 0.02, 0, 0, 0.09, 0.09, 0.09, (250, 236, 255), glow=True)  # its heart
+    for i in range(1, tail + 1):  # the tail, wavering as it trails
+        k = i / (tail + 1)
+        s = 0.16 * (1 - k)
+        rgb = _dim_rgb(ARCANE, 1 - 0.5 * k)
+        r.part("cube", -0.11 * i, math.sin(t * 9 - i) * 0.03 * i, math.cos(t * 7 - i) * 0.03 * i, s, s, s, rgb,
+               rx=t * 3 + i, glow=True)  # fmt: skip
+    for i, tilt in enumerate((0.6, -0.6)):  # glints on tilted orbits
+        a = t * 11 + i * math.pi
+        with r.at(0, 0, 0, rx=tilt):
+            r.part(
+                "cube",
+                math.cos(a) * 0.28,
+                0,
+                math.sin(a) * 0.28,
+                0.06,
+                0.06,
+                0.06,
+                (240, 214, 255),
+                glow=True,
+            )
+
+
+def thunder_orb(r, t):
+    """Thunder Spear in Belongings: a pale core caged in jagged arcs struck anew many times a second,
+    three arcs leaping out from it to points round about and back, and now and then a white flash."""
+    flash = (t * 1.7) % 1.0 < 0.08
+    core = (255, 255, 255) if flash else THUNDER
+    r.part("sphere", 0, 0, 0, 0.42, 0.42, 0.42, _dim_rgb(THUNDER, 0.55), glow=True)
+    r.part("sphere", 0, 0, 0, 0.22, 0.22, 0.22, core, glow=True)
+    seed = math.floor(t * BOLT_FLICKER)
+    for i in range(5):  # the cage: arcs crawling over the core
+        with r.at(0, 0, 0, ry=i * 1.26 + seed * 0.7, rx=i * 0.9):
+            pts = [(math.cos(k * 0.5 - 1) * 0.42, math.sin(k * 0.5 - 1) * 0.42, _jitter(seed, i * 7 + k) * 0.07)
+                   for k in range(5)]  # fmt: skip
+            for a, b in itertools.pairwise(pts):
+                _segment(r, a, b, 0.035, (235, 245, 255))
+    for i in range(3):  # arcs leaping out and back, each in its turn
+        k = (t * 2.2 + i / 3) % 1.0
+        if k > 0.45:
+            continue
+        reach = 0.45 + 0.6 * math.sin(k / 0.45 * math.pi)
+        a = i * math.tau / 3 + seed * 0.4
+        end = (math.cos(a) * reach, _jitter(seed, i + 90) * 0.5, math.sin(a) * reach)
+        prev = (0.0, 0.0, 0.0)
+        for j in range(1, 4):
+            f = j / 3
+            nxt = (end[0] * f, end[1] * f + _jitter(seed, i * 5 + j) * 0.08 * (j < 3), end[2] * f)
+            _segment(r, prev, nxt, 0.04, THUNDER)
+            prev = nxt
+        r.part("cube", *end, 0.08, 0.08, 0.08, (255, 255, 255), glow=True)  # where it strikes
+    if flash:
+        r.part("sphere", 0, 0, 0, 0.75, 0.75, 0.75, _dim_rgb(THUNDER, 0.4), glow=True)
+
+
+def motes_orb(r, t):
+    """Arcane Motes in Belongings: three motes wheeling on interlocking tilted rings round a dim,
+    breathing nucleus, each with its tail of ghosts."""
+    breath = 1 + 0.12 * math.sin(t * 2.2)
+    r.part("sphere", 0, 0, 0, 0.26 * breath, 0.26 * breath, 0.26 * breath, _dim_rgb(ARCANE, 0.55), glow=True)
+    r.part("sphere", 0, 0, 0, 0.1, 0.1, 0.1, (250, 236, 255), glow=True)
+    for i, tilt in enumerate((0.0, 1.05, -1.05)):
+        with r.at(0, 0, 0, rx=tilt, ry=i * 0.7):
+            a = t * 2.6 + i * math.tau / 3
+            for j in range(4):  # the mote, then its ghosts trailing back along the ring
+                b = a - j * 0.22
+                s = (0.16 if j == 0 else 0.1) * (1 - j * 0.22)
+                rgb = (240, 214, 255) if j == 0 else _dim_rgb(ARCANE, 1 - j * 0.2)
+                r.part("cube", math.cos(b) * 0.62, 0, math.sin(b) * 0.62, s, s, s, rgb, ry=-b, glow=True)
 
 
 def magma_bomb(r, t):

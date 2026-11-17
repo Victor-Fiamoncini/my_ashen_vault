@@ -779,16 +779,23 @@ def _icon_war_hammer(cx, cy, t, a, ready):
         _glint(cx, cy, [(5, -6), (8, -3)], t, a)
 
 
-def _icon_heartwood_maul(cx, cy, t, a, ready):
-    """A knotted burl of petrified heartwood on a crooked root haft, moss twinkling in its cracks."""
-    _poly(cx, cy, [(-6, 7), (-3, 3), (-2, 1), (1, -1)], 2, color(96, 70, 44, a))
-    pr.draw_circle(cx + 3, cy - 3, 4, color(118, 104, 86, a))
-    pr.draw_circle(cx + 4, cy - 4, 2, color(140, 126, 104, a))
-    for dx, dy in ((1, -2), (5, -1)):
-        _dot(cx, cy, dx, dy, color(70, 56, 42, a))  # knots
-    for i, (dx, dy) in enumerate(((2, -6), (6, -3), (0, -4))):
-        twinkle = 0.55 + 0.45 * math.sin(t * 2.2 + i * 2.1)
-        _dot(cx, cy, dx, dy, color(110, 180, 70, rround(a * twinkle)))
+def _icon_great_iron_hammer(cx, cy, t, a, ready):
+    """A banded haft under a big square block of iron, studs on its face, a spike behind; a slow
+    sheen crawls over the head."""
+    _line(cx, cy, (-6, 7), (2, -1), 2, color(92, 66, 44, a))
+    for n in (-3, 0):
+        _dot(cx, cy, n, -n, color(70, 68, 74, a))  # iron rings
+    _tri(cx, cy, (-2, -4), (2, -8), (6, 0), color(120, 120, 130, a))
+    _tri(cx, cy, (2, -8), (6, 0), (8, -4), color(120, 120, 130, a))
+    _line(cx, cy, (0, -6), (4, -2), 1, color(70, 68, 74, a))  # its band
+    _line(cx, cy, (2, -8), (8, -4), 1, color(170, 170, 180, a))  # the face's edge
+    _line(cx, cy, (-2, -4), (-4, -6), 1, color(150, 150, 160, a))  # the back spike
+    sheen = (t * 0.5) % 2
+    if sheen < 1:
+        x, y = _along([(0, -2), (4, -6)], sheen)
+        _dot(cx, cy, x + 1, y - 1, color(220, 220, 230, rround(a * 0.8)))
+    if ready:
+        _glint(cx, cy, [(2, -8), (8, -4)], t, a)
 
 
 def _icon_slagbreaker(cx, cy, t, a, ready):
@@ -852,14 +859,31 @@ def _icon_bearded_axe(cx, cy, t, a, ready):
         _glint(cx, cy, edge, t, a)
 
 
-def _icon_felling_axe(cx, cy, t, a, ready):
-    """A long two-handed haft and a deep wedge of a head."""
-    _axe_haft(cx, cy, (-7, 7), (4, -5), a)
-    _tri(cx, cy, (2, -3), (5, -8), (8, -2), color(150, 150, 160, a))
-    edge = [(5, -8), (8, -2)]
-    _line(cx, cy, *edge, 1, color(220, 220, 230, a))
+def _icon_flamberge(cx, cy, t, a, ready):
+    """A long blade rippling like a flame, a dark guard with parrying hooks and a red wrap; a heat
+    shimmer climbs its waves."""
+    g = -3
+    root, tip = (g, -g), _diag(g, 10)
+    pts = []
+    for n in range(11):
+        k = n / 10
+        x, y = root[0] + (tip[0] - root[0]) * k, root[1] + (tip[1] - root[1]) * k
+        wave = math.sin(n * 1.6) * 0.9 * (n > 1)
+        pts.append((x + wave, y + wave))
+    _poly(cx, cy, pts, 2.5, color(182, 184, 196, a))
+    _poly(cx, cy, [(x - 1, y + 1) for x, y in pts[2:]], 1, color(232, 232, 240, a))
+    _line(cx, cy, (g - 4, -g + 4), root, 2, color(110, 30, 30, a))  # the grip
+    gc = color(70, 66, 72, a)
+    _line(cx, cy, (g - 3, -g - 3), (g + 3, -g + 3), 2, gc)  # the guard
+    hx, hy = _diag(g, 2)
+    _dot(cx, cy, hx - 2, hy, gc)
+    _dot(cx, cy, hx, hy + 2, gc)  # parrying hooks
+    _dot(cx, cy, g - 6, -g + 5, gc, 2, 2)  # pommel
+    k = (t * 0.8) % 1
+    x, y = _along(pts, k)
+    _dot(cx, cy, x, y, color(255, 190, 120, rround(a * (1 - k) * 0.8)))
     if ready:
-        _glint(cx, cy, edge, t, a)
+        _glint(cx, cy, pts, t, a)
 
 
 def _icon_butcher_cleaver(cx, cy, t, a, ready):
@@ -898,13 +922,13 @@ WEAPON_ICONS = {
     "thornlash": _icon_thornlash,
     "mace": _icon_mace,
     "war_hammer": _icon_war_hammer,
-    "heartwood_maul": _icon_heartwood_maul,
+    "great_iron_hammer": _icon_great_iron_hammer,
     "slagbreaker": _icon_slagbreaker,
     "oak_cudgel": _icon_oak_cudgel,
     "spiked_club": _icon_spiked_club,
     "hatchet": _icon_hatchet,
     "bearded_axe": _icon_bearded_axe,
-    "felling_axe": _icon_felling_axe,
+    "flamberge": _icon_flamberge,
     "butcher_cleaver": _icon_butcher_cleaver,
 }
 # A weapon without its own glyph borrows its category's.
@@ -1029,28 +1053,37 @@ def spell_icon(id_, cx, cy, t, alpha=255):
             )
         pr.draw_circle(cx, cy + 5, 2.5, color(255, 210, 90, a))
     elif id_ == "thunder":
-        # A jagged bolt that flickers, with a white flash now and then.
-        flash = (t * 2.3) % 1 < 0.12
-        pts = [(cx + 3, cy - 8), (cx - 2, cy - 1), (cx + 2, cy - 1), (cx - 3, cy + 8)]
+        # A jagged bolt struck anew a few times a second, a fork snapping off it, a white flash now
+        # and then and a faint glow round it.
+        seed = math.floor(t * 8)
+        flash = (t * 1.7) % 1 < 0.08
+        jog = [((seed * 7 + i * 3) % 5 - 2) * 0.6 for i in range(3)]
+        pts = [(cx + 3, cy - 8), (cx - 2 + jog[0], cy - 2), (cx + 2 + jog[1], cy), (cx - 3 + jog[2], cy + 8)]
+        pr.draw_circle(cx, cy, 6, color(120, 160, 255, rround(a * (0.35 if flash else 0.12))))
         rgb = (255, 255, 255) if flash else (190, 220, 255)
         for (x0, y0), (x1, y1) in itertools.pairwise(pts):
-            pr.draw_line(x0, y0, x1, y1, color(*rgb, a))
-            pr.draw_line(x0 + 1, y0, x1 + 1, y1, color(120, 160, 255, rround(a * 0.7)))
-        if flash:
-            pr.draw_circle(cx, cy, 6, color(200, 220, 255, rround(a * 0.25)))
+            pr.draw_line(rround(x0), y0, rround(x1), y1, color(*rgb, a))
+            pr.draw_line(rround(x0) + 1, y0, rround(x1) + 1, y1, color(120, 160, 255, rround(a * 0.7)))
+        if seed % 3:  # a fork off the middle kink
+            fx, fy = pts[2]
+            side = 1 if seed % 2 else -1
+            pr.draw_line(rround(fx), fy, rround(fx) + side * 4, fy + 3, color(170, 200, 255, rround(a * 0.8)))
     elif id_ == "motes":
-        # Three violet sparks circling a common centre, each trailing a glint.
-        for i in range(3):
-            ang = t * 2.4 + i * 2.094
+        # Three violet sparks wheeling on tilted ellipses round a breathing nucleus, each trailing glints.
+        pr.draw_circle(cx, cy, 2.5 + 0.5 * math.sin(t * 2.2), color(120, 70, 170, a))
+        for i, tilt in enumerate((0.0, 1.05, -1.05)):
             for j in range(3):
-                b = ang - j * 0.3
+                b = t * 2.6 + i * 2.094 - j * 0.35
+                ex, ey = math.cos(b) * 6, math.sin(b) * 2.5
+                x = ex * math.cos(tilt) - ey * math.sin(tilt)
+                y = ex * math.sin(tilt) + ey * math.cos(tilt)
                 pr.draw_circle(
-                    rround(cx + math.cos(b) * 5),
-                    rround(cy + math.sin(b) * 5),
+                    rround(cx + x),
+                    rround(cy + y),
                     1.8 - j * 0.5,
                     color(190, 120, 255, rround(a * (1 - j * 0.3))),
                 )
-        pr.draw_circle(cx, cy, 1.5, color(240, 210, 255, a))
+        pr.draw_circle(cx, cy, 1.2, color(240, 210, 255, a))
     elif id_ == "ward":
         # A ring of embers wheeling about an ashen core.
         pr.draw_circle(cx, cy, 2.5, color(110, 96, 84, a))

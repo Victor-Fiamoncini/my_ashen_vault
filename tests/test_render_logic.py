@@ -937,7 +937,7 @@ def test_villager_looks_are_checked_and_strangers_wear_grey():
     assert villagers.look("nobody") == villagers.Look()
     with pytest.raises(AssertionError):
         villagers.Look(build="giant")
-    assert villagers.look("brannoc").tool == "hammer" and villagers.look("corvane").blade
+    assert villagers.look("brannoc").tool == "hammer" and villagers.look("corvane").blade == "hip"
 
 
 def test_the_enthroned_is_boss_sized_on_a_throne_that_fits_its_tile():

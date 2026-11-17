@@ -21,6 +21,7 @@ class EnemyType:
     poise: int = 0
     ranged: bool = False
     hover: float | None = None
+    mouth: float | None = None  # height its shots leave from, if not the usual chest height
     boss: bool = False
     drop: str | None = None
     ambush: bool = False  # spawns dormant, disguised, until woken
@@ -124,7 +125,7 @@ class EnemyTypes:
                 gold=range(5, 13),
                 radius=0.35,
                 height=0.6,
-                tall=1.6,
+                tall=2.1,
                 ranged=True,
                 hover=1.3,
                 poise=0,
@@ -218,8 +219,9 @@ class EnemyTypes:
                 exp=16,
                 gold=range(3, 10),
                 radius=0.45,
-                height=1.6,
-                tall=1.8,
+                height=1.7,
+                tall=2.3,
+                mouth=1.7,
                 ranged=True,
                 bite_reach=2.2,
                 shot_rgb=(150, 210, 70),
