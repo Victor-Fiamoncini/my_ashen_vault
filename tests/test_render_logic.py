@@ -1697,3 +1697,37 @@ def test_town_and_fortress_statues_and_carts_are_detailed():
             fn(rig.Rig(gpu), seed)
             assert len(gpu.parts) >= 30, (fn.__name__, seed)
             assert min(y for _, y in gpu.parts) > -0.1, fn.__name__
+
+
+def test_a_fake_wall_shimmers_sears_crumbles_and_is_gone():
+    from ashen_vault.render import models
+
+    def draw(open_t, **kw):
+        gpu = _GlowGpu()
+        models.secret_wall(rig.Rig(gpu), 4.0, open_t, tex="ash_brick", **kw)
+        return gpu
+
+    intact = draw(0.0, t=0.5, shimmer=True, near=True)
+    assert len(intact.parts) == 2 + 3  # two 2 m blocks and the motes that give it away
+    assert all(tex == "ash_brick" for *_, tex in intact.looks if tex != "white")
+    assert draw(0.1).glows > 0  # ember cracks as it sears
+    crumbling = draw(0.6, t=1.0)
+    assert len(crumbling.parts) > 20
+    assert len(draw(0.999, t=1.0).parts) < len(crumbling.parts)  # its cells have fallen away
+    assert draw(1.0).parts == []
+
+
+def test_a_fake_wall_takes_the_texture_of_the_walls_beside_it():
+    from ashen_vault.world.map_loader import MapLoader
+    from ashen_vault.world.world import secret_wall_tex
+
+    m = MapLoader(
+        "[meta]\nname = S\nstart = 1 1 0\n\n[legend]\n# = wall tex=ash_brick\n% = wall tex=ash_rock\n"
+        ". = floor h=0\n\n[grid]\n#####\n#.W.#\n##%##\n#####\n\n[entities]\nW = secret_wall\n"
+    ).parse()
+    assert secret_wall_tex(m, 2, 1) in ("ash_brick", "ash_rock")
+    m2 = MapLoader(
+        "[meta]\nname = S\nstart = 1 1 0\n\n[legend]\n# = wall tex=ash_brick\n% = wall tex=ash_rock\n"
+        ". = floor h=0\n\n[grid]\n#####\n#.W.#\n#.%.#\n##%##\n\n[entities]\nW = secret_wall\n"
+    ).parse()
+    assert secret_wall_tex(m2, 2, 1) == "ash_brick"  # north wall vs south: north first on a tie

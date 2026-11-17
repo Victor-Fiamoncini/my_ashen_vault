@@ -123,6 +123,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/world/doors.py` | One-way doors (`door from=`): which side lifts the bar |
 | `src/ashen_vault/world/arena.py` | Boss arenas behind a `door boss=<dead_flag>`: the flood-filled lair, the fight that seals the great door, and the fog (`fog:<map>:<tx>,<tz>`) left after you die in there |
 | `src/ashen_vault/player/burden.py` | Equipment load: each item's `mass` against `capacity(STR)` gives a tier (Light / Medium / Heavy / Overloaded) scaling walk speed, ST refill and every ST cost |
+| `src/ashen_vault/player/remnant.py` | The gold you drop when you die (`Player.remnant`, saved with the player): a heap of your ashes (`cemetery_models.remnant`) at `World.death_spot` (the last solid ground if you died down a chasm, in water or lava); walk over it or interact to gather it, die again first and it is lost |
 | `src/ashen_vault/ui/compare.py` | ATK / DEF / Block / SPL / Load now and after equipping (or taking off) an item or spell: the Belongings stats panel, its slot chooser and the shop show it before you choose |
 | `src/ashen_vault/render/prop_bake.py` | Bakes static props (`world.STATIC_PROPS`) once into lit world-space batches, grouped by 8x8-tile chunk and texture and culled per chunk (`World._draw_baked`); the shader draws them with `isModel` -1, doubling their halved vertex colours and lighting them with the light baked into their normals (`Batch.light`) plus your torch, as it lights a live model. Kindling a fire bakes the chunks round it again |
 | `src/ashen_vault/render/bounds.py` | Measures a model without drawing it (a recording GPU); `models.preview_frame` centres and fits every weapon in its preview with it |
@@ -179,9 +180,14 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 - Floor legend entries can add hazards: `hurt=<hp per tick>` (thorns), `flow=<dx>,<dz>` (a current),
   `slow=<multiplier>` (mud), `pit` (a hole you can walk into; you fall, are hurt and hauled out), `lava` (a
   pit that sears `LAVA_SHARE` of your max HP the moment you touch it and hauls you out; give it
-  `tex=lava`) and `chasm` (only a raft, plank or ledge lets you onto it). Floors with `tex=lava` are drawn
+  `tex=lava`) and `chasm` (a sheer drop: a raft, plank or ledge carries you over it). No invisible walls:
+  the player may walk off into water or a chasm (`Terrain.open_to`; only a lift's cage hanging above
+  you shuts its shaft), while foes never step onto either. Water casts you back ashore, hurt; going
+  over a chasm's brink is a plunge (`Terrain.plunging`, input locked) that kills you within
+  `terrain.PLUNGE_TIME`, unless the chasm floor lies within `FALL_SAFE` of you (an empty shaft's
+  bottom, which is only ground). Floors with `tex=lava` are drawn
   at full brightness and light their shores (`mesh_builder.lava_lights`), chasms included. Drops over
-  1.8 m cost HP, except into a `pit`.
+  1.8 m cost HP (`FALL_PER_M` a metre), except into a `pit`; a drop of `terrain.FALL_LETHAL` (8 m) kills.
   Any tile may add `dark=<0..1>`: the share of the map's ambient light it loses. Lights still shine
   there, and standing in one shrinks your own light and pulls the fog in (`world/darkness.py`);
   Lumen pushes both back.
@@ -301,7 +307,10 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   put its marker on every tile of the way past it, keep it to two lines that fit the screen
   (`test_every_cemetery_hint_fits_the_screen`).
   Breakables (`barrel`, `crate`, `urn`, `cocoon`) spill loot from `world/loot.py` (`loot.roll`); a `secret_wall`
-  dissolves when struck (`model=vines top=6` matches the jungle's vine walls; `model=web` is a sheet of
+  takes the texture of the real walls beside it (`world.secret_wall_tex`), a shade duller, with a faint
+  shimmer climbing it now and then and pale motes on its faces within `SHIMMER_NEAR`; struck, ember
+  cracks sear it to ash and it crumbles top-down into falling ash and embers over about 1.4 s
+  (`models.secret_wall`), letting you through at once (`model=vines top=6` matches the jungle's vine walls; `model=web` is a sheet of
   silk that blades can't cut and only fire burns: Pyre, a fiery art, or a Flame Bolt that strikes it;
   it burns away over about two seconds, `models.burning_web`, but lets you through at once). `door boss=<dead_flag>` is a boss's great door
   (`models.boss_door`, dressed for its boss by `BOSS_DOORS` / `DOOR_ARCHES` / `DOOR_LEAVES`, keyed by
@@ -327,8 +336,12 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   them in the highlight colour (`util.highlight_runs`). `tests/test_ui_logic.py` checks the small font
   has a glyph for every character used in game messages and names.
 - Praying at a shrine plays the `rest` scene; it heals, respawns normal enemies and saves while the fog
-  covers the screen. Dying keeps everything the player carries and every flag: you wake at the last
-  shrine (`Game._wake_at_shrine`) and only normal enemies (and a living boss's HP) come back.
+  covers the screen. Dying keeps everything the player carries but its gold, and every flag: the gold is
+  left in a heap of your ashes (`player/remnant.py`, `Game._drop_remnant`) to gather on your next life,
+  lost if you die again first; you wake at the last shrine (`Game._wake_at_shrine`) and only normal
+  enemies (and a living boss's HP) come back.
+- Every blow, shot, ash or fire a foe lands on you is scaled by `world.FOE_DAMAGE` (1.5) through
+  `world.foe_harm`, before armour takes its share; traps, lava, thorns, spores, logs and falls are not.
 - Persistent world state lives in the save's `flags` set, keyed `<kind>:<map>:<tx>,<tz>` (opened
   chests, broken barrels, revealed walls, slain mimics, kindled fires as `lit:`) or `loot:<key>` for
   dropped items. Bosses add

@@ -1,6 +1,6 @@
 """Terrain hazards: platforms you stand on over water or a chasm (drifting rafts, rotting planks,
 crumbling ledges, rotten floorboards, chain lifts up and down a shaft), river currents, thorn floors, rolling logs, spore pods, falls
-into deep water or a ravine, and hard landings from high drops.
+into deep water, plunges down a ravine (fatal) and hard landings from high drops (fatal past FALL_LETHAL).
 Pure logic; the World feeds it the player and draws it."""
 
 import math
@@ -23,9 +23,12 @@ LEDGE_GONE = 4.0  # seconds before the ledge's spot firms up again
 BOARDS_CREAK = 0.45  # rotten floorboards give way almost at once, and for good
 DROP_TIME = 0.35  # seconds a broken platform takes to fall away
 THORN_TICK = 0.6  # seconds between thorn pricks
-FALL_FRAC = 0.15  # share of max HP a fall into the river or the ravine costs
+FALL_FRAC = 0.15  # share of max HP a fall into the river costs
 FALL_SAFE = 1.8  # metres you can drop without getting hurt
-FALL_PER_M = 10  # HP per metre dropped past FALL_SAFE
+FALL_PER_M = 15  # HP per metre dropped past FALL_SAFE
+FALL_LETHAL = 8.0  # metres: a drop this far kills you outright
+PLUNGE_TIME = 1.2  # seconds you fall into a chasm before the fall kills you
+GRAVITY = 9.8  # m/s² you plunge at
 LOG_R = 0.35  # rolling log radius
 LOG_HALF = 0.85  # half its length, across the lane
 LOG_DAMAGE = 14
@@ -548,7 +551,9 @@ def _coords(value, tx, tz):
 class Terrain:
     """What the land does to the player each frame.
     `body` needs x, z, y, RADIUS and stats; damage goes through the `hurt(dmg, source)` callback.
-    After a fall, `fell_into` says whether it was the "river" or the "ravine"."""
+    After a fall, `fell_into` says whether it was the "river" or the "ravine".
+    Nothing invisible bars the edges: the player walks where `open_to` allows, water casts you back
+    ashore, but a chasm is a plunge (`plunging`) that ends in death."""
 
     def __init__(self, map_, platforms=None):
         self.map = map_
@@ -565,6 +570,8 @@ class Terrain:
         self.landed = 0  # metres of the last hard landing
         self.sounds = []  # (name, volume) to play this frame; the World plays and clears them
         self.unlocked = []  # locked lifts whose first ride ended this frame
+        self.plunge = None  # seconds into a fall down a chasm, which no one lives through
+        self._vy = 0.0  # how fast you plunge
 
     @property
     def logs(self):
@@ -574,6 +581,21 @@ class Terrain:
         """Can you step onto tile (tx, tz) over water or a chasm? Only where a deck is, and for a
         lift only when its deck is level with you: an empty shaft is a sheer drop or a dead end."""
         return any(p.floats_on(tx, tz) and self._level(p) for p in self.platforms)
+
+    def open_to(self, tx, tz):
+        """Can the player walk onto tile (tx, tz) over water or a chasm? Nothing invisible holds you
+        back: you may step off any edge, into the river or down a ravine or an empty lift shaft. Only a
+        lift's cage hanging above you shuts its shaft, so you never walk in underneath it."""
+        if self._ground is None:
+            return True
+        return not any(
+            p.kind == "lift" and p.floats_on(tx, tz) and p.deck - self._ground > collision.STEP_HEIGHT
+            for p in self.platforms
+        )
+
+    @property
+    def plunging(self):
+        return self.plunge is not None
 
     def _level(self, p):
         if p.kind != "lift" or self._ground is None:
@@ -632,14 +654,15 @@ class Terrain:
 
     def update(self, dt, body, hurt, blocked=None):
         """Moves platforms, logs and spores, carries the player, applies currents, thorns, logs and
-        spores, and catches falls. Returns "fell" when the player went into the water or the ravine,
+        spores, and catches falls. Returns "fell" when the player went into the water, "plunge" when
+        they went over a chasm's brink and "fell_dead" when a plunge or a drop of FALL_LETHAL killed them,
         "landed" after a hard landing, "log" when a log struck, "logs_first"/"logs_next"/"logs_last"
         when a log tips off a pile, "spores" when a cloud first engulfs, "lift_unlocked" when a locked
         lift ends its first ride (`unlocked` lists it), else None. A lift's landing call plates call it."""
         event = None
         self.sounds = []
         self.unlocked = []
-        under = self.support(body.x, body.z)
+        under = None if self.plunging else self.support(body.x, body.z)
         for p in self.platforms:
             was_afloat, was_loaded = p.afloat, p.load_t > 0
             if p.kind == "lift":
@@ -670,6 +693,8 @@ class Terrain:
             pod.update(dt)
             if pod.t < before:  # the cycle wrapped: it just burst
                 self._hear(pod.x, pod.z, body, "puff", 0.8)
+        if self.plunging:
+            return self._plunging(dt, body)
         for chute in self.chutes:
             released = chute.update(dt, self.map.floor_at, climber=(body.x, body.z))
             if released:
@@ -690,7 +715,12 @@ class Terrain:
 
         self.under = self.support(body.x, body.z)
         if tile.needs_footing and self.under is None:
-            return self._fall(body, hurt, "river" if tile.liquid else "ravine")
+            if tile.liquid:
+                return self._fall(body, hurt, "river")
+            ground = body.y if self._ground is None else self._ground
+            if ground - tile.floor > FALL_SAFE:
+                return self._plunge(body)
+            # A chasm floor at your feet (the bottom of an empty lift shaft) is only ground.
 
         landed = self._landing(body, hurt)
         event = event or landed
@@ -723,6 +753,9 @@ class Terrain:
         if drop <= FALL_SAFE:
             return None
         self.landed = drop
+        if drop >= FALL_LETHAL:
+            body.stats.hurt(body.stats.hp)
+            return "fell_dead"
         hurt(max(rround((drop - FALL_SAFE) * FALL_PER_M), 1), "The fall")
         return "landed"
 
@@ -744,11 +777,35 @@ class Terrain:
         if d < HEARING:
             self.sounds.append((name, volume * (1 - d / HEARING * 0.7)))
 
+    def _plunge(self, body):
+        """You went over the brink of a chasm: from here you only fall (`_plunging`)."""
+        self.fell_into = "ravine"
+        self.plunge = 0.0
+        self._vy = 0.0
+        self.under = None
+        self.sounds.append(("swoosh", 0.9))
+        return "plunge"
+
+    def _plunging(self, dt, body):
+        """Down the chasm: you drop faster and faster until the fall, or the rocks below, kill you.
+        Returns "fell_dead" the moment it does, else None."""
+        if self.plunge >= PLUNGE_TIME:
+            return None  # already dead
+        self.plunge += dt
+        self._vy += GRAVITY * dt
+        floor = self.map.floor_at(body.x, body.z)
+        body.y = max(body.y - self._vy * dt, floor)
+        if self.plunge < PLUNGE_TIME and body.y > floor:
+            return None
+        self.plunge = PLUNGE_TIME
+        body.stats.hurt(body.stats.hp)
+        return "fell_dead"
+
     def _fall(self, body, hurt, into):
         self.fell_into = into
         if into == "river":
             self.sounds.append(("splash", 1.0))
-        hurt(max(rround(body.stats.max_hp * FALL_FRAC), 6), "The river" if into == "river" else "The ravine")
+        hurt(max(rround(body.stats.max_hp * FALL_FRAC), 6), "The river")
         if self.safe is None:
             sx, sz = self.map.meta["start"][:2]
             self.safe = TileMap.center(int(sx), int(sz))

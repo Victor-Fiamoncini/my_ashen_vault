@@ -397,6 +397,40 @@ def ash_heap(r, t, k=0.0, scale=1.0):
             )
 
 
+REMNANT_SCALE = 0.42  # the heap of your own ashes, a small one beside a boss's
+
+
+def remnant(r, t):
+    """The heap of your own ashes left where you died (`player/remnant.py`), your gold in it: a
+    small smouldering mound like a boss's heap, a coin or two glinting in it and a thread of embers
+    rising from it, bright enough to find again in the dark."""
+    ash_heap(r, t, scale=REMNANT_SCALE)
+    pulse = 0.5 + 0.5 * math.sin(t * 3.0)
+    for i in range(3):  # coins half buried in the ash
+        a = i * 2.1 + 0.4
+        r.part(
+            "cyl", math.cos(a) * 0.18, 0.2, math.sin(a) * 0.16, 0.09, 0.02, 0.09, (210, 170, 60), rx=0.4, rz=a
+        )
+    r.part(
+        "sphere", 0, 0.32, 0, 0.12, 0.12, 0.12, _mix_rgb(COLD, EMBER, 0.6 + 0.4 * pulse), glow=True
+    )  # its heart
+    for i in range(5):  # a thread of embers, a beacon you can find again
+        rise = (t * 0.45 + i / 5) % 1
+        sway = math.sin(t * 1.7 + i * 1.3) * 0.12 * rise
+        r.part(
+            "cube",
+            sway,
+            0.35 + rise * 2.2,
+            sway * 0.6,
+            0.05,
+            0.05,
+            0.05,
+            _dim(EMBER, 1.0 - rise * 0.6),
+            rx=t * 2 + i,
+            glow=True,
+        )
+
+
 def gravestone(r, seed):
     """A weathered headstone, one of a few shapes picked by `seed`: a round-topped slab, a cross or a
     small obelisk, leaning a little, chipped and furred with moss, a mound of earth before it."""

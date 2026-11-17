@@ -3623,20 +3623,121 @@ def _barrel_wreck(r, ox, oz, seed):
         r.part("cube", 0.25, 0.18, -0.2, 0.06, 0.36, 0.12, WHITE, tex="wood_plank", rz=0.3)
 
 
-def secret_wall(r, height, open_t, tex="stone_brick"):
-    """An illusory wall: a full tile that matches the real walls (brick in the keep, a curtain of
-    vines in the jungle). Struck, it sinks and fades."""
+SECRET_SEAR = 0.22  # share of a fake wall's fall spent turning to ash before it crumbles
+SECRET_CELL = 0.5  # metres: the ashen wall crumbles away in cells this size
+SHIMMER_CYCLE = 6.0  # seconds between the faint shimmers that give a fake wall away
+SHIMMER_PASS = 1.6  # seconds a shimmer takes to climb the wall
+SECRET_BASE = (238, 238, 238)  # an illusion is a shade duller than the stone it apes
+SECRET_ASH = (104, 98, 94)
+SECRET_ASH_DARK = (60, 56, 54)
+CRACK = (255, 120, 40)
+CRACK_DIM = (150, 60, 24)
+SECRET_ASH_TEX = "ash_ground"  # what the crumbling cells show: loose ash, not the stone they aped
+
+
+def secret_wall(r, height, open_t, tex="stone_brick", t=0.0, shimmer=False, near=False):
+    """An illusory wall: a full tile in the texture of the walls beside it (brick in the keep, a
+    curtain of vines in the jungle). Now and then a faint shimmer climbs it (`shimmer`), and up close
+    a few pale motes drift on its faces (`near`): the only tells. Struck (`open_t` 0..1), ember cracks
+    run across it as it sears to ash, then it crumbles top-down, cell by cell, into falling ash and
+    rising embers, with a puff of dust at its foot."""
     if open_t >= 1.0:
         return
-    k = 1.0 - open_t
-    h = height * k
-    w = 2.0 * (0.6 + 0.4 * k)
-    # Stacked 2 m blocks, so the texture repeats every 2 m like the map's own walls do.
+    if open_t < SECRET_SEAR:
+        _secret_intact(r, height, open_t / SECRET_SEAR, tex, t, shimmer and open_t == 0, near and open_t == 0)
+    else:
+        _secret_crumble(r, height, (open_t - SECRET_SEAR) / (1 - SECRET_SEAR), t)
+
+
+def _secret_intact(r, height, sear, tex, t, shimmer, near):
+    """The whole wall in 2 m blocks, so its texture repeats every 2 m like the map's own walls.
+    `sear` (0..1) greys it toward ash while glowing cracks spread over its faces."""
+    phase = (t % SHIMMER_CYCLE) / SHIMMER_PASS if shimmer else 2.0
+    band = phase * (height + 1.0) - 0.5  # the shimmer's height, climbing the wall
     y = 0.0
-    while y < h - 1e-3:
-        seg = min(2.0 * k, h - y)
-        r.part("cube", 0, y + seg / 2, 0, w, seg, w, WHITE, tex=tex)
+    while y < height - 1e-3:
+        seg = min(2.0, height - y)
+        glint = max(0.0, 1.0 - abs(band - (y + seg / 2)) / 1.4) if phase < 1 else 0.0
+        rgb = _blend(_blend(SECRET_BASE, WHITE, glint), SECRET_ASH, sear)
+        r.part("cube", 0, y + seg / 2, 0, 2.0, seg, 2.0, rgb, tex=tex)
         y += seg
+    if near:
+        for i in range(3):  # pale motes sliding over its faces
+            a = i * 2.09 + t * 0.15
+            k = (t * 0.2 + i / 3) % 1
+            face = (math.cos(a) * 1.02, math.sin(a) * 1.02)
+            r.part("cube", face[0], 0.4 + k * (height - 0.8), face[1], 0.03, 0.03, 0.03,
+                   _blend((150, 150, 160), (220, 220, 235), 1 - abs(k * 2 - 1)), glow=True)  # fmt: skip
+    if sear <= 0:
+        return
+    cracks = 28
+    for i in range(cracks):  # hairline ember cracks spreading over every face as it sears
+        if i / cracks > sear:
+            break
+        side = i % 4
+        u = math.sin(i * 12.9898) * 43758.5453 % 1.0 * 1.6 - 0.8
+        v = (math.sin(i * 78.233) * 12543.21 % 1.0) * height
+        length = 0.12 + 0.3 * min(sear * 2 - i / cracks, 1.0)
+        tilt = (math.sin(i * 4.1) * 0.9, math.sin(i * 4.1) * 0.9)[side % 2]
+        nx, nz = ((1.005, u), (u, 1.005), (-1.005, u), (u, -1.005))[side]
+        thin = 0.012
+        rgb = _blend(CRACK_DIM, CRACK, sear)
+        if side % 2 == 0:
+            r.part("cube", nx, v, nz, thin, thin, length, rgb, rx=tilt, glow=True)
+        else:
+            r.part("cube", nx, v, nz, length, thin, thin, rgb, rz=tilt, glow=True)
+
+
+def _crumble_order(x, z, row, rows):
+    """When (0..1 of the crumble) the wall's cell at (x, z) in `row` falls: top first, with a ragged
+    jitter so the falling edge never runs straight."""
+    jitter = (math.sin(x * 12.9898 + z * 39.346 + row * 78.233) * 43758.5453) % 1.0
+    return min(0.62 * (rows - 1 - row) / max(rows - 1, 1) + 0.18 * jitter, 0.8)
+
+
+def _secret_crumble(r, height, c, t):
+    """The seared wall crumbling (`c` 0..1): only its outer shell of cells is drawn. Each cell sags,
+    darkens, tumbles and shrinks to nothing as it falls, ash drifts down and embers lift off."""
+    rows = max(math.ceil(height / SECRET_CELL), 1)
+    ring = [(i, 0) for i in range(4)] + [(3, j) for j in range(1, 4)] + [(i, 3) for i in range(2, -1, -1)]
+    ring += [(0, j) for j in range(2, 0, -1)]
+    for row in range(rows):
+        y0 = row * SECRET_CELL
+        h = min(SECRET_CELL, height - y0)
+        for i, j in ring:
+            x, z = -0.75 + i * SECRET_CELL, -0.75 + j * SECRET_CELL
+            f = (c - _crumble_order(x, z, row, rows)) / 0.2
+            if f >= 1.0:
+                continue
+            f = max(f, 0.0)
+            k = 1.0 - f
+            drop = f * f * 1.6
+            tumble = f * (2.0 if (i + j + row) % 2 else -2.0)
+            rgb = _blend(SECRET_ASH, SECRET_ASH_DARK, f)
+            r.part("cube", x * (1 + f * 0.3), y0 + h / 2 - drop, z * (1 + f * 0.3), SECRET_CELL * k,
+                   h * k, SECRET_CELL * k, rgb, tex=SECRET_ASH_TEX, rx=tumble, rz=tumble * 0.7)  # fmt: skip
+            if 0 < f < 0.6 and (i + row) % 3 == 0:  # a glowing seam as it parts
+                r.part("cube", x * 1.05, y0 + h - drop, z * 1.05, SECRET_CELL * k, 0.03, SECRET_CELL * k,
+                       CRACK, rx=tumble, glow=True)  # fmt: skip
+    for i in range(10):  # ash sifting down and out
+        k = (c * 1.4 + i / 10) % 1
+        a = i * 0.628 + c
+        out = 0.9 + k * 0.8
+        r.part("cube", math.cos(a) * out, height * (1 - c) * (1 - k) + 0.05, math.sin(a) * out, 0.06, 0.06, 0.06,
+               _blend(SECRET_ASH, SECRET_ASH_DARK, k), rx=a + t, ry=k * 4)  # fmt: skip
+    glow = 1.0 - c
+    for i in range(6):  # embers lifting off
+        k = (t * 0.7 + i / 6) % 1
+        a = i * 1.047 + t * 0.5
+        r.part("cube", math.cos(a) * 0.7, 0.3 + c * height * 0.6 + k * 1.6, math.sin(a) * 0.7, 0.05, 0.05, 0.05,
+               _blend(SECRET_ASH_DARK, EMBER, glow * (1 - k)), rx=t * 3 + i, glow=glow > 0.05)  # fmt: skip
+    puff = math.sin(min(c * 1.2, 1.0) * math.pi)
+    if puff > 0.02:  # the dust thrown up at its foot
+        for i in range(5):
+            a = i * 1.257 + 0.3
+            s_ = 0.3 + 0.35 * puff
+            r.part("sphere", math.cos(a) * (0.6 + c), 0.25 + c * 0.3, math.sin(a) * (0.6 + c), s_, s_ * 0.7, s_,
+                   _blend((168, 162, 156), (124, 120, 116), c))  # fmt: skip
 
 
 WEB_CELL = 0.5  # metres: the burning silk falls away in cells this size

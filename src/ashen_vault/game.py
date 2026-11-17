@@ -9,7 +9,7 @@ from ashen_vault import dialogue as dialogue_data
 from ashen_vault.ai.enemy import Enemy
 from ashen_vault.audio.synth import Audio
 from ashen_vault.input import CONTROLS, Input
-from ashen_vault.player import burden, view_blend, weapons
+from ashen_vault.player import burden, remnant, view_blend, weapons
 from ashen_vault.player.combat import Combat
 from ashen_vault.player.inventory import LEFT, PRIMARY, RIGHT, SECONDARY, SLOT_ALIASES, SLOT_NAMES, SPELL
 from ashen_vault.player.items import Item, Items
@@ -139,6 +139,7 @@ class Game:
         self._back_index = 0  # the menu row selected when it opened
         self._scroll_hold = 0  # frames Up / Down has been held on the Controls screen
         self._dead_t = 0.0
+        self._remnant_news = []  # what became of your gold, told when you wake
         self._ending_t = 0.0
         self._dark_k = None  # how dark it looks where you stand (eased, so cave mouths don't pop)
         if self.opts.get("map"):
@@ -405,14 +406,15 @@ class Game:
                 p.look(-md.y * 0.0032)
         # Scripted smoke runs tilt the view with held look_up / look_down steps.
         p.look((inp.down("look_up") - inp.down("look_down")) * 1.5 * dt)
-        moved = p.walk(
+        falling = self.world.terrain.plunging  # over the brink: nothing to walk on
+        moved = not falling and p.walk(
             self.world.map,
             self._axis("forward", "back"),
             self._axis("strafe_r", "strafe_l"),
             dt,
             blocked=self.world.player_blocker,
             sprint=inp.down("sprint"),
-            floating=self.world.terrain.floating,
+            floating=self.world.terrain.open_to,
             ground=self.world.terrain.floor,
         )
         self._carry_player(dt)
@@ -434,6 +436,8 @@ class Game:
     def _carry_player(self, dt):
         """Lifts, rafts and gravity move the player whether or not they walk."""
         self.world.update_terrain(dt)
+        if self.world.terrain.plunging:
+            return  # the plunge carries you down itself
         under = self.world.terrain.under
         p = self.player
         p.settle(self.world.map, dt, floor=self.world.player_floor(), snap=under is not None and under.moving)
@@ -450,6 +454,26 @@ class Game:
         if not self.player.alive:
             self._dead_t = 0.0
             self.scene = "dead"
+            self._drop_remnant()
+
+    def _drop_remnant(self):
+        """Death leaves your gold in a heap of ashes where you last stood on solid ground (not down the
+        chasm or in the lava that killed you); an older heap you never gathered scatters."""
+        x, z = self.world.death_spot()
+        lost, left = remnant.leave(self.player, self.world.name, x, z)
+        self._remnant_news = []
+        if lost:
+            self._remnant_news.append(f"The ashes you left behind have scattered. {{{lost} gold}} is lost.")
+        if left:
+            self._remnant_news.append(f"Your {{{left} gold}} lies with your ashes where you fell.")
+
+    def gather_remnant(self):
+        """You reach the heap of ashes you left when you died: its gold is yours again."""
+        gold = remnant.gather(self.player)
+        self.world.lay_remnant()
+        if gold:
+            self.sfx("pickup")
+            self.message(f"You gather up your ashes. {{+{gold} gold}}")
 
     def _tick_unpaused(self, dt):
         """Belongings doesn't pause the game: the world goes on and foes still strike while you stand
@@ -680,8 +704,9 @@ class Game:
             self.sfx("swoosh", 0.9)
             self.message("You hack through the vines. There is a hollow behind them!")
         else:
-            self.sfx("door", 0.8)
-            self.message("The wall was an illusion!")
+            self.sfx("crack", 0.9)
+            self.sfx("hiss", 0.5)  # it sears to ash before it crumbles
+            self.message("The wall was an illusion! It crumbles into ash.")
 
     def damage_enemy(self, enemy, dmg, poise_mult=1.0, stagger=True):
         if not enemy.take_hit(dmg, poise_mult, stagger=stagger):
@@ -889,6 +914,8 @@ class Game:
             self.message("Cold ashes. It wants a flame.")
         elif k == "save_statue":
             self._start_rest()
+        elif k == "remnant":
+            self.gather_remnant()
         elif k == "altar":
             item = Items.get(self.world.take_from_altar(prop))
             self.player.inventory.add(item.id)
@@ -1350,6 +1377,9 @@ class Game:
         self._saves.save(map=self.world.name, player=self.player, flags=self.flags)
         self._enter_play()
         self.message("You wake beside the shrine.")
+        for line in self._remnant_news:
+            self.message(line)
+        self._remnant_news = []
         return True
 
     def finish_game(self):

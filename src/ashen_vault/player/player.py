@@ -32,6 +32,7 @@ class Player:
         self.spells = spells if spells is not None else ["flame"]
         self.spell_index = 0
         self.quick = "red_tonic"  # consumable on the middle mouse button
+        self.remnant = None  # the gold you left where you died: {map, x, z, gold} (`player/remnant.py`)
         self.x = self.z = self.y = 0.0
         self.yaw = 0.0
         self.pitch = 0.0
@@ -422,4 +423,5 @@ class Player:
             "spells": list(self.spells),
             "spell": self.current_spell().id if self.spells else None,
             "quick": self.quick,
+            "remnant": self.remnant,
         }

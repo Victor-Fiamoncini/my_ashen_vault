@@ -18,6 +18,7 @@ from ashen_vault.ai.enemy import (
 )
 from ashen_vault.ai.enemy_types import EnemyTypes
 from ashen_vault.ai.spawns import spawn_enemies
+from ashen_vault.player import remnant
 from ashen_vault.player.player import Player
 from ashen_vault.player.spells import Spells
 from ashen_vault.render import cemetery_models, forge_models, fortress_props, models, prop_bake, town_models
@@ -128,8 +129,8 @@ WEB_BURN_RATE = 0.45  # a web wall that fire has caught burns away over 1 / this
 THORN_SENSE = 3.4  # metres at which thorn plants bristle as you approach
 FALL_MESSAGES = {
     "river": "The river drags you under and casts you back ashore.",
-    "ravine": "You plunge into the ravine, and claw your way back up battered.",
 }
+FALL_DEATH = "You fall to your death."
 HAZARD_MESSAGES = {
     "landed": "You land hard.",
     "logs_first": "A rotten rope snaps above, and the woodpile starts to roll!",
@@ -335,6 +336,10 @@ HAZARD_KINDS = ("spikes", "pendulum", "crumble", "flame_jet", "magma_vent")
 FALL_DAMAGE = 25
 FALL_DEPTH = 1.5  # metres below the pit's rim before a fall counts
 LAVA_SHARE = 0.35  # share of your max HP a dip in lava burns away
+SECRET_FALL_RATE = 0.7  # per second: a struck fake wall sears and crumbles over about 1.4 s
+OPEN_RATE = 0.8  # per second: how fast doors, lids and levers swing
+SHIMMER_NEAR = 4.0  # metres within which a fake wall's motes give it away
+FOE_DAMAGE = 1.5  # every blow, shot and spell a foe lands on you hits this much harder
 LAVA_MIN = 20
 MOTE_SIGHT = 14.0  # metres an arcane mote looks for a foe to steer toward
 BREATH_STEP = 1.2  # metres between the fire circles of a gargoyle's breath
@@ -384,6 +389,25 @@ def beside_shrine(map_, x, z, yaw):
 
 DETAIL_RANGE = 14.0  # metres within which fine carving (a statue's claws and fangs) is drawn
 BEHIND_MARGIN = 3.0  # metres behind the eye a prop may reach and still poke into view (a wide model)
+
+
+def secret_wall_tex(map_, tx, tz):
+    """The texture an illusory wall on tile (tx, tz) takes: that of the real walls beside it (the one
+    most of them share; on a tie, north first, then east, south, west), so it passes for one of
+    them in any map. With no wall beside it, the side texture of its own tile."""
+    texes = [
+        map_[tx + dx, tz + dz].wall_tex
+        for dx, dz in ((0, -1), (1, 0), (0, 1), (-1, 0))
+        if map_[tx + dx, tz + dz].solid and map_[tx + dx, tz + dz].wall_tex
+    ]
+    if not texes:
+        return map_[tx, tz].wall_tex or "stone_brick"
+    return max(texes, key=texes.count)
+
+
+def foe_harm(dmg):
+    """What a foe's blow, shot or fire does to you before your armour takes its share."""
+    return dmg * FOE_DAMAGE
 
 
 def behind_view(dx, dz, fx, fz, margin=BEHIND_MARGIN):
@@ -592,6 +616,7 @@ class World:
         for item_id, tx, tz in relics.pending_drops(self.map, self.flags, self.player.inventory.has):
             if item_id != "ember_sigil":
                 self.drop_relic(item_id, *TileMap.center(tx, tz))
+        self.lay_remnant()
 
     def _respill_slain_loot(self):
         """Loot from an enemy that stays dead (a mimic) waits where it fell until it is picked up."""
@@ -910,7 +935,7 @@ class World:
 
     def enemy_strike(self, enemy, mult=1.0):
         """Returns how much of the blow got through a raised shield."""
-        base = enemy.type.damage * mult * (0.85 + random.random() * 0.3)
+        base = foe_harm(enemy.type.damage * mult * (0.85 + random.random() * 0.3))
         dmg = max(rround(base - self.player.inventory.defense * 0.5), 1)
         return self.strike_player(dmg, enemy.name, enemy.x, enemy.z)
 
@@ -1085,7 +1110,7 @@ class World:
         for d in self.devils:
             dmg = d.update(dt, player.x, player.z, self._devil_open)
             if dmg and player.alive:
-                hurt = max(rround(dmg - player.inventory.defense * 0.3), 1)
+                hurt = max(rround(foe_harm(dmg) - player.inventory.defense * 0.3), 1)
                 self.game.hurt_player(hurt, "The whirling ash")
                 player.webbed_t = max(player.webbed_t, GRASP_HOLD)
                 self.game.message("The whirling ash flays you and drags at your legs!")
@@ -1205,6 +1230,10 @@ class World:
         if event == "fell":
             self.game.sfx("hurt")
             self.game.message(FALL_MESSAGES[self.terrain.fell_into])
+        elif event == "fell_dead":
+            self.game.sfx("hurt")
+            self.game.sfx("crack", 0.8)
+            self.game.message(FALL_DEATH)
         else:
             if event in HAZARD_MESSAGES:
                 self.game.message(HAZARD_MESSAGES[event])
@@ -1240,7 +1269,8 @@ class World:
             elif p.kind == "frog_idol" and p.open_t > 0:
                 p.open_t = p.open_t + dt if p.open_t + dt < FROG_CROAK else 0.0
             elif 0 < p.open_t < 1.0:
-                p.open_t = min(p.open_t + dt * (WEB_BURN_RATE if self._web(p) else 0.8), 1.0)
+                p.open_t = min(p.open_t + dt * self._open_rate(p), 1.0)
+        self._update_remnant()
         self._update_projectiles(dt)
         for g in self.gouts:
             g.age += dt
@@ -1355,6 +1385,8 @@ class World:
                 dmg = f.hit(player.x, player.z)
                 if dmg:
                     hands = f.style == "hands"
+                    if f.origin is None:  # a foe's fire, not a magma vent's bomb
+                        dmg = foe_harm(dmg)
                     hurt = max(rround(dmg - player.inventory.defense * 0.3), 1)
                     self.game.hurt_player(hurt, "The grasping ash" if hands else "The fire")
                     if hands:
@@ -1508,7 +1540,7 @@ class World:
                     pr_.x, pr_.y, pr_.z, player.x, player.z, shots.PLAYER_RADIUS, shots.player_span(player.y)
                 ):
                     self.strike_player(
-                        max(rround(pr_.damage - player.inventory.defense * 0.3), 1),
+                        max(rround(foe_harm(pr_.damage) - player.inventory.defense * 0.3), 1),
                         pr_.source or "Something",
                         pr_.x - pr_.dx,
                         pr_.z - pr_.dz,
@@ -1749,7 +1781,16 @@ class World:
         return not need or need in self.flags
 
     def _interactable(self, p):
-        if p.kind in ("npc", "save_statue", "exit", "pickup", "iron_maiden", "frog_idol", "silent_bell"):
+        if p.kind in (
+            "npc",
+            "save_statue",
+            "exit",
+            "pickup",
+            "remnant",
+            "iron_maiden",
+            "frog_idol",
+            "silent_bell",
+        ):
             return True
         if p.kind == "lift_call":  # only from its own landing, not from the floor below or a moving lift
             return p.open_t == 0 and not p.lift.moving and abs(p.y - self.player.y) < CALL_REACH_Y
@@ -1773,6 +1814,41 @@ class World:
     def drop_relic(self, item_id, x, z):
         """Leaves a boss relic on the floor as a pickup."""
         self.drop_pickup(x, z, item_id, relics.get(item_id).key)
+
+    def lay_remnant(self):
+        """Lays the heap of ashes holding the gold you dropped when you died, if it lies on this map."""
+        self.props = [p for p in self.props if p.kind != "remnant"]
+        spot = remnant.lies_on(self.player, self.name)
+        if spot is None:
+            return
+        x, z = spot
+        tx, tz = TileMap.tile_coord(x), TileMap.tile_coord(z)
+        self.props.append(
+            Prop(kind="remnant", x=x, z=z, y=self.map.floor_at(x, z), tx=tx, tz=tz, props={}, key=None, yaw=0)
+        )
+
+    def death_spot(self):
+        """Where the gold you drop on dying comes to rest: where you fell, unless that was down a
+        chasm, in the water, in lava or a pit; then the last solid ground you stood on."""
+        player = self.player
+        tile = self.map.tile_at(player.x, player.z)
+        if not (self.terrain.plunging or tile.hazardous or tile.lava or not tile.walkable):
+            return player.x, player.z
+        return self.terrain.safe or self._safe or (player.x, player.z)
+
+    def _open_rate(self, p):
+        if self._web(p):
+            return WEB_BURN_RATE
+        return SECRET_FALL_RATE if p.kind == "secret_wall" else OPEN_RATE
+
+    def _update_remnant(self):
+        """Walking over your heap of ashes gathers it up."""
+        player = self.player
+        for p in self.props:
+            if p.kind == "remnant" and player.alive:
+                if remnant.within_reach(player.x, player.y, player.z, p.x, p.y, p.z):
+                    self.game.gather_remnant()
+                return
 
     def drop_pickup(self, x, z, item, key):
         """Leaves `item` on the floor at (x, z); `key` is flagged once it is taken."""
@@ -2206,6 +2282,8 @@ class World:
             models.fungus(rig, p.tx * 5 + p.tz, t)
         elif k == "pickup":
             models.pickup(rig, t, p.props.get("item"))
+        elif k == "remnant":
+            cemetery_models.remnant(rig, t)
         elif k == "npc":
             npc_id = p.props.get("id")
             if npc_id == "enthroned":
@@ -2221,8 +2299,11 @@ class World:
             if p.props.get("model") == "web":
                 models.burning_web(rig, top - tile.floor, p.open_t, t)
             else:
-                tex = {"vines": "vine_wall"}.get(p.props.get("model"), "stone_brick")
-                models.secret_wall(rig, top - tile.floor, p.open_t, tex=tex)
+                tex = (
+                    "vine_wall" if p.props.get("model") == "vines" else secret_wall_tex(self.map, p.tx, p.tz)
+                )
+                near = math.hypot(p.x - self.player.x, p.z - self.player.z) < SHIMMER_NEAR
+                models.secret_wall(rig, top - tile.floor, p.open_t, tex=tex, t=t, shimmer=True, near=near)
         elif k == "cocoon":
             models.cocoon(rig, p.tx * 7 + p.tz * 3, broken=p.open_t > 0)
         elif k == "frog_idol":

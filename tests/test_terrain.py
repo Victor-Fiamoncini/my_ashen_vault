@@ -235,10 +235,12 @@ def test_a_ledge_crumbles_and_drops_you_into_the_ravine():
     body = Body(2, 1)
     run(h, body, 0.1)  # stood on the bank: that is the safe ground
     body.x, body.z = TileMap.center(3, 1)
-    hits, events = run(h, body, terrain.LEDGE_CREAK + 0.1)
-    assert "fell" in events and h.fell_into == "ravine"
-    assert hits[-1][1] == "The ravine"
-    assert (body.x, body.z) == TileMap.center(2, 1)
+    _hits, events = run(h, body, terrain.LEDGE_CREAK + 0.1)
+    assert "plunge" in events and h.fell_into == "ravine" and h.plunging
+    assert body.stats.hp > 0  # still falling
+    _hits, events = run(h, body, terrain.PLUNGE_TIME)
+    assert events.count("fell_dead") == 1
+    assert body.stats.hp == 0 and body.y < 0.0
     ledge = h.platforms[0]
     assert ledge.sink > 0
     run(h, Body(1, 4), terrain.LEDGE_GONE)
@@ -724,3 +726,71 @@ def test_only_a_shortcut_lift_has_a_lever_on_the_far_landing_hung_on_the_wall():
     lift.locked = False
     lift.at, lift.deck = "high", lift.high
     assert terrain.lever_spot(m, lift)[:4] == (x, z, floor, end)
+
+
+def test_nothing_invisible_holds_you_back_from_a_chasm_or_the_river(river):
+    m, h = highland()
+    x, z = TileMap.center(2, 1)
+    nx, _ = collision.move(m, x, z, 1.5, 0, 0.4, floating=h.open_to, ground=h.floor)
+    assert nx == pytest.approx(x + 1.5)  # over the brink
+    m, h = river
+    x, z = TileMap.center(1, 1)
+    nx, _ = collision.move(m, x, z, 1.5, 0, 0.4, floating=h.open_to)
+    assert nx == pytest.approx(x + 1.5)  # into the water
+
+
+def test_walking_off_into_a_chasm_is_a_fatal_plunge():
+    _m, h = highland()
+    body = Body(2, 1)
+    run(h, body, 0.1)
+    body.x, body.z = TileMap.center(3, 1)
+    _hits, events = run(h, body, 0.05)
+    assert events == ["plunge"] and h.plunging
+    y0 = body.y
+    _hits, events = run(h, body, terrain.PLUNGE_TIME + 0.1)
+    assert events.count("fell_dead") == 1
+    assert body.stats.hp == 0 and body.y < y0
+
+
+def test_a_river_still_casts_you_back_ashore(river):
+    _, h = river
+    h.safe = TileMap.center(1, 1)
+    body = Body(2, 1)
+    hits, events = run(h, body, 0.05)
+    assert events == ["fell"] and hits[0][1] == "The river"
+    assert body.stats.hp > 0 and (body.x, body.z) == TileMap.center(1, 1)
+
+
+def test_a_drop_past_fall_lethal_kills_but_a_lesser_one_only_hurts():
+    tall = HIGHLAND.replace("g = floor h=3.2", "g = floor h=9")
+    m = MapLoader(tall, name="tall").parse()
+    h = terrain.Terrain(m)
+    body = Body(2, 3)
+    body.y = 9.0
+    body.z += 0.6
+    run(h, body, 0.1)
+    body.z += 1.0  # one stride over the edge
+    hits, events = run(h, body, 0.05)
+    assert events == ["fell_dead"] and body.stats.hp == 0 and hits == []
+    _m, h = highland()
+    body = Body(2, 3)
+    body.y = 3.2
+    body.z += 0.6
+    run(h, body, 0.1)
+    body.z += 1.0  # one stride over the edge
+    hits, events = run(h, body, 0.05)
+    assert events == ["landed"] and body.stats.hp > 0 and hits[0][1] == "The fall"
+
+
+def test_an_empty_shaft_is_a_drop_from_above_but_no_way_under_a_raised_cage():
+    _m, h = shaft()
+    top = Body(1, 1)
+    run(h, top, 0.1)
+    assert h.open_to(2, 1)  # the lift is 6 m below: step in and you fall
+    h2 = terrain.Terrain(_m)
+    (lift2,) = h2.platforms
+    lift2.deck, lift2.at = 0.0, "high"
+    bottom = Body(3, 1)
+    bottom.y = -6.0
+    run(h2, bottom, 0.1)
+    assert not h2.open_to(2, 1)
