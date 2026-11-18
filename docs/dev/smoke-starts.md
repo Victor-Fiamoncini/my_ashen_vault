@@ -41,10 +41,11 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   39,40 on the quay), `--map harrow_sewers --at=27,6,-90 --script "wait:0.3 interact"` (climb back up
   by the north road). Districts: `--map harrow_sewers` (the Market Drains, its `start`), `--at=27,6,0`
   (the North Sluices), `--at=4,36,0` (the Canal Culvert), `--at=36,36,90` (the Quay Outfall and its
-  great grates), `--at=25,24,-120` (the Cistern, its shrine at 20,16), `--at=43,25,-120` (the Sump, below
-  the outfall's stair), `--at=26,36,180 --script "wait:0.2 interact wait:2.5"` (let the sluice pit's
+  great grates), `--at=25,24,-120` (the Cistern, its shrine at 20,16), `--at=43,25,-120` (the Sump, 8 m down
+  the outfall's U-turn stair from 45,35; the lift up to the Cistern at 36,20), `--at=26,36,180 --script "wait:0.2 interact wait:2.5"` (let the sluice pit's
   drawbridge down). Bosses: `--at=34,32,-160 --level 10 --script "wait:3.2"` (Mother Gnawl rising in her
-  open nest), `--at=41,13,-90 --level 10 --script "wait:4.5"` (the Sump Reeve behind his door at 41,15).
+  nest, its great doors at 29,28 and 33,34; `--at=29,27,90 --script "interact wait:1 forward:1.5"` walks in
+  through the north one), `--at=41,13,-90 --level 10 --script "wait:4.5"` (the Sump Maw behind its door at 41,15).
 - The story begins in `ashen_cemetery` (the title's New Game, `Game.start_story`: bare hands and no
   spell, `Player.woken()`, the journey recorded at once). A `--map` run starts on any map with the default
   kit instead: `--map ashen_cemetery` (the waking grave and the first hint), `--map ashen_cemetery

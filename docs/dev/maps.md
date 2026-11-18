@@ -12,9 +12,10 @@ How `.map` files work and what can stand on a tile.
   sewers under the town, reached by four street grates (`sewer_grate`) that each drop onto the ladder
   (`sewer_ladder`) under them, at the same tile: the North Sluices, the Market Drains (narrow vaulted runs,
   its `start`), the Canal Culvert and the Quay Outfall, all joined through the Cistern and its shrine;
-  Mother Gnawl's open nest between the Cistern and the outfall, and down the outfall's stair the Sump and
-  the Sump Reeve's cistern behind his great door. Shortcuts: a barred door down from the sluices, the sluice
-  pit's drawbridge and a lift from the Sump up to the Cistern. Wadeable `sludge` floors (`slow=`, some with
+  Mother Gnawl's nest between the Cistern and the outfall, a great door at each of its two mouths (two
+  `door boss=matron_dead`: an arena each over the same tiles, sealing, fogging and opening together), and
+  8 m down the outfall's U-turn stair the Sump and the Sump Maw's cistern behind its great door. Shortcuts: a barred door down from the sluices, the sluice
+  pit's drawbridge and a lift from the Sump up to the Cistern (an 8 m ride). Wadeable `sludge` floors (`slow=`, some with
   `flow=`) hold its drowned and leeches; walled in `sewer_brick` under a `sewer_vault`;
   `test_harrow_sewers_is_solvable`) |
 | `src/ashen_vault/world/terrain.py` | Terrain: rafts, planks, ledges, rotten floorboards, chain lifts (pressure plates, call plates, shortcut levers, `summon`), currents, thorns, chasm and river falls, hard landings, the log rack, spore pods (`World.terrain`) |

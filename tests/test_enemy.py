@@ -650,7 +650,7 @@ def test_a_boss_of_ash_waits_as_a_heap_untouchable_until_it_rises():
     from ashen_vault.ai.enemy import ASH_RISE
 
     world = FakeWorld(3, 0)  # no rise_time: it rises when it notices you
-    for type_id in ("ashen_warden", "butcher", "loom_mother", "sexton", "rat_matron", "sump_reeve"):
+    for type_id in ("ashen_warden", "butcher", "loom_mother", "sexton", "rat_matron", "sump_maw"):
         boss = Enemy(EnemyTypes.get(type_id), 0, 0, rng=random.Random(0))
         assert boss.state == "ashes" and boss.unseen and boss.rise_progress == 0.0
         assert not boss.take_hit(10_000) and boss.hp == boss.type.hp  # nothing to strike yet
@@ -717,3 +717,116 @@ def test_every_foe_is_made_of_a_known_material_with_its_own_hit_sound():
 def test_an_iron_chest_mimic_rings_like_iron():
     assert Enemy(EnemyTypes.get("mimic"), 0, 0).hit_sound == "hit_wood"
     assert Enemy(EnemyTypes.get("mimic"), 0, 0, look="iron").hit_sound == "hit_iron"
+
+
+# --- the sewers' bosses ------------------------------------------------------------------------------
+
+
+class SewerWorld(FakeWorld):
+    def __init__(self, px, pz):
+        super().__init__(px, pz)
+        self.moves = []
+        self.room = True  # space for more of the Maw's gobbets
+
+    def can_shed(self, _enemy):
+        return self.room
+
+    def __getattr__(self, name):
+        if name in ("tail_lash", "squeal", "undertow", "gulp", "shed"):
+            return lambda _enemy: self.moves.append(name)
+        raise AttributeError(name)
+
+
+class SureRng(random.Random):
+    """Never skips a close-range special for a plain blow."""
+
+    def random(self):
+        return 0.99
+
+
+def sewer_boss(type_id, ready, phase2=False):
+    """A sewer boss awake and facing +x, only `ready` off cooldown."""
+    e = risen(Enemy(EnemyTypes.get(type_id), 0.0, 0.0, rng=SureRng()))
+    e.state, e.yaw, e.phase2 = "chase", 0.0, phase2
+    moves = set(e.type.moves) | (set(e.type.phase_moves) if phase2 else set())
+    e.cooldowns = {m: 0.0 if m == ready else 99.0 for m in moves}
+    return e
+
+
+@pytest.mark.parametrize(
+    ("type_id", "move", "near", "far", "phase2"),
+    [
+        ("rat_matron", "squeal", 3.0, 6.0, False),
+        ("rat_matron", "swarm", 6.0, 12.0, True),
+        ("sump_maw", "undertow", 6.0, 13.0, False),
+        ("sump_maw", "gulp", 6.0, 14.0, True),
+        ("sump_maw", "shed", 6.0, 14.0, True),
+    ],
+)
+def test_the_sewer_bosses_use_their_own_moves_at_their_own_range(type_id, move, near, far, phase2):
+    e = sewer_boss(type_id, move, phase2)
+    assert e._pick_move(SewerWorld(near, 0.0), near) == move
+    e = sewer_boss(type_id, move, phase2)
+    assert e._pick_move(SewerWorld(far, 0.0), far) is None
+
+
+def test_their_second_phase_moves_wait_for_half_hp():
+    for type_id, move in (("rat_matron", "swarm"), ("sump_maw", "gulp"), ("sump_maw", "shed")):
+        e = risen(Enemy(EnemyTypes.get(type_id), 0.0, 0.0))
+        assert move not in e.cooldowns  # not hers (his) until the second phase
+        assert move in e.type.phase_moves
+
+
+def test_the_maws_gulp_surges_through_where_you_stood_and_swallows_you_once():
+    def surge(dodge):
+        e = sewer_boss("sump_maw", "gulp", phase2=True)
+        e.cooldowns["gulp"] = 99.0  # just the one
+        w = SewerWorld(5.0, 0.0)
+        e._begin_windup("gulp")
+        while e.state == "windup":
+            tick(e, w, 0.05)
+        if dodge:
+            w.player_z = 4.0  # stepped aside as it surged
+        while e.state == "attack":
+            tick(e, w, 0.05)
+        return e, w
+
+    e, w = surge(dodge=False)
+    assert w.moves == ["gulp"]  # once, however long it passes over you
+    assert e.x > 5.0  # it surged on past where you stood
+    e, w = surge(dodge=True)
+    assert w.moves == [] and e.x > 5.0
+
+
+def test_a_tail_lash_strikes_through_the_world_once_it_lands():
+    e = sewer_boss("rat_matron", "tail_lash")
+    w = SewerWorld(-2.0, 0.0)  # behind her
+    tick(e, w, 1.0)
+    assert w.moves == ["tail_lash"] and e.yaw == 0.0
+    e = sewer_boss("rat_matron", "tail_lash")
+    w = SewerWorld(2.0, 0.0)  # in front of her
+    tick(e, w, 0.3)
+    assert "tail_lash" not in w.moves
+
+
+def test_the_sewer_bosses_moves_reach_the_world():
+    for type_id, move in (
+        ("rat_matron", "squeal"),
+        ("sump_maw", "undertow"),
+        ("sump_maw", "gulp"),
+        ("sump_maw", "shed"),
+    ):
+        e = sewer_boss(type_id, move, phase2=move in ("gulp", "shed"))
+        w = SewerWorld(3.0, 0.0)
+        e._begin_windup(move)
+        tick(e, w, 2.0)
+        assert move in w.moves, move
+    e = sewer_boss("sump_maw", "shed", phase2=True)
+    w = SewerWorld(3.0, 0.0)
+    w.room = False  # four of its gobbets already crawl: it holds the rest in
+    assert e._pick_move(w, 3.0) is None
+    e = sewer_boss("rat_matron", "swarm", phase2=True)
+    w = SewerWorld(6.0, 0.0)
+    e._begin_windup("swarm")
+    tick(e, w, 2.0)
+    assert "swarm" in w.fired

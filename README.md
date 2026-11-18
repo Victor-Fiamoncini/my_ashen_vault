@@ -185,7 +185,7 @@ FromSoftware, Inc.
   shrug off fire.
 - **Bosses behind great doors**: the Ashen Sexton fights with grave ash, the Ashen Warden's blade
   catches fire at half health, the Butcher swings his cleaver among the meat hooks, Mother Gnawl and
-  the Sump Reeve rule the sewers, the Loom Mother calls her brood, and two iron gargoyles take turns on
+  the Sump Maw rule the sewers, the Loom Mother calls her brood, and two iron gargoyles take turns on
   the keep's roof. Die in an arena and only fog remains at its door.
 - **Six areas, hand-built**:
   - the Cemetery of Ashes where you wake, a short first level that teaches as you go;

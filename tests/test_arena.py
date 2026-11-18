@@ -8,6 +8,7 @@ from ashen_vault.player.player import Player
 from ashen_vault.world.arena import Arena, flood
 from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.world import FOG_WALK_SPEED, World
+from conftest import risen
 from test_keep_world import FakeGame
 
 
@@ -27,7 +28,7 @@ def world_on(name, flags=(), at=None):
         ("verdant_hollow", "spider_dead", (15, 3)),
         ("cinder_keep", "gargoyles_dead", (4, 4)),
         ("ashen_cemetery", "sexton_dead", (10, 5)),
-        ("harrow_sewers", "reeve_dead", (41, 8)),
+        ("harrow_sewers", "maw_dead", (41, 8)),
     ],
 )
 def test_every_boss_has_a_closed_arena_behind_a_great_door(map_name, flag, lair):
@@ -201,3 +202,37 @@ def test_stepping_into_the_lair_never_jumps_you_forward():
         world.update(1 / 30)
         assert abs(player.z - before) < 0.3  # one step's worth, never a snap to the tile's edge
     assert arena.sealed and warden.state == "rising"
+
+
+def test_mother_gnawls_nest_has_a_great_door_at_each_mouth_that_seal_fog_and_open_together():
+    """Her nest lies on the way from the cistern to the outfall, so it has two mouths, each with a
+    great door under her flag: one arena each, the same tiles behind both. They act as one, and say so
+    once."""
+    game, world = world_on("harrow_sewers", {"door:harrow_sewers:29,28"}, at=(29, 30))
+    arenas = [a for a in world.arenas if a.flag == "matron_dead"]
+    assert {a.gate for a in arenas} == {(29, 28), (33, 34)}
+    assert arenas[0].tiles == arenas[1].tiles and (30, 31) in arenas[0].tiles
+    assert 10 < len(arenas[0].tiles) < 200
+    matron = next(e for e in world.enemies if e.type.dead_flag == "matron_dead")
+    risen(matron).state = "chase"
+    world._update_arenas()
+    assert all(a.sealed for a in arenas)
+    assert world.blocked_tile(29, 28) and world.blocked_tile(33, 34)
+    assert game.messages.count("The great door slams shut behind you!") == 1
+    world.mist_arenas()
+    assert all(a.fog_key in game.flags for a in arenas)
+    # Back from the shrine, come round by the outfall: either fog lets you in, and both close.
+    game2, world2 = world_on("harrow_sewers", game.flags, at=(33, 35))
+    fogs = [a for a in world2.arenas if a.flag == "matron_dead"]
+    assert all(a.fogged(game2.flags) for a in fogs)
+    south = next(a for a in fogs if a.gate == (33, 34))
+    world2.cross_fog(south)
+    while world2.fog_walk:
+        world2._update_fog_walk(0.05)
+    world2._update_arenas()
+    assert all(a.sealed for a in fogs)
+    assert game2.messages.count("The fog closes behind you.") == 1
+    game2.flags.add("matron_dead")
+    world2._update_arenas()
+    assert not any(a.sealed for a in fogs)
+    assert game2.messages.count("The way out grinds open.") == 1

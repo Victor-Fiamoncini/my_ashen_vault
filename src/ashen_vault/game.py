@@ -232,7 +232,7 @@ class Game:
             self.gold_tally = GoldTally(inv.gold)
         self.gold_tally.update(inv.gold, dt)
         if self.world:
-            target = self.world.map.tile_at(self.player.x, self.player.z).dark
+            target = self.world.dark_here()
             self._dark_k = target if self._dark_k is None else darkness.ease_toward(self._dark_k, target, dt)
         handler = {
             "title": lambda: self._update_title(),
@@ -889,9 +889,9 @@ class Game:
             return
         if not relics.boss_falls(t, self.world.enemies):
             return  # its twin fights on; the pair falls together
-        if t.brood:
+        for spawn in (t.brood, t.sheds):
             for e in self.world.enemies:
-                if e.type.id == t.brood:
+                if spawn and e.type.id == spawn:
                     e.kill()
         if t.dead_flag:
             self.flags.add(t.dead_flag)

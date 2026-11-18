@@ -230,7 +230,7 @@ def test_dead_glowing_enemies_go_dark():
         "mimic",
         "cinder_wisp",
         "sewer_rat",
-        "sump_reeve",
+        "sump_maw",
     ):
         _, alive = _extent(type_id, "idle", 0.5)
         _, dead = _extent(type_id, "dead", 3.0)
@@ -475,11 +475,14 @@ def test_bosses_have_boss_level_detail():
         "bellows",
         "loom_mother",
         "sexton",
-        "rat_matron",
-        "sump_reeve",
+        "sump_maw",
     )
     for boss in bosses:
         assert _drawn(boss)[1] >= 50, boss
+    # The sewers' rats are kept to a few bold shapes on purpose, Mother Gnawl too: a rat reads best
+    # as a silhouette, and fine detail (whiskers, teats, scabs) only muddied it.
+    assert _drawn("rat_matron")[1] >= 25
+    assert _drawn("giant_rat")[1] >= 15
     foes = (
         "bone_walker",
         "gaoler",
@@ -490,7 +493,6 @@ def test_bosses_have_boss_level_detail():
         "mimic",
         "ashen_husk",
         "mourner",
-        "giant_rat",
         "drowned",
         "bilge_leech",
     )
@@ -499,7 +501,7 @@ def test_bosses_have_boss_level_detail():
 
 
 def test_phase_two_changes_how_each_boss_looks():
-    for boss in ("ashen_warden", "butcher", "brand", "bellows", "sexton", "rat_matron", "sump_reeve"):
+    for boss in ("ashen_warden", "butcher", "brand", "bellows", "sexton", "rat_matron", "sump_maw"):
         (calm, calm_n), (raging, raging_n) = _drawn(boss), _drawn(boss, phase2=True)
         assert raging.glows > calm.glows or raging_n > calm_n, boss
         dead, _ = _drawn(boss, phase2=True, state="dead")
@@ -798,6 +800,42 @@ def test_the_sextons_own_moves_each_strike_their_own_pose():
         cemetery_models.dust_puff(r, k, k, 1.0)
     cemetery_models.dust_devil(r, 0.0, 1.0)  # not yet risen: nothing
     assert len(gpu.parts) > 100
+
+
+def test_the_sewer_bosses_own_moves_each_strike_their_own_pose():
+    import random
+
+    from ashen_vault.ai.enemy import Enemy
+    from ashen_vault.ai.enemy_types import EnemyTypes
+    from ashen_vault.render import sewer_models
+
+    def posed(type_id, move, pose):
+        e = Enemy(EnemyTypes.get(type_id), 0, 0, rng=random.Random(0))
+        e.state, e.state_t, e.attack_kind = "windup", 5.0, move
+        return tuple(round(v, 2) for v in pose(e, *(() if pose is sewer_models._maw_pose else (0.0,))))
+
+    moves = ("slam", "undertow", "gulp", "shed")
+    maw = {m: posed("sump_maw", m, sewer_models._maw_pose) for m in moves}
+    assert len(set(maw.values())) == len(moves)
+    rat = {m: posed("rat_matron", m, sewer_models._rat_pose) for m in ("pounce", "tail_lash", "squeal")}
+    assert len(set(rat.values())) == 3
+    # Its gullet glows while it gapes to gulp, and goes out with it.
+    e = Enemy(EnemyTypes.get("sump_maw"), 0, 0, rng=random.Random(0))
+    e.state, e.state_t, e.anim_t, e.attack_kind = "windup", 0.5, 1.0, "gulp"
+    lit = _ExtentGpu()
+    sewer_models.sump_maw(rig.Rig(lit), e, 1.0)
+    e.state, e.state_t = "dead", 3.0
+    cold = _ExtentGpu()
+    sewer_models.sump_maw(rig.Rig(cold), e, 1.0)
+    assert lit.glows > 0 and cold.glows == 0
+    gpu = _RecordingGpu()
+    r = rig.Rig(gpu)
+    for k in (0.1, 0.5, 0.9):
+        sewer_models.drowned_hands(r, k, k, 1.0)
+        sewer_models.squeal_ring(r, k, 4.5)
+    sewer_models.swarm_rat(r, 1.0)
+    sewer_models.drowned_hands(r, 0.0, 0.0, 1.0)  # not yet stirring: nothing
+    assert len(gpu.parts) > 80
 
 
 def test_a_burning_web_glows_only_while_it_burns():

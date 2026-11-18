@@ -33,8 +33,19 @@ MOVES = {
     "knell": (1.3, 9.0, 0.6),
     # The Shrouded Mourner's own: a ball of grave-fire kindled in its bony palm and thrown.
     "fireball": (0.9, 5.0, 0.8),
-    # The Sump Reeve's own: a fan of bile spewed from its gullet.
+    # The Sump Maw's own: a fan of sludge and bone spat from its maw; the undertow, the hands of the
+    # dead it swallowed bursting up under where you stand; and (second phase) the gulp, a surge along
+    # the floor maw-first that swallows you if it passes over you, and gobbets of itself sloughed off
+    # to crawl at you.
     "bile": (0.9, 6.0, 0.55),
+    "undertow": (0.9, 7.0, 0.8),
+    "gulp": (1.3, 10.0, 1.25),
+    "shed": (1.1, 13.0, 0.0),
+    # Mother Gnawl's own: a lash of her tail at whoever stands behind her, a piercing squeal that
+    # staggers all round, and (second phase) a swarm of her litter loosed along the floor at you.
+    "tail_lash": (0.45, 3.5, 0.8),
+    "squeal": (0.8, 9.0, 0.3),
+    "swarm": (1.0, 8.0, 0.35),
 }
 COMBO_SWINGS = 3
 COMBO_GAP = 0.45  # seconds between the swings of a combo
@@ -55,6 +66,22 @@ SPADEFUL_RANGE = (3.5, 11.0)
 GRASP_RANGE = (2.5, 10.0)
 FIREBALL_RANGE = (2.5, 10.0)
 BILE_RANGE = (3.0, 11.0)
+UNDERTOW_RANGE = (2.5, 11.0)
+GULP_RANGE = (3.5, 10.0)  # distances the Maw surges at you from
+GULP_SPEED = 8.0  # m/s along its surge
+GULP_TIME = 1.4  # longest a surge lasts
+GULP_OVERSHOOT = 1.5  # metres it surges on past where you stood
+GULP_HIT = 0.6  # a surge passing this close (beyond its radius) swallows you, once
+SHED_RANGE = 12.0  # it sheds its gobbets only while you are this close
+SWARM_RANGE = (3.0, 10.0)
+# The lunges along a straight line: speed (m/s), longest (s), overshoot past you (m), hit reach (m).
+LUNGES = {
+    "dive": (DIVE_SPEED, DIVE_TIME, DIVE_OVERSHOOT, DIVE_HIT),
+    "gulp": (GULP_SPEED, GULP_TIME, GULP_OVERSHOOT, GULP_HIT),
+}
+SQUEAL_RADIUS = 4.5  # metres her squeal staggers you, from any side
+TAIL_ARC = 1.9  # radians off her facing beyond which you stand in reach of her tail
+TAIL_REACH = 1.0  # extra reach of her tail over her bite
 EXHALE_REACH = 5.0  # metres the Sexton's breath of grave dust carries
 EXHALE_CONE = 0.45  # half-angle (radians) of that breath: step aside out of it
 ASHFALL_RADIUS = 3.8  # metres the ash of a dashed urn billows out, from any side
@@ -87,6 +114,11 @@ ATTACK_TIMES = {
     "exhale": 0.6,
     "ashfall": 0.45,
     "dust_devil": 0.5,
+    "tail_lash": 0.3,
+    "squeal": 0.5,
+    "swarm": 0.4,
+    "undertow": 0.6,
+    "shed": 0.5,
 }
 
 
@@ -100,7 +132,9 @@ class Enemy:
     move_enemy(enemy, dx, dz), enemy_strike(enemy, mult), enemy_fire(enemy, kind),
     for bosses with a brood, summon(enemy, type_id, count); for bosses with a rage, boss_rage(enemy),
     slam(enemy) and eruption(enemy); for hook throwers, hook(enemy, mult, pull);
-    for fire-breathers, breath(enemy); for the Sexton, grasp(enemy) and knell(enemy, wave). Optional, for twin bosses: rouse_twin(enemy), twin_fallen(enemy)
+    for fire-breathers, breath(enemy); for the Sexton, grasp(enemy) and knell(enemy, wave); for
+    Mother Gnawl, tail_lash(enemy) and squeal(enemy); for the Sump Maw, undertow(enemy),
+    gulp(enemy), shed(enemy) and can_shed(enemy). Optional, for twin bosses: rouse_twin(enemy), twin_fallen(enemy)
     and twin_busy(enemy); for bosses that rise from ash, rise_time(enemy) (seconds, or None while it
     should stay a heap; without it the heap rises when it notices you).
     """
@@ -411,6 +445,9 @@ class Enemy:
         give_up = GIVE_UP if self.type.lurk else self.type.sight * 1.5
         if dist > give_up or self._veiled(world, dist, VEIL_LOSE):
             return self._switch("idle")
+        if self._lash_ready(world, dist):  # caught slipping round behind her: before she turns
+            self.cooldowns["tail_lash"] = MOVES["tail_lash"][1] * (0.7 if self.enraged else 1.0)
+            return self._begin_windup("tail_lash")
         self.face(world.player_x, world.player_z, dt)
         t = self.type
         move = self._pick_move(world, dist)
@@ -430,6 +467,21 @@ class Enemy:
         direction = -1.0 if self.type.ranged and dist < 4.0 else 1.0
         speed = self.type.speed * (1.25 if self.enraged else 1.0)
         self._step(world, math.cos(self.yaw) * direction, math.sin(self.yaw) * direction, speed * dt)
+
+    def behind_me(self, px, pz):
+        """Whether (px, pz) lies in the arc behind its back that a tail lash sweeps."""
+        return abs(_wrap(math.atan2(pz - self.z, px - self.x) - self.yaw)) > TAIL_ARC
+
+    def tail_reach(self):
+        return self.type.reach + TAIL_REACH
+
+    def _lash_ready(self, world, dist):
+        """A tail lasher whips round at you when you stand behind it, in its tail's reach."""
+        return (
+            self.cooldowns.get("tail_lash", 1.0) <= 0
+            and dist <= self.tail_reach()
+            and self.behind_me(world.player_x, world.player_z)
+        )
 
     def _pick_move(self, world, dist):
         """Chooses a boss special attack for the range you are at, or None for a plain bite."""
@@ -476,12 +528,22 @@ class Enemy:
             options.append("fireball")
         if "bile" in ready and seen and BILE_RANGE[0] <= dist <= BILE_RANGE[1]:
             options.append("bile")
+        if "undertow" in ready and seen and UNDERTOW_RANGE[0] <= dist <= UNDERTOW_RANGE[1]:
+            options.append("undertow")
+        if "gulp" in ready and seen and GULP_RANGE[0] <= dist <= GULP_RANGE[1]:
+            options.append("gulp")
+        if "shed" in ready and dist <= SHED_RANGE and world.can_shed(self):
+            options.append("shed")
+        if "swarm" in ready and seen and SWARM_RANGE[0] <= dist <= SWARM_RANGE[1]:
+            options.append("swarm")
+        if "squeal" in ready and dist <= SQUEAL_RADIUS * 0.8:
+            options.append("squeal")
         if "knell" in ready and dist <= KNELL_RANGE:
             options.append("knell")
         if not options:
             return None
         # Up close a special is only sometimes chosen, so the plain blow stays in the mix.
-        close = {"sweep", "combo", "slam", "exhale", "ashfall"}
+        close = {"sweep", "combo", "slam", "exhale", "ashfall", "squeal"}
         if set(options) <= close and self._rng.random() < 0.5:
             for m in options:
                 self.cooldowns[m] = 1.0
@@ -496,7 +558,7 @@ class Enemy:
 
     def _windup(self, world, dt=None):
         windup = self.windup_time * (0.8 if self.enraged else 1.0)
-        if self.state_t < windup * 0.6:
+        if self.state_t < windup * 0.6 and self.attack_kind != "tail_lash":  # a lash keeps its back to you
             self.face(world.player_x, world.player_z, dt)
         if self.state_t >= windup:
             kind = self.attack_kind
@@ -505,14 +567,12 @@ class Enemy:
             if kind == "pounce":
                 # It springs at where you stand now; step aside at the last moment to dodge.
                 self._target = (world.player_x, world.player_z)
-            elif kind == "dive":
-                # It swoops through where you stand now and carries on past.
+            elif kind in LUNGES:
+                # It swoops (or surges) through where you stand now and carries on past.
+                overshoot = LUNGES[kind][2]
                 dx, dz = world.player_x - self.x, world.player_z - self.z
                 d = math.hypot(dx, dz) or 1.0
-                self._target = (
-                    world.player_x + dx / d * DIVE_OVERSHOOT,
-                    world.player_z + dz / d * DIVE_OVERSHOOT,
-                )
+                self._target = (world.player_x + dx / d * overshoot, world.player_z + dz / d * overshoot)
 
     def _attack(self, world, dist, dt=0.0):
         kind = self.attack_kind
@@ -520,13 +580,13 @@ class Enemy:
             return self._pounce(world, dt)
         if kind == "combo":
             return self._combo(world, dist, dt)
-        if kind == "dive":
+        if kind in LUNGES:
             return self._dive(world, dt)
         if kind == "knell":
             return self._knell(world)
         if not self._struck:
             self._struck = True
-            if kind in ("shot", "web", "cinders", "spadeful", "fireball", "bile"):
+            if kind in ("shot", "web", "cinders", "spadeful", "fireball", "bile", "swarm"):
                 world.enemy_fire(self, kind)
             elif kind == "summon":
                 world.summon(self, self.type.brood, 2)
@@ -548,6 +608,14 @@ class Enemy:
                 world.ashfall(self)
             elif kind == "dust_devil":
                 world.dust_devils(self)
+            elif kind == "tail_lash":
+                world.tail_lash(self)
+            elif kind == "squeal":
+                world.squeal(self)
+            elif kind == "undertow":
+                world.undertow(self)
+            elif kind == "shed":
+                world.shed(self)
             elif kind == "hook":
                 if dist <= HOOK_RANGE[1] + 0.5 and self._facing(world.player_x, world.player_z):
                     world.hook(self, MOVES["hook"][2], HOOK_PULL)
@@ -609,22 +677,27 @@ class Enemy:
             self._switch("recover")
 
     def _dive(self, world, dt):
-        """A low swoop along a straight line: it strikes you once if it passes close, and ends at
-        its mark, against a wall, or when its time runs out."""
+        """A low swoop (or the Maw's surge) along a straight line: it strikes you once if it passes
+        close, and ends at its mark, against a wall, or when its time runs out."""
+        kind = self.attack_kind
+        speed, longest, _, hit = LUNGES[kind]
         tx, tz = self._target
         dx, dz = tx - self.x, tz - self.z
         d = math.hypot(dx, dz)
-        done = d < 0.4 or self.state_t >= DIVE_TIME
+        done = d < 0.4 or self.state_t >= longest
         if not done:
-            step = min(DIVE_SPEED * dt, d)
+            step = min(speed * dt, d)
             ox, oz = self.x, self.z
             world.move_enemy(self, dx / d * step, dz / d * step)
             done = math.hypot(self.x - ox, self.z - oz) < step * 0.3
         if not self._struck:
             near = math.hypot(world.player_x - self.x, world.player_z - self.z)
-            if near <= self.radius + DIVE_HIT:
+            if near <= self.radius + hit:
                 self._struck = True
-                world.enemy_strike(self, MOVES["dive"][2])
+                if kind == "gulp":
+                    world.gulp(self)
+                else:
+                    world.enemy_strike(self, MOVES["dive"][2])
         if done:
             self._switch("recover")
 

@@ -10,7 +10,7 @@ Behaviour flags, special moves, bosses and the rules every enemy model must keep
 | `src/ashen_vault/world/shots.py` | Shots in 3D: spells follow the view's pitch, enemy shots aim at your chest, and a shot only hits a body it passes through |
 | `src/ashen_vault/world/relics.py` | Boss relics (Ember, Verdant and Iron Sigils), their drop/taken flags, `boss_falls` (twins fall together) and the three-sigil ending (the prophecy names four; the fourth's place is a TODO) |
 | `src/ashen_vault/render/cemetery_models.py` | The Cemetery of Ashes' models: the Ashen Sexton (its `grave_spade`, and `sexton_arms`, its poses for each move; `dust_puff`, `ash_billow` and `dust_devil` draw its ash), the Ashen Husk, the Shrouded Mourner (the cemetery's own lurker), `grave_walker` (the cemetery's Bone Walkers, `bone_walker model=grave`: risen in their winding sheets, a headstone shard for a shield and a length of iron railing for a weapon; the keep's keep their own look), `ash_hands` (the Sexton's grasping ash) and `ash_clod` (its spadeful), `gravestone`, `open_grave` and `cemetery_gate` (a pointed stone arch built out of the wall, black passage behind its iron leaves, a hooded mourner in a niche over the lintel and, unless `sentinels=false` as in town, hooded stone wardens either side; also the gate exit's `model=`, swung open once its `requires=` flag is set) |
-| `src/ashen_vault/render/sewer_models.py` | The Harrow Sewers' models: the Gutter Rat, the Cistern Rat and Mother Gnawl (one rat, `_rat`, at three sizes; she adds her collar, teats and mane), the Sludge Slime and its Sludge Gobbets (`_sludge`), the Drowned Wretch (face down in the sludge while it lurks), the Bilge Leech (`_leech_spine`), the Sump Reeve (his heap of sludge and drowned, his lantern, `_reeve_arms` for his moves), the ways between town and sewers (`sewer_grate` in the street, `sewer_ladder` below, set back against a wall behind it, `world.LADDER_BACK`), and the dressing: `drain_pipe`, `sluice_wheel` and `outfall_grate` (wall props), `rat_nest` |
+| `src/ashen_vault/render/sewer_models.py` | The Harrow Sewers' models: the Gutter Rat, the Cistern Rat and Mother Gnawl (one chunky rat of few parts, `_rat`, at three sizes: a high bristling back, the head low, pale legs, naked ears, milky eyes and raw `sores`; she adds her belly, collar and a mane that rises in phase two; `swarm_rat` is one of her litter loosed at you, `squeal_ring` her squeal), the Sludge Slime and its Sludge Gobbets (`_sludge`), the Drowned Wretch (face down in the sludge while it lurks), the Bilge Leech (`_leech_spine`), the Sump Maw (the Sump itself grown hungry: a wave of black-blue sludge as tall as a house, rising from a pool and cresting forward into a fanged maw that glows green within, its crest crusted with skulls (`_skull`, their eyes kindling in phase two), bones and clods of dirt stuck in its sides, a tail curling up behind; `_maw_pose` for its moves), the ways between town and sewers (`sewer_grate` in the street, `sewer_ladder` below, set back against a wall behind it, `world.LADDER_BACK`), and the dressing: `drain_pipe`, `sluice_wheel` and `outfall_grate` (wall props), `rat_nest` |
 | `src/ashen_vault/render/forge_models.py` | The Cinderhold's models (golem, bowman, hound, the gargoyles, Stormbrand and Slagbreaker, arrows, thunder and motes, flame jets, and the skyline: spires, bastions, smokestacks, the gatehouse, the keep, lavafalls); `models` imports it last and borrows its helpers |
 
 ## Rules
@@ -31,9 +31,22 @@ Behaviour flags, special moves, bosses and the rules every enemy model must keep
   of `Eruption(style="hands")`: ash hands that hurt and hold you) and `knell` (second phase: two rings of
   embers, `KNELL_GAP` apart, the second turned half a gap; `World.knell`); each of the ash moves also
   slows you, and no other foe uses them), and the Shrouded Mourner's `fireball` (grave-fire kindled in
-  its palm and thrown from afar; up close it stabs), and the Sump Reeve's `bile` (a fan of four gobbets
-  that poison and corrode, `BILE_RANGE`). Neither of the sewers' bosses (Mother Gnawl, `matron_dead`, who
-  has no great door; the Sump Reeve, `reeve_dead`) drops a relic. At half
+  its palm and thrown from afar; up close it stabs), the Sump Maw's own: `bile` (a fan of four gobbets
+  that poison and corrode, `BILE_RANGE`), `undertow` (an `Eruption(style="drowned")` under where you stand
+  and four round it: the hands of the dead it swallowed hurt, hold you and build rot,
+  `sewer_models.drowned_hands`), `gulp` (second phase: a surge along the floor maw-first through where
+  you stood, `GULP_RANGE`; a lunge like `dive`, both in `enemy.LUNGES`; passing within `GULP_HIT` it
+  swallows you once, `World.gulp`, a heavy blow, and for `GULP_GLOOM` seconds the dark of its gut stays
+  on your eyes, `World.gloom_t` / `World.dark_here`, which the game's darkness eases toward) and `shed` (second phase: `SHED_COUNT` of its `sheds` type, Sludge Gobbets,
+  sloughed off round it, `World.shed`; never while `SHED_MAX` of them still crawl, `World.can_shed`;
+  they die with it), and Mother Gnawl's own: `tail_lash` (never picked by `_pick_move`: in `_chase`,
+  before she turns, she lashes at you when you stand behind her, past `TAIL_ARC` off her facing and within
+  `Enemy.tail_reach`, and keeps her back to you through the windup; `World.tail_lash` only lands on you
+  still behind her), `squeal` (unblockable, from any side within `SQUEAL_RADIUS`: light harm and a stagger,
+  a `Shockwave(style="squeal")`) and `swarm` (second phase: five of her litter loosed in a fan along the
+  floor, `SWARM_HEIGHT` up, projectiles of effect "rat" that build rot). Neither of the sewers' bosses
+  (Mother Gnawl, `matron_dead`, behind a great door at each of her nest's two mouths; the Sump Maw,
+  `maw_dead`) drops a relic. At half
   HP a boss with a `brood` calls it and one with a `rage` kindles it (the Warden's burning blade);
   either way it enters its second phase (`Enemy.phase2`), fights faster and adds its `phase_moves`.
   `perch` spawns a statue (`Enemy.perched`) that wakes when it sees you, or is struck; it then spends
@@ -66,7 +79,8 @@ Behaviour flags, special moves, bosses and the rules every enemy model must keep
   Every model has a death pose (eased by `models.death_fall`); `tests/test_render_logic.py` checks
   that each one collapses, stays above the floor and fits its `height`, so update both together.
   Its `tall` is the top of the standing body: a spell bolt flying higher misses it (`world/shots.py`).
-  Bosses must stay boss-sized in detail (at least 50 parts, 30 for armed and armoured regulars) and
+  Bosses must stay boss-sized in detail (at least 50 parts, 30 for armed and armoured regulars; the
+  sewers' rats are the exception, kept to a few bold shapes on purpose: Mother Gnawl 25, the Cistern Rat 15) and
   look different in their second phase (`test_bosses_have_boss_level_detail`,
   `test_phase_two_changes_how_each_boss_looks`), and every glow goes out in death.
 - Foes that wield a weapon chop overhead (`models.chop_angle`) and hold it in a fist (`models.held`,

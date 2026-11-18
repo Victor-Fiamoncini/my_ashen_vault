@@ -16,8 +16,9 @@ edge_tex = sewer_brick
 // Drains, narrow vaulted runs under the market lanes; the Canal Culvert by the canal's head; and the
 // Quay Outfall, where the sewers pour out through great grates into the sea. Between the cistern and
 // the outfall Mother Gnawl, the rats' brood-mother, keeps her nest; below the outfall a stair goes down
-// to the Sump, and behind its door the Sump Reeve, the drowned keeper of the drains, rules the deepest
-// cistern. Wadeable sludge (slow going) fills the gutters; the clearer channels cast you back out.
+// to the Sump, and behind its door the Sump Maw, the Sump itself grown hungry (a wave of sludge as tall
+// as a house, its fanged maw crusted with skulls), fills the deepest cistern. Wadeable sludge (slow
+// going) fills the gutters; the clearer channels cast you back out.
 
 [legend]
 # = wall tex=sewer_brick top=6
@@ -30,7 +31,7 @@ s = floor tex=sludge h=-0.4 ceil=3.4 ceil_tex=sewer_vault side=sewer_brick slow=
 ~ = water tex=bog h=-0.9 ceil=3.4 ceil_tex=sewer_vault side=sewer_brick
 w = water tex=bog h=-0.9 ceil=6 ceil_tex=sewer_vault side=sewer_brick
 _ = floor tex=sludge h=-6 ceil=3.4 ceil_tex=sewer_vault side=sewer_brick chasm
-| = floor tex=flagstone h=-4 ceil=3.4 ceil_tex=sewer_vault side=sewer_brick chasm
+| = floor tex=flagstone h=-8 ceil=3.4 ceil_tex=sewer_vault side=sewer_brick chasm
 n = floor tex=dirt h=0 ceil=4 ceil_tex=sewer_vault side=sewer_brick dark=0.35
 x = floor tex=bog h=-0.4 ceil=4 ceil_tex=sewer_vault side=sewer_brick hurt=4 slow=0.5 dark=0.2
 o = floor tex=flagstone h=0 ceil=5 ceil_tex=sewer_vault side=sewer_brick
@@ -42,12 +43,19 @@ p = floor tex=sludge h=-0.4 ceil=5 ceil_tex=sewer_vault side=sewer_brick slow=0.
 5 = floor tex=flagstone h=-2.5 ceil=1 ceil_tex=sewer_vault side=sewer_brick dark=0.5
 6 = floor tex=flagstone h=-3 ceil=0.5 ceil_tex=sewer_vault side=sewer_brick dark=0.5
 7 = floor tex=flagstone h=-3.5 ceil=0 ceil_tex=sewer_vault side=sewer_brick dark=0.45
-8 = floor tex=flagstone h=-4 ceil=0 ceil_tex=sewer_vault side=sewer_brick dark=0.4
-u = floor tex=flagstone h=-4 ceil=0 ceil_tex=sewer_vault side=sewer_brick dark=0.35
-k = floor tex=sludge h=-4.4 ceil=0 ceil_tex=sewer_vault side=sewer_brick slow=0.6 dark=0.4
-y = floor tex=bog h=-4.4 ceil=0 ceil_tex=sewer_vault side=sewer_brick hurt=4 slow=0.5 dark=0.3
-b = floor tex=flagstone h=-4 ceil=1.5 ceil_tex=sewer_vault side=sewer_brick dark=0.15
-q = floor tex=sludge h=-4.4 ceil=1.5 ceil_tex=sewer_vault side=sewer_brick slow=0.6 dark=0.15
+8 = floor tex=flagstone h=-4 ceil=-0.5 ceil_tex=sewer_vault side=sewer_brick dark=0.4
+9 = floor tex=flagstone h=-4.5 ceil=-1 ceil_tex=sewer_vault side=sewer_brick dark=0.4
+a = floor tex=flagstone h=-5 ceil=-1.5 ceil_tex=sewer_vault side=sewer_brick dark=0.4
+c = floor tex=flagstone h=-5.5 ceil=-2 ceil_tex=sewer_vault side=sewer_brick dark=0.4
+e = floor tex=flagstone h=-6 ceil=-2.5 ceil_tex=sewer_vault side=sewer_brick dark=0.4
+f = floor tex=flagstone h=-6.5 ceil=-3 ceil_tex=sewer_vault side=sewer_brick dark=0.4
+g = floor tex=flagstone h=-7 ceil=-3.5 ceil_tex=sewer_vault side=sewer_brick dark=0.4
+h = floor tex=flagstone h=-7.5 ceil=-4 ceil_tex=sewer_vault side=sewer_brick dark=0.4
+u = floor tex=flagstone h=-8 ceil=-4 ceil_tex=sewer_vault side=sewer_brick dark=0.35
+k = floor tex=sludge h=-8.4 ceil=-4 ceil_tex=sewer_vault side=sewer_brick slow=0.6 dark=0.4
+y = floor tex=bog h=-8.4 ceil=-4 ceil_tex=sewer_vault side=sewer_brick hurt=4 slow=0.5 dark=0.3
+b = floor tex=flagstone h=-8 ceil=-2.5 ceil_tex=sewer_vault side=sewer_brick dark=0.15
+q = floor tex=sludge h=-8.4 ceil=-2.5 ceil_tex=sewer_vault side=sewer_brick slow=0.6 dark=0.15
 
 [grid]
 ################################################
@@ -77,14 +85,14 @@ q = floor tex=sludge h=-4.4 ceil=1.5 ceil_tex=sewer_vault side=sewer_brick slow=
 ########d######B###F,,Ì,,,,Ì,,,######uuuuuuJuu##
 ########J######R###,,P,,,,,,P,,######Vuuuuuuuu##
 ########d##########,,,H,,,Ê,I,,######FuFuuÍFuu##
-########dHHddd#####F,,,F,,F,,,F##############8##
-########d###########,########,###############7##
+########dHHddd#####F,,,F,,F,,,F#######h#########
+########d###########,########Ù########gfeÜa987##
 ########d########dddd########n###############6##
-########G########É######FnnnnnnÄnnF##########Í##
-########d########G######nnnÄnnMnnÈn##########G##
+########G########É######FnnnnnnÄnnF##########5##
+########d########G######nnnÄnnMnnÈn##########Ø##
 ########Í########d######xËÈnnnnnnnn##########3##
 #T######d########d######xxnnnnnnÄnn##########2##
-#dW.FI....F.....È.###############n###########1##
+#dW.FI....F.....È.###############Ù###########1##
 #G#~~.~~~~~~ËÔ--K-#############FooFooppoooFooF##
 ###Â..........F..F.....Z.Y.....oooooopÕooooooo##
 #######C#######################ÂoooooËpooooooo##
@@ -118,10 +126,12 @@ L = bilge_leech on==
 Ô = bilge_leech on=-
 Õ = bilge_leech on=p
 Ö = bilge_leech on=k
-// Mother Gnawl in her nest between the cistern and the outfall, and the Sump Reeve behind his door.
+// Mother Gnawl in her nest between the cistern and the outfall, and the Sump Maw behind its door.
 M = rat_matron
-N = sump_reeve
-O = door boss=reeve_dead
+N = sump_maw
+O = door boss=maw_dead
+// Her nest has a great door at each mouth: die in there and both give way to fog.
+Ù = door boss=matron_dead
 // Finds: ailments' remedies mostly, for the sewers breed them all.
 Q = chest item=bitter_root count=2 gold=40
 R = chest item=clotting_salve count=2 gold=60
@@ -151,3 +161,5 @@ Z = bridge lever=sluice_bridge hinge=e deck=0 on=_
 Ë = light y=0.6 color=0.55,0.85,0.3 radius=4
 Ì = brazier radius=10
 Í = mushrooms
+Ø = fungus radius=4 on=4
+Ü = fungus radius=4 on=c

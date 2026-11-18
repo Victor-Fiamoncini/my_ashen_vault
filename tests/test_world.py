@@ -933,25 +933,30 @@ def test_the_sewer_grates_and_ladders_join_town_and_sewers_both_ways():
 
 def test_harrow_sewers_is_solvable():
     """From the market's ladder every district, chest, lever and ladder and both bosses can be reached
-    with only the false walls and the Reeve's great door opened; the Reeve waits behind it. The barred
-    door, the drawbridge and the lift are shortcuts, each joining two places you can already reach.
-    Nowhere you can get to strands you."""
+    with only the false walls and the bosses' great doors opened: Mother Gnawl's nest, midway, behind
+    one at each of its two mouths, and the Maw behind his. The barred door, the drawbridge and the
+    lift are shortcuts, each joining two places you can already reach. Nowhere you can get to strands
+    you."""
     m = _sewers()
     assert m.meta["name"] == "The Harrow Sewers"
     start = tuple(int(v) for v in m.meta["start"][:2])
     secrets = [(s.tx, s.tz) for s in _spec(m, "secret_wall")]
-    (door,) = _spec(m, "door", boss="reeve_dead")
-    (reeve,) = _spec(m, "sump_reeve")
+    (door,) = _spec(m, "door", boss="maw_dead")
+    (maw,) = _spec(m, "sump_maw")
     (matron,) = _spec(m, "rat_matron")
+    nest = [(s.tx, s.tz) for s in _spec(m, "door", boss="matron_dead")]
+    assert len(nest) == 2
     before = _reachable(m, start, open_tiles=secrets)
-    assert (reeve.tx, reeve.tz) not in before  # his cistern lies behind its great door
-    assert (matron.tx, matron.tz) in before  # she keeps an open nest, midway
-    opened = _reachable(m, start, open_tiles=[*secrets, (door.tx, door.tz)])
+    assert (matron.tx, matron.tz) not in before  # her nest lies behind its great doors
+    through = _reachable(m, start, open_tiles=[*secrets, *nest])
+    assert (matron.tx, matron.tz) in through
+    assert (maw.tx, maw.tz) not in through  # its cistern lies behind its own great door
+    opened = _reachable(m, start, open_tiles=[*secrets, *nest, (door.tx, door.tz)])
     for s in m.entities:
-        if s.kind in ("chest", "lever", "exit", "rat_matron", "sump_reeve"):
+        if s.kind in ("chest", "lever", "exit", "rat_matron", "sump_maw"):
             assert (s.tx, s.tz) in opened, (s.kind, s.props, s.tx, s.tz)
         if s.kind == "chest":
-            assert (s.tx, s.tz) in before
+            assert (s.tx, s.tz) in through
     (shrine,) = _spec(m, "save_statue")
     assert {(shrine.tx + dx, shrine.tz + dz) for dx, dz in BESIDE} & before
     for s in _spec(m, "door", **{"from": "n"}):  # the barred short way down from the sluices
@@ -966,11 +971,12 @@ def test_harrow_sewers_is_solvable():
         sx, sz = TileMap.tile_coord(p.x), TileMap.tile_coord(p.z)
         near = {(sx + dx, sz + dz) for dx, dz in BESIDE}
         assert {round(m[t].floor, 1) for t in near & opened} >= {p.low, p.high}, (sx, sz)
+        assert p.high - p.low >= 8  # the Sump lies deep: the ride up to the cistern feels like one
     doors = [(s.tx, s.tz) for s in m.entities if s.kind in ("door", "secret_wall")]
     full = _reachable(m, start, open_tiles=doors, shortcuts=True)
     for tile in full:
         assert start in _reachable(m, tile, open_tiles=doors, shortcuts=True), tile
-    assert m[reeve.tx, reeve.tz].floor < min(m[s.tx, s.tz].floor for s in _spec(m, "exit"))  # the deepest
+    assert m[maw.tx, maw.tz].floor < min(m[s.tx, s.tz].floor for s in _spec(m, "exit"))  # the deepest
 
 
 def test_the_sewers_drowned_and_leeches_lie_in_the_sludge():

@@ -126,11 +126,11 @@ SHOTS = [
         "Mother Gnawl, a giant rat with glowing red eyes, risen in her dark nest, her health bar above",
     ),
     Shot(
-        "sump_reeve",
+        "sump_maw",
         "--map harrow_sewers --at=41,13,-90 --level 4 --equip primary=spiked_club,secondary=round_shield "
         '--smoke 300 --script "wait:4.5"',
-        "The Sump Reeve, behind his great door",
-        "The Sump Reeve, a heap of sludge and drowned bodies holding up a lantern, in his flooded cistern",
+        "The Sump Maw, behind its great door",
+        "The Sump Maw, a wave of black sludge crusted with skulls, its fanged maw open, in its flooded cistern",
     ),
     Shot(
         "combat",

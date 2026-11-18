@@ -68,7 +68,7 @@ def enemy(r, e):
         "slimelet": sewer_models.slimelet,
         "drowned": sewer_models.drowned,
         "bilge_leech": sewer_models.bilge_leech,
-        "sump_reeve": sewer_models.sump_reeve,
+        "sump_maw": sewer_models.sump_maw,
     }.get(e.type.id)
     if e.type.id == "bone_walker" and getattr(e, "look", None) == "grave":
         fn = cemetery_models.grave_walker  # the cemetery's own dead, risen in their winding sheets
@@ -2485,10 +2485,13 @@ BOSS_DOORS = {
     "sexton_dead": DoorStyle(
         (118, 112, 106), "wood_plank", (58, 56, 60), (122, 118, 112), "rough_stone", "candle"
     ),
-    # The Sump Reeve: the old sluice-boards of the deepest cistern, slimed green, in a sewer-brick arch,
-    # drain-keepers' lanterns burning bile-green on the jambs.
-    "reeve_dead": DoorStyle(
-        (76, 82, 60), "wood_plank", (88, 62, 44), (100, 74, 62), "sewer_brick", "lantern"
+    # The Sump Maw: the old sluice-boards of the deepest cistern, slimed green, in a sewer-brick arch,
+    # drain-keepers' lanterns burning sickly green on the jambs.
+    "maw_dead": DoorStyle((76, 82, 60), "wood_plank", (88, 62, 44), (100, 74, 62), "sewer_brick", "lantern"),
+    # Mother Gnawl: rotten boards gnawed ragged at the foot, in a sewer-brick arch, a rat's skull on each
+    # jamb whose eyes glint red while she lives.
+    "matron_dead": DoorStyle(
+        (88, 74, 58), "wood_plank", (70, 60, 56), (92, 70, 60), "sewer_brick", "rat_skull"
     ),
 }
 DEFAULT_DOOR = "boss_dead"
@@ -2536,6 +2539,14 @@ def _door_lamp(r, style, face, t, lit):
             r.part(
                 "cube", face * 0.13, 0.26, dz * 0.03, 0.02, 0.02, 0.02, EMBER if lit else COLD_EMBER, glow=lit
             )
+        return
+    if style.lamp == "rat_skull":  # a big rat's skull, its sockets glinting red
+        r.part("sphere", face * 0.02, 0.06, 0, 0.14, 0.11, 0.12, RAT_BONE)
+        r.part("cube", face * 0.12, 0.03, 0, 0.12, 0.06, 0.07, RAT_BONE)  # the snout
+        r.part("cube", face * 0.17, -0.02, 0, 0.02, 0.06, 0.03, (200, 170, 90))  # the incisors
+        for dz in (-1, 1):
+            r.part("cube", face * 0.1, 0.1, dz * 0.05, 0.03, 0.03, 0.03, RAT_GLINT if lit else COLD_EMBER,
+                   glow=lit)  # fmt: skip
         return
     r.part("cube", 0, 0, 0, 0.12, 0.16, 0.12, style.iron)
     if not lit:
@@ -2642,24 +2653,54 @@ def _sexton_leaf(r, style, side, face, t, lit):
                _dim(style.wood, 0.5 + 0.08 * k))  # fmt: skip
 
 
-def _reeve_arch(r, style, t, lit):
-    """A drain grate set in the lintel, sludge seeping through it and down the stone, and the Reeve's
-    brass badge over it, its key glinting while he lives."""
+def _maw_arch(r, style, t, lit):
+    """A drain grate set in the lintel, black sludge seeping through it and down the stone, and a
+    skull stuck in the sludge over it, its eyes glowing green while the Maw lives."""
     for face in (-1, 1):
         with r.at(face * 0.26, 3.05, 0):
             for z in (-0.3, -0.1, 0.1, 0.3):
                 r.part("cube", 0, 0, z, 0.03, 0.34, 0.05, style.iron)  # the grate's bars
             r.part(
-                "cube", 0, -0.2 - 0.05 * math.sin(t * 1.3 + face), 0.1, 0.03, 0.4, 0.07, (70, 64, 38)
+                "cube", 0, -0.2 - 0.05 * math.sin(t * 1.3 + face), 0.1, 0.03, 0.4, 0.07, (34, 42, 52)
             )  # seep
-            r.part("cyl", 0.01, 0.26, 0, 0.2, 0.03, 0.2, (176, 140, 64), rz=math.pi / 2)  # the badge
-            r.part("cube", 0.03, 0.26, 0, 0.01, 0.03, 0.12, (150, 190, 60) if lit else COLD_EMBER, glow=lit)
+            r.part("sphere", 0, 0.26, 0, 0.2, 0.14, 0.24, (40, 50, 66))  # a clot of the Maw's sludge
+            r.part("sphere", 0.05, 0.28, 0, 0.12, 0.16, 0.14, (200, 192, 164))  # the skull in it
+            for z in (-0.035, 0.035):  # its eyes
+                r.part(
+                    "cube", 0.11, 0.3, z, 0.01, 0.025, 0.025, (110, 200, 140) if lit else COLD_EMBER, glow=lit
+                )
 
 
-def _reeve_leaf(r, style, side, face, t, lit):
+def _maw_leaf(r, style, side, face, t, lit):
     """Old sluice-boards slimed green to the tide line, an iron ring to haul them by."""
     r.part("cube", face * 0.085, 0.45, 0, 0.02, 0.9, 0.92, (58, 70, 40))  # the slime below the tide line
     r.part("cube", face * 0.1, 1.5, -side * 0.25, 0.03, 0.16, 0.16, style.iron, rx=math.pi / 4)  # the ring
+
+
+RAT_BONE = (196, 184, 156)
+RAT_GLINT = (230, 60, 40)
+
+
+def _matron_arch(r, style, t, lit):
+    """A tuft of her nest, rags and straw, stuffed along the lintel, little rat skulls strung under it."""
+    for face in (-1, 1):
+        with r.at(face * 0.27, 3.32, 0):
+            for z in (-0.6, -0.15, 0.3, 0.7):
+                r.part("sphere", 0, 0, z, 0.14, 0.1, 0.24, (96, 84, 62) if z < 0 else (120, 104, 70))
+        sway = math.sin(t * 0.9 + face) * 0.05
+        for z in (-0.45, 0.45):
+            with r.at(face * 0.27, 2.78, z, rx=sway):
+                r.part("cube", 0, 0.0, 0, 0.012, 0.08, 0.012, (80, 72, 60))  # the cord
+                r.part("sphere", 0, -0.08, 0, 0.06, 0.05, 0.05, RAT_BONE)  # a skull
+
+
+def _matron_leaf(r, style, side, face, t, lit):
+    """The boards gnawed ragged along their foot, the gaps dark."""
+    for i in range(2):
+        z = (-0.2 + i * 0.4) * side
+        r.part(
+            "cube", face * 0.085, 0.08 + 0.04 * (i % 2), z, 0.02, 0.16 + 0.06 * (i % 2), 0.16, PASSAGE_DARK
+        )
 
 
 DOOR_ARCHES = {
@@ -2668,7 +2709,8 @@ DOOR_ARCHES = {
     "spider_dead": _loom_arch,
     "gargoyles_dead": _gargoyle_arch,
     "sexton_dead": _sexton_arch,
-    "reeve_dead": _reeve_arch,
+    "maw_dead": _maw_arch,
+    "matron_dead": _matron_arch,
 }
 DOOR_LEAVES = {
     "boss_dead": _warden_leaf,
@@ -2676,7 +2718,8 @@ DOOR_LEAVES = {
     "spider_dead": _loom_leaf,
     "gargoyles_dead": _gargoyle_leaf,
     "sexton_dead": _sexton_leaf,
-    "reeve_dead": _reeve_leaf,
+    "maw_dead": _maw_leaf,
+    "matron_dead": _matron_leaf,
 }
 FOG_RISE = 0.3  # how many times a second a billow of the fog gate climbs from the floor to its top
 

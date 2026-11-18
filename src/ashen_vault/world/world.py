@@ -13,6 +13,7 @@ from ashen_vault.ai.enemy import (
     EXHALE_REACH,
     MOVES,
     SLAM_RADIUS,
+    SQUEAL_RADIUS,
     STATUE_BURST,
     Enemy,
 )
@@ -402,6 +403,18 @@ GRASP_PAST = 2.0  # metres the line runs on past where you stand
 GRASP_HOLD = 1.6  # seconds a hand that catches you holds you (slowed, as by silk)
 KNELL_SHOTS = 10  # embers in each ring of the Sexton's knell
 KNELL_SPEED = 5.0
+# What wounds you when an eruption of each style catches you (fire otherwise).
+ERUPTION_SOURCES = {"hands": "The grasping ash", "drowned": "A drowned hand"}
+SQUEAL_STAGGER = 1.2  # seconds Mother Gnawl's squeal leaves you stumbling
+SWARM_SPEED = 7.0  # m/s her litter scurries along the floor
+SWARM_HEIGHT = 0.3  # metres off the floor they run
+SWARM_ROT = (("rot", 22),)
+UNDERTOW_RING = 1.3  # metres from your spot to each of the four hands round it
+UNDERTOW_ROT = 25  # rot the drowned's grip builds
+GULP_GLOOM = 2.5  # seconds the dark of the Maw's gut stays on your eyes after it spits you out
+GULP_DARK = 0.85  # how dark it gets, as on a `dark=` tile
+SHED_COUNT = 2  # gobbets the Maw sloughs off at a time
+SHED_MAX = 4  # it sheds no more while this many of them still crawl
 ASH_CLOD = (150, 144, 138)  # the grey of a spadeful of grave ash
 MAIDEN_CYCLE = 3.0  # seconds the iron maiden's door stays in motion after use
 FROG_CROAK = 1.2  # seconds the stone frog's throat swells after a pat
@@ -489,6 +502,7 @@ class World:
         self.hazards = []
         self.eruptions = []  # fire columns the Warden calls up
         self.shockwaves = []  # rings sent out by his slam (only for show)
+        self.gloom_t = 0.0  # seconds left of the dark the Sump Maw's gut leaves on you
         self.devils = []  # the Sexton's whirlwinds of ash
         self._safe = None  # centre of the last solid tile the player stood on
         self.ash = AshCloud()
@@ -935,14 +949,25 @@ class World:
         return here in arena.tiles and arena.clear_of_gate(p.x, p.z, Player.RADIUS)
 
     def _update_arenas(self):
+        """Seals and opens the arenas. A lair with two mouths has a door (an Arena) at each, all under
+        one flag: they seal, fog and open together, and say so once."""
         here = (TileMap.tile_coord(self.player.x), TileMap.tile_coord(self.player.z))
+        told = set()  # (flag, event) already announced this update
+
+        def tell(a, event, message, sound=True):
+            if (a.flag, event) in told:
+                return
+            told.add((a.flag, event))
+            if sound:
+                self.game.sfx("door")
+            self.game.message(message)
+
         for a in self.arenas:
             if a.sealed and a.cleared(self.flags):
                 a.sealed = False
                 if a.door.open_t < 1.0:
                     a.door.open_t = max(a.door.open_t, 0.01)
-                self.game.sfx("door")
-                self.game.message("The way out grinds open.")
+                tell(a, "open", "The way out grinds open.")
                 continue
             bosses = [
                 (
@@ -957,11 +982,10 @@ class World:
                 continue
             a.sealed = True
             if a.fogged(self.flags):
-                self.game.message("The fog closes behind you.")
+                tell(a, "fog", "The fog closes behind you.", sound=False)
             else:
                 a.door.open_t = 0.0
-                self.game.sfx("door")
-                self.game.message("The great door slams shut behind you!")
+                tell(a, "slam", "The great door slams shut behind you!")
 
     def _door_axis(self, tx, tz):
         """A door blocks the axis it is not aligned with: corridor walls tell us which."""
@@ -1299,6 +1323,14 @@ class World:
                 self._fire_one(enemy, kind, spread)
             self.game.sfx("hiss", 0.9)
             return
+        if kind == "swarm":
+            # Her litter loosed at you along the floor: five rats in a fan, low enough that only
+            # stepping out of their lines avoids them.
+            for spread in (-0.4, -0.2, 0.0, 0.2, 0.4):
+                self._fire_rat(enemy, spread)
+            self.game.sfx("enemy_die", 0.4)
+            self.game.message(f"{enemy.type.called}'s litter pours out at you!")
+            return
         if kind == "spadeful":
             # A spadeful of grave ash flung in a fan of five clods: each that hits clogs your stride.
             for spread in (-0.44, -0.22, 0.0, 0.22, 0.44):
@@ -1339,9 +1371,96 @@ class World:
             )
         )
 
+    def _fire_rat(self, enemy, spread):
+        y = self.enemy_y(enemy) + SWARM_HEIGHT
+        player = self.player
+        dx, _dy, dz = shots.toward(enemy.x, y, enemy.z, player.x, y, player.z, SWARM_SPEED, spread)
+        lead = enemy.radius / SWARM_SPEED
+        self.projectiles.append(
+            Projectile(
+                x=enemy.x + dx * lead,
+                y=y,
+                z=enemy.z + dz * lead,
+                dx=dx,
+                dz=dz,
+                life=2.0,
+                damage=rround(enemy.type.damage * MOVES["swarm"][2]),
+                hostile=True,
+                rgb=sewer_models.RAT_FUR,
+                source=enemy.name,
+                effect="rat",
+                inflicts=SWARM_ROT,
+            )
+        )
+
+    def tail_lash(self, enemy):
+        """Mother Gnawl whips her tail round through the arc behind her: it lands only on someone still
+        standing there, in its reach."""
+        player = self.player
+        self.game.sfx("swing", 0.8)
+        d = math.hypot(player.x - enemy.x, player.z - enemy.z)
+        reached = player.alive and enemy.behind_me(player.x, player.z) and d <= enemy.tail_reach() + 0.3
+        if reached and self.enemy_strike(enemy, MOVES["tail_lash"][2]) > 0:
+            self.game.message(f"{enemy.type.called}'s tail lashes you!")
+
+    def squeal(self, enemy):
+        """Mother Gnawl rears and squeals: within SQUEAL_RADIUS, from any side, it pierces you (no
+        shield stops a sound) and leaves you stumbling. Be out of earshot when she rears."""
+        floor = self.enemy_y(enemy)
+        self.shockwaves.append(Shockwave(enemy.x, enemy.z, floor, SQUEAL_RADIUS, style="squeal"))
+        self.game.sfx("enemy_die", 1.0)
+        player = self.player
+        if player.alive and math.hypot(player.x - enemy.x, player.z - enemy.z) <= SQUEAL_RADIUS:
+            dmg = foe_harm(enemy.type.damage * MOVES["squeal"][2])
+            self.game.hurt_player(max(rround(dmg - player.inventory.defense * 0.3), 1), enemy.name)
+            player.webbed_t = max(player.webbed_t, SQUEAL_STAGGER)
+            self.game.message(f"{enemy.type.called}'s squeal pierces your skull!")
+
+    def undertow(self, enemy):
+        """The Sump Maw sinks into itself: the sludge bubbles where you stand and round it, then the
+        hands of the dead it swallowed burst up there (`Eruption` style "drowned"). Step off it."""
+        player = self.player
+        damage = rround(enemy.type.damage * MOVES["undertow"][2])
+        spots = [(player.x, player.z)]
+        for i in range(4):
+            a = i * math.pi / 2 + enemy.yaw
+            spots.append((player.x + math.cos(a) * UNDERTOW_RING, player.z + math.sin(a) * UNDERTOW_RING))
+        for n, (x, z) in enumerate(spots):
+            tile = self.map.tile_at(x, z)
+            if tile.solid or not tile.walkable:
+                continue
+            self.eruptions.append(
+                Eruption(x, z, tile.floor, delay=0.0 if n == 0 else 0.12, damage=damage, style="drowned")
+            )
+        self.game.sfx("hiss", 1.0)
+        self.game.message("The sludge stirs under your feet!")
+
+    def gulp(self, enemy):
+        """The Sump Maw's surge has passed over you: it swallows you whole (a heavy blow, as any
+        shield allows), and for GULP_GLOOM seconds after it spits you out the dark of its gut stays
+        on your eyes."""
+        if self.enemy_strike(enemy, MOVES["gulp"][2]) > 0:
+            self.gloom_t = GULP_GLOOM
+            self.game.sfx("hiss", 1.0)
+            self.game.message(f"{enemy.type.called} swallows you whole, and spits you out!")
+
+    def dark_here(self):
+        """How dark it is where you stand (0..1): the tile's own darkness, or deeper while the dark of
+        the Maw's gut is still on your eyes."""
+        dark = self.map.tile_at(self.player.x, self.player.z).dark
+        return max(dark, GULP_DARK) if self.gloom_t > 0 else dark
+
     def summon(self, enemy, type_id, count):
         """A boss calls `count` of its brood, spread out around itself."""
-        type_ = EnemyTypes.get(type_id)
+        self._spawn_round(enemy, EnemyTypes.get(type_id), count)
+        self.game.sfx("enemy_die", 0.5)
+        self.game.message(
+            f"{enemy.type.called} shrieks, and {'her' if enemy.type.proper else 'its'} brood answers."
+        )
+
+    def _spawn_round(self, enemy, type_, count):
+        """`count` foes of `type_` spread round `enemy`, already after you (where a wall is in the way,
+        on its own spot)."""
         for i in range(count):
             a = enemy.yaw + math.pi / 2 + i * 2 * math.pi / count
             x = enemy.x + math.cos(a) * (enemy.radius + 0.8)
@@ -1352,10 +1471,19 @@ class World:
             child = Enemy(type_, x, z, yaw=a)
             child.state = "chase"
             self.enemies.append(child)
-        self.game.sfx("enemy_die", 0.5)
-        self.game.message(
-            f"{enemy.type.called} shrieks, and {'her' if enemy.type.proper else 'its'} brood answers."
-        )
+
+    def can_shed(self, enemy):
+        """Whether the Maw may slough off more gobbets: not while SHED_MAX of them still crawl."""
+        alive = sum(e.alive and e.type.id == enemy.type.sheds for e in self.enemies)
+        return enemy.type.sheds is not None and alive < SHED_MAX
+
+    def shed(self, enemy):
+        """The Maw sloughs SHED_COUNT gobbets of itself off its sides, and they crawl at you."""
+        if not self.can_shed(enemy):
+            return
+        self._spawn_round(enemy, EnemyTypes.get(enemy.type.sheds), SHED_COUNT)
+        self.game.sfx("hiss", 1.0)
+        self.game.message(f"{enemy.type.called} sloughs off gobbets of itself, and they crawl at you!")
 
     def split(self, enemy):
         """A slain splitter bursts into `split_count` of its `splits` type, spread round where it fell
@@ -1548,23 +1676,28 @@ class World:
             self.sfx_near("lob", h.x, h.z, *LOB_SOUND)
 
     def _update_fire(self, dt):
-        """The Warden's fire columns and slam rings."""
+        """The Warden's fire columns and slam rings, the hands that burst up, and the Maw's gloom."""
         player = self.player
+        self.gloom_t = max(self.gloom_t - dt, 0.0)
         for f in self.eruptions:
             if f.update(dt):
-                sound = "quake" if f.style == "hands" else "eruption"
+                sound = "quake" if f.style == "hands" else "hiss" if f.style == "drowned" else "eruption"
                 self.sfx_near(sound, f.x, f.z, *(BOMB_SOUND if f.origin else ERUPTION_SOUND))
             if player.alive:
                 dmg = f.hit(player.x, player.z)
                 if dmg:
-                    hands = f.style == "hands"
+                    hands = f.style in ("hands", "drowned")
                     if f.origin is None:  # a foe's fire, not a magma vent's bomb
                         dmg = foe_harm(dmg)
                     hurt = max(rround(dmg - player.inventory.defense * 0.3), 1)
-                    self.game.hurt_player(hurt, "The grasping ash" if hands else "The fire")
+                    self.game.hurt_player(hurt, ERUPTION_SOURCES.get(f.style, "The fire"))
                     if hands:
                         player.webbed_t = max(player.webbed_t, GRASP_HOLD)
+                    if f.style == "hands":
                         self.game.message("Hands of ash clutch at your legs!")
+                    elif f.style == "drowned":
+                        self.afflict_player("rot", UNDERTOW_ROT)
+                        self.game.message("The drowned drag at your legs!")
         self.eruptions = [f for f in self.eruptions if not f.done]
         for w in self.shockwaves:
             w.update(dt)
@@ -2403,6 +2536,8 @@ class World:
             with rig.at(f.x, f.floor, f.z):
                 if f.style == "hands":
                     cemetery_models.ash_hands(rig, f.glow, f.flame, self._time + f.x)
+                elif f.style == "drowned":
+                    sewer_models.drowned_hands(rig, f.glow, f.flame, self._time + f.x)
                 else:
                     models.eruption(rig, f.glow, f.flame, self._time)
             bomb = f.bomb()
@@ -2411,13 +2546,15 @@ class World:
                 with rig.at(*bomb):
                     forge_models.magma_bomb(rig, self._time)
         for w in self.shockwaves:
-            if w.style == "ash":  # grave ash, lit by the room rather than glowing
+            if w.style in ("ash", "squeal"):  # lit by the room rather than glowing
                 self._model_light(gpu, w.x, w.floor + 1.0, w.z)
             else:
                 gpu.model_light((1.6, 1.4, 1.2))
             with rig.at(w.x, w.floor, w.z):
                 if w.style == "ash":
                     cemetery_models.ash_billow(rig, w.progress, w.radius, self._time)
+                elif w.style == "squeal":
+                    sewer_models.squeal_ring(rig, w.progress, w.radius)
                 else:
                     models.shockwave_ring(rig, w.progress, w.radius)
         for d in self.devils:
@@ -2438,7 +2575,7 @@ class World:
                         models.gout_puff(rig, size, heat, self._time, seed=i * 1.7)
         for pr_ in self.projectiles:
             gpu.model_light((1.6, 1.4, 1.2))
-            if pr_.effect in ("arrow", "thunder", "thorn", "mote"):  # these fly point first
+            if pr_.effect in ("arrow", "thunder", "thorn", "mote", "rat"):  # these fly point first
                 heading = -math.atan2(pr_.dz, pr_.dx)
                 climb = math.atan2(pr_.dy, math.hypot(pr_.dx, pr_.dz))
                 with rig.at(pr_.x, pr_.y, pr_.z, ry=heading, rz=climb):
@@ -2448,6 +2585,8 @@ class World:
                         models.thorn_shot(rig, pr_.rgb, self._time)
                     elif pr_.effect == "mote":
                         forge_models.mote(rig, self._time + id(pr_) % 7)
+                    elif pr_.effect == "rat":
+                        sewer_models.swarm_rat(rig, self._time + id(pr_) % 5)
                     else:
                         forge_models.thunder_spear(rig, self._time)
                 continue

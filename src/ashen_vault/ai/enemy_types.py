@@ -44,12 +44,15 @@ class EnemyType:
     lurk: bool = False
     # Special attacks mixed in (see enemy.MOVES): "sweep", "web", "pounce", "cinders", "combo",
     # "slam", "eruption", "hook", "breath", "dive", "exhale", "ashfall", "spadeful", "grasp",
-    # "dust_devil", "knell", "fireball", "bile".
+    # "dust_devil", "knell", "fireball", "bile", "undertow", "gulp", "shed", "tail_lash",
+    # "squeal", "swarm".
     moves: tuple = ()
     # Enemy type a boss calls to its side once, when it drops to half HP.
     brood: str | None = None
     # A boss without a brood that flies into a rage at half HP instead: the message shown.
     rage: str | None = None
+    # Enemy type a boss sloughs off with its "shed" move (killed with it when it falls).
+    sheds: str | None = None
     # Moves a boss only adds to its mix once it reaches its second phase.
     phase_moves: tuple = ()
     # Plant foes: fire (Pyre) hurts them more and leaves them burning.
@@ -732,17 +735,19 @@ class EnemyTypes:
                 epitaph="Mother Gnawl sprawls across her nest. The squeaking in the walls falls still.",
                 poise=10,
                 # The brood-mother of the sewers' rats, swollen to the size of a cart-horse in a nest
-                # of rags and bones: she rakes all round with her claws and springs at you, and at
-                # half HP she shrieks for her litter.
-                moves=("sweep", "pounce"),
+                # of rags and bones: she rakes all round with her claws, springs at you, lashes her
+                # tail at whoever slips behind her and squeals fit to split your skull; at half HP she
+                # shrieks for her litter and looses swarms of it along the floor at you.
+                moves=("sweep", "pounce", "tail_lash", "squeal"),
+                phase_moves=("swarm",),
                 brood="sewer_rat",
                 inflicts=(("rot", 30),),
             ),
             EnemyType(
-                id="sump_reeve",
-                name="The Sump Reeve",
+                id="sump_maw",
+                name="The Sump Maw",
                 hp=280,
-                speed=1.4,
+                speed=1.2,
                 damage=18,
                 reach=2.8,
                 sight=15,
@@ -750,22 +755,27 @@ class EnemyTypes:
                 recover=1.2,
                 exp=180,
                 gold=range(90, 101),
-                radius=1.1,
-                height=2.6,
+                radius=1.2,
+                height=2.4,
                 tall=3.2,
                 boss=True,
-                dead_flag="reeve_dead",
+                dead_flag="maw_dead",
                 rise="ash",
-                epitaph="The Sump Reeve slumps into the sludge it ruled, and the drowned in it lie still.",
+                epitaph="The Sump Maw slumps into a black, still pool, and the bones in it sink out of sight.",
                 poise=16,
-                # Once the town's keeper of the drains, long drowned at his post: a heap of sludge
-                # risen round his body and every body the sewers took, his chain of office still on
-                # him. He slams the floor so the sludge heaves, sweeps with his long arms and spews
-                # bile; at half HP the drowned in him wake and flail.
-                moves=("slam", "sweep", "bile"),
-                phase_moves=("combo",),
-                rage="The drowned in the Sump Reeve wake and claw their way to its surface!",
-                shot_rgb=(150, 190, 60),
+                # Not a beast but the Sump itself, grown hungry: everything the town ever washed down
+                # its drains settled here, the dead with it, and the sludge woke and rose. It rears
+                # as a wave as tall as a house, its crest crusted with the skulls of the drowned, and
+                # opens into a maw of black fangs glowing sickly green within. It crashes down so the
+                # floor heaves, lashes round with its tail, spits sludge and bone, and the dead it
+                # swallowed claw up from the floor where you stand; at half HP their skulls' eyes
+                # kindle, it surges at you along the floor to swallow you whole, and it sloughs off
+                # gobbets that crawl at you.
+                moves=("slam", "sweep", "bile", "undertow"),
+                phase_moves=("gulp", "shed"),
+                sheds="slimelet",
+                rage="The Sump Maw heaves, and the eyes of the skulls on its crest kindle!",
+                shot_rgb=(110, 200, 140),
                 inflicts=(("poison", 30), ("corrosion", 35)),
             ),
         ]

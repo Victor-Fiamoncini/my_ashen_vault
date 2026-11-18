@@ -40,7 +40,7 @@ Equipment, combat, spells, shops, saves and the story.
   chests, broken barrels, revealed walls, slain mimics, kindled fires as `lit:`) or `loot:<key>` for
   dropped items. Bosses add
   their `dead_flag` (`boss_dead`, `spider_dead`, `gargoyles_dead`, `butcher_dead`, `sexton_dead`, `matron_dead`,
-  `reeve_dead`) and relics a
+  `maw_dead`) and relics a
   `<relic>_taken` flag (`sigil_taken` for the Ember Sigil). Shown hints add `hint:<map>:<marker>`, a one-way
   exit `left:<map>`.
 - Equipment (`player/inventory.py`): two hand slots, shown to players as **Primary** (`right` = left
