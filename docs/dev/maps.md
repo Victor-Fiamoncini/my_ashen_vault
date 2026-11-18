@@ -20,7 +20,8 @@ How `.map` files work and what can stand on a tile.
   `test_harrow_sewers_is_solvable`), `vesperholm` (the Moonbound City behind the Vesper Gate in
   Harrowmere's north wall, behind the cathedral's apse: the town's `exit model=vesper_gate
   requires=vesper_gate_open`, shut until the first three sigils are taken (`relics.GATE_FLAG`), leads to
-  its `start` in the Gate Court, before the gate home (never shut). Under the `moonlit` sky, a pale
+  its `start` in the Gate Court, before the gate home (never shut). Under the `moonlit` sky (a vast crescent
+  moon in the north, wisps of cloud across it, the sun buried in a bank of cloud in the south), a pale
   blue-silver ambient and a fog reaching 84 m: the Gate Court and its shrine, Lantern Square and its
   shallow moon pool, the Landing on the gorge's edge, Lamplighters' Row and a hidden court behind a false
   wall; the gorge (an 18 m `chasm`) between the lower town and the castle, crossed by the Glass Bridge
@@ -41,7 +42,7 @@ How `.map` files work and what can stand on a tile.
 | `src/ashen_vault/world/hints.py` | Tutorial hints (`hint text="...\|..."`): shown once, the first time you step onto any of its marker's tiles (`hint:<map>:<marker>` flag); `World._update_hints` fires them |
 | `src/ashen_vault/world/footsteps.py` | Footsteps: each floor `tex` belongs to a surface (stone, wood, soft, mud, water, metal, gravel, glass (Vesperholm's `moon_glass`); the platform under you overrides it), and `Game._footstep` plays its `step_<surface>` sound. A new floor texture needs a surface (`tests/test_footsteps.py`) |
 | `src/ashen_vault/world/rest.py` | The shrine rest: timing and the pixelated ember fog pattern drawn while you pray |
-| `src/ashen_vault/world/sky.py`, `render/sky.py` | Skies (`[meta] sky = overcast\|dusk\|jungle\|ember\|moonlit`): a gradient dome meeting the fog at the horizon, a sun and halo, drifting cloud banks and an overhead cap, horizon mist; every sky's sun stands at `SUN_AT` (low in the south, over the town's sea), but Vesperholm's `moonlit` sky hangs a vast pale moon at `MOON_AT` instead (high in the north, over its cathedral; `Sky.moon` lays its seas on its face, `sky.maria`) among a crowd of stars (`Sky.star_count`), stars glint behind the clouds (`Sky.stars`, their brightness; none in the jungle's daylight), its disc drawn over the clouds (`sky.sun`) and its halo behind them; dimmed by darkness and the Veil. Built pure in `world/sky.py`, drawn first each frame without fog or depth by `render/sky.py` |
+| `src/ashen_vault/world/sky.py`, `render/sky.py` | Skies (`[meta] sky = overcast\|dusk\|jungle\|ember\|moonlit`): a gradient dome meeting the fog at the horizon, a sun and halo, drifting cloud banks and an overhead cap, horizon mist; every sky's sun stands at `SUN_AT` (low in the south, over the town's sea), but Vesperholm's `moonlit` sky hangs a vast pale moon at `MOON_AT` instead (high in the north, over its cathedral; `Sky.moon` makes it a crescent over a face dim in earthshine, `CRESCENT_OFFSET` / `CRESCENT_TILT`, its seas on the crescent, `sky.maria`, and still wisps of cloud across it, `sky.wisps`) and buries the sun itself in a bank of cloud silvered at its rims (`Sky.veiled`, `sky.shroud`, with a faint glow round it) among a crowd of stars (`Sky.star_count`), stars glint behind the clouds (`Sky.stars`, their brightness; none in the jungle's daylight), its disc drawn over the clouds (`sky.sun`) and its halo behind them; dimmed by darkness and the Veil. Built pure in `world/sky.py`, drawn first each frame without fog or depth by `render/sky.py` |
 | `tools/level_planner/` | A top-down level planner (`index.html`, open it in a browser; a design aid, not part of the game): paint tiles, pin NPCs, gates and wells, export JSON or an ASCII grid. `map_to_planner.py <map>` turns a game map into JSON for its Import box |
 | `tools/level_sketch/` | A free-form top-down sketchpad for level design (`index.html`, open it in Chrome; a design aid, not part of the game): shapes, lines and markers measured in metres, on layers, over an optional faint underlay of a game map (`map_to_underlay.py <map>`), saved as `<name>.sketch.json` + `.svg` in `sketches/` for planning a level's rebuild. Its logic is `model.js`, tested with `node --test tools/level_sketch/` (not in CI) |
 
@@ -119,7 +120,8 @@ How `.map` files work and what can stand on a tile.
   `hand_cart`, `hay_wagon`, `cargo`, `town_statue`, `flying_buttress`, `tree`, `forge_bellows`, `grindstone`, `armor_stand`, `katana_stand`, `bookcase` and `drawers`, the Cinderhold `forge_statue` and `ore_cart`, the cemetery `gravestone`, `cemetery_gate`, `mourning_statue` and `grave_railing`, Vesperholm's `moon_lamp` (a light), `veiled_statue` and `silver_tree`; `test_harrowmere_trees_cut_off_no_part_of_the_town`
   keeps the trees out of the only way anywhere). Decor that blocks nothing:
   `boat` rides on water, `ash_mound` and `bones` lie on the floor, `crypt_front` is built out of a wall, `shelf`, `hearth` and `window` hang on a wall (the last two are lights), `cage`, `roots` and `meat_hooks` hang from the ceiling, `grate` sits in the
-  floor, `mushrooms` dot it, and `cobweb`, `skull_niche`, `winch`, `lever` and `shelf_fungus` mount on
+  floor, `mushrooms` dot it (the sewers grow their own: pale `inkcaps`, and `sump_caps` on rotten timber, a
+  dim yellow-green light), and `cobweb`, `skull_niche`, `winch`, `lever` and `shelf_fungus` mount on
   the nearest wall (`WALL_PROPS`), as does Vesperholm's `moon_window`, a lancet of moon-glass and a
   light (`rise=` hangs it up its wall, `size=` scales it about the wall's face). Its skyline is
   `moon_spire`s (`height=`), landmarks on wall tiles no one walks. `lever model=wood` is the jungle's wooden lever.
@@ -138,7 +140,8 @@ How `.map` files work and what can stand on a tile.
   (`world.hinged`): shut whenever the map loads, never saved; interact swings it open or shut (`World.swing_door`,
   which won't shut it on anyone in the doorway), and shut it fills its tile.
   `chest model=iron` is the Cinderhold's iron chest (`models.chest` style), and `mimic model=iron` hides as
-  one (`Enemy.look`). An exit's `model=` draws its way through (`road_gate` for both ends of the north road (each stands out in the open before its wall, never sunk between rock; `style=forge` is a sooty variant), `well`, `cave_mouth`, `keep_door`, `cemetery_gate`, `sewer_grate`, `sewer_ladder`, `vesper_gate` (Vesperholm's, both ends: shut, its
+  one (`Enemy.look`); the wooden chests also come `model=worn` (weathered, roped shut), `banded` (dark wood
+  strapped in iron) and `coffer` (a small brass-cornered strongbox), every style a key of `models.CHEST_SHELLS`. An exit's `model=` draws its way through (`road_gate` for both ends of the north road (each stands out in the open before its wall, never sunk between rock; `style=forge` is a sooty variant), `well`, `cave_mouth`, `keep_door`, `cemetery_gate`, `sewer_grate`, `sewer_ladder`, `vesper_gate` (Vesperholm's, both ends: shut, its
   three sockets dark; open, they shine and moonlight pours through), else a `rope`); each is a landmark of some detail (`test_every_way_between_maps_is_built_in_detail`), and one set against a wall shows black passage through it (`models.PASSAGE_DARK`), never the wall, so the way on stays unseen; a cold `light` hangs over the cemetery's gate on both sides, and a warm one before the north road's Cinderhold end, so their stone shows. An `exit` with `boss=<dead_flag>` is a way on to a boss on another map: the compass
   points at it while that boss lives (`World.boss_target`). `exit requires=<flag> shut="..."` stays shut
   (saying `shut=`) until that flag is set (`World.exit_open`), and `exit oneway` never leads back: going
@@ -146,7 +149,9 @@ How `.map` files work and what can stand on a tile.
   (`Game._take_exit`). `hint text="Line one.|Line two."` is a tutorial hint, not a prop (`world/hints.py`):
   put its marker on every tile of the way past it, keep it to two lines that fit the screen
   (`test_every_cemetery_hint_fits_the_screen`).
-  Breakables (`barrel`, `crate`, `urn`, `cocoon`) spill loot from `world/loot.py` (`loot.roll`); a `secret_wall`
+  Breakables (`barrel`, `crate`, `urn`, `cocoon`) spill loot from `world/loot.py` (`loot.roll`); a barrel or
+  crate takes one of several looks from its tile (`models.variant`: a cask, a water butt or a cask on its
+  side; a plank crate, a slatted one or a long strapped one), so the same marker never repeats one model; a `secret_wall`
   takes the texture of the real walls beside it (`world.secret_wall_tex`), a shade duller, with a faint
   shimmer climbing it now and then and pale motes on its faces within `SHIMMER_NEAR`; struck, ember
   cracks sear it to ash and it crumbles top-down into falling ash and embers over about 1.4 s

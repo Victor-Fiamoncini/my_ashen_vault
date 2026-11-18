@@ -728,3 +728,70 @@ def rat_nest(r, seed):
     for i in range(3):  # tufts of fur
         a = i * 2.2 + seed
         r.part("sphere", math.cos(a) * 0.3, 0.22, math.sin(a) * 0.3, 0.16, 0.08, 0.14, RAT_FUR)
+
+
+INKCAP = (196, 192, 180)  # pale, scaly grey-white
+INKCAP_DARK = (150, 144, 134)
+INK = (24, 22, 26)  # the black the old caps melt into
+INKCAP_STEM = (214, 208, 194)
+
+
+def inkcaps(r, seed):
+    """A clump of inkcaps sprouting from the damp at the foot of the brick: tall pale bells on slender
+    stems, the old ones blackening and melting into ink at their rims, one already collapsed into a
+    black puddle. They don't glow."""
+    count = 4 + seed % 3
+    for k in range(count):
+        a = k * 2.3 + seed * 0.7
+        d = 0.12 + (k * 5 + seed) % 4 * 0.1
+        x, z = math.cos(a) * d, math.sin(a) * d
+        h = 0.22 + (k * 7 + seed) % 4 * 0.1  # stem
+        lean = ((k * 3 + seed) % 5 - 2) * 0.06
+        old = (k + seed) % 3 == 0  # its rim spread and running black
+        with r.at(x, 0, z, rx=lean, rz=-lean):
+            r.part("cyl", 0, h / 2, 0, 0.045, h, 0.045, INKCAP_STEM)
+            bell = 0.2 + (k + seed) % 3 * 0.035
+            tall = bell * 1.6
+            r.part("cone", 0, h + tall * 0.3, 0, bell * (1.3 if old else 1.0), tall, bell, INKCAP)
+            crown = bell * 0.55  # its darker, scaly crown
+            r.part("sphere", 0, h + tall * 0.75, 0, crown, bell * 0.4, crown, INKCAP_DARK)
+            if old:
+                r.part("cyl", 0, h - tall * 0.2, 0, bell * 1.4, 0.04, bell * 1.4, INK)  # the melting rim
+                for i in range(3):  # drips of ink hanging from it
+                    b = i * 2.1 + seed
+                    r.part("cube", math.cos(b) * bell * 0.6, h - tall * 0.2 - 0.06, math.sin(b) * bell * 0.6,
+                           0.025, 0.08, 0.025, INK)  # fmt: skip
+    a = seed * 1.3
+    r.part("cyl", math.cos(a) * 0.45, 0.01, math.sin(a) * 0.45, 0.34, 0.02, 0.26, INK)  # a cap gone to ink
+    r.part("cyl", math.cos(a) * 0.45, 0.06, math.sin(a) * 0.45, 0.05, 0.1, 0.05, INKCAP_DARK, rz=1.3)
+
+
+SUMP_CAP = (156, 158, 92)  # sallow, sickly olive
+SUMP_CAP_DARK = (110, 112, 64)
+SUMP_GILL = (190, 210, 110)  # the cold, sickly light under their caps
+SUMP_STEM = (150, 146, 112)
+SUMP_STUMP = (190, 170, 140)  # tint over the bark of the rotten timber they grow on
+
+
+def sump_caps(r, seed):
+    """Flat, slimy caps crowding a rotten stump of timber washed down from the streets, their gills
+    giving off a dim, sickly yellow-green light: what little light the deep tunnels have of their own.
+    The light is steady; it doesn't pulse."""
+    r.part("cyl", 0, 0.16, 0, 0.36, 0.32, 0.3, SUMP_STUMP, tex="bark", rz=0.08)  # the stump
+    r.part("cyl", 0, 0.33, 0, 0.3, 0.02, 0.25, _dim(SUMP_STUMP, 0.6))
+    caps = 5 + seed % 3
+    for k in range(caps):
+        a = k * math.tau / caps + seed * 0.4
+        d = 0.24 + (k * 3 + seed) % 3 * 0.09
+        x, z = math.cos(a) * d, math.sin(a) * d
+        h = 0.1 + (k * 5 + seed) % 4 * 0.09
+        w = 0.24 - (k % 3) * 0.04
+        r.part("cyl", x, h / 2, z, 0.05, h, 0.05, SUMP_STEM)
+        r.part("cyl", x, h + 0.02, z, w, 0.05, w, SUMP_CAP)
+        r.part("sphere", x, h + 0.04, z, w * 0.6, 0.04, w * 0.6, SUMP_CAP_DARK)  # its slick, darker crown
+        r.part("cyl", x, h - 0.01, z, w * 0.85, 0.015, w * 0.85, SUMP_GILL, glow=True)
+    for k in range(3):  # small ones up the stump's flank
+        a = k * 2.0 + seed
+        r.part("cyl", math.cos(a) * 0.17, 0.18 + k * 0.05, math.sin(a) * 0.17, 0.12, 0.03, 0.12, SUMP_CAP)
+        r.part("cyl", math.cos(a) * 0.17, 0.165 + k * 0.05, math.sin(a) * 0.17, 0.1, 0.01, 0.1, SUMP_GILL,
+               glow=True)  # fmt: skip

@@ -154,9 +154,18 @@ def test_the_sun_is_drawn_over_the_clouds_and_its_halo_behind_them(name):
     assert order.index("sun") < order.index("mist")  # the horizon haze still softens it
 
 
+def _cos_to(p, d):
+    r = math.dist((0, 0, 0), p)
+    return sum(a * b / r for a, b in zip(p, d, strict=True))
+
+
+def _verts(mesh):
+    return [mesh.verts[i * 3 : i * 3 + 3] for i in range(mesh.vertex_count)]
+
+
 def test_vesperholms_moon_hangs_vast_in_the_north_among_a_crowd_of_stars():
     """Vesperholm's sky is a night that never ends: in place of a sun a moon many times its size, high
-    in the north over the cathedral, its seas laid on its face, and far more stars than the town's."""
+    in the north over the cathedral, and far more stars than the town's."""
     spec, dusk = sky.SKIES["moonlit"], sky.SKIES["dusk"]
     assert spec.moon and not dusk.moon
     assert spec.sun_size >= 3 * dusk.sun_size
@@ -166,16 +175,65 @@ def test_vesperholms_moon_hangs_vast_in_the_north_among_a_crowd_of_stars():
     assert spec.star_count >= 2 * dusk.star_count and spec.stars > dusk.stars
     stars = sky.stars(spec, FOG)
     assert stars.vertex_count > 2 * sky.stars(dusk, FOG).vertex_count
+
+
+def test_the_moon_is_a_crescent_over_its_face_in_earthshine():
+    """The disc is the moon's whole face, dim in blue earthshine; over it a bright crescent, lit to its
+    limb, that never strays onto the shadow or off the disc."""
+    spec = sky.SKIES["moonlit"]
+    d = sky.direction(*spec.sun_at)
+    shadow = sky.shadow_centre(spec)
+    lit, face = sky.sun_color(spec), sky.earthshine_color(spec)
+    assert sum(face) < sum(lit) and face[2] > face[0]  # darker than the crescent, and blue
+    zenith = sky.shade(spec.zenith, 0.0)
+    assert sum(face) > sum(sky.dome_color(spec.sun_at[1], FOG, zenith))  # the face still shows
+    mesh = sky.sun(spec)
+    disc = 20 * 3
+    assert all(mesh.colors[i] == pytest.approx(face[i % 3]) for i in range(disc * 3))
+    crescent = _verts(mesh)[disc:]
+    assert crescent
+    slack = math.radians(0.05)
+    for p in crescent:
+        assert math.acos(min(_cos_to(p, d), 1.0)) <= math.radians(spec.sun_size) + slack  # on the disc
+        assert math.acos(min(_cos_to(p, shadow), 1.0)) >= math.radians(spec.sun_size) * 0.97  # not shadowed
+    assert sky.crescent_bounds(0.0) == pytest.approx((1.0 - sky.CRESCENT_OFFSET, 1.0))
+    assert sky.crescent_bounds(0.999)[0] < 0  # beyond the horns the whole chord is lit
+
+
+def test_the_moons_seas_lie_on_its_crescent_and_wisps_of_cloud_cross_it():
+    spec, dusk = sky.SKIES["moonlit"], sky.SKIES["dusk"]
     layers = [name for name, _ in sky.layers(spec, FOG)]
-    assert layers.index("sun") < layers.index("maria") < layers.index("mist")
-    seas = sky.maria(spec)
-    lit = sky.sun_color(spec)
-    for i in range(seas.vertex_count):  # every sea lies on the disc, darker than it
-        p = seas.verts[i * 3 : i * 3 + 3]
-        r = math.dist((0, 0, 0), p)
-        assert sum(a * b / r for a, b in zip(p, d, strict=True)) > math.cos(math.radians(spec.sun_size))
+    assert layers.index("sun") < layers.index("maria") < layers.index("wisps") < layers.index("mist")
+    d = sky.direction(*spec.sun_at)
+    shadow = sky.shadow_centre(spec)
+    seas, lit = sky.maria(spec), sky.sun_color(spec)
+    for i, p in enumerate(_verts(seas)):  # every sea lies on the crescent, darker than it
+        assert _cos_to(p, d) > math.cos(math.radians(spec.sun_size))
+        assert _cos_to(p, shadow) < math.cos(math.radians(spec.sun_size))
         assert sum(seas.colors[i * 3 : i * 3 + 3]) < sum(lit)
-    assert sky.maria(dusk) is None  # a sun has no seas
+    wisps = sky.wisps(spec)
+    on_disc = [p for p in _verts(wisps) if _cos_to(p, d) > math.cos(math.radians(spec.sun_size))]
+    assert on_disc and len(on_disc) < wisps.vertex_count  # across the moon and out past its limb
+    assert sky.maria(dusk) is None and sky.wisps(dusk) is None  # a sun has neither
+
+
+def test_vesperholm_buries_the_sun_in_a_bank_of_cloud():
+    """The city denies the sun: it still stands low in the south, but no disc shows there, only a bank
+    of cloud silvered at its rims and a faint glow leaking round it."""
+    spec = sky.SKIES["moonlit"]
+    assert spec.veiled and spec.sun_at != sky.SUN_AT
+    layers = [name for name, _ in sky.layers(spec, FOG)]
+    assert layers.index("clouds") < layers.index("shroud") < layers.index("sun")
+    bank = sky.shroud(spec)
+    sun_d = sky.direction(*sky.SUN_AT)
+    reach = max(math.hypot(x, y) + size for x, y, size in sky.SHROUD) * sky.VEILED_SIZE
+    assert all(_cos_to(p, sun_d) > math.cos(math.radians(reach + 0.5)) for p in _verts(bank))
+    assert any(math.hypot(x, y) < size for x, y, size in sky.SHROUD)  # a billow covers where the sun is
+    hearts, rims = bank.colors[0:3], bank.colors[3:6]
+    assert sum(rims) > sum(hearts)  # lit at the rim from behind
+    for name, other in sky.SKIES.items():
+        if not other.veiled:
+            assert sky.shroud(other) is None and "shroud" not in dict(sky.layers(other, FOG)), name
 
 
 def test_a_sky_without_a_sun_has_no_disc():

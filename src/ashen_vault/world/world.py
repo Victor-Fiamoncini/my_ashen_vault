@@ -333,7 +333,7 @@ STATIC_PROPS = frozenset(
         *("shop_sign", "forge_bellows", "grindstone", "town_statue", "forge_statue", "ore_cart"),
         *("roof_turret", "wall_tower", "rampart_bay"),
         *("weapon_rack", "armor_stand", "katana_stand", "bookcase", "drawers"),
-        *("sluice_wheel", "outfall_grate", "rat_nest"),
+        *("sluice_wheel", "outfall_grate", "rat_nest", "inkcaps", "sump_caps"),
         *("moon_lamp", "veiled_statue", "silver_tree", "moon_window", "moon_spire"),
         "ash_mound",
         "spire",
@@ -2986,6 +2986,10 @@ class World:
             sewer_models.outfall_grate(rig, p.tx * 7 + p.tz * 3)
         elif k == "rat_nest":
             sewer_models.rat_nest(rig, p.tx * 7 + p.tz * 3)
+        elif k == "inkcaps":
+            sewer_models.inkcaps(rig, p.tx * 7 + p.tz * 3)
+        elif k == "sump_caps":
+            sewer_models.sump_caps(rig, p.tx * 7 + p.tz * 3)
         elif k == "moon_lamp":
             moon_models.moon_lamp(rig, p.tx * 7 + p.tz * 3)
         elif k == "veiled_statue":

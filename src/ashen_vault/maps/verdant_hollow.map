@@ -69,7 +69,7 @@ L = floor tex=cliff_rock h=0.8 side=cliff_rock chasm
 
 [grid]
 ######################################################
-#########T,|,,,,,,,|,T###KTKKKKKAggtCCCCCCCgNNgTggggA#
+#########T,|,,,,,,,|,T###KTKKKKKAggtCCCCCCCgNN{TggggA#
 ########B,f,,,,,,,,,f,B##KKFpFKKAgggCPibbbCggÍggggtgA#
 ########,,,,,,,U,,,,,,,#FFFFFFFFFgTgCiibbz2y456gggggA#
 ########,t,,,,,,,,,,,t,#GKKVFtKÄAgggCViiiiCgggggggÛgA#
@@ -90,7 +90,7 @@ L = floor tex=cliff_rock h=0.8 side=cliff_rock chasm
 #-]-~~~--O#####Â######mmBmmhmmmmmmmmpmmmmmmmmmmmnmmmA#
 #-**~~~-]-####p..#####mTmmmmmmm#mTmmmm~~~~~~~~~mmhmmA#
 #o--~~Y---#####..#####t,,,O,,,v#mmmmm~~~QQQQQQ~~mmmmA#
-#-p-~~~-*-#####.t#####,,,,B,,,T#mmmnÍ~~~QuÀ{uQ~~mpmmA#
+#-p-~~~-*-#####.t#####,,,,B,,,T#mmmnÍ~~~QNÀ{uQ~~mpmmA#
 #~Í-~~~---#B,t,,,t,B##,,,,,,Í,,#mmmmmm+&uuuuÁQ~~mmmmA#
 #####-]-s-#,Í,,,,,,,##,,,,,,,,x#mTmmm~~~QVu{ÀQ~~mmmmA#
 ######.....,,,,,Æ,,T...#########mmmmm~~~QQQQQQ~~mTÍmA#
@@ -123,9 +123,9 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 v = snare_bloom on=,
 S = save_statue
 k = chest item=great_iron_hammer
-q = chest item=red_tonic count=3 gold=80
-c = chest item=blue_moss count=2 gold=30
-x = chest item=red_tonic count=2
+q = chest item=red_tonic count=3 gold=80 model=worn
+c = chest item=blue_moss count=2 gold=30 model=worn
+x = chest item=red_tonic count=2 model=worn
 s = mire_slime
 Y = raft to=4,21 speed=1.1 on=~
 O = stump_mimic
@@ -158,7 +158,7 @@ d = torch radius=8
 [ = door key=briar_key boss=spider_dead
 ] = fungus radius=5
 À = spore_pod every=4.5
-Á = chest item=red_tonic count=3 gold=90
+Á = chest item=red_tonic count=3 gold=90 model=worn
 Â = door from=n on=.
 Ã = lever id=hollow_lever model=wood
 Ä = jungle_tree on=K

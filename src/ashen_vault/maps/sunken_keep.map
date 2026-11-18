@@ -11,15 +11,14 @@ edge_top = 6
 
 [legend]
 # = wall tex=stone_brick top=6
-M = wall tex=mossy_brick top=6
 . = floor tex=flagstone h=0 ceil=3.2
 : = floor tex=flagstone h=1.6 ceil=6.5 side=stone_brick
 = = floor tex=flagstone h=1.6 ceil=4.8
 _ = floor tex=flagstone h=1.2 ceil=4.6
 ; = floor tex=flagstone h=0.8 ceil=4.2
 , = floor tex=flagstone h=0.4 ceil=3.8
-- = floor tex=dirt h=0 ceil=3.2 side=mossy_brick
-~ = water tex=water h=-0.6 ceil=3.2 side=mossy_brick
+- = floor tex=dirt h=0 ceil=3.2 side=stone_brick
+~ = water tex=water h=-0.6 ceil=3.2 side=stone_brick
 o = floor tex=dirt h=-3.4 ceil=4.8 side=stone_brick pit
 | = floor tex=flagstone h=0 ceil=4.4 side=stone_brick
 " = floor tex=flagstone h=-10 ceil=-6.6 side=stone_brick
@@ -32,7 +31,7 @@ o = floor tex=dirt h=-3.4 ceil=4.8 side=stone_brick pit
 
 [grid]
 ################################
-##########0p:::::::::0##########
+##########0p::::::::80##########
 ##########:bi::::::ib:##########
 ##########>:1::::::1:>###7/)/)7#
 ##########:::::w::::::###t/u//t#
@@ -41,17 +40,17 @@ o = floor tex=dirt h=-3.4 ceil=4.8 side=stone_brick pit
 ##########:bi::::::ib:###/k//k/#
 ##########%:::::::::ph###{{l{{{#
 ###############D#########&////H#
-#Zooooi#08==t=>=>==t===B#//k///#
+#Zooooi#08==t=>=>==t===B#//k//0#
 #LXXXX=W===x=!======x==K#/////7#
 #QooooL#========<=J====B#//L/!t#
-########8=A=t======t==N=U//k///#
+########8=A=t======t==N=U//k//8#
 ###############_#########N</3//#
 ###############;#########///%e&#
 #8~~~~~~0######,#########n######
 #-~~e-~~-######.########v.f.q###
-#-~~-c~~-######G########....$###
+#-~~-c~~-######G########0...$###
 #-~~--~~-##08it..1..r###%e.e.###
-#----<---##&.a...%...#####C#####
+#8---<---##&.a...%...#####C#####
 #-s-!--s-...g...........g.....##
 #-~~~~~~7##e.1....a.e#####O#####
 #-~~~~~~-##80.j..tp%0###p.a.m###
@@ -67,18 +66,18 @@ w = ashen_warden yaw=90 on=:
 D = door key=warden_key boss=boss_dead on==
 x = cinder_wisp on==
 G = gate lever=north_lever
-c = chest item=cell_key on=-
+c = chest item=cell_key on=- model=worn
 s = mire_slime on=-
 v = lever id=north_lever
-q = chest item=scroll_ward gold=20
+q = chest item=scroll_ward gold=20 model=banded
 r = chest item=menders_kit
 a = bone_walker
 t = torch radius=9
 C = door key=cell_key
 O = door
-m = chest item=blue_moss count=2 gold=30
-z = chest item=claymore on=-
-h = chest item=war_hammer on=:
+m = chest item=blue_moss count=2 gold=30 model=coffer
+z = chest item=claymore on=- model=worn
+h = chest item=war_hammer on=: model=banded
 S = save_statue
 E = exit map=harrowmere at=37,20,0 label=Climb_the_rope model=rope
 ^ = spikes on=|
@@ -88,7 +87,7 @@ P = pendulum on=|
 Y = pendulum phase=1.6 on=|
 T = torch radius=7 on=|
 L = light radius=6
-R = chest item=red_tonic count=3 gold=150 on=|
+R = chest item=red_tonic count=3 gold=150 on=| model=banded
 I = iron_maiden on=|
 0 = barrel
 8 = crate
@@ -113,7 +112,7 @@ e = urn
 // The Undercroft, below the cell block: lifts down from the cells and up to the shrine.
 4 = lift top=0 model=cage on=?
 9 = lift top=0 locked model=cage on=?
-y = chest item=kite_shield gold=40
+y = chest item=kite_shield gold=40 model=worn
 5 = gaoler
 3 = bone_crawler
 6 = sarcophagus
@@ -128,7 +127,7 @@ N = winch
 // slaughter hall.
 U = lift top=12 model=cage on=`
 n = lift top=12 start=top locked model=cage on=]
-H = chest item=chain_mitts gold=80
+H = chest item=chain_mitts gold=80 model=banded
 k = pillar
 V = headsman_block
 ) = meat_hooks

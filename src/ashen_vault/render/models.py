@@ -2370,13 +2370,31 @@ def enthroned(r, t):
 
 IRON_CHEST = (150, 146, 156)  # tint over the iron plate of an iron chest
 IRON_CHEST_BAND = (52, 50, 56)
-CHEST_SHELLS = {"wood": (WHITE, "wood_plank"), "iron": (IRON_CHEST, "iron_plate")}
+WORN_WOOD = (168, 158, 146)  # tint over the planks of a worn chest: weathered grey
+BANDED_WOOD = (140, 112, 96)  # dark-stained
+COFFER_WOOD = (196, 150, 118)  # warm, oiled
+CHEST_ROPE = (150, 128, 88)
+CHEST_BRASS = (178, 150, 82)
+# A chest's look, chosen by its entity's `model=`: (tint over its planks, texture).
+CHEST_SHELLS = {
+    "wood": (WHITE, "wood_plank"),
+    "iron": (IRON_CHEST, "iron_plate"),
+    "worn": (WORN_WOOD, "wood_plank"),
+    "banded": (BANDED_WOOD, "wood_plank"),
+    "coffer": (COFFER_WOOD, "wood_plank"),
+}
 
 
 def chest(r, is_open, style="wood"):
-    """A chest facing +X, its lid hinged at the back. `style` "iron" is the Cinderhold's: riveted
-    black bands, corner brackets, iron feet, a rounded lid and a heavy hasp with an ember-lit keyhole."""
+    """A chest facing +X, its lid hinged at the back. `style` (see CHEST_SHELLS) picks its look: "wood"
+    the plain one; "worn" weathered, roped shut, its lid cracked; "banded" dark wood strapped in iron
+    with a ring pull; "coffer" a small brass-cornered strongbox on feet with a domed lid; "iron" the
+    Cinderhold's: riveted black bands, corner brackets, iron feet, a rounded lid and a heavy hasp with
+    an ember-lit keyhole."""
     shell, tex = CHEST_SHELLS.get(style, CHEST_SHELLS["wood"])
+    if style in _CHEST_STYLES:
+        _CHEST_STYLES[style](r, is_open, shell, tex)
+        return
     if style != "iron":
         r.part("cube", 0, 0.25, 0, 0.6, 0.5, 0.9, shell, tex=tex)
         r.part("cube", 0, 0.26, 0, 0.62, 0.06, 0.92, IRON)
@@ -2403,6 +2421,59 @@ def chest(r, is_open, style="wood"):
     if not is_open:
         r.part("cube", 0.315, 0.36, 0, 0.04, 0.16, 0.16, IRON)  # the lock plate
         r.part("cube", 0.34, 0.35, 0, 0.01, 0.06, 0.025, (200, 90, 30), glow=True)  # the keyhole
+
+
+def _chest_worn(r, is_open, shell, tex):
+    """Weathered planks gone grey, a corner of the lid split away, roped shut and pegged."""
+    r.part("cube", 0, 0.25, 0, 0.6, 0.5, 0.9, shell, tex=tex)
+    r.part("cube", 0.0, 0.03, 0, 0.64, 0.06, 0.94, _dim(shell, 0.7), tex=tex)  # the warped skid
+    for z in (-0.3, 0.3):  # rope lashings round the body
+        r.part("cube", 0, 0.3, z, 0.63, 0.04, 0.05, CHEST_ROPE)
+    with r.at(-0.3, 0.5, 0, rz=1.9 if is_open else 0):
+        r.part("cube", 0.3, 0.07, 0.05, 0.6, 0.14, 0.8, shell, tex=tex)  # a corner plank gone
+        r.part("cube", 0.3, 0.07, -0.41, 0.36, 0.14, 0.08, shell, tex=tex, ry=0.05)
+        r.part("cube", 0.3, 0.145, 0.1, 0.62, 0.01, 0.03, (40, 34, 28))  # the split along it
+        r.part("cube", 0.61, 0.0, 0, 0.03, 0.12, 0.1, CHEST_ROPE)  # the loop of the rope
+    if not is_open:
+        r.part("cube", 0.32, 0.42, 0, 0.05, 0.1, 0.04, (110, 86, 58))  # the peg through it
+
+
+def _chest_banded(r, is_open, shell, tex):
+    """Dark-stained wood strapped by three iron bands, studded, capped at the corners, with a heavy
+    ring pull on the front."""
+    r.part("cube", 0, 0.25, 0, 0.6, 0.5, 0.9, shell, tex=tex)
+    for z in (-0.32, 0, 0.32):
+        r.part("cube", 0, 0.25, z, 0.63, 0.52, 0.06, DARK_IRON)
+        r.part("cube", 0.32, 0.1, z, 0.02, 0.03, 0.03, RIVET_IRON)
+    for x, z in ((0.28, 0.43), (0.28, -0.43), (-0.28, 0.43), (-0.28, -0.43)):
+        r.part("cube", x, 0.06, z, 0.08, 0.12, 0.08, DARK_IRON)  # corner caps
+    with r.at(-0.3, 0.5, 0, rz=1.9 if is_open else 0):
+        r.part("cube", 0.3, 0.08, 0, 0.6, 0.16, 0.9, shell, tex=tex)
+        for z in (-0.32, 0, 0.32):
+            r.part("cube", 0.3, 0.08, z, 0.63, 0.18, 0.06, DARK_IRON)
+    r.part("cyl", 0.33, 0.3, 0, 0.16, 0.025, 0.16, RIVET_IRON, rz=math.pi / 2)  # the ring pull
+    r.part("cube", 0.315, 0.38, 0, 0.03, 0.08, 0.08, DARK_IRON)  # its boss
+    if not is_open:
+        r.part("cube", 0.32, 0.46, 0, 0.03, 0.1, 0.1, IRON)  # the hasp
+
+
+def _chest_coffer(r, is_open, shell, tex):
+    """A small strongbox on short feet: oiled wood, brass corners and a brass lock plate, a domed lid."""
+    for x, z in ((0.17, 0.28), (0.17, -0.28), (-0.17, 0.28), (-0.17, -0.28)):
+        r.part("sphere", x, 0.04, z, 0.08, 0.08, 0.08, CHEST_BRASS)  # feet
+    r.part("cube", 0, 0.24, 0, 0.45, 0.36, 0.7, shell, tex=tex)
+    for x, z in ((0.22, 0.34), (0.22, -0.34), (-0.22, 0.34), (-0.22, -0.34)):
+        r.part("cube", x, 0.24, z, 0.04, 0.38, 0.04, CHEST_BRASS)
+    with r.at(-0.22, 0.42, 0, rz=1.9 if is_open else 0):
+        r.part("cyl", 0.22, 0.02, 0, 0.44, 0.7, 0.2, shell, tex=tex, rx=math.pi / 2)  # the dome
+        for z in (-0.33, 0.33):
+            r.part("cyl", 0.22, 0.02, z, 0.46, 0.04, 0.22, CHEST_BRASS)
+    if not is_open:
+        r.part("cube", 0.235, 0.34, 0, 0.02, 0.12, 0.12, CHEST_BRASS)  # the lock plate
+        r.part("cube", 0.25, 0.33, 0, 0.01, 0.05, 0.02, (30, 24, 20))  # its keyhole
+
+
+_CHEST_STYLES = {"worn": _chest_worn, "banded": _chest_banded, "coffer": _chest_coffer}
 
 
 DOOR_FRAME = (70, 64, 66)  # the dark dressed stone round an iron door
@@ -3697,14 +3768,34 @@ def _thorn(r, rgb, t):
 DARK_IRON = (58, 56, 60)
 
 
+def variant(seed, n):
+    """Which of `n` looks a prop takes, from its tile's seed: hashed, so it doesn't fall in step with
+    the seed's other uses (`seed % 2` stacking a crate, `seed % 3` a barrel's height)."""
+    return ((seed * 2654435761) >> 13) % n
+
+
+BARREL_LOOKS = 3  # a banded cask, an open water butt, a cask on its side in a cradle
+CRATE_LOOKS = 3  # a plank crate, a slatted one spilling straw, a long iron-strapped one
+WATER_DARK = (30, 40, 44)
+STRAW = (176, 152, 90)
+SACKCLOTH = (132, 112, 80)
+
+
 def barrel(r, seed, broken=False):
-    """A squat banded cask; the seed nudges its spot, height and lean so rows don't look cloned.
-    A broken one is a ring of staves and a fallen hoop."""
+    """A cask; the seed picks its look (`variant`) and nudges its spot, height and lean so rows don't
+    look cloned. A broken one is a ring of staves and a fallen hoop."""
     h = 0.95 + (seed % 3) * 0.08
     ox = ((seed * 37) % 7 - 3) * 0.08
     oz = ((seed * 53) % 7 - 3) * 0.08
     if broken:
         _barrel_wreck(r, ox, oz, seed)
+        return
+    look = variant(seed, BARREL_LOOKS)
+    if look == 1:
+        _water_butt(r, ox, oz, seed)
+        return
+    if look == 2:
+        _cradled_cask(r, ox, oz, seed)
         return
     with r.at(ox, 0, oz, ry=seed * 0.7, rz=0.04 if seed % 4 == 0 else 0):
         r.part("cyl", 0, h / 2, 0, 0.78, h, 0.78, WHITE, tex="wood_plank")
@@ -3716,6 +3807,34 @@ def barrel(r, seed, broken=False):
         with r.at(ox - 0.55, 0, oz + 0.45, ry=seed):
             r.part("cyl", 0, 0.35, 0, 0.55, 0.7, 0.55, WHITE, tex="wood_plank")
             r.part("cyl", 0, 0.35, 0, 0.6, 0.05, 0.6, DARK_IRON)
+
+
+def _water_butt(r, ox, oz, seed):
+    """A tall open barrel of standing water, three hoops, rope handles; a dipper hung on its rim."""
+    with r.at(ox, 0, oz, ry=seed * 0.5):
+        r.part("cyl", 0, 0.5, 0, 0.82, 1.0, 0.82, _dim(WHITE, 0.85), tex="wood_plank")
+        for y in (0.1, 0.5, 0.9):
+            r.part("cyl", 0, y, 0, 0.86, 0.05, 0.86, DARK_IRON)
+        r.part("cyl", 0, 0.93, 0, 0.72, 0.02, 0.72, WATER_DARK)  # the water, a hand below the rim
+        for z in (-0.42, 0.42):  # rope handles
+            r.part("cube", 0, 0.75, z, 0.18, 0.04, 0.04, CHEST_ROPE)
+        r.part("cube", 0.36, 0.95, 0, 0.06, 0.06, 0.3, (110, 86, 58), rz=0.4)  # the dipper's handle
+        r.part("cyl", 0.48, 0.86, 0.1, 0.14, 0.08, 0.14, (110, 86, 58))
+
+
+def _cradled_cask(r, ox, oz, seed):
+    """A cask laid on its side in a timber cradle, a dark stain spreading under its bung."""
+    with r.at(ox * 0.5, 0, oz * 0.5, ry=seed * 0.9):
+        for x in (-0.3, 0.3):  # the cradle's chocks
+            r.part("cube", x, 0.08, 0, 0.14, 0.16, 0.8, OAK)
+        r.part("cyl", 0, 0.44, 0, 0.7, 0.95, 0.7, WHITE, tex="wood_plank", rx=math.pi / 2)
+        r.part("cyl", 0, 0.44, 0, 0.76, 0.5, 0.76, WHITE, tex="wood_plank", rx=math.pi / 2)  # the belly
+        for z in (-0.36, 0.36):
+            r.part("cyl", 0, 0.44, z, 0.74, 0.05, 0.74, DARK_IRON, rx=math.pi / 2)
+        for z in (-0.48, 0.48):
+            r.part("cyl", 0, 0.44, z, 0.6, 0.01, 0.6, (70, 48, 30), rx=math.pi / 2)  # its heads
+        r.part("cyl", 0, 0.82, 0, 0.08, 0.04, 0.08, (60, 40, 26))  # the bung
+        r.part("cyl", 0.1, 0.005, 0.15, 0.6, 0.01, 0.45, (44, 34, 28))  # the stain
 
 
 def _barrel_wreck(r, ox, oz, seed):
@@ -3940,10 +4059,59 @@ def crate(r, seed, broken=False):
                 )  # fmt: skip
             r.part("cube", -0.15, 0.12, 0.1, 0.85, 0.06, 0.85, WHITE, tex="wood_plank", ry=0.5, rz=0.2)
             return
+        look = variant(seed, CRATE_LOOKS)
+        if look == 1:
+            _slatted_crate(r, seed)
+            return
+        if look == 2:
+            _long_crate(r, seed)
+            return
         _crate_box(r, 0.9)
         if seed % 2 == 0:
             with r.at(0.05, 0.9, -0.05, ry=0.5):
                 _crate_box(r, 0.6)
+
+
+def _slatted_crate(r, seed):
+    """An open-slatted crate, dark gaps between its boards, X-braced on two faces, straw spilling over
+    its top; sometimes a little one, upended, beside it."""
+    s = 0.85
+    edge = (60, 40, 26)
+    r.part("cube", 0, s / 2, 0, s - 0.08, s - 0.04, s - 0.08, (26, 20, 16))  # the dark inside
+    for k in range(4):  # slats round the four sides
+        y = 0.12 + k * 0.21
+        for side in (-1, 1):
+            r.part("cube", side * s / 2, y, 0, 0.04, 0.14, s, WHITE, tex="wood_plank")
+            r.part("cube", 0, y, side * s / 2, s, 0.14, 0.04, WHITE, tex="wood_plank")
+    for dx, dz in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
+        r.part("cube", dx * s / 2, s / 2, dz * s / 2, 0.07, s, 0.07, edge)
+    for side in (-1, 1):  # the braces
+        for tilt in (-0.78, 0.78):
+            r.part("cube", side * (s / 2 + 0.02), s / 2, 0, 0.03, 1.1, 0.07, edge, rx=tilt)
+    for k in range(6):  # straw over the top
+        a = k * 1.05 + seed
+        r.part("cube", math.cos(a) * 0.15, s + 0.02, math.sin(a) * 0.15, 0.5, 0.03, 0.06, STRAW, ry=a, rz=0.2)
+    if seed % 2 == 0:
+        with r.at(0.0, 0, 0.72, ry=0.4):
+            _crate_box(r, 0.45)
+
+
+def _long_crate(r, seed):
+    """A long, low crate (tools, or arms), its lid nailed and strapped with iron, a dark brand burnt in
+    its side; sometimes a sack slumped against it."""
+    r.part("cube", 0, 0.3, 0, 0.7, 0.6, 1.4, WHITE, tex="wood_plank")
+    edge = (60, 40, 26)
+    for dx, dz in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
+        r.part("cube", dx * 0.35, 0.3, dz * 0.7, 0.07, 0.62, 0.07, edge)
+    r.part("cube", 0, 0.61, 0, 0.74, 0.04, 1.44, _dim(WHITE, 0.8), tex="wood_plank")  # the lid
+    for z in (-0.5, 0.5):
+        r.part("cube", 0, 0.3, z, 0.73, 0.64, 0.06, DARK_IRON)  # straps
+    r.part("cube", 0.355, 0.32, 0, 0.01, 0.22, 0.3, (40, 30, 24))  # the brand
+    r.part("cube", 0.355, 0.32, 0, 0.012, 0.06, 0.18, (88, 64, 44))
+    if seed % 2 == 1:
+        with r.at(0.55, 0, 0.3, ry=seed * 0.3):
+            r.part("sphere", 0, 0.24, 0, 0.42, 0.5, 0.36, SACKCLOTH, rz=-0.25)
+            r.part("cube", 0.02, 0.5, 0, 0.12, 0.08, 0.12, _dim(SACKCLOTH, 0.7))  # its tied neck
 
 
 def _crate_box(r, s):

@@ -57,6 +57,7 @@ LIGHT_KINDS = (
     "save_statue",
     "moon_lamp",
     "moon_window",
+    "sump_caps",
 )
 LIGHT_Y = {
     "save_statue": "2.4",
@@ -65,6 +66,7 @@ LIGHT_Y = {
     "light": "2.0",
     "candles": "0.6",
     "fungus": "0.7",
+    "sump_caps": "0.5",
     "bonfire": "0.9",
     "giant_mushroom": "2.2",
     "forge_hearth": "1.2",
@@ -81,6 +83,7 @@ LIGHT_Y_WALL = {
 }
 LIGHT_COLOR = {
     "fungus": "0.3,0.85,0.65",
+    "sump_caps": "0.62,0.74,0.3",
     "giant_mushroom": "0.55,0.35,0.85",
     "shelf_fungus": "0.25,0.7,0.75",
     "bonfire": "1.0,0.55,0.25",

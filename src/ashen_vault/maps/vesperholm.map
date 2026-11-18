@@ -126,10 +126,10 @@ V = veiled_knight
 // Finds: remedies, and gold the dead no longer spend.
 C = chest item=red_tonic count=2 gold=90
 I = chest item=blue_moss count=2 gold=120
-J = chest item=grave_lily gold=160
-K = chest item=menders_kit gold=140
+J = chest item=grave_lily gold=160 model=coffer
+K = chest item=menders_kit gold=140 model=banded
 N = chest item=clotting_salve count=2 gold=110
-O = chest item=bitter_root count=2 gold=100
+O = chest item=bitter_root count=2 gold=100 model=coffer
 // Moonlight: the city's lamps, windows of moon-glass, and cold lights in the cathedral.
 Ä = moon_lamp
 Ó = moon_lamp

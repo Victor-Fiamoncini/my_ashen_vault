@@ -107,7 +107,7 @@ Z = brazier radius=8
 Æ = hint text="Ash lies thick on the chapel steps.|Many of the Ashen came this way. None came back." on=1
 // The chapel: the Flame Bolt's scroll by its west wall, a cold brazier, and its far door sealed in silk.
 Ç = hint text="Silk seals the chapel's far door. No blade will cut it."
-D = chest item=scroll_flame gold=15
+D = chest item=scroll_flame gold=15 model=worn
 È = hint text="A scroll: choose it in {Belongings} to learn its spell,|then press {2} on the spell to ready it as your {Secondary}."
 É = hint text="{Right mouse} casts your Secondary's spell.|Burn the silk."
 W = secret_wall model=web on=c

@@ -27,7 +27,7 @@ def test_every_floor_in_every_map_has_a_surface_of_its_own():
     }
     # Anything else is stone by default: name it here if it sounds like stone, else map it.
     stone_like = {
-        "cobble", "setts", "slate", "rough_stone", "ashlar", "stone_brick", "black_brick", "mossy_brick",
+        "cobble", "setts", "slate", "rough_stone", "ashlar", "stone_brick", "black_brick",
         "ash_flagstone", "ash_stone", "ash_brick", "ossuary", "cliff_rock",
     }  # fmt: skip
     assert unmapped <= stone_like, unmapped - stone_like

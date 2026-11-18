@@ -60,10 +60,10 @@ q = floor tex=sludge h=-8.4 ceil=-2.5 ceil_tex=sewer_vault side=sewer_brick slow
 [grid]
 ################################################
 ################################################
-###################..F.Á......Á..F..############
+###################.ÍF.Á......Á..F..############
 ###################=================############
 ###################Â===========L====#FbbbbbbbbF#
-###################..H.....A.......F#bqqbbbqqqb#
+###################Æ.H.....A......ÇF#bqqbbbqqqb#
 ##########...........HH...Å.........#bqqbbbqqqb#
 ##########F########Æ.......F.....Ç.Q#bbbbbbbÈbb#
 ##########.#############.############bbbbNbbbbb#
@@ -71,19 +71,19 @@ q = floor tex=sludge h=-8.4 ceil=-2.5 ceil_tex=sewer_vault side=sewer_brick slow
 ##########.#############.############bbbbbbbbbb#
 ##########.#############G############bÈbÊbbÊqqb#
 ##########É#############.############bqqbËbbqqb#
-########d.......F#######.############bqqbbbbqqb#
+########d......ÍF#######.############bqqbbbbqqb#
 ########d###.###Â#######,############FbbbbbbbbF#
 ########d###H###-##F,,F,,,,F,,F##########O######
-########G###H###Ë##,E,,,,,,H,,,##########u######
+########G###H###Ë##,E,,,,,,H,,Ç##########u######
 ####SdÇ#d###H###-##,,P,Ê,,,,P,,##########u######
 ####dddW...........,,,Ì,,,,Ì,,F######FuuGuuuuF##
 ####GÆÍ#s###Å###.##,,,,wwww,,,,######uJuuuÅuyy##
 ########s###.###I##,,,,wwww,,,,.....ÀuuuuuuuËy##
 ########s###F###.##F,,Åwwww,,,,######uukkÓuuuu##
-########..J......##,,J,wwww,,,,######uukÓkuuuu##
+########.ÍJ......##,,J,wwww,,,,######uukÓkuuuu##
 ########F######.###,,,,wwwwÅ,,F######ÉuÖËkuuuÂ##
-########d######B###F,,Ì,,,,Ì,,,######uuuuuuJuu##
-########J######R###,,P,,,,,,P,,######Vuuuuuuuu##
+########d######B###F,,Ì,,,,Ì,,,######uuuuuuJuÆ##
+########J######R###,,P,,,,,,P,Æ######Vuuuuuuuu##
 ########d##########,,,H,,,Ê,I,,######FuFuuÍFuu##
 ########dHHddd#####F,,,F,,F,,,F#######h#########
 ########d###########,########Ù########gfeÜa987##
@@ -92,14 +92,14 @@ q = floor tex=sludge h=-8.4 ceil=-2.5 ceil_tex=sewer_vault side=sewer_brick slow
 ########d########G######nnnÄnnMnnÈn##########Ø##
 ########Í########d######xËÈnnnnnnnn##########3##
 #T######d########d######xxnnnnnnÄnn##########2##
-#dW.FI....F.....È.###############Ù###########1##
+#dW.FI....F.....ÈÍ###############Ù###########1##
 #G#~~.~~~~~~ËÔ--K-#############FooFooppoooFooF##
-###Â..........F..F.....Z.Y.....oooooopÕooooooo##
+###ÂÍ.........F..F.....Z.Y.....oooooopÕoooooÇo##
 #######C#######################ÂoooooËpooooooo##
 ###############################FooHHoÒpooooIoF##
 ###############################ÆooHHopÒooooooÇ##
 ###############################oooooopËDoooooo##
-###############################FoooÅoÃÃooFooÆU##
+###############################FÆooÅoÃÃooFooÆU##
 ################################################
 ################################################
 
@@ -112,7 +112,7 @@ D = exit map=harrowmere at=39,39,-90 label=Climb_up_to_the_quay model=sewer_ladd
 // The cistern's shrine, its pillars and the light.
 E = save_statue
 F = torch radius=8
-G = fungus radius=4
+G = sump_caps radius=4
 P = pillar
 // What lives down here: rats in packs and a few as big as hounds, sludge that crawls, the drowned lying
 // in the muck and leeches in the gutters by the channels.
@@ -133,12 +133,12 @@ O = door boss=maw_dead
 // Her nest has a great door at each mouth: die in there and both give way to fog.
 Ù = door boss=matron_dead
 // Finds: ailments' remedies mostly, for the sewers breed them all.
-Q = chest item=bitter_root count=2 gold=40
-R = chest item=clotting_salve count=2 gold=60
+Q = chest item=bitter_root count=2 gold=40 model=worn
+R = chest item=clotting_salve count=2 gold=60 model=worn
 S = chest item=grave_lily gold=80
-T = chest item=menders_kit gold=50
-U = chest item=red_tonic count=2 gold=70
-V = chest item=blue_moss count=2 gold=120
+T = chest item=menders_kit gold=50 model=coffer
+U = chest item=red_tonic count=2 gold=70 model=worn
+V = chest item=blue_moss count=2 gold=120 model=banded
 W = secret_wall
 // Shortcuts: the short way down from the sluices, barred on their side; the drawbridge over the sluice
 // pit between the culvert and the outfall, let down from the outfall's side; and the lift from the Sump
@@ -160,6 +160,6 @@ Z = bridge lever=sluice_bridge hinge=e deck=0 on=_
 Ê = chains
 Ë = light y=0.6 color=0.55,0.85,0.3 radius=4
 Ì = brazier radius=10
-Í = mushrooms
-Ø = fungus radius=4 on=4
-Ü = fungus radius=4 on=c
+Í = inkcaps
+Ø = sump_caps radius=4 on=4
+Ü = sump_caps radius=4 on=c

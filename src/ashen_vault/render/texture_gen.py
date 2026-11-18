@@ -28,7 +28,6 @@ def all_textures():
         "glitter": glitter(),
         "roof": roof(),
         "iron_bars": iron_bars(),
-        "mossy_brick": mossy_brick(),
         "vine_wall": vine_wall(),
         "bark": bark(),
         "leaf_litter": leaf_litter(),
@@ -135,7 +134,7 @@ def solid(r, g, b):
     return build(lambda x, y: (r, g, b))
 
 
-def bricks(base, mortar, seed, rows=4, cols=2, moss=False):
+def bricks(base, mortar, seed, rows=4, cols=2):
     bh = SIZE // rows
     bw = SIZE // cols
 
@@ -150,20 +149,13 @@ def bricks(base, mortar, seed, rows=4, cols=2, moss=False):
         k = 0.75 + hash_(col, row, seed) * 0.35 + (n - 0.5) * 0.35
         if y % bh == bh - 1 or ox % bw == bw - 1:
             k *= 0.82
-        c = tint(base, k)
-        if moss and noise(x, y, 8, seed + 9) > 0.62:
-            c = [rround(c[0] * 0.6), rround(c[1] * 0.95 + 20), rround(c[2] * 0.5)]
-        return c
+        return tint(base, k)
 
     return build(px)
 
 
 def stone_brick():
     return bricks([118, 110, 100], [48, 44, 40], 11)
-
-
-def mossy_brick():
-    return bricks([100, 104, 90], [40, 44, 36], 12, moss=True)
 
 
 def flagstone():

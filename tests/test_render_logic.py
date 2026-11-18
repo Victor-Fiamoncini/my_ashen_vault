@@ -6,7 +6,7 @@ import random
 import pytest
 
 from ashen_vault import map_path, screen
-from ashen_vault.render import rig, texture_gen
+from ashen_vault.render import models, rig, texture_gen
 from ashen_vault.render.mesh_builder import MeshBuilder
 from ashen_vault.ui import tinyfont
 from ashen_vault.world.map_loader import MapLoader
@@ -1876,6 +1876,102 @@ def test_the_sewers_dressing_draws_and_hangs_on_its_wall():
     assert {"drain_pipe", "sluice_wheel", "outfall_grate"} <= set(WALL_PROPS)
     assert {"sluice_wheel", "outfall_grate", "rat_nest"} <= STATIC_PROPS
     assert "drain_pipe" not in STATIC_PROPS  # its trickle of sludge pours on
+
+
+def test_the_sewers_grow_their_own_mushrooms_and_the_sump_caps_light_the_dark():
+    from ashen_vault.render import mesh_builder, sewer_models
+    from ashen_vault.world.world import BLOCKING_PROPS, STATIC_PROPS
+
+    looks = {}
+    for name, fn in (
+        ("inkcaps", lambda r, seed: sewer_models.inkcaps(r, seed)),
+        ("sump_caps", lambda r, seed: sewer_models.sump_caps(r, seed)),
+    ):
+        for seed in range(6):
+            gpu = _GlowGpu()
+            fn(rig.Rig(gpu), seed)
+            assert len(gpu.parts) >= 12, name
+            assert min(y for _, y in gpu.parts) > -0.1, name
+            looks.setdefault(name, set()).update(gpu.looks)
+            assert (gpu.glows > 0) == (name == "sump_caps"), name  # only the sump caps glow
+        assert name in STATIC_PROPS and name not in BLOCKING_PROPS, name
+    assert "sump_caps" in mesh_builder.LIGHT_KINDS and "inkcaps" not in mesh_builder.LIGHT_KINDS
+    jungle = _GlowGpu()
+    models.mushrooms(rig.Rig(jungle), 4)
+    for name, seen in looks.items():  # not the jungle's caps in a new place
+        assert not {rgb for _, rgb, _ in jungle.looks} & {rgb for _, rgb, _ in seen}, name
+    sewers = MapLoader.load_file(map_path("harrow_sewers")).entities
+    kinds = [e.kind for e in sewers]
+    assert kinds.count("inkcaps") >= 6 and kinds.count("sump_caps") >= 6
+    assert "mushrooms" not in kinds and "fungus" not in kinds
+
+
+class _FootprintGpu(_RecordingGpu):
+    """Also notes where each part's centre stands across the floor."""
+
+    def __init__(self):
+        super().__init__()
+        self.spots = []
+
+    def draw_part(self, kind, matrix, rgb, tex="white", glow=False):
+        super().draw_part(kind, matrix, rgb, tex, glow)
+        self.spots.append((matrix[3], matrix[11]))
+
+
+def _seeds_for_each(n):
+    seeds = {}
+    for seed in range(400):
+        seeds.setdefault(models.variant(seed, n), []).append(seed)
+    assert sorted(seeds) == list(range(n))
+    return seeds
+
+
+@pytest.mark.parametrize(("kind", "looks"), [("barrel", models.BARREL_LOOKS), ("crate", models.CRATE_LOOKS)])
+def test_crates_and_barrels_take_a_look_by_their_tile_and_stay_on_it(kind, looks):
+    from ashen_vault.world.world import PROP_TOP
+
+    draw = getattr(models, kind)
+    shapes = set()
+    for look, seeds in _seeds_for_each(looks).items():
+        for seed in seeds[:6]:
+            for broken in (False, True):
+                gpu = _FootprintGpu()
+                draw(rig.Rig(gpu), seed, broken=broken)
+                assert gpu.parts, (kind, look, seed)
+                assert min(y for _, y in gpu.parts) > -0.1, (kind, look, seed)
+                top = max(y for _, y in gpu.parts)  # part centres: the tallest cask's lid sits a hair over
+                assert top < PROP_TOP[kind] + 0.05, (kind, look, seed)
+                assert all(abs(x) < 1.0 and abs(z) < 1.0 for x, z in gpu.spots), (kind, look, seed)
+        gpu = _GlowGpu()
+        draw(rig.Rig(gpu), seeds[0])
+        shapes.add(frozenset(gpu.looks))
+    assert len(shapes) == looks  # each look is drawn its own way
+    assert [models.variant(s, looks) for s in range(50)] == [models.variant(s, looks) for s in range(50)]
+
+
+def test_every_chest_style_draws_opens_and_is_spelt_right_in_the_maps():
+    import glob
+    import os
+
+    from ashen_vault import MAP_DIR
+
+    shapes = set()
+    for style in models.CHEST_SHELLS:
+        shut, wide = _GlowGpu(), _GlowGpu()
+        models.chest(rig.Rig(shut), False, style)
+        models.chest(rig.Rig(wide), True, style)
+        assert len(shut.parts) >= 4, style
+        assert min(y for _, y in shut.parts + wide.parts) > -0.1, style
+        assert shut.parts != wide.parts, style  # the lid swings open
+        shapes.add(frozenset(shut.looks))
+    assert len(shapes) == len(models.CHEST_SHELLS)
+    used = set()
+    for path in glob.glob(os.path.join(MAP_DIR, "*.map")):
+        for e in MapLoader.load_file(path).entities:
+            if e.kind in ("chest", "mimic"):
+                used.add(e.props.get("model", "wood"))
+    assert used <= set(models.CHEST_SHELLS), used - set(models.CHEST_SHELLS)
+    assert {"worn", "banded", "coffer"} <= used  # the new styles stand in the maps
 
 
 def test_vesperholms_dressing_draws_and_stands_still():
