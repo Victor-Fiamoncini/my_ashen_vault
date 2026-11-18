@@ -40,8 +40,9 @@ Equipment, combat, spells, shops, saves and the story.
   chests, broken barrels, revealed walls, slain mimics, kindled fires as `lit:`) or `loot:<key>` for
   dropped items. Bosses add
   their `dead_flag` (`boss_dead`, `spider_dead`, `gargoyles_dead`, `butcher_dead`, `sexton_dead`, `matron_dead`,
-  `maw_dead`) and relics a
-  `<relic>_taken` flag (`sigil_taken` for the Ember Sigil). Shown hints add `hint:<map>:<marker>`, a one-way
+  `maw_dead`, `duchess_dead`) and relics a
+  `<relic>_taken` flag (`sigil_taken` for the Ember Sigil); once the first three are taken
+  `vesper_gate_open` (`relics.GATE_FLAG`) opens the Vesper Gate. Shown hints add `hint:<map>:<marker>`, a one-way
   exit `left:<map>`.
 - Equipment (`player/inventory.py`): two hand slots, shown to players as **Primary** (`right` = left
   mouse button) and **Secondary** (`left` = right button) via `SLOT_NAMES`; never say "hand" in text the
@@ -125,5 +126,14 @@ Equipment, combat, spells, shops, saves and the story.
 - The story: the player is one of the Ashen, woken in the Cemetery of Ashes by a toll of the town's bell
   that no one rang. Odrin knows the prophecy: whoever wakes must win four sigils to raise the king turned
   to stone on the cathedral's throne (the Enthroned); many Ashen woke before and failed. Nobody arrived by
-  sea. Only three sigils exist yet, and the ending takes those three; the fourth's place, who rang the
-  bell and what petrified the king are `TODO(story)`s in `dialogue.py`.
+  sea. The four sigils were the realm's four seals, and the king held them. His sister, Duchess Ilvane
+  of Vesperholm, wed the moon on the fourth, the Argent Sigil, so her city would never see a dawn or a
+  death: the moon stopped over it, and it keeps whatever it shines on as it is, her people as pale shades
+  and her brother as stone on his throne. With the fourth bent to the moon, the other three fell to
+  keepers who went bad (the Warden, the Loom Mother, the gargoyles). From inside the stone the king rang
+  the bell himself, once, to wake the Ashen: the dead, whom the moon cannot keep. The prophecy names only
+  the first three's places; taking all three opens the Vesper Gate behind the cathedral (Odrin's "Find
+  the three, and perhaps it will find you"), and the fourth lies beyond it with the Duchess. Odrin ends
+  the game once you bring him all four (`relics.ENDING_RELICS`); the Enthroned stirs a stage further for
+  each you carry (`dialogue.ENTHRONED_LINES`, five stages), and at four confesses he rang the bell. What
+  lies below the Bell Square is still a `TODO(story)` in `game.py`.

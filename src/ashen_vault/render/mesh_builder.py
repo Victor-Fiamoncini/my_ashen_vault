@@ -55,10 +55,13 @@ LIGHT_KINDS = (
     "crucible",
     "rose_window",
     "save_statue",
+    "moon_lamp",
+    "moon_window",
 )
 LIGHT_Y = {
     "save_statue": "2.4",
     "lamp_post": "2.6",
+    "moon_lamp": "2.6",
     "light": "2.0",
     "candles": "0.6",
     "fungus": "0.7",
@@ -74,6 +77,7 @@ LIGHT_Y_WALL = {
     "barred_window": "2.4",
     "great_window": "1.6",
     "rose_window": "0",
+    "moon_window": "2.2",
 }
 LIGHT_COLOR = {
     "fungus": "0.3,0.85,0.65",
@@ -88,6 +92,8 @@ LIGHT_COLOR = {
     "forge_hearth": "1.0,0.55,0.22",
     "crucible": "1.0,0.5,0.2",
     "rose_window": "0.95,0.55,0.62",
+    "moon_lamp": "0.62,0.74,1.0",
+    "moon_window": "0.58,0.68,0.98",
 }
 LIGHT_RADIUS = {
     "save_statue": "6",
@@ -103,9 +109,14 @@ LIGHT_RADIUS = {
     "giant_mushroom": "6",
     "bonfire": "9",
     "rose_window": "10",
+    "moon_lamp": "8",
+    "moon_window": "8",
 }
 # Lights hung on a wall when one stands beside them: they shine from against it.
-WALL_LIGHTS = ("torch", "shelf_fungus", "hearth", "window", "barred_window", "great_window", "rose_window")
+WALL_LIGHTS = (
+    *("torch", "shelf_fungus", "hearth", "window", "barred_window", "great_window", "rose_window"),
+    "moon_window",
+)
 # Fires that can stand cold (`unlit`) until something kindles them.
 KINDLING = ("brazier", "bonfire")
 DIRS = ((1, 0), (-1, 0), (0, 1), (0, -1))

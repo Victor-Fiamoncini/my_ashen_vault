@@ -53,7 +53,9 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   The run stops after `--smoke` frames even if the script hasn't finished, so give it enough frames.
 - `--equip right=katana,left=buckler,body=brigandine,hands=iron_gauntlets` (`primary=` / `secondary=`
   also work; `none` empties a slot, `left=spell:pyre` learns and readies Pyre) and `--level 6`, which
-  only sets the level for equipment requirements: HP and stats stay at level 1.
+  only sets the level for equipment requirements: HP and stats stay at level 1. `--flags a,b` starts
+  with those save flags set before the map loads (a boss's dead flag, a taken sigil), as a save would
+  hold them: `--flags sigil_taken,verdant_sigil_taken,iron_sigil_taken` opens the Vesper Gate.
 - Combat rolls are random, so HP can vary between runs; positions, scenes, flags and items do not.
 - On Wayland, `GLFW: Error: 65548` warnings are harmless.
 - Ready-made starts for every area, boss and shortcut: [`docs/dev/smoke-starts.md`](docs/dev/smoke-starts.md).
@@ -63,13 +65,13 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | Path | Contents |
 | --- | --- |
 | `src/ashen_vault/world/`, `player/`, `ai/`, `save/` | Pure game logic. **No raylib imports here**; covered by `tests/` |
-| `src/ashen_vault/render/` | Shaders, procedural textures, mesh builder, models, the prop bake |
+| `src/ashen_vault/render/` | Shaders, procedural textures, mesh builder, models, the prop bake; each area's own models in a module of their own (`cemetery_models`, `town_models`, `forge_models`, `fortress_props`, `sewer_models`, `moon_models`) |
 | `src/ashen_vault/ui/` | HUD, menus, dialogue boxes, fonts (`hud.py` draws them all) |
 | `src/ashen_vault/audio/synth.py` | Synthesized sound effects |
 | `src/ashen_vault/game.py` | Scenes and the main loop |
 | `src/ashen_vault/input.py` | Key bindings and the `--script` driver |
 | `src/ashen_vault/dialogue.py` | NPC conversations, gifts and shops |
-| `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]` |
+| `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. One per area: `ashen_cemetery`, `harrowmere`, `harrow_sewers`, `sunken_keep`, `verdant_hollow`, `cinderhold`, `cinder_keep` and `vesperholm` (`docs/dev/maps.md` describes each) |
 | `tests/` | pytest suite; `conftest.py` has a small test map, `test_*_world.py` build a real `World` headless |
 | `tools/` | `screenshots.py` (the README gallery), the level planner and level sketch (design aids) |
 | `docs/dev/` | The detailed guides below |

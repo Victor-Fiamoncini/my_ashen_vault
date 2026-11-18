@@ -1361,6 +1361,8 @@ def prompt(game, lift=0):
 def flash(player):
     if player.webbed_t > 0:
         _web_overlay(clamp(player.webbed_t, 0, 1))
+    if player.chill_t > 0:
+        _frost_overlay(clamp(player.chill_t, 0, 1))
     if player.spore_t > 0:
         # A sickly yellow-green haze while you choke on spores.
         pr.draw_rectangle(0, 0, W, H, color(150, 170, 60, rround(clamp(player.spore_t, 0, 1) * 70)))
@@ -1372,6 +1374,29 @@ def flash(player):
     if player.hurt_t <= 0:
         return
     pr.draw_rectangle(0, 0, W, H, color(160, 0, 0, rround(clamp(player.hurt_t * 300, 0, 120))))
+
+
+def _frost_overlay(k):
+    """Moon-frost feathering in from the edges of the view while it numbs your legs: a cold blue wash
+    and fronds of rime from each corner, fading as it thaws."""
+    pr.draw_rectangle(0, 0, W, H, color(150, 180, 235, rround(40 * k)))
+    c = color(225, 235, 255, rround(170 * k))
+    for cx, cy, sx, sy in ((0, 0, 1, 1), (W, 0, -1, 1), (0, H, 1, -1), (W, H, -1, -1)):
+        for i in range(4):
+            a = i * 0.42 + 0.15
+            reach = 34 + 12 * (i % 2)
+            ex, ey = cx + sx * rround(reach * math.cos(a)), cy + sy * rround(reach * math.sin(a))
+            pr.draw_line(cx, cy, ex, ey, c)
+            for f in (0.45, 0.75):  # fronds off each spine
+                fx, fy = cx + sx * rround(reach * f * math.cos(a)), cy + sy * rround(reach * f * math.sin(a))
+                for turn in (-0.6, 0.6):
+                    pr.draw_line(
+                        fx,
+                        fy,
+                        fx + sx * rround(9 * math.cos(a + turn)),
+                        fy + sy * rround(9 * math.sin(a + turn)),
+                        c,
+                    )
 
 
 def _web_overlay(k):

@@ -69,6 +69,11 @@ def enemy(r, e):
         "drowned": sewer_models.drowned,
         "bilge_leech": sewer_models.bilge_leech,
         "sump_maw": sewer_models.sump_maw,
+        "pale_sentinel": moon_models.pale_sentinel,
+        "lantern_wraith": moon_models.lantern_wraith,
+        "moonhound": moon_models.moonhound,
+        "veiled_knight": moon_models.veiled_knight,
+        "moon_duchess": moon_models.moon_duchess,
     }.get(e.type.id)
     if e.type.id == "bone_walker" and getattr(e, "look", None) == "grave":
         fn = cemetery_models.grave_walker  # the cemetery's own dead, risen in their winding sheets
@@ -2288,7 +2293,8 @@ def enthroned(r, t):
     and blocky like the villagers, a broad flat mantle over its shoulders. Cracks
     run through it, lichen and moss creep up from the dais, and dust lies on every ledge. Only the dust
     drifting through the light moves."""
-    # TODO(story): the Enthroned's petrification: when, why, and what still listens inside the stone.
+    # The moon's keeping: when his sister wed the moon on the fourth sigil it kept him as he sat, in
+    # stone, and he still listens from inside it (`dialogue.ENTHRONED_LINES`).
     throne(r)
     robe, under, skin = PETRIFIED, PETRIFIED_SHADE, _dim(PETRIFIED, 1.06)
     with r.at(-0.2, 1.0, 0):  # the seat
@@ -2493,6 +2499,11 @@ BOSS_DOORS = {
     "matron_dead": DoorStyle(
         (88, 74, 58), "wood_plank", (70, 60, 56), (92, 70, 60), "sewer_brick", "rat_skull"
     ),
+    # Duchess Ilvane: leaves of frosted moon-glass leaded in silver, in a moonstone arch crowned with a
+    # crescent, cold moon-lanterns on the jambs.
+    "duchess_dead": DoorStyle(
+        (176, 190, 220), "moon_glass", (170, 176, 190), (150, 158, 176), "moonstone", "moon"
+    ),
 }
 DEFAULT_DOOR = "boss_dead"
 
@@ -2556,6 +2567,9 @@ def _door_lamp(r, style, face, t, lit):
     elif style.lamp == "lantern":  # a drain-keeper's lantern, its flame burned bile-green
         r.part("cube", 0, 0.16, 0, 0.1, 0.14, 0.1, (150, 190, 60), glow=True)
         r.part("cube", 0, 0.25, 0, 0.14, 0.03, 0.14, style.iron)
+    elif style.lamp == "moon":  # moonlight caught in a silver cage: a pale, cold, unflickering glow
+        r.part("sphere", 0, 0.17, 0, 0.11, 0.13, 0.11, (200, 220, 255), glow=True)
+        r.part("cone", 0, 0.3, 0, 0.12, 0.08, 0.12, style.iron)
     elif style.lamp == "candle":  # a stub of tallow, guttering
         r.part("cyl", 0, 0.14, 0, 0.06, 0.14, 0.06, (214, 204, 180))
         _flame(r, 0, 0.24, 0, 0.05, t)
@@ -2703,6 +2717,27 @@ def _matron_leaf(r, style, side, face, t, lit):
         )
 
 
+def _duchess_arch(r, style, t, lit):
+    """A crescent moon of silver over the lintel, horns up, a pale stone set in its hollow that shines
+    while she lives; frost creeping down the jambs from it."""
+    silver = _dim(style.iron, 1.15)
+    with r.at(0, 3.55, 0):
+        for i in range(7):  # the crescent, a bowed run of silver
+            a = math.pi * (0.1 + 0.8 * i / 6)
+            r.part("cube", 0, -math.sin(a) * 0.26, math.cos(a) * 0.36, 0.08, 0.09, 0.12, silver,
+                   rx=a - math.pi / 2)  # fmt: skip
+        r.part("sphere", 0, 0.02, 0, 0.1, 0.1, 0.1, (210, 228, 255) if lit else COLD_EMBER, glow=lit)
+    for face in (-1, 1):
+        for side in (-1, 1):
+            r.part("cube", face * 0.23, 2.6, side * 0.93, 0.02, 0.9, 0.05, (214, 224, 240))  # the frost
+
+
+def _duchess_leaf(r, style, side, face, t, lit):
+    """Frosted moon-glass in silver leading, a tall lancet of it picked out on each leaf."""
+    r.part("cube", face * 0.085, 1.6, -side * 0.05, 0.02, 1.6, 0.04, style.iron)  # the lancet's mullion
+    r.part("cube", face * 0.085, 2.4, -side * 0.05, 0.02, 0.04, 0.5, style.iron)  # its transom
+
+
 DOOR_ARCHES = {
     "boss_dead": _warden_arch,
     "butcher_dead": _butcher_arch,
@@ -2711,6 +2746,7 @@ DOOR_ARCHES = {
     "sexton_dead": _sexton_arch,
     "maw_dead": _maw_arch,
     "matron_dead": _matron_arch,
+    "duchess_dead": _duchess_arch,
 }
 DOOR_LEAVES = {
     "boss_dead": _warden_leaf,
@@ -2720,6 +2756,7 @@ DOOR_LEAVES = {
     "sexton_dead": _sexton_leaf,
     "maw_dead": _maw_leaf,
     "matron_dead": _matron_leaf,
+    "duchess_dead": _duchess_leaf,
 }
 FOG_RISE = 0.3  # how many times a second a billow of the fog gate climbs from the floor to its top
 
@@ -6180,6 +6217,7 @@ SIGILS = {
     "ember_sigil": ((112, 80, 68), EMBER, "flame"),
     "verdant_sigil": ((62, 92, 70), (110, 230, 120), "leaf"),
     "iron_sigil": ((96, 98, 108), (120, 200, 255), "gear"),
+    "argent_sigil": ((176, 182, 198), (214, 230, 255), "crescent"),
 }
 
 
@@ -6234,6 +6272,11 @@ def _sigil_device(r, device, core, y, t):
             with r.at(math.cos(a) * 0.12, y, math.sin(a) * 0.12, ry=-a):
                 r.part("cube", 0.04, 0, 0, 0.18, 0.03, 0.07, ink)
         r.part("cube", 0, y, 0, 0.06, 0.035, 0.06, ink)
+    elif device == "crescent":  # a crescent moon, horns up, a star between its horns
+        for i in range(7):
+            a = math.pi * (1.1 + 0.8 * i / 6)  # the bow of it, round the disc's lower half
+            r.part("cube", math.sin(a) * 0.2, y, math.cos(a) * 0.2, 0.07, 0.03, 0.08, ink, ry=-a)
+        r.part("cube", 0.12, y, 0, 0.05, 0.035, 0.05, ink, ry=math.pi / 4 + t * 0.3)  # the star
     else:  # a gear around an anvil
         turn = t * 0.6
         for i in range(8):
@@ -6422,4 +6465,4 @@ def meat_hooks(r, t, seed, ceil_h):
 
 
 # The Cinderhold's models live in their own module; it borrows the helpers above, so it is imported last.
-from ashen_vault.render import cemetery_models, forge_models, sewer_models  # noqa: E402
+from ashen_vault.render import cemetery_models, forge_models, moon_models, sewer_models  # noqa: E402

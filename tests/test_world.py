@@ -105,6 +105,7 @@ STATIC_BLOCKERS = (
     *("pew", "bed", "cupboard", "fence", "lamp_post", "tree"),
     *("banner_pole", "fountain", "bench", "hand_cart", "hay_wagon", "cargo", "flying_buttress"),
     *("gravestone", "cemetery_gate"),
+    *("moon_lamp", "veiled_statue", "silver_tree"),
 )
 
 
@@ -994,3 +995,85 @@ def test_the_sewers_drowned_and_leeches_lie_in_the_sludge():
         for s in leeches
         for dx, dz in BESIDE
     )
+
+
+# --- Vesperholm -----------------------------------------------------------------------------------
+
+
+def _vesperholm():
+    return MapLoader.load_file(map_path("vesperholm"))
+
+
+def test_the_vesper_gate_joins_town_and_vesperholm_both_ways():
+    """The Vesper Gate stands in Harrowmere's north wall behind the cathedral and stays shut until the
+    three sigils are taken; you come through it into Vesperholm's Gate Court, just before the gate home,
+    and that one leads back out beside the town's gate, on the cathedral's hill. It is never shut."""
+    from ashen_vault.world import relics
+
+    town, city = MapLoader.load_file(map_path("harrowmere")), _vesperholm()
+    (gate,) = _spec(town, "exit", map="vesperholm")
+    (home,) = _spec(city, "exit", map="harrowmere")
+    assert gate.props["model"] == home.props["model"] == "vesper_gate"
+    assert gate.props["requires"] == relics.GATE_FLAG and gate.props["shut"]
+    assert "requires" not in home.props and "oneway" not in gate.props
+    assert town[gate.tx, gate.tz - 1].solid and gate.tz == 1  # in the north wall
+    (throne,) = _spec(town, "npc", id="enthroned")
+    assert abs(gate.tx - throne.tx) <= 3  # behind the cathedral's apse
+    tx, tz = (int(v) for v in gate.props["at"].split(",")[:2])
+    assert (tx, tz) == tuple(int(v) for v in city.meta["start"][:2])
+    assert abs(tx - home.tx) + abs(tz - home.tz) == 1 and city[tx, tz].walkable
+    bx, bz = (int(v) for v in home.props["at"].split(",")[:2])
+    assert abs(bx - gate.tx) + abs(bz - gate.tz) == 1
+    assert (bx, bz) in _reachable(town, tuple(int(v) for v in town.meta["start"][:2]))
+
+
+def test_vesperholm_is_solvable():
+    """From the Gate Court every street, chest and the lever can be reached with only the false wall
+    opened, over the Glass Bridge; the Duchess waits behind her great door. The drawbridge is a
+    shortcut: both its ends are reachable before it comes down. Nowhere you can get to strands you."""
+    m = _vesperholm()
+    assert m.meta["name"] == "Vesperholm" and m.meta["sky"] == "moonlit"
+    start = tuple(int(v) for v in m.meta["start"][:2])
+    secrets = [(s.tx, s.tz) for s in _spec(m, "secret_wall")]
+    (door,) = _spec(m, "door", boss="duchess_dead")
+    (duchess,) = _spec(m, "moon_duchess")
+    before = _reachable(m, start, open_tiles=secrets)
+    assert (duchess.tx, duchess.tz) not in before  # her choir lies behind its great door
+    opened = _reachable(m, start, open_tiles=[*secrets, (door.tx, door.tz)])
+    for s in m.entities:
+        if s.kind in ("chest", "lever", "exit", "moon_duchess", "save_statue"):
+            near = {(s.tx + dx, s.tz + dz) for dx, dz in BESIDE} | {(s.tx, s.tz)}
+            assert near & opened, (s.kind, s.props, s.tx, s.tz)
+        if s.kind == "chest":
+            assert (s.tx, s.tz) in before
+    (shrine,) = _spec(m, "save_statue")
+    assert abs(shrine.tx - start[0]) + abs(shrine.tz - start[1]) <= 10  # a shrine by the way in
+    (bridge,) = _spec(m, "bridge")
+    assert bridge.props["hinge"] == "n"
+    assert {(bridge.tx, bridge.tz - 1), (bridge.tx, bridge.tz + 1)} <= before
+    (lever,) = _spec(m, "lever", id=bridge.props["lever"])
+    assert (lever.tx, lever.tz) in before
+    glass = {(tx, tz) for tz in range(m.depth) for tx in range(m.width) if m[tx, tz].floor_tex == "moon_glass"
+             and m[tx, tz].ceil is None}  # fmt: skip
+    assert glass and (lever.tx, lever.tz) not in _reachable(m, start, open_tiles=secrets, avoid=glass)
+    doors = [(s.tx, s.tz) for s in m.entities if s.kind in ("door", "secret_wall")]
+    full = _reachable(m, start, open_tiles=doors, shortcuts=True)
+    assert (lever.tx, lever.tz) in full
+    for tile in full:
+        assert start in _reachable(m, tile, open_tiles=doors, shortcuts=True), tile
+
+
+def test_vesperholms_gorge_is_a_sheer_drop_under_the_open_moon():
+    """The gorge between the lower town and the castle is a chasm too deep to live through, the
+    streets lie under the open sky, and the moon's own light floods them: the ambient light is pale
+    and blue and the fog reaches far."""
+    m = _vesperholm()
+    gorge = [m[tx, tz] for tz in range(m.depth) for tx in range(m.width) if m[tx, tz].chasm]
+    assert len(gorge) > 100
+    assert all(t.floor <= -terrain.FALL_LETHAL for t in gorge)
+    r, g, b = m.meta["ambient"]
+    assert b > g > r and r > 0.3  # moonlight: bright, pale and cold
+    _near, far = m.meta["fog_range"]
+    assert far >= 80
+    start = tuple(int(v) for v in m.meta["start"][:2])
+    assert m[start].ceil is None

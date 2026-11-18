@@ -46,6 +46,14 @@ MOVES = {
     "tail_lash": (0.45, 3.5, 0.8),
     "squeal": (0.8, 9.0, 0.3),
     "swarm": (1.0, 8.0, 0.35),
+    # Vesperholm's: a lance of moon-frost thrown from afar (a fan of three from the Duchess), and a
+    # blink, a step through the moonlight to reappear behind you and strike. The Duchess's own: shafts
+    # of moonlight falling where you stand and where you would step, and (second phase) the moonfall,
+    # rings of them raining down round you.
+    "frost_lance": (0.8, 6.0, 0.7),
+    "blink": (0.6, 8.0, 1.0),
+    "moonbeam": (0.9, 7.0, 0.9),
+    "moonfall": (1.2, 11.0, 0.8),
 }
 COMBO_SWINGS = 3
 COMBO_GAP = 0.45  # seconds between the swings of a combo
@@ -79,6 +87,10 @@ LUNGES = {
     "dive": (DIVE_SPEED, DIVE_TIME, DIVE_OVERSHOOT, DIVE_HIT),
     "gulp": (GULP_SPEED, GULP_TIME, GULP_OVERSHOOT, GULP_HIT),
 }
+FROST_LANCE_RANGE = (3.0, 12.0)
+BLINK_RANGE = (3.0, 10.0)  # it steps through the moonlight only while you keep your distance
+MOONBEAM_RANGE = (2.0, 12.0)
+MOONFALL_RANGE = 12.0
 SQUEAL_RADIUS = 4.5  # metres her squeal staggers you, from any side
 TAIL_ARC = 1.9  # radians off her facing beyond which you stand in reach of her tail
 TAIL_REACH = 1.0  # extra reach of her tail over her bite
@@ -119,6 +131,9 @@ ATTACK_TIMES = {
     "swarm": 0.4,
     "undertow": 0.6,
     "shed": 0.5,
+    "frost_lance": 0.3,
+    "moonbeam": 0.5,
+    "moonfall": 0.6,
 }
 
 
@@ -134,7 +149,8 @@ class Enemy:
     slam(enemy) and eruption(enemy); for hook throwers, hook(enemy, mult, pull);
     for fire-breathers, breath(enemy); for the Sexton, grasp(enemy) and knell(enemy, wave); for
     Mother Gnawl, tail_lash(enemy) and squeal(enemy); for the Sump Maw, undertow(enemy),
-    gulp(enemy), shed(enemy) and can_shed(enemy). Optional, for twin bosses: rouse_twin(enemy), twin_fallen(enemy)
+    gulp(enemy), shed(enemy) and can_shed(enemy); for Vesperholm's blinkers, blink(enemy); for the
+    Duchess, moonbeam(enemy) and moonfall(enemy). Optional, for twin bosses: rouse_twin(enemy), twin_fallen(enemy)
     and twin_busy(enemy); for bosses that rise from ash, rise_time(enemy) (seconds, or None while it
     should stay a heap; without it the heap rises when it notices you).
     """
@@ -538,6 +554,14 @@ class Enemy:
             options.append("swarm")
         if "squeal" in ready and dist <= SQUEAL_RADIUS * 0.8:
             options.append("squeal")
+        if "frost_lance" in ready and seen and FROST_LANCE_RANGE[0] <= dist <= FROST_LANCE_RANGE[1]:
+            options.append("frost_lance")
+        if "blink" in ready and seen and BLINK_RANGE[0] <= dist <= BLINK_RANGE[1]:
+            options.append("blink")
+        if "moonbeam" in ready and seen and MOONBEAM_RANGE[0] <= dist <= MOONBEAM_RANGE[1]:
+            options.append("moonbeam")
+        if "moonfall" in ready and dist <= MOONFALL_RANGE:
+            options.append("moonfall")
         if "knell" in ready and dist <= KNELL_RANGE:
             options.append("knell")
         if not options:
@@ -584,9 +608,11 @@ class Enemy:
             return self._dive(world, dt)
         if kind == "knell":
             return self._knell(world)
+        if kind == "blink":
+            return self._blink(world)
         if not self._struck:
             self._struck = True
-            if kind in ("shot", "web", "cinders", "spadeful", "fireball", "bile", "swarm"):
+            if kind in ("shot", "web", "cinders", "spadeful", "fireball", "bile", "swarm", "frost_lance"):
                 world.enemy_fire(self, kind)
             elif kind == "summon":
                 world.summon(self, self.type.brood, 2)
@@ -616,6 +642,10 @@ class Enemy:
                 world.undertow(self)
             elif kind == "shed":
                 world.shed(self)
+            elif kind == "moonbeam":
+                world.moonbeam(self)
+            elif kind == "moonfall":
+                world.moonfall(self)
             elif kind == "hook":
                 if dist <= HOOK_RANGE[1] + 0.5 and self._facing(world.player_x, world.player_z):
                     world.hook(self, MOVES["hook"][2], HOOK_PULL)
@@ -636,6 +666,15 @@ class Enemy:
             self._struck += 1
         if self.state_t >= KNELL_GAP + 0.3:
             self._switch("recover")
+
+    def _blink(self, world):
+        """It steps through the moonlight: gone from where it stood and, the same moment, behind you
+        (or beside you, where a wall is in the way), already winding up its blow. Turn and meet it."""
+        if not self._struck:
+            self._struck = True
+            world.blink(self)
+            self.face(world.player_x, world.player_z)
+            self._begin_windup("melee")
 
     @property
     def combo_swing(self):

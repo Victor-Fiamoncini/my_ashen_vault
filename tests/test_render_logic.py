@@ -28,6 +28,7 @@ def test_mesh_builder_batches_shipped_maps():
         "cinderhold",
         "cinder_keep",
         "harrow_sewers",
+        "vesperholm",
     ):
         m = MapLoader.load_file(map_path(name))
         b = MeshBuilder(m, lights=MeshBuilder.lights_for(m)).build()
@@ -231,6 +232,11 @@ def test_dead_glowing_enemies_go_dark():
         "cinder_wisp",
         "sewer_rat",
         "sump_maw",
+        "pale_sentinel",
+        "lantern_wraith",
+        "moonhound",
+        "veiled_knight",
+        "moon_duchess",
     ):
         _, alive = _extent(type_id, "idle", 0.5)
         _, dead = _extent(type_id, "dead", 3.0)
@@ -476,6 +482,7 @@ def test_bosses_have_boss_level_detail():
         "loom_mother",
         "sexton",
         "sump_maw",
+        "moon_duchess",
     )
     for boss in bosses:
         assert _drawn(boss)[1] >= 50, boss
@@ -495,13 +502,19 @@ def test_bosses_have_boss_level_detail():
         "mourner",
         "drowned",
         "bilge_leech",
+        "pale_sentinel",
+        "lantern_wraith",
+        "veiled_knight",
     )
     for foe in foes:
         assert _drawn(foe)[1] >= 30, foe
 
 
 def test_phase_two_changes_how_each_boss_looks():
-    for boss in ("ashen_warden", "butcher", "brand", "bellows", "sexton", "rat_matron", "sump_maw"):
+    for boss in (
+        *("ashen_warden", "butcher", "brand", "bellows", "sexton", "rat_matron", "sump_maw"),
+        "moon_duchess",
+    ):
         (calm, calm_n), (raging, raging_n) = _drawn(boss), _drawn(boss, phase2=True)
         assert raging.glows > calm.glows or raging_n > calm_n, boss
         dead, _ = _drawn(boss, phase2=True, state="dead")
@@ -875,6 +888,7 @@ def test_every_map_texture_is_generated():
         "cinderhold",
         "cinder_keep",
         "harrow_sewers",
+        "vesperholm",
     ):
         m = MapLoader.load_file(ashen_vault.map_path(map_name))
         tiles = {m[tx, tz] for tz in range(m.depth) for tx in range(m.width)}
@@ -1273,7 +1287,14 @@ def test_every_boss_has_its_own_great_door_and_its_lamps_go_out_when_cleared():
     from ashen_vault.world.map_loader import MapLoader
 
     flags = set()
-    for name in ("ashen_cemetery", "sunken_keep", "verdant_hollow", "cinder_keep", "harrow_sewers"):
+    for name in (
+        "ashen_cemetery",
+        "sunken_keep",
+        "verdant_hollow",
+        "cinder_keep",
+        "harrow_sewers",
+        "vesperholm",
+    ):
         m = MapLoader.load_file(map_path(name))
         flags |= {s.props["boss"] for s in m.entities if s.kind == "door" and s.props.get("boss")}
     assert flags <= set(models.BOSS_DOORS)  # no boss door falls back to another's look
@@ -1765,7 +1786,7 @@ def test_villager_hands_are_smaller_than_the_arm_and_close_round_what_they_hold(
 def test_every_way_between_maps_is_built_in_detail():
     """The gates, doors, wells, caves and ropes that lead from map to map are landmarks of their own,
     not a handful of boxes; the road gate's two ends differ."""
-    from ashen_vault.render import cemetery_models, forge_models, models, sewer_models
+    from ashen_vault.render import cemetery_models, forge_models, models, moon_models, sewer_models
 
     def parts(fn):
         gpu = _RecordingGpu()
@@ -1782,11 +1803,14 @@ def test_every_way_between_maps_is_built_in_detail():
         "cemetery_gate": lambda r: cemetery_models.cemetery_gate(r, 0.0),
         "sewer_grate": lambda r: sewer_models.sewer_grate(r, 0.3),
         "sewer_ladder": lambda r: sewer_models.sewer_ladder(r, 0.3),
+        "vesper_gate": lambda r: moon_models.vesper_gate(r, 0.0, 0.3),
+        "vesper_gate open": lambda r: moon_models.vesper_gate(r, 1.0, 0.3),
     }
     for name, fn in exits.items():
         assert len(parts(fn)) >= 25, name
         assert min(y for _, y in parts(fn)) > -0.1, name
     assert parts(exits["road_gate"]) != parts(exits["road_gate forge"])
+    assert parts(exits["vesper_gate"]) != parts(exits["vesper_gate open"])
 
 
 def test_town_and_fortress_statues_and_carts_are_detailed():
@@ -1852,3 +1876,69 @@ def test_the_sewers_dressing_draws_and_hangs_on_its_wall():
     assert {"drain_pipe", "sluice_wheel", "outfall_grate"} <= set(WALL_PROPS)
     assert {"sluice_wheel", "outfall_grate", "rat_nest"} <= STATIC_PROPS
     assert "drain_pipe" not in STATIC_PROPS  # its trickle of sludge pours on
+
+
+def test_vesperholms_dressing_draws_and_stands_still():
+    from ashen_vault.render import mesh_builder, moon_models
+    from ashen_vault.world.world import BLOCKING_PROPS, LANDMARKS, STATIC_PROPS, WALL_PROPS
+
+    for name, fn in (
+        ("moon_lamp", lambda r: moon_models.moon_lamp(r, 4)),
+        ("veiled_statue", lambda r: moon_models.veiled_statue(r, 4)),
+        ("silver_tree", lambda r: moon_models.silver_tree(r, 4)),
+        ("moon_window", lambda r: moon_models.moon_window(r, 4)),
+        ("moon_spire", lambda r: moon_models.moon_spire(r, 4, 16.0)),
+    ):
+        gpu = _GlowGpu()
+        fn(rig.Rig(gpu))
+        assert len(gpu.parts) >= 12, name
+        assert min(y for _, y in gpu.parts) > -0.1, name
+        assert name in STATIC_PROPS, name
+    assert {"moon_lamp", "veiled_statue", "silver_tree"} <= set(BLOCKING_PROPS)
+    assert "moon_window" in WALL_PROPS and "moon_spire" in LANDMARKS
+    assert {"moon_lamp", "moon_window"} <= set(mesh_builder.LIGHT_KINDS)  # they cast moonlight
+
+
+def test_vesperholms_foes_moves_each_strike_their_own_pose_and_the_glaive_never_folds_back():
+    import random
+
+    from ashen_vault.ai.enemy import COMBO_GAP, Enemy
+    from ashen_vault.ai.enemy_types import EnemyTypes
+    from ashen_vault.render import models, moon_models
+
+    type_ = EnemyTypes.get("moon_duchess")
+    poses = {}
+    for move in (None, *type_.moves, *type_.phase_moves, "kindle"):
+        for state in ("chase", "windup", "attack", "recover"):
+            for t in (0.0, 0.1, 0.3, COMBO_GAP * 1.2, COMBO_GAP * 2.5):
+                e = Enemy(type_, 0, 0, rng=random.Random(0))
+                e.state, e.state_t, e.attack_kind = state, t, move
+                hit, _, blade, elbow, *_ = moon_models.duchess_arms(e, 1.3)
+                assert _off_forearm(models.aim_wrist(blade, hit + elbow)) <= 150, (move, state, t)
+        e = Enemy(type_, 0, 0, rng=random.Random(0))
+        e.state, e.state_t, e.attack_kind = "windup", 5.0, move
+        poses[move] = tuple(round(v, 2) for v in moon_models.duchess_arms(e, 0.0))
+    poses.pop(None)  # a plain chop winds up as the combo does
+    assert len(set(poses.values())) == len(poses)  # every move strikes its own pose
+    # A blinker fades into the moonlight as it winds up, and is whole again after.
+    knight = Enemy(EnemyTypes.get("veiled_knight"), 0, 0, rng=random.Random(0))
+    knight.state, knight.state_t, knight.attack_kind = "windup", 5.0, "blink"
+    assert moon_models._fading(knight) == 1.0
+    knight.state = "recover"
+    assert moon_models._fading(knight) == 0.0
+
+
+def test_vesperholms_lances_beams_and_mist_draw():
+    from ashen_vault.render import moon_models
+
+    gpu = _GlowGpu()
+    r = rig.Rig(gpu)
+    moon_models.frost_lance(r, (200, 220, 255), 0.5)
+    lance = gpu.glows
+    assert lance >= 8  # all of it shining
+    for k in (0.1, 0.5, 0.9):
+        moon_models.moonbeam(r, k, k, 1.0)
+        moon_models.blink_mist(r, k, 1.2)
+    before = len(gpu.parts)
+    moon_models.moonbeam(r, 0.0, 0.0, 1.0)  # not yet called down: nothing
+    assert len(gpu.parts) == before > 80

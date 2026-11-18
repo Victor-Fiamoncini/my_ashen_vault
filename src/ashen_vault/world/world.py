@@ -27,6 +27,7 @@ from ashen_vault.render import (
     forge_models,
     fortress_props,
     models,
+    moon_models,
     prop_bake,
     sewer_models,
     town_models,
@@ -226,6 +227,9 @@ BLOCKING_PROPS = (
     "katana_stand",
     "bookcase",
     "drawers",
+    "moon_lamp",
+    "veiled_statue",
+    "silver_tree",
 )
 # How high a low blocking prop reaches above its floor, in metres: a shot flying higher passes over it
 # (a bolt over a table, a casket or a barrel). Anything not listed stands full height.
@@ -293,6 +297,7 @@ WALL_PROPS = (
     "drain_pipe",
     "sluice_wheel",
     "outfall_grate",
+    "moon_window",
 )
 # Props drawn as far as the fog lets you see, however far that is: they make a skyline.
 LANDMARKS = (
@@ -312,6 +317,7 @@ LANDMARKS = (
     "roof_turret",
     "wall_tower",
     "rampart_bay",
+    "moon_spire",
 )
 # Props that never move, open, break or flicker: they are baked once into world-space batches
 # (`render/prop_bake.py`) instead of being drawn part by part every frame. A prop drawn with the time
@@ -328,6 +334,7 @@ STATIC_PROPS = frozenset(
         *("roof_turret", "wall_tower", "rampart_bay"),
         *("weapon_rack", "armor_stand", "katana_stand", "bookcase", "drawers"),
         *("sluice_wheel", "outfall_grate", "rat_nest"),
+        *("moon_lamp", "veiled_statue", "silver_tree", "moon_window", "moon_spire"),
         "ash_mound",
         "spire",
     }
@@ -404,7 +411,7 @@ GRASP_HOLD = 1.6  # seconds a hand that catches you holds you (slowed, as by sil
 KNELL_SHOTS = 10  # embers in each ring of the Sexton's knell
 KNELL_SPEED = 5.0
 # What wounds you when an eruption of each style catches you (fire otherwise).
-ERUPTION_SOURCES = {"hands": "The grasping ash", "drowned": "A drowned hand"}
+ERUPTION_SOURCES = {"hands": "The grasping ash", "drowned": "A drowned hand", "moon": "The moonlight"}
 SQUEAL_STAGGER = 1.2  # seconds Mother Gnawl's squeal leaves you stumbling
 SWARM_SPEED = 7.0  # m/s her litter scurries along the floor
 SWARM_HEIGHT = 0.3  # metres off the floor they run
@@ -413,6 +420,13 @@ UNDERTOW_RING = 1.3  # metres from your spot to each of the four hands round it
 UNDERTOW_ROT = 25  # rot the drowned's grip builds
 GULP_GLOOM = 2.5  # seconds the dark of the Maw's gut stays on your eyes after it spits you out
 GULP_DARK = 0.85  # how dark it gets, as on a `dark=` tile
+LANCE_SPEED = 10.0  # m/s a lance of moon-frost flies
+LANCE_FAN = 0.22  # radians between the lances of a fan of three
+LANCE_CHILL = 1.2  # seconds moon-frost numbs your legs (`Player.chill_t`: slowed, as by silk)
+BLINK_BEHIND = 1.8  # metres behind you a blinker steps out of the moonlight
+BLINK_MIST = 1.2  # metres the mist of a blink billows out
+MOONBEAM_ASIDE = 2.4  # metres to either side of you the Duchess's second and third shafts fall
+MOONFALL_RINGS = ((2.6, 6, 0.3), (4.8, 8, 0.6))  # (radius, shafts, delay) of each ring of the moonfall
 SHED_COUNT = 2  # gobbets the Maw sloughs off at a time
 SHED_MAX = 4  # it sheds no more while this many of them still crawl
 ASH_CLOD = (150, 144, 138)  # the grey of a spadeful of grave ash
@@ -489,6 +503,7 @@ class World:
         self.game = game
         self.name = name
         self.map = MapLoader.load_file(map_path(name))
+        relics.open_gate(game.flags)  # an older save that holds the first three sigils catches up
         self._meshes = []
         self._sea = None  # the open sea's mesh (`world/sea.py`), drawn with its own thin fog
         self._glitter = None  # (key, mesh) of the sun's path of glints on it
@@ -1331,6 +1346,13 @@ class World:
             self.game.sfx("enemy_die", 0.4)
             self.game.message(f"{enemy.type.called}'s litter pours out at you!")
             return
+        if kind == "frost_lance":
+            # A fan of three lances of moon-frost: each that strikes numbs your legs. Step out of the
+            # fan, or between two of its lances.
+            for spread in (-LANCE_FAN, 0.0, LANCE_FAN):
+                self._fire_one(enemy, kind, spread)
+            self.game.sfx("motes", 0.8)
+            return
         if kind == "spadeful":
             # A spadeful of grave ash flung in a fan of five clods: each that hits clogs your stride.
             for spread in (-0.44, -0.22, 0.0, 0.22, 0.44):
@@ -1345,13 +1367,21 @@ class World:
         ash = kind == "spadeful"
         y = self.enemy_y(enemy) + (enemy.type.hover or enemy.type.mouth or 1.2)
         player = self.player
-        speed = 7.5 if web else 11 if enemy.type.shot == "arrow" else 6
+        speed = (
+            7.5
+            if web
+            else 11
+            if enemy.type.shot == "arrow"
+            else LANCE_SPEED
+            if enemy.type.shot == "lance"
+            else 6
+        )
         dx, dy, dz = shots.toward(
             enemy.x, y, enemy.z, player.x, player.y + shots.AIM_HEIGHT, player.z, speed, spread
         )
         lead = enemy.radius / speed  # leaves from the edge of its body
         damage = enemy.type.damage
-        if kind in ("web", "cinders", "spadeful", "fireball", "bile"):
+        if kind in ("web", "cinders", "spadeful", "fireball", "bile", "frost_lance"):
             damage = rround(damage * MOVES[kind][2])
         self.projectiles.append(
             Projectile(
@@ -1443,6 +1473,66 @@ class World:
             self.gloom_t = GULP_GLOOM
             self.game.sfx("hiss", 1.0)
             self.game.message(f"{enemy.type.called} swallows you whole, and spits you out!")
+
+    def blink(self, enemy):
+        """A blinker steps through the moonlight: mist where it stood, and it steps out BLINK_BEHIND
+        behind you, or beside you if a wall, a drop or a body is in the way there (on its own floor,
+        never across a chasm onto another level). Where there is nowhere to stand it stays put."""
+        player = self.player
+        fx, fz = player.forward()
+        floor = self.enemy_y(enemy)
+        for ax, az in ((-fx, -fz), (fz, -fx), (-fz, fx), (fx, fz)):
+            x, z = player.x + ax * BLINK_BEHIND, player.z + az * BLINK_BEHIND
+            tile = self.map.tile_at(x, z)
+            tx, tz = TileMap.tile_coord(x), TileMap.tile_coord(z)
+            if tile.hazardous or not collision.passable(self.map, tx, tz, floor, blocked=self.blocker):
+                continue
+            if abs(tile.floor - floor) > collision.STEP_HEIGHT or not self.can_see(player.x, player.z, x, z):
+                continue
+            if any(e is not enemy and e.alive and math.hypot(e.x - x, e.z - z) < e.radius + enemy.radius
+                   for e in self.enemies):  # fmt: skip
+                continue
+            self.shockwaves.append(Shockwave(enemy.x, enemy.z, floor, BLINK_MIST, style="blink"))
+            enemy.x, enemy.z = x, z
+            self.shockwaves.append(Shockwave(x, z, tile.floor, BLINK_MIST, style="blink"))
+            self.game.sfx("swoosh", 0.9)
+            if enemy.type.boss:
+                self.game.message(f"{enemy.type.called} steps out of the moonlight behind you!")
+            return True
+        return False
+
+    def moonbeam(self, enemy):
+        """The Duchess calls the moon down: a shaft of moonlight where you stand, and one to either side
+        of you, across your facing (`Eruption` style "moon"). Step forward or back out of the line."""
+        player = self.player
+        damage = rround(enemy.type.damage * MOVES["moonbeam"][2])
+        fx, fz = player.forward()
+        spots = [(player.x, player.z, 0.0)]
+        for side in (-1, 1):
+            spots.append((player.x - fz * side * MOONBEAM_ASIDE, player.z + fx * side * MOONBEAM_ASIDE, 0.15))
+        self._moonlight(spots, damage)
+        self.game.message("The moonlight gathers over you!")
+
+    def moonfall(self, enemy):
+        """Second phase: the moon rains down round you, a shaft where you stand and then rings of them
+        farther out (MOONFALL_RINGS). Stand in a gap between the shafts of a ring."""
+        player = self.player
+        damage = rround(enemy.type.damage * MOVES["moonfall"][2])
+        spots = [(player.x, player.z, 0.0)]
+        for n, (radius, count, delay) in enumerate(MOONFALL_RINGS):
+            for i in range(count):
+                a = (i + 0.5 * n) * 2 * math.pi / count + enemy.yaw
+                spots.append((player.x + math.cos(a) * radius, player.z + math.sin(a) * radius, delay))
+        self._moonlight(spots, damage)
+        self.game.message(f"{enemy.type.called} raises her glaive, and the moon falls!")
+
+    def _moonlight(self, spots, damage):
+        for x, z, delay in spots:
+            tile = self.map.tile_at(x, z)
+            if tile.solid or not tile.walkable:
+                continue
+            self.eruptions.append(Eruption(x, z, tile.floor, delay=delay, damage=damage, style="moon"))
+        self.game.sfx("ward", 0.8)
 
     def dark_here(self):
         """How dark it is where you stand (0..1): the tile's own darkness, or deeper while the dark of
@@ -1681,12 +1771,14 @@ class World:
         self.gloom_t = max(self.gloom_t - dt, 0.0)
         for f in self.eruptions:
             if f.update(dt):
-                sound = "quake" if f.style == "hands" else "hiss" if f.style == "drowned" else "eruption"
+                sound = {"hands": "quake", "drowned": "hiss", "moon": "motes"}.get(f.style, "eruption")
                 self.sfx_near(sound, f.x, f.z, *(BOMB_SOUND if f.origin else ERUPTION_SOUND))
             if player.alive:
                 dmg = f.hit(player.x, player.z)
                 if dmg:
                     hands = f.style in ("hands", "drowned")
+                    if f.style == "moon":
+                        player.chill_t = max(player.chill_t, LANCE_CHILL)
                     if f.origin is None:  # a foe's fire, not a magma vent's bomb
                         dmg = foe_harm(dmg)
                     hurt = max(rround(dmg - player.inventory.defense * 0.3), 1)
@@ -1698,6 +1790,8 @@ class World:
                     elif f.style == "drowned":
                         self.afflict_player("rot", UNDERTOW_ROT)
                         self.game.message("The drowned drag at your legs!")
+                    elif f.style == "moon":
+                        self.game.message("The moonlight burns you with cold!")
         self.eruptions = [f for f in self.eruptions if not f.done]
         for w in self.shockwaves:
             w.update(dt)
@@ -1857,6 +1951,9 @@ class World:
                     elif pr_.effect == "ash":
                         player.webbed_t = max(player.webbed_t, GRASP_HOLD)
                         self.game.message("Grave ash clogs your stride!")
+                    elif pr_.effect == "lance":
+                        player.chill_t = max(player.chill_t, LANCE_CHILL)
+                        self.game.message("Moon-frost numbs your legs!")
                     pr_.life = 0
             else:
                 target = next(
@@ -2538,6 +2635,8 @@ class World:
                     cemetery_models.ash_hands(rig, f.glow, f.flame, self._time + f.x)
                 elif f.style == "drowned":
                     sewer_models.drowned_hands(rig, f.glow, f.flame, self._time + f.x)
+                elif f.style == "moon":
+                    moon_models.moonbeam(rig, f.glow, f.flame, self._time + f.x)
                 else:
                     models.eruption(rig, f.glow, f.flame, self._time)
             bomb = f.bomb()
@@ -2546,7 +2645,7 @@ class World:
                 with rig.at(*bomb):
                     forge_models.magma_bomb(rig, self._time)
         for w in self.shockwaves:
-            if w.style in ("ash", "squeal"):  # lit by the room rather than glowing
+            if w.style in ("ash", "squeal", "blink"):  # lit by the room rather than glowing
                 self._model_light(gpu, w.x, w.floor + 1.0, w.z)
             else:
                 gpu.model_light((1.6, 1.4, 1.2))
@@ -2555,6 +2654,8 @@ class World:
                     cemetery_models.ash_billow(rig, w.progress, w.radius, self._time)
                 elif w.style == "squeal":
                     sewer_models.squeal_ring(rig, w.progress, w.radius)
+                elif w.style == "blink":
+                    moon_models.blink_mist(rig, w.progress, w.radius)
                 else:
                     models.shockwave_ring(rig, w.progress, w.radius)
         for d in self.devils:
@@ -2575,7 +2676,7 @@ class World:
                         models.gout_puff(rig, size, heat, self._time, seed=i * 1.7)
         for pr_ in self.projectiles:
             gpu.model_light((1.6, 1.4, 1.2))
-            if pr_.effect in ("arrow", "thunder", "thorn", "mote", "rat"):  # these fly point first
+            if pr_.effect in ("arrow", "thunder", "thorn", "mote", "rat", "lance"):  # these fly point first
                 heading = -math.atan2(pr_.dz, pr_.dx)
                 climb = math.atan2(pr_.dy, math.hypot(pr_.dx, pr_.dz))
                 with rig.at(pr_.x, pr_.y, pr_.z, ry=heading, rz=climb):
@@ -2587,6 +2688,8 @@ class World:
                         forge_models.mote(rig, self._time + id(pr_) % 7)
                     elif pr_.effect == "rat":
                         sewer_models.swarm_rat(rig, self._time + id(pr_) % 5)
+                    elif pr_.effect == "lance":
+                        moon_models.frost_lance(rig, pr_.rgb, self._time + id(pr_) % 3)
                     else:
                         forge_models.thunder_spear(rig, self._time)
                 continue
@@ -2788,6 +2891,8 @@ class World:
                 cemetery_models.cemetery_gate(rig, 1.0 if self.exit_open(p) else 0.0)
             elif p.props.get("model") == "sewer_grate":
                 sewer_models.sewer_grate(rig, t)
+            elif p.props.get("model") == "vesper_gate":  # it stands open once the three sigils are taken
+                moon_models.vesper_gate(rig, 1.0 if self.exit_open(p) else 0.0, t)
             elif p.props.get("model") == "sewer_ladder":  # set back against the wall behind it, if any
                 behind = self.map[p.tx - rround(math.cos(p.yaw)), p.tz - rround(math.sin(p.yaw))]
                 sewer_models.sewer_ladder(rig, t, self._ceil_h(p), LADDER_BACK if behind.solid else 0.0)
@@ -2875,6 +2980,22 @@ class World:
             sewer_models.outfall_grate(rig, p.tx * 7 + p.tz * 3)
         elif k == "rat_nest":
             sewer_models.rat_nest(rig, p.tx * 7 + p.tz * 3)
+        elif k == "moon_lamp":
+            moon_models.moon_lamp(rig, p.tx * 7 + p.tz * 3)
+        elif k == "veiled_statue":
+            moon_models.veiled_statue(rig, p.tx * 7 + p.tz * 3)
+        elif k == "silver_tree":
+            moon_models.silver_tree(rig, p.tx * 7 + p.tz * 3)
+        elif k == "moon_window":  # `rise=` hangs it up its wall, `size=` scales it about the wall's face
+            size = float(p.props.get("size", "1"))
+            with (
+                rig.at(-0.95, float(p.props.get("rise", "0")), 0),
+                rig.at(0, 0, 0, s=size),
+                rig.at(0.95, 0, 0),
+            ):
+                moon_models.moon_window(rig, p.tx * 7 + p.tz * 3)
+        elif k == "moon_spire":
+            moon_models.moon_spire(rig, p.tx * 7 + p.tz * 3, float(p.props.get("height", "14")))
 
     def _draw_town_prop(self, rig, p, k, t):
         seed = p.tx * 7 + p.tz * 3

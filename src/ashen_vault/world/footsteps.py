@@ -1,11 +1,13 @@
 """What the ground underfoot sounds like: each floor texture belongs to a surface, and each surface
 has its own step sound (`step_<surface>` in `audio/synth.py`)."""
 
-SURFACES = ("stone", "wood", "soft", "mud", "water", "metal", "gravel")
+SURFACES = ("stone", "wood", "soft", "mud", "water", "metal", "gravel", "glass")
 DEFAULT = "stone"
 VOLUME = 0.35  # a footstep's volume
 
 _BY_TEX = {
+    # Stone is the default; Vesperholm's moonstone paving and silvered slate are named all the same.
+    "stone": ("moonstone", "moon_paving", "silver_slate"),
     "wood": ("wood_plank", "timber", "bark"),
     "soft": (
         "dirt",
@@ -21,6 +23,7 @@ _BY_TEX = {
     "water": ("water", "rapids"),
     "metal": ("iron_plate", "iron_grate"),
     "gravel": ("slag", "ravine"),
+    "glass": ("moon_glass",),
 }
 TEX_SURFACE = {tex: surface for surface, texes in _BY_TEX.items() for tex in texes}
 

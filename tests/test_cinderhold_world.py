@@ -449,9 +449,9 @@ def test_a_shrine_rest_leaves_a_living_pair_as_it_is():
     assert twins(world)["bellows"] is pair["bellows"] and pair["bellows"].hp == 40
 
 
-def test_the_three_sigils_end_the_game():
-    assert relics.ENDING_RELICS == ("ember_sigil", "verdant_sigil", "iron_sigil")
-    assert relics.held(lambda i: i != "verdant_sigil") == ["ember_sigil", "iron_sigil"]
+def test_the_four_sigils_end_the_game():
+    assert relics.ENDING_RELICS == ("ember_sigil", "verdant_sigil", "iron_sigil", "argent_sigil")
+    assert relics.held(lambda i: i != "verdant_sigil") == ["ember_sigil", "iron_sigil", "argent_sigil"]
     flags = set()
     relics.mark_taken("iron_sigil", flags)
     assert flags == {"iron_sigil_taken"}

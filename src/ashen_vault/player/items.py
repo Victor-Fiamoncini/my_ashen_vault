@@ -628,6 +628,13 @@ class Items:
                 price=0,
                 desc="A heavy disc of black iron, cold however long you hold it. It rings faintly.",
             ),
+            Item(
+                id="argent_sigil",
+                name="Argent Sigil",
+                kind="key",
+                price=0,
+                desc="A disc of pale silver with a crescent at its heart. It shines like the moon, and as coldly.",
+            ),
         ]
     }
 

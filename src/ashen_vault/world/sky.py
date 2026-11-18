@@ -32,6 +32,20 @@ STAR_BAND = (16.0, 88.0)  # elevations the stars fill, above the horizon's mist 
 STAR_SIZE = (0.22, 0.45)  # a star's radius, degrees: one to three pixels at 320x240
 STAR_SEED = 1709  # the same sky of stars over every map, every time
 STAR_TINTS = ((0.92, 0.95, 1.0), (1.0, 0.94, 0.82), (0.78, 0.86, 1.0))  # cool white, warm white, pale blue
+# Where Vesperholm's moon hangs: in the north, over the Duchess's cathedral, high enough to stand clear
+# of its roofs from the gate court. It never sets.
+MOON_AT = (270.0, 24.0)
+# The moon's seas: (bearing round the disc's centre in radians, share of its radius out, size as a
+# share of its radius), the darker plains on its face.
+MARIA = (
+    (0.6, 0.38, 0.26),
+    (2.3, 0.45, 0.2),
+    (3.6, 0.32, 0.24),
+    (5.0, 0.55, 0.16),
+    (1.4, 0.64, 0.12),
+    (4.3, 0.7, 0.1),
+)
+MARIA_SHADE = 0.9  # how dark the seas are against the disc
 
 
 @dataclass(frozen=True)
@@ -48,6 +62,8 @@ class Sky:
     cap: bool = True  # a thinner layer of cloud overhead
     mist: tuple | None = None  # the haze along the horizon
     stars: float = 0.0  # how brightly the stars show through it (0: none)
+    star_count: int = STAR_COUNT  # how many: a clear night shows far more than a dusk
+    moon: bool = False  # the disc is a moon: its seas are drawn on its face (`maria`)
 
 
 SKIES = {
@@ -104,6 +120,24 @@ SKIES = {
         drift=0.006,
         mist=(0.36, 0.13, 0.07),
         stars=0.24,
+    ),
+    # Vesperholm: a night that never ends, drowned in the light of a vast, pale moon hung in the north
+    # over the cathedral, a sky crowded with stars and a few thin wisps of silvered cloud.
+    "moonlit": Sky(
+        zenith=(0.03, 0.05, 0.13),
+        sun=(0.86, 0.9, 1.0),
+        sun_at=MOON_AT,
+        sun_size=8.5,
+        halo=(0.42, 0.5, 0.68),
+        halo_size=38.0,
+        clouds=(0.36, 0.4, 0.52),
+        cloud_under=(0.14, 0.17, 0.27),
+        drift=0.0015,
+        cap=False,
+        mist=(0.4, 0.46, 0.6),
+        stars=0.95,
+        star_count=640,
+        moon=True,
     ),
 }
 
@@ -249,13 +283,35 @@ def sun(spec, dark=0.0, veil=False):
     return mesh
 
 
-def star_field():
+def maria(spec, dark=0.0, veil=False):
+    """The seas on a moon's face: darker, softer patches laid just in front of its disc. None for a
+    sun, or a sky without a disc."""
+    if not (spec.sun and spec.moon):
+        return None
+    mesh = SkyMesh()
+    rgb = [c * MARIA_SHADE for c in sun_color(spec, dark, veil)]
+    d = direction(*spec.sun_at)
+    u, v = _basis(d)
+    steps = 10
+    for bearing, out, size in MARIA:
+        centre = _around(d, u, v, spec.sun_size * out, bearing)
+        cu, cv = _basis(centre)
+        for i in range(steps):
+            a0, a1 = 2 * math.pi * i / steps, 2 * math.pi * (i + 1) / steps
+            ring = (_around(centre, cu, cv, spec.sun_size * size, a) for a in (a0, a1))
+            for p in (centre, *ring):
+                mesh.vertex(p, (0, 0), rgb, RADIUS * 0.835)
+    return mesh
+
+
+def star_field(count=STAR_COUNT):
     """[(direction, radius in degrees, tint, brightness)] for every star, the same each time: spread
-    evenly over the band's share of the sphere (uniform in the sine of the elevation)."""
+    evenly over the band's share of the sphere (uniform in the sine of the elevation). A denser sky
+    keeps the same first stars and adds more."""
     rng = random.Random(STAR_SEED)
     lo, hi = (math.sin(math.radians(e)) for e in STAR_BAND)
     out = []
-    for _ in range(STAR_COUNT):
+    for _ in range(count):
         elev = math.degrees(math.asin(rng.uniform(lo, hi)))
         d = direction(rng.uniform(0.0, 360.0), elev)
         out.append((d, rng.uniform(*STAR_SIZE), rng.choice(STAR_TINTS), rng.uniform(0.45, 1.0)))
@@ -271,7 +327,7 @@ def stars(spec, fog, dark=0.0, veil=False):
     zenith = shade(spec.zenith, dark, veil)
     away = math.cos(math.radians(spec.halo_size)) if spec.sun else 2.0
     sun_d = direction(*spec.sun_at)
-    for d, size, tint, bright in star_field():
+    for d, size, tint, bright in star_field(spec.star_count):
         if sum(a * b for a, b in zip(d, sun_d, strict=True)) > away:
             continue
         rgb = _mix(dome_color(_elev(d), fog, zenith), shade(tint, dark, veil), spec.stars * bright)
@@ -349,6 +405,7 @@ TEXTURES = {
     "cap": "cloud_cap",
     "clouds": "clouds",
     "sun": "white",
+    "maria": "white",
     "mist": "mist",
 }
 DRIFTING = ("cap", "clouds")  # layers that turn slowly around you
@@ -356,13 +413,15 @@ DRIFTING = ("cap", "clouds")  # layers that turn slowly around you
 
 def layers(spec, fog, dark=0.0, veil=False):
     """[(layer, mesh)] for a sky, back to front: the dome (with the sun's halo), the stars, the overhead
-    cap, the cloud banks, the sun's disc and the mist. Layers the sky lacks are left out."""
+    cap, the cloud banks, the sun's disc (and a moon's seas) and the mist. Layers the sky lacks are left
+    out."""
     built = (
         ("dome", dome(spec, fog, dark, veil)),
         ("stars", stars(spec, fog, dark, veil)),
         ("cap", cap(spec, dark, veil)),
         ("clouds", clouds(spec, dark, veil)),
         ("sun", sun(spec, dark, veil)),
+        ("maria", maria(spec, dark, veil)),
         ("mist", mist(spec, dark, veil)),
     )
     return [(name, mesh) for name, mesh in built if mesh is not None]

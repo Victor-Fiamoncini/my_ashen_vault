@@ -84,7 +84,8 @@ def test_the_sewers_bosses_guard_no_relic():
     for type_id, flag in (("rat_matron", "matron_dead"), ("sump_maw", "maw_dead")):
         t = EnemyTypes.get(type_id)
         assert t.boss and t.dead_flag == flag and t.drop is None and t.rise == "ash"
-    assert len(relics.RELICS) == len(relics.ENDING_RELICS) == 3
+    assert len(relics.RELICS) == len(relics.ENDING_RELICS) == 4
+    assert not {t.drop for t in map(EnemyTypes.get, ("rat_matron", "sump_maw"))} & set(relics.RELICS)
     assert EnemyTypes.get("rat_matron").brood == "sewer_rat"
     assert EnemyTypes.get("sump_maw").rage and "bile" in EnemyTypes.get("sump_maw").moves
 

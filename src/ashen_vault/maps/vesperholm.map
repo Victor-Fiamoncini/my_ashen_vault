@@ -1,0 +1,172 @@
+[meta]
+name = Vesperholm
+ambient = 0.44 0.49 0.62
+fog = 0.34 0.39 0.53
+fog_range = 14 84
+model_range = 46
+indoor_range = 26
+sky = moonlit
+torch = 6 0.62 0.68 0.82
+start = 21 54 -90
+default = ,
+entity_floor = auto
+edge_top = 9
+edge_tex = moonstone
+
+// Vesperholm, the Moonbound City, behind the Vesper Gate in Harrowmere's north wall: the seat of the
+// king's sister, Duchess Ilvane, who wed the moon on the fourth sigil so the night would never end and
+// nothing in her city would die. The moon stopped over it, vast and pale, and has hung in the north
+// over her cathedral ever since; everything under it is drowned in its light, and every soul in the
+// city has thinned to a moonlit shade of itself. You come through the gate into the Gate Court and its
+// shrine; north of it Lantern Square and its moon pool, the Landing on the gorge's edge, with the
+// castle's raised drawbridge across the gorge, and Lamplighters' Row east. The way over is the Glass
+// Bridge at the west street's head, into the castle's postern; its bailey, the west chapel and the
+// Duchess's pale garden; and at its heart the Cathedral of the Long Night, the nave and, behind its
+// great door, the choir where the Duchess waits. The drawbridge's lever, in the bailey, is the short
+// way back to the shrine.
+
+[legend]
+# = wall tex=moonstone top=9 cap=silver_slate
+% = wall tex=moonstone top=14 cap=silver_slate
+h = wall tex=moonstone top=5.5 cap=silver_slate
+, = floor tex=moon_paving h=0 side=moonstone
+// The moon pool in the square: shallow, it only casts you back out.
+~ = water tex=water h=-0.6 side=moonstone
+// The gorge between the lower town and the castle: a sheer drop, far too deep to live through.
+_ = floor tex=moon_paving h=-18 side=moonstone chasm
+// The Glass Bridge: a deck of frosted moon-glass over the gorge.
+g = floor tex=moon_glass h=0 side=moonstone
+// The passages through the castle's walls.
+p = floor tex=moon_paving h=0 ceil=4.5 ceil_tex=moonstone side=moonstone
+// The west chapel, the nave and the choir.
+a = floor tex=moon_paving h=0 ceil=4.2 ceil_tex=silver_slate side=moonstone dark=0.3
+n = floor tex=moon_paving h=0 ceil=12 ceil_tex=silver_slate side=moonstone dark=0.2
+c = floor tex=moon_glass h=0 ceil=13 ceil_tex=silver_slate side=moonstone dark=0.15
+
+[grid]
+###########Ø####################Ø###########
+###########ßÇcccÜccccÜccccÜccccÇ%###########
+###########%cccccccccccccccccccc%###########
+###########%cccccccccccccccccccc%#,,,Û,,,K##
+###########%ÜccccccccDcccccccccÜ%#,,,,,,,,##
+###########%cccccccccccccccccccc%#,,,,,,,,##
+###########%ÑccccccccccccccccccÑ%#,,Æ,,,,,##
+###########%cccccÑcccccccÑcccccc%#,,,,,,,,##
+###########%ÇccccccccccccccccccÇ%#,,,,,,,,##
+###########%%%%%%%%%%E%%%%%%%%%%%#,Û,,L,,,##
+###NaaÚÚaa#%%%nnnnnnnnnnnnnnn%%%%#,,,,,,,,##
+###aaaaaÙa#%%%nnÈnnnnnnnLnÈnn%%%%#,,,,,,,,##
+###aaaaaaa#%%%ÖnnnÉnnnnnÉnnnÖ%%%%#,,,,,Æ,,##
+###aaaaaaa#%%%nnnnnnnSnnnnnnn%%%%#,,,,,,,,##
+###aÙaaaaa#%%%nnÈnnnnnnnnnÈnn%%%%#,,,,,,,,##
+###aaaaaaa#%%%nnnVnnnnnnnnnnn%%%%#,Æ,,,,,,##
+###aaaaaaa#%%%ÖnnnÉnnnnnÉVnnÖ%%%%#,,,,,,,,##
+###aaaaaaa#%%%nnÈnnnnÒnnnnÈnn%%%%#,,,,,,,,##
+#Õ###pp####%%%%%%á%%%â%%%á%%%%%%%#pppp,,,,Õ#
+###,,,,,,,Ó,,,,à,,,àÒ,Òà,,,à,,,,Ó,,,,,,,,###
+###,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,###
+###,,,,,S,,,,,V,,,,,,,,,,,,,,,,,,,,,,,,,,###
+###,Ó,,,,,,,,,,,,,,,,,,,,,,,,,,,,S,,,,,Ó,###
+###,,,,,,,,,,,,,ã,,,,,,,,,ã,,,,,,,,,,,,,,###
+###,,,,,ä,,,,,,,,,,,,,,,,,,M,,,,,,ä,,,,,,###
+###,,,,,,,,,,,,,,,,,,,,,,,,,,M,,,,,,,,,,,###
+###,,V,,,,Ó,,,,,,,,,G,,,,,,,,,,,Ó,,,,,,,O###
+#Õ##pp#####Õ#########p#########Õ##########Õ#
+#___gg_______________,_____________________#
+#___gg_______________,_____________________#
+#___gg_______________,_____________________#
+#___gg_______________F_____________________#
+#hhÔ,,ÔÀhhhhhhhhhÔ,,,,,,,ÔÎhhhhhhhhhh,,,,hh#
+#hh,,,Shhhhhhhhhh,,Ä,,,Ä,,hhhhhhhhhhh,,,Ihh#
+#hh,,,,hhhhhhhhhh,,,,,,,,,hhhhhhhhhhL,,,,hh#
+#hh,,,,hhhhhhhhhhhhhRRRhhhhhhhhhhhhhh,,,,hh#
+#hh,,,ÄÁhhhhh,Æ,,,,,,,,,,,,,Æ,Ïhhhhhh,,,,hh#
+#hh,,,,hhhhhh,,,Ä,,,,,,,L,Ä,,,hhhhhhh,,,,hh#
+#hh,M,,hhhhhh,,,,,S,,,,,,,,,,,,,,,,,,,,,,hh#
+#hh,,,,hhhhhh,,,,,,~~~~~,,,,,,,,,,Ä,,,,,,hh#
+#hh,,,,,,,,,,,,,,,Å~~~~~Å,,,,,Ðhhhhhhhhhhhh#
+#hh,,,,,,,,,,,,,,,,~~~~~,,,,,,hhhhhhhhhhhhh#
+#hh,,,,Âhhhhh,,,,,,,,,,,,,,,,,h,,,,,Ýhhhhhh#
+#hh,,,,hhhhhh,,LÄ,,,,,,,,,Ä,,,W,,,,,hhhhhhh#
+#hh,,M,hhhhhh,Æ,,,,,,,,,,,,,Æ,h,,,,,hhhhhhh#
+#hh,,,,hhhhhhhËhhhh,,,,,Ìhhhhhh,,,,Jhhhhhhh#
+#hh,,,,hhhhhhhhhhhh,,,,,hhhhhhhhhhhhhhhhhhh#
+#hhC,,,,,,,,,,hhhhh,,,,,hhhhhhhhhhhhhhhhhhh#
+#hhhhhh,,,,,,,,,,,,,,,,,,,,,,Íhhhhhhhhhhhhh#
+#hÃhhhhhhhhhhhQQQQQQQQQQQQQQQhhhhhhhhhhhhhh#
+#hhhhhhhhhhhhh,,B,,,,,,,,,,,,hhhhhhhhhhhhhh#
+#hhhhhhhhhhhhh,,,,,,,,,,,,,,,hhhhhhhhhhhhhh#
+#hhhhhhhhhhhhhÄ,,,,,,,,,,,,,Ähhhhhhhhhhhhhh#
+#hhhhhhhhhhhhh,,,,,,,,,,,,,,,hhhhhhhhhhhhhh#
+#hhhhhhhhhhhhh,,,,,,,,,,,,,,,hhhhhhhhhhhhhh#
+#hhhhhhhhhhhhh,,,,,,,A,,,,,,,hhhhhhhhhhhhhh#
+############################################
+############################################
+
+[entities]
+// The Vesper Gate home to Harrowmere, in the Gate Court's south wall, and the court's shrine.
+A = exit map=harrowmere at=5,2,90 label=Return_to_Harrowmere model=vesper_gate yaw=-90
+B = save_statue
+Q = hint text="The moon here never sets, and it keeps all it shines on.|Nothing in this city has died. Nothing in it lives."
+R = hint text="Across the gorge the castle's drawbridge stands raised.|Its lever must lie on the far side."
+// Duchess Ilvane in the choir of her cathedral, behind its great door.
+D = moon_duchess
+E = door boss=duchess_dead on=n
+// The castle's drawbridge over the gorge, let down by the lever in the bailey: the short way back to
+// the shrine.
+F = bridge lever=vesper_bridge hinge=n deck=0 on=_
+G = lever id=vesper_bridge
+// A false wall behind the square's east houses, into a hidden court.
+W = secret_wall on=,
+// The moonlit dead: sentinels of silvered plate, lantern wraiths, moonhounds and veiled knights.
+S = pale_sentinel
+L = lantern_wraith
+M = moonhound
+V = veiled_knight
+// Finds: remedies, and gold the dead no longer spend.
+C = chest item=red_tonic count=2 gold=90
+I = chest item=blue_moss count=2 gold=120
+J = chest item=grave_lily gold=160
+K = chest item=menders_kit gold=140
+N = chest item=clotting_salve count=2 gold=110
+O = chest item=bitter_root count=2 gold=100
+// Moonlight: the city's lamps, windows of moon-glass, and cold lights in the cathedral.
+Ä = moon_lamp
+Ó = moon_lamp
+Ô = moon_lamp
+Ö = moon_window on=n
+Ü = moon_window on=c
+Ú = moon_window on=a
+Ñ = light y=3 color=0.6,0.7,1.0 radius=9 on=c
+Ò = light y=3 color=0.62,0.72,1.0 radius=7
+Û = light y=2.5 color=0.6,0.7,1.0 radius=8
+Ç = candles on=c
+Ù = candles on=a
+// Dressing.
+Å = veiled_statue
+Æ = silver_tree
+È = pillar on=n
+É = pew yaw=-90 on=n
+// The skyline: slender spires on the castle's walls, and the cathedral's two great spires.
+Õ = moon_spire height=16 on=#
+Ø = moon_spire height=24 on=%
+// Roofs of silvered slate, each on its block's north-west corner.
+À = roof span=10,4 ridge=x top=5.5 pitch=3.2 eave=0.4 tex=silver_slate wall=moonstone on=h
+Á = roof span=6,4 ridge=x top=5.5 pitch=3 eave=0.4 tex=silver_slate wall=moonstone on=h
+Â = roof span=6,5 ridge=z top=5.5 pitch=3 eave=0.4 tex=silver_slate wall=moonstone on=h
+Ã = roof span=11,7 ridge=x top=5.5 pitch=3.6 eave=0.4 tex=silver_slate wall=moonstone on=h
+Ë = roof span=5,3 ridge=x top=5.5 pitch=2.6 eave=0.4 tex=silver_slate wall=moonstone on=h
+Ì = roof span=6,3 ridge=x top=5.5 pitch=2.6 eave=0.4 tex=silver_slate wall=moonstone on=h
+Í = roof span=13,8 ridge=x top=5.5 pitch=3.8 eave=0.4 tex=silver_slate wall=moonstone on=h
+Î = roof span=10,4 ridge=x top=5.5 pitch=3.2 eave=0.4 tex=silver_slate wall=moonstone on=h
+Ï = roof span=7,2 ridge=x top=5.5 pitch=2.2 eave=0.4 tex=silver_slate wall=moonstone on=h
+Ð = roof span=12,2 ridge=x top=5.5 pitch=2.2 eave=0.4 tex=silver_slate wall=moonstone on=h
+Ý = roof span=6,6 ridge=z top=5.5 pitch=3.4 eave=0.4 tex=silver_slate wall=moonstone on=h
+ß = roof span=22,18 ridge=z top=14 pitch=7 eave=0.5 tex=silver_slate wall=moonstone on=%
+// The cathedral's front on the bailey: an arched portal, tall windows of moon-glass hung high on it,
+// and a spire either side; statues of the Duchess's handmaids and silver trees before it.
+â = door_arch yaw=90 height=7 spring=3.2 rose on=n
+à = moon_window rise=3.5 size=1.7
+á = moon_spire height=20 on=%
+ã = veiled_statue
+ä = silver_tree

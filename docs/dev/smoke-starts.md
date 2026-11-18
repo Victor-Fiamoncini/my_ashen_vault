@@ -46,6 +46,20 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   drawbridge down). Bosses: `--at=34,32,-160 --level 10 --script "wait:3.2"` (Mother Gnawl rising in her
   nest, its great doors at 29,28 and 33,34; `--at=29,27,90 --script "interact wait:1 forward:1.5"` walks in
   through the north one), `--at=41,13,-90 --level 10 --script "wait:4.5"` (the Sump Maw behind its door at 41,15).
+- Vesperholm (`vesperholm`) lies behind the Vesper Gate in Harrowmere's north wall, in the lane behind
+  the cathedral's apse: `--map harrowmere --at=5,2,-90 --script "back:0.35 look_up:0.12 wait:0.3
+  interact"` (shut: its three sockets dark, and it says why), the same with `--flags
+  sigil_taken,verdant_sigil_taken,iron_sigil_taken` (open, moonlight pouring through; `interact` goes
+  through). Areas: `--map vesperholm` (the Gate Court, its `start`, the shrine at 16,50), `--at=21,43,-90
+  --script "look_up:0.5"` (the moon and the stars over Lantern Square, from beside its moon pool),
+  `--at=21,33,-90` (the Landing, the raised drawbridge across the gorge), `--at=4,35,-90` (the west street
+  and the Glass Bridge), `--at=21,26,-90 --script "look_up:0.25"` (the cathedral's front from the bailey),
+  `--at=21,17,-90` (the nave). A fight: `--at=25,42,-90 --level 6 --equip primary=katana,secondary=buckler
+  --script "wait:2.2"` (a Lantern Wraith's lances), `--at=17,21,180 --script "wait:0.9 attack"` (a Veiled
+  Knight in the bailey). Shortcut: `--at=20,25,90 --script "wait:0.2 interact wait:2.6 strafe_l:0.45 forward:4.5" --smoke 520`
+  (the drawbridge's lever in the bailey; walk out through the gatehouse and over it to the Landing). Boss:
+  `--at=21,8,-90 --level 8 --equip primary=katana,secondary=buckler --script "wait:4.2"` (Duchess Ilvane
+  rising in her choir behind its great door at 21,9).
 - The story begins in `ashen_cemetery` (the title's New Game, `Game.start_story`: bare hands and no
   spell, `Player.woken()`, the journey recorded at once). A `--map` run starts on any map with the default
   kit instead: `--map ashen_cemetery` (the waking grave and the first hint), `--map ashen_cemetery
@@ -55,7 +69,7 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   and picks the first empty slot in the chooser (with a throwaway save that doesn't exist yet).
 - Boss doors: `--map sunken_keep --at=15,11,-90` faces the Warden's great door, `--at=28,10,-116` the
   Butcher's, `--map verdant_hollow --at=15,11,-90` the Loom Mother's, `--map cinder_keep --at=22,5,180`
-  the gargoyles', `--map ashen_cemetery --at=10,11,-90` the Sexton's. The fog appears only
+  the gargoyles', `--map ashen_cemetery --at=10,11,-90` the Sexton's, `--map vesperholm --at=21,11,-90` the Duchess's. The fog appears only
   after dying in a sealed arena (or with its `fog:` flag set); `tests/test_arena.py` drives the flow.
 - `--level` only sets the level (for equipment requirements); HP and stats stay at level 1, so judge boss
   balance headless (`World` with a `JungleGame`) rather than from a smoke fight.

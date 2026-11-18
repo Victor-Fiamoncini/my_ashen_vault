@@ -650,7 +650,15 @@ def test_a_boss_of_ash_waits_as_a_heap_untouchable_until_it_rises():
     from ashen_vault.ai.enemy import ASH_RISE
 
     world = FakeWorld(3, 0)  # no rise_time: it rises when it notices you
-    for type_id in ("ashen_warden", "butcher", "loom_mother", "sexton", "rat_matron", "sump_maw"):
+    for type_id in (
+        "ashen_warden",
+        "butcher",
+        "loom_mother",
+        "sexton",
+        "rat_matron",
+        "sump_maw",
+        "moon_duchess",
+    ):
         boss = Enemy(EnemyTypes.get(type_id), 0, 0, rng=random.Random(0))
         assert boss.state == "ashes" and boss.unseen and boss.rise_progress == 0.0
         assert not boss.take_hit(10_000) and boss.hp == boss.type.hp  # nothing to strike yet
@@ -830,3 +838,54 @@ def test_the_sewer_bosses_moves_reach_the_world():
     e._begin_windup("swarm")
     tick(e, w, 2.0)
     assert "swarm" in w.fired
+
+
+# --- Vesperholm -----------------------------------------------------------------------------------
+
+
+class MoonWorld(SewerWorld):
+    def __getattr__(self, name):
+        if name in ("moonbeam", "moonfall", "blink"):
+            return lambda _enemy: self.moves.append(name)
+        raise AttributeError(name)
+
+
+@pytest.mark.parametrize(
+    ("type_id", "move", "near", "far", "phase2"),
+    [
+        ("lantern_wraith", "frost_lance", 6.0, 13.0, False),
+        ("veiled_knight", "blink", 6.0, 11.0, False),
+        ("moon_duchess", "frost_lance", 6.0, 13.0, False),
+        ("moon_duchess", "moonbeam", 6.0, 13.0, False),
+        ("moon_duchess", "blink", 6.0, 11.0, True),
+        ("moon_duchess", "moonfall", 6.0, 13.0, True),
+    ],
+)
+def test_vesperholms_dead_use_their_own_moves_at_their_own_range(type_id, move, near, far, phase2):
+    e = sewer_boss(type_id, move, phase2)
+    assert e._pick_move(MoonWorld(near, 0.0), near) == move
+    e = sewer_boss(type_id, move, phase2)
+    assert e._pick_move(MoonWorld(far, 0.0), far) is None
+
+
+def test_the_duchess_calls_down_the_moon_and_throws_her_lances_through_the_world():
+    e = sewer_boss("moon_duchess", "moonbeam")
+    w = MoonWorld(6.0, 0.0)
+    e._begin_windup("moonbeam")
+    for _ in range(40):
+        tick(e, w, 0.05)
+    assert w.moves == ["moonbeam"]
+    e = sewer_boss("moon_duchess", "frost_lance")
+    e._begin_windup("frost_lance")
+    for _ in range(40):
+        tick(e, w, 0.05)
+    assert w.fired == ["frost_lance"]
+
+
+def test_a_blink_ends_in_a_blow_wound_up_where_it_steps_out():
+    e = sewer_boss("veiled_knight", "blink")
+    w = MoonWorld(6.0, 0.0)
+    e._begin_windup("blink")
+    while e.attack_kind == "blink":
+        tick(e, w, 0.05)
+    assert w.moves == ["blink"] and e.state == "windup" and e.attack_kind == "melee"

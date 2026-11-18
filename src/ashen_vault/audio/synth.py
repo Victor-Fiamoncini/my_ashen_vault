@@ -144,6 +144,14 @@ def sounds():
         wet[0] += (noise() - wet[0]) * 0.3
         return click(t) * 0.3 + thump(t, 90, 50, 25, 18) * 0.7 + wet[0] * 0.9 * env(p, 0.15) * (1 - p)
 
+    def hit_spirit(t, p):
+        # Vesperholm's moonlit dead: a glassy chime, like a blade on frost, over a breath of cold air.
+        chime = (
+            math.sin(t * TAU * 1318) * 0.3 + math.sin(t * TAU * 1975) * 0.18 + math.sin(t * TAU * 2794) * 0.1
+        ) * math.exp(-t * 7)
+        wet[0] += (noise() - wet[0]) * 0.5
+        return click(t) * 0.5 + chime + wet[0] * 0.5 * env(p, 0.1) * (1 - p) + thump(t, 120, 70, 30, 30) * 0.3
+
     def levelup(t, p):
         f = (523.25, 659.25, 783.99, 1046.5)[min(math.floor(p * 4), 3)]
         return math.sin(t * TAU * f) * 0.3 * (1 - p)
@@ -159,6 +167,7 @@ def sounds():
         "hit_stone": gen(0.3, hit_stone),
         "hit_wood": gen(0.25, hit_wood),
         "hit_ash": gen(0.35, hit_ash),
+        "hit_spirit": gen(0.6, hit_spirit),
         "hurt": gen(
             0.3, lambda t, p: (math.sin(t * TAU * (220 - p * 120)) + noise() * 0.3) * 0.6 * env(p, 0.01)
         ),
@@ -239,6 +248,17 @@ def sounds():
                 (
                     lowpass(0.5) * 0.3 * (1 - p) ** 6
                     + (math.sin(t * TAU * 620) * 0.18 + math.sin(t * TAU * 1430) * 0.08) * (1 - p) ** 3
+                )
+                * env(p, 0.01)
+            ),
+        ),
+        # Moon-glass: a crisp heel on glass and a high, thin ring under it.
+        "step_glass": gen(
+            0.16,
+            lambda t, p: (
+                (
+                    lowpass(0.6) * 0.25 * (1 - p) ** 8
+                    + (math.sin(t * TAU * 1760) * 0.12 + math.sin(t * TAU * 2637) * 0.06) * (1 - p) ** 4
                 )
                 * env(p, 0.01)
             ),

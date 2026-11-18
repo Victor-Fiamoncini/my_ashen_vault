@@ -34,7 +34,8 @@ class EnemyType:
     bite_reach: float | None = None
     # Color of the projectiles a ranged enemy fires.
     shot_rgb: tuple = (255, 120, 40)
-    # What its shots look like when they are not plain bolts of light: "arrow", "thorn".
+    # What its shots look like when they are not plain bolts of light: "arrow", "thorn", "lance" (a
+    # lance of moon-frost, which numbs the legs of whoever it strikes).
     shot: str | None = None
     # Turning speed in rad/s; None turns instantly. Slow turners can be outflanked.
     turn_rate: float | None = None
@@ -45,7 +46,7 @@ class EnemyType:
     # Special attacks mixed in (see enemy.MOVES): "sweep", "web", "pounce", "cinders", "combo",
     # "slam", "eruption", "hook", "breath", "dive", "exhale", "ashfall", "spadeful", "grasp",
     # "dust_devil", "knell", "fireball", "bile", "undertow", "gulp", "shed", "tail_lash",
-    # "squeal", "swarm".
+    # "squeal", "swarm", "frost_lance", "blink", "moonbeam", "moonfall".
     moves: tuple = ()
     # Enemy type a boss calls to its side once, when it drops to half HP.
     brood: str | None = None
@@ -92,7 +93,8 @@ class EnemyType:
         return self.name if self.proper or self.name.startswith("The ") else f"The {self.name}"
 
 
-MATERIALS = ("flesh", "bone", "iron", "stone", "wood", "ash")  # what blows can land on
+# What blows can land on. "spirit" is Vesperholm's moonlit dead: a glassy chime, like struck frost.
+MATERIALS = ("flesh", "bone", "iron", "stone", "wood", "ash", "spirit")
 
 
 class EnemyTypes:
@@ -777,6 +779,136 @@ class EnemyTypes:
                 rage="The Sump Maw heaves, and the eyes of the skulls on its crest kindle!",
                 shot_rgb=(110, 200, 140),
                 inflicts=(("poison", 30), ("corrosion", 35)),
+            ),
+            # --- Vesperholm, the Moonbound City ----------------------------------------------------
+            EnemyType(
+                id="pale_sentinel",
+                material="iron",
+                name="Pale Sentinel",
+                # An empty suit of silvered plate filled with moonlight, still keeping the watch its
+                # wearer died on: slow to turn, it sweeps a long crescent glaive all round.
+                hp=64,
+                speed=1.4,
+                damage=15,
+                reach=2.5,
+                sight=12,
+                windup=0.9,
+                recover=1.2,
+                exp=40,
+                gold=range(10, 24),
+                radius=0.5,
+                height=2.1,
+                tall=2.3,
+                poise=12,
+                turn_rate=1.8,
+                moves=("sweep",),
+                conductive=True,
+            ),
+            EnemyType(
+                id="lantern_wraith",
+                material="spirit",
+                name="Lantern Wraith",
+                # A lamplighter of the endless night, a hooded shade with no legs under its robe,
+                # drifting with a lantern of trapped moonlight: it throws lances of moon-frost from
+                # afar, three at once now and then, and its touch keeps you as the moon keeps all.
+                hp=28,
+                speed=1.2,
+                damage=9,
+                reach=10.0,
+                sight=14,
+                windup=0.9,
+                recover=1.6,
+                exp=30,
+                gold=range(6, 16),
+                radius=0.4,
+                height=1.9,
+                tall=2.0,
+                ranged=True,
+                bite_reach=1.6,
+                mouth=1.3,
+                shot="lance",
+                shot_rgb=(196, 222, 255),
+                moves=("frost_lance",),
+                inflicts=(("rot", 20),),
+            ),
+            EnemyType(
+                id="moonhound",
+                name="Moonhound",
+                # A gaunt, pale hound of the Duchess's kennels, its coat gone white as frost and its
+                # eyes two moons: it hunts in pairs and springs from far off.
+                hp=32,
+                speed=3.1,
+                damage=10,
+                reach=1.6,
+                sight=12,
+                windup=0.4,
+                recover=0.8,
+                exp=24,
+                gold=range(4, 12),
+                radius=0.5,
+                height=0.9,
+                tall=1.1,
+                moves=("pounce",),
+                inflicts=(("bleed", 30),),
+            ),
+            EnemyType(
+                id="veiled_knight",
+                material="spirit",
+                name="Veiled Knight",
+                # One of the Duchess's honour guard, half of him no longer quite here: under a veil of
+                # moon-silk his armour shows through like frost on glass. Keep your distance and he
+                # steps through the moonlight to strike from behind you.
+                hp=72,
+                speed=1.8,
+                damage=16,
+                reach=2.0,
+                sight=12,
+                windup=0.7,
+                recover=1.0,
+                exp=50,
+                gold=range(12, 28),
+                radius=0.5,
+                height=2.0,
+                tall=2.1,
+                poise=10,
+                moves=("blink",),
+                inflicts=(("rot", 25),),
+            ),
+            EnemyType(
+                id="moon_duchess",
+                material="spirit",
+                name="Duchess Ilvane",
+                proper=True,
+                hp=380,
+                speed=1.9,
+                damage=20,
+                reach=2.8,
+                sight=16,
+                windup=0.8,
+                recover=1.0,
+                exp=260,
+                gold=range(120, 131),
+                radius=0.8,
+                height=2.9,
+                tall=3.3,
+                boss=True,
+                drop="argent_sigil",
+                dead_flag="duchess_dead",
+                rise="ash",
+                epitaph="Duchess Ilvane kneels in her own light, and it goes out. Silver gleams where she fell.",
+                poise=18,
+                # The Moonwed, the king's sister and Vesperholm's lady: she wed the moon on the fourth
+                # sigil so the night would never end and nothing in her city would die. Tall as two men
+                # in a gown of moon-silk and a veil, a crescent glaive in her hands: she sweeps it all
+                # round, cuts three times in a row, throws a fan of frost lances and calls shafts of
+                # moonlight down where you stand. At half HP she casts off her veil, steps through the
+                # moonlight behind you, and the moon rains down round you in rings.
+                moves=("sweep", "combo", "frost_lance", "moonbeam"),
+                phase_moves=("blink", "moonfall"),
+                rage="Duchess Ilvane casts off her veil, and the moon pours its light into her!",
+                shot="lance",
+                shot_rgb=(210, 230, 255),
+                inflicts=(("rot", 30),),
             ),
         ]
     }

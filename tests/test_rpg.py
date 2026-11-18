@@ -309,14 +309,14 @@ def test_revive_restores_and_clears_effects():
     p.stats.hurt(p.stats.max_hp)
     p.stats.mp = 0
     p.stamina.drain(10)
-    p.webbed_t = p.spore_t = p.hurt_t = 1.0
+    p.webbed_t = p.spore_t = p.hurt_t = p.chill_t = 1.0
     p.swing_t = 0.1
     assert not p.alive
     p.revive()
     assert p.alive
     assert p.stats.hp == p.stats.max_hp and p.stats.mp == p.stats.max_mp
     assert p.stamina.value == 1.0 and not p.stamina.exhausted
-    assert p.webbed_t == p.spore_t == p.hurt_t == 0
+    assert p.webbed_t == p.spore_t == p.hurt_t == p.chill_t == 0
     assert not p.swinging
     assert p.inventory.has("warden_key")
 

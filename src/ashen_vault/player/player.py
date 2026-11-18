@@ -46,6 +46,7 @@ class Player:
         self.veil_t = 0.0  # seconds left wrapped in a Veil of Mist (foes overlook you)
         self.ward_t = 0.0  # seconds left inside an Ashen Ward (blows land softer)
         self.webbed_t = 0.0  # seconds left caught in spider silk
+        self.chill_t = 0.0  # seconds left numbed by Vesperholm's moon-frost: slowed as by silk
         self.spore_t = 0.0  # seconds left choking on spores
         self.ailments = ailments.Ailments()  # poison, bleed, rot and corrosion (`player/ailments.py`)
         self.swing_t = None
@@ -92,6 +93,7 @@ class Player:
         s.restore_mp(s.max_mp)
         self.stamina.fill()
         self.hurt_t = self.lumen_t = self.veil_t = self.ward_t = self.webbed_t = self.spore_t = 0.0
+        self.chill_t = 0.0
         self.swing_t = None
         self.charge_t = 0.0
         self.guarding = False
@@ -178,7 +180,7 @@ class Player:
         if sprint:
             speed *= self.SPRINT
         speed *= map_.tile_at(self.x, self.z).slow
-        if self.webbed_t > 0:
+        if self.webbed_t > 0 or self.chill_t > 0:
             speed *= self.WEBBED
         if self.spore_t > 0:
             speed *= self.SPORED
@@ -241,6 +243,7 @@ class Player:
         self.veil_t = max(self.veil_t - dt, 0)
         self.ward_t = max(self.ward_t - dt, 0)
         self.webbed_t = max(self.webbed_t - dt, 0)
+        self.chill_t = max(self.chill_t - dt, 0)
         self.spore_t = max(self.spore_t - dt, 0)
         if self.swing_t is None:
             return

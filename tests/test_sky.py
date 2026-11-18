@@ -16,11 +16,13 @@ def _meta(name):
 
 
 def test_each_outdoor_map_names_a_sky_and_the_keep_has_none():
-    names = {name: sky.get(_meta(name)) for name in ("harrowmere", "verdant_hollow", "cinderhold")}
+    maps = ("harrowmere", "verdant_hollow", "cinderhold", "vesperholm")
+    names = {name: sky.get(_meta(name)) for name in maps}
     assert names == {
         "harrowmere": sky.SKIES["dusk"],
         "verdant_hollow": sky.SKIES["jungle"],
         "cinderhold": sky.SKIES["ember"],
+        "vesperholm": sky.SKIES["moonlit"],
     }
     assert sky.get(_meta("sunken_keep")) is None
     assert sky.get({"sky": "no_such_sky"}) is None
@@ -93,7 +95,7 @@ def test_dark_places_darken_every_layer():
 
 
 def test_every_sky_puts_the_sun_low_in_the_south_over_the_towns_sea():
-    assert {spec.sun_at for spec in sky.SKIES.values()} == {sky.SUN_AT}
+    assert {spec.sun_at for spec in sky.SKIES.values() if not spec.moon} == {sky.SUN_AT}
     azimuth, elevation = sky.SUN_AT
     d = sky.direction(azimuth, elevation)
     assert d[2] > 0.9 and 0 < elevation < 20  # south (+z), low over the horizon
@@ -150,6 +152,30 @@ def test_the_sun_is_drawn_over_the_clouds_and_its_halo_behind_them(name):
     order = [layer for layer, _ in sky.layers(sky.SKIES[name], FOG)]
     assert order.index("sun") > order.index("clouds")
     assert order.index("sun") < order.index("mist")  # the horizon haze still softens it
+
+
+def test_vesperholms_moon_hangs_vast_in_the_north_among_a_crowd_of_stars():
+    """Vesperholm's sky is a night that never ends: in place of a sun a moon many times its size, high
+    in the north over the cathedral, its seas laid on its face, and far more stars than the town's."""
+    spec, dusk = sky.SKIES["moonlit"], sky.SKIES["dusk"]
+    assert spec.moon and not dusk.moon
+    assert spec.sun_size >= 3 * dusk.sun_size
+    d = sky.direction(*spec.sun_at)
+    assert d[2] < -0.9 and 15 < spec.sun_at[1] < 35  # north (-z), clear of the cathedral's roofs
+    assert min(spec.sun) > 0.8 and spec.sun[2] >= spec.sun[0]  # pale, a little blue
+    assert spec.star_count >= 2 * dusk.star_count and spec.stars > dusk.stars
+    stars = sky.stars(spec, FOG)
+    assert stars.vertex_count > 2 * sky.stars(dusk, FOG).vertex_count
+    layers = [name for name, _ in sky.layers(spec, FOG)]
+    assert layers.index("sun") < layers.index("maria") < layers.index("mist")
+    seas = sky.maria(spec)
+    lit = sky.sun_color(spec)
+    for i in range(seas.vertex_count):  # every sea lies on the disc, darker than it
+        p = seas.verts[i * 3 : i * 3 + 3]
+        r = math.dist((0, 0, 0), p)
+        assert sum(a * b / r for a, b in zip(p, d, strict=True)) > math.cos(math.radians(spec.sun_size))
+        assert sum(seas.colors[i * 3 : i * 3 + 3]) < sum(lit)
+    assert sky.maria(dusk) is None  # a sun has no seas
 
 
 def test_a_sky_without_a_sun_has_no_disc():

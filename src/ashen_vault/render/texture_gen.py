@@ -65,6 +65,10 @@ def all_textures():
         "sewer_brick": sewer_brick(),
         "sewer_vault": sewer_vault(),
         "sludge": sludge(),
+        "moonstone": moonstone(),
+        "moon_paving": moon_paving(),
+        "silver_slate": silver_slate(),
+        "moon_glass": moon_glass(),
         "white": solid(255, 255, 255),
     }
 
@@ -994,5 +998,94 @@ def sludge():
         if hash_(x, y, 525) > 0.99:
             return [150, 150, 96]  # a bubble's glint
         return tint([62, 58, 34], 0.75 + swirl * 0.12 + n * 0.3)
+
+    return build(px)
+
+
+# --- Vesperholm, the Moonbound City ----------------------------------------------------------------
+
+
+def moonstone():
+    """Vesperholm's walls: dressed blocks of pale blue-grey stone in long courses, veined with silver
+    that catches the moon, rimed with frost along the joints and darker where the rime has run."""
+
+    def px(x, y):
+        row = y // 16
+        xx = (x + (0 if row % 2 == 0 else 22)) % SIZE
+        widths = (28, 36) if row % 2 == 0 else (40, 24)
+        col = 0 if xx < widths[0] else 1
+        left = 0 if col == 0 else widths[0]
+        if y % 16 == 0 or xx == left:
+            return tint([206, 214, 228], 0.82 + noise(x, y, 4, 601) * 0.18)  # frost in the joint
+        n = fbm(x, y, 602)
+        k = 0.74 + hash_(col, row, 603) * 0.16 + (n - 0.5) * 0.24
+        if y % 16 == 15 or xx == left + 1:
+            k *= 0.8
+        c = tint([138, 146, 164], k)
+        vein = abs(math.sin(x * 0.21 + y * 0.09 + noise(x, y, 16, 604) * 6))
+        if vein < 0.06:
+            c = [min(v + 52, 255) for v in c]  # a silver vein
+        if y % 16 > 11 and noise(x, y, 4, 605) > 0.62:
+            c = tint(c, 0.86)  # where the rime has run down from the joint above
+        return c
+
+    return build(px)
+
+
+def moon_paving():
+    """The streets' paving: big square flags of pale moonstone, worn smooth, a hoar frost settled in
+    the gaps between them and glittering here and there on their faces."""
+
+    def px(x, y):
+        jx = rround(noise(0, y, 16, 611) * 4)
+        jy = rround(noise(x, 0, 16, 612) * 4)
+        cx, cy = (x + jx) // 32, (y + jy) // 32
+        if (x + jx) % 32 < 2 or (y + jy) % 32 < 2:
+            return tint([196, 206, 222], 0.78 + noise(x, y, 4, 613) * 0.2)  # frost in the gaps
+        n = fbm(x, y, 614)
+        c = tint([122, 130, 148], 0.76 + hash_(cx, cy, 615) * 0.22 + (n - 0.5) * 0.3)
+        if hash_(x, y, 616) > 0.992:
+            c = [222, 230, 246]  # a glint of frost
+        return c
+
+    return build(px)
+
+
+def silver_slate():
+    """Roof slates and the wall walks' flags: thin, square-cut slate of a silvered blue-grey, in
+    staggered courses, each slate's lower edge catching the moon in a pale line."""
+
+    def px(x, y):
+        row = y // 8
+        ox = (x + (4 if row % 2 else 0)) % 8
+        dy = y % 8
+        n = fbm(x, y, 621)
+        if ox == 0:
+            return tint([46, 52, 66], 0.9 + n * 0.2)  # the joint between two slates
+        if dy == 7:
+            return tint([176, 186, 206], 0.85 + n * 0.2)  # the lit lower edge
+        k = 0.7 + hash_((x + (4 if row % 2 else 0)) // 8, row, 622) * 0.24 + (n - 0.5) * 0.26
+        return tint([96, 104, 124], k + (dy / 8) * 0.08)
+
+    return build(px)
+
+
+def moon_glass():
+    """Frosted moon-glass: leaded panes of pale blue and silver-white, a few of violet, frost feathering
+    across them, the lead dark between. Vesperholm's windows, and the glass bridge underfoot."""
+    tints = ([168, 190, 226], [204, 214, 236], [150, 172, 214], [176, 158, 214])
+
+    def px(x, y):
+        # Diamond quarries: lead runs along both diagonals every 16 texels.
+        a, b = (x + y) % 16, (x - y) % 16
+        if a == 0 or b == 0:
+            return [44, 46, 56]  # the lead
+        cell = ((x + y) // 16 + (x - y) // 16 * 3) % 4
+        n = fbm(x, y, 631)
+        c = tint(tints[cell], 0.8 + n * 0.25)
+        feather = abs(math.sin(x * 0.5 + noise(x, y, 8, 632) * 7) * math.cos(y * 0.45))
+        if feather > 0.93:
+            c = [min(v + 34, 255) for v in c]  # frost feathering across the pane
+        return c
 
     return build(px)

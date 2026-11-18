@@ -73,6 +73,7 @@ SIGIL_HELD = {
     "ember_sigil": "The Ember Sigil! Warm as a hearthstone.",
     "verdant_sigil": "Green glass with a leaf inside... the Verdant Sigil.",
     "iron_sigil": "Black iron, cold as a grave... the Iron Sigil. Even the gargoyles could not keep it.",
+    "argent_sigil": "Silver, and cold as moonlight on frost... the Argent Sigil. So Ilvane let it go at last.",
 }
 SIGIL_HINT = {
     "ember_sigil": "The Ember Sigil waits in the Warden's hall. Climb down the well in the square.",
@@ -83,7 +84,14 @@ SIGIL_HINT = {
     "iron_sigil": (
         "The Iron Sigil is held in the Cinderhold. Take the north road and cross the long bridge over the fire."
     ),
+    "argent_sigil": (
+        "The Vesper Gate behind the cathedral stands open. Beyond it lies Vesperholm, and the Argent Sigil."
+    ),
 }
+# The fourth sigil before the first three are taken: the prophecy keeps its counsel.
+FOURTH_UNKNOWN = (
+    "The fourth... the prophecy will not say where it lies. Find the three, and perhaps it will find you."
+)
 SIGIL_FALLEN = {
     "ember_sigil": (
         "boss_dead",
@@ -97,6 +105,10 @@ SIGIL_FALLEN = {
         "gargoyles_dead",
         "The gargoyles are broken? Then the Iron Sigil lies up on the Cinderhold's roof. Fetch it.",
     ),
+    "argent_sigil": (
+        "duchess_dead",
+        "The Duchess has fallen? Then the Argent Sigil lies in her choir, under the moon. Bring it home.",
+    ),
 }
 
 
@@ -107,25 +119,35 @@ def _sigil_lines(flags, held):
         if item in held:
             continue
         flag, fallen = SIGIL_FALLEN[item]
-        lines.append(
-            fallen if flag in flags and relics.get(item).taken_flag not in flags else SIGIL_HINT[item]
-        )
+        if flag in flags and relics.get(item).taken_flag not in flags:
+            lines.append(fallen)
+        elif item in relics.FIRST_THREE or relics.GATE_FLAG in flags:
+            lines.append(SIGIL_HINT[item])
+        else:
+            lines.append(FOURTH_UNKNOWN)
     return lines
+
+
+# What Odrin says once the first three sigils have opened the Vesper Gate.
+GATE_NEWS = (
+    "Three... and did you hear it? Behind the cathedral the Vesper Gate has opened. It has stood shut since "
+    "the king turned to stone."
+)
 
 
 def odrin(game, flags, inv):
     held = relics.held(inv.has)
-    # TODO(story): the prophecy asks for four sigils, but only three can be found yet. Until the fourth
-    # sigil's place is built, bringing the three ends the demo.
     if len(held) == len(relics.ENDING_RELICS):
         return (
             "Odrin",
             [
-                "Ember, leaf and iron, all three of them. I can feel them from here.",
-                "Give them here. Three of the four, in an old man's hands. No Ashen ever came this far.",
-                "Listen. The ground has gone quiet already, the roots are still, and the forges are cooling.",
-                "The fourth is still lost to us. But up on the hill the stone on the throne has cracked.",
-                "Harrowmere owes you more than it can pay. Rest now, Ashen.",
+                "Ember, leaf, iron... and silver. All four. I never thought to hold them in these hands.",
+                "Give them here. Listen: the ground is quiet, the roots are still, the forges are cooling.",
+                "And over Vesperholm the moon is going down, for the first time since the king turned to stone.",
+                "His sister Ilvane wed the moon on the fourth sigil, so that her city would never see a death.",
+                "But the moon keeps all it shines on as it is: her people as shades, her brother as stone.",
+                "It was him at the rope, wasn't it? From inside the stone. The moon keeps the living. Not ash.",
+                "Up on the hill the stone is cracking open. Harrowmere owes you more than it can pay. Rest now, Ashen.",
             ],
             lambda g: g.finish_game(),
         )
@@ -160,6 +182,8 @@ def odrin(game, flags, inv):
     lines = _sigil_lines(flags, held)
     if held:
         felt = [SIGIL_HELD[i] for i in held]
+        if relics.GATE_FLAG in flags and "argent_sigil" not in held:
+            felt.append(GATE_NEWS)
         return "Odrin", [*felt, "Keep it close. The king will need every one of them.", *lines], None
     dead = [SIGIL_FALLEN[i][1] for i in relics.ENDING_RELICS if SIGIL_FALLEN[i][1] in lines]
     if dead:
@@ -419,8 +443,12 @@ def wren_lines(flags):
     ]
 
 
-# TODO(story): the king's petrification. What turned him to stone, who rang the bell, and why it wakes
-# the Ashen? And the fourth sigil, which nobody can find yet.
+# The Enthroned, one stage for each sigil you carry. The story they come to: the four sigils were the
+# realm's four seals, and the king held them. His sister, Duchess Ilvane of Vesperholm, wed the moon on
+# the fourth so her city would never see a dawn or a death; the moon keeps whatever it shines on as it
+# is, and it kept her brother too, as stone on his throne. With the fourth bent to the moon the other
+# three fell to keepers who went bad. The bell is the king's own voice: from inside the stone he rang it
+# once, to wake the Ashen, the dead the moon cannot keep, to win the sigils back.
 ENTHRONED_LINES = (
     [
         "(The king on the throne is stone, grey and cracked. Dust lies thick on his hands and his crown.)",
@@ -436,7 +464,13 @@ ENTHRONED_LINES = (
     ],
     [
         "(The air in the nave grows heavy. The candles bend toward the statue, and the stone is warm.)",
-        "...three... and the fourth... still lost... take them to the bell-keeper... and I... shall wake...",
+        "...three... and the fourth... beyond the pale gate... my sister... she would not let the night end...",
+        "...the moon keeps what it shines on... it kept her city... and it kept me...",
+    ],
+    [
+        "(A shard of stone falls from the king's cheek. Under it the skin is grey and warm.)",
+        "...four... the moon lets go... it was I who rang the bell... the only voice the stone left me...",
+        "...the moon keeps the living... it cannot keep ash... take them to the bell-keeper... and I shall wake...",
     ],
 )
 

@@ -19,11 +19,16 @@ RELICS = {
         Relic(item="ember_sigil", key="sigil", taken_flag="sigil_taken"),
         Relic(item="verdant_sigil", key="verdant_sigil", taken_flag="verdant_sigil_taken"),
         Relic(item="iron_sigil", key="iron_sigil", taken_flag="iron_sigil_taken"),
+        Relic(item="argent_sigil", key="argent_sigil", taken_flag="argent_sigil_taken"),
     ]
 }
 
 # Odrin ends the game once the player brings him all of these.
-ENDING_RELICS = ("ember_sigil", "verdant_sigil", "iron_sigil")
+ENDING_RELICS = ("ember_sigil", "verdant_sigil", "iron_sigil", "argent_sigil")
+# The three sigils the prophecy can point to. The fourth, the Argent Sigil, lies behind the Vesper
+# Gate in Harrowmere's north wall, which opens (GATE_FLAG) once all three have been taken up.
+FIRST_THREE = ("ember_sigil", "verdant_sigil", "iron_sigil")
+GATE_FLAG = "vesper_gate_open"
 
 
 def get(item_id):
@@ -31,9 +36,19 @@ def get(item_id):
 
 
 def mark_taken(item_id, flags):
-    """Called when the player picks up an item; remembers relics so they are never dropped again."""
+    """Called when the player picks up an item; remembers relics so they are never dropped again, and
+    opens the Vesper Gate once the third of the first three is taken."""
     if item_id in RELICS:
         flags.add(RELICS[item_id].taken_flag)
+        open_gate(flags)
+
+
+def open_gate(flags):
+    """Sets GATE_FLAG once the first three sigils have all been taken up (a save from before the gate
+    existed catches up when a map loads). Returns whether the gate stands open."""
+    if all(RELICS[i].taken_flag in flags for i in FIRST_THREE):
+        flags.add(GATE_FLAG)
+    return GATE_FLAG in flags
 
 
 def pending_drops(map_, flags, has_item):

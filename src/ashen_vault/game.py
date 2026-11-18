@@ -89,7 +89,8 @@ COMPARE_COLORS = {1: ui.color(120, 210, 110), -1: ui.color(225, 95, 80), 0: ui.T
 ENDING = [
     "The bell of Harrowmere rings again.",
     "Its note rolls down the well into the drowned halls,",
-    "through the roots of the green hollow and the forges.",
+    "through the roots of the green hollow and the forges,",
+    "and over Vesperholm, where at last the moon goes down.",
     "On the hill, the stone king stirs upon his throne.",
     "",
     "Thank you for playing the Ashen Vault demo.",
@@ -432,8 +433,9 @@ class Game:
 
     def new_game(self, map_name, at=None, player=None):
         """Starts afresh on `map_name` (at its `start`, or `at`). Debug runs (`--map`) start armed with
-        the default kit; the story's start passes a bare `Player.woken()`."""
-        self.flags = set()
+        the default kit; the story's start passes a bare `Player.woken()`. `--flags` sets save flags
+        before the map loads, as a save would hold them."""
+        self.flags = set(filter(None, (self.opts.get("flags") or "").split(",")))
         self.player = player or Player()
         self.messages.clear()
         self._load_world(map_name)

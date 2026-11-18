@@ -15,6 +15,7 @@ MAPS = (
     "cinderhold",
     "cinder_keep",
     "harrow_sewers",
+    "vesperholm",
 )  # the town has no chests
 
 
