@@ -24,8 +24,8 @@ uv sync                 # creates .venv with the game and the dev tools
 uv run ashen-vault      # play
 ```
 
-Read [`AGENTS.md`](AGENTS.md) for the project layout, conventions and debug flags. It's written for AI
-coding agents but is the most complete developer guide, so it's worth reading if you code by hand too.
+Read [`AGENTS.md`](AGENTS.md) for the project layout, rules and debug flags (it is written for coding
+agents and humans alike), and the guide in [`docs/dev/`](docs/dev/) for the part you are changing.
 
 ## Making a change
 
@@ -44,11 +44,10 @@ coding agents but is the most complete developer guide, so it's worth reading if
    run is the quickest way, and a screenshot in the PR helps a lot:
 
    ```sh
-   ASHEN_VAULT_SAVE=/tmp/test_save.json \
-     uv run ashen-vault --map sunken_keep --at 15,22,0 --smoke 30 --script "wait:0.3 cast" --shot shot.png
+   ASHEN_VAULT_SAVE=/tmp/test_save.json uv run ashen-vault --map sunken_keep --smoke 30 --shot shot.png
    ```
 
-   Setting `ASHEN_VAULT_SAVE` keeps test runs away from your real save file.
+   `ASHEN_VAULT_SAVE` keeps test runs away from your real save file.
 
 6. **Open a pull request against `development`.** Describe what changed and why, and how you tested it.
 

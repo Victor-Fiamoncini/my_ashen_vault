@@ -35,15 +35,15 @@ FromSoftware, Inc.
 <table>
   <tr>
     <td><img src="docs/screenshots/title.png" alt="Title screen circling the Silent Bell on the foggy, cobbled Bell Square"></td>
-    <td><img src="docs/screenshots/village.png" alt="The Silent Bell in its frame on Harrowmere's paved Bell Square, a cathedral tower, a cypress and a crested banner pole behind"></td>
+    <td><img src="docs/screenshots/village.png" alt="The Silent Bell in its frame on Harrowmere's paved Bell Square, a cathedral tower behind, a hatchet and a buckler in hand"></td>
   </tr>
   <tr>
     <td align="center"><sub>Title screen</sub></td>
     <td align="center"><sub>The Silent Bell, at the heart of Harrowmere</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/cemetery.png" alt="Waking in the Cemetery of Ashes: grey ash underfoot between soot-stained walls, a shrine's flame burning in its iron cradle, the first hint below"></td>
-    <td><img src="docs/screenshots/mourner.png" alt="A Shrouded Mourner, a hooded figure in dark robes, bowed by a stone coffin in the cemetery's chapel, the silk-sealed door behind"></td>
+    <td><img src="docs/screenshots/cemetery.png" alt="Waking bare-handed in the Cemetery of Ashes: grey ash underfoot between soot-stained walls, a shrine's flame burning in its iron dish, the first hint below"></td>
+    <td><img src="docs/screenshots/mourner.png" alt="A Shrouded Mourner, a hooded figure in dark robes, bowed by a stone coffin in the cemetery's chapel, a rusted sword in hand"></td>
   </tr>
   <tr>
     <td align="center"><sub>Waking in the Cemetery of Ashes, by its first shrine</sub></td>
@@ -51,75 +51,51 @@ FromSoftware, Inc.
   </tr>
   <tr>
     <td><img src="docs/screenshots/silk.png" alt="The silk sealing the chapel's far door burning away from the bottom up, charred patches glowing at the edges, flames licking up its face"></td>
-    <td><img src="docs/screenshots/sexton.png" alt="The Ashen Sexton in its walled yard, its spade raised as grave ash bursts from the ground round it, its health bar above"></td>
+    <td><img src="docs/screenshots/sexton.png" alt="The Ashen Sexton in its walled yard, a hulking grave-digger of ash raising its spade, its health bar above"></td>
   </tr>
   <tr>
     <td align="center"><sub>Flame Bolt burning the silk off the chapel door</sub></td>
-    <td align="center"><sub>The Ashen Sexton breathes choking grave dust</sub></td>
+    <td align="center"><sub>The Ashen Sexton, keeper of the cemetery's gate</sub></td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/dialogue.png" alt="Talking to Odrin the bell-keeper"></td>
-    <td><img src="docs/screenshots/flame_bolt.png" alt="A flame bolt bursting on a bone walker"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>Odrin, keeper of the silent bell</sub></td>
-    <td align="center"><sub>Flame Bolt against a Bone Walker</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/warden.png" alt="The Ashen Warden boss in its hall"></td>
-    <td><img src="docs/screenshots/inventory.png" alt="The Belongings screen: Stormbrand in the Primary slot, a round shield in Secondary, a lamellar vest and leather gloves, the Equipped panel and the stats"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>The Ashen Warden</sub></td>
-    <td align="center"><sub>Belongings, with a spinning item preview</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/verdant_hollow.png" alt="A vine-walled path under the canopy of the Verdant Hollow"></td>
-    <td><img src="docs/screenshots/bark_husk.png" alt="A Bark Husk, a hollow dead tree with a gaping face and splintered crown, beside a thorn plant"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>The Verdant Hollow, through the cave at the end of Harrowmere's green trail</sub></td>
-    <td align="center"><sub>A Bark Husk: circle it and strike the glow in its back</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/log_rack.png" alt="The woodcutters' log rack at the top of the Highland slope"></td>
-    <td><img src="docs/screenshots/loom_mother.png" alt="The Loom Mother, a giant spider boss"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>The woodcutters' log rack, waiting for climbers</sub></td>
-    <td align="center"><sub>The Loom Mother</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/jungle_trail.png" alt="A narrow hedged trail under a darkening canopy, glowing toadstools at the cave mouth ahead"></td>
-    <td><img src="docs/screenshots/mossmouth.png" alt="A brazier just kindled in the dark Mossmouth cave, a chest beside it"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>The green trail out of Harrowmere, ending at the cave</sub></td>
-    <td align="center"><sub>Mossmouth: a cold brazier kindled with Pyre</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/canopy_walk.png" alt="A plank walkway lit by torches high in the treetops, a snare bloom waiting on it"></td>
-    <td><img src="docs/screenshots/root_caverns.png" alt="A bonfire throwing sparks in the dark Root Caverns, roots hanging from the ceiling"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>The Canopy Walk, the long way to the Loom Mother</sub></td>
-    <td align="center"><sub>A bonfire in the Root Caverns, under the bog</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/combat.png" alt="The Ashblade in iron gauntlets, a kite shield on the other arm, facing a bone walker"></td>
-    <td><img src="docs/screenshots/corvane.png" alt="Corvane's shop of curved blades"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>Katana and shield, one in each hand</sub></td>
-    <td align="center"><sub>Corvane's blades, for those who have proven themselves</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/cathedral.png" alt="The cathedral's nave, pews and pillars between stained-glass windows, leading to the Enthroned under a rose window"></td>
     <td><img src="docs/screenshots/forge.png" alt="Brannoc the smith hammering at his anvil in the forge"></td>
   </tr>
   <tr>
-    <td align="center"><sub>The cathedral, where the Enthroned sits</sub></td>
+    <td align="center"><sub>Odrin, keeper of the silent bell</sub></td>
     <td align="center"><sub>Brannoc's forge</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/cathedral.png" alt="The cathedral's nave, pews and pillars between stained-glass windows, leading to the Enthroned under a rose window"></td>
+    <td><img src="docs/screenshots/inventory.png" alt="The Belongings screen: a mace in the Primary slot, a round shield in Secondary, ringmail and leather gloves, the Equipped panel and the stats"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>The cathedral, where the Enthroned sits</sub></td>
+    <td align="center"><sub>Belongings, with a spinning item preview</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/sewer_drains.png" alt="A narrow vaulted sewer run, sludge underfoot between brick walls"></td>
+    <td><img src="docs/screenshots/cistern.png" alt="The sewers' cistern: brick pillars, a grate in the floor and its shrine's flame burning in the dark"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>The Market Drains, under Harrowmere's streets</sub></td>
+    <td align="center"><sub>The Cistern, where the sewers meet</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/mother_gnawl.png" alt="Mother Gnawl, a giant rat with glowing red eyes, risen in her dark nest, her health bar above"></td>
+    <td><img src="docs/screenshots/sump_reeve.png" alt="The Sump Reeve, a heap of sludge and drowned bodies holding up a lantern, in his flooded cistern"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Mother Gnawl rising in her open nest</sub></td>
+    <td align="center"><sub>The Sump Reeve, behind his great door</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/combat.png" alt="A claymore held in both hands, ringmail sleeves and chain mitts, facing a bone walker"></td>
+    <td><img src="docs/screenshots/warden.png" alt="The Ashen Warden boss in his hall"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>The keep's Claymore, against a Bone Walker</sub></td>
+    <td align="center"><sub>The Ashen Warden</sub></td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/undercroft_lift.png" alt="Riding a barred cage lift down a shaft toward a wall of skulls and bones"></td>
@@ -130,7 +106,39 @@ FromSoftware, Inc.
     <td align="center"><sub>The Butcher, waiting in his slaughter hall</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/cinderhold_bridge.png" alt="A long stone bridge leading to a black fortress under a smoky red sky: a crenellated great wall with burning windows rising from the lava, a turreted gatehouse, a drum bastion, a great keep, smelter stacks and a spire"></td>
+    <td><img src="docs/screenshots/corvane.png" alt="Corvane's shop of curved blades, the katana on show"></td>
+    <td><img src="docs/screenshots/jungle_trail.png" alt="A narrow hedged trail under a darkening canopy, glowing toadstools at the cave mouth ahead"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Corvane's blades, for those who have proven themselves</sub></td>
+    <td align="center"><sub>The green trail out of Harrowmere, ending at the cave</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/mossmouth.png" alt="A brazier just kindled in the dark Mossmouth cave, a chest beside it"></td>
+    <td><img src="docs/screenshots/verdant_hollow.png" alt="A vine-walled path under the canopy of the Verdant Hollow"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Mossmouth: a cold brazier kindled with Pyre</sub></td>
+    <td align="center"><sub>The Verdant Hollow, through the cave at the end of Harrowmere's green trail</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/bark_husk.png" alt="A Bark Husk, a hollow dead tree with a gaping face and splintered crown, beside a thorn plant"></td>
+    <td><img src="docs/screenshots/canopy_walk.png" alt="A plank walkway lit by torches high in the treetops, a snare bloom waiting on it"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>A Bark Husk: circle it and strike the glow in its back</sub></td>
+    <td align="center"><sub>The Canopy Walk, the long way to the Loom Mother</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/root_caverns.png" alt="A bonfire throwing sparks in the dark Root Caverns, roots hanging from the ceiling"></td>
+    <td><img src="docs/screenshots/loom_mother.png" alt="The Loom Mother, a giant spider boss"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>A bonfire in the Root Caverns, under the bog</sub></td>
+    <td align="center"><sub>The Loom Mother</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/cinderhold_bridge.png" alt="A long stone bridge leading to a black fortress under a smoky red sky: a crenellated great wall with burning windows rising from the lava, a gatehouse, a bastion, a great keep and smelter stacks"></td>
     <td><img src="docs/screenshots/postern_ledge.png" alt="A narrow ledge along the fortress wall above lava, a magma bomb arcing toward a glowing landing circle and an iron bowman ahead"></td>
   </tr>
   <tr>
@@ -138,20 +146,20 @@ FromSoftware, Inc.
     <td align="center"><sub>The postern ledge: a magma bomb about to land, a bowman waiting</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/foundry.png" alt="The torchlit foundry hall, a channel of lava across the floor and a forge golem beyond it"></td>
-    <td><img src="docs/screenshots/gargoyles.png" alt="Two iron gargoyles on the keep's walled rooftop, battlements and turrets behind them, under two boss health bars"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>The foundry, where a Forge Golem guards the lava channels</sub></td>
-    <td align="center"><sub>Brand and Bellows, the twin gargoyles on the keep's roof</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/keep_hall.png" alt="The Cinderhold Keep's great hall: iron pillars and a brazier, a forge golem standing among them"></td>
+    <td><img src="docs/screenshots/foundry.png" alt="The torchlit foundry hall, a channel of lava across the floor and a forge golem beyond it, the Stormbrand in an iron gauntlet"></td>
     <td><img src="docs/screenshots/thunder_scroll.png" alt="Belongings on the Spells tab, previewing the Scroll of Thunder Spear: a soot-dark scroll on iron rods, its blue wax seal pressed with a glowing lightning rune"></td>
   </tr>
   <tr>
-    <td align="center"><sub>The great hall of the Cinderhold Keep</sub></td>
+    <td align="center"><sub>The foundry, where a Forge Golem guards the lava channels</sub></td>
     <td align="center"><sub>A spell scroll, sealed with its rune</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/keep_hall.png" alt="The Cinderhold Keep's great hall: iron pillars and a brazier, a forge golem standing among them"></td>
+    <td><img src="docs/screenshots/gargoyles.png" alt="Two iron gargoyles on the keep's walled rooftop, battlements and turrets behind them, under two boss health bars"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>The great hall of the Cinderhold Keep</sub></td>
+    <td align="center"><sub>Brand and Bellows, the twin gargoyles on the keep's roof</sub></td>
   </tr>
 </table>
 
@@ -159,93 +167,46 @@ FromSoftware, Inc.
 
 - **PS1-style renderer**: 320×240 internal resolution, vertex snapping, affine texture warping,
   15-bit color with ordered dithering, distance fog and baked vertex lighting, under skies of drifting
-  cloud with a sun glowing through them and mist along the horizon.
-- **Deliberate, weighty combat**: an ATK gauge that refills between swings, enemy wind-ups you can read
-  and interrupt, and bosses with poise and attacks of their own: the Ashen Sexton, keeper of the
-  cemetery's gate, fights with the ash it keeps: it breathes choking grave dust at you, dashes an urn
-  of the dead so their ash billows out all round, flings spadefuls of grave ash, calls hands of ash up
-  from the ground to clutch at you and raises whirlwinds of ash that hunt you, each clogging your
-  stride, and once wounded tolls its spade like a bell in rings of embers; the Ashen Warden cleaves all around,
-  leaps, flings embers, chains three cuts together and slams a shockwave through the floor, and at
-  half health his blade catches fire and he calls flame up from beneath your feet; above his hall the
-  Butcher swings a cleaver all around him, lunges and hacks, and at half health flies into a frenzy
-  of floor-shaking chops; the Loom Mother
-  sweeps, spits webs, pounces and calls her brood; and on the roof of the Cinderhold's keep two iron gargoyles fight
-  as a pair: Brand sweeps, claws, leaps and slams, Bellows hovers, rakes the roof with fiery breath and
-  swoops straight through you. They take turns, and when one falls the other flies into a rage.
-- **Deaths that linger**: every foe collapses in its own way (skeletons topple, slimes melt, the
-  spider curls its legs) and then burns away to drifting ash.
-- **Weapons with their own movesets**: swords, greatswords, katanas, whips, maces, clubs, axes and a
-  war hammer, each swinging at its own speed. Tap to attack, hold for a heavy attack. Every
-  swing costs stamina, and a weapon's weight (light, medium, heavy or great) sets how much, how hard
-  it hits and how fast it swings. Some weapons hide a secret attack.
-- **Two slots**: put a weapon, a shield or a spell in either slot; the left mouse button works
-  Primary and the right button Secondary. Two-handed weapons fill both and swing from the left button
-  only. A raised shield stops blows from the front for stamina, and you can still back off and sidestep
-  behind it. The best gear needs a higher level.
-- **Armor you can see**: body armor and gauntlets change the sleeves and hands you see in first person.
-- **Spells**, each taught by a scroll and paid for with MP once your focus has returned: Flame Bolt in
-  the cemetery's chapel, Mend and Lumen from the town, Ashen Ward (embers that blunt every blow) in the
-  keep, and three more
-  hidden in the hollow: Venom Dart (a sting that keeps eating at its target), Veil of Mist (ordinary foes
-  overlook you until you strike) and Pyre (a short gout of fire that burns plants and kindles cold fires),
-  and two in the Cinderhold: Thunder Spear (a fast bolt of lightning that bites iron and jolts it) and
-  Arcane Motes (three slow sparks that seek out foes on their own).
-- **Elements**: iron foes conduct lightning and shrug off fire. The Stormbrand sword carries lightning,
-  the Slagbreaker maul sets what it strikes alight.
-- **Stamina**: sprinting, swinging and blocking drain a green stamina bar. Run it dry and you are
-  winded until it recovers.
-- **Durability**: weapons wear as they strike, shields as they block (the shield's button shows what
-  is left of it), armor as blows land on you. Broken gear still works, only badly: a broken blade bites
-  for a fraction, a broken shield leaks, broken armor guards nothing. Brannoc the smith mends it for
-  gold, and a Mender's Kit mends one piece anywhere.
-- **Five hand-built areas**: the Cemetery of Ashes where you wake, the town of Harrowmere, the Sunken Keep below its well, the
-  Verdant Hollow at the end of the green trail and the Cinderhold up the north road (its keep a map of
-  its own), with locked doors,
-  levers, a flooded cellar and chests.
-- **A cemetery to wake in**: the story opens in the Cemetery of Ashes, walled and floored in grey ash,
-  a short first level that teaches as you go. Climb out of your grave, find a rusted sword, cross a field
-  of headstones where Ashen Husks shamble, the risen dead swing torn-up iron railings and Shrouded
-  Mourners stand bowed at the graves until you come too close, then stab or hurl grave-fire, burn the silk sealing the chapel with the Flame Bolt you find inside, and face the Ashen
-  Sexton before its gate lets you out to Harrowmere, for good.
-- **A town to come home to**: Harrowmere's sandstone and ochre houses, under terracotta roofs and
-  among cypresses, olives and umbrella pines, climb on cobbled lanes from its harbour past the market's
-  fountain and the Bell Square, where the cracked Silent Bell hangs, to a twin-towered cathedral of
-  stained glass on the hill where an ancient figure sits enthroned. The realm's crest, a lone tower
-  against a setting sun, flies on its banners.
-  Ten villagers live there: a smith, a herbalist, a trader and a swordsmith keep shops with spinning
-  item previews (the swordsmith only for those who have proven themselves), and some hand a newcomer a
-  weapon, a shield, remedies or a scroll.
-- **A keep that fights back**: floor spikes, swinging pendulum blades and floors that crumble into the
-  dark, plus barrels, crates and urns to smash for a few coins, and secrets for those who look closely.
-- **A keep that folds back on itself**: barred cage lifts sink to a skull-walled Undercroft below the
-  cells and climb to the Warden's Gallery above his door, where the Butcher waits among his hooks with a
-  cleaver worth taking. Some lifts are fastened from one end until you ride them from there,
-  opening shortcuts back to the shrine. Hooded Gaolers drag you in on hooked
-  chains, and not every heap of bones stays a heap.
-- **A jungle that fights back too**: a river with a ford, a drifting raft and rotting planks; thorn
-  beds; a ravine crossed on crumbling ledges; a slope where a log rack rolls its logs at climbers;
-  choking spore pods in a stilt cabin; and an abandoned woodcutters' camp to rummage through, whose
-  cabin floor gives way into its cellar. Long drops hurt, and the hollow keeps a few secrets too.
-- **A fortress of iron and fire**: cross a long bridge over a lava gorge while vents in the lava lob
-  molten bombs at you and iron bowmen shoot from the walls, with the Cinderhold's turreted gatehouse,
-  great keep and smoking stacks ahead and molten iron pouring from its walls into the gorge. Inside, under the realm's scorched banners, lava channels cut through the foundry, flame jets guard the corridors, slag hounds
-  prowl the dark smelter pits and forge golems hide an open firebox on their backs. A postern, a gate
-  winch and a fastened lift fold the fortress back onto its shrine. Its loot waits in iron chests (one of
-  them has teeth), and the tower stair climbs to the keep: a great hall, a switchback stair, a shrine
-  before the great door, and a rooftop walled in by battlements where the gargoyles perch.
-- **Dark places**: the hollow's caves and root caverns swallow your light. Only torches, glowing
-  toadstools and fires show the way, unless you burn Lumen or kindle the cold braziers and bonfires,
-  which then stay lit for good.
-- **A hollow that folds back on itself**: the way to the Loom Mother runs the long way round, over a
-  canopy walk in the treetops. Barred doors, fastened lifts and a drawbridge open shortcuts back to
-  the shrines once you reach their far side.
+  cloud.
+- **Deliberate, weighty combat**: an ATK gauge that refills between swings, tap for a light attack
+  and hold for a heavy, and enemy wind-ups you can read and interrupt. Every swing, sprint and block
+  costs stamina.
+- **Weapons with their own movesets**: swords, greatswords, katanas, whips, maces, clubs, axes and
+  hammers, each light, medium, heavy or great, which sets its speed, stamina cost and force. Some
+  hide a secret attack, and a few unleash an art of lightning, fire, thorns or slag.
+- **Two slots**: put a weapon, a shield or a spell in either; the left mouse button works Primary and
+  the right one Secondary. Two-handed weapons fill both. The best gear needs a higher level.
+- **Gear that weighs and wears**: a heavy load slows you and costs more stamina; weapons dull, shields
+  crack and armor splits until the smith mends them. Body armor and gauntlets change the arms you see.
+- **Ailments**: poison, bleeding, rot and corrosion build up with each blow from the foes that carry
+  them. The herbalist sells their remedies.
+- **Spells taught by scrolls**: Flame Bolt, Mend, Lumen, Ashen Ward, Venom Dart, Veil of Mist, Pyre,
+  Thunder Spear and Arcane Motes, found in chests or sold in town. Iron foes conduct lightning and
+  shrug off fire.
+- **Bosses behind great doors**: the Ashen Sexton fights with grave ash, the Ashen Warden's blade
+  catches fire at half health, the Butcher swings his cleaver among the meat hooks, Mother Gnawl and
+  the Sump Reeve rule the sewers, the Loom Mother calls her brood, and two iron gargoyles take turns on
+  the keep's roof. Die in an arena and only fog remains at its door.
+- **Six areas, hand-built**:
+  - the Cemetery of Ashes where you wake, a short first level that teaches as you go;
+  - Harrowmere, a walled town of stone and half-timbered houses under violet-slate roofs, climbing from
+    its harbour past the Silent Bell to the cathedral where the Enthroned sits, with a smith, an
+    herbalist, a trader and a swordsmith to trade with;
+  - the Harrow Sewers under its streets, four grates down to rats, slimes that split, the drowned and
+    leeches in the sludge;
+  - the Sunken Keep below the well, with traps, cage lifts down to a skull-walled Undercroft and up to
+    the Warden's Gallery;
+  - the Verdant Hollow at the end of the green trail: rafts, ledges, a log slope, spore pods, dark caves
+    and a canopy walk;
+  - and the Cinderhold up the north road, a fortress of lava, flame jets and iron, its keep a map of its own.
+- **Shortcuts and secrets**: barred doors, fastened lifts and drawbridges fold each area back onto its
+  shrine; some walls aren't walls and some chests aren't chests.
+- **Dark places**: caves swallow your light until you burn Lumen or kindle the cold braziers, which
+  stay lit for good.
+- **Save shrines**: rest to heal and record your journey (the fallen rise again when you do), and use
+  the shrine store shared by every shrine. Die and your gold stays in a heap of ash where you fell.
 - **Everything procedural**: textures, low-poly models and sound effects are all generated at startup.
   The game itself ships no image or audio files.
-- **Save shrines**: kneel at a shrine, a stone post with a flame burning in an iron dish, and rest to
-  heal and record your journey. The fallen rise again when
-  you do; only bosses and mimics stay dead. Every shrine also opens the same store: put away items,
-  weapons, armor and even spells you know, and take them back at any shrine.
 
 ## Installing
 
@@ -327,61 +288,25 @@ The same list is in the game under **Controls** on the title and pause menus.
 
 ## Tips
 
-- The mouse in the bottom right shows your slots: Primary on its left button, Secondary on its
-  right one and your quick item on the wheel. HP, MP, ST (with their numbers) and a small compass
-  share the bottom-left box; an ember on the compass points to the nearest boss still alive in the
-  area. Spell MP costs are listed in Belongings and in the shop.
-- Your gold shows in the top right corner. Gold you pick up lingers as a "+N" under it for a moment,
-  then counts into the total.
-- Your swing damage scales with the **ATK** gauge: the gold bar on your weapon's mouse button. Wait for it to
-  fill and the button to flash before swinging.
-- Spells need your **focus** back as well as enough MP. The cyan bar on the spell's button refills after
-  each cast and flashes when you can cast again.
-- Hold a button to charge a **heavy attack**: an orange bar fills over the gauge, then release.
-  Heavies cost more ST than light swings, and the bar turns red when you are too winded.
-  Belongings and the shop show each weapon's light and heavy attack, its weight, the ST its light
-  and heavy attacks cost (in % of the bar), and `???` where a weapon hides a secret you have not
-  found yet.
-- Sprinting and every swing drain **ST** (green bar). Empty it and you can neither sprint nor swing
-  until it is about a third full. Holding a shield up slows its refill.
-- Your gear has weight. The **Load** line in Belongings shows it against what your STR can carry:
-  a Heavy or Overloaded load slows your stride and ST refill and makes every swing cost more.
-  Before you equip or buy, the stats show what would change (hover an item, or a slot in the
-  Primary / Secondary chooser): green is better, red is worse. Spells compare their power as **SPL**.
-- Find a copy of gear you already own and it is sold for you on the spot: half its price in gold.
-- A great door guards each boss. Fall in there and only fog remains: the boss can come through it
-  after you, but stepping through yourself (E) starts the fight, and there is no leaving until one of
-  you falls.
-- Big weapons swing slowly and cost more ST, above all for heavies; katanas, whips and fists are quick.
-- Watch for enemies raising their weapons. A solid hit during the wind-up staggers most of them.
-- Every menu works with the mouse: point at a row to select it, click to use or buy, right-click to
-  close.
-- In Belongings, press 1 or 2 on a weapon, a shield or a spell to put it in Primary or Secondary, or
-  Enter (or a click) to choose a slot. The Equipped panel shows what each slot holds; rows show `[1]`,
-  `[2]` or `[1+2]` for the slots holding them and `[Worn]` for armor. An empty slot fights with its
-  fist, harder in gauntlets.
-- You ready one spell at a time: pick it from the spell rows in Belongings. The mouse wheel only
-  switches between quick items.
-- Traps keep a rhythm. Watch the spikes and blades for a moment before you cross, and don't stand
+- The mouse in the bottom right shows your slots: Primary on its left button, Secondary on its right
+  and your quick item on the wheel. HP, MP, ST and a compass share the bottom-left box; an ember on the
+  compass points to the nearest boss still alive.
+- Your swing hits as hard as the gold **ATK** bar on its button is full: wait for it to flash. Hold
+  the button to charge a **heavy attack** (the orange bar), then release.
+- Spells need your **focus** back as well as MP: the cyan bar on the spell's button refills after each
+  cast.
+- Sprinting, swinging and blocking drain **ST**. Empty it and you are winded until it recovers.
+- Watch the **Load** line in Belongings: a Heavy or Overloaded load slows your stride and ST. Before
+  you equip or buy, the stats show what would change: green is better, red is worse.
+- Find a copy of gear you already own and it is sold on the spot for half its price.
+- A solid hit during an enemy's wind-up staggers most of them.
+- Traps keep a rhythm: watch the spikes, blades and flame jets before you cross, and don't stand
   still on cracked stone.
-- Step onto the plate in the middle of a lift and it carries you; step onto the plate in front of its
-  shaft and it comes to you. If it doesn't, and a lever on the wall beside it won't budge, the lift is
-  fastened from the other end: find your way there and ride it once.
-- When the Warden raises his blade in both hands, back away: the slam reaches all around him. Once his
-  blade burns, keep moving off the glowing circles on the floor.
-- The Butcher is slow but hits hard. Wait out his wind-up, strike after the blow, and back off when
-  he raises the cleaver in both hands.
-- Not every wall is a wall, and not every chest is a chest. Not every stump is a stump, either.
-- In the jungle, keep moving on ledges and rotten planks, and wait in the notches of the log slope
-  for each log to pass. Tree creatures turn slowly: get behind them, or set them alight.
+- Step onto the plate in a lift's middle to ride it, or the plate before its shaft to call it. A lift
+  that won't come is fastened from the other end: find your way there and ride it once.
 - A door that won't open from your side is barred from the other. Find the way round.
-- Spells fly where you look: aim down at slimes.
-- Lava sears away a third of your health in a moment. Flame jets hiss and glow before they roar: wait for
-  the gout to die, then go. On the bridge, watch for glowing circles: a bomb is about to land there.
-- Iron things hate lightning. Get behind a forge golem and strike its open firebox.
-- The gargoyles take turns. Keep a chimney between you and Bellows's breath, and step sideways out of its
-  line of fire circles.
-- Talk to everyone in Harrowmere before you descend. They have gifts and directions.
+- Spells fly where you look: aim down at slimes. Iron things hate lightning.
+- Talk to everyone in Harrowmere. They have gifts and directions.
 
 ## Save file
 
@@ -396,121 +321,35 @@ others follow it).
 
 The project uses [uv](https://docs.astral.sh/uv/) for environments and dependencies,
 [ruff](https://docs.astral.sh/ruff/) for linting and formatting, and pytest with
-[pytest-cov](https://pytest-cov.readthedocs.io/) for tests and coverage. All of them are configured in
-`pyproject.toml` and pinned in `uv.lock`.
+[pytest-cov](https://pytest-cov.readthedocs.io/) for tests and coverage, all configured in
+`pyproject.toml` and pinned in `uv.lock`. With [mise](https://mise.jdx.dev), `mise install` sets up
+the pinned Python and uv, and `mise run check` runs everything CI runs.
 
 ```sh
-uv run pytest               # headless tests: maps, collision, combat, AI, saves, mesh building
-uv run pytest --cov         # same, with a branch-coverage report (fails under the floor in pyproject.toml)
+uv run pytest --cov         # headless tests with a branch-coverage report
 uv run ruff check           # lint (add --fix to auto-fix)
 uv run ruff format          # format
-uv add <package>            # add a runtime dependency; `uv add --dev <package>` for a dev tool
+uv run python tools/screenshots.py   # retake the screenshots above (or name the ones to retake)
 ```
 
-CI runs the same checks on every push and pull request (`.github/workflows/ci.yml`).
-
-### Tool versions and editor settings
-
-- Python and uv versions are pinned in `mise.toml`, `.tool-versions` and `.python-version`. With
-  [mise](https://mise.jdx.dev), run `mise install` once; asdf users get the same versions from
-  `.tool-versions`, and uv reads `.python-version`. Keep all three in sync when bumping.
-- mise also has tasks for the commands above: `mise run play`, `test`, `lint`, `fmt` and `check`
-  (`check` runs everything CI runs).
-- `.editorconfig` sets UTF-8, LF line endings, a final newline, trimmed whitespace and 4-space
-  indents (2 for TOML/YAML/JSON/Markdown). Most editors pick it up automatically; JetBrains and
-  VS Code with the EditorConfig extension both do.
-
-### AI coding agents
-
-`AGENTS.md` describes the project, commands and conventions for coding agents. `CLAUDE.md` imports
-it, so Claude Code, Codex, Cursor and Copilot all follow the same rules.
-
-### Project layout
-
-| Path | What lives there |
-| --- | --- |
-| `src/ashen_vault/world/`, `player/`, `ai/`, `save/` | Game logic with no raylib dependency, covered by `tests/` |
-| `src/ashen_vault/render/` | PS1 shaders, procedural textures, map mesh builder, matrix rig, low-poly models |
-| `src/ashen_vault/game.py` | Scenes and the main loop |
-| `src/ashen_vault/ui/hud.py` | HUD (vitals, compass, the mouse with Primary / quick item / Secondary, the gold counter), menus and dialogue boxes |
-| `src/ashen_vault/ui/tally.py` | How the gold counter holds a fresh "+N" and then counts it in |
-| `src/ashen_vault/ui/smallfont.py`, `ui/logofont.py`, `ui/tinyfont.py` | The pixel font for all game text, the logo's capitals for the title and big headings, and the HUD's tiny capitals and digits |
-| `src/ashen_vault/ui/belongings.py` | What the Belongings menu shows: its tabs and the Primary and Secondary slots |
-| `src/ashen_vault/audio/synth.py` | Synthesized sound effects |
-| `src/ashen_vault/maps/*.map` | Plain-text tile maps (`[meta]`, `[legend]`, `[grid]`, `[entities]`) |
-| `src/ashen_vault/world/hazards.py`, `world/terrain.py` | Traps (spikes, blades, crumbling floors, flame jets, magma vents) and boss fire; terrain (lifts, river, ravine, ledges, logs, spores) |
-| `src/ashen_vault/world/elements.py` | Lightning against iron, fire against what was forged in it |
-| `src/ashen_vault/world/arena.py` | Boss arenas: the great door that seals behind you, and the fog left after you fall |
-| `src/ashen_vault/player/burden.py`, `ui/compare.py` | Equipment load and what it costs you; what equipping an item would change |
-| `src/ashen_vault/render/cemetery_models.py` | The Cemetery of Ashes' foes (the Ashen Sexton and its moves, the Ashen Husk, the Shrouded Mourner), headstones, open graves and its gate |
-| `src/ashen_vault/world/hints.py` | The cemetery's tutorial hints, each shown once |
-| `src/ashen_vault/render/forge_models.py` | The Cinderhold's foes, the twin gargoyles, its weapons, shots, fortress dressing and skyline |
-| `src/ashen_vault/render/fortress_props.py` | The Cinderhold's dressing: gargoyle statues, barred and great windows, forge gear, battlements and lava spouts |
-| `src/ashen_vault/render/shapes.py` | Extra low-poly shapes for models: pointed blades, lozenge bars and wedges |
-| `src/ashen_vault/world/sky.py`, `render/sky.py` | Each map's sky (gradient, sun, clouds, mist), built as plain geometry and drawn behind the world |
-| `src/ashen_vault/dialogue.py` | NPC conversations |
-| `docs/logo/make_logo.py` | Generates the pixel-art logo SVG (its letters come from `ui/logofont.py`) |
+[`AGENTS.md`](AGENTS.md) is the developer guide, written for coding agents and humans alike: the
+project layout, conventions and debug flags, with detailed guides in [`docs/dev/`](docs/dev/).
 
 ### Debug flags
 
 ```sh
-uv run ashen-vault --map sunken_keep --at 15,21,180 --smoke 100 --script "wait:1.2 attack" --shot out.png
+ASHEN_VAULT_SAVE=/tmp/test_save.json \
+  uv run ashen-vault --map sunken_keep --at 15,21,180 --smoke 100 --script "wait:1.2 attack" --shot out.png
 ```
 
-- `--map NAME` skips the title screen and starts on that map.
-- `--at TX,TZ,YAW` sets the start tile and heading in degrees. Write a negative heading as
-  `--at=15,7,-90`, or it is read as a flag.
-- `--smoke N` runs N frames at a fixed timestep, writes a 3× screenshot and prints a state summary
-  (position, height `y=`, HP, flags, items, gear and every enemy's state).
+- `--map NAME` skips the title and starts on that map; `--at TX,TZ,YAW` sets the tile and heading (write
+  a negative heading as `--at=15,7,-90`).
+- `--smoke N` runs N frames at a fixed timestep, writes a screenshot to `--shot PATH` and prints the
+  game state.
 - `--script "..."` drives input: `action` presses once, `action:1.5` holds for 1.5 s, `wait:1` pauses.
-- `--shot PATH` sets where `--smoke` writes its screenshot.
-- `--equip right=katana,left=buckler,body=brigandine,hands=iron_gauntlets` starts with that gear
-  (`primary=` / `secondary=` also name the `right` / `left` slots; `none`
-  empties a slot, `left=spell` readies the spell there and `left=spell:pyre` learns and readies Pyre),
-  and `--level N` at that level (for equipment requirements only: HP and stats stay at level 1).
-
-The README screenshots were taken this way, each with `ASHEN_VAULT_SAVE` pointing at a fresh throwaway
-file. The title is `uv run ashen-vault --smoke 60 --shot title.png` and the village
-`uv run ashen-vault --map harrowmere --at=22,30,-60 --level 10 --equip primary=zweihander --smoke 40 --shot village.png`; Odrin is
-`uv run ashen-vault --map harrowmere --at=28,25,-90 --level 10 --equip primary=katana,secondary=spell:mend --smoke 40 --script "wait:0.2 interact" --shot dialogue.png`,
-Belongings is
-`uv run ashen-vault --map harrowmere --at=20,44,-90 --level 10 --equip primary=stormbrand,secondary=round_shield,body=lamellar_vest,hands=leather_gloves --smoke 40 --script "wait:0.2 menu" --shot inventory.png`,
-Corvane's shop is
-`uv run ashen-vault --map harrowmere --at=6,26,180 --level 10 --equip primary=nodachi --smoke 220 --script "forward:2 interact wait:0.3 confirm wait:0.3 confirm wait:0.3 confirm wait:0.3 confirm" --shot corvane.png`,
-the cathedral is `uv run ashen-vault --map harrowmere --at=18,6,180 --level 10 --equip primary=ashblade,secondary=spell:lumen --smoke 40 --shot cathedral.png`,
-the cemetery is `uv run ashen-vault --map ashen_cemetery --level 10 --equip primary=bastard_sword,secondary=spell:mend --smoke 40 --shot cemetery.png`,
-the Mourner is `uv run ashen-vault --map ashen_cemetery --at=11,22,-90 --level 10 --equip primary=hatchet,secondary=spell:venom --smoke 40 --shot mourner.png`,
-the burning silk is
-`uv run ashen-vault --map ashen_cemetery --at=12,18,-135 --level 10 --equip primary=mace,secondary=spell:flame --smoke 90 --script "wait:0.3 cast wait:0.9" --shot silk.png`,
-the Sexton is
-`uv run ashen-vault --map ashen_cemetery --at=10,11,-90 --level 10 --equip primary=thornlash,secondary=spell:ward --smoke 603 --script "wait:0.1 interact wait:2.5 forward:1.0" --shot sexton.png`
-(its move is random, so take it again until its ash bursts round it),
-the forge is `uv run ashen-vault --map harrowmere --at=8,18,180 --level 10 --equip primary=bearded_axe,secondary=spell:lumen --smoke 40 --shot forge.png`,
-the Warden is `uv run ashen-vault --map sunken_keep --at=15,7,-90 --level 10 --equip primary=claymore --smoke 40 --shot warden.png`,
-the hollow's vine path is `uv run ashen-vault --map verdant_hollow --at=9,12,90 --level 10 --equip primary=katana,secondary=spell:veil --smoke 40 --shot verdant_hollow.png`,
-the Bark Husk is `uv run ashen-vault --map verdant_hollow --at=26,17,-90 --level 10 --equip primary=moonless_tachi,secondary=spell:pyre --smoke 60 --shot bark_husk.png`,
-the log rack is `uv run ashen-vault --map verdant_hollow --at=51,6,180 --level 10 --equip primary=leather_whip,secondary=buckler --smoke 40 --shot log_rack.png`,
-the flame bolt shot is
-`uv run ashen-vault --map sunken_keep --at 15,22,0 --level 10 --equip primary=stormbrand,secondary=spell:flame --smoke 40 --script "wait:0.3 cast" --shot flame_bolt.png`,
-the Loom Mother is `uv run ashen-vault --map verdant_hollow --at=15,7,-90 --level 10 --equip primary=flamberge --smoke 40 --shot loom_mother.png`,
-the lift ride is
-`uv run ashen-vault --map sunken_keep --at 4,24,90 --level 10 --equip primary=great_iron_hammer --smoke 680 --script "forward:0.15 wait:5 forward:0.6 wait:7" --shot undercroft_lift.png`,
-the Butcher is `uv run ashen-vault --map sunken_keep --at=27,7,-90 --level 10 --equip primary=war_hammer --smoke 20 --shot gallery.png`,
-the jungle trail is `uv run ashen-vault --map harrowmere --at=56,34,-90 --level 10 --equip primary=spiked_club,secondary=spell:lumen --smoke 40 --shot jungle_trail.png`,
-Mossmouth is
-`uv run ashen-vault --map verdant_hollow --at=15,31,180 --script "wait:0.3 cast wait:3" --level 10 --equip primary=hatchet,secondary=spell:pyre --smoke 120 --shot mossmouth.png`,
-the canopy is `uv run ashen-vault --map verdant_hollow --at=31,3,180 --script "look_down:0.12" --level 10 --equip primary=butcher_cleaver,secondary=spell:motes --smoke 40 --shot canopy_walk.png`,
-the Root Caverns are `uv run ashen-vault --map verdant_hollow --at=6,38,-100 --level 10 --equip primary=slagbreaker --smoke 25 --shot root_caverns.png`,
-the long bridge is `uv run ashen-vault --map cinderhold --at=29,52,-90 --script "look_up:0.15" --level 10 --equip primary=moonless_tachi,secondary=spell:thunder --smoke 60 --shot cinderhold_bridge.png`,
-the postern ledge is `uv run ashen-vault --map cinderhold --at=28,30,180 --level 10 --equip primary=bastard_sword,secondary=kite_shield --smoke 190 --shot postern_ledge.png`,
-the foundry is `uv run ashen-vault --map cinderhold --at=18,17,180 --level 10 --equip primary=zweihander --smoke 40 --shot foundry.png`,
-the gargoyles are
-`uv run ashen-vault --map cinder_keep --at=9,6,180 --level 10 --equip primary=katana,secondary=spell:ward --smoke 200 --script "wait:1 attack wait:1" --shot gargoyles.png`,
-the keep's hall is `uv run ashen-vault --map cinder_keep --at=17,18,180 --level 10 --equip primary=nodachi --smoke 40 --shot keep_hall.png`,
-the scroll is
-`uv run ashen-vault --map cinderhold --at=4,15,-90 --level 10 --equip primary=oak_cudgel,secondary=tower_shield --smoke 280 --script "interact wait:1.5 menu wait:0.2 tab_next wait:0.2 tab_next wait:0.2 tab_next wait:0.2 down wait:3" --shot thunder_scroll.png`,
-and the sword and shield shot is
-`uv run ashen-vault --map sunken_keep --at 15,22,0 --level 10 --equip primary=ashblade,secondary=kite_shield,body=blackened_plate,hands=iron_gauntlets --smoke 100 --shot combat.png`.
+- `--equip primary=katana,secondary=buckler,body=brigandine` starts with that gear, and `--level N` at
+  that level (for equipment requirements only).
+- Set `ASHEN_VAULT_SAVE` to a throwaway path to keep test runs away from your real save.
 
 ## Contributing
 

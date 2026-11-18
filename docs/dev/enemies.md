@@ -1,0 +1,77 @@
+# Enemies and bosses
+
+Behaviour flags, special moves, bosses and the rules every enemy model must keep.
+
+## Modules
+
+| Path | Contents |
+| --- | --- |
+| `src/ashen_vault/world/elements.py` | Elements: lightning against `conductive` foes, fire against `fireproof` ones, which weapons burn |
+| `src/ashen_vault/world/shots.py` | Shots in 3D: spells follow the view's pitch, enemy shots aim at your chest, and a shot only hits a body it passes through |
+| `src/ashen_vault/world/relics.py` | Boss relics (Ember, Verdant and Iron Sigils), their drop/taken flags, `boss_falls` (twins fall together) and the three-sigil ending (the prophecy names four; the fourth's place is a TODO) |
+| `src/ashen_vault/render/cemetery_models.py` | The Cemetery of Ashes' models: the Ashen Sexton (its `grave_spade`, and `sexton_arms`, its poses for each move; `dust_puff`, `ash_billow` and `dust_devil` draw its ash), the Ashen Husk, the Shrouded Mourner (the cemetery's own lurker), `grave_walker` (the cemetery's Bone Walkers, `bone_walker model=grave`: risen in their winding sheets, a headstone shard for a shield and a length of iron railing for a weapon; the keep's keep their own look), `ash_hands` (the Sexton's grasping ash) and `ash_clod` (its spadeful), `gravestone`, `open_grave` and `cemetery_gate` (a pointed stone arch built out of the wall, black passage behind its iron leaves, a hooded mourner in a niche over the lintel and, unless `sentinels=false` as in town, hooded stone wardens either side; also the gate exit's `model=`, swung open once its `requires=` flag is set) |
+| `src/ashen_vault/render/sewer_models.py` | The Harrow Sewers' models: the Gutter Rat, the Cistern Rat and Mother Gnawl (one rat, `_rat`, at three sizes; she adds her collar, teats and mane), the Sludge Slime and its Sludge Gobbets (`_sludge`), the Drowned Wretch (face down in the sludge while it lurks), the Bilge Leech (`_leech_spine`), the Sump Reeve (his heap of sludge and drowned, his lantern, `_reeve_arms` for his moves), the ways between town and sewers (`sewer_grate` in the street, `sewer_ladder` below, set back against a wall behind it, `world.LADDER_BACK`), and the dressing: `drain_pipe`, `sluice_wheel` and `outfall_grate` (wall props), `rat_nest` |
+| `src/ashen_vault/render/forge_models.py` | The Cinderhold's models (golem, bowman, hound, the gargoyles, Stormbrand and Slagbreaker, arrows, thunder and motes, flame jets, and the skyline: spires, bastions, smokestacks, the gatehouse, the keep, lavafalls); `models` imports it last and borrows its helpers |
+
+## Rules
+
+- Enemy behaviour flags in `ai/enemy_types.py`: `ambush` spawns dormant (the chest Mimic) until woken;
+  `lurk` sits still until you come close (the Stump Mimic, the Bone Crawler, the Shrouded Mourner, the
+  sewers' Drowned Wretch and Bilge Leech); `once` stays dead; `splits` bursts a slain foe into
+  `split_count` of another type (the Sludge Slime's gobbets, `World.split`): the pieces don't split again,
+  and as no map places them a shrine rest never brings them back;
+  bosses set `dead_flag` and drop a relic (the Butcher, a mini-boss, sets `butcher_dead` but has no
+  relic: his cleaver is an entity `item=`). Any type picks special attacks from `moves` (see `MOVES` in
+  `ai/enemy.py`: `sweep`, `web`, `pounce`, `cinders`, `combo`, `slam`, `eruption`, `hook`, `breath`
+  (a line of `Eruption`s raking toward you and past), `dive` (a swoop through where you stood), and the
+  Ashen Sexton's own, all of ash: `exhale` (a cone of grave dust breathed `EXHALE_REACH` ahead, a `Gout`
+  of style "ash"), `ashfall` (an urn of ashes dashed down: it hurts all round within `ASHFALL_RADIUS`, a
+  `Shockwave` of style "ash"), `dust_devil` (two `hazards.DustDevil` whirlwinds that drift after you
+  and die with it, `World.devils`), `spadeful` (a fan of five ash clods that slow you, `effect="ash"`), `grasp` (a line
+  of `Eruption(style="hands")`: ash hands that hurt and hold you) and `knell` (second phase: two rings of
+  embers, `KNELL_GAP` apart, the second turned half a gap; `World.knell`); each of the ash moves also
+  slows you, and no other foe uses them), and the Shrouded Mourner's `fireball` (grave-fire kindled in
+  its palm and thrown from afar; up close it stabs), and the Sump Reeve's `bile` (a fan of four gobbets
+  that poison and corrode, `BILE_RANGE`). Neither of the sewers' bosses (Mother Gnawl, `matron_dead`, who
+  has no great door; the Sump Reeve, `reeve_dead`) drops a relic. At half
+  HP a boss with a `brood` calls it and one with a `rage` kindles it (the Warden's burning blade);
+  either way it enters its second phase (`Enemy.phase2`), fights faster and adds its `phase_moves`.
+  `perch` spawns a statue (`Enemy.perched`) that wakes when it sees you, or is struck; it then spends
+  `STATUE_RISE` in state `"rising"` (seams of fire spread, its stone bursts off at `STATUE_BURST`, the wings
+  unfold and it lifts off). `rise="ash"` (the Warden, the Butcher, the Loom Mother, the Sexton, the sewers' two) spawns a
+  boss as a smouldering heap (state `"ashes"`, `cemetery_models.ash_heap`) until you step into its arena
+  (`World.rise_time`), then it forms from the feet up over `ASH_RISE` (`ASH_RISE_AGAIN` back through its
+  fog): the death dissolve played backwards (`ash.rise_phases`) while `AshCloud.gather` draws embers in.
+  The door slams as it starts (once you stand clear of the doorway, `Arena.clear_of_gate`); nothing strikes or touches it while `Enemy.unseen`, and the boss bar
+  fills with `rise_progress`. Tests skip the entrance with `conftest.risen`. `twin=<type>`
+  pairs two bosses: waking one wakes the other (`World.rouse_twin`), they take turns with special moves
+  (`World.twin_busy`), the survivor enters phase two when the other falls (not at half HP), they share a
+  `dead_flag` and relic set only when both are dead (`relics.boss_falls`), and a shrine rest brings a
+  fallen twin back beside its living other at full HP. `conductive` foes take `LIGHTNING_MULT` from
+  lightning and are jolted (`staggers`); `fireproof` ones take half from fire and never burn. `shot=arrow`
+  draws a ranged foe's shots as arrows (and they fly faster), `shot=thorn` as barbed thorns
+  (`models.thorn_shot`, the Snare Bloom's, and Thornlash's Thorn Volley, whose thorns poison).
+  A type's `mouth` sets the height its shots leave from (the Snare Bloom's tall pod), else 1.2 m.
+  An enemy entity's `item=` is loot it drops when slain. `flammable` types (the jungle's plants) take
+  more from Pyre and keep burning. Enemies carry lingering harm in `Enemy.status` (`poison` from Venom
+  Dart, `burn` from Pyre), one bite a second (`status_tick`) that never staggers.
+- An enemy type's `height` is the top of its body as it dies: the ash dissolve crumbles that span.
+  Any direct blow lights a foe red for `FLASH_TIME` (`Enemy.flashing`, `world.HIT_RED`), stagger or
+  not; a model that recolours itself when hit keys on `e.flashing` (`models.hit_tint`, its strength in
+  `HIT_TINT`), its glowing parts turn `models.HIT_GLOW`, and its reeling pose keys on `state == "hurt"`. A type's `material`
+  (`enemy_types.MATERIALS`: flesh, bone, iron, stone, wood, ash) picks the `hit_<material>` sound a blow
+  on it makes (`Enemy.hit_sound`; an iron-chest mimic rings as iron), pitched at random within
+  `game.HIT_PITCH`.
+  A hovering foe's shot span reaches from its hover height up to its `tall` (`shots.body_span`).
+  Every model has a death pose (eased by `models.death_fall`); `tests/test_render_logic.py` checks
+  that each one collapses, stays above the floor and fits its `height`, so update both together.
+  Its `tall` is the top of the standing body: a spell bolt flying higher misses it (`world/shots.py`).
+  Bosses must stay boss-sized in detail (at least 50 parts, 30 for armed and armoured regulars) and
+  look different in their second phase (`test_bosses_have_boss_level_detail`,
+  `test_phase_two_changes_how_each_boss_looks`), and every glow goes out in death.
+- Foes that wield a weapon chop overhead (`models.chop_angle`) and hold it in a fist (`models.held`,
+  `sword_parts`): give the arm an elbow (`elbow_bend`) and point the weapon with
+  `aim_wrist(blade_direction, shoulder + elbow)` rather than a fixed angle, so it never folds back along
+  the arm. `tests/test_render_logic.py` checks the wrist stays within 150 degrees of the forearm's line.
+- Every blow, shot, ash or fire a foe lands on you is scaled by `world.FOE_DAMAGE` (1.5) through
+  `world.foe_harm`, before armour takes its share; traps, lava, thorns, spores, logs and falls are not.
