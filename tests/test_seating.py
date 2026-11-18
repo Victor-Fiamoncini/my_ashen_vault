@@ -54,3 +54,12 @@ def test_props_wholly_behind_the_eye_are_not_drawn():
     assert behind_view(0.0, -(BEHIND_MARGIN + 0.1), 0.0, 1.0)
     assert not behind_view(0.0, -(BEHIND_MARGIN - 0.1), 0.0, 1.0)  # a wide model reaching past you
     assert not behind_view(5.0, 0.0, 0.0, 1.0)  # beside you, at the edge of a wide view
+
+
+def test_harrowmere_windows_take_the_frame_of_the_wall_they_are_set_in():
+    world = World(FakeGame(), "harrowmere")
+    m = world.map
+    tx, tz = next((tx, tz) for tx, tz, t in m.each_tile() if t.walkable and not m[tx - 1, tz].solid)
+    assert m.wall_behind(tx, tz, 0.0) is None
+    walls = {m.wall_behind(p.tx, p.tz, p.yaw).wall_tex for p in world.props if p.kind == "shutters"}
+    assert {"ashlar", "timber"} <= walls  # every window is backed by a wall, both kinds of house have them

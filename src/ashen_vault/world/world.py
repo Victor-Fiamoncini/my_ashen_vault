@@ -211,6 +211,10 @@ BLOCKING_PROPS = (
     "town_statue",
     "forge_statue",
     "ore_cart",
+    "armor_stand",
+    "katana_stand",
+    "bookcase",
+    "drawers",
 )
 # How high a low blocking prop reaches above its floor, in metres: a shot flying higher passes over it
 # (a bolt over a table, a casket or a barrel). Anything not listed stands full height.
@@ -242,6 +246,8 @@ PROP_TOP = {
     "ore_cart": 1.2,
     "forge_bellows": 1.1,
     "grindstone": 1.2,
+    "katana_stand": 1.2,
+    "drawers": 1.05,
 }
 # Props that block only until they are broken or revealed.
 BREAKABLE_PROPS = ("barrel", "crate", "urn", "cocoon", "secret_wall")
@@ -272,6 +278,7 @@ WALL_PROPS = (
     "flying_buttress",
     "crypt_front",
     "shop_sign",
+    "weapon_rack",
 )
 # Props drawn as far as the fog lets you see, however far that is: they make a skyline.
 LANDMARKS = (
@@ -305,6 +312,7 @@ STATIC_PROPS = frozenset(
         *("gravestone", "open_grave", "cemetery_gate", "mourning_statue", "crypt_front", "grave_railing"),
         *("shop_sign", "forge_bellows", "grindstone", "town_statue", "forge_statue", "ore_cart"),
         *("roof_turret", "wall_tower", "rampart_bay"),
+        *("weapon_rack", "armor_stand", "katana_stand", "bookcase", "drawers"),
         "ash_mound",
         "spire",
     }
@@ -315,7 +323,7 @@ RISE = {"rose_window": "6", "crest_plaque": "3", "shutters": "1.7", "balcony": "
 FACING_PROPS = (
     *("chest", "altar", "table", "bed", "cupboard", "gargoyle_statue", "forge_hearth"),
     *("bench", "hand_cart", "hay_wagon", "mourning_statue", "forge_bellows", "town_statue", "forge_statue"),
-    "ore_cart",
+    *("ore_cart", "armor_stand", "katana_stand", "bookcase", "drawers"),
 )
 # Ways through a wall that its rampart bays keep clear of (`World._dress_ramparts`).
 RAMPART_GATES = ("exit", "cemetery_gate", "door", "gate", "door_arch")
@@ -355,6 +363,11 @@ TOWN_PROPS = (
     "roof_turret",
     "wall_tower",
     "house_door",
+    "weapon_rack",
+    "armor_stand",
+    "katana_stand",
+    "bookcase",
+    "drawers",
 )
 ANVIL_SOUND = (0.35, 14.0)  # (volume, metres to silence) of the smith's hammer on his anvil
 HAZARD_KINDS = ("spikes", "pendulum", "crumble", "flame_jet", "magma_vent")
@@ -2678,8 +2691,9 @@ class World:
                     town_models.rose_window(rig, seed)
                 elif k == "crest_plaque":
                     town_models.crest_plaque(rig, seed)
-                elif k == "shutters":
-                    town_models.shutters(rig, seed)
+                elif k == "shutters":  # an oak frame in a half-timbered wall, dressed stone in any other
+                    wall = self.map.wall_behind(p.tx, p.tz, p.yaw)
+                    town_models.shutters(rig, seed, timber=wall is not None and wall.wall_tex == "timber")
                 else:
                     town_models.balcony(rig, seed)
         elif k == "door_arch":
@@ -2754,6 +2768,16 @@ class World:
             town_models.forge_bellows(rig, seed)
         elif k == "grindstone":
             town_models.grindstone(rig, seed)
+        elif k == "weapon_rack":
+            town_models.weapon_rack(rig, seed)
+        elif k == "armor_stand":
+            town_models.armor_stand(rig, seed)
+        elif k == "katana_stand":
+            town_models.katana_stand(rig, seed)
+        elif k == "bookcase":
+            town_models.bookcase(rig, seed, scrolls=p.props.get("style") == "scrolls")
+        elif k == "drawers":
+            town_models.drawers(rig, seed, apothecary=p.props.get("style") == "apothecary")
 
 
 def hinged(props):

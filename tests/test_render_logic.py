@@ -997,6 +997,7 @@ def test_town_props_draw_and_roofs_cover_their_buildings():
         town_models.cupboard(r, seed)
         town_models.shelf(r, seed)
         town_models.shutters(r, seed)
+        town_models.shutters(r, seed, timber=True)
         town_models.balcony(r, seed)
         town_models.banner_pole(r, 0.5, seed)
         town_models.crest_plaque(r, seed)

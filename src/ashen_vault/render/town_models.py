@@ -1,14 +1,28 @@
 """Harrowmere's models: tiled roofs, the Silent Bell, the cathedral (its towers, spire, buttresses and
-stained glass), pews, the dressing of its stone and half-timbered houses (shuttered windows, balconies, arched
-doorways and the doors that swing in them, corner turrets), the round towers of its wall, the shops'
+stained glass), pews, the dressing of its stone and half-timbered houses (mullioned windows of leaded glass behind
+board shutters, jettied galleries, arched doorways and the doors that swing in them, corner turrets), the round towers of its wall, the shops'
 hanging signs, the realm's crest on poles and plaques, the furniture and the street dressing of a harbour
-town (beds, cupboards, shelves, hearths, a fountain, benches, carts and cargo, fences, lamp posts, a
+town (beds, cupboards, shelves, hearths, a fountain, benches, carts and cargo, wattle fences, lantern posts, a
 moored boat, the smith's bellows and grindstone). Pure part lists drawn through a Rig, like `models`."""
 
 import itertools
 import math
 
-from ashen_vault.render.models import IRON, REALM_VIOLET, WHITE, _bar, _dim, _flame, realm_crest
+from ashen_vault.render.models import (
+    IRON,
+    REALM_VIOLET,
+    SWORDS,
+    WHITE,
+    _bar,
+    _dim,
+    _flame,
+    _weapon,
+    garment,
+    gauntlet,
+    katana,
+    realm_crest,
+    shield,
+)
 from ashen_vault.world.tile_map import TileMap
 
 T = TileMap.TILE
@@ -24,7 +38,6 @@ STAINED = ((178, 34, 44), (44, 70, 190), (226, 172, 48), (44, 140, 78), (120, 56
 LEAD = (28, 26, 30)
 GILT = (214, 176, 84)
 SANDSTONE = (186, 160, 120)
-SHUTTER_PAINT = ((70, 104, 78), (62, 86, 120), (120, 84, 50), (128, 56, 44))
 REALM_CLOTH = REALM_VIOLET
 HAY = (200, 168, 88)
 SACK = (160, 136, 98)
@@ -435,47 +448,124 @@ def crest_plaque(r, seed):
         realm_crest(r, GILT if seed % 3 else _dim(GILT, 0.9), cy=0.0, scale=1.45)
 
 
-def shutters(r, seed):
-    """A window deep in a house wall at local -X: a dark casement faintly lit within, a cross of wooden
-    mullions, a stone sill and lintel, and two painted, louvred shutters folded back against the wall."""
-    paint = SHUTTER_PAINT[seed % len(SHUTTER_PAINT)]
+SHUTTER_OAK = ((96, 40, 34), (58, 78, 60), (92, 66, 42), (62, 50, 40))  # oxblood, weathered green, oak
+WINDOW_GLOW = (118, 90, 54)  # lamplight through leaded glass
+OAK = (74, 54, 36)
+
+
+def _board_shutter(r, w, h, paint, seed):
+    """A board-and-batten shutter hung at the origin and reaching along +Z: upright planks, two ledges
+    and a brace on its back, black iron strap hinges across its face."""
+    for i in range(3):
+        r.part("cube", 0, 0, w * (i + 0.5) / 3, 0.04, h - 0.02 * (i % 2), w / 3 - 0.01,
+               _dim(paint, 0.92 + 0.08 * ((seed + i) % 2)), tex="wood_plank")  # fmt: skip
+    for y in (-h * 0.32, h * 0.32):
+        r.part("cube", 0.03, y, w / 2, 0.03, 0.08, w * 0.9, _dim(paint, 0.75))  # the ledges
+        r.part("cube", 0.05, y, w * 0.38, 0.015, 0.05, w * 0.76, IRON)  # a strap hinge
+        r.part("cube", 0.05, y, w * 0.76, 0.02, 0.07, 0.07, IRON)  # its spade end
+        r.part("cube", 0.0, y, -0.02, 0.06, 0.08, 0.05, IRON)  # the pintle in the wall
+    _bar(r, (0.03, -h * 0.32, w * 0.12), (0.03, h * 0.32, w * 0.88), 0.05, _dim(paint, 0.7))  # the brace
+
+
+def shutters(r, seed, timber=False):
+    """A medieval window deep in a house wall at local -X: two round-headed lights of leaded diamond
+    quarries faintly lit within, parted by a mullion, in a dressed stone surround under a hood mould
+    with carved stops (an oak frame under a pegged lintel in a half-timbered wall), its two board
+    shutters strapped in iron and folded back, one now and then half shut, some lights barred."""
     stone = (236, 230, 218)
-    r.part("cube", -0.985, 0, 0, 0.03, 1.2, 0.86, (36, 30, 26))  # the reveal, in shadow
-    r.part("cube", -0.98, 0, 0, 0.02, 1.0, 0.7, (120, 92, 56), glow=True)  # lamplight behind the glass
-    r.part("cube", -0.97, 0, 0, 0.03, 1.04, 0.06, DARK_WOOD)  # the mullion
-    r.part("cube", -0.97, 0.1, 0, 0.03, 0.06, 0.74, DARK_WOOD)  # the transom
-    r.part("cube", -0.9, -0.66, 0, 0.22, 0.1, 1.06, stone, tex="ashlar")  # sill
-    r.part("cube", -0.93, 0.68, 0, 0.16, 0.16, 1.1, stone, tex="ashlar")  # lintel
-    for side in (-1, 1):  # the shutters, folded back
-        z = side * 0.72
-        r.part("cube", -0.96, 0, z, 0.04, 1.16, 0.5, paint, tex="wood_plank")
-        for y in (-0.25, 0.25):  # louvred panels
-            r.part("cube", -0.94, y, z, 0.02, 0.4, 0.38, _dim(paint, 0.72), tex="wood_plank")
+    frame = OAK if timber else stone
+    tex = "wood_plank" if timber else "ashlar"
+    paint = SHUTTER_OAK[seed % len(SHUTTER_OAK)]
+    lw, low, spring = 0.36, -0.55, 0.3  # each light's width, its foot and where its head springs
+    rad = lw / 2
+    head = spring + rad + 0.1
+    r.part("cube", -0.975, (head + 0.62) / 2, 0, 0.05, 0.62 - head + 0.02, 1.0, _dim(frame, 0.92),
+           tex=tex)  # fmt: skip  # the head of the surround, over the arches
+    for zc in (-0.24, 0.24):
+        r.part("cube", -0.985, (low + spring) / 2, zc, 0.02, spring - low, lw, (30, 26, 22))  # the reveal
+        r.part("cube", -0.955, (low + spring) / 2, zc, 0.01, spring - low - 0.04, lw - 0.04, WINDOW_GLOW,
+               glow=True)  # fmt: skip
+        for i in range(3):  # the round head, glazed in strips
+            z = zc - rad + lw * (i + 0.5) / 3
+            hh = math.sqrt(max(rad * rad - (z - zc) ** 2, 0.0)) * 0.9
+            r.part("cube", -0.955, spring + hh / 2, z, 0.01, hh, lw / 3, WINDOW_GLOW, glow=True)
+        # The leading: diagonal cames crossing into diamonds, and a saddle bar across.
+        for k in range(5):
+            y = low + rad + k * 0.18
+            for rx in (math.pi / 4, -math.pi / 4):
+                r.part("cube", -0.94, y, zc, 0.012, 0.015, lw * 1.36, LEAD, rx=rx)
+        r.part("cube", -0.935, -0.12, zc, 0.014, 0.025, lw, IRON)
+        for i in range(7):  # the voussoirs of its head
+            a = math.pi * i / 6
+            r.part("cube", -0.93, spring + math.sin(a) * (rad + 0.04), zc + math.cos(a) * (rad + 0.04),
+                   0.08, 0.08, 0.1, _dim(frame, 0.95 + 0.06 * (i % 2)), rx=math.pi / 2 - a)  # fmt: skip
+    r.part("cube", -0.93, (low + spring) / 2, 0, 0.08, spring - low, 0.1, frame, tex=tex)  # the mullion
+    r.part("cube", -0.92, spring, 0, 0.1, 0.06, 0.14, _dim(frame, 1.08))  # its little capital
+    for side in (-1, 1):  # the jambs, their chamfer a darker strip
+        r.part("cube", -0.93, (low + spring) / 2 + 0.04, side * 0.46, 0.08, spring - low + 0.1, 0.08,
+               frame, tex=tex)  # fmt: skip
+        r.part("cube", -0.9, (low + spring) / 2 + 0.04, side * 0.415, 0.02, spring - low + 0.1, 0.025,
+               _dim(frame, 0.78))  # fmt: skip
+    r.part("cube", -0.88, low - 0.08, 0, 0.24, 0.1, 1.1, _dim(frame, 0.95), tex=tex)  # the sill
+    r.part("cube", -0.8, low - 0.15, 0, 0.06, 0.04, 1.04, _dim(frame, 0.75))  # its drip
+    if timber:  # a moulded oak lintel, pegged
+        r.part("cube", -0.9, 0.64, 0, 0.16, 0.14, 1.2, _dim(OAK, 0.9), tex="wood_plank")
+        r.part("cube", -0.84, 0.56, 0, 0.06, 0.04, 1.12, _dim(OAK, 0.7))
+        for z in (-0.5, 0.5):
+            r.part("cube", -0.815, 0.64, z, 0.02, 0.05, 0.05, (150, 128, 96))
+    else:  # the hood mould, ending in carved stops
+        r.part("cube", -0.88, 0.66, 0, 0.16, 0.1, 1.16, _dim(stone, 1.04), tex=tex)
+        for side in (-1, 1):
+            r.part("cube", -0.88, 0.53, side * 0.56, 0.18, 0.18, 0.1, _dim(stone, 0.85))
+            r.part("cube", -0.8, 0.5, side * 0.56, 0.04, 0.08, 0.08, _dim(stone, 0.7))  # its worn face
+    if seed % 3 == 2:  # an iron grille over the lights
+        for z in (-0.32, -0.16, 0.16, 0.32):
+            r.part("cube", -0.88, (low + spring) / 2, z, 0.03, spring - low, 0.03, IRON)
+        r.part("cube", -0.88, -0.22, 0, 0.03, 0.03, 0.8, IRON)
+    shut = seed % 4 == 1  # one shutter swung half shut
+    for side in (-1, 1):
+        swing = 0.9 if shut and side == 1 else 0.0
+        with r.at(-0.95, 0.0, side * 0.5, ry=(swing if side == 1 else math.pi)):
+            _board_shutter(r, 0.44, 1.12, paint, seed + side)
 
 
 def balcony(r, seed):
-    """An upper-floor balcony on the wall at local -X: a plank deck on carved corbels, a turned rail,
-    a half-open door behind it and, some days, a rug or a washing line airing over the rail."""
+    """An upper-floor gallery jettied out of the wall at local -X: a plank deck on carved corbels and
+    raking braces, a parapet of boards under a rail, a half-open door behind it, and a pent roof of slate
+    over it on two brackets; some days a rug airs over the boards or a lantern hangs from the roof."""
     wood = _dim(WOOD, 0.9)
     r.part("cube", -0.98, 1.05, 0, 0.03, 2.1, 1.0, (34, 28, 24))  # the doorway behind
     with r.at(-0.97, 1.05, -0.5, ry=-1.1):
         r.part("cube", 0.02, 0, 0.45, 0.06, 2.0, 0.9, DARK_WOOD, tex="door_wood")  # its door, ajar
-    r.part("cube", -0.92, 2.2, 0, 0.14, 0.14, 1.2, _dim(SANDSTONE, 1.05))  # lintel
+    r.part("cube", -0.92, 2.2, 0, 0.14, 0.14, 1.2, _dim(DARK_WOOD, 1.1))  # the lintel beam
     r.part("cube", -0.58, -0.06, 0, 0.84, 0.12, 2.0, wood, tex="wood_plank")  # the deck
-    for z in (-0.8, 0.0, 0.8):  # corbels
-        r.part("cube", -0.82, -0.32, z, 0.36, 0.34, 0.16, DARK_WOOD)
-        r.part("cube", -0.6, -0.2, z, 0.3, 0.12, 0.16, DARK_WOOD, rz=-0.5)
-    r.part("cube", -0.18, 0.92, 0, 0.08, 0.08, 2.0, DARK_WOOD)  # the rail
-    for z in (-0.95, 0.95):
-        r.part("cube", -0.58, 0.92, z, 0.8, 0.08, 0.08, DARK_WOOD)
-        r.part("cube", -0.58, 0.45, z, 0.06, 0.9, 0.06, wood)  # side posts
-    for i in range(10):  # balusters
-        r.part("cube", -0.18, 0.45, -0.9 + i * 0.2, 0.05, 0.86, 0.05, wood)
+    for z in (-0.8, 0.0, 0.8):  # corbels: joists running out of the wall
+        r.part("cube", -0.6, -0.18, z, 0.8, 0.14, 0.16, DARK_WOOD)
+        r.part("cube", -0.2, -0.24, z, 0.08, 0.1, 0.17, _dim(DARK_WOOD, 0.8))  # its carved end
+    for z in (-0.8, 0.8):  # raking braces down to the wall
+        _bar(r, (-0.98, -1.0, z), (-0.32, -0.22, z), 0.12, DARK_WOOD)
+    for i in range(8):  # the parapet's boards
+        r.part("cube", -0.18, 0.45, -0.875 + i * 0.25, 0.05, 0.82 - 0.03 * (i % 2), 0.24,
+               _dim(wood, 0.9 + 0.08 * ((seed + i) % 3)), tex="wood_plank")  # fmt: skip
+    for z in (-0.97, 0.97):
+        r.part("cube", -0.58, 0.45, z, 0.8, 0.82, 0.05, wood, tex="wood_plank")  # its ends
+        r.part("cube", -0.58, 0.9, z, 0.84, 0.08, 0.09, DARK_WOOD)
+        r.part("cube", -0.18, 0.45, z, 0.1, 0.96, 0.1, DARK_WOOD)  # the corner posts
+    r.part("cube", -0.18, 0.9, 0, 0.1, 0.08, 2.0, DARK_WOOD)  # the rail
+    r.part("cube", -0.18, 0.12, 0, 0.08, 0.08, 2.0, DARK_WOOD)  # the bottom rail
+    for z in (-0.95, 0.95):  # the pent roof's brackets
+        _bar(r, (-0.98, 1.9, z), (-0.3, 2.5, z), 0.08, DARK_WOOD)
+    with r.at(-0.55, 2.62, 0, rz=-0.38):  # the pent roof, slates over boards
+        r.part("cube", 0, 0, 0, 1.05, 0.06, 2.3, DARK_WOOD, tex="wood_plank")
+        r.part("cube", 0, 0.05, 0, 1.05, 0.05, 2.3, WHITE, tex="violet_slate")
     if seed % 3 == 0:
-        r.part("cube", -0.14, 0.62, 0.2, 0.06, 0.62, 0.9, CLOTH[seed % len(CLOTH)])  # a rug over the rail
+        r.part("cube", -0.12, 0.62, 0.2, 0.05, 0.62, 0.9, CLOTH[seed % len(CLOTH)])  # a rug over the boards
     elif seed % 3 == 1:
-        r.part("cyl", -0.32, 0.18, 0.7, 0.3, 0.3, 0.3, (150, 80, 50))  # a pot of herbs
-        r.part("sphere", -0.32, 0.42, 0.7, 0.34, 0.28, 0.34, (70, 110, 50))
+        with r.at(-0.4, 2.2, 0.6):  # a lantern hung from the roof, unlit by day
+            r.part("cube", 0, 0.16, 0, 0.02, 0.2, 0.02, IRON)
+            r.part("cube", 0, -0.04, 0, 0.14, 0.2, 0.14, (52, 50, 48))
+            r.part("cube", 0, -0.04, 0, 0.11, 0.15, 0.15, (150, 126, 86))
+            r.part("cone", 0, 0.1, 0, 0.18, 0.1, 0.18, (52, 50, 48))
 
 
 def door_arch(r, seed, height=3.2, spring=2.2, rose=False, leaf=True):
@@ -971,22 +1061,42 @@ def town_statue(r, seed):
 
 
 def fence(r, seed):
-    """A low split-rail fence running across the tile along Z."""
-    for z in (-0.9, 0.0, 0.9):
-        r.part("cube", 0, 0.55, z, 0.12, 1.1, 0.12, DARK_WOOD)
-    for y in (0.4, 0.85):
-        r.part("cube", 0, y, 0, 0.06, 0.08, 2.0, _dim(WOOD, 0.9), rx=0.02 * (seed % 3))
+    """A wattle hurdle running across the tile along Z: stout stakes driven in a row, withies woven in
+    and out between them, and a split capping rail along the top."""
+    withy = (128, 100, 66)
+    stakes = (-0.9, -0.45, 0.0, 0.45, 0.9)
+    for z in stakes:
+        r.part("cube", 0, 0.55, z, 0.1, 1.1, 0.1, DARK_WOOD)
+    for row in range(6):  # each withy passes before one stake and behind the next
+        y = 0.22 + row * 0.13
+        for i in range(len(stakes) - 1):
+            side = 0.035 if (row + i) % 2 else -0.035
+            z = (stakes[i] + stakes[i + 1]) / 2
+            r.part("cube", side, y, z, 0.05, 0.1, 0.47, _dim(withy, 0.86 + 0.07 * ((seed + row + i) % 3)),
+                   rx=0.06 * side / 0.035)  # fmt: skip
+    r.part("cube", 0, 1.06, 0, 0.12, 0.07, 2.0, _dim(WOOD, 0.85), rx=0.015 * (seed % 3))
 
 
 def lamp_post(r, t):
-    """An iron lamp post: a lantern burning in its cage on a bracket."""
-    r.part("cube", 0, 0.15, 0, 0.4, 0.3, 0.4, (90, 88, 84))  # a stone foot
-    r.part("cyl", 0, 1.5, 0, 0.1, 2.7, 0.1, (40, 40, 44))
-    r.part("cube", 0.2, 2.8, 0, 0.45, 0.05, 0.05, (40, 40, 44))  # bracket
+    """A squared oak post on a stone foot, a wrought-iron bracket with a scrolled brace reaching out from
+    its head and a lantern of horn panes hung from it, burning under a pointed iron cap."""
+    iron = (40, 38, 40)
+    r.part("cube", 0, 0.15, 0, 0.44, 0.3, 0.44, (96, 92, 86), tex="ashlar")  # the stone foot
+    r.part("cube", 0, 1.55, 0, 0.18, 2.6, 0.18, OAK, tex="wood_plank")  # the post
+    r.part("cube", 0, 2.88, 0, 0.24, 0.1, 0.24, _dim(OAK, 0.8))  # its cap
+    r.part("cube", 0.24, 2.8, 0, 0.5, 0.05, 0.05, iron)  # the bracket's arm
+    _bar(r, (0.1, 2.35, 0), (0.36, 2.78, 0), 0.04, iron)  # its brace
+    r.part("cyl", 0.2, 2.62, 0, 0.14, 0.03, 0.14, iron, rx=math.pi / 2)  # a scroll in the brace
+    r.part("cube", 0.48, 2.86, 0, 0.04, 0.1, 0.04, iron)  # a finial curling up at its end
     with r.at(0.4, 2.55, 0):
-        r.part("cube", 0, 0, 0, 0.26, 0.36, 0.26, (40, 40, 44))
-        r.part("cube", 0, 0, 0, 0.2, 0.28, 0.27, (255, 200, 110), glow=True)
-        r.part("cone", 0, 0.28, 0, 0.3, 0.2, 0.3, (40, 40, 44))
+        r.part("cube", 0, 0.22, 0, 0.02, 0.1, 0.02, iron)  # the hook
+        r.part("cube", 0, -0.19, 0, 0.24, 0.04, 0.24, iron)  # the base
+        r.part("cube", 0, 0, 0, 0.2, 0.32, 0.2, (230, 170, 90), glow=True)  # the horn panes, lit
+        for dx in (-0.11, 0.11):  # the corner rods
+            for dz in (-0.11, 0.11):
+                r.part("cube", dx, 0, dz, 0.03, 0.36, 0.03, iron)
+        r.part("cone", 0, 0.28, 0, 0.32, 0.22, 0.32, iron)  # the pointed cap
+        r.part("sphere", 0, 0.42, 0, 0.05, 0.05, 0.05, iron)
         _flame(r, 0, -0.02, 0, 0.06, t)
 
 
@@ -1259,3 +1369,188 @@ def _rampart_arch(r, h, spring, seed, stone, light, dark):
             "cyl", 0, y, 0, d + 0.18, 0.3, d + 0.18, stone, rz=math.pi / 2, tex="rough_stone"
         )  # the oculus's ring
         r.part("cyl", 0.02, y, 0, d, 0.3, d, RAMPART_SHADOW, rz=math.pi / 2)
+
+
+# --- The tradesfolk's furnishings: the smith's racks and stands, the swordmaster's katana stands, the
+# scroll-seller's bookcases and the drawers in every home (the apothecary's of many small ones). All
+# static, baked with the rest (`world.STATIC_PROPS`); the wall rack hangs at local -X, the others stand
+# with their backs to -X and face +X, into the room.
+
+LACQUER = (34, 26, 30)
+LACQUER_RED = (118, 32, 30)
+BRASS = (176, 146, 74)
+BOOK_CLOTH = (
+    (110, 44, 40), (52, 70, 104), (70, 92, 58), (124, 96, 52), (84, 54, 88), (140, 120, 92), (60, 50, 44),
+)  # fmt: skip
+PARCHMENT = (206, 190, 150)
+# What each smith's rack hangs, left to right (turned by its seed): one-handers he forged and sells.
+RACK_WEAPONS = ("bastard_sword", "hatchet", "war_hammer", "rusted_sword", "mace", "bearded_axe")
+STAND_ARMOR = ("brigandine", "ringmail", "lamellar_vest", "blackened_plate")
+STAND_GLOVES = ("iron_gauntlets", "chain_mitts", "leather_gloves")
+STAND_SHIELDS = ("kite_shield", "round_shield", "buckler")
+
+
+def weapon_rack(r, seed):
+    """A smith's display board on the wall behind (-X): a plank backing on two battens, an iron rail
+    with hooks, and four of his weapons hung upright from it, their flats to the room, under a little
+    shelf with a whetstone and a coil of leather."""
+    r.part("cube", -0.94, 1.55, 0, 0.06, 1.7, 1.56, WOOD, tex="wood_plank")
+    for z in (-0.72, 0.72):
+        r.part("cube", -0.9, 1.55, z, 0.06, 1.76, 0.1, DARK_WOOD)  # the battens
+    r.part("cube", -0.86, 2.15, 0, 0.04, 0.05, 1.5, IRON)  # the rail
+    r.part("cube", -0.78, 2.46, 0, 0.26, 0.05, 1.56, DARK_WOOD)  # the shelf on top
+    r.part("cube", -0.78, 2.53, -0.4, 0.12, 0.08, 0.34, (96, 98, 104))  # a whetstone
+    r.part("cyl", -0.78, 2.53, 0.38, 0.22, 0.08, 0.22, (90, 62, 40))  # a coil of leather
+    picks = [RACK_WEAPONS[(seed + i) % len(RACK_WEAPONS)] for i in range(4)]
+    for i, item_id in enumerate(picks):
+        z = -0.54 + i * 0.36
+        r.part("cube", -0.83, 2.12, z, 0.08, 0.04, 0.04, IRON)  # its hook
+        lift = 0.95 if item_id in SWORDS else 1.3  # a blade hangs from its guard, a haft lower
+        with r.at(-0.8, lift, z, s=0.85):
+            _weapon(r, item_id)  # built with its flats to X: they face the room
+
+
+def armor_stand(r, seed):
+    """A wooden armour stand on a cross foot: a post and a shoulder bar wearing a coat of the smith's
+    making, a helm on the post's head, a pair of gauntlets hung from the bar's ends and a shield
+    leaning on its foot."""
+    for ry in (0.0, math.pi / 2):
+        r.part("cube", 0, 0.06, 0, 0.9, 0.1, 0.12, DARK_WOOD, ry=ry)  # the cross foot
+    r.part("cube", 0, 0.85, 0, 0.1, 1.6, 0.1, WOOD)  # the post
+    r.part("cube", 0, 1.58, 0, 0.1, 0.08, 0.92, WOOD)  # the shoulder bar
+    with r.at(0, 1.22, 0, s=0.95):
+        garment(r, STAND_ARMOR[seed % len(STAND_ARMOR)])
+    # The helm: a kettle of iron with a brim, on the post's head.
+    r.part("cyl", 0, 1.68, 0, 0.12, 0.1, 0.12, DARK_WOOD)
+    r.part("sphere", 0, 1.86, 0, 0.36, 0.34, 0.36, (112, 112, 120))
+    r.part("cyl", 0, 1.8, 0, 0.5, 0.03, 0.5, (96, 96, 104))  # its brim
+    r.part("cube", 0.17, 1.82, 0, 0.03, 0.05, 0.2, (40, 40, 44))  # the eye slit's shadow
+    gloves = STAND_GLOVES[seed % len(STAND_GLOVES)]
+    for z in (-0.44, 0.44):
+        with r.at(0, 1.36, z, rx=math.pi, s=0.5):  # hung by the cuff, fingers down
+            gauntlet(r, gloves)
+    with r.at(0.34, 0.5, 0.1, rz=-0.2, s=0.6):  # leaning back against the foot
+        shield(r, STAND_SHIELDS[seed % len(STAND_SHIELDS)])
+
+
+def katana_stand(r, seed):
+    """A swordmaster's katana stand of black lacquer, red-lined: two curved uprights on a plinth with
+    three tiers of arms, a sword resting in each, edge up and hilt to the left; the top one a long
+    nodachi. A folded cloth and an oil flask lie on the plinth."""
+    r.part("cube", 0, 0.08, 0, 0.5, 0.16, 1.5, LACQUER)  # the plinth
+    r.part("cube", 0, 0.165, 0, 0.52, 0.02, 1.52, LACQUER_RED)  # its red lip
+    for z in (-0.5, 0.5):
+        r.part("cube", -0.08, 0.6, z, 0.12, 0.9, 0.1, LACQUER)  # the uprights
+        r.part("cube", -0.04, 1.08, z, 0.22, 0.06, 0.14, LACQUER, rz=0.25)  # each a curling cap
+        for y in (0.42, 0.7, 0.98):  # the arms, notched to cradle a blade
+            r.part("cube", 0.04, y, z, 0.24, 0.05, 0.08, LACQUER)
+            r.part("cube", 0.15, y + 0.04, z, 0.03, 0.06, 0.08, LACQUER_RED)
+    blades = ("katana", "moonless_tachi", "nodachi")
+    order = [blades[(seed + i) % 2] for i in range(2)] + ["nodachi"]
+    for y, item_id in zip((0.47, 0.75, 1.03), order, strict=True):
+        long = item_id == "nodachi"
+        with r.at(0.06, y, -0.66 if long else -0.5, rx=math.pi / 2, s=0.82 if long else 1.0):
+            katana(r, item_id)  # the hilt to -Z, the blade along +Z, the edge turned up
+    r.part("cube", 0.12, 0.2, 0.42, 0.22, 0.04, 0.3, (200, 196, 184))  # a folded cloth
+    r.part("cyl", 0.12, 0.25, -0.5, 0.08, 0.14, 0.08, (130, 110, 70))  # a flask of oil
+
+
+def bookcase(r, seed, scrolls=False):
+    """A tall bookcase with its back to the wall (-X): four shelves of books, spines out in every
+    colour, some leaning, one lying flat, a few loose papers; or, `scrolls`, a rack of pigeonholes, a
+    rolled scroll's end showing in most, tied with a ribbon."""
+    r.part("cube", -0.5, 1.1, 0, 0.06, 2.2, 1.5, DARK_WOOD, tex="wood_plank")  # the back
+    for z in (-0.74, 0.74):
+        r.part("cube", -0.25, 1.1, z, 0.56, 2.2, 0.06, WOOD, tex="wood_plank")  # the sides
+    r.part("cube", -0.22, 2.24, 0, 0.66, 0.08, 1.6, DARK_WOOD)  # the cornice
+    r.part("cube", -0.25, 0.06, 0, 0.56, 0.12, 1.48, DARK_WOOD)  # the plinth
+    shelves = (0.12, 0.64, 1.16, 1.68)
+    for y in shelves[1:]:
+        r.part("cube", -0.25, y, 0, 0.54, 0.04, 1.44, WOOD, tex="wood_plank")
+    if scrolls:
+        for z in (-0.37, 0.0, 0.37):  # the pigeonholes' partitions
+            r.part("cube", -0.25, 1.1, z, 0.52, 2.04, 0.03, WOOD)
+        for row, y in enumerate(shelves):
+            for col in range(4):
+                if (seed + row * 3 + col) % 5 == 4:
+                    continue  # an empty hole
+                zc = -0.555 + col * 0.37
+                for k in range(3 if (row + col) % 2 else 2):  # a little stack of rolls
+                    yy = y + 0.1 + (0.13 if k == 2 else 0.0)
+                    zz = zc + (0.0 if k == 2 else (k - 0.5) * 0.14)
+                    shade = _dim(PARCHMENT, 0.82 + 0.06 * ((seed + row + col + k) % 3))
+                    r.part("cyl", -0.18, yy, zz, 0.13, 0.5, 0.13, shade, rz=math.pi / 2)
+                    r.part("cyl", 0.08, yy, zz, 0.06, 0.02, 0.06, _dim(shade, 0.7), rz=math.pi / 2)
+                ribbon = CLOTH[(seed + row + col) % len(CLOTH)]
+                r.part("cube", -0.02, y + 0.1, zc, 0.02, 0.14, 0.03, ribbon)  # a ribbon hanging from one
+        return
+    for row, y in enumerate(shelves):
+        z = -0.68
+        i = seed * 7 + row * 5
+        while z < 0.6:
+            i += 1
+            w = 0.05 + (i * 37 % 5) * 0.015
+            h = 0.3 + (i * 13 % 4) * 0.045
+            rgb = BOOK_CLOTH[i % len(BOOK_CLOTH)]
+            if i % 11 == 3:  # one lying flat, a small pile
+                for k in range(2):
+                    r.part(
+                        "cube", -0.2, y + 0.05 + k * 0.06, z + 0.13, 0.32, 0.06, 0.26, BOOK_CLOTH[(i + k) % 7]
+                    )
+                z += 0.3
+                continue
+            lean = 0.22 if i % 9 == 5 else 0.0
+            r.part("cube", -0.22, y + 0.02 + h / 2, z + w / 2, 0.34, h, w, rgb, rx=lean)
+            r.part("cube", -0.05, y + 0.02 + h * 0.75, z + w / 2, 0.01, 0.03, w + 0.004, GILT)  # its band
+            z += w + (0.08 if lean else 0.008)
+    r.part("cube", -0.1, 1.72, 0.5, 0.22, 0.01, 0.3, PARCHMENT, ry=0.3)  # loose papers on a shelf
+
+
+def drawers(r, seed, apothecary=False):
+    """A chest of drawers with its back to the wall (-X): three drawers on bracket feet with brass
+    pulls, the middle one ajar on folded linen, and on top a candle stub, a jug or a little box; or,
+    `apothecary`, a tall cabinet of many small drawers, each with a label and a ring pull, jars, a
+    mortar and drying herbs on top."""
+    body = _dim(WOOD, 0.95 + (seed % 3) * 0.05)
+    if apothecary:
+        r.part("cube", -0.3, 0.85, 0, 0.6, 1.6, 1.4, body, tex="wood_plank")
+        r.part("cube", -0.28, 1.68, 0, 0.66, 0.06, 1.48, DARK_WOOD)
+        for row in range(5):
+            for col in range(4):
+                y, z = 0.2 + row * 0.3, -0.495 + col * 0.33
+                out = 0.06 if (seed + row * 4 + col) % 9 == 2 else 0.0  # one pulled out a little
+                r.part("cube", 0.01 + out, y + 0.12, z, 0.03, 0.26, 0.3, DARK_WOOD, tex="door_wood")
+                r.part("cube", 0.03 + out, y + 0.17, z, 0.01, 0.05, 0.12, PARCHMENT)  # its label
+                r.part("cyl", 0.04 + out, y + 0.08, z, 0.05, 0.02, 0.05, BRASS, rz=math.pi / 2)
+        for i, z in enumerate((-0.5, -0.25, 0.05)):  # jars of remedies
+            rgb = ((90, 120, 80), (150, 60, 50), (110, 100, 140))[(seed + i) % 3]
+            r.part("cyl", -0.3, 1.82, z, 0.16, 0.22, 0.16, rgb)
+            r.part("cyl", -0.3, 1.95, z, 0.12, 0.04, 0.12, (140, 120, 90))  # a stopper
+        r.part("frustum", -0.3, 1.77, 0.42, 0.26, 0.14, 0.26, PALE_STONE)  # the mortar
+        r.part("cube", -0.25, 1.82, 0.48, 0.04, 0.24, 0.04, PALE_STONE, rz=0.5)  # its pestle
+        for z in (-0.4, 0.3):  # bunches of herbs hung from the top to dry
+            r.part("cube", -0.04, 1.5, z, 0.06, 0.26, 0.12, (100, 128, 70), rx=0.15)
+        return
+    for z in (-0.68, 0.68):
+        for x in (-0.55, 0.05):
+            r.part("cube", x, 0.06, z, 0.1, 0.12, 0.1, DARK_WOOD)  # bracket feet
+    r.part("cube", -0.25, 0.56, 0, 0.6, 0.88, 1.4, body, tex="wood_plank")
+    r.part("cube", -0.24, 1.02, 0, 0.66, 0.05, 1.48, DARK_WOOD)  # the top
+    for k, y in enumerate((0.3, 0.57, 0.84)):
+        out = 0.18 if k == 1 and seed % 2 else 0.0
+        r.part("cube", 0.06 + out, y, 0, 0.03, 0.22, 1.28, DARK_WOOD, tex="door_wood")
+        for z in (-0.36, 0.36):
+            r.part("cube", 0.09 + out, y, z, 0.03, 0.04, 0.12, BRASS)  # its pulls
+        if out:
+            r.part("cube", 0.02, y + 0.08, 0, 0.18, 0.06, 1.1, (206, 200, 186))  # linen inside
+    top = seed % 3
+    if top == 0:  # a candle stub in a dish
+        r.part("cyl", -0.3, 1.07, 0.4, 0.2, 0.03, 0.2, BRASS)
+        r.part("cyl", -0.3, 1.14, 0.4, 0.06, 0.12, 0.06, (226, 216, 190))
+    elif top == 1:  # a jug and a cup
+        r.part("cyl", -0.3, 1.18, -0.35, 0.18, 0.26, 0.18, (150, 110, 80))
+        r.part("cyl", -0.3, 1.1, -0.1, 0.1, 0.1, 0.1, (190, 180, 160))
+    else:  # a little carved box
+        r.part("cube", -0.3, 1.11, 0.25, 0.22, 0.12, 0.34, DARK_WOOD)
+        r.part("cube", -0.2, 1.11, 0.25, 0.01, 0.04, 0.06, BRASS)
+    r.part("cube", -0.3, 1.06, -0.1 if top != 1 else 0.4, 0.3, 0.02, 0.4, (180, 168, 140), ry=0.2)  # a cloth

@@ -141,6 +141,15 @@ class TileMap:
         back = depth + self.wall_inset(tx, tz, dx, dz)
         return x + bx * back, z + bz * back
 
+    def wall_behind(self, tx, tz, yaw):
+        """The solid tile behind something on (tx, tz) facing `yaw` (the wall a window is set in), or
+        None if nothing solid stands there."""
+        dx, dz = rround(-math.cos(yaw)), rround(-math.sin(yaw))
+        if (dx, dz) == (0, 0):
+            return None
+        tile = self[tx + dx, tz + dz]
+        return tile if tile.solid else None
+
     # yaw for each direction, in the order ties are broken
     FACINGS = (((1, 0), 0.0), ((0, 1), math.pi / 2), ((-1, 0), math.pi), ((0, -1), -math.pi / 2))
 
