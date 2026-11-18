@@ -7,7 +7,7 @@
 
 Each shot is a smoke run with its own throwaway save, so the player's real save is never touched.
 The gear in each shot is gear the player could hold by then: the --level and --equip follow the
-game's progression (cemetery, town, sewers, keep, hollow, Cinderhold).
+game's progression (cemetery, town, sewers, keep, hollow, Cinderhold, Vesperholm).
 """
 
 import argparse
@@ -258,6 +258,51 @@ SHOTS = [
         "Brand and Bellows, the twin gargoyles on the keep's roof",
         "Two iron gargoyles on the keep's walled rooftop, battlements and turrets behind them, under two "
         "boss health bars",
+    ),
+    Shot(
+        "vesper_gate",
+        "--map harrowmere --at=5,2,-90 --level 10 --flags sigil_taken,verdant_sigil_taken,iron_sigil_taken "
+        '--equip primary=stormbrand,secondary=spell:ward --smoke 80 --script "back:0.35 look_up:0.12"',
+        "The Vesper Gate, open to the three sigils",
+        "The Vesper Gate in Harrowmere's north wall standing open, pale moonlight pouring through it",
+    ),
+    Shot(
+        "vesperholm",
+        "--map vesperholm --at=21,43,-90 --level 10 --equip primary=stormbrand,secondary=spell:ward "
+        '--smoke 60 --script "look_up:0.25"',
+        "Vesperholm, the Moonbound City, under a moon that never sets",
+        "Lantern Square in Vesperholm, pale stone and silver roofs under a huge moon and a sky full of stars",
+    ),
+    Shot(
+        "veiled_knight",
+        "--map vesperholm --at=17,21,180 --level 10 --equip primary=stormbrand,secondary=spell:ward "
+        '--smoke 120 --script "wait:0.9 attack"',
+        "A Veiled Knight in the castle bailey",
+        "A Veiled Knight, a pale armored shade, closing in across the moonlit castle bailey",
+    ),
+    Shot(
+        "lantern_wraith",
+        "--map vesperholm --at=25,42,-90 --level 10 --equip primary=stormbrand,secondary=spell:ward "
+        '--smoke 145 --script "wait:1.7"',
+        "A Lantern Wraith's frost lance: moon-frost numbs your legs",
+        "A lantern-bearing wraith in a moonlit square by a pale statue, frost creeping in at the screen's "
+        "corners after its lance hits",
+    ),
+    Shot(
+        "cathedral_long_night",
+        "--map vesperholm --at=21,26,-90 --level 10 --equip primary=stormbrand,secondary=spell:ward "
+        '--smoke 60 --script "look_up:0.25"',
+        "The Cathedral of the Long Night, from the bailey",
+        "The front of a pale cathedral rising over the castle bailey, its spires lit by the moon",
+    ),
+    Shot(
+        "duchess",
+        "--map vesperholm --at=21,8,-90 --level 10 "
+        "--equip primary=stormbrand,secondary=spell:ward,body=brigandine,hands=iron_gauntlets "
+        '--smoke 300 --script "wait:4.2"',
+        "Duchess Ilvane, the Moonwed, in her choir",
+        "Duchess Ilvane, a tall veiled noblewoman with a crescent glaive, rising in the cathedral's choir, "
+        "her health bar above",
     ),
 ]
 

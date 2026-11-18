@@ -17,7 +17,9 @@ Beneath the village well, the drowned halls of the Sunken Keep have begun to sti
 Verdant Hollow, which has swallowed the old woodcutters' camp. Up the north road, past a long bridge over
 a gorge of fire, the forges of the Cinderhold burn again, and two iron gargoyles keep watch from its roof.
 Take up a rusted sword, bring back the Ember Sigil from the keep, the Verdant Sigil from the hollow and the
-Iron Sigil from the Cinderhold, and let the bell sing again. Where the fourth lies, not even the prophecy says.
+Iron Sigil from the Cinderhold. Then, and only then, the Vesper Gate in the town's north wall opens on
+Vesperholm, a city drowned in the light of a moon that never sets, where a duchess keeps the fourth sigil
+in her cathedral. Bring all four home and let the bell sing again.
 
 ### Inspiration
 
@@ -26,9 +28,15 @@ dungeon crawlers from the early PlayStation era that later led to *Demon's Souls
 It borrows their spirit: a lonely descent through dark stone halls, deliberate stamina-gauge combat,
 magic learned from scrolls, and a world that tells its story through the places you walk.
 
+It also owes a great deal to FromSoftware's **_Dark Souls_** series: shrines that heal you and raise
+the fallen again, gold left in a heap where you died, shortcuts that fold an area back onto its
+shrine, bosses behind fog-sealed doors, and a story told in fragments by a few strange people who
+stayed. Vesperholm, the moonlit city, takes its mood from *Dark Souls III*'s cold, moonlit
+cathedral city: pale stone, eternal night and ghostly knights.
+
 It is a fan project, not a remake. All names, maps, monsters, story, art and sound are original, and
-the game is not affiliated with or endorsed by FromSoftware. *King's Field* is a trademark of
-FromSoftware, Inc.
+the game is not affiliated with or endorsed by FromSoftware. *King's Field* and *Dark Souls* are
+trademarks of FromSoftware, Inc. (*Dark Souls* is published by Bandai Namco Entertainment).
 
 ## Screenshots
 
@@ -83,11 +91,11 @@ FromSoftware, Inc.
   </tr>
   <tr>
     <td><img src="docs/screenshots/mother_gnawl.png" alt="Mother Gnawl, a giant rat with glowing red eyes, risen in her dark nest, her health bar above"></td>
-    <td><img src="docs/screenshots/sump_reeve.png" alt="The Sump Reeve, a heap of sludge and drowned bodies holding up a lantern, in his flooded cistern"></td>
+    <td><img src="docs/screenshots/sump_maw.png" alt="The Sump Maw, a wave of black sludge crusted with skulls, its fanged maw open, in its flooded cistern"></td>
   </tr>
   <tr>
     <td align="center"><sub>Mother Gnawl rising in her open nest</sub></td>
-    <td align="center"><sub>The Sump Reeve, behind his great door</sub></td>
+    <td align="center"><sub>The Sump Maw, behind its great door</sub></td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/combat.png" alt="A claymore held in both hands, ringmail sleeves and chain mitts, facing a bone walker"></td>
@@ -160,6 +168,30 @@ FromSoftware, Inc.
   <tr>
     <td align="center"><sub>The great hall of the Cinderhold Keep</sub></td>
     <td align="center"><sub>Brand and Bellows, the twin gargoyles on the keep's roof</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/vesper_gate.png" alt="The Vesper Gate in Harrowmere's north wall standing open, pale moonlight pouring through it"></td>
+    <td><img src="docs/screenshots/vesperholm.png" alt="Lantern Square in Vesperholm, pale stone and silver roofs under a huge moon and a sky full of stars"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>The Vesper Gate, open to the three sigils</sub></td>
+    <td align="center"><sub>Vesperholm, the Moonbound City, under a moon that never sets</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/veiled_knight.png" alt="A Veiled Knight, a pale armored shade, closing in across the moonlit castle bailey"></td>
+    <td><img src="docs/screenshots/lantern_wraith.png" alt="A lantern-bearing wraith in a moonlit square by a pale statue, frost creeping in at the screen's corners after its lance hits"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>A Veiled Knight in the castle bailey</sub></td>
+    <td align="center"><sub>A Lantern Wraith's frost lance: moon-frost numbs your legs</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/cathedral_long_night.png" alt="The front of a pale cathedral rising over the castle bailey, its spires lit by the moon"></td>
+    <td><img src="docs/screenshots/duchess.png" alt="Duchess Ilvane, a tall veiled noblewoman with a crescent glaive, rising in the cathedral's choir, her health bar above"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>The Cathedral of the Long Night, from the bailey</sub></td>
+    <td align="center"><sub>Duchess Ilvane, the Moonwed, in her choir</sub></td>
   </tr>
 </table>
 
