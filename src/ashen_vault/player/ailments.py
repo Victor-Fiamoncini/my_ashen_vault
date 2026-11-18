@@ -9,9 +9,12 @@ fills (`FULL`) the ailment takes hold:
 - bleed: the wound bursts at once for `BLEED_SHARE` of your max HP.
 - rot: your HP can't rise past `ROT_CAP` of its maximum until you rest or are cured.
 - corrosion: every piece of gear you hold or wear loses `CORRODE_WEAR` durability.
+- frost (Frostbite, Vesperholm's moon-frost): it bursts for `FROSTBITE_SHARE` of your max HP, freezes
+  your legs (`FROZEN` speed) for the first `FREEZE_TIME` seconds, and for `FROST_TIME` in all ST refills
+  at `FROST_REFILL`.
 
-Poison and rot linger (`active`); while one does, its meter builds no further. Tamsin's remedies cure
-them (`Item.cures`), and a shrine rest or waking after death clears everything (`Player.revive`)."""
+Poison, rot and frost linger (`active`); while one does, its meter builds no further. Tamsin's remedies
+cure them (`Item.cures`), and a shrine rest or waking after death clears everything (`Player.revive`)."""
 
 from dataclasses import dataclass
 
@@ -33,6 +36,7 @@ KINDS = {
         Kind("bleed", "BLD", (200, 30, 40), 12.0),
         Kind("rot", "ROT", (150, 140, 125), 2.0),
         Kind("corrosion", "COR", (190, 110, 50), 8.0),
+        Kind("frost", "FRS", (150, 200, 255), 6.0),
     )
 }
 ORDER = tuple(KINDS)  # the HUD stacks the bars in this order, from the vitals box up
@@ -45,6 +49,11 @@ POISON_REFILL = 0.5  # ST refills this much as fast while poisoned
 BLEED_SHARE = 0.25  # of max HP, at once
 ROT_CAP = 0.8  # the share of max HP you can have while rotting
 CORRODE_WEAR = 8  # durability every held and worn piece loses
+FROST_TIME = 20.0  # seconds Frostbite lingers
+FROSTBITE_SHARE = 0.15  # of max HP, at once, as it takes hold
+FREEZE_TIME = 3.0  # its first seconds, your legs frozen
+FROZEN = 0.3  # speed multiplier while frozen
+FROST_REFILL = 0.5  # ST refills this much as fast while frostbitten
 
 
 def poison_bite(max_hp):
@@ -53,6 +62,10 @@ def poison_bite(max_hp):
 
 def bleed_burst(max_hp):
     return max(rround(max_hp * BLEED_SHARE), 1)
+
+
+def frostbite_burst(max_hp):
+    return max(rround(max_hp * FROSTBITE_SHARE), 1)
 
 
 def rot_cap(max_hp):
@@ -65,17 +78,31 @@ class Ailments:
         self.poison_t = 0.0  # seconds of poison left
         self.poison_tick = TICK  # seconds to its next bite
         self.rotted = False
+        self.frost_t = 0.0  # seconds of Frostbite left
 
     @property
     def poisoned(self):
         return self.poison_t > 0
 
+    @property
+    def frostbitten(self):
+        return self.frost_t > 0
+
+    @property
+    def frozen(self):
+        """Frostbite's first FREEZE_TIME seconds, while your legs are frozen."""
+        return self.frost_t > FROST_TIME - FREEZE_TIME
+
     def active(self, kind):
-        return (kind == "poison" and self.poisoned) or (kind == "rot" and self.rotted)
+        return (
+            (kind == "poison" and self.poisoned)
+            or (kind == "rot" and self.rotted)
+            or (kind == "frost" and self.frostbitten)
+        )
 
     def build(self, kind, amount):
         """Adds `amount` to `kind`'s meter. Returns True when that fills it and the ailment takes hold;
-        the meter then empties (poison and rot start lingering)."""
+        the meter then empties (poison, rot and frost start lingering)."""
         if kind not in self.meters or amount <= 0 or self.active(kind):
             return False
         self.meters[kind] = min(self.meters[kind] + amount, FULL)
@@ -87,13 +114,17 @@ class Ailments:
             self.poison_tick = TICK
         elif kind == "rot":
             self.rotted = True
+        elif kind == "frost":
+            self.frost_t = FROST_TIME
         return True
 
     def update(self, dt, max_hp):
-        """Drains the meters and lets poison bite. Returns the HP poison takes this frame."""
+        """Drains the meters, thaws Frostbite and lets poison bite. Returns the HP poison takes this
+        frame."""
         for kind, value in self.meters.items():
             if value > 0:
                 self.meters[kind] = max(value - KINDS[kind].decay * dt, 0.0)
+        self.frost_t = max(self.frost_t - dt, 0.0)
         if not self.poisoned:
             return 0
         lost = 0
@@ -115,12 +146,16 @@ class Ailments:
                 self.poison_tick = TICK
             elif k == "rot":
                 self.rotted = False
+            elif k == "frost":
+                self.frost_t = 0.0
 
     def share(self, kind):
-        """How full the HUD draws `kind`'s bar: the poison left while poisoned, full while rotting,
-        else its meter."""
+        """How full the HUD draws `kind`'s bar: the poison (or Frostbite) left while it lingers, full
+        while rotting, else its meter."""
         if kind == "poison" and self.poisoned:
             return self.poison_t / POISON_TIME
+        if kind == "frost" and self.frostbitten:
+            return self.frost_t / FROST_TIME
         if kind == "rot" and self.rotted:
             return 1.0
         return self.meters[kind] / FULL
@@ -130,7 +165,12 @@ class Ailments:
         return [k for k in ORDER if self.meters[k] > 0 or self.active(k)]
 
     def to_h(self):
-        return {"meters": dict(self.meters), "poison_t": self.poison_t, "rotted": self.rotted}
+        return {
+            "meters": dict(self.meters),
+            "poison_t": self.poison_t,
+            "rotted": self.rotted,
+            "frost_t": self.frost_t,
+        }
 
     @classmethod
     def from_h(cls, h):
@@ -142,4 +182,5 @@ class Ailments:
                 a.meters[k] = min(max(float(v), 0.0), FULL)
         a.poison_t = min(max(float(h.get("poison_t", 0.0)), 0.0), POISON_TIME)
         a.rotted = bool(h.get("rotted", False))
+        a.frost_t = min(max(float(h.get("frost_t", 0.0)), 0.0), FROST_TIME)
         return a

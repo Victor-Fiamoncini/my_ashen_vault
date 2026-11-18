@@ -84,11 +84,11 @@ def enemy(r, e):
 def strike_angle(e):
     """Arm swing for melee enemies: raised during windup, slammed down on attack."""
     if e.state == "windup":
-        return -2.2 * min(e.state_t / e.type.windup, 1)
+        return -2.2 * min(e.state_t / e.windup_time, 1)
     if e.state == "attack":
         return -2.2 + 3.0 * min(e.state_t / 0.2, 1)
     if e.state == "recover":
-        return 0.8 * (1 - min(e.state_t / e.type.recover, 1))
+        return 0.8 * (1 - min(e.state_t / e.recover_time, 1))
     return 0
 
 
@@ -113,11 +113,11 @@ def _swing_pose(e, rest, cocked, strike):
     """A value that eases from `rest` to `cocked` over the windup, snaps to `strike` as the blow
     falls and settles back to `rest` while recovering."""
     if e.state == "windup":
-        return _mix(rest, cocked, _ease(min(e.state_t / max(e.type.windup, 1e-3), 1)))
+        return _mix(rest, cocked, _ease(min(e.state_t / max(e.windup_time, 1e-3), 1)))
     if e.state == "attack":
         return _mix(cocked, strike, _ease(min(e.state_t / 0.2, 1)))
     if e.state == "recover":
-        return _mix(strike, rest, _ease(min(e.state_t / max(e.type.recover, 1e-3), 1)))
+        return _mix(strike, rest, _ease(min(e.state_t / max(e.recover_time, 1e-3), 1)))
     return rest
 
 
@@ -5923,6 +5923,11 @@ def item(r, id_, t):
         r.part("cyl", 0, -0.12, 0, 0.6, 0.44, 0.6, (150, 90, 60))
         r.part("cyl", 0, 0.12, 0, 0.66, 0.06, 0.66, (125, 72, 46))
         r.part("cyl", 0, 0.16, 0, 0.5, 0.04, 0.5, (185, 180, 170))
+    elif id_ == "ember_draught":
+        r.part("sphere", 0, -0.12, 0, 0.44, 0.44, 0.44, (180, 56, 30))  # the flask
+        r.part("sphere", 0, -0.12, 0, 0.22, 0.22, 0.22, (255, 150, 60), glow=True)  # the ember in it
+        r.part("cyl", 0, 0.16, 0, 0.14, 0.2, 0.14, (180, 56, 30))  # its neck
+        r.part("cyl", 0, 0.3, 0, 0.16, 0.1, 0.16, (120, 90, 60))  # the cork
     elif id_ == "grave_lily":
         r.part("cyl", 0, -0.2, 0, 0.05, 0.6, 0.05, (80, 120, 70))
         for k in range(5):

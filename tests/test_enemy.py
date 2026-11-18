@@ -889,3 +889,49 @@ def test_a_blink_ends_in_a_blow_wound_up_where_it_steps_out():
     while e.attack_kind == "blink":
         tick(e, w, 0.05)
     assert w.moves == ["blink"] and e.state == "windup" and e.attack_kind == "melee"
+
+
+# --- tempo -------------------------------------------------------------------------------------------
+
+
+def test_tempo_quickens_windups_recovers_cooldowns_and_combos():
+    import dataclasses
+
+    from ashen_vault.ai.enemy import COMBO_GAP, MIN_WINDUP, MOVES
+
+    base = EnemyTypes.get("ashen_warden")
+    quick = dataclasses.replace(base, tempo=0.5)
+    slow_e, quick_e = Enemy(base, 0.0, 0.0), Enemy(quick, 0.0, 0.0)
+    for e in (slow_e, quick_e):
+        e.attack_kind = "slam"
+    assert slow_e.windup_time == MOVES["slam"][0]  # tempo 1 keeps its own times
+    assert quick_e.windup_time == pytest.approx(MOVES["slam"][0] * 0.5)
+    assert quick_e.recover_time == pytest.approx(base.recover * 0.5)
+    assert quick_e.combo_gap == pytest.approx(COMBO_GAP * 0.5)
+    assert quick_e._cooldown("slam") == pytest.approx(MOVES["slam"][1] * 0.5)
+    slow_e.phase2 = True
+    assert slow_e.windup_time == pytest.approx(MOVES["slam"][0] * 0.8)
+    assert slow_e._cooldown("slam") == pytest.approx(MOVES["slam"][1] * 0.7)
+    blur = Enemy(dataclasses.replace(base, tempo=0.1), 0.0, 0.0)
+    blur.attack_kind = "slam"
+    assert blur.windup_time == MIN_WINDUP, "never too quick to read"
+    rat = Enemy(dataclasses.replace(EnemyTypes.get("sewer_rat"), tempo=0.5), 0.0, 0.0)
+    rat.attack_kind = "melee"
+    assert rat.windup_time == rat.type.windup, "a windup already under the floor is left alone"
+
+
+def test_a_quick_boss_strikes_sooner():
+    import dataclasses
+
+    world = FakeWorld(2.0, 0.0)
+    world.move_enemy = lambda *_: None
+    plain = only(warden(), "combo")
+    quick = only(
+        risen(Enemy(dataclasses.replace(EnemyTypes.get("ashen_warden"), tempo=0.6), 0.0, 0.0)), "combo"
+    )
+    quick.cooldowns = {m: (0.0 if m == "combo" else 99.0) for m in quick.cooldowns}
+    tick(plain, world, 0.6)
+    quick_world = FakeWorld(2.0, 0.0)
+    quick_world.move_enemy = lambda *_: None
+    tick(quick, quick_world, 0.6)
+    assert len(quick_world.struck) > len(world.struck)

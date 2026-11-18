@@ -246,7 +246,7 @@ def test_pells_old_stock_is_split_between_the_smith_the_herbalist_and_pell():
         Items.get(i).kind in ("weapon", "shield", "armor", "repair") for i in dialogue.SHOPS["brannoc"]
     )
     assert all(Items.get(i).kind == "consumable" for i in dialogue.SHOPS["tamsin"])
-    assert {"red_tonic", "blue_moss", "bitter_root", "clotting_salve", "grave_lily"} == set(
+    assert {"red_tonic", "blue_moss", "bitter_root", "clotting_salve", "grave_lily", "ember_draught"} == set(
         dialogue.SHOPS["tamsin"]
     )
 

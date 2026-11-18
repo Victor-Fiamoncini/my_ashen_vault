@@ -5,12 +5,15 @@ that the first three sigils open in Harrowmere."""
 import math
 import random
 
+import pytest
+
 from ashen_vault.ai.enemy import BLINK_RANGE, MOVES, Enemy
 from ashen_vault.ai.enemy_types import EnemyTypes
+from ashen_vault.player import ailments
 from ashen_vault.util import rround
 from ashen_vault.world import relics
 from ashen_vault.world.tile_map import TileMap
-from ashen_vault.world.world import BLINK_BEHIND, LANCE_CHILL, MOONFALL_RINGS, World
+from ashen_vault.world.world import BLINK_BEHIND, LANCE_CHILL, MOON_FROST, MOONFALL_RINGS, World
 from test_verdant_world import JungleGame, foe
 
 BAILEY = (20, 22)  # the middle of the castle's open bailey
@@ -36,7 +39,7 @@ def test_a_lantern_wraith_throws_lances_of_moon_frost_one_at_a_time_or_three_at_
     world.enemy_fire(wraith, "shot")
     (lance,) = world.projectiles
     assert lance.effect == "lance" and lance.hostile and lance.damage == wraith.type.damage
-    assert dict(lance.inflicts) == {"rot": 20}
+    assert dict(lance.inflicts) == {"rot": 20, "frost": 30}
     world.projectiles = []
     world.enemy_fire(wraith, "frost_lance")  # the move: a fan of three
     assert len(world.projectiles) == 3
@@ -226,3 +229,71 @@ def test_moon_frost_slows_your_stride_until_it_thaws():
     assert 0 < strides[1] < strides[0]
     game.player.update_timers(LANCE_CHILL + 0.1)
     assert game.player.chill_t == 0
+
+
+# --- frost and the Duchess's tempo -----------------------------------------------------------------
+
+
+def test_a_lance_that_strikes_you_builds_frost():
+    game, world = city()
+    wraith = foe(world, "lantern_wraith", (20, 19))
+    world.enemy_fire(wraith, "shot")
+    (lance,) = world.projectiles
+    lance.x, lance.z, lance.y = game.player.x, game.player.z, game.player.y + 1.0
+    world._update_projectiles(0.01)
+    assert game.player.ailments.meters["frost"] > 0
+
+
+def test_a_shaft_of_moonlight_builds_frost():
+    game, world = city()
+    duchess = foe(world, "moon_duchess", (20, 18))
+    world.moonbeam(duchess)
+    for _ in range(30):
+        world._update_fire(0.05)
+    assert game.player.ailments.meters["frost"] >= MOON_FROST - 5  # drained a little since
+
+
+def test_frostbite_bursts_and_freezes_your_legs():
+    game, world = city()
+    p = game.player
+
+    def stride():
+        x, z = p.x, p.z
+        p.walk(world.map, 1, 0, 0.1)
+        d = math.hypot(p.x - x, p.z - z)
+        p.x, p.z = x, z
+        return d
+
+    free = stride()
+    hp = p.stats.hp
+    assert world.afflict_player("frost", ailments.FULL)
+    assert p.stats.hp == hp - ailments.frostbite_burst(p.stats.max_hp)
+    assert p.ailments.frozen and p.ailments.frostbitten
+    assert "{Frostbite} seizes your legs!" in game.messages
+    assert stride() == pytest.approx(free * ailments.FROZEN)
+
+
+def test_the_duchess_fights_faster_than_any_other_boss():
+    duchess = EnemyTypes.get("moon_duchess")
+    assert duchess.tempo < 1 and all(
+        t.tempo == 1 for t in EnemyTypes.ALL.values() if t.boss and t is not duchess
+    )
+    e = Enemy(duchess, 0.0, 0.0)
+    e.attack_kind = "moonbeam"
+    assert e.windup_time < MOVES["moonbeam"][0]
+    e.phase2 = True
+    assert e.windup_time < MOVES["moonbeam"][0] * 0.8
+
+
+def test_vesperholm_outmatches_the_areas_before_it():
+    """The last area: each of its foes hits harder than the same kind of foe anywhere before."""
+    vesper = ("pale_sentinel", "lantern_wraith", "moonhound", "veiled_knight", "moon_duchess")
+    earlier = [t for t in EnemyTypes.ALL.values() if t.id not in vesper]
+    assert EnemyTypes.get("moon_duchess").hp > max(t.hp for t in earlier if t.boss)
+    assert EnemyTypes.get("moon_duchess").damage > max(t.damage for t in earlier if t.boss)
+    assert EnemyTypes.get("veiled_knight").damage > max(
+        t.damage for t in earlier if not (t.boss or t.ambush)
+    )  # a mimic's ambush aside
+    assert all(
+        any(kind == "frost" for kind, _ in EnemyTypes.get(i).inflicts) for i in vesper if i != "moonhound"
+    )

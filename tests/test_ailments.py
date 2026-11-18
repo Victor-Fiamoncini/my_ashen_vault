@@ -101,7 +101,12 @@ def test_corrosion_wears_everything_held_and_worn():
 
 
 def test_cures_clear_their_ailment():
-    for id_, kind in (("bitter_root", "poison"), ("clotting_salve", "bleed"), ("grave_lily", "rot")):
+    for id_, kind in (
+        ("bitter_root", "poison"),
+        ("clotting_salve", "bleed"),
+        ("grave_lily", "rot"),
+        ("ember_draught", "frost"),
+    ):
         assert Items.get(id_).cures == (kind,)
 
 
@@ -155,3 +160,48 @@ def test_foes_that_inflict_name_known_ailments():
         for kind, amount in t.inflicts:
             assert kind in ailments.KINDS and 0 < amount < FULL, t.id
     assert {k for t in EnemyTypes.ALL.values() for k, _ in t.inflicts} == set(ailments.KINDS)
+
+
+# --- frost -------------------------------------------------------------------------------------------
+
+
+def test_frostbite_lingers_freezing_you_at_first_then_thaws():
+    a = Ailments()
+    assert a.build("frost", FULL)
+    assert a.frostbitten and a.frozen and a.active("frost")
+    assert a.share("frost") == 1.0
+    assert not a.build("frost", FULL), "no more builds while it lingers"
+    run(a, ailments.FREEZE_TIME + 0.1)
+    assert a.frostbitten and not a.frozen
+    assert a.share("frost") < 1.0
+    run(a, ailments.FROST_TIME)
+    assert not a.frostbitten and a.building() == []
+
+
+def test_frostbite_bursts_for_a_share_of_max_hp():
+    assert ailments.frostbite_burst(100) == 15
+    assert ailments.frostbite_burst(1) == 1
+
+
+def test_frostbite_slows_your_legs_and_your_stamina(room):
+    p = Player()
+    p.place(*TileMap.center(5, 5), 0.0, room)
+    p.stamina.value = 0
+    p.update_timers(1.0)
+    plain = p.stamina.value
+    q = Player()
+    q.place(*TileMap.center(5, 5), 0.0, room)
+    q.stamina.value = 0
+    q.afflict("frost", FULL)
+    q.update_timers(1.0)
+    assert q.stamina.value == pytest.approx(plain * ailments.FROST_REFILL)
+
+
+def test_frostbite_is_cured_and_saved(tmp_path):
+    a = Ailments()
+    a.build("frost", FULL)
+    back = Ailments.from_h(a.to_h())
+    assert back.frostbitten and back.frost_t == a.frost_t
+    a.clear("frost")
+    assert not a.frostbitten
+    assert Ailments.from_h({"frost_t": 999}).frost_t == ailments.FROST_TIME

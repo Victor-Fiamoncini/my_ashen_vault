@@ -82,6 +82,9 @@ class EnemyType:
     split_count: int = 2
     # A name of its own ("Mother Gnawl"), never written with "The" before it.
     proper: bool = False
+    # How quick it fights: its windups, recovers, move cooldowns and combo gaps are scaled by this
+    # (below 1 is faster). Windups never drop below `enemy.MIN_WINDUP`.
+    tempo: float = 1.0
 
     @property
     def rooted(self):
@@ -787,22 +790,23 @@ class EnemyTypes:
                 name="Pale Sentinel",
                 # An empty suit of silvered plate filled with moonlight, still keeping the watch its
                 # wearer died on: slow to turn, it sweeps a long crescent glaive all round.
-                hp=64,
+                hp=92,
                 speed=1.4,
-                damage=15,
+                damage=19,
                 reach=2.5,
                 sight=12,
                 windup=0.9,
                 recover=1.2,
-                exp=40,
-                gold=range(10, 24),
+                exp=60,
+                gold=range(14, 34),
                 radius=0.5,
                 height=2.1,
                 tall=2.3,
-                poise=12,
+                poise=16,
                 turn_rate=1.8,
                 moves=("sweep",),
                 conductive=True,
+                inflicts=(("frost", 20),),
             ),
             EnemyType(
                 id="lantern_wraith",
@@ -811,15 +815,15 @@ class EnemyTypes:
                 # A lamplighter of the endless night, a hooded shade with no legs under its robe,
                 # drifting with a lantern of trapped moonlight: it throws lances of moon-frost from
                 # afar, three at once now and then, and its touch keeps you as the moon keeps all.
-                hp=28,
+                hp=38,
                 speed=1.2,
-                damage=9,
+                damage=12,
                 reach=10.0,
                 sight=14,
-                windup=0.9,
+                windup=0.75,
                 recover=1.6,
-                exp=30,
-                gold=range(6, 16),
+                exp=45,
+                gold=range(9, 23),
                 radius=0.4,
                 height=1.9,
                 tall=2.0,
@@ -829,22 +833,22 @@ class EnemyTypes:
                 shot="lance",
                 shot_rgb=(196, 222, 255),
                 moves=("frost_lance",),
-                inflicts=(("rot", 20),),
+                inflicts=(("rot", 20), ("frost", 30)),
             ),
             EnemyType(
                 id="moonhound",
                 name="Moonhound",
                 # A gaunt, pale hound of the Duchess's kennels, its coat gone white as frost and its
                 # eyes two moons: it hunts in pairs and springs from far off.
-                hp=32,
+                hp=42,
                 speed=3.1,
-                damage=10,
+                damage=13,
                 reach=1.6,
                 sight=12,
                 windup=0.4,
                 recover=0.8,
-                exp=24,
-                gold=range(4, 12),
+                exp=36,
+                gold=range(6, 17),
                 radius=0.5,
                 height=0.9,
                 tall=1.1,
@@ -858,36 +862,36 @@ class EnemyTypes:
                 # One of the Duchess's honour guard, half of him no longer quite here: under a veil of
                 # moon-silk his armour shows through like frost on glass. Keep your distance and he
                 # steps through the moonlight to strike from behind you.
-                hp=72,
+                hp=100,
                 speed=1.8,
-                damage=16,
+                damage=20,
                 reach=2.0,
                 sight=12,
                 windup=0.7,
-                recover=1.0,
-                exp=50,
-                gold=range(12, 28),
+                recover=0.8,
+                exp=75,
+                gold=range(17, 40),
                 radius=0.5,
                 height=2.0,
                 tall=2.1,
-                poise=10,
+                poise=14,
                 moves=("blink",),
-                inflicts=(("rot", 25),),
+                inflicts=(("rot", 25), ("frost", 25)),
             ),
             EnemyType(
                 id="moon_duchess",
                 material="spirit",
                 name="Duchess Ilvane",
                 proper=True,
-                hp=380,
-                speed=1.9,
-                damage=20,
+                hp=540,
+                speed=2.3,
+                damage=24,
                 reach=2.8,
                 sight=16,
                 windup=0.8,
-                recover=1.0,
-                exp=260,
-                gold=range(120, 131),
+                recover=0.7,
+                exp=420,
+                gold=range(180, 196),
                 radius=0.8,
                 height=2.9,
                 tall=3.3,
@@ -896,7 +900,7 @@ class EnemyTypes:
                 dead_flag="duchess_dead",
                 rise="ash",
                 epitaph="Duchess Ilvane kneels in her own light, and it goes out. Silver gleams where she fell.",
-                poise=18,
+                poise=22,
                 # The Moonwed, the king's sister and Vesperholm's lady: she wed the moon on the fourth
                 # sigil so the night would never end and nothing in her city would die. Tall as two men
                 # in a gown of moon-silk and a veil, a crescent glaive in her hands: she sweeps it all
@@ -908,7 +912,10 @@ class EnemyTypes:
                 rage="Duchess Ilvane casts off her veil, and the moon pours its light into her!",
                 shot="lance",
                 shot_rgb=(210, 230, 255),
-                inflicts=(("rot", 30),),
+                inflicts=(("rot", 30), ("frost", 35)),
+                # Quicker than any foe before her: her windups, recovers and combo come a good quarter
+                # faster, and faster again in her rage.
+                tempo=0.72,
             ),
         ]
     }

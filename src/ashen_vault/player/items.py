@@ -501,6 +501,14 @@ class Items:
                 desc="A pale bloom from the cemetery's soil. Its scent lifts the rot.",
             ),
             Item(
+                id="ember_draught",
+                name="Ember Draught",
+                kind="consumable",
+                price=50,
+                cures=("frost",),
+                desc="A warm red cordial. Thaws moon-frost and its buildup from the blood.",
+            ),
+            Item(
                 id="menders_kit",
                 name="Mender's Kit",
                 kind="repair",

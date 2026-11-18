@@ -247,6 +247,7 @@ def test_quick_item_cycles_every_consumable_carried_or_not():
         "bitter_root",
         "blue_moss",
         "clotting_salve",
+        "ember_draught",
         "grave_lily",
         "red_tonic",
     ]

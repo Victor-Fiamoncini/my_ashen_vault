@@ -56,7 +56,8 @@ MOVES = {
     "moonfall": (1.2, 11.0, 0.8),
 }
 COMBO_SWINGS = 3
-COMBO_GAP = 0.45  # seconds between the swings of a combo
+COMBO_GAP = 0.45  # seconds between the swings of a combo (scaled by a type's `tempo`: `Enemy.combo_gap`)
+MIN_WINDUP = 0.3  # a quick foe's tempo never cuts a windup shorter than this: the tell stays readable
 COMBO_TURN = 2.0  # rad/s he can turn while chaining swings
 SLAM_RADIUS = 4.0  # the slam's shockwave reaches this far, from any side
 HOOK_RANGE = (3.0, 7.0)  # distances a hook is thrown from
@@ -276,12 +277,29 @@ class Enemy:
             self._windup(world, dt)
         elif s == "attack":
             self._attack(world, dist, dt)
-        elif s in ("recover", "hurt") and self.state_t >= (0.35 if s == "hurt" else self.type.recover):
+        elif s in ("recover", "hurt") and self.state_t >= (0.35 if s == "hurt" else self.recover_time):
             self._switch("chase")
 
     @property
     def windup_time(self):
-        return MOVES[self.attack_kind][0] if self.attack_kind in MOVES else self.type.windup
+        """Seconds the current windup lasts: the move's (or the type's) own, quickened by the type's
+        `tempo` and by a boss's rage, but never below MIN_WINDUP (nor its own time, if that is less)."""
+        base = MOVES[self.attack_kind][0] if self.attack_kind in MOVES else self.type.windup
+        quick = base * self.type.tempo * (0.8 if self.enraged else 1.0)
+        return max(quick, min(base, MIN_WINDUP))
+
+    @property
+    def recover_time(self):
+        return self.type.recover * self.type.tempo
+
+    @property
+    def combo_gap(self):
+        """Seconds between the swings of its combo."""
+        return COMBO_GAP * self.type.tempo
+
+    def _cooldown(self, move):
+        """Seconds before `move` comes round again: quicker for a quick type and in a boss's rage."""
+        return MOVES[move][1] * self.type.tempo * (0.7 if self.enraged else 1.0)
 
     @property
     def enraged(self):
@@ -462,7 +480,7 @@ class Enemy:
         if dist > give_up or self._veiled(world, dist, VEIL_LOSE):
             return self._switch("idle")
         if self._lash_ready(world, dist):  # caught slipping round behind her: before she turns
-            self.cooldowns["tail_lash"] = MOVES["tail_lash"][1] * (0.7 if self.enraged else 1.0)
+            self.cooldowns["tail_lash"] = self._cooldown("tail_lash")
             return self._begin_windup("tail_lash")
         self.face(world.player_x, world.player_z, dt)
         t = self.type
@@ -573,7 +591,7 @@ class Enemy:
                 self.cooldowns[m] = 1.0
             return None
         move = self._rng.choice(options)
-        self.cooldowns[move] = MOVES[move][1] * (0.7 if self.enraged else 1.0)
+        self.cooldowns[move] = self._cooldown(move)
         return move
 
     def _begin_windup(self, kind):
@@ -581,7 +599,7 @@ class Enemy:
         self.attack_kind = kind
 
     def _windup(self, world, dt=None):
-        windup = self.windup_time * (0.8 if self.enraged else 1.0)
+        windup = self.windup_time
         if self.state_t < windup * 0.6 and self.attack_kind != "tail_lash":  # a lash keeps its back to you
             self.face(world.player_x, world.player_z, dt)
         if self.state_t >= windup:
@@ -679,22 +697,22 @@ class Enemy:
     @property
     def combo_swing(self):
         """Which swing (0, 1, 2) of a combo is under way."""
-        return min(int(self.state_t / COMBO_GAP), COMBO_SWINGS - 1)
+        return min(int(self.state_t / self.combo_gap), COMBO_SWINGS - 1)
 
     def _combo(self, world, dist, dt):
-        """Three swings, COMBO_GAP apart. Each must reach you and face you, so stepping back or
+        """Three swings, `combo_gap` apart. Each must reach you and face you, so stepping back or
         round him breaks the chain; the last one hits hardest. He turns only slowly between swings."""
         want = math.atan2(world.player_z - self.z, world.player_x - self.x)
         diff = _wrap(want - self.yaw)
         step = COMBO_TURN * dt
         self.yaw = want if abs(diff) <= step else self.yaw + math.copysign(step, diff)
-        due = min(int(self.state_t / COMBO_GAP) + 1, COMBO_SWINGS)
+        due = min(int(self.state_t / self.combo_gap) + 1, COMBO_SWINGS)
         while int(self._struck) < due:
             self._struck += 1
             if dist <= self.type.reach + 0.3 and self._facing(world.player_x, world.player_z):
                 last = self._struck == COMBO_SWINGS
                 world.enemy_strike(self, MOVES["combo"][2] * (1.4 if last else 1.0))
-        if self.state_t >= COMBO_GAP * (COMBO_SWINGS - 1) + 0.25:
+        if self.state_t >= self.combo_gap * (COMBO_SWINGS - 1) + 0.25:
             self._switch("recover")
 
     def _pounce(self, world, dt):

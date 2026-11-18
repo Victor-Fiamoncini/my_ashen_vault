@@ -423,6 +423,7 @@ GULP_DARK = 0.85  # how dark it gets, as on a `dark=` tile
 LANCE_SPEED = 10.0  # m/s a lance of moon-frost flies
 LANCE_FAN = 0.22  # radians between the lances of a fan of three
 LANCE_CHILL = 1.2  # seconds moon-frost numbs your legs (`Player.chill_t`: slowed, as by silk)
+MOON_FROST = 30  # frost a shaft of moonlight builds in you (see player/ailments.py)
 BLINK_BEHIND = 1.8  # metres behind you a blinker steps out of the moonlight
 BLINK_MIST = 1.2  # metres the mist of a blink billows out
 MOONBEAM_ASIDE = 2.4  # metres to either side of you the Duchess's second and third shafts fall
@@ -1115,6 +1116,10 @@ class World:
             self.game.sfx("afflict", 1.3)
             self.game.message("{Corrosion} eats at your gear!")
             player.corrode()
+        elif kind == "frost":
+            self.game.sfx("afflict", 1.6)
+            self.game.message("{Frostbite} seizes your legs!")
+            self.game.hurt_player(ailments.frostbite_burst(player.stats.max_hp), "Frostbite")
         return True
 
     def boss_rage(self, enemy):
@@ -1792,6 +1797,7 @@ class World:
                         self.game.message("The drowned drag at your legs!")
                     elif f.style == "moon":
                         self.game.message("The moonlight burns you with cold!")
+                        self.afflict_player("frost", MOON_FROST)
         self.eruptions = [f for f in self.eruptions if not f.done]
         for w in self.shockwaves:
             w.update(dt)

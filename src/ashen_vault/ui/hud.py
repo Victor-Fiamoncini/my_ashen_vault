@@ -466,6 +466,12 @@ def item_icon(id_, cx, cy, t, alpha=255):
         _line(cx, cy, (0, 0), (0, 4), 1, color(80, 120, 70, a))
         for dx, dy in ((-2, -1), (2, -1), (0, -3)):
             _dot(cx, cy, dx - 0.5, dy - 0.5, color(235, 235, 225, a), 2, 2)
+    elif id_ == "ember_draught":  # a stoppered flask of red cordial, an ember's glow in it
+        glow = 0.6 + 0.4 * math.sin(t * 3)
+        pr.draw_circle(cx, cy + 1, 4, color(255, 120, 50, rround(a * 0.25 * glow)))
+        pr.draw_rectangle(cx - 1, cy - 4, 2, 2, color(120, 90, 60, a))
+        pr.draw_rectangle(cx - 2, cy - 2, 4, 5, color(190, 60, 30, a))
+        pr.draw_rectangle(cx - 1, cy, 2, 2, color(255, 170, 80, rround(a * glow)))
     else:
         pr.draw_circle(cx, cy, 2, color(200, 200, 200, a))
 
@@ -1361,8 +1367,13 @@ def prompt(game, lift=0):
 def flash(player):
     if player.webbed_t > 0:
         _web_overlay(clamp(player.webbed_t, 0, 1))
-    if player.chill_t > 0:
-        _frost_overlay(clamp(player.chill_t, 0, 1))
+    frost = clamp(player.chill_t, 0, 1)
+    if player.ailments.frozen:
+        frost = 1.0  # Frostbite's first seconds: the rime closes in all round
+    elif player.ailments.frostbitten:
+        frost = max(frost, 0.35)  # and lingers faintly at the edges while it thaws
+    if frost > 0:
+        _frost_overlay(frost)
     if player.spore_t > 0:
         # A sickly yellow-green haze while you choke on spores.
         pr.draw_rectangle(0, 0, W, H, color(150, 170, 60, rround(clamp(player.spore_t, 0, 1) * 70)))

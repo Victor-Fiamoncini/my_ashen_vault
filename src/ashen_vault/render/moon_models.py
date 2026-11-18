@@ -9,7 +9,6 @@ ghostliness is the PS1's: pale glowing parts and stippled `mist` that the shader
 
 import math
 
-from ashen_vault.ai.enemy import COMBO_GAP
 from ashen_vault.render.models import (
     BLADE_LANDED,
     BLADE_RAISED,
@@ -73,9 +72,10 @@ def _sweep_spin(e):
     return 0.0
 
 
-def glaive(r, length, steel, lit, glow=False):
+def glaive(r, length, steel, lit, glow=False, rime=0.0, trail=False):
     """A crescent glaive in a `held` frame: a long silver-shod haft along +X, a crescent blade at its
-    head (its edge on +Y, horns curling back), a crescent of moonlight set in its socket."""
+    head (its edge on +Y, horns curling back), a crescent of moonlight set in its socket. `rime` (0..1)
+    creeps frost up the head; `trail` leaves ghosts of the blade behind its edge as it cuts."""
     r.part("cube", length * 0.45 - 0.3, 0, 0, length, 0.05, 0.05, SILVER_DARK)  # the haft
     r.part("cube", -0.3 - length * 0.05, 0, 0, 0.12, 0.08, 0.08, SILVER)  # the butt-cap
     for k in (0.25, 0.55):
@@ -87,6 +87,15 @@ def glaive(r, length, steel, lit, glow=False):
         a = -0.5 + i * 0.42
         x, y = head + 0.12 + math.sin(a) * 0.28, 0.1 + math.cos(a) * 0.22 - 0.12
         r.part("lozenge", x, y + 0.12, 0, 0.18, 0.06, 0.03, steel, rz=-a, glow=glow)
+        if trail and lit:  # the light it leaves behind its edge
+            for j in (1, 2):
+                r.part("lozenge", x, y + 0.12 - 0.16 * j, 0, 0.18, 0.05, 0.02, _dim(MOON_GLOW, 1 - 0.3 * j),
+                       rz=-a, glow=True, tex="mist")  # fmt: skip
+    if rime > 0 and lit:  # frost creeping up from the socket over the blade
+        for i in range(5):
+            if i / 5 < rime:
+                r.part("cone", head - 0.3 + 0.12 * i, 0.07, 0.05 * (1 if i % 2 else -1), 0.05, 0.14, 0.05, FROST,
+                       rz=0.3 * (1 if i % 2 else -1), glow=True)  # fmt: skip
 
 
 def pale_sentinel(r, e, t):
@@ -385,14 +394,14 @@ def duchess_arms(e, t):
     free, twist, glow = 0.3, 0.0, False
     kind = e.attack_kind
     acting = e.state in ("windup", "attack")
-    k = min(e.state_t / max(e.windup_time, 1e-3), 1) if e.state == "windup" else 1.0
-    up = _ease(k)
+    up = _ease(duchess_tell(e)) if e.state == "windup" else 1.0
     if kind == "sweep" and acting:
         hit, blade, elbow = _mix(0.0, 1.5, up), 0.0, 0.1
         twist = _sweep_spin(e)
     elif kind == "combo" and e.state == "attack":
         i = e.combo_swing
-        u = (e.state_t - i * COMBO_GAP) / COMBO_GAP
+        gap = e.combo_gap
+        u = (e.state_t - i * gap) / gap
         lift = _ease(min(u / 0.35, 1)) if u < 0.35 else 1 - _ease(min((u - 0.35) / 0.25, 1))
         hit = _mix(CHOP_LANDED, CHOP_RAISED - 0.4, lift)
         blade = _mix(BLADE_LANDED, BLADE_RAISED, lift)
@@ -419,63 +428,215 @@ def duchess_arms(e, t):
     return hit, free, blade, elbow, twist, glow
 
 
+def duchess_tell(e):
+    """0..1 how far the Duchess is through a windup (0 when she isn't winding up): what her tells
+    build on, so they keep pace with her quickened tempo."""
+    if e.state != "windup":
+        return 0.0
+    return min(e.state_t / max(e.windup_time, 1e-3), 1.0)
+
+
+def _crescent(r, x, y, z, radius, n, size, rgb, glow=False, tex=None):
+    """A small crescent, horns up, in the YZ plane (facing +X): `n` beads along a bow."""
+    for i in range(n):
+        a = math.pi * (0.12 + 0.76 * i / (n - 1))
+        extra = {"tex": tex} if tex else {}
+        r.part("cube", x, y + (1 - math.sin(a)) * radius - radius * 0.6, z + math.cos(a) * radius, size, size,
+               size, rgb, glow=glow, **extra)  # fmt: skip
+
+
+def _sleeve(r, silk, shade, lit, t, phase, ghost):
+    """An upper arm in a bell sleeve: the puffed silk, its long cuff, and a second, sheer sleeve of
+    moon-silk hanging from the elbow, stirring as she moves."""
+    r.part("cube", 0, -0.22, 0, 0.13, 0.44, 0.13, silk, tex=ghost)
+    r.part("cone", 0, -0.5, 0, 0.24, 0.3, 0.24, shade, rx=math.pi, tex=ghost)  # the bell cuff
+    r.part("cube", 0, -0.37, 0, 0.15, 0.03, 0.15, SILVER)  # its silver band
+    with r.at(-0.06, -0.5, 0, rz=-0.15 - math.sin(t * 1.5 + phase) * 0.12):
+        r.part("cube", 0, -0.42, 0, 0.03, 0.84, 0.26, SILK_SHADE, tex="mist", glow=lit)
+
+
+def _gown(r, silk, shade, skirt, rage, lit, t, ghost):
+    """Her gown: three tiers of moon-silk spreading to the floor and a sheer fourth over them, a
+    frosted hem and a jeweled train behind. In her rage the outer tiers tear into ragged panels of
+    mist streaming in the moonlight."""
+    r.part("cone", 0, 0.85 * skirt, 0, 2.3, 1.7 * skirt, 2.3, shade, tex=ghost)
+    r.part("cone", 0, 1.0 * skirt, 0, 1.7, 1.4 * skirt, 1.7, silk, tex=ghost)
+    r.part("cone", 0, 1.25 * skirt, 0, 1.1, 1.0 * skirt, 1.1, _dim(silk, 1.06), tex=ghost)
+    if rage:  # the sheer tier torn to ragged panels
+        for i in range(10):
+            a = i * math.pi / 5 + 0.3
+            drop = (1.2 + 0.35 * ((i * 7) % 3)) * skirt
+            flap = math.sin(t * 3.1 + i * 1.7) * 0.18
+            with (
+                r.at(math.cos(a) * 0.62, 1.55 * skirt, math.sin(a) * 0.62, ry=-a),
+                r.at(0, 0, 0, rz=-0.42 - flap),
+            ):
+                r.part("cube", 0, -drop / 2, 0, 0.03, drop, 0.34, SILK_SHADE, tex="mist", glow=lit)
+    else:  # the sheer outer tier, whole, over the others
+        r.part("cone", 0, 0.95 * skirt, 0, 2.55, 1.9 * skirt, 2.55, SILK_SHADE, tex="mist")
+    for y in (0.6, 1.05):  # silver bands embroidered round the tiers
+        rad = 1.15 - 0.42 * (y - 0.6) / 0.45
+        for i in range(8):
+            a = i * math.pi / 4 + (0.39 if y > 1 else 0)
+            r.part("cube", math.cos(a) * rad, y * skirt, math.sin(a) * rad, 0.3, 0.03, 0.04, SILVER, ry=-a)
+    hem = MOON_GLOW if rage else (150, 168, 214)
+    for i in range(12):  # the frosted hem, a ring of scallops glimmering, blazing in her rage
+        a = i * math.pi / 6
+        r.part("cube", math.cos(a) * 1.1, 0.06, math.sin(a) * 1.1, 0.56, 0.12, 0.08, hem, ry=-a,
+               glow=lit)  # fmt: skip
+
+
+def _train(r, silk, drift, lit):
+    """The train sweeping out behind her, moonstones sewn along it."""
+    for i in range(3):
+        x, w = -0.9 - 0.45 * i, 1.0 - 0.18 * i
+        r.part("cube", x, 0.04 + 0.02 * i, drift * i, 0.6, 0.06, w, _dim(silk, 0.9 - 0.06 * i))
+        for side in (-1, 1):  # moonstones along its edges
+            r.part("sphere", x, 0.09 + 0.02 * i, drift * i + side * (w / 2 - 0.08), 0.06, 0.04, 0.06,
+                   _glow(lit), glow=lit)  # fmt: skip
+        r.part("cube", x, 0.08 + 0.02 * i, drift * i, 0.5, 0.01, 0.03, SILVER)  # a seam of silver
+    r.part("sphere", -2.15, 0.07, drift * 3, 0.14, 0.05, 0.14, _glow(lit), glow=lit)  # the last jewel
+
+
+def _crown(r, light, lit, flare):
+    """Her crown: a ring of silver crescents and three tall spires, a moonstone at each tip. They
+    flare as she calls the moon down."""
+    for i in range(6):
+        a = i * math.pi / 3
+        with r.at(math.cos(a) * 0.12, 0.44, math.sin(a) * 0.12, ry=-a):
+            r.part("cube", 0, 0, 0, 0.03, 0.1, 0.06, SILVER)
+            r.part("cube", 0, 0.06, 0.03, 0.03, 0.05, 0.03, SILVER, rx=0.6)
+            r.part("cube", 0, 0.06, -0.03, 0.03, 0.05, 0.03, SILVER, rx=-0.6)
+    gem = 0.04 * (1 + 1.2 * flare)
+    for z, h in ((0.0, 0.3), (-0.09, 0.2), (0.09, 0.2)):  # the spires, the middle one tallest
+        r.part("cone", 0.12, 0.48 + h / 2, z, 0.05, h, 0.05, SILVER)
+        r.part("sphere", 0.12, 0.5 + h, z, gem, gem, gem, light, glow=lit)
+
+
+def _veil(r, lit, t):
+    """The long veil over her face, draped from the crown to her breast and down her back, a fringe of
+    glowing beads at its hem."""
+    r.part("cone", 0.02, 0.1, 0, 0.5, 0.78, 0.48, MOON_SILK, tex="mist", glow=lit)
+    for i in range(10):  # the beaded fringe, swaying
+        a = i * math.pi / 5
+        sway = math.sin(t * 1.3 + i) * 0.015
+        r.part("cube", 0.02 + math.cos(a) * 0.24, -0.3, math.sin(a) * 0.23 + sway, 0.03, 0.06, 0.03,
+               _glow(lit), glow=lit)  # fmt: skip
+    for i, z in enumerate((-0.16, 0.0, 0.16)):  # and trailing down her back
+        with r.at(-0.12, 0.2, z, rz=-0.1 - math.sin(t * 1.1 + i) * 0.06):
+            r.part("cube", 0, -0.5, 0, 0.02, 1.0 + 0.12 * i, 0.16, SILK_SHADE, tex="mist", glow=lit)
+
+
+def _halo(r, t, flare):
+    """The crescent halo blazing behind her head in her rage, turning slowly and pulsing, flaring as
+    she brings the moon down."""
+    pulse = 1.0 + 0.06 * math.sin(t * 3) + 0.35 * flare
+    with r.at(-0.3, 0.3, 0, rx=t * 0.35):
+        for i in range(9):  # horns round under the back of her head
+            a = math.pi * (0.05 + 0.9 * i / 8)
+            r.part("cube", 0, -math.sin(a) * 0.45 * pulse, math.cos(a) * 0.55 * pulse, 0.04, 0.12, 0.2,
+                   MOON_GLOW, glow=True, rx=a - math.pi / 2)  # fmt: skip
+        for i in range(6):  # rays between the horns
+            a = math.pi * (0.15 + 0.7 * i / 5)
+            r.part("cube", 0, -math.sin(a) * 0.72 * pulse, math.cos(a) * 0.8 * pulse, 0.02, 0.18, 0.04,
+                   _dim(MOON_GLOW, 0.85), glow=True, rx=a - math.pi / 2)  # fmt: skip
+    r.part(
+        "sphere", -0.32, 0.3, 0, 0.06, 0.4 * pulse, 0.6 * pulse, _dim(MOON_GLOW, 0.8), tex="mist", glow=True
+    )
+
+
+def _shards(r, top, t):
+    """Six shards of moon-frost circling her waist in her rage."""
+    for i in range(6):
+        a = i * math.pi / 3 + t * 1.1
+        y = top - 0.1 + math.sin(t * 2 + i) * 0.12
+        r.part("lozenge", math.cos(a) * 1.05, y, math.sin(a) * 1.05, 0.34, 0.08, 0.08, FROST, ry=-a + math.pi / 2,
+               rz=0.5, glow=True)  # fmt: skip
+
+
+def _sweep_ring(r, k):
+    """A sweep's tell: a ring of moonlight spreading over the floor round her to the glaive's reach."""
+    reach = 1.6 + 2.0 * k
+    for i in range(16):
+        a = i * math.pi / 8
+        r.part("cube", math.cos(a) * reach, 0.03, math.sin(a) * reach, 0.6 * reach / 3, 0.02, 0.08,
+               _dim(MOON_GLOW, 0.4 + 0.6 * k), ry=-a + math.pi / 2, glow=True)  # fmt: skip
+
+
 def moon_duchess(r, e, t):
     """Duchess Ilvane, the Moonwed: a woman as tall as two men in a gown of moon-silk that spreads in
-    tiers to the floor and trails behind her, its hem rimed with frost; a bodice laced in silver and a
-    high collar fanned out behind her head; long sleeves, porcelain hands, a crescent glaive. Her
-    crown is a ring of silver crescents and her face is hidden behind a long veil. In her second phase
-    the veil is cast off: her white hair streams loose, her eyes burn with moonlight, a great crescent
-    halo blazes behind her head and the hem of her gown shines. Slain, she kneels, bows her head and
-    the light goes out of her."""
+    tiers to the floor under a sheer fourth, banded in silver, its hem rimed with frost and its train
+    sewn with moonstones; a corset boned in silver with a crescent brooch, a high collar fanned out
+    behind her head, bell sleeves trailing sheer silk, porcelain hands and a crescent glaive. Her
+    crown is a ring of silver crescents under three spires, and her face is hidden behind a long veil
+    fringed with beads of light.
+
+    Her tells build over each windup: rime creeps up the glaive head and a ring of light spreads over
+    the floor before a sweep, the blade kindles before a combo as she steps in, three shards of frost
+    form over her hand before the lances, motes rise from her raised hands before the moonbeam, and
+    her crown (or halo) flares before the moonfall. A blink fades her to a stipple of mist.
+
+    In her second phase the veil is cast off: her white hair streams loose, her eyes burn with
+    moonlight, a great crescent halo turns blazing behind her head, her gown tears into ragged mist,
+    shards of frost circle her and her glaive trails light. Slain, she kneels, bows her head and the
+    light goes out of her."""
     fall = death_fall(e, 1.4)
     lit = e.alive
     rage = e.phase2 and lit
+    fade = _fading(e)
+    ghost = "mist" if fade > 0.5 else "white"
     silk = hit_tint((255, 240, 244)) if e.flashing else MOON_SILK
     shade = _dim(silk, 0.76)
     skin = hit_tint((255, 240, 240)) if e.flashing else DUCHESS_SKIN
     light = _glow(lit)
     hit, free, blade, elbow, twist, glow = duchess_arms(e, t)
-    fade = _fading(e)
+    kind = e.attack_kind if lit else None
+    tell = _ease(duchess_tell(e)) if lit else 0.0
     kneel = fall  # in death the skirt settles and she sinks to her knees in it
     sway = math.sin(t * 0.9) * 0.04 * (1 - fall)
     drift = math.sin(t * 1.2) * 0.05 if e.state == "chase" else 0.0
     skirt = _mix(1.0, 0.45, kneel)
-    with r.at(0, 0, 0, ry=twist * (1 - fall)):
-        # The gown: three tiers of moon-silk spreading to the floor, frost on the hem, a train behind.
-        r.part("cone", 0, 0.85 * skirt, 0, 2.3, 1.7 * skirt, 2.3, shade)
-        r.part("cone", 0, 1.0 * skirt, 0, 1.7, 1.4 * skirt, 1.7, silk)
-        r.part("cone", 0, 1.25 * skirt, 0, 1.1, 1.0 * skirt, 1.1, _dim(silk, 1.06))
-        hem = MOON_GLOW if rage else (150, 168, 214)
-        for i in range(12):  # the frosted hem, a ring of scallops glimmering, blazing in her rage
-            a = i * math.pi / 6
-            r.part("cube", math.cos(a) * 1.1, 0.06, math.sin(a) * 1.1, 0.56, 0.12, 0.08, hem, ry=-a,
-                   glow=lit)  # fmt: skip
-        for i in range(3):  # the train, sweeping out behind her
-            r.part("cube", -0.9 - 0.45 * i, 0.04 + 0.02 * i, drift * i, 0.6, 0.06, 1.0 - 0.18 * i,
-                   _dim(silk, 0.9 - 0.06 * i))  # fmt: skip
+    stepping = kind == "combo" and e.state in ("windup", "attack")
+    lunge = 0.3 * (tell if e.state == "windup" else 1.0) if stepping else 0.0
+    if kind == "sweep" and e.state == "windup":
+        _sweep_ring(r, tell)
+    with r.at(lunge, 0, 0, ry=twist * (1 - fall)):
+        _gown(r, silk, shade, skirt, rage, lit, t, ghost)
+        _train(r, silk, drift, lit)
         for i in range(4):  # mist curling off the gown
             u = (t * 0.4 + i / 4) % 1.0
             a = i * 1.57 + t * 0.3
             r.part("cube", math.cos(a) * 0.9, 0.2 + 1.2 * u, math.sin(a) * 0.9, 0.4, 0.3, 0.4,
                    _dim(SPECTRE, 1 - 0.6 * u), tex="mist")  # fmt: skip
         top = 1.8 * skirt
+        if rage:
+            _shards(r, top, t)
         with r.at(0, top, 0, rz=sway - 0.45 * kneel):
-            r.part("cube", 0, 0.32, 0, 0.36, 0.64, 0.5, silk)  # the bodice
+            r.part("cube", 0, 0.32, 0, 0.36, 0.64, 0.5, silk, tex=ghost)  # the bodice
             r.part("cube", 0.19, 0.32, 0, 0.02, 0.56, 0.14, (176, 182, 200))  # its silver lacing
-            for y in (0.12, 0.26, 0.4, 0.54):
+            for y in (0.12, 0.26, 0.4):
                 r.part("cube", 0.195, y, 0, 0.02, 0.02, 0.2, SILVER)
+            for z in (-0.2, -0.12, 0.12, 0.2):  # the corset's silver boning
+                r.part("cube", 0.185, 0.24, z, 0.015, 0.4, 0.02, SILVER_DARK)
+            # The crescent brooch at her breast, a moonstone in its bow.
+            _crescent(r, 0.2, 0.55, 0, 0.09, 5, 0.035, SILVER)
+            r.part("sphere", 0.21, 0.52, 0, 0.045, 0.045, 0.045, light, glow=lit)
             r.part("cube", 0, 0.02, 0, 0.42, 0.1, 0.62, (176, 182, 200))  # the girdle
             r.part("cube", 0.22, -0.08, 0, 0.06, 0.24, 0.06, SILVER)  # its hanging chain
             r.part("sphere", 0.22, -0.22, 0, 0.06, 0.06, 0.06, light, glow=lit)  # a moonstone on it
             for side in (-1, 1):
-                r.part("sphere", 0, 0.62, side * 0.26, 0.2, 0.14, 0.2, silk)  # the puffed shoulders
-            # The high collar, fanned out behind her head.
+                r.part(
+                    "sphere", 0, 0.62, side * 0.26, 0.2, 0.14, 0.2, silk, tex=ghost
+                )  # the puffed shoulders
+            # The high collar, fanned out behind her head, edged with silver.
             for i in range(7):
                 a = -1.2 + i * 0.4
                 r.part("cube", -0.12, 0.88, math.sin(a) * 0.24, 0.03, 0.42, 0.14, _dim(silk, 0.95),
                        rx=a * 0.6, rz=0.25)  # fmt: skip
+                r.part("cube", -0.17, 1.09, math.sin(a) * 0.3, 0.02, 0.03, 0.12, SILVER, rx=a * 0.6, rz=0.25)
             with r.at(0.02, 0.86, 0, rz=-0.4 * kneel):  # the neck and head
                 r.part("cube", 0, 0.04, 0, 0.1, 0.16, 0.1, skin)
+                r.part("cube", 0.0, 0.02, 0, 0.12, 0.03, 0.12, SILVER)  # a silver choker
                 r.part("sphere", 0.02, 0.24, 0, 0.17, 0.23, 0.16, skin)  # the head
                 eyes = MOON_GLOW if rage else (60, 66, 90)
                 for side in (-1, 1):
@@ -489,49 +650,44 @@ def moon_duchess(r, e, t):
                         r.part("cube", -0.2, 0.06, z, 0.06, 0.6, 0.06, hair, rz=-0.5 + stream)
                 else:  # bound up under the crown
                     r.part("sphere", -0.06, 0.36, 0, 0.16, 0.12, 0.17, hair)
-                # The crown: a ring of silver crescents.
-                for i in range(6):
-                    a = i * math.pi / 3
-                    with r.at(math.cos(a) * 0.12, 0.44, math.sin(a) * 0.12, ry=-a):
-                        r.part("cube", 0, 0, 0, 0.03, 0.1, 0.06, SILVER)
-                        r.part("cube", 0, 0.06, 0.03, 0.03, 0.05, 0.03, SILVER, rx=0.6)
-                        r.part("cube", 0, 0.06, -0.03, 0.03, 0.05, 0.03, SILVER, rx=-0.6)
-                r.part("sphere", 0.13, 0.46, 0, 0.04, 0.04, 0.04, light, glow=lit)  # its moonstone
-                if not rage:  # the long veil over her face, draped from the crown to her breast
-                    r.part("cone", 0.02, 0.1, 0, 0.5, 0.78, 0.48, MOON_SILK, tex="mist", glow=lit)
-                    for i, z in enumerate((-0.16, 0.0, 0.16)):  # and trailing down her back
-                        with r.at(-0.12, 0.2, z, rz=-0.1 - math.sin(t * 1.1 + i) * 0.06):
-                            r.part("cube", 0, -0.5, 0, 0.02, 1.0 + 0.12 * i, 0.16, SILK_SHADE, tex="mist",
-                                   glow=lit)  # fmt: skip
-                else:  # the crescent halo blazing behind her head
-                    for i in range(9):  # horns up, round under the back of her head
-                        a = math.pi * (0.05 + 0.9 * i / 8)
-                        r.part("cube", -0.3, 0.3 - math.sin(a) * 0.45, math.cos(a) * 0.55, 0.04, 0.12, 0.2,
-                               MOON_GLOW, glow=True, rx=a - math.pi / 2)  # fmt: skip
-                    r.part(
-                        "sphere", -0.32, 0.3, 0, 0.06, 0.4, 0.6, _dim(MOON_GLOW, 0.8), tex="mist", glow=True
-                    )
+                flare = tell if kind == "moonfall" else 0.0
+                _crown(r, light, lit, 0.0 if rage else flare)
+                if not rage:
+                    _veil(r, lit, t)
+                else:
+                    _halo(r, t, flare)
             # Her free arm (-Z), the hand open: frost gathers in it for a lance.
             with r.at(0, 0.62, -0.32, rz=free * (1 - fall)):
-                r.part("cube", 0, -0.22, 0, 0.13, 0.44, 0.13, silk)
-                r.part("cone", 0, -0.5, 0, 0.24, 0.3, 0.24, shade, rx=math.pi)  # the sleeve's long cuff
+                _sleeve(r, silk, shade, lit, t, 0.0, ghost)
                 with r.at(0, -0.46, 0, rz=0.3):
                     r.part("cube", 0, -0.2, 0, 0.09, 0.4, 0.09, skin)
                     with r.at(0, -0.42, 0):
                         hand(r, skin, 0.11, curl=0.2 if glow else 0.7)
                         if glow and lit:
                             r.part("sphere", 0.08, -0.12, 0, 0.12, 0.12, 0.12, MOON_GLOW, glow=True)
+                        if kind == "frost_lance" and e.state == "windup":
+                            for spread in (-0.45, 0.0, 0.45):  # three shards forming, one per lance
+                                with r.at(0.1, -0.2, 0, rx=spread):
+                                    r.part("lozenge", 0, -0.12 - 0.2 * tell, 0, 0.07, 0.1 + 0.36 * tell, 0.07,
+                                           FROST, glow=True)  # fmt: skip
             # The glaive arm (+Z).
             shoulder = _mix(hit, 1.0, fall)
             el = elbow * (1 - fall)
             wrist = aim_wrist(_mix(blade, 0.35, fall), shoulder + el)
+            rime = tell if kind == "sweep" and e.state == "windup" else 0.0
+            kindled = rage or (kind == "combo" and (e.state == "attack" or tell > 0.3))
+            trailing = rage and e.state == "attack" and kind in ("sweep", "combo")
             with r.at(0, 0.62, 0.32, rz=shoulder):
-                r.part("cube", 0, -0.22, 0, 0.13, 0.44, 0.13, silk)
-                r.part("cone", 0, -0.5, 0, 0.24, 0.3, 0.24, shade, rx=math.pi)
+                _sleeve(r, silk, shade, lit, t, 1.3, ghost)
                 with r.at(0, -0.46, 0, rz=el):
                     r.part("cube", 0, -0.2, 0, 0.09, 0.4, 0.09, skin)
                     with r.at(0, -0.44, 0), held(r, wrist, skin, size=0.12, splay=0.35):
-                        glaive(r, 2.6, (226, 234, 250), lit, glow=rage)
+                        glaive(r, 2.6, (226, 234, 250), lit, glow=kindled, rime=rime, trail=trailing)
+            if kind == "moonbeam" and e.state == "windup":  # motes rising off her raised hands
+                for i in range(6):
+                    u = (t * 1.6 + i / 6) % 1.0
+                    r.part("cube", 0.1 + math.sin(i * 2.1) * 0.15, 1.3 + 1.6 * u * tell, math.cos(i * 1.3) * 0.25,
+                           0.07, 0.07, 0.07, _dim(MOON_GLOW, 1 - 0.4 * u), glow=True)  # fmt: skip
     if fade > 0 and lit:  # moonlight pouring off her as she goes
         for i in range(6):
             a = i * 1.05 + t * 2

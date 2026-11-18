@@ -184,6 +184,8 @@ class Player:
             speed *= self.WEBBED
         if self.spore_t > 0:
             speed *= self.SPORED
+        if self.ailments.frozen:
+            speed *= ailments.FROZEN
         dx = (fx * fwd - fz * strafe) * speed * dt
         dz = (fz * fwd + fx * strafe) * speed * dt
         length = math.hypot(fwd, strafe)
@@ -228,6 +230,8 @@ class Player:
             refill = (guard.REFILL if self.guarding else 1.0) * self.burden.refill
             if self.ailments.poisoned:
                 refill *= ailments.POISON_REFILL
+            if self.ailments.frostbitten:
+                refill *= ailments.FROST_REFILL
             self.stamina.update(dt, refill)
         self.since_sprint = 0.0 if self.sprinting else self.since_sprint + dt
         self.still_t += dt
