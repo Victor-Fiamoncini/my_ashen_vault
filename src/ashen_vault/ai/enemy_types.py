@@ -44,7 +44,7 @@ class EnemyType:
     lurk: bool = False
     # Special attacks mixed in (see enemy.MOVES): "sweep", "web", "pounce", "cinders", "combo",
     # "slam", "eruption", "hook", "breath", "dive", "exhale", "ashfall", "spadeful", "grasp",
-    # "dust_devil", "knell", "fireball".
+    # "dust_devil", "knell", "fireball", "bile".
     moves: tuple = ()
     # Enemy type a boss calls to its side once, when it drops to half HP.
     brood: str | None = None
@@ -72,10 +72,21 @@ class EnemyType:
     # Ailments its blows and shots build in you when they get through: (kind, buildup) pairs, the
     # buildup out of `ailments.FULL` (see player/ailments.py).
     inflicts: tuple = ()
+    # Splitters: the type it bursts into when slain, and how many (a sludge slime's gobbets). The
+    # pieces are no splitters themselves, and as no map places them, no shrine rest brings them back.
+    splits: str | None = None
+    split_count: int = 2
+    # A name of its own ("Mother Gnawl"), never written with "The" before it.
+    proper: bool = False
 
     @property
     def rooted(self):
         return self.speed <= 0
+
+    @property
+    def called(self):
+        """How a message names it: "The Loom Mother", "The Butcher", but plain "Mother Gnawl"."""
+        return self.name if self.proper or self.name.startswith("The ") else f"The {self.name}"
 
 
 MATERIALS = ("flesh", "bone", "iron", "stone", "wood", "ash")  # what blows can land on
@@ -579,6 +590,183 @@ class EnemyTypes:
                 rage="The bell's note rings through the Sexton. Its ash catches fire!",
                 shot_rgb=(255, 150, 60),
                 inflicts=(("rot", 35),),
+            ),
+            # --- the Harrow Sewers ---------------------------------------------------------------
+            EnemyType(
+                id="sewer_rat",
+                name="Gutter Rat",
+                # A rat the size of a cat, grey and scabbed: they come in packs, quick and weak, and
+                # their bites carry the sewers' rot.
+                hp=7,
+                speed=3.3,
+                damage=4,
+                reach=1.1,
+                sight=9,
+                windup=0.3,
+                recover=0.6,
+                exp=3,
+                gold=range(0, 3),
+                radius=0.28,
+                height=0.3,
+                tall=0.4,
+                inflicts=(("rot", 12),),
+            ),
+            EnemyType(
+                id="giant_rat",
+                name="Cistern Rat",
+                # As big as a hound and as mangy: it springs from further off than you would think.
+                hp=30,
+                speed=2.7,
+                damage=10,
+                reach=1.5,
+                sight=11,
+                windup=0.5,
+                recover=0.9,
+                exp=20,
+                gold=range(3, 10),
+                radius=0.5,
+                height=0.75,
+                tall=0.9,
+                poise=4,
+                moves=("pounce",),
+                inflicts=(("bleed", 28), ("rot", 15)),
+            ),
+            EnemyType(
+                id="sludge_slime",
+                name="Sludge Slime",
+                # A heap of the sewers' own filth that crawls: struck down, it bursts into gobbets that
+                # crawl on. Its touch poisons and eats at iron.
+                hp=24,
+                speed=1.0,
+                damage=7,
+                reach=1.5,
+                sight=8,
+                windup=0.5,
+                recover=0.8,
+                exp=10,
+                gold=range(1, 6),
+                radius=0.55,
+                height=0.45,
+                tall=0.8,
+                inflicts=(("poison", 30), ("corrosion", 30)),
+                splits="slimelet",
+            ),
+            EnemyType(
+                id="slimelet",
+                name="Sludge Gobbet",
+                hp=7,
+                speed=1.6,
+                damage=4,
+                reach=1.1,
+                sight=10,
+                windup=0.4,
+                recover=0.6,
+                exp=3,
+                gold=range(0, 2),
+                radius=0.3,
+                height=0.25,
+                tall=0.4,
+                inflicts=(("poison", 20), ("corrosion", 15)),
+            ),
+            EnemyType(
+                id="drowned",
+                name="Drowned Wretch",
+                # One of the town's own, years in the sludge: it lies sunk to the shoulders until you
+                # wade close, then heaves itself up, bloated and dripping, and claws.
+                hp=34,
+                speed=1.3,
+                damage=11,
+                reach=1.7,
+                sight=3.4,
+                windup=0.75,
+                recover=1.1,
+                exp=22,
+                gold=range(4, 12),
+                radius=0.45,
+                height=1.0,
+                tall=2.0,
+                poise=6,
+                lurk=True,
+                inflicts=(("rot", 30),),
+            ),
+            EnemyType(
+                id="bilge_leech",
+                name="Bilge Leech",
+                # A leech as long as a man, lying flat in the sludge by the channels: it rears up and
+                # lunges from further off than its reach, and its bite bleeds.
+                hp=20,
+                speed=1.8,
+                damage=8,
+                reach=1.3,
+                bite_reach=2.6,
+                sight=3.0,
+                windup=0.55,
+                recover=1.0,
+                exp=14,
+                gold=range(1, 7),
+                radius=0.4,
+                height=0.4,
+                tall=0.9,
+                lurk=True,
+                inflicts=(("bleed", 35),),
+            ),
+            EnemyType(
+                id="rat_matron",
+                name="Mother Gnawl",
+                proper=True,
+                hp=150,
+                speed=2.2,
+                damage=14,
+                reach=2.2,
+                sight=12,
+                windup=0.7,
+                recover=1.0,
+                exp=80,
+                gold=range(50, 61),
+                radius=0.9,
+                height=1.3,
+                tall=1.6,
+                boss=True,
+                dead_flag="matron_dead",
+                rise="ash",
+                epitaph="Mother Gnawl sprawls across her nest. The squeaking in the walls falls still.",
+                poise=10,
+                # The brood-mother of the sewers' rats, swollen to the size of a cart-horse in a nest
+                # of rags and bones: she rakes all round with her claws and springs at you, and at
+                # half HP she shrieks for her litter.
+                moves=("sweep", "pounce"),
+                brood="sewer_rat",
+                inflicts=(("rot", 30),),
+            ),
+            EnemyType(
+                id="sump_reeve",
+                name="The Sump Reeve",
+                hp=280,
+                speed=1.4,
+                damage=18,
+                reach=2.8,
+                sight=15,
+                windup=0.9,
+                recover=1.2,
+                exp=180,
+                gold=range(90, 101),
+                radius=1.1,
+                height=2.6,
+                tall=3.2,
+                boss=True,
+                dead_flag="reeve_dead",
+                rise="ash",
+                epitaph="The Sump Reeve slumps into the sludge it ruled, and the drowned in it lie still.",
+                poise=16,
+                # Once the town's keeper of the drains, long drowned at his post: a heap of sludge
+                # risen round his body and every body the sewers took, his chain of office still on
+                # him. He slams the floor so the sludge heaves, sweeps with his long arms and spews
+                # bile; at half HP the drowned in him wake and flail.
+                moves=("slam", "sweep", "bile"),
+                phase_moves=("combo",),
+                rage="The drowned in the Sump Reeve wake and claw their way to its surface!",
+                shot_rgb=(150, 190, 60),
+                inflicts=(("poison", 30), ("corrosion", 35)),
             ),
         ]
     }

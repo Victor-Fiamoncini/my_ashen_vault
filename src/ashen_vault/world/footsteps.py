@@ -17,7 +17,7 @@ _BY_TEX = {
         "canopy",
         "thorns",
     ),
-    "mud": ("mud", "bog"),
+    "mud": ("mud", "bog", "sludge"),
     "water": ("water", "rapids"),
     "metal": ("iron_plate", "iron_grate"),
     "gravel": ("slag", "ravine"),

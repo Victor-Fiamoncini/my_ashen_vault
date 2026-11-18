@@ -27,6 +27,7 @@ def world_on(name, flags=(), at=None):
         ("verdant_hollow", "spider_dead", (15, 3)),
         ("cinder_keep", "gargoyles_dead", (4, 4)),
         ("ashen_cemetery", "sexton_dead", (10, 5)),
+        ("harrow_sewers", "reeve_dead", (41, 8)),
     ],
 )
 def test_every_boss_has_a_closed_arena_behind_a_great_door(map_name, flag, lair):

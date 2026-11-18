@@ -650,7 +650,7 @@ def test_a_boss_of_ash_waits_as_a_heap_untouchable_until_it_rises():
     from ashen_vault.ai.enemy import ASH_RISE
 
     world = FakeWorld(3, 0)  # no rise_time: it rises when it notices you
-    for type_id in ("ashen_warden", "butcher", "loom_mother", "sexton"):
+    for type_id in ("ashen_warden", "butcher", "loom_mother", "sexton", "rat_matron", "sump_reeve"):
         boss = Enemy(EnemyTypes.get(type_id), 0, 0, rng=random.Random(0))
         assert boss.state == "ashes" and boss.unseen and boss.rise_progress == 0.0
         assert not boss.take_hit(10_000) and boss.hp == boss.type.hp  # nothing to strike yet

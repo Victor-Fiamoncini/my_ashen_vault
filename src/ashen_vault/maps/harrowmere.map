@@ -65,7 +65,7 @@ R;;;;;;;;;;;;;;;;;;;;;;;;,,,,ÌßNßÿ,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;Ú;;;;í;ìí;ìí;ìí;;CC;;Ú;,,,,,ÞsÞù,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;;ÉCCCCCCCCCCCCCCCèC;;;;,,,,,,s,,,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;;êDaYnnOðnOñnOnnnCË==Ë;,,,,ù,s,ù,ùAAAAAAAAAARAAAAAAAAAAAAAA
-R;;CaannIQQIQQIQQInC====;,,,,,,s,,,,AAAAAAAAAARAAAAAAAAAAAAAA
+R;;CaannIQQIQQIQQInC====;,,!,,,s,,,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;;CîEÓnnnnÊnnnnnnnï====;,,,,,,sX,,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;;CaannIQQIQQIQQInC====;qqsssss.qqq..AAAAAAAARAAAAAAAAAAAAAA
 R;;ëDaYenOònOónOnnnCË==Ë;q.s......à.á.AAAAAAAARAAAAAAAAAAAAAA
@@ -84,7 +84,7 @@ R..HÍkúkkH..q.....sssssssssssssss._oooooo_.q..RAAAAAAAAAAAAAA
 R..ÑHHHHHH........sssssssssssssss._ooooooH+^iHRAAAAAAAAAAAAAA
 R...q,T,â.........sssssssssssssss._oooogÏHiiÍHRVVVVVVVVAAAAAA
 R..à.q,q...qqqqqq.ssssssPPPssssss._______HLiiHRwUwvvwwVAAAAAA
-RÁHHH¡q..-q,,,,,,qÞsssssPBPsMsssÞ....q,qàHiiÍHRwwwvvwwVAAAAAA
+RÁHHH¡q..-q,,,,?,qÞsssssPBPsMsssÞ....q,qàHiiÍHRwwwvvwwVAAAAAA
 RH»LiH·..-q,,,,,,qssssssPPPsssssÛ...q,ø,qHÒiiHRwwVVVwwVAAAAAA
 RHZiiä----q,,T,,,qsssSsssssssssss....q,qáHiiiHRwõVAVwwVAAAAAA
 RH»iÏH....q,,,,,,qsssssssssssssss-----q..«HåHHRwwVAVwUVAAAAAA
@@ -97,10 +97,10 @@ R.q.H&imiä..JiiiiliJás............Hiid¾H..RRRRRAAAAVwwyyyyVAA
 R...H>iÒiHµ.JiÒiiiiJDs......Ù....áH%ii¾H..RRRRRAAAAVUwyzyyVAA
 RRR.H%i½½Hâ.J$iiÒiÏJss............HiÒi$Hq.RRRRRAAAAVVVVVVVVAA
 RRRqHHHHH¤..Jii<iiÏJss....Ð.......HHHHH¤,qRRRRRAAAAAAAAAAAAAA
-RRR,,,,,,qrrJJJJJJJ©ss¨........Ï......q,ø,RRRRRAAAAAAAAAAAAAA
+RRR,,,,{,qrrJJJJJJJ©ss¨........Ï......q,ø,RRRRRAAAAAAAAAAAAAA
 RRR,,,,,ø,pp........ss.................q,qRRRRRAAAAAAAAAAAAAA
 RRRqqqqqqXrr........ss..Ý.....X.........q.RRRRRAAAAAAAAAAAAAA
-±RR.......÷rÝ....Ð.ÞssÞÝ..Û...............RRRR²AAAAAAAAAAAAAA
+±RR.......÷rÝ....Ð.ÞssÞÝ..Û............}..RRRR²AAAAAAAAAAAAAA
 R~~~~~~~~~~~~~~~~~~~pp~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
 R~~~~~~~~~~~~~~~~~~~pp~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
 R~~~~~~~~~@~~~~~~~~~pp~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
@@ -274,5 +274,12 @@ U = torch radius=5 on=w
 õ = mushrooms on=w
 F = fungus radius=4 on=y
 z = mushrooms on=y
+// Four grates down into the Harrow Sewers, each over its own district below: by the north road, in
+// the market lanes, at the canal's head and on the quay. The sewers join up beneath, so each is a
+// short way back to the others.
+! = exit map=harrow_sewers at=27,6,90 label=Descend_into_the_sewers model=sewer_grate
+? = exit map=harrow_sewers at=15,23,-90 label=Descend_into_the_sewers model=sewer_grate
+{ = exit map=harrow_sewers at=7,36,-90 label=Descend_into_the_sewers model=sewer_grate
+} = exit map=harrow_sewers at=39,39,-90 label=Descend_into_the_sewers model=sewer_grate
 // The north road, out through the wall to the Cinderhold.
 N = exit map=cinderhold at=30,68,-90 label=Take_the_north_road model=road_gate yaw=-90 on=-

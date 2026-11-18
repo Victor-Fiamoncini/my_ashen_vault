@@ -14,6 +14,7 @@ MAPS = (
     "verdant_hollow",
     "cinderhold",
     "cinder_keep",
+    "harrow_sewers",
 )  # the town has no chests
 
 

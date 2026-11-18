@@ -93,6 +93,16 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   (the door at the top of the tower stair, into the keep), `--map cinder_keep --at=17,18,180` (the keep's
   great hall), `--map cinder_keep --at=9,6,180 --level 10`
   (the keep's walled roof: the gargoyles wake at once).
+- The Harrow Sewers (`harrow_sewers`) lie under the town; each town grate stands over the sewer ladder that
+  climbs back to it, at the same tile: `--map harrowmere --at=15,25,-90 --script "wait:0.3 interact"`
+  (go down the market's grate; the others are at 27,5 by the north road, 7,37 at the canal's head and
+  39,40 on the quay), `--map harrow_sewers --at=27,6,-90 --script "wait:0.3 interact"` (climb back up
+  by the north road). Districts: `--map harrow_sewers` (the Market Drains, its `start`), `--at=27,6,0`
+  (the North Sluices), `--at=4,36,0` (the Canal Culvert), `--at=36,36,90` (the Quay Outfall and its
+  great grates), `--at=25,24,-120` (the Cistern, its shrine at 20,16), `--at=43,25,-120` (the Sump, below
+  the outfall's stair), `--at=26,36,180 --script "wait:0.2 interact wait:2.5"` (let the sluice pit's
+  drawbridge down). Bosses: `--at=34,32,-160 --level 10 --script "wait:3.2"` (Mother Gnawl rising in her
+  open nest), `--at=41,13,-90 --level 10 --script "wait:4.5"` (the Sump Reeve behind his door at 41,15).
 - The story begins in `ashen_cemetery` (the title's New Game, `Game.start_story`: bare hands and no
   spell, `Player.woken()`, the journey recorded at once). A `--map` run starts on any map with the default
   kit instead: `--map ashen_cemetery` (the waking grave and the first hint), `--map ashen_cemetery
@@ -117,9 +127,17 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/ui/hud.py` | HUD, menus, dialogue boxes |
 | `src/ashen_vault/audio/synth.py` | Synthesized sound effects (a blow on a foe plays its material's `hit_<material>`; `hit` is a blocked blow). Ambient fire (jets, vents, bombs) plays through `World.sfx_near`, which fades it with distance |
 | `src/ashen_vault/input.py` | Key bindings and the `--script` driver |
-| `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. `ashen_cemetery` (the linear first level, the tutorial: the waking grave and its shrine, the lane with the Rusted Sword, the field of headstones, its husks and the Shrouded Mourners bowed at its graves, the chapel with the Flame Bolt's scroll and its silk-sealed far door, the shrine court, and the Sexton's yard with the one-way gate out to the town; walled and floored in its own ash textures, `ash_rock`, `ash_stone`, `ash_brick`, `ash_ground`, `ash_grass`, `ash_flagstone`), `harrowmere` (the walled town of stone and half-timbered houses under steep violet-slate roofs, turrets on their corners and round towers along its wall, thin-walled (`thin=0.5`), paved in cobbles and setts, a canal running up from the harbour, climbing from its harbour past the market's fountain and the Bell Square, with the Silent Bell, to the twin-towered cathedral on the hill where the Enthroned sits; you arrive by the cemetery's gate in its west wall, its `start`; the sunken well court, the trail gap and the north gate lead out), `sunken_keep` (the dungeon below the well, with the Undercroft below its cells and the Warden's Gallery above the boss door, the Butcher's slaughter hall north of it), `verdant_hollow` (the jungle through the cave at the end of the village's east trail: Mossmouth cave, the Root Caverns below the bog, the Canopy Walk to the boss), `cinderhold` (the lava fortress up the north road: the long bridge, the gatehouse and postern, the foundry and the smelter pits below it, the ashworks, the rampart and the tower stair up to the keep), `cinder_keep` (the keep, a map of its own
+| `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. `ashen_cemetery` (the linear first level, the tutorial: the waking grave and its shrine, the lane with the Rusted Sword, the field of headstones, its husks and the Shrouded Mourners bowed at its graves, the chapel with the Flame Bolt's scroll and its silk-sealed far door, the shrine court, and the Sexton's yard with the one-way gate out to the town; walled and floored in its own ash textures, `ash_rock`, `ash_stone`, `ash_brick`, `ash_ground`, `ash_grass`, `ash_flagstone`), `harrowmere` (the walled town of stone and half-timbered houses under steep violet-slate roofs, turrets on their corners and round towers along its wall, thin-walled (`thin=0.5`), paved in cobbles and setts, a canal running up from the harbour, climbing from its harbour past the market's fountain and the Bell Square, with the Silent Bell, to the twin-towered cathedral on the hill where the Enthroned sits; you arrive by the cemetery's gate in its west wall, its `start`; the sunken well court, the trail gap, the north gate and four street grates down into the sewers lead out), `sunken_keep` (the dungeon below the well, with the Undercroft below its cells and the Warden's Gallery above the boss door, the Butcher's slaughter hall north of it), `verdant_hollow` (the jungle through the cave at the end of the village's east trail: Mossmouth cave, the Root Caverns below the bog, the Canopy Walk to the boss), `cinderhold` (the lava fortress up the north road: the long bridge, the gatehouse and postern, the foundry and the smelter pits below it, the ashworks, the rampart and the tower stair up to the keep), `cinder_keep` (the keep, a map of its own
   behind the door at the top of the tower stair: the postern landing, the great hall, the switchback stair,
-  the antechamber's shrine and the walled rooftop where the twin gargoyles perch) |
+  the antechamber's shrine and the walled rooftop where the twin gargoyles perch), `harrow_sewers` (the
+  sewers under the town, reached by four street grates (`sewer_grate`) that each drop onto the ladder
+  (`sewer_ladder`) under them, at the same tile: the North Sluices, the Market Drains (narrow vaulted runs,
+  its `start`), the Canal Culvert and the Quay Outfall, all joined through the Cistern and its shrine;
+  Mother Gnawl's open nest between the Cistern and the outfall, and down the outfall's stair the Sump and
+  the Sump Reeve's cistern behind his great door. Shortcuts: a barred door down from the sluices, the sluice
+  pit's drawbridge and a lift from the Sump up to the Cistern. Wadeable `sludge` floors (`slow=`, some with
+  `flow=`) hold its drowned and leeches; walled in `sewer_brick` under a `sewer_vault`;
+  `test_harrow_sewers_is_solvable`) |
 | `src/ashen_vault/world/sky.py`, `render/sky.py` | Skies (`[meta] sky = overcast\|dusk\|jungle\|ember`): a gradient dome meeting the fog at the horizon, a sun and halo, drifting cloud banks and an overhead cap, horizon mist; every sky's sun stands at `SUN_AT` (low in the south, over the town's sea), stars glint behind the clouds (`Sky.stars`, their brightness; none in the jungle's daylight), its disc drawn over the clouds (`sky.sun`) and its halo behind them; dimmed by darkness and the Veil. Built pure in `world/sky.py`, drawn first each frame without fog or depth by `render/sky.py` |
 | `src/ashen_vault/world/darkness.py` | Dark tiles: how your light and the fog close in, Lumen and the Veil of Mist |
 | `src/ashen_vault/world/doors.py` | One-way doors (`door from=`): which side lifts the bar |
@@ -158,6 +176,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/player/guard.py` | Shield blocking: what a raised shield stops and what it costs in ST |
 | `src/ashen_vault/world/relics.py` | Boss relics (Ember, Verdant and Iron Sigils), their drop/taken flags, `boss_falls` (twins fall together) and the three-sigil ending (the prophecy names four; the fourth's place is a TODO) |
 | `src/ashen_vault/world/hints.py` | Tutorial hints (`hint text="...\|..."`): shown once, the first time you step onto any of its marker's tiles (`hint:<map>:<marker>` flag); `World._update_hints` fires them |
+| `src/ashen_vault/render/sewer_models.py` | The Harrow Sewers' models: the Gutter Rat, the Cistern Rat and Mother Gnawl (one rat, `_rat`, at three sizes; she adds her collar, teats and mane), the Sludge Slime and its Sludge Gobbets (`_sludge`), the Drowned Wretch (face down in the sludge while it lurks), the Bilge Leech (`_leech_spine`), the Sump Reeve (his heap of sludge and drowned, his lantern, `_reeve_arms` for his moves), the ways between town and sewers (`sewer_grate` in the street, `sewer_ladder` below, set back against a wall behind it, `world.LADDER_BACK`), and the dressing: `drain_pipe`, `sluice_wheel` and `outfall_grate` (wall props), `rat_nest` |
 | `src/ashen_vault/render/cemetery_models.py` | The Cemetery of Ashes' models: the Ashen Sexton (its `grave_spade`, and `sexton_arms`, its poses for each move; `dust_puff`, `ash_billow` and `dust_devil` draw its ash), the Ashen Husk, the Shrouded Mourner (the cemetery's own lurker), `grave_walker` (the cemetery's Bone Walkers, `bone_walker model=grave`: risen in their winding sheets, a headstone shard for a shield and a length of iron railing for a weapon; the keep's keep their own look), `ash_hands` (the Sexton's grasping ash) and `ash_clod` (its spadeful), `gravestone`, `open_grave` and `cemetery_gate` (a pointed stone arch built out of the wall, black passage behind its iron leaves, a hooded mourner in a niche over the lintel and, unless `sentinels=false` as in town, hooded stone wardens either side; also the gate exit's `model=`, swung open once its `requires=` flag is set) |
 | `src/ashen_vault/dialogue.py` | NPC conversations and the shop list |
 | `tests/` | pytest suite; `conftest.py` has a small test map |
@@ -177,7 +196,8 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   `tests/test_verdant_world.py` does the same for the jungle (spells, kindled fires, darkness,
   shortcuts), with a `JungleGame` that also applies damage to enemies, and `tests/test_cinderhold_world.py`
   for the fortress (lava, jets, vents, sound falloff, elements, motes, and the twins on the keep's roof,
-  `hold(..., map_name="cinder_keep")`).
+  `hold(..., map_name="cinder_keep")`); `tests/test_sewers_world.py` drives the sewers (slimes that split,
+  the Reeve's bile, the brood-mother's open nest).
 - Internal resolution is 320x240 (`screen.py`); UI coordinates are in that space.
 - Map grids are whitespace-sensitive. Don't reformat `.map` files. Each grid character is one 2 m tile;
   an `[entities]` marker places a prop, enemy or hazard there, standing on the legend tile named by
@@ -246,7 +266,10 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   or above a passage's roof (`bastion base=`, `gatehouse`), and no two Cinderhold towers share a shape
   (`test_cinderhold_skyline_has_no_two_towers_alike_and_stands_out_of_reach`).
 - Enemy behaviour flags in `ai/enemy_types.py`: `ambush` spawns dormant (the chest Mimic) until woken;
-  `lurk` sits still until you come close (the Stump Mimic, the Bone Crawler, the Shrouded Mourner); `once` stays dead;
+  `lurk` sits still until you come close (the Stump Mimic, the Bone Crawler, the Shrouded Mourner, the
+  sewers' Drowned Wretch and Bilge Leech); `once` stays dead; `splits` bursts a slain foe into
+  `split_count` of another type (the Sludge Slime's gobbets, `World.split`): the pieces don't split again,
+  and as no map places them a shrine rest never brings them back;
   bosses set `dead_flag` and drop a relic (the Butcher, a mini-boss, sets `butcher_dead` but has no
   relic: his cleaver is an entity `item=`). Any type picks special attacks from `moves` (see `MOVES` in
   `ai/enemy.py`: `sweep`, `web`, `pounce`, `cinders`, `combo`, `slam`, `eruption`, `hook`, `breath`
@@ -258,12 +281,14 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   of `Eruption(style="hands")`: ash hands that hurt and hold you) and `knell` (second phase: two rings of
   embers, `KNELL_GAP` apart, the second turned half a gap; `World.knell`); each of the ash moves also
   slows you, and no other foe uses them), and the Shrouded Mourner's `fireball` (grave-fire kindled in
-  its palm and thrown from afar; up close it stabs). At half
+  its palm and thrown from afar; up close it stabs), and the Sump Reeve's `bile` (a fan of four gobbets
+  that poison and corrode, `BILE_RANGE`). Neither of the sewers' bosses (Mother Gnawl, `matron_dead`, who
+  has no great door; the Sump Reeve, `reeve_dead`) drops a relic. At half
   HP a boss with a `brood` calls it and one with a `rage` kindles it (the Warden's burning blade);
   either way it enters its second phase (`Enemy.phase2`), fights faster and adds its `phase_moves`.
   `perch` spawns a statue (`Enemy.perched`) that wakes when it sees you, or is struck; it then spends
   `STATUE_RISE` in state `"rising"` (seams of fire spread, its stone bursts off at `STATUE_BURST`, the wings
-  unfold and it lifts off). `rise="ash"` (the Warden, the Butcher, the Loom Mother, the Sexton) spawns a
+  unfold and it lifts off). `rise="ash"` (the Warden, the Butcher, the Loom Mother, the Sexton, the sewers' two) spawns a
   boss as a smouldering heap (state `"ashes"`, `cemetery_models.ash_heap`) until you step into its arena
   (`World.rise_time`), then it forms from the feet up over `ASH_RISE` (`ASH_RISE_AGAIN` back through its
   fog): the death dissolve played backwards (`ash.rise_phases`) while `AshCloud.gather` draws embers in.
@@ -321,7 +346,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   (`world.hinged`): shut whenever the map loads, never saved; interact swings it open or shut (`World.swing_door`,
   which won't shut it on anyone in the doorway), and shut it fills its tile.
   `chest model=iron` is the Cinderhold's iron chest (`models.chest` style), and `mimic model=iron` hides as
-  one (`Enemy.look`). An exit's `model=` draws its way through (`road_gate` for both ends of the north road (each stands out in the open before its wall, never sunk between rock; `style=forge` is a sooty variant), `well`, `cave_mouth`, `keep_door`, `cemetery_gate`, else a `rope`); each is a landmark of some detail (`test_every_way_between_maps_is_built_in_detail`), and one set against a wall shows black passage through it (`models.PASSAGE_DARK`), never the wall, so the way on stays unseen; a cold `light` hangs over the cemetery's gate on both sides, and a warm one before the north road's Cinderhold end, so their stone shows. An `exit` with `boss=<dead_flag>` is a way on to a boss on another map: the compass
+  one (`Enemy.look`). An exit's `model=` draws its way through (`road_gate` for both ends of the north road (each stands out in the open before its wall, never sunk between rock; `style=forge` is a sooty variant), `well`, `cave_mouth`, `keep_door`, `cemetery_gate`, `sewer_grate`, `sewer_ladder`, else a `rope`); each is a landmark of some detail (`test_every_way_between_maps_is_built_in_detail`), and one set against a wall shows black passage through it (`models.PASSAGE_DARK`), never the wall, so the way on stays unseen; a cold `light` hangs over the cemetery's gate on both sides, and a warm one before the north road's Cinderhold end, so their stone shows. An `exit` with `boss=<dead_flag>` is a way on to a boss on another map: the compass
   points at it while that boss lives (`World.boss_target`). `exit requires=<flag> shut="..."` stays shut
   (saying `shut=`) until that flag is set (`World.exit_open`), and `exit oneway` never leads back: going
   through records the journey on the far side at once, so you wake by its shrines, and sets `left:<map>`
@@ -372,7 +397,8 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 - Persistent world state lives in the save's `flags` set, keyed `<kind>:<map>:<tx>,<tz>` (opened
   chests, broken barrels, revealed walls, slain mimics, kindled fires as `lit:`) or `loot:<key>` for
   dropped items. Bosses add
-  their `dead_flag` (`boss_dead`, `spider_dead`, `gargoyles_dead`, `butcher_dead`, `sexton_dead`) and relics a
+  their `dead_flag` (`boss_dead`, `spider_dead`, `gargoyles_dead`, `butcher_dead`, `sexton_dead`, `matron_dead`,
+  `reeve_dead`) and relics a
   `<relic>_taken` flag (`sigil_taken` for the Ember Sigil). Shown hints add `hint:<map>:<marker>`, a one-way
   exit `left:<map>`.
 - Equipment (`player/inventory.py`): two hand slots, shown to players as **Primary** (`right` = left

@@ -33,6 +33,8 @@ MOVES = {
     "knell": (1.3, 9.0, 0.6),
     # The Shrouded Mourner's own: a ball of grave-fire kindled in its bony palm and thrown.
     "fireball": (0.9, 5.0, 0.8),
+    # The Sump Reeve's own: a fan of bile spewed from its gullet.
+    "bile": (0.9, 6.0, 0.55),
 }
 COMBO_SWINGS = 3
 COMBO_GAP = 0.45  # seconds between the swings of a combo
@@ -52,6 +54,7 @@ DIVE_RANGE = (5.0, 13.0)
 SPADEFUL_RANGE = (3.5, 11.0)
 GRASP_RANGE = (2.5, 10.0)
 FIREBALL_RANGE = (2.5, 10.0)
+BILE_RANGE = (3.0, 11.0)
 EXHALE_REACH = 5.0  # metres the Sexton's breath of grave dust carries
 EXHALE_CONE = 0.45  # half-angle (radians) of that breath: step aside out of it
 ASHFALL_RADIUS = 3.8  # metres the ash of a dashed urn billows out, from any side
@@ -471,6 +474,8 @@ class Enemy:
             options.append("dust_devil")
         if "fireball" in ready and seen and FIREBALL_RANGE[0] <= dist <= FIREBALL_RANGE[1]:
             options.append("fireball")
+        if "bile" in ready and seen and BILE_RANGE[0] <= dist <= BILE_RANGE[1]:
+            options.append("bile")
         if "knell" in ready and dist <= KNELL_RANGE:
             options.append("knell")
         if not options:
@@ -521,7 +526,7 @@ class Enemy:
             return self._knell(world)
         if not self._struck:
             self._struck = True
-            if kind in ("shot", "web", "cinders", "spadeful", "fireball"):
+            if kind in ("shot", "web", "cinders", "spadeful", "fireball", "bile"):
                 world.enemy_fire(self, kind)
             elif kind == "summon":
                 world.summon(self, self.type.brood, 2)

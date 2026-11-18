@@ -61,6 +61,14 @@ def enemy(r, e):
         "sexton": cemetery_models.sexton,
         "mourner": cemetery_models.mourner,
         "ashen_husk": cemetery_models.ashen_husk,
+        "sewer_rat": sewer_models.sewer_rat,
+        "giant_rat": sewer_models.giant_rat,
+        "rat_matron": sewer_models.rat_matron,
+        "sludge_slime": sewer_models.sludge_slime,
+        "slimelet": sewer_models.slimelet,
+        "drowned": sewer_models.drowned,
+        "bilge_leech": sewer_models.bilge_leech,
+        "sump_reeve": sewer_models.sump_reeve,
     }.get(e.type.id)
     if e.type.id == "bone_walker" and getattr(e, "look", None) == "grave":
         fn = cemetery_models.grave_walker  # the cemetery's own dead, risen in their winding sheets
@@ -2477,6 +2485,11 @@ BOSS_DOORS = {
     "sexton_dead": DoorStyle(
         (118, 112, 106), "wood_plank", (58, 56, 60), (122, 118, 112), "rough_stone", "candle"
     ),
+    # The Sump Reeve: the old sluice-boards of the deepest cistern, slimed green, in a sewer-brick arch,
+    # drain-keepers' lanterns burning bile-green on the jambs.
+    "reeve_dead": DoorStyle(
+        (76, 82, 60), "wood_plank", (88, 62, 44), (100, 74, 62), "sewer_brick", "lantern"
+    ),
 }
 DEFAULT_DOOR = "boss_dead"
 
@@ -2529,6 +2542,9 @@ def _door_lamp(r, style, face, t, lit):
         return
     if style.lamp == "silk":  # a glowing bulb of fungus in a cup of silk
         r.part("sphere", 0, 0.14, 0, 0.12, 0.14, 0.12, LOOM_GLOW, glow=True)
+    elif style.lamp == "lantern":  # a drain-keeper's lantern, its flame burned bile-green
+        r.part("cube", 0, 0.16, 0, 0.1, 0.14, 0.1, (150, 190, 60), glow=True)
+        r.part("cube", 0, 0.25, 0, 0.14, 0.03, 0.14, style.iron)
     elif style.lamp == "candle":  # a stub of tallow, guttering
         r.part("cyl", 0, 0.14, 0, 0.06, 0.14, 0.06, (214, 204, 180))
         _flame(r, 0, 0.24, 0, 0.05, t)
@@ -2626,12 +2642,33 @@ def _sexton_leaf(r, style, side, face, t, lit):
                _dim(style.wood, 0.5 + 0.08 * k))  # fmt: skip
 
 
+def _reeve_arch(r, style, t, lit):
+    """A drain grate set in the lintel, sludge seeping through it and down the stone, and the Reeve's
+    brass badge over it, its key glinting while he lives."""
+    for face in (-1, 1):
+        with r.at(face * 0.26, 3.05, 0):
+            for z in (-0.3, -0.1, 0.1, 0.3):
+                r.part("cube", 0, 0, z, 0.03, 0.34, 0.05, style.iron)  # the grate's bars
+            r.part(
+                "cube", 0, -0.2 - 0.05 * math.sin(t * 1.3 + face), 0.1, 0.03, 0.4, 0.07, (70, 64, 38)
+            )  # seep
+            r.part("cyl", 0.01, 0.26, 0, 0.2, 0.03, 0.2, (176, 140, 64), rz=math.pi / 2)  # the badge
+            r.part("cube", 0.03, 0.26, 0, 0.01, 0.03, 0.12, (150, 190, 60) if lit else COLD_EMBER, glow=lit)
+
+
+def _reeve_leaf(r, style, side, face, t, lit):
+    """Old sluice-boards slimed green to the tide line, an iron ring to haul them by."""
+    r.part("cube", face * 0.085, 0.45, 0, 0.02, 0.9, 0.92, (58, 70, 40))  # the slime below the tide line
+    r.part("cube", face * 0.1, 1.5, -side * 0.25, 0.03, 0.16, 0.16, style.iron, rx=math.pi / 4)  # the ring
+
+
 DOOR_ARCHES = {
     "boss_dead": _warden_arch,
     "butcher_dead": _butcher_arch,
     "spider_dead": _loom_arch,
     "gargoyles_dead": _gargoyle_arch,
     "sexton_dead": _sexton_arch,
+    "reeve_dead": _reeve_arch,
 }
 DOOR_LEAVES = {
     "boss_dead": _warden_leaf,
@@ -2639,6 +2676,7 @@ DOOR_LEAVES = {
     "spider_dead": _loom_leaf,
     "gargoyles_dead": _gargoyle_leaf,
     "sexton_dead": _sexton_leaf,
+    "reeve_dead": _reeve_leaf,
 }
 FOG_RISE = 0.3  # how many times a second a billow of the fog gate climbs from the floor to its top
 
@@ -6341,4 +6379,4 @@ def meat_hooks(r, t, seed, ceil_h):
 
 
 # The Cinderhold's models live in their own module; it borrows the helpers above, so it is imported last.
-from ashen_vault.render import cemetery_models, forge_models  # noqa: E402
+from ashen_vault.render import cemetery_models, forge_models, sewer_models  # noqa: E402

@@ -27,6 +27,7 @@ def test_mesh_builder_batches_shipped_maps():
         "verdant_hollow",
         "cinderhold",
         "cinder_keep",
+        "harrow_sewers",
     ):
         m = MapLoader.load_file(map_path(name))
         b = MeshBuilder(m, lights=MeshBuilder.lights_for(m)).build()
@@ -222,7 +223,15 @@ def test_a_spell_can_strike_a_hovering_body_wherever_it_is_drawn():
 
 
 def test_dead_glowing_enemies_go_dark():
-    for type_id in ("loom_mother", "bark_husk", "ashen_warden", "mimic", "cinder_wisp"):
+    for type_id in (
+        "loom_mother",
+        "bark_husk",
+        "ashen_warden",
+        "mimic",
+        "cinder_wisp",
+        "sewer_rat",
+        "sump_reeve",
+    ):
         _, alive = _extent(type_id, "idle", 0.5)
         _, dead = _extent(type_id, "dead", 3.0)
         assert alive.glows > 0 and dead.glows == 0, type_id
@@ -459,7 +468,17 @@ def _drawn(type_id, phase2=False, state="chase"):
 
 
 def test_bosses_have_boss_level_detail():
-    for boss in ("ashen_warden", "butcher", "brand", "bellows", "loom_mother", "sexton"):
+    bosses = (
+        "ashen_warden",
+        "butcher",
+        "brand",
+        "bellows",
+        "loom_mother",
+        "sexton",
+        "rat_matron",
+        "sump_reeve",
+    )
+    for boss in bosses:
         assert _drawn(boss)[1] >= 50, boss
     foes = (
         "bone_walker",
@@ -471,13 +490,16 @@ def test_bosses_have_boss_level_detail():
         "mimic",
         "ashen_husk",
         "mourner",
+        "giant_rat",
+        "drowned",
+        "bilge_leech",
     )
     for foe in foes:
         assert _drawn(foe)[1] >= 30, foe
 
 
 def test_phase_two_changes_how_each_boss_looks():
-    for boss in ("ashen_warden", "butcher", "brand", "bellows", "sexton"):
+    for boss in ("ashen_warden", "butcher", "brand", "bellows", "sexton", "rat_matron", "sump_reeve"):
         (calm, calm_n), (raging, raging_n) = _drawn(boss), _drawn(boss, phase2=True)
         assert raging.glows > calm.glows or raging_n > calm_n, boss
         dead, _ = _drawn(boss, phase2=True, state="dead")
@@ -814,6 +836,7 @@ def test_every_map_texture_is_generated():
         "verdant_hollow",
         "cinderhold",
         "cinder_keep",
+        "harrow_sewers",
     ):
         m = MapLoader.load_file(ashen_vault.map_path(map_name))
         tiles = {m[tx, tz] for tz in range(m.depth) for tx in range(m.width)}
@@ -1212,7 +1235,7 @@ def test_every_boss_has_its_own_great_door_and_its_lamps_go_out_when_cleared():
     from ashen_vault.world.map_loader import MapLoader
 
     flags = set()
-    for name in ("ashen_cemetery", "sunken_keep", "verdant_hollow", "cinder_keep"):
+    for name in ("ashen_cemetery", "sunken_keep", "verdant_hollow", "cinder_keep", "harrow_sewers"):
         m = MapLoader.load_file(map_path(name))
         flags |= {s.props["boss"] for s in m.entities if s.kind == "door" and s.props.get("boss")}
     assert flags <= set(models.BOSS_DOORS)  # no boss door falls back to another's look
@@ -1704,7 +1727,7 @@ def test_villager_hands_are_smaller_than_the_arm_and_close_round_what_they_hold(
 def test_every_way_between_maps_is_built_in_detail():
     """The gates, doors, wells, caves and ropes that lead from map to map are landmarks of their own,
     not a handful of boxes; the road gate's two ends differ."""
-    from ashen_vault.render import cemetery_models, forge_models, models
+    from ashen_vault.render import cemetery_models, forge_models, models, sewer_models
 
     def parts(fn):
         gpu = _RecordingGpu()
@@ -1719,6 +1742,8 @@ def test_every_way_between_maps_is_built_in_detail():
         "cave_mouth": lambda r: models.cave_mouth(r, 0.3),
         "rope": lambda r: models.rope(r, 0.3),
         "cemetery_gate": lambda r: cemetery_models.cemetery_gate(r, 0.0),
+        "sewer_grate": lambda r: sewer_models.sewer_grate(r, 0.3),
+        "sewer_ladder": lambda r: sewer_models.sewer_ladder(r, 0.3),
     }
     for name, fn in exits.items():
         assert len(parts(fn)) >= 25, name
@@ -1770,3 +1795,22 @@ def test_a_fake_wall_takes_the_texture_of_the_walls_beside_it():
         ". = floor h=0\n\n[grid]\n#####\n#.W.#\n#.%.#\n##%##\n\n[entities]\nW = secret_wall\n"
     ).parse()
     assert secret_wall_tex(m2, 2, 1) == "ash_brick"  # north wall vs south: north first on a tie
+
+
+def test_the_sewers_dressing_draws_and_hangs_on_its_wall():
+    from ashen_vault.render import sewer_models
+    from ashen_vault.world.world import STATIC_PROPS, WALL_PROPS
+
+    for name, fn in (
+        ("drain_pipe", lambda r: sewer_models.drain_pipe(r, 0.3, 4)),
+        ("sluice_wheel", lambda r: sewer_models.sluice_wheel(r, 4)),
+        ("outfall_grate", lambda r: sewer_models.outfall_grate(r, 4)),
+        ("rat_nest", lambda r: sewer_models.rat_nest(r, 4)),
+    ):
+        gpu = _RecordingGpu()
+        fn(rig.Rig(gpu))
+        assert len(gpu.parts) >= 8, name  # a pipe and its trickle; the rest a dozen parts and more
+        assert min(y for _, y in gpu.parts) > -0.1, name
+    assert {"drain_pipe", "sluice_wheel", "outfall_grate"} <= set(WALL_PROPS)
+    assert {"sluice_wheel", "outfall_grate", "rat_nest"} <= STATIC_PROPS
+    assert "drain_pipe" not in STATIC_PROPS  # its trickle of sludge pours on

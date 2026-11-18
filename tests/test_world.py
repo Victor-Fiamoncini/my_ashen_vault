@@ -896,3 +896,95 @@ def test_ashen_cemetery_is_solvable_in_order():
     assert len(_spec(m, "exit")) == 1  # no other way out, and none back in from the town
     town = MapLoader.load_file(map_path("harrowmere"))
     assert not _spec(town, "exit", map="ashen_cemetery")
+
+
+# --- the Harrow Sewers ----------------------------------------------------------------------------
+
+
+def _sewers():
+    return MapLoader.load_file(map_path("harrow_sewers"))
+
+
+BESIDE = ((1, 0), (-1, 0), (0, 1), (0, -1))
+
+
+def test_the_sewer_grates_and_ladders_join_town_and_sewers_both_ways():
+    """Four grates in the town's streets drop into the sewers, each onto the foot of the ladder right
+    under it; each ladder climbs back up to step out beside its grate. The four lie far apart."""
+    town, sewers = MapLoader.load_file(map_path("harrowmere")), _sewers()
+    grates = _spec(town, "exit", map="harrow_sewers")
+    ladders = _spec(sewers, "exit", map="harrowmere")
+    assert len(grates) == len(ladders) == 4
+    start = tuple(int(v) for v in town.meta["start"][:2])
+    streets = _reachable(town, start)
+    for grate in grates:
+        assert grate.props["model"] == "sewer_grate"
+        assert "boss" not in grate.props  # the compass points nowhere in town
+        (ladder,) = [s for s in ladders if (s.tx, s.tz) == (grate.tx, grate.tz)]  # right under it
+        assert ladder.props["model"] == "sewer_ladder"
+        tx, tz = (int(v) for v in grate.props["at"].split(",")[:2])
+        assert abs(tx - ladder.tx) + abs(tz - ladder.tz) == 1 and sewers[tx, tz].walkable
+        bx, bz = (int(v) for v in ladder.props["at"].split(",")[:2])
+        assert abs(bx - grate.tx) + abs(bz - grate.tz) == 1 and (bx, bz) in streets
+    for a in grates:
+        for b in grates:
+            assert a is b or abs(a.tx - b.tx) + abs(a.tz - b.tz) >= 12  # each to its own district
+
+
+def test_harrow_sewers_is_solvable():
+    """From the market's ladder every district, chest, lever and ladder and both bosses can be reached
+    with only the false walls and the Reeve's great door opened; the Reeve waits behind it. The barred
+    door, the drawbridge and the lift are shortcuts, each joining two places you can already reach.
+    Nowhere you can get to strands you."""
+    m = _sewers()
+    assert m.meta["name"] == "The Harrow Sewers"
+    start = tuple(int(v) for v in m.meta["start"][:2])
+    secrets = [(s.tx, s.tz) for s in _spec(m, "secret_wall")]
+    (door,) = _spec(m, "door", boss="reeve_dead")
+    (reeve,) = _spec(m, "sump_reeve")
+    (matron,) = _spec(m, "rat_matron")
+    before = _reachable(m, start, open_tiles=secrets)
+    assert (reeve.tx, reeve.tz) not in before  # his cistern lies behind its great door
+    assert (matron.tx, matron.tz) in before  # she keeps an open nest, midway
+    opened = _reachable(m, start, open_tiles=[*secrets, (door.tx, door.tz)])
+    for s in m.entities:
+        if s.kind in ("chest", "lever", "exit", "rat_matron", "sump_reeve"):
+            assert (s.tx, s.tz) in opened, (s.kind, s.props, s.tx, s.tz)
+        if s.kind == "chest":
+            assert (s.tx, s.tz) in before
+    (shrine,) = _spec(m, "save_statue")
+    assert {(shrine.tx + dx, shrine.tz + dz) for dx, dz in BESIDE} & before
+    for s in _spec(m, "door", **{"from": "n"}):  # the barred short way down from the sluices
+        assert {(s.tx, s.tz - 1), (s.tx, s.tz + 1)} <= opened
+    (bridge,) = _spec(m, "bridge")
+    assert {(bridge.tx - 1, bridge.tz), (bridge.tx + 1, bridge.tz)} <= opened
+    (lever,) = _spec(m, "lever", id=bridge.props["lever"])
+    assert (lever.tx, lever.tz) in opened
+    lifts = [p for p in terrain.build_platforms(m) if p.kind == "lift"]
+    assert lifts and all(p.locked for p in lifts)
+    for p in lifts:
+        sx, sz = TileMap.tile_coord(p.x), TileMap.tile_coord(p.z)
+        near = {(sx + dx, sz + dz) for dx, dz in BESIDE}
+        assert {round(m[t].floor, 1) for t in near & opened} >= {p.low, p.high}, (sx, sz)
+    doors = [(s.tx, s.tz) for s in m.entities if s.kind in ("door", "secret_wall")]
+    full = _reachable(m, start, open_tiles=doors, shortcuts=True)
+    for tile in full:
+        assert start in _reachable(m, tile, open_tiles=doors, shortcuts=True), tile
+    assert m[reeve.tx, reeve.tz].floor < min(m[s.tx, s.tz].floor for s in _spec(m, "exit"))  # the deepest
+
+
+def test_the_sewers_drowned_and_leeches_lie_in_the_sludge():
+    """Foes never wade into a channel, so the ones that lurk in the muck are set in wadeable sludge:
+    slow going, and never a channel that casts you back out."""
+    m = _sewers()
+    lurkers = _spec(m, "drowned") + _spec(m, "bilge_leech")
+    assert len(lurkers) >= 6
+    for s in lurkers:
+        tile = m[s.tx, s.tz]
+        assert tile.walkable and tile.floor_tex == "sludge" and tile.slow < 1, (s.kind, s.tx, s.tz)
+    leeches = _spec(m, "bilge_leech")
+    assert any(
+        m[s.tx + dx, s.tz + dz].liquid or m[s.tx + dx, s.tz + dz].floor_tex == "sludge"
+        for s in leeches
+        for dx, dz in BESIDE
+    )

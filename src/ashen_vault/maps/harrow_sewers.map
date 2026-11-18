@@ -1,0 +1,153 @@
+[meta]
+name = The Harrow Sewers
+ambient = 0.2 0.22 0.17
+fog = 0.045 0.06 0.045
+fog_range = 4 22
+torch = 9 0.72 0.7 0.52
+start = 15 23 -90
+default = .
+entity_floor = auto
+edge_top = 6
+edge_tex = sewer_brick
+
+// The sewers under Harrowmere: four grates in the town's streets drop into four districts, all joined
+// through the old cistern at the heart of them, so each way down is a short way back to the others.
+// The North Sluices under the north road, with the gate machinery of the sluice channel; the Market
+// Drains, narrow vaulted runs under the market lanes; the Canal Culvert by the canal's head; and the
+// Quay Outfall, where the sewers pour out through great grates into the sea. Between the cistern and
+// the outfall Mother Gnawl, the rats' brood-mother, keeps her nest; below the outfall a stair goes down
+// to the Sump, and behind its door the Sump Reeve, the drowned keeper of the drains, rules the deepest
+// cistern. Wadeable sludge (slow going) fills the gutters; the clearer channels cast you back out.
+
+[legend]
+# = wall tex=sewer_brick top=6
+. = floor tex=flagstone h=0 ceil=3.4 ceil_tex=sewer_vault side=sewer_brick
+d = floor tex=flagstone h=0 ceil=3.4 ceil_tex=sewer_vault side=sewer_brick dark=0.5
+, = floor tex=flagstone h=0 ceil=6 ceil_tex=sewer_vault side=sewer_brick
+- = floor tex=sludge h=-0.4 ceil=3.4 ceil_tex=sewer_vault side=sewer_brick slow=0.6
+s = floor tex=sludge h=-0.4 ceil=3.4 ceil_tex=sewer_vault side=sewer_brick slow=0.6 dark=0.5
+= = floor tex=sludge h=-0.4 ceil=3.4 ceil_tex=sewer_vault side=sewer_brick slow=0.6 flow=0.7,0
+~ = water tex=bog h=-0.9 ceil=3.4 ceil_tex=sewer_vault side=sewer_brick
+w = water tex=bog h=-0.9 ceil=6 ceil_tex=sewer_vault side=sewer_brick
+_ = floor tex=sludge h=-6 ceil=3.4 ceil_tex=sewer_vault side=sewer_brick chasm
+| = floor tex=flagstone h=-4 ceil=3.4 ceil_tex=sewer_vault side=sewer_brick chasm
+n = floor tex=dirt h=0 ceil=4 ceil_tex=sewer_vault side=sewer_brick dark=0.35
+x = floor tex=bog h=-0.4 ceil=4 ceil_tex=sewer_vault side=sewer_brick hurt=4 slow=0.5 dark=0.2
+o = floor tex=flagstone h=0 ceil=5 ceil_tex=sewer_vault side=sewer_brick
+p = floor tex=sludge h=-0.4 ceil=5 ceil_tex=sewer_vault side=sewer_brick slow=0.6 flow=0,0.8
+1 = floor tex=flagstone h=-0.5 ceil=3 ceil_tex=sewer_vault side=sewer_brick dark=0.3
+2 = floor tex=flagstone h=-1 ceil=2.5 ceil_tex=sewer_vault side=sewer_brick dark=0.35
+3 = floor tex=flagstone h=-1.5 ceil=2 ceil_tex=sewer_vault side=sewer_brick dark=0.4
+4 = floor tex=flagstone h=-2 ceil=1.5 ceil_tex=sewer_vault side=sewer_brick dark=0.45
+5 = floor tex=flagstone h=-2.5 ceil=1 ceil_tex=sewer_vault side=sewer_brick dark=0.5
+6 = floor tex=flagstone h=-3 ceil=0.5 ceil_tex=sewer_vault side=sewer_brick dark=0.5
+7 = floor tex=flagstone h=-3.5 ceil=0 ceil_tex=sewer_vault side=sewer_brick dark=0.45
+8 = floor tex=flagstone h=-4 ceil=0 ceil_tex=sewer_vault side=sewer_brick dark=0.4
+u = floor tex=flagstone h=-4 ceil=0 ceil_tex=sewer_vault side=sewer_brick dark=0.35
+k = floor tex=sludge h=-4.4 ceil=0 ceil_tex=sewer_vault side=sewer_brick slow=0.6 dark=0.4
+y = floor tex=bog h=-4.4 ceil=0 ceil_tex=sewer_vault side=sewer_brick hurt=4 slow=0.5 dark=0.3
+b = floor tex=flagstone h=-4 ceil=1.5 ceil_tex=sewer_vault side=sewer_brick dark=0.15
+q = floor tex=sludge h=-4.4 ceil=1.5 ceil_tex=sewer_vault side=sewer_brick slow=0.6 dark=0.15
+
+[grid]
+################################################
+################################################
+###################..F.Á......Á..F..############
+###################=================############
+###################Â===========L====#FbbbbbbbbF#
+###################..H.....A.......F#bqqbbbqqqb#
+##########...........HH...Å.........#bqqbbbqqqb#
+##########F########Æ.......F.....Ç.Q#bbbbbbbÈbb#
+##########.#############.############bbbbNbbbbb#
+##########.#############X############ÌbPbbbbPbÌ#
+##########.#############.############bbbbbbbbbb#
+##########.#############G############bÈbÊbbÊqqb#
+##########É#############.############bqqbËbbqqb#
+########d.......F#######.############bqqbbbbqqb#
+########d###.###Â#######,############FbbbbbbbbF#
+########d###H###-##F,,F,,,,F,,F##########O######
+########G###H###Ë##,E,,,,,,H,,,##########u######
+####SdÇ#d###H###-##,,P,Ê,,,,P,,##########u######
+####dddW...........,,,Ì,,,,Ì,,F######FuuGuuuuF##
+####GÆÍ#s###Å###.##,,,,wwww,,,,######uJuuuÅuyy##
+########s###.###I##,,,,wwww,,,,.....ÀuuuuuuuËy##
+########s###F###.##F,,Åwwww,,,,######uukkÓuuuu##
+########..J......##,,J,wwww,,,,######uukÓkuuuu##
+########F######.###,,,,wwwwÅ,,F######ÉuÖËkuuuÂ##
+########d######B###F,,Ì,,,,Ì,,,######uuuuuuJuu##
+########J######R###,,P,,,,,,P,,######Vuuuuuuuu##
+########d##########,,,H,,,Ê,I,,######FuFuuÍFuu##
+########dHHddd#####F,,,F,,F,,,F##############8##
+########d###########,########,###############7##
+########d########dddd########n###############6##
+########G########É######FnnnnnnÄnnF##########Í##
+########d########G######nnnÄnnMnnÈn##########G##
+########Í########d######xËÈnnnnnnnn##########3##
+#T######d########d######xxnnnnnnÄnn##########2##
+#dW.FI....F.....È.###############n###########1##
+#G#~~.~~~~~~ËÔ--K-#############FooFooppoooFooF##
+###Â..........F..F.....Z.Y.....oooooopÕooooooo##
+#######C#######################ÂoooooËpooooooo##
+###############################FooHHoÒpooooIoF##
+###############################ÆooHHopÒooooooÇ##
+###############################oooooopËDoooooo##
+###############################FoooÅoÃÃooFooÆU##
+################################################
+################################################
+
+[entities]
+// The four ladders up to the town's grates, each under the grate it climbs to.
+A = exit map=harrowmere at=27,6,90 label=Climb_up_to_the_north_road model=sewer_ladder
+B = exit map=harrowmere at=15,25,90 label=Climb_up_to_the_market model=sewer_ladder
+C = exit map=harrowmere at=7,38,0 label=Climb_up_to_the_canal model=sewer_ladder yaw=-90
+D = exit map=harrowmere at=39,39,-90 label=Climb_up_to_the_quay model=sewer_ladder
+// The cistern's shrine, its pillars and the light.
+E = save_statue
+F = torch radius=8
+G = fungus radius=4
+P = pillar
+// What lives down here: rats in packs and a few as big as hounds, sludge that crawls, the drowned lying
+// in the muck and leeches in the gutters by the channels.
+H = sewer_rat
+I = giant_rat
+J = sludge_slime
+K = drowned on=-
+Ò = drowned on=p
+Ó = drowned on=k
+L = bilge_leech on==
+Ô = bilge_leech on=-
+Õ = bilge_leech on=p
+Ö = bilge_leech on=k
+// Mother Gnawl in her nest between the cistern and the outfall, and the Sump Reeve behind his door.
+M = rat_matron
+N = sump_reeve
+O = door boss=reeve_dead
+// Finds: ailments' remedies mostly, for the sewers breed them all.
+Q = chest item=bitter_root count=2 gold=40
+R = chest item=clotting_salve count=2 gold=60
+S = chest item=grave_lily gold=80
+T = chest item=menders_kit gold=50
+U = chest item=red_tonic count=2 gold=70
+V = chest item=blue_moss count=2 gold=120
+W = secret_wall
+// Shortcuts: the short way down from the sluices, barred on their side; the drawbridge over the sluice
+// pit between the culvert and the outfall, let down from the outfall's side; and the lift from the Sump
+// up to the cistern, fastened up there until you first ride it.
+X = door from=n
+Y = lever id=sluice_bridge
+Z = bridge lever=sluice_bridge hinge=e deck=0 on=_
+À = lift top=0 locked on=|
+// Dressing.
+Á = sluice_wheel
+Â = drain_pipe
+Ã = outfall_grate
+Ä = rat_nest
+Å = grate
+Æ = barrel
+Ç = crate
+È = bones
+É = cobweb
+Ê = chains
+Ë = light y=0.6 color=0.55,0.85,0.3 radius=4
+Ì = brazier radius=10
+Í = mushrooms

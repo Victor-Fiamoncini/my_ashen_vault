@@ -10,7 +10,15 @@ from ashen_vault.world import world as world_mod
 from ashen_vault.world.world import STATIC_PROPS, World
 from test_keep_world import FakeGame
 
-MAPS = ("ashen_cemetery", "harrowmere", "sunken_keep", "verdant_hollow", "cinderhold", "cinder_keep")
+MAPS = (
+    "ashen_cemetery",
+    "harrowmere",
+    "sunken_keep",
+    "verdant_hollow",
+    "cinderhold",
+    "cinder_keep",
+    "harrow_sewers",
+)
 # Props whose look follows their state (opened, broken, pulled, taken, kindled) or who speak.
 STATEFUL = {
     *world_mod.BREAKABLE_PROPS,

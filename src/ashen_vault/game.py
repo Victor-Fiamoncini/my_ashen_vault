@@ -877,6 +877,8 @@ class Game:
         if enemy.key:
             self.flags.add(enemy.key)
         self.world.drop_enemy_loot(enemy)
+        if self.world.split(enemy):
+            self.message(f"{t.called} bursts apart, and the pieces crawl on!")
         gold = random.choice(t.gold)
         self.player.inventory.gold += gold
         self.message(f"{t.name} destroyed. {t.exp} EXP, {gold} gold.")

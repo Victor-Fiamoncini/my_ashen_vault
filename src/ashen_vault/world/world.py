@@ -21,7 +21,15 @@ from ashen_vault.ai.spawns import spawn_enemies
 from ashen_vault.player import ailments, remnant
 from ashen_vault.player.player import Player
 from ashen_vault.player.spells import Spells
-from ashen_vault.render import cemetery_models, forge_models, fortress_props, models, prop_bake, town_models
+from ashen_vault.render import (
+    cemetery_models,
+    forge_models,
+    fortress_props,
+    models,
+    prop_bake,
+    sewer_models,
+    town_models,
+)
 from ashen_vault.render.mesh_builder import KINDLING, Batch, MeshBuilder
 from ashen_vault.render.rig import Rig
 from ashen_vault.util import rround
@@ -135,6 +143,7 @@ class Gout:
 
 
 INTERACT_RANGE = 2.6
+LADDER_BACK = 0.7  # metres a sewer ladder stands back from its tile's middle, against the wall behind
 DOOR_FRAME_SKY = 5.2  # an iron door's masonry under the open sky: tall enough to hide its raised leaf
 # Props you reach from further away: the Silent Bell hangs in the middle of a plinth you can't climb.
 INTERACT_REACH = {"silent_bell": 3.8}
@@ -280,6 +289,9 @@ WALL_PROPS = (
     "crypt_front",
     "shop_sign",
     "weapon_rack",
+    "drain_pipe",
+    "sluice_wheel",
+    "outfall_grate",
 )
 # Props drawn as far as the fog lets you see, however far that is: they make a skyline.
 LANDMARKS = (
@@ -314,6 +326,7 @@ STATIC_PROPS = frozenset(
         *("shop_sign", "forge_bellows", "grindstone", "town_statue", "forge_statue", "ore_cart"),
         *("roof_turret", "wall_tower", "rampart_bay"),
         *("weapon_rack", "armor_stand", "katana_stand", "bookcase", "drawers"),
+        *("sluice_wheel", "outfall_grate", "rat_nest"),
         "ash_mound",
         "spire",
     }
@@ -1279,6 +1292,13 @@ class World:
                 self._fire_one(enemy, kind, spread)
             self.game.sfx("spell")
             return
+        if kind == "bile":
+            # A fan of bile spewed from the gullet: four gobbets, the gaps between them wide enough
+            # to slip through.
+            for spread in (-0.36, -0.12, 0.12, 0.36):
+                self._fire_one(enemy, kind, spread)
+            self.game.sfx("hiss", 0.9)
+            return
         if kind == "spadeful":
             # A spadeful of grave ash flung in a fan of five clods: each that hits clogs your stride.
             for spread in (-0.44, -0.22, 0.0, 0.22, 0.44):
@@ -1299,7 +1319,7 @@ class World:
         )
         lead = enemy.radius / speed  # leaves from the edge of its body
         damage = enemy.type.damage
-        if kind in ("web", "cinders", "spadeful", "fireball"):
+        if kind in ("web", "cinders", "spadeful", "fireball", "bile"):
             damage = rround(damage * MOVES[kind][2])
         self.projectiles.append(
             Projectile(
@@ -1333,7 +1353,32 @@ class World:
             child.state = "chase"
             self.enemies.append(child)
         self.game.sfx("enemy_die", 0.5)
-        self.game.message(f"The {enemy.name} shrieks, and its brood answers.")
+        self.game.message(
+            f"{enemy.type.called} shrieks, and {'her' if enemy.type.proper else 'its'} brood answers."
+        )
+
+    def split(self, enemy):
+        """A slain splitter bursts into `split_count` of its `splits` type, spread round where it fell
+        and already after you. Returns them (none for a foe that does not split)."""
+        t = enemy.type
+        if not t.splits:
+            return []
+        type_ = EnemyTypes.get(t.splits)
+        y = self.enemy_y(enemy)
+        out = []
+        for i in range(t.split_count):
+            a = enemy.yaw + math.pi / 2 + i * 2 * math.pi / t.split_count
+            x = enemy.x + math.cos(a) * enemy.radius * 0.8
+            z = enemy.z + math.sin(a) * enemy.radius * 0.8
+            tx, tz = TileMap.tile_coord(x), TileMap.tile_coord(z)
+            if not collision.passable(self.map, tx, tz, y, blocked=self.blocker):
+                x, z = enemy.x, enemy.z
+            child = Enemy(type_, x, z, yaw=a)
+            child.state = "chase"
+            out.append(child)
+        self.enemies.extend(out)
+        self.game.sfx("hiss", 0.6)
+        return out
 
     def player_floor(self):
         return self.terrain.floor(self.player.x, self.player.z)
@@ -1606,7 +1651,7 @@ class World:
         if e.type.rise == "ash":
             if began:
                 self.game.sfx("rise")
-                name = e.name if e.name.startswith("The ") else f"The {e.name}"
+                name = e.type.called
                 self.game.message(f"{name} rises from the ashes!")
                 self.ash.emit(e.x, base, e.z, e.radius * 1.6, 50, band=0.2, ember_chance=0.7)
             self.ash.gather(e.x, base, e.z, e.radius, height, k, 90, dt)
@@ -2602,6 +2647,11 @@ class World:
                 forge_models.keep_door(rig, t)
             elif p.props.get("model") == "cemetery_gate":  # it swings open once its keeper falls
                 cemetery_models.cemetery_gate(rig, 1.0 if self.exit_open(p) else 0.0)
+            elif p.props.get("model") == "sewer_grate":
+                sewer_models.sewer_grate(rig, t)
+            elif p.props.get("model") == "sewer_ladder":  # set back against the wall behind it, if any
+                behind = self.map[p.tx - rround(math.cos(p.yaw)), p.tz - rround(math.sin(p.yaw))]
+                sewer_models.sewer_ladder(rig, t, self._ceil_h(p), LADDER_BACK if behind.solid else 0.0)
             else:
                 models.rope(rig, t)
         elif k == "spire":
@@ -2678,6 +2728,14 @@ class World:
             cemetery_models.grave_railing(rig, p.tx * 7 + p.tz * 3)
         elif k == "ash_mound":
             cemetery_models.ash_mound(rig, p.tx * 7 + p.tz * 3)
+        elif k == "drain_pipe":
+            sewer_models.drain_pipe(rig, t + p.tx, p.tx * 7 + p.tz * 3)
+        elif k == "sluice_wheel":
+            sewer_models.sluice_wheel(rig, p.tx * 7 + p.tz * 3)
+        elif k == "outfall_grate":
+            sewer_models.outfall_grate(rig, p.tx * 7 + p.tz * 3)
+        elif k == "rat_nest":
+            sewer_models.rat_nest(rig, p.tx * 7 + p.tz * 3)
 
     def _draw_town_prop(self, rig, p, k, t):
         seed = p.tx * 7 + p.tz * 3

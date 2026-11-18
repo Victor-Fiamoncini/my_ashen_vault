@@ -62,6 +62,9 @@ def all_textures():
         "ash_ground": ash_ground(),
         "ash_grass": ash_grass(),
         "ash_flagstone": ash_flagstone(),
+        "sewer_brick": sewer_brick(),
+        "sewer_vault": sewer_vault(),
+        "sludge": sludge(),
         "white": solid(255, 255, 255),
     }
 
@@ -932,5 +935,64 @@ def mist():
         streak = noise(x, y // 4, 16, 422) * 0.7 + noise(x, y, 8, 423) * 0.3
         density = (y / SIZE) * 1.15 * (0.55 + streak * 0.6)
         return [255, 255, 255, _stipple(x, y, density)]
+
+    return build(px)
+
+
+# --- the Harrow Sewers ---------------------------------------------------------------------------
+
+
+def _slimed(c, k):
+    """`c` filmed over with green-brown slime by `k` (0..1)."""
+    return [rround(c[0] + (58 - c[0]) * k), rround(c[1] + (76 - c[1]) * k), rround(c[2] + (36 - c[2]) * k)]
+
+
+def sewer_brick():
+    """Old red-brown sewer brick in black mortar, slime streaked down its face from the vault, a dark
+    tide line across its lower courses where the sludge has stood."""
+    base = bricks([104, 72, 58], [26, 24, 20], 501, rows=5, cols=2)
+
+    def px(x, y):
+        c = _rgb_at(base, x, y)
+        streak = noise(x, 0, 4, 502) * 0.7 + noise(x, y, 8, 503) * 0.3
+        drip = max(streak - 0.5, 0.0) / 0.5 * (1 - y / SIZE * 0.4)
+        c = _slimed(c, min(drip * 1.3, 0.85))
+        if y > 44:  # below the tide line: stained dark and greened
+            c = _slimed(tint(c, 0.7), 0.35 + 0.2 * noise(x, y, 4, 504))
+        elif 41 <= y <= 44:
+            c = tint([50, 54, 30], 0.8 + 0.3 * noise(x, y, 4, 505))  # the scum the tide left
+        if hash_(x, y, 506) > 0.997:
+            c = [118, 132, 80]  # a bead of wet light
+        return c
+
+    return build(px)
+
+
+def sewer_vault():
+    """The vault overhead: courses of dark wet brick, beaded with drips and furred with pale nitre."""
+    base = bricks([84, 62, 52], [20, 18, 16], 511, rows=4, cols=3)
+
+    def px(x, y):
+        c = _rgb_at(base, x, y)
+        if noise(x, y, 8, 512) > 0.66:
+            c = [rround(v + (150 - v) * 0.35) for v in c]  # nitre bloom
+        if hash_(x, y, 513) > 0.985:
+            c = [120, 140, 96]  # a drip about to fall
+        return _slimed(c, 0.2)
+
+    return build(px)
+
+
+def sludge():
+    """Thick brown-green sewage: swirled murk with rafts of yellow scum and the odd bubble."""
+
+    def px(x, y):
+        swirl = math.sin(x * 0.2 + noise(x, y, 8, 521) * 5) * math.sin(y * 0.16 + noise(x, y, 16, 522) * 3)
+        n = fbm(x, y, 523)
+        if noise(x, y, 4, 524) > 0.76:
+            return tint([110, 112, 52], 0.8 + n * 0.3)  # scum
+        if hash_(x, y, 525) > 0.99:
+            return [150, 150, 96]  # a bubble's glint
+        return tint([62, 58, 34], 0.75 + swirl * 0.12 + n * 0.3)
 
     return build(px)
