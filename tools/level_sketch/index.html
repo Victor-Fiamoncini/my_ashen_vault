@@ -1,0 +1,1484 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ashen Vault Level Sketch</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+Sans+SC:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+[hidden] { display: none !important; }
+
+/* A sketching bench: tools and kinds on the left, the canvas in metres in the middle, properties and layers
+   on the right. The canvas stays dark in both themes: the kinds' colours are chosen for a dark ground. */
+:root {
+  --bg: #ecebf0; --panel: #f7f6fa; --well: #e2e0e9; --line: #cfccd9;
+  --fg: #1f1d26; --muted: #615d70; --accent: #6b4fa0; --accent-ink: #ffffff;
+  --ok: #2f7a4a; --warn: #a3621a; --danger: #a33a3a;
+  --stage: #121117; --area: #1e1c25;
+  --f-display: "Alegreya Sans SC", "Trebuchet MS", sans-serif;
+  --f-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #16151b; --panel: #1e1c25; --well: #121117; --line: #33303f;
+  --fg: #e9e6f2; --muted: #9a95ad; --accent: #a58ae0; --accent-ink: #16121f;
+  --ok: #6cc28d; --warn: #e0a35c; --danger: #e07a7a; --stage: #0e0d12; --area: #1b1a22; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #16151b; --panel: #1e1c25; --well: #121117; --line: #33303f;
+  --fg: #e9e6f2; --muted: #9a95ad; --accent: #a58ae0; --accent-ink: #16121f;
+  --ok: #6cc28d; --warn: #e0a35c; --danger: #e07a7a; --stage: #0e0d12; --area: #1b1a22; color-scheme: dark }
+
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 13px;
+  padding: 10px 12px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; }
+* { box-sizing: border-box; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+header h1 { font-family: var(--f-display); font-weight: 700; font-size: 20px; letter-spacing: .04em; margin: 0; }
+#name { width: 200px; font-family: var(--f-mono); }
+.grow { flex: 1; }
+.row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.btn { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; }
+.btn:hover:not(:disabled) { border-color: var(--accent); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.danger { color: var(--danger); }
+.btn.danger.armed { background: var(--danger); color: var(--panel); border-color: var(--danger); }
+.btn.small { padding: 2px 7px; font-size: 11px; }
+select, input[type=text], input[type=number], textarea { background: var(--well); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; min-width: 0; }
+#status { font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+#status.ok { color: var(--ok); } #status.warn { color: var(--warn); }
+#dirty { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); display: inline-block; }
+
+main { flex: 1; min-height: 0; display: grid; grid-template-columns: 228px minmax(0, 1fr) 280px; gap: 10px; }
+.side { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+.side h2 { font-family: var(--f-display); font-weight: 500; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
+.tools { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.tool { background: var(--well); border: 1px solid var(--line); border-radius: 6px; padding: 5px 2px; font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.tool kbd, .toggle kbd { font-family: var(--f-mono); font-size: 10px; color: var(--muted); }
+.tool[aria-pressed=true], .toggle[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.tool[aria-pressed=true] kbd, .toggle[aria-pressed=true] kbd { color: inherit; opacity: .8; }
+.toggles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 6px; }
+.toggle { background: var(--well); border: 1px solid var(--line); border-radius: 6px; padding: 4px 2px; font-size: 11px; }
+.group-label { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 6px 0 2px 2px; }
+.palette { display: flex; flex-direction: column; gap: 1px; }
+.swatch { display: grid; grid-template-columns: 16px 1fr; gap: 7px; align-items: center; background: none; border: 1px solid transparent; border-radius: 6px; padding: 2px 5px; text-align: left; font-size: 12px; }
+.swatch:hover { background: var(--well); }
+.swatch[aria-pressed=true] { border-color: var(--accent); background: var(--well); }
+.chip { width: 16px; height: 16px; border-radius: 3px; border: 1px solid rgba(0,0,0,.35); }
+.chip.round { border-radius: 50%; display: grid; place-items: center; font-family: var(--f-mono); font-size: 9px; font-weight: 600; color: #16151b; }
+.hint { font-size: 11.5px; color: var(--muted); line-height: 1.45; margin: 0; }
+
+#stage { position: relative; background: var(--stage); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; min-height: 320px; touch-action: none; }
+#canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; user-select: none; }
+#stage[data-tool=select] #canvas { cursor: default; }
+#stage[data-tool=marker] #canvas, #stage[data-tool=text] #canvas { cursor: copy; }
+#stage:not([data-tool=select]):not([data-tool=marker]):not([data-tool=text]) #canvas { cursor: crosshair; }
+#stage.panning #canvas { cursor: grabbing; }
+#scalebar { position: absolute; left: 10px; bottom: 10px; color: #e9e6f2; font-family: var(--f-mono); font-size: 11px; pointer-events: none; }
+#scalebar div { height: 4px; background: #e9e6f2; border-radius: 1px; margin-top: 3px; }
+#zoombox { position: absolute; right: 8px; bottom: 8px; display: flex; gap: 4px; }
+#zoombox .btn { padding: 2px 9px; font-family: var(--f-mono); }
+.inline-text { position: absolute; z-index: 2; font-family: var(--f-display); font-size: 16px; padding: 3px 6px; width: 180px; transform: translate(-50%, -50%); }
+
+.field { display: flex; flex-direction: column; gap: 3px; }
+.field > label { font-size: 11px; color: var(--muted); }
+.field textarea { resize: vertical; min-height: 64px; }
+.field > input:not([type=range]), .field > select, .field > textarea { width: 100%; }
+.fields { display: flex; flex-direction: column; gap: 8px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+.colorrow { display: flex; gap: 6px; align-items: center; }
+.colorrow input[type=color] { width: 40px; height: 28px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: none; }
+.linkbtn { background: none; border: 0; padding: 0; color: var(--accent); font-size: 11.5px; text-decoration: underline; }
+.check { display: flex; gap: 6px; align-items: center; font-size: 12px; }
+
+.layer { display: grid; grid-template-columns: 22px 1fr auto; gap: 4px; align-items: center; padding: 3px 4px; border-radius: 6px; border: 1px solid transparent; }
+.layer.active { border-color: var(--accent); background: var(--well); }
+.layer .lname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; padding: 2px 0; }
+.layer .lmode { width: 22px; height: 22px; padding: 0; border-radius: 5px; border: 1px solid var(--line); background: var(--well); font-size: 12px; }
+.layer .acts { display: flex; gap: 2px; }
+.layer .acts button { padding: 0 6px; height: 22px; border-radius: 5px; border: 1px solid var(--line); background: var(--panel); font-size: 11px; }
+.layer .acts button.armed { background: var(--danger); color: var(--panel); border-color: var(--danger); }
+details.items { margin: 0 0 6px 26px; }
+details.items summary { font-size: 11px; color: var(--muted); cursor: pointer; }
+.ilist { list-style: none; margin: 2px 0 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+.ilist button { width: 100%; display: grid; grid-template-columns: 12px 1fr auto; gap: 6px; align-items: center; background: none; border: 0; border-radius: 5px; padding: 2px 4px; text-align: left; font-size: 12px; }
+.ilist button:hover, .ilist button[aria-current=true] { background: var(--well); }
+.ilist .chip { width: 12px; height: 12px; }
+.ilist span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ilist code { font-family: var(--f-mono); font-size: 10px; color: var(--muted); }
+
+footer { display: flex; gap: 14px; flex-wrap: wrap; font-family: var(--f-mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+dialog { background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 10px; padding: 16px; width: min(520px, calc(100vw - 32px)); }
+dialog::backdrop { background: rgba(10, 8, 16, .45); }
+dialog h3 { font-family: var(--f-display); margin: 0 0 10px; font-size: 17px; }
+dialog form { display: flex; flex-direction: column; gap: 10px; }
+dialog textarea { width: 100%; min-height: 200px; font-family: var(--f-mono); font-size: 11px; }
+.openlist { display: flex; flex-direction: column; gap: 2px; max-height: 300px; overflow-y: auto; }
+.openlist button { text-align: left; background: var(--well); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-family: var(--f-mono); font-size: 12px; }
+.openlist button:hover { border-color: var(--accent); }
+
+@media (max-width: 980px) {
+  html, body { height: auto; }
+  main { grid-template-columns: 1fr; }
+  #stage { height: 62vh; order: -1; }
+  .side { overflow: visible; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Level Sketch</h1>
+  <input type="text" id="name" aria-label="Sketch name" spellcheck="false">
+  <div class="row">
+    <button class="btn" id="newBtn">New</button>
+    <button class="btn" id="openBtn">Open</button>
+    <button class="btn primary" id="saveBtn" title="Ctrl+S">Save</button>
+    <button class="btn" id="exportBtn">Export SVG</button>
+    <button class="btn" id="undoBtn" title="Ctrl+Z">Undo</button>
+    <button class="btn" id="redoBtn" title="Ctrl+Shift+Z">Redo</button>
+  </div>
+  <div class="grow"></div>
+  <span id="dirty" title="Unsaved changes" hidden></span>
+  <span id="status" role="status"></span>
+</header>
+
+<main>
+  <aside class="side" aria-label="Tools and kinds">
+    <section>
+      <h2>Tools</h2>
+      <div class="tools" id="tools"></div>
+      <div class="toggles">
+        <button class="toggle" id="snapBtn" title="Snap to whole metres (Alt: 2 m) and to nearby corners">Snap <kbd>S</kbd></button>
+        <button class="toggle" id="gridBtn">Grid <kbd>G</kbd></button>
+        <button class="toggle" id="labelsBtn">Labels <kbd>⇧L</kbd></button>
+      </div>
+    </section>
+    <section>
+      <h2>Kinds</h2>
+      <div class="palette" id="kinds"></div>
+    </section>
+    <section>
+      <h2>Markers</h2>
+      <div class="palette" id="markers"></div>
+    </section>
+    <section>
+      <h2>Underlay</h2>
+      <div class="fields">
+        <div class="row">
+          <button class="btn small" id="ulFile">Load file…</button>
+          <button class="btn small" id="ulPaste">Paste…</button>
+          <button class="btn small" id="ulClear" hidden>Remove</button>
+        </div>
+        <div id="ulControls" class="fields" hidden>
+          <span class="hint" id="ulName"></span>
+          <label class="check"><input type="checkbox" id="ulShow" checked> Show <kbd style="font-family:var(--f-mono);font-size:10px;color:var(--muted)">U</kbd></label>
+          <div class="field"><label for="ulOpacity">Opacity</label><input type="range" id="ulOpacity" min="0.05" max="1" step="0.05" value="0.3"></div>
+        </div>
+        <p class="hint">Make one with <code>map_to_underlay.py &lt;map&gt;</code>: the game map is drawn faintly behind the sketch.</p>
+      </div>
+      <input type="file" id="ulInput" accept=".json,application/json" hidden>
+    </section>
+  </aside>
+
+  <div id="stage" data-tool="select">
+    <svg id="canvas" xmlns="http://www.w3.org/2000/svg" aria-label="Sketch canvas">
+      <rect id="area" x="0" y="0" fill="#1e1c25"/>
+      <g id="underlayG"></g>
+      <g id="gridG"></g>
+      <g id="layersG"></g>
+      <g id="overlayG"></g>
+    </svg>
+    <div id="scalebar"><span></span><div></div></div>
+    <div id="zoombox"><button class="btn" id="zoomOut" aria-label="Zoom out">−</button><button class="btn" id="zoomFit" title="Fit (0)">Fit</button><button class="btn" id="zoomIn" aria-label="Zoom in">+</button></div>
+  </div>
+
+  <aside class="side" aria-label="Properties and layers">
+    <section>
+      <h2 id="propsTitle">Sketch</h2>
+      <div id="props" class="fields"></div>
+    </section>
+    <section>
+      <div class="row" style="justify-content:space-between"><h2 style="margin:0">Layers</h2><button class="btn small" id="addLayer">+ Layer</button></div>
+      <div id="layers" style="margin-top:6px"></div>
+    </section>
+  </aside>
+</main>
+
+<footer>
+  <span id="cursor">—</span>
+  <span id="zoomInfo"></span>
+  <span id="snapInfo"></span>
+  <span class="grow"></span>
+  <span>Pan: middle-drag or space+drag · Zoom: wheel · Edit points: double-click a polygon or line</span>
+</footer>
+
+<dialog id="openDlg">
+  <form method="dialog">
+    <h3>Open a sketch</h3>
+    <div class="openlist" id="openList"></div>
+    <p class="hint" id="openHint"></p>
+    <div class="row"><button class="btn" type="button" id="openFolder">Choose sketches folder…</button><button class="btn" type="button" id="openFile">Open file…</button><div class="grow"></div><button class="btn" value="cancel">Close</button></div>
+  </form>
+</dialog>
+<dialog id="exportDlg">
+  <form method="dialog">
+    <h3>Export SVG</h3>
+    <label class="check"><input type="checkbox" id="exportUnderlay"> Include the underlay</label>
+    <div class="row"><div class="grow"></div><button class="btn" value="cancel">Cancel</button><button class="btn primary" value="ok">Export</button></div>
+  </form>
+</dialog>
+<dialog id="pasteDlg">
+  <form method="dialog">
+    <h3>Paste an underlay</h3>
+    <textarea id="pasteText" placeholder="The JSON map_to_underlay.py printed" spellcheck="false"></textarea>
+    <div class="row"><div class="grow"></div><button class="btn" value="cancel">Cancel</button><button class="btn primary" value="ok">Load</button></div>
+  </form>
+</dialog>
+<dialog id="confirmDlg">
+  <form method="dialog">
+    <h3 id="confirmTitle"></h3>
+    <p class="hint" id="confirmText"></p>
+    <div class="row"><div class="grow"></div><button class="btn" value="cancel">Cancel</button><button class="btn primary" value="ok" id="confirmOk">OK</button></div>
+  </form>
+</dialog>
+<input type="file" id="openInput" accept=".json,application/json" hidden>
+
+<script src="model.js"></script>
+<script src="storage.js"></script>
+<script>
+"use strict";
+const M = SketchModel;
+const $ = id => document.getElementById(id);
+const svg = $("canvas");
+const stage = $("stage");
+
+const TOOLS = [
+  ["select", "Select", "V"], ["rect", "Rect", "R"], ["ellipse", "Ellipse", "E"], ["polygon", "Polygon", "P"],
+  ["line", "Line", "L"], ["marker", "Marker", "M"], ["text", "Text", "T"], ["measure", "Measure", "D"],
+];
+const TARGET_MAPS = ["", "harrowmere", "verdant_hollow", "cinderhold", "cinder_keep", "sunken_keep", "ashen_cemetery"];
+const NUDGE = 0.5;
+const NUDGE_BIG = 2;
+const PASTE_OFFSET = 2;
+const VERTEX_SNAP = 0.75;
+const HIT_PX = 6;
+
+const S = {
+  sketch: M.newSketch("untitled"),
+  activeLayer: "l1",
+  selection: [],
+  tool: "select",
+  kind: "plaza",
+  markerKind: "npc",
+  snap: false,
+  showGrid: true,
+  showLabels: true,
+  view: { x: -10, y: -10, scale: 5 },
+  history: new M.History(150),
+  underlay: null, // { data, paths, opacity, show }
+  dirty: false,
+  drag: null,
+  draft: null, // polygon/line being drawn: { type, points }
+  measure: null,
+  editPoints: null, // id of the polygon or line whose points are being edited
+  selPoint: -1,
+  space: false,
+  clipboard: null,
+  hover: null,
+  fieldSession: false,
+  armedLayer: null,
+  openLayers: new Set(),
+};
+
+// ---------- Helpers ----------
+const fmt1 = n => (Math.round(n * 10) / 10).toFixed(1);
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const esc = M.escapeXml;
+const layerOf = id => S.sketch.layers.find(l => l.id === id);
+const activeLayer = () => layerOf(S.activeLayer) ?? S.sketch.layers[S.sketch.layers.length - 1];
+
+function findItem(id) {
+  for (const layer of S.sketch.layers) {
+    const index = layer.items.findIndex(it => it.id === id);
+    if (index >= 0) return { layer, item: layer.items[index], index };
+  }
+  return null;
+}
+function replaceItem(id, item) {
+  const f = findItem(id);
+  if (f) f.layer.items[f.index] = item;
+}
+const selectedItems = () => S.selection.map(id => findItem(id)?.item).filter(Boolean);
+const isShape = it => it.type !== "marker" && it.type !== "text";
+const kindName = it => (it.type === "marker" ? M.MARKER[it.kind]?.name : it.type === "text" ? "Text" : M.KIND[it.kind]?.name) ?? it.type;
+
+function setStatus(text, cls = "") {
+  const s = $("status");
+  s.textContent = text;
+  s.className = cls;
+}
+
+// The single gate every keyboard shortcut passes through: keys typed into a field belong to the field.
+function isTypingTarget(e) {
+  const t = e.target;
+  if (!t || !(t instanceof Element)) return false;
+  return !!t.closest("input, textarea, select, [contenteditable]") && !(t instanceof HTMLInputElement && ["checkbox", "range", "button", "color", "file"].includes(t.type));
+}
+
+// ---------- View ----------
+function stageSize() {
+  return [stage.clientWidth || 1, stage.clientHeight || 1];
+}
+function screenToWorld(clientX, clientY) {
+  const r = stage.getBoundingClientRect();
+  return [S.view.x + (clientX - r.left) / S.view.scale, S.view.y + (clientY - r.top) / S.view.scale];
+}
+function worldToScreen([x, y]) {
+  return [(x - S.view.x) * S.view.scale, (y - S.view.y) * S.view.scale];
+}
+function applyView() {
+  const [w, h] = stageSize();
+  svg.setAttribute("viewBox", `${S.view.x} ${S.view.y} ${w / S.view.scale} ${h / S.view.scale}`);
+}
+function zoomAt(scale, px, py) {
+  const [wx, wy] = [S.view.x + px / S.view.scale, S.view.y + py / S.view.scale];
+  S.view.scale = clamp(scale, 2, 200);
+  S.view.x = wx - px / S.view.scale;
+  S.view.y = wy - py / S.view.scale;
+  renderCanvas();
+}
+function zoomBy(f) {
+  const [w, h] = stageSize();
+  zoomAt(S.view.scale * f, w / 2, h / 2);
+}
+function fit() {
+  const items = S.sketch.layers.filter(l => l.visible).flatMap(l => l.items);
+  const f = M.frameOf(S.sketch, items);
+  if (S.underlay?.show) {
+    f.x1 = Math.max(f.x1, S.underlay.data.w * S.underlay.data.tile_m);
+    f.y1 = Math.max(f.y1, S.underlay.data.h * S.underlay.data.tile_m);
+  }
+  const [w, h] = stageSize();
+  const pad = 6;
+  S.view.scale = clamp(Math.min(w / (f.x1 - f.x0 + pad * 2), h / (f.y1 - f.y0 + pad * 2)), 2, 200);
+  S.view.x = (f.x0 + f.x1) / 2 - w / 2 / S.view.scale;
+  S.view.y = (f.y0 + f.y1) / 2 - h / 2 / S.view.scale;
+  renderCanvas();
+}
+
+// ---------- Changes and history ----------
+function snapshot() {
+  return M.serialize(S.sketch);
+}
+// Record the state before a change, apply it, redraw and autosave. `record: false` for the later steps of a drag.
+function change(mutator, opts = {}) {
+  if (opts.record !== false) S.history.record(snapshot());
+  mutator(S.sketch);
+  S.dirty = true;
+  render({ keepPanels: opts.keepPanels });
+  SketchStorage.autosave(S.sketch);
+}
+function restore(state) {
+  S.sketch = JSON.parse(state);
+  S.selection = S.selection.filter(id => findItem(id));
+  if (!layerOf(S.activeLayer)) S.activeLayer = S.sketch.layers[S.sketch.layers.length - 1].id;
+  if (S.editPoints && !findItem(S.editPoints)) S.editPoints = null;
+  S.dirty = true;
+  render();
+  SketchStorage.autosave(S.sketch);
+}
+function undo() {
+  const s = S.history.undo(snapshot());
+  if (s) restore(s);
+}
+function redo() {
+  const s = S.history.redo(snapshot());
+  if (s) restore(s);
+}
+function loadSketch(sketch, { fitView = true } = {}) {
+  S.sketch = sketch;
+  S.selection = [];
+  S.editPoints = null;
+  S.draft = null;
+  S.history.clear();
+  S.activeLayer = sketch.layers[sketch.layers.length - 1].id;
+  S.dirty = false;
+  if (fitView) fit();
+  render();
+}
+
+// ---------- Rendering ----------
+function render(opts = {}) {
+  renderCanvas();
+  if (!opts.keepPanels) renderPanels();
+  renderChrome();
+}
+
+function renderCanvas() {
+  applyView();
+  const area = $("area");
+  area.setAttribute("width", S.sketch.size_m[0]);
+  area.setAttribute("height", S.sketch.size_m[1]);
+  area.setAttribute("fill", getComputedStyle(document.documentElement).getPropertyValue("--area").trim() || "#1e1c25");
+  renderUnderlay();
+  renderGrid();
+  $("layersG").innerHTML = S.sketch.layers.filter(l => l.visible).map(l =>
+    `<g data-layer="${esc(l.id)}"${l.dimmed ? ' opacity="0.25"' : ""}>` +
+    l.items.map(it => M.itemSvg(it, { labels: S.showLabels })).join("") + "</g>").join("");
+  renderOverlay();
+  renderScalebar();
+}
+
+function renderGrid() {
+  const g = $("gridG");
+  if (!S.showGrid) { g.innerHTML = ""; return; }
+  const [w, h] = stageSize();
+  const x0 = S.view.x, y0 = S.view.y, x1 = x0 + w / S.view.scale, y1 = y0 + h / S.view.scale;
+  const out = [];
+  const lines = (step, color) => {
+    const parts = [];
+    for (let x = Math.ceil(x0 / step) * step; x <= x1; x += step) parts.push(`M${x} ${y0}V${y1}`);
+    for (let y = Math.ceil(y0 / step) * step; y <= y1; y += step) parts.push(`M${x0} ${y}H${x1}`);
+    out.push(`<path d="${parts.join("")}" stroke="${color}" stroke-width="1" vector-effect="non-scaling-stroke" fill="none"/>`);
+  };
+  if (S.view.scale >= 6) lines(2, "rgba(255,255,255,0.045)");
+  if (S.view.scale >= 1.2) lines(10, "rgba(255,255,255,0.11)");
+  g.innerHTML = out.join("");
+}
+
+function renderScalebar() {
+  const target = 120 / S.view.scale;
+  const nice = [1, 2, 5, 10, 20, 50, 100, 200].reduce((a, b) => (Math.abs(b - target) < Math.abs(a - target) ? b : a));
+  $("scalebar").querySelector("span").textContent = `${nice} m`;
+  $("scalebar").querySelector("div").style.width = `${nice * S.view.scale}px`;
+}
+
+const px = n => n / S.view.scale; // screen pixels in metres
+
+function handlesFor(it) {
+  const out = [];
+  if (it.type === "rect" || it.type === "ellipse") {
+    const w = it.w / 2, h = it.h / 2;
+    const at = { nw: [-w, -h], n: [0, -h], ne: [w, -h], e: [w, 0], se: [w, h], s: [0, h], sw: [-w, h], w: [-w, 0] };
+    for (const [name, p] of Object.entries(at)) out.push({ name, p: M.toWorld(it, p) });
+    out.push({ name: "rot", p: M.toWorld(it, [0, -h - px(24)]), stem: M.toWorld(it, [0, -h]) });
+  } else if (it.type === "polygon" || it.type === "line") {
+    const b = M.bounds(it);
+    const cx = (b.x0 + b.x1) / 2;
+    out.push({ name: "rot", p: [cx, b.y0 - px(24)], stem: [cx, b.y0] });
+  }
+  return out;
+}
+
+function outlineOf(it) {
+  const stroke = `fill="none" stroke="#a58ae0" stroke-width="1.5" vector-effect="non-scaling-stroke"`;
+  if (it.type === "rect") return `<polygon points="${M.corners(it).map(p => p.join(",")).join(" ")}" ${stroke}/>`;
+  if (it.type === "ellipse") {
+    const rot = it.rot ? ` transform="rotate(${it.rot} ${it.x} ${it.y})"` : "";
+    return `<ellipse cx="${it.x}" cy="${it.y}" rx="${it.w / 2}" ry="${it.h / 2}" ${stroke}${rot}/>`;
+  }
+  if (it.type === "polygon") return `<polygon points="${it.points.map(p => p.join(",")).join(" ")}" ${stroke}/>`;
+  if (it.type === "line") return `<polyline points="${it.points.map(p => p.join(",")).join(" ")}" ${stroke}/>`;
+  const b = M.bounds(it);
+  return `<rect x="${b.x0}" y="${b.y0}" width="${b.x1 - b.x0}" height="${b.y1 - b.y0}" ${stroke} stroke-dasharray="4 3"/>`;
+}
+
+function renderOverlay() {
+  const out = [];
+  const items = selectedItems();
+  for (const it of items) out.push(outlineOf(it));
+  if (items.length === 1 && !S.editPoints) {
+    const hs = px(4);
+    for (const h of handlesFor(items[0])) {
+      if (h.name === "rot") {
+        out.push(`<line x1="${h.stem[0]}" y1="${h.stem[1]}" x2="${h.p[0]}" y2="${h.p[1]}" stroke="#a58ae0" stroke-width="1" vector-effect="non-scaling-stroke"/>`);
+        out.push(`<circle cx="${h.p[0]}" cy="${h.p[1]}" r="${px(5)}" fill="#a58ae0" stroke="#16151b" stroke-width="1" vector-effect="non-scaling-stroke"/>`);
+      } else {
+        out.push(`<rect x="${h.p[0] - hs}" y="${h.p[1] - hs}" width="${hs * 2}" height="${hs * 2}" fill="#f0ece4" stroke="#6b4fa0" stroke-width="1" vector-effect="non-scaling-stroke"/>`);
+      }
+    }
+  }
+  if (S.editPoints) {
+    const it = findItem(S.editPoints)?.item;
+    if (it) it.points.forEach((p, i) => out.push(`<circle cx="${p[0]}" cy="${p[1]}" r="${px(i === S.selPoint ? 6 : 4.5)}" ` +
+      `fill="${i === S.selPoint ? "#a58ae0" : "#f0ece4"}" stroke="#16151b" stroke-width="1" vector-effect="non-scaling-stroke"/>`));
+  }
+  if (S.drag?.mode === "draw") out.push(`<g opacity="0.7">${M.itemSvg(S.drag.preview, { labels: false })}</g>`);
+  if (S.drag?.mode === "box") {
+    const [a, b] = [S.drag.start, S.drag.cur];
+    out.push(`<rect x="${Math.min(a[0], b[0])}" y="${Math.min(a[1], b[1])}" width="${Math.abs(b[0] - a[0])}" height="${Math.abs(b[1] - a[1])}" ` +
+      `fill="rgba(165,138,224,0.12)" stroke="#a58ae0" stroke-width="1" stroke-dasharray="4 3" vector-effect="non-scaling-stroke"/>`);
+  }
+  if (S.draft) {
+    const pts = S.hover ? [...S.draft.points, S.hover] : S.draft.points;
+    if (pts.length >= 2) {
+      const tmp = S.draft.type === "line"
+        ? { id: "draft", type: "line", kind: S.kind, width: 2, points: pts }
+        : { id: "draft", type: pts.length >= 3 ? "polygon" : "line", kind: S.kind, width: 0.3, points: pts };
+      out.push(`<g opacity="0.7">${M.itemSvg(tmp, { labels: false })}</g>`);
+    }
+    for (const p of S.draft.points) out.push(`<circle cx="${p[0]}" cy="${p[1]}" r="${px(3.5)}" fill="#f0ece4" stroke="#16151b" stroke-width="1" vector-effect="non-scaling-stroke"/>`);
+  }
+  if (S.measure) {
+    const [a, b] = S.measure;
+    const d = M.distance(a, b);
+    const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    out.push(`<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="#e0c070" stroke-width="2" stroke-dasharray="6 4" vector-effect="non-scaling-stroke"/>`);
+    out.push(`<text x="${mid[0]}" y="${mid[1] - px(10)}" font-size="${px(13)}" text-anchor="middle" fill="#e0c070" stroke="#16151b" stroke-width="${px(3)}" paint-order="stroke" font-family="JetBrains Mono, monospace">${fmt1(d)} m · ${fmt1(d / 2)} tiles</text>`);
+  }
+  $("overlayG").innerHTML = out.join("");
+}
+
+function renderChrome() {
+  $("undoBtn").disabled = !S.history.canUndo;
+  $("redoBtn").disabled = !S.history.canRedo;
+  $("dirty").hidden = !S.dirty;
+  if (document.activeElement !== $("name")) $("name").value = S.sketch.name;
+  $("snapInfo").textContent = S.snap ? "snap 1 m (Alt: 2 m)" : "snap off";
+  $("zoomInfo").textContent = `${fmt1(S.view.scale)} px/m`;
+  stage.dataset.tool = S.tool;
+  for (const b of document.querySelectorAll(".tool")) b.setAttribute("aria-pressed", b.dataset.tool === S.tool);
+  $("snapBtn").setAttribute("aria-pressed", S.snap);
+  $("gridBtn").setAttribute("aria-pressed", S.showGrid);
+  $("labelsBtn").setAttribute("aria-pressed", S.showLabels);
+}
+
+// ---------- Panels ----------
+function buildPalettes() {
+  $("tools").innerHTML = TOOLS.map(([id, name, key]) =>
+    `<button class="tool" data-tool="${id}" title="${name} (${key})">${name}<kbd>${key}</kbd></button>`).join("");
+  let html = "";
+  let group = "";
+  for (const k of M.KINDS) {
+    if (k.group !== group) { group = k.group; html += `<div class="group-label">${esc(group)}</div>`; }
+    html += `<button class="swatch" data-kind="${k.id}"><span class="chip" style="background:${k.color}"></span>${esc(k.name)}</button>`;
+  }
+  $("kinds").innerHTML = html;
+  $("markers").innerHTML = M.MARKER_KINDS.map(k =>
+    `<button class="swatch" data-marker="${k.id}"><span class="chip round" style="background:${k.color}">${esc(k.glyph)}</span>${esc(k.name)}</button>`).join("");
+}
+
+function renderPanels() {
+  for (const b of document.querySelectorAll("[data-kind]")) b.setAttribute("aria-pressed", b.dataset.kind === S.kind);
+  for (const b of document.querySelectorAll("[data-marker]")) b.setAttribute("aria-pressed", b.dataset.marker === S.markerKind);
+  renderProps();
+  renderLayersPanel();
+  renderUnderlayPanel();
+}
+
+const field = (label, input, id) => `<div class="field"><label${id ? ` for="${id}"` : ""}>${label}</label>${input}</div>`;
+const num = (f, v, step = 0.5, extra = "") => `<input type="number" data-f="${f}" id="f_${f}" step="${step}" value="${v === undefined || v === "" ? "" : Math.round(v * 1000) / 1000}"${extra}>`;
+const isMixed = (items, f) => !items.every(it => (it[f] ?? "") === (items[0][f] ?? ""));
+const shared = (items, f) => (isMixed(items, f) ? undefined : items[0][f]);
+
+function renderProps() {
+  const box = $("props");
+  if (box.contains(document.activeElement) && S.fieldSession) return; // don't pull the field from under the typist
+  const items = selectedItems();
+  if (!items.length) {
+    $("propsTitle").textContent = "Sketch";
+    const sk = S.sketch;
+    box.innerHTML =
+      field("Target map", `<select data-f="target_map" id="f_target_map">${TARGET_MAPS.map(m =>
+        `<option value="${m}"${m === sk.target_map ? " selected" : ""}>${m || "(none)"}</option>`).join("")}</select>`, "f_target_map") +
+      `<div class="grid2">${field("Width (m)", num("size_w", sk.size_m[0], 2, ' min="2"'), "f_size_w")}${field("Height (m)", num("size_h", sk.size_m[1], 2, ' min="2"'), "f_size_h")}</div>` +
+      field("Notes", `<textarea data-f="notes" id="f_notes" rows="6">${esc(sk.notes)}</textarea>`, "f_notes") +
+      `<p class="hint">${sk.layers.reduce((n, l) => n + l.items.length, 0)} items on ${sk.layers.length} layer(s). ` +
+      `Pick a tool and a kind on the left, then draw. Everything is measured in metres; one game tile is 2 m.</p>`;
+    return;
+  }
+  $("propsTitle").textContent = items.length === 1 ? kindName(items[0]) : `${items.length} items`;
+  const one = items.length === 1 ? items[0] : null;
+  const allMarkers = items.every(it => it.type === "marker");
+  const allShapes = items.every(isShape);
+  let html = "";
+  if (allShapes || allMarkers) {
+    const list = allMarkers ? M.MARKER_KINDS : M.KINDS;
+    const cur = shared(items, "kind");
+    html += field("Kind", `<select data-f="kind" id="f_kind">${isMixed(items, "kind") ? '<option value="" selected>(mixed)</option>' : ""}` +
+      list.map(k => `<option value="${k.id}"${k.id === cur ? " selected" : ""}>${esc(k.name)}</option>`).join("") + "</select>", "f_kind");
+  }
+  if (one?.type === "text") {
+    html += field("Text", `<input type="text" data-f="text" id="f_text" value="${esc(one.text)}">`, "f_text");
+    html += field("Size (m)", num("size", one.size, 0.5, ' min="0.5"'), "f_size");
+  } else {
+    html += field("Label", `<input type="text" data-f="label" id="f_label" value="${esc(shared(items, "label") ?? "")}" placeholder="${isMixed(items, "label") ? "(mixed)" : ""}">`, "f_label");
+  }
+  html += field("Note", `<textarea data-f="note" id="f_note" rows="3">${esc(shared(items, "note") ?? "")}</textarea>`, "f_note");
+  const colors = items.map(M.colorOf);
+  const overridden = items.some(it => typeof it.color === "string");
+  html += field("Colour", `<div class="colorrow"><input type="color" data-f="color" id="f_color" value="${/^#[0-9a-f]{6}$/i.test(colors[0]) ? colors[0] : "#9a95ad"}">` +
+    (overridden ? `<button class="linkbtn" type="button" data-act="resetColor">Reset to the kind's</button>` : `<span class="hint">from its kind</span>`) + "</div>", "f_color");
+  const op = shared(items, "opacity");
+  html += field(`Opacity <span id="opv">${isMixed(items, "opacity") ? "" : Math.round((op ?? 1) * 100) + "%"}</span>`,
+    `<input type="range" data-f="opacity" id="f_opacity" min="0.05" max="1" step="0.05" value="${op ?? 1}">`, "f_opacity");
+  if (items.every(it => it.type === "line")) html += field("Line width (m)", num("width", shared(items, "width"), 0.5, ' min="0.1"'), "f_width");
+  html += field("Height (m, optional)", num("height_m", shared(items, "height_m") ?? "", 0.5, ' placeholder="floor or wall height"'), "f_height_m");
+  if (one && (one.type === "rect" || one.type === "ellipse")) {
+    html += `<div class="grid3">${field("x", num("x", one.x), "f_x")}${field("y", num("y", one.y), "f_y")}${field("rot °", num("rot", one.rot, 5), "f_rot")}</div>`;
+    html += `<div class="grid2">${field("width", num("w", one.w, 0.5, ' min="0.5"'), "f_w")}${field("height", num("h", one.h, 0.5, ' min="0.5"'), "f_h")}</div>`;
+  } else if (one && (one.type === "marker" || one.type === "text")) {
+    html += `<div class="grid2">${field("x", num("x", one.x), "f_x")}${field("y", num("y", one.y), "f_y")}</div>`;
+  } else if (one) {
+    const b = M.bounds(one);
+    html += `<p class="hint">${one.points.length} points · ${fmt1(b.x1 - b.x0)} × ${fmt1(b.y1 - b.y0)} m. Double-click it to edit its points.</p>`;
+  }
+  const layerIds = new Set(items.map(it => findItem(it.id).layer.id));
+  html += field("Layer", `<select data-f="layer" id="f_layer">${layerIds.size > 1 ? '<option value="" selected>(mixed)</option>' : ""}` +
+    [...S.sketch.layers].reverse().map(l => `<option value="${esc(l.id)}"${layerIds.size === 1 && layerIds.has(l.id) ? " selected" : ""}>${esc(l.name)}</option>`).join("") + "</select>", "f_layer");
+  html += `<label class="check"><input type="checkbox" data-f="locked"${items.every(it => it.locked) ? " checked" : ""}> Locked (can't be moved on the canvas)</label>`;
+  html += `<div class="row"><button class="btn small" type="button" data-act="dup">Duplicate</button><button class="btn small danger" type="button" data-act="del">Delete</button></div>`;
+  box.innerHTML = html;
+}
+
+function applyField(f, raw, target) {
+  const items = selectedItems();
+  const numVal = raw === "" ? null : Number(raw);
+  if (!items.length) {
+    const sk = S.sketch;
+    if (f === "target_map") sk.target_map = raw;
+    else if (f === "notes") sk.notes = raw;
+    else if ((f === "size_w" || f === "size_h") && numVal > 0) sk.size_m[f === "size_w" ? 0 : 1] = numVal;
+    return;
+  }
+  if (f === "layer") {
+    const to = layerOf(raw);
+    if (!to) return;
+    for (const it of items) {
+      const found = findItem(it.id);
+      found.layer.items.splice(found.index, 1);
+      to.items.push(found.item);
+    }
+    S.activeLayer = to.id;
+    return;
+  }
+  for (const it of items) {
+    const found = findItem(it.id);
+    const next = { ...found.item };
+    if (f === "kind") { if (raw) { next.kind = raw; delete next.kind_was; } }
+    else if (f === "label" || f === "note" || f === "text") next[f] = raw;
+    else if (f === "color") next.color = raw;
+    else if (f === "opacity") next.opacity = clamp(numVal ?? 1, 0.05, 1);
+    else if (f === "locked") next.locked = target.checked;
+    else if (f === "height_m") { if (numVal === null || Number.isNaN(numVal)) delete next.height_m; else next.height_m = numVal; }
+    else if (numVal !== null && Number.isFinite(numVal)) {
+      if (f === "w" || f === "h" || f === "width" || f === "size") next[f] = Math.max(f === "width" ? 0.1 : M.MIN_SIZE, numVal);
+      else next[f] = numVal; // x, y, rot
+    }
+    found.layer.items[found.index] = next;
+  }
+}
+
+function onPropsInput(e) {
+  const f = e.target.dataset.f;
+  if (!f) return;
+  const typed = e.type === "input" && (e.target.tagName === "TEXTAREA" || ["text", "number", "range", "color"].includes(e.target.type));
+  if (typed) {
+    // One history record per focus, not per keystroke.
+    change(() => applyField(f, e.target.value, e.target), { record: !S.fieldSession, keepPanels: true });
+    S.fieldSession = true;
+    if (f === "opacity") $("opv").textContent = `${Math.round(Number(e.target.value) * 100)}%`;
+    if (f === "kind" || f === "color") renderLayersPanel();
+  } else if (e.type === "change") {
+    if (["text", "number", "range", "color"].includes(e.target.type) || e.target.tagName === "TEXTAREA") {
+      S.fieldSession = false;
+      renderPanels();
+      return;
+    }
+    change(() => applyField(f, e.target.type === "checkbox" ? e.target.checked : e.target.value, e.target));
+  }
+}
+
+function renderLayersPanel() {
+  const html = [...S.sketch.layers].reverse().map((l, ri) => {
+    const i = S.sketch.layers.length - 1 - ri;
+    const mode = !l.visible ? ["○", "Hidden"] : l.dimmed ? ["◐", "Dimmed"] : ["●", "Visible"];
+    const items = [...l.items].reverse().map(it =>
+      `<li><button data-item="${esc(it.id)}"${S.selection.includes(it.id) ? ' aria-current="true"' : ""}>` +
+      `<span class="chip${it.type === "marker" ? " round" : ""}" style="background:${M.colorOf(it)}"></span>` +
+      `<span>${esc(it.label || (it.type === "text" ? it.text : "") || kindName(it))}</span><code>${it.locked ? "🔒" : ""}${it.type}</code></button></li>`).join("");
+    return `<div class="layer${l.id === S.activeLayer ? " active" : ""}" data-layer="${esc(l.id)}">` +
+      `<button class="lmode" data-lact="mode" title="${mode[1]}: click for ${!l.visible ? "visible" : l.dimmed ? "hidden" : "dimmed"}">${mode[0]}</button>` +
+      `<span class="lname" data-lact="activate" title="Double-click to rename">${esc(l.name)}</span>` +
+      `<span class="acts"><button data-lact="up" title="Move up"${i === S.sketch.layers.length - 1 ? " disabled" : ""}>↑</button>` +
+      `<button data-lact="down" title="Move down"${i === 0 ? " disabled" : ""}>↓</button>` +
+      `<button data-lact="del" title="Delete layer"${S.armedLayer === l.id ? ' class="armed"' : ""}${S.sketch.layers.length === 1 ? " disabled" : ""}>${S.armedLayer === l.id ? "Delete?" : "✕"}</button></span></div>` +
+      `<details class="items" data-layer="${esc(l.id)}"${S.openLayers.has(l.id) ? " open" : ""}><summary>${l.items.length} item(s)</summary><ul class="ilist">${items}</ul></details>`;
+  }).join("");
+  $("layers").innerHTML = html;
+}
+
+function onLayersClick(e) {
+  const itemBtn = e.target.closest("[data-item]");
+  if (itemBtn) {
+    const found = findItem(itemBtn.dataset.item);
+    if (!found) return;
+    S.activeLayer = found.layer.id;
+    select(e.shiftKey ? toggled(found.item.id) : [found.item.id]);
+    return;
+  }
+  const act = e.target.closest("[data-lact]");
+  const row = e.target.closest("[data-layer]");
+  if (!act || !row) return;
+  const id = row.dataset.layer;
+  const i = S.sketch.layers.findIndex(l => l.id === id);
+  const a = act.dataset.lact;
+  if (a !== "del") S.armedLayer = null;
+  if (a === "activate") {
+    // Mark it in place: rebuilding the list here would swallow a double-click meant to rename it.
+    S.activeLayer = id;
+    for (const r of $("layers").querySelectorAll(".layer")) r.classList.toggle("active", r.dataset.layer === id);
+    renderOverlay();
+    return;
+  }
+  if (a === "mode") {
+    change(sk => {
+      const l = sk.layers[i];
+      if (!l.visible) { l.visible = true; l.dimmed = false; } else if (l.dimmed) { l.visible = false; l.dimmed = false; } else l.dimmed = true;
+      if (!l.visible || l.dimmed) S.selection = S.selection.filter(sid => findItem(sid)?.layer.id !== id);
+    });
+  } else if (a === "up" || a === "down") {
+    const j = a === "up" ? i + 1 : i - 1;
+    if (j < 0 || j >= S.sketch.layers.length) return;
+    change(sk => { [sk.layers[i], sk.layers[j]] = [sk.layers[j], sk.layers[i]]; });
+  } else if (a === "del") {
+    if (S.sketch.layers.length === 1) return;
+    if (S.armedLayer !== id) {
+      S.armedLayer = id;
+      renderLayersPanel();
+      setTimeout(() => { if (S.armedLayer === id) { S.armedLayer = null; renderLayersPanel(); } }, 3000);
+      return;
+    }
+    S.armedLayer = null;
+    change(sk => {
+      const gone = new Set(sk.layers[i].items.map(it => it.id));
+      sk.layers.splice(i, 1);
+      S.selection = S.selection.filter(sid => !gone.has(sid));
+      if (S.activeLayer === id) S.activeLayer = sk.layers[Math.min(i, sk.layers.length - 1)].id;
+    });
+  }
+}
+
+function renameLayer(row) {
+  const id = row.dataset.layer;
+  const l = layerOf(id);
+  const span = row.querySelector(".lname");
+  const input = document.createElement("input");
+  input.type = "text";
+  input.value = l.name;
+  span.replaceWith(input);
+  input.focus();
+  input.select();
+  let done = false;
+  const finish = commit => {
+    if (done) return;
+    done = true;
+    const name = input.value.trim();
+    if (commit && name && name !== l.name) change(sk => { sk.layers.find(x => x.id === id).name = name; });
+    else renderLayersPanel();
+  };
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") finish(true);
+    else if (e.key === "Escape") finish(false);
+  });
+  input.addEventListener("blur", () => finish(true));
+}
+
+function addLayer() {
+  const n = S.sketch.layers.length + 1;
+  const layer = M.newLayer(`Layer ${n}`);
+  change(sk => { sk.layers.push(layer); });
+  S.activeLayer = layer.id;
+  renderLayersPanel();
+}
+
+// ---------- Underlay ----------
+function renderUnderlay() {
+  const g = $("underlayG");
+  const u = S.underlay;
+  if (!u || !u.show) { g.innerHTML = ""; return; }
+  g.setAttribute("opacity", u.opacity);
+  g.innerHTML = u.svg;
+}
+function renderUnderlayPanel() {
+  const u = S.underlay;
+  $("ulControls").hidden = !u;
+  $("ulClear").hidden = !u;
+  if (!u) return;
+  $("ulName").textContent = `${u.data.name} · ${u.data.w}×${u.data.h} tiles (${u.data.w * u.data.tile_m}×${u.data.h * u.data.tile_m} m)`;
+  $("ulShow").checked = u.show;
+  $("ulOpacity").value = u.opacity;
+}
+
+function setUnderlay(data, { adoptSize = true } = {}) {
+  let svgText;
+  try { svgText = M.underlaySvg(data); } catch (err) { setStatus(err.message, "warn"); return false; }
+  S.underlay = { data, svg: svgText, opacity: S.underlay?.opacity ?? 0.3, show: true };
+  const size = [data.w * data.tile_m, data.h * data.tile_m];
+  const isDefault = S.sketch.size_m[0] === M.DEFAULT_SIZE[0] && S.sketch.size_m[1] === M.DEFAULT_SIZE[1];
+  if (S.sketch.underlay !== data.map || (adoptSize && isDefault)) {
+    change(sk => {
+      sk.underlay = data.map ?? "";
+      if (adoptSize && isDefault) sk.size_m = size;
+      if (!sk.target_map && TARGET_MAPS.includes(data.map)) sk.target_map = data.map;
+    });
+  }
+  SketchStorage.rememberUnderlay?.(data);
+  fit();
+  render();
+  setStatus(`Underlay: ${data.name}`, "ok");
+  return true;
+}
+function loadUnderlayText(text) {
+  try { return setUnderlay(JSON.parse(text)); } catch (err) { setStatus(err instanceof SyntaxError ? "That isn't JSON" : err.message, "warn"); return false; }
+}
+function clearUnderlay() {
+  S.underlay = null;
+  SketchStorage.rememberUnderlay?.(null);
+  render();
+}
+
+// ---------- Selection ----------
+function select(ids) {
+  S.selection = ids;
+  if (S.editPoints && !ids.includes(S.editPoints)) { S.editPoints = null; S.selPoint = -1; }
+  S.fieldSession = false;
+  render();
+}
+const toggled = id => (S.selection.includes(id) ? S.selection.filter(x => x !== id) : [...S.selection, id]);
+
+// Layers you can click on, topmost first: visible ones, and a dimmed one only while it is the active layer.
+const clickableLayers = () => [...S.sketch.layers].reverse().filter(l => l.visible && (!l.dimmed || l.id === S.activeLayer));
+
+function itemAt(pt) {
+  const tol = px(HIT_PX);
+  // Prefer the active layer, then the others, top down.
+  const layers = clickableLayers().sort((a, b) => (b.id === S.activeLayer) - (a.id === S.activeLayer));
+  for (const l of layers) {
+    for (let i = l.items.length - 1; i >= 0; i--) {
+      const it = l.items[i];
+      if (!it.locked && M.hitTest(it, pt, tol)) return { layer: l, item: it };
+    }
+  }
+  return null;
+}
+
+function handleAt(pt) {
+  const items = selectedItems();
+  if (items.length !== 1 || S.editPoints) return null;
+  const r = px(7);
+  return handlesFor(items[0]).find(h => M.distance(h.p, pt) <= r) ?? null;
+}
+
+function deleteSelection() {
+  if (S.editPoints && S.selPoint >= 0) {
+    const id = S.editPoints;
+    const it = findItem(id)?.item;
+    if (!it) return;
+    const next = M.removePoint(it, S.selPoint);
+    if (next === it) { setStatus(`A ${it.type} needs at least ${it.type === "polygon" ? 3 : 2} points`, "warn"); return; }
+    change(() => replaceItem(id, next));
+    S.selPoint = -1;
+    renderOverlay();
+    return;
+  }
+  if (!S.selection.length) return;
+  const gone = new Set(S.selection);
+  S.selection = [];
+  S.editPoints = null;
+  change(sk => { for (const l of sk.layers) l.items = l.items.filter(it => !gone.has(it.id)); });
+}
+
+function cloneItems(items, offset) {
+  return items.map(it => ({ ...M.moveItem(JSON.parse(JSON.stringify(it)), offset, offset),
+    id: M.newId(it.type === "marker" ? "m" : it.type === "text" ? "t" : "s") }));
+}
+function duplicate() {
+  const items = selectedItems();
+  if (!items.length) return;
+  const copies = cloneItems(items, PASTE_OFFSET);
+  change(() => activeLayer().items.push(...copies));
+  select(copies.map(c => c.id));
+}
+function copy() {
+  const items = selectedItems();
+  if (items.length) S.clipboard = JSON.parse(JSON.stringify(items));
+}
+function paste() {
+  if (!S.clipboard?.length) return;
+  const copies = cloneItems(S.clipboard, PASTE_OFFSET);
+  S.clipboard = copies;
+  change(() => activeLayer().items.push(...copies));
+  select(copies.map(c => c.id));
+}
+function reorder(dir) {
+  const items = selectedItems();
+  if (!items.length) return;
+  // One step up (dir 1, drawn later) or down (dir -1) within each item's layer, past an unselected neighbour.
+  const sel = new Set(S.selection);
+  change(sk => {
+    for (const l of sk.layers) {
+      const a = l.items;
+      const order = dir > 0 ? [...a.keys()].reverse() : [...a.keys()];
+      for (const i of order) {
+        const j = i + dir;
+        if (sel.has(a[i].id) && j >= 0 && j < a.length && !sel.has(a[j].id)) [a[i], a[j]] = [a[j], a[i]];
+      }
+    }
+  });
+}
+function nudge(dx, dy) {
+  const ids = selectedItems().filter(it => !it.locked).map(it => it.id);
+  if (!ids.length) return;
+  change(() => { for (const id of ids) replaceItem(id, M.moveItem(findItem(id).item, dx, dy)); });
+}
+
+// ---------- Snapping ----------
+function vertices(exclude) {
+  const out = [];
+  for (const l of clickableLayers()) for (const it of l.items) {
+    if (exclude.has(it.id)) continue;
+    if (it.type === "rect") out.push(...M.corners(it));
+    else if (it.points) out.push(...it.points);
+    else out.push([it.x, it.y]);
+  }
+  return out;
+}
+function snapIf(pt, e, exclude = new Set()) {
+  if (!S.snap) return pt;
+  let best = null;
+  let bestD = VERTEX_SNAP;
+  for (const v of vertices(exclude)) {
+    const d = M.distance(v, pt);
+    if (d <= bestD) { best = v; bestD = d; }
+  }
+  return best ? [best[0], best[1]] : M.snapPoint(pt, e.altKey ? 2 : 1);
+}
+
+// ---------- Tools ----------
+function setTool(t) {
+  if (S.draft && t !== S.tool) finishDraft();
+  S.tool = t;
+  S.measure = null;
+  if (t !== "select") { S.editPoints = null; S.selPoint = -1; }
+  render({ keepPanels: true });
+}
+
+function addItem(item) {
+  const layer = activeLayer();
+  if (!layer.visible) setStatus(`Layer "${layer.name}" was hidden: shown again to draw on it`, "warn");
+  change(() => { layer.visible = true; layer.items.push(item); });
+  S.selection = [item.id];
+  render();
+}
+
+function finishDraft() {
+  const d = S.draft;
+  S.draft = null;
+  if (!d) return;
+  const pts = d.points.filter((p, i) => i === 0 || M.distance(p, d.points[i - 1]) > 1e-6);
+  const need = d.type === "polygon" ? 3 : 2;
+  if (pts.length < need) { setStatus(`A ${d.type} needs at least ${need} points`, "warn"); renderOverlay(); return; }
+  const item = { id: M.newId("s"), type: d.type, kind: S.kind, points: pts };
+  if (d.type === "line") item.width = 2;
+  if (S.kind === "zone") item.opacity = 0.35;
+  addItem(item);
+}
+
+function textAt(pt) {
+  const [sx, sy] = worldToScreen(pt);
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "inline-text";
+  input.placeholder = "Text, then Enter";
+  input.style.left = `${sx}px`;
+  input.style.top = `${sy}px`;
+  stage.appendChild(input);
+  input.focus();
+  let done = false;
+  const finish = commit => {
+    if (done) return;
+    done = true;
+    const text = input.value.trim();
+    input.remove();
+    if (commit && text) addItem({ id: M.newId("t"), type: "text", text, x: pt[0], y: pt[1], size: 3 });
+  };
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") finish(true);
+    else if (e.key === "Escape") finish(false);
+    e.stopPropagation();
+  });
+  input.addEventListener("blur", () => finish(true));
+}
+
+// ---------- Pointer ----------
+function onPointerDown(e) {
+  if (e.target.closest(".inline-text")) return;
+  // Keep focus decisions ours: leave any field (so shortcuts work again) and stop the browser moving focus.
+  if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+  e.preventDefault();
+  const pt = screenToWorld(e.clientX, e.clientY);
+  if (e.button === 1 || (e.button === 0 && S.space)) {
+    S.drag = { mode: "pan", sx: e.clientX, sy: e.clientY, vx: S.view.x, vy: S.view.y };
+    stage.classList.add("panning");
+    svg.setPointerCapture(e.pointerId);
+    e.preventDefault();
+    return;
+  }
+  if (e.button !== 0) return;
+  // Double-clicks are detected here: redrawing between the two clicks replaces the element under the pointer,
+  // which keeps the browser from ever firing dblclick.
+  const now = performance.now();
+  const last = S.lastDown;
+  S.lastDown = { t: now, x: e.clientX, y: e.clientY };
+  if (last && now - last.t < 400 && Math.hypot(e.clientX - last.x, e.clientY - last.y) < 6) {
+    S.lastDown = null;
+    if (onDoubleClick(e)) return;
+  }
+  svg.setPointerCapture(e.pointerId);
+  const t = S.tool;
+  if (t === "rect" || t === "ellipse") {
+    const start = snapIf(pt, e);
+    S.drag = { mode: "draw", start, preview: boxItem(t, start, start, false) };
+  } else if (t === "polygon" || t === "line") {
+    if (!S.draft || S.draft.type !== t) S.draft = { type: t, points: [] };
+    S.draft.points.push(snapIf(pt, e));
+    renderOverlay();
+  } else if (t === "marker") {
+    const p = snapIf(pt, e);
+    addItem({ id: M.newId("m"), type: "marker", kind: S.markerKind, x: p[0], y: p[1] });
+  } else if (t === "text") {
+    S.drag = { mode: "text", pt: snapIf(pt, e) }; // the box opens on release, so the click can't steal its focus
+  } else if (t === "measure") {
+    const p = snapIf(pt, e);
+    S.measure = [p, p];
+    S.drag = { mode: "measure" };
+    renderOverlay();
+  } else {
+    selectDown(e, pt);
+  }
+}
+
+function selectDown(e, pt) {
+  // Points of the polygon or line being edited.
+  if (S.editPoints) {
+    const it = findItem(S.editPoints)?.item;
+    if (it) {
+      const r = px(8);
+      const i = it.points.findIndex(p => M.distance(p, pt) <= r);
+      if (i >= 0) {
+        S.selPoint = i;
+        S.drag = { mode: "point", id: it.id, index: i, orig: it, recorded: false };
+        renderOverlay();
+        return;
+      }
+      const seg = M.nearestSegment(it, pt);
+      if (seg.dist <= px(HIT_PX) + (it.type === "line" ? it.width / 2 : 0)) {
+        change(() => replaceItem(it.id, M.insertPoint(it, seg.index, snapIf(pt, e, new Set([it.id])))));
+        const next = findItem(it.id).item;
+        S.selPoint = seg.index + 1;
+        S.drag = { mode: "point", id: it.id, index: seg.index + 1, orig: next, recorded: true };
+        renderOverlay();
+        return;
+      }
+    }
+    S.editPoints = null;
+    S.selPoint = -1;
+  }
+  const h = handleAt(pt);
+  if (h) {
+    const it = selectedItems()[0];
+    if (it.locked) return;
+    S.drag = h.name === "rot"
+      ? { mode: "rotate", id: it.id, orig: it, center: M.center(it), a0: Math.atan2(pt[1] - M.center(it)[1], pt[0] - M.center(it)[0]), recorded: false }
+      : { mode: "resize", id: it.id, orig: it, handle: h.name, recorded: false };
+    return;
+  }
+  const hit = itemAt(pt);
+  if (hit) {
+    S.activeLayer = hit.layer.id;
+    if (e.shiftKey) { select(toggled(hit.item.id)); return; }
+    if (!S.selection.includes(hit.item.id)) select([hit.item.id]);
+    const ids = selectedItems().filter(it => !it.locked).map(it => it.id);
+    S.drag = { mode: "move", start: pt, origs: ids.map(id => findItem(id).item), anchor: snapIf(pt, e, new Set(ids)), recorded: false, moved: false };
+    return;
+  }
+  S.drag = { mode: "box", start: pt, cur: pt, shift: e.shiftKey };
+}
+
+function boxItem(type, a, b, square) {
+  let [x0, y0, x1, y1] = [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[0], b[0]), Math.max(a[1], b[1])];
+  if (square) {
+    const s = Math.max(x1 - x0, y1 - y0);
+    x1 = a[0] <= b[0] ? a[0] + s : a[0]; x0 = a[0] <= b[0] ? a[0] : a[0] - s;
+    y1 = a[1] <= b[1] ? a[1] + s : a[1]; y0 = a[1] <= b[1] ? a[1] : a[1] - s;
+  }
+  const item = { id: "draft", type, kind: S.kind, x: (x0 + x1) / 2, y: (y0 + y1) / 2, w: x1 - x0, h: y1 - y0, rot: 0 };
+  if (S.kind === "zone") item.opacity = 0.35;
+  return item;
+}
+
+function recordOnce(d) {
+  if (!d.recorded) { S.history.record(snapshot()); d.recorded = true; }
+}
+
+function onPointerMove(e) {
+  const pt = screenToWorld(e.clientX, e.clientY);
+  $("cursor").textContent = `x ${fmt1(pt[0])} m · tile ${Math.floor(pt[0] / 2)}, y ${fmt1(pt[1])} m · tile ${Math.floor(pt[1] / 2)}`;
+  const d = S.drag;
+  if (!d) {
+    if (S.draft) { S.hover = snapIf(pt, e); renderOverlay(); }
+    return;
+  }
+  if (d.mode === "pan") {
+    S.view.x = d.vx - (e.clientX - d.sx) / S.view.scale;
+    S.view.y = d.vy - (e.clientY - d.sy) / S.view.scale;
+    renderCanvas();
+  } else if (d.mode === "draw") {
+    d.preview = boxItem(S.tool, d.start, snapIf(pt, e), e.shiftKey);
+    renderOverlay();
+  } else if (d.mode === "measure") {
+    S.measure = [S.measure[0], snapIf(pt, e)];
+    renderOverlay();
+  } else if (d.mode === "box") {
+    d.cur = pt;
+    renderOverlay();
+  } else if (d.mode === "move") {
+    const ids = new Set(d.origs.map(it => it.id));
+    const cur = snapIf(pt, e, ids);
+    const [dx, dy] = S.snap ? [cur[0] - d.anchor[0], cur[1] - d.anchor[1]] : [pt[0] - d.start[0], pt[1] - d.start[1]];
+    if (!d.moved && Math.hypot(dx, dy) < px(2)) return;
+    d.moved = true;
+    recordOnce(d);
+    change(() => { for (const it of d.origs) replaceItem(it.id, M.moveItem(it, dx, dy)); }, { record: false, keepPanels: true });
+  } else if (d.mode === "resize") {
+    recordOnce(d);
+    const p = snapIf(pt, e, new Set([d.id]));
+    change(() => replaceItem(d.id, M.resizeItem(d.orig, d.handle, p, e.shiftKey)), { record: false, keepPanels: true });
+  } else if (d.mode === "rotate") {
+    recordOnce(d);
+    let deg = ((Math.atan2(pt[1] - d.center[1], pt[0] - d.center[0]) - d.a0) * 180) / Math.PI;
+    const o = d.orig;
+    if (o.type === "rect" || o.type === "ellipse") {
+      let rot = (o.rot || 0) + deg;
+      if (e.shiftKey) rot = M.snapAngle(rot, 15);
+      rot = ((rot % 360) + 540) % 360 - 180;
+      change(() => replaceItem(d.id, { ...o, rot: Math.round(rot * 100) / 100 }), { record: false, keepPanels: true });
+    } else {
+      if (e.shiftKey) deg = M.snapAngle(deg, 15);
+      change(() => replaceItem(d.id, M.rotateItem(o, deg)), { record: false, keepPanels: true });
+    }
+  } else if (d.mode === "point") {
+    recordOnce(d);
+    change(() => replaceItem(d.id, M.movePoint(d.orig, d.index, snapIf(pt, e, new Set([d.id])))), { record: false, keepPanels: true });
+  }
+}
+
+function onPointerUp(e) {
+  const d = S.drag;
+  S.drag = null;
+  stage.classList.remove("panning");
+  if (!d) return;
+  if (d.mode === "text") {
+    textAt(d.pt);
+  } else if (d.mode === "draw") {
+    const it = d.preview;
+    if (Math.max(it.w, it.h) >= 0.25) addItem({ ...it, id: M.newId("s") });
+    else renderOverlay();
+  } else if (d.mode === "measure") {
+    renderOverlay(); // the measure stays until the next one or a tool change
+  } else if (d.mode === "box") {
+    const [a, b] = [d.start, d.cur];
+    const small = Math.hypot(b[0] - a[0], b[1] - a[1]) < px(4);
+    if (small) { if (!d.shift) select([]); else renderOverlay(); return; }
+    const box = { x0: Math.min(a[0], b[0]), y0: Math.min(a[1], b[1]), x1: Math.max(a[0], b[0]), y1: Math.max(a[1], b[1]) };
+    const ids = clickableLayers().flatMap(l => M.itemsInBox(l.items.filter(it => !it.locked), box));
+    select(d.shift ? [...new Set([...S.selection, ...ids])] : ids);
+  } else if (d.recorded || d.mode === "move") {
+    render(); // refresh the panels with the new geometry
+  }
+}
+
+// Returns true when it handled the second click.
+function onDoubleClick(e) {
+  const pt = screenToWorld(e.clientX, e.clientY);
+  if ((S.tool === "polygon" || S.tool === "line") && S.draft) {
+    finishDraft(); // the first click already placed this point
+    return true;
+  }
+  if (S.tool !== "select") return false;
+  const hit = itemAt(pt);
+  if (hit && (hit.item.type === "polygon" || hit.item.type === "line")) {
+    S.editPoints = hit.item.id;
+    S.selPoint = -1;
+    select([hit.item.id]);
+    setStatus("Editing points: drag one, click an edge to add one, Delete removes the chosen one, Esc ends");
+    return true;
+  }
+  return false;
+}
+
+function onWheel(e) {
+  e.preventDefault();
+  const r = stage.getBoundingClientRect();
+  zoomAt(S.view.scale * Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top);
+}
+
+// ---------- Keyboard ----------
+function onKeyDown(e) {
+  const ctrl = e.ctrlKey || e.metaKey;
+  if (ctrl && e.key.toLowerCase() === "s") { e.preventDefault(); save(); return; }
+  if (isTypingTarget(e)) {
+    if (e.key === "Escape") e.target.blur();
+    return;
+  }
+  const k = e.key;
+  if (ctrl) {
+    const lk = k.toLowerCase();
+    if (lk === "z" && e.shiftKey) { e.preventDefault(); redo(); }
+    else if (lk === "z" || lk === "y") { e.preventDefault(); lk === "y" ? redo() : undo(); }
+    else if (lk === "d") { e.preventDefault(); duplicate(); }
+    else if (lk === "c") copy();
+    else if (lk === "v") paste();
+    else if (lk === "a") { e.preventDefault(); select(activeLayer().items.filter(it => !it.locked).map(it => it.id)); }
+    return;
+  }
+  if (e.altKey) return;
+  if (k === " ") { S.space = true; e.preventDefault(); return; }
+  if (S.draft) {
+    if (k === "Enter") { finishDraft(); return; }
+    if (k === "Escape") { S.draft = null; renderOverlay(); return; }
+    if (k === "Backspace") { S.draft.points.pop(); if (!S.draft.points.length) S.draft = null; renderOverlay(); e.preventDefault(); return; }
+  }
+  if (k === "Escape") {
+    if (S.editPoints) { S.editPoints = null; S.selPoint = -1; render(); }
+    else if (S.measure) { S.measure = null; renderOverlay(); }
+    else select([]);
+    return;
+  }
+  if (k === "Delete" || k === "Backspace") { e.preventDefault(); deleteSelection(); return; }
+  if (k.startsWith("Arrow")) {
+    e.preventDefault();
+    const n = e.shiftKey ? NUDGE_BIG : NUDGE;
+    nudge(k === "ArrowLeft" ? -n : k === "ArrowRight" ? n : 0, k === "ArrowUp" ? -n : k === "ArrowDown" ? n : 0);
+    return;
+  }
+  if (k === "L" && e.shiftKey) { S.showLabels = !S.showLabels; render({ keepPanels: true }); return; }
+  if (k === "[") { reorder(-1); return; }
+  if (k === "]") { reorder(1); return; }
+  if (k === "0") { fit(); return; }
+  if (k === "+" || k === "=") { zoomBy(1.25); return; }
+  if (k === "-") { zoomBy(0.8); return; }
+  const lk = k.toLowerCase();
+  const tool = TOOLS.find(t => t[2].toLowerCase() === lk);
+  if (tool && !e.shiftKey) { setTool(tool[0]); return; }
+  if (lk === "s") { S.snap = !S.snap; renderChrome(); return; }
+  if (lk === "g") { S.showGrid = !S.showGrid; render({ keepPanels: true }); return; }
+  if (lk === "u" && S.underlay) { S.underlay.show = !S.underlay.show; render(); }
+}
+function onKeyUp(e) {
+  if (e.key === " ") S.space = false;
+}
+
+// ---------- Files ----------
+function confirmBox(title, text, ok = "OK") {
+  return new Promise(resolve => {
+    const dlg = $("confirmDlg");
+    $("confirmTitle").textContent = title;
+    $("confirmText").textContent = text;
+    $("confirmOk").textContent = ok;
+    dlg.returnValue = "";
+    dlg.addEventListener("close", () => resolve(dlg.returnValue === "ok"), { once: true });
+    dlg.showModal();
+  });
+}
+const unsavedOk = () => (S.dirty ? confirmBox("Unsaved changes", `"${S.sketch.name}" has changes that aren't saved to a file yet. Leave them?`, "Leave them") : Promise.resolve(true));
+
+let saving = false;
+async function save() {
+  if (saving) return;
+  saving = true;
+  if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); // commit a field being typed in
+  setStatus("Saving…");
+  try {
+    const r = await SketchStorage.save(S.sketch, {
+      confirmOverwrite: name => confirmBox("Replace a sketch?", `${name} already exists in the sketches folder. Replace it with this sketch? (Or cancel and rename this one first.)`, "Replace"),
+    });
+    S.dirty = false;
+    renderChrome();
+    if (r.where === "folder") setStatus(`Saved to ${r.folder}/${r.files[0]}`, "ok");
+    else setStatus(`Downloaded ${r.files[0]} and ${r.files[1]} (${r.reason})`, "warn");
+  } catch (err) {
+    setStatus(err?.name === "AbortError" ? "Save cancelled" : `Couldn't save: ${err?.message ?? err}`, "warn");
+  } finally {
+    saving = false;
+  }
+}
+
+function opened(sketch, from) {
+  loadSketch(sketch);
+  SketchStorage.markKnown(`${sketch.name}.sketch.json`);
+  SketchStorage.autosave(sketch, { dirty: false });
+  setStatus(`Opened ${from}`, "ok");
+}
+
+async function fillOpenList() {
+  const names = await SketchStorage.list();
+  const folder = SketchStorage.folderName();
+  $("openList").innerHTML = names.map(n => `<button type="button" data-open="${esc(n)}">${esc(n.replace(/\.sketch\.json$/, ""))}</button>`).join("");
+  $("openHint").textContent = !SketchStorage.canUseFolder()
+    ? "This browser can't read a folder: open a .sketch.json file instead."
+    : names.length ? `In ${folder}/` : folder ? `No sketches in ${folder}/ yet (or it needs permission again: choose it).` : "Choose tools/level_sketch/sketches/ to list the sketches in it.";
+  $("openFolder").hidden = !SketchStorage.canUseFolder();
+}
+async function openDialog() {
+  if (!(await unsavedOk())) return;
+  $("openList").innerHTML = "";
+  $("openDlg").showModal();
+  await fillOpenList();
+}
+function exportSvg() {
+  $("exportUnderlay").checked = false;
+  $("exportUnderlay").disabled = !S.underlay;
+  $("exportDlg").showModal();
+}
+async function newSketch() {
+  if (!(await unsavedOk())) return;
+  loadSketch(M.newSketch("untitled"));
+  SketchStorage.autosave(S.sketch, { dirty: false });
+  setStatus("New sketch");
+}
+
+// ---------- Wiring ----------
+function wire() {
+  buildPalettes();
+  stage.addEventListener("pointerdown", onPointerDown);
+  stage.addEventListener("pointermove", onPointerMove);
+  stage.addEventListener("pointerup", onPointerUp);
+  stage.addEventListener("pointercancel", onPointerUp);
+  stage.addEventListener("wheel", onWheel, { passive: false });
+  stage.addEventListener("auxclick", e => e.preventDefault());
+  stage.addEventListener("pointerleave", () => { S.hover = null; if (S.draft) renderOverlay(); });
+  window.addEventListener("keydown", onKeyDown);
+  window.addEventListener("keyup", onKeyUp);
+  window.addEventListener("blur", () => { S.space = false; });
+  new ResizeObserver(() => renderCanvas()).observe(stage);
+
+  $("tools").addEventListener("click", e => { const b = e.target.closest("[data-tool]"); if (b) setTool(b.dataset.tool); });
+  $("kinds").addEventListener("click", e => {
+    const b = e.target.closest("[data-kind]");
+    if (!b) return;
+    S.kind = b.dataset.kind;
+    // Retype the selection only from the Select tool: while drawing, the last shape drawn stays selected,
+    // and picking the next shape's kind must not change it.
+    const shapes = S.tool === "select" ? selectedItems().filter(isShape) : [];
+    if (shapes.length) change(() => { for (const it of shapes) replaceItem(it.id, { ...findItem(it.id).item, kind: S.kind, kind_was: undefined }); });
+    else renderPanels();
+    if (!["rect", "ellipse", "polygon", "line"].includes(S.tool) && !shapes.length) setTool("rect");
+  });
+  $("markers").addEventListener("click", e => {
+    const b = e.target.closest("[data-marker]");
+    if (!b) return;
+    S.markerKind = b.dataset.marker;
+    const marks = S.tool === "select" ? selectedItems().filter(it => it.type === "marker") : [];
+    if (marks.length) change(() => { for (const it of marks) replaceItem(it.id, { ...findItem(it.id).item, kind: S.markerKind, kind_was: undefined }); });
+    else { renderPanels(); setTool("marker"); }
+  });
+  $("snapBtn").addEventListener("click", () => { S.snap = !S.snap; renderChrome(); });
+  $("gridBtn").addEventListener("click", () => { S.showGrid = !S.showGrid; render({ keepPanels: true }); });
+  $("labelsBtn").addEventListener("click", () => { S.showLabels = !S.showLabels; render({ keepPanels: true }); });
+  $("zoomIn").addEventListener("click", () => zoomBy(1.25));
+  $("zoomOut").addEventListener("click", () => zoomBy(0.8));
+  $("zoomFit").addEventListener("click", fit);
+  $("undoBtn").addEventListener("click", undo);
+  $("redoBtn").addEventListener("click", redo);
+
+  const props = $("props");
+  props.addEventListener("input", onPropsInput);
+  props.addEventListener("change", onPropsInput);
+  props.addEventListener("focusin", () => { S.fieldSession = false; });
+  props.addEventListener("focusout", () => { S.fieldSession = false; });
+  props.addEventListener("click", e => {
+    const a = e.target.closest("[data-act]")?.dataset.act;
+    if (a === "resetColor") change(() => { for (const it of selectedItems()) { const f = findItem(it.id); const n = { ...f.item }; delete n.color; f.layer.items[f.index] = n; } });
+    else if (a === "dup") duplicate();
+    else if (a === "del") deleteSelection();
+  });
+
+  $("layers").addEventListener("click", onLayersClick);
+  $("layers").addEventListener("dblclick", e => { const row = e.target.closest(".layer"); if (row && e.target.closest(".lname")) renameLayer(row); });
+  $("layers").addEventListener("toggle", e => {
+    const d = e.target.closest("details");
+    if (d) d.open ? S.openLayers.add(d.dataset.layer) : S.openLayers.delete(d.dataset.layer);
+  }, true);
+  $("addLayer").addEventListener("click", addLayer);
+
+  $("newBtn").addEventListener("click", newSketch);
+  $("openBtn").addEventListener("click", openDialog);
+  $("saveBtn").addEventListener("click", save);
+  $("exportBtn").addEventListener("click", exportSvg);
+  $("exportDlg").addEventListener("close", () => {
+    if ($("exportDlg").returnValue !== "ok") return;
+    const u = $("exportUnderlay").checked && S.underlay;
+    const svgText = M.toSvg(S.sketch, { underlayPaths: u ? `<g opacity="${S.underlay.opacity}">${S.underlay.svg}</g>` : "" });
+    SketchStorage.exportSvg(S.sketch.name, svgText);
+    setStatus(`Exported ${S.sketch.name}.svg`, "ok");
+  });
+  $("openList").addEventListener("click", async e => {
+    const b = e.target.closest("[data-open]");
+    if (!b) return;
+    try { opened(await SketchStorage.openNamed(b.dataset.open), b.dataset.open); $("openDlg").close(); }
+    catch (err) { setStatus(err.message, "warn"); $("openHint").textContent = err.message; }
+  });
+  $("openFolder").addEventListener("click", async () => {
+    try { await SketchStorage.pickFolder(); } catch (err) { if (err?.name !== "AbortError") $("openHint").textContent = err.message; }
+    await fillOpenList();
+  });
+  $("openFile").addEventListener("click", () => $("openInput").click());
+  $("openInput").addEventListener("change", async e => {
+    const f = e.target.files[0];
+    e.target.value = "";
+    if (!f) return;
+    try { opened(SketchStorage.parse(await f.text()), f.name); $("openDlg").close(); }
+    catch (err) { setStatus(err.message, "warn"); $("openHint").textContent = err.message; }
+  });
+  window.addEventListener("beforeunload", e => {
+    SketchStorage.flush();
+    if (S.dirty) { e.preventDefault(); e.returnValue = ""; }
+  });
+
+  $("ulFile").addEventListener("click", () => $("ulInput").click());
+  $("ulInput").addEventListener("change", async e => {
+    const f = e.target.files[0];
+    e.target.value = "";
+    if (f) loadUnderlayText(await f.text());
+  });
+  $("ulPaste").addEventListener("click", () => { $("pasteText").value = ""; $("pasteDlg").showModal(); });
+  $("pasteDlg").addEventListener("close", () => { if ($("pasteDlg").returnValue === "ok") loadUnderlayText($("pasteText").value); });
+  $("ulClear").addEventListener("click", clearUnderlay);
+  $("ulShow").addEventListener("change", e => { S.underlay.show = e.target.checked; renderCanvas(); });
+  $("ulOpacity").addEventListener("input", e => { S.underlay.opacity = Number(e.target.value); renderUnderlay(); });
+
+  $("name").addEventListener("change", () => change(sk => { sk.name = M.slug($("name").value); }));
+  $("name").addEventListener("keydown", e => { if (e.key === "Enter") e.target.blur(); });
+}
+
+wire();
+{
+  const restored = SketchStorage.restore();
+  loadSketch(restored ?? M.newSketch("untitled"));
+  if (restored) { S.dirty = SketchStorage.restoredDirty(); renderChrome(); }
+  const u = SketchStorage.restoreUnderlay();
+  if (u && restored?.underlay && u.map === restored.underlay) setUnderlay(u, { adoptSize: false });
+  // A restored sketch may never have been saved to a file: say so rather than guess.
+  setStatus(restored ? "Restored from this browser" : SketchStorage.canUseFolder() ? "Save writes into a folder you pick" : "Save downloads the files", restored ? "" : "");
+}
+</script>
+</body>
+</html>

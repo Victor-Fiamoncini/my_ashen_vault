@@ -162,6 +162,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `tests/` | pytest suite; `conftest.py` has a small test map |
 | `docs/logo/make_logo.py` | Regenerates `docs/logo/ashen_vault.svg` |
 | `tools/level_planner/` | A top-down level planner (`index.html`, open it in a browser; a design aid, not part of the game): paint tiles, pin NPCs, gates and wells, export JSON or an ASCII grid. `map_to_planner.py <map>` turns a game map into JSON for its Import box |
+| `tools/level_sketch/` | A free-form top-down sketchpad for level design (`index.html`, open it in Chrome; a design aid, not part of the game): shapes, lines and markers measured in metres, on layers, over an optional faint underlay of a game map (`map_to_underlay.py <map>`), saved as `<name>.sketch.json` + `.svg` in `sketches/` for planning a level's rebuild. Its logic is `model.js`, tested with `node --test tools/level_sketch/` (not in CI) |
 
 ## Conventions
 

@@ -15,3 +15,6 @@ htmlcov/
 # Editors and agents
 .idea/
 .claude/settings.local.json
+
+# Brainstorming mockups
+.superpowers/
