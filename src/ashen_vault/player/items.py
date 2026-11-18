@@ -14,6 +14,7 @@ class Item:
     speed: float | None = None
     heal: int | None = None
     mana: int | None = None
+    cures: tuple = ()  # consumables: the ailments it clears (see player/ailments.py)
     spell: str | None = None
     category: str | None = None  # weapons: see player/weapons.py
     level: int = 1  # lowest character level that can wield or wear it
@@ -474,6 +475,30 @@ class Items:
                 price=25,
                 mana=15,
                 desc="Glowing moss from the cliffs. Restores 15 MP.",
+            ),
+            Item(
+                id="bitter_root",
+                name="Bitter Root",
+                kind="consumable",
+                price=30,
+                cures=("poison",),
+                desc="A knuckle of root to chew. Draws out poison and its buildup.",
+            ),
+            Item(
+                id="clotting_salve",
+                name="Clotting Salve",
+                kind="consumable",
+                price=35,
+                cures=("bleed",),
+                desc="Grey paste in a clay pot. Seals the wounds before they burst.",
+            ),
+            Item(
+                id="grave_lily",
+                name="Grave Lily",
+                kind="consumable",
+                price=60,
+                cures=("rot",),
+                desc="A pale bloom from the cemetery's soil. Its scent lifts the rot.",
             ),
             Item(
                 id="menders_kit",

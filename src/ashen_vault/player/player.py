@@ -1,7 +1,7 @@
 import dataclasses
 import math
 
-from ashen_vault.player import burden, durability, guard, weapons
+from ashen_vault.player import ailments, burden, durability, guard, weapons
 from ashen_vault.player.combat import Gauge, Stamina
 from ashen_vault.player.inventory import HANDS, RIGHT, Inventory
 from ashen_vault.player.items import Items
@@ -47,6 +47,7 @@ class Player:
         self.ward_t = 0.0  # seconds left inside an Ashen Ward (blows land softer)
         self.webbed_t = 0.0  # seconds left caught in spider silk
         self.spore_t = 0.0  # seconds left choking on spores
+        self.ailments = ailments.Ailments()  # poison, bleed, rot and corrosion (`player/ailments.py`)
         self.swing_t = None
         self.swing_id = 0  # counts swings started, so the view can tell a restarted swing from the last
         self.swing_power = 0.0
@@ -86,6 +87,7 @@ class Player:
     def revive(self):
         """Back on your feet at a shrine: full HP, MP and ST, and every lingering effect cleared."""
         s = self.stats
+        self.cure()
         s.heal(s.max_hp)
         s.restore_mp(s.max_mp)
         self.stamina.fill()
@@ -221,7 +223,10 @@ class Player:
             if not (self.swinging and self.swing_hand == h):
                 gauge.update(dt)
         if not self.sprinting:
-            self.stamina.update(dt, (guard.REFILL if self.guarding else 1.0) * self.burden.refill)
+            refill = (guard.REFILL if self.guarding else 1.0) * self.burden.refill
+            if self.ailments.poisoned:
+                refill *= ailments.POISON_REFILL
+            self.stamina.update(dt, refill)
         self.since_sprint = 0.0 if self.sprinting else self.since_sprint + dt
         self.still_t += dt
         self.since_block += dt
@@ -446,6 +451,38 @@ class Player:
             if a:
                 self.wear(a.id, durability.ARMOR_WEAR)
 
+    # --- ailments --------------------------------------------------------------------
+
+    def afflict(self, kind, amount):
+        """Builds `kind` by `amount`; True when it takes hold. Rot lowers the HP cap at once (bleed
+        and corrosion are dealt by the world, which knows how to hurt and announce)."""
+        took = self.ailments.build(kind, amount)
+        if took and kind == "rot":
+            self.sync_rot()
+        return took
+
+    def cure(self, kind=None):
+        """Clears `kind`, or every ailment when None."""
+        self.ailments.clear(kind)
+        self.sync_rot()
+
+    def sync_rot(self):
+        """Sets the HP cap from rot, clipping HP that now sits above it."""
+        s = self.stats
+        s.cap_share = ailments.ROT_CAP if self.ailments.rotted else 1.0
+        s.hp = min(s.hp, s.hp_cap)
+
+    def corrode(self):
+        """Corrosion takes hold: every piece of gear held or worn wears by `CORRODE_WEAR`."""
+        inv = self.inventory
+        pieces = [inv.hand_item(h) for h in HANDS] + [inv.body_item(), inv.hands_item()]
+        seen = set()
+        for item in pieces:
+            if durability.max_durability(item) is None or item.id in seen:
+                continue
+            seen.add(item.id)
+            self.wear(item.id, ailments.CORRODE_WEAR)
+
     def to_h(self):
         return {
             "x": self.x,
@@ -460,4 +497,5 @@ class Player:
             "play_time": self.play_time,
             "stash": dict(self.stash),
             "stashed_spells": list(self.stashed_spells),
+            "ailments": self.ailments.to_h(),
         }

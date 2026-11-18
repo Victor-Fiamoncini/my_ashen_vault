@@ -13,6 +13,7 @@ class Stats:
         self.max_mp = max_mp
         self.strength = strength
         self.magic = magic
+        self.cap_share = 1.0  # the share of max HP you can heal up to (rot lowers it; not saved here)
 
     @staticmethod
     def exp_for(level):
@@ -21,6 +22,13 @@ class Stats:
     @property
     def next_level_exp(self):
         return Stats.exp_for(self.level)
+
+    @property
+    def hp_cap(self):
+        """The most HP you can have now: all of it, unless rot has lowered the cap."""
+        if self.cap_share >= 1:
+            return self.max_hp
+        return max(rround(self.max_hp * self.cap_share), 1)
 
     @property
     def dead(self):
@@ -37,13 +45,13 @@ class Stats:
             self.max_mp += 3
             self.strength += 1
             self.magic += 1
-            self.hp = self.max_hp
+            self.hp = self.hp_cap
             self.mp = self.max_mp
             gained += 1
         return gained
 
     def heal(self, amount):
-        self.hp = min(self.hp + amount, self.max_hp)
+        self.hp = min(self.hp + amount, self.hp_cap)
 
     def restore_mp(self, amount):
         self.mp = min(self.mp + amount, self.max_mp)

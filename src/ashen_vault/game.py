@@ -545,6 +545,7 @@ class Game:
             self._footstep()
 
         p.update_timers(dt)
+        self._update_ailments(dt)
         self._update_hands(dt)
         self._update_blows(dt)
         wheel = inp.wheel()
@@ -603,8 +604,22 @@ class Game:
         there, though you neither walk nor fight."""
         self._carry_player(dt)
         self.player.update_timers(dt)
+        self._update_ailments(dt)
         self._update_blows(dt)
         self._update_world(dt)
+
+    def _update_ailments(self, dt):
+        """Ailment meters drain, and poison bites (it can kill: see player/ailments.py)."""
+        p = self.player
+        if not p.alive:
+            return
+        was = p.ailments.poisoned
+        lost = p.ailments.update(dt, p.stats.max_hp)
+        if lost:
+            p.stats.hurt(lost)
+            self.sfx("hiss", 0.35)
+        if was and not p.ailments.poisoned and p.alive:
+            self.message("The poison runs its course.")
 
     def _axis(self, pos, neg):
         return (1 if self._input.down(pos) else 0) - (1 if self._input.down(neg) else 0)
@@ -962,6 +977,8 @@ class Game:
                 self.player.stats.heal(item.heal)
             if item.mana:
                 self.player.stats.restore_mp(item.mana)
+            for kind in item.cures:
+                self.player.cure(kind)
             self.sfx("pickup", 0.6)
             self.message(f"Used {item.name}.")
         elif item.kind == "scroll":

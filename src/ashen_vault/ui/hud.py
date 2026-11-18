@@ -7,6 +7,7 @@ import pyray as pr
 import raylib as rl
 from raylib import ffi
 
+from ashen_vault.player import ailments
 from ashen_vault.player.inventory import LEFT, RIGHT
 from ashen_vault.screen import ROW_H, ROW_TOP, H, W
 from ashen_vault.ui import atk_bar, logofont, smallfont, tinyfont
@@ -142,7 +143,8 @@ def hud(game):
     hud_box(bx, by, VITALS_W, HUD_BOX_H, edge=ward_edge(p))
     rows = by + VITALS_TOP  # three 5 px rows spread over the box, inset like the mouse's contents
     vx = bx + HUD_PAD + 1  # inside the 1 px trim, like every box's contents
-    vital("HP", vx, rows, s.hp / s.max_hp, (230, 120, 110), (190, 40, 40), s.hp)
+    cap = s.hp_cap / s.max_hp if s.hp_cap < s.max_hp else None
+    vital("HP", vx, rows, s.hp / s.max_hp, (230, 120, 110), (190, 40, 40), s.hp, cap=cap)
     vital("MP", vx, rows + VITAL_STEP, s.mp / s.max_mp, (120, 150, 230), (50, 80, 200), s.mp)
     st = p.stamina
     vital(
@@ -167,14 +169,50 @@ def hud(game):
     # on its wheel.
     mouse_hud(p, W - HUD_MARGIN - MOUSE_HUD_W, H - HUD_MARGIN - HUD_BOX_H)
 
+    # Above the vitals: a bar for each ailment building up or lingering in you.
+    kinds = p.ailments.building()
+    ailment_bars(p.ailments, kinds, bx, by - HUD_GAP)
+    lift = ailment_box_h(len(kinds)) + HUD_GAP if kinds else 0  # messages rise clear of them
+
     gold_counter(game)
     boss_bar(game)
-    messages(game)
-    prompt(game)
+    messages(game, lift)
+    prompt(game, lift)
     flash(p)
 
 
+AILMENT_BAR_X = tinyfont.width("BLD") + 3  # an ailment's bar starts after its three-letter label
+
+
+def ailment_box_h(n):
+    """Height of the ailments' box holding `n` rows, inset like the vitals box."""
+    return VITALS_TOP + n * VITAL_ROW_H + (n - 1) + HUD_PAD
+
+
+def ailment_bars(ail, kinds, x, bottom):
+    """One row per ailment in `kinds`, stacked up from `bottom` in a box as wide as the vitals: its
+    label and a bar of how close it is to taking hold. A lingering one (poison, rot) breathes."""
+    if not kinds:
+        return
+    h = ailment_box_h(len(kinds))
+    y = bottom - h
+    hud_box(x, y, VITALS_W, h)
+    vx = x + HUD_PAD + 1
+    w = VITALS_W - 2 * (HUD_PAD + 1) - AILMENT_BAR_X - 1
+    pulse = 0.5 + 0.5 * math.sin(pr.get_time() * 5)
+    for i, kind in enumerate(kinds):
+        k = ailments.KINDS[kind]
+        ry = y + VITALS_TOP + i * (VITAL_ROW_H + 1)
+        lingering = ail.active(kind)
+        rgb = k.rgb
+        if lingering:
+            rgb = tuple(rround(c + (255 - c) * 0.35 * pulse) for c in rgb)
+        tiny(k.label, vx, ry + (VITAL_ROW_H - tinyfont.HEIGHT) // 2, color(*rgb))
+        bar(vx + AILMENT_BAR_X, ry + 1, w, VITAL_BAR_H, ail.share(kind), rgb)
+
+
 WARD_EDGE_RGB = (245, 150, 60)
+ROT_GREY = (70, 64, 58)  # the HP rot has taken from you, at the bar's end
 
 
 def ward_edge(player):
@@ -186,11 +224,15 @@ def ward_edge(player):
     return color(*(rround(g + (w - g) * k) for g, w in zip(gold, WARD_EDGE_RGB, strict=True)))
 
 
-def vital(label, x, y, frac, label_rgb, bar_rgb, value=None):
-    """One compact row from `y` down: a bar in its dark rim, its label and number centred beside it."""
+def vital(label, x, y, frac, label_rgb, bar_rgb, value=None, cap=None):
+    """One compact row from `y` down: a bar in its dark rim, its label and number centred beside it.
+    `cap` greys the part of the bar past it (rot keeps HP below it)."""
     ty = y + (VITAL_ROW_H - tinyfont.HEIGHT) // 2
     tiny(label, x, ty, color(*label_rgb))
     bar(x + VITAL_BAR_X, y + 1, VITAL_BAR_W, VITAL_BAR_H, frac, bar_rgb)
+    if cap is not None:
+        cx = x + VITAL_BAR_X + rround(VITAL_BAR_W * clamp(cap, 0, 1))
+        pr.draw_rectangle(cx, y + 1, x + VITAL_BAR_X + VITAL_BAR_W - cx, VITAL_BAR_H, color(*ROT_GREY))
     if value is not None:
         tiny(str(value), x + VITAL_NUM_X, ty, DIM)
 
@@ -409,6 +451,21 @@ def item_icon(id_, cx, cy, t, alpha=255):
         pr.draw_circle(cx, cy, 3.5, color(60, 140, 190, rround(a * 0.3 * glow)))
         pr.draw_circle(cx - 1, cy + 1, 1.5, color(60, 140, 190, a))
         pr.draw_circle(cx + 1, cy - 1, 1.5, color(90, 170, 210, a))
+    elif id_ == "bitter_root":  # a gnarled brown root sprouting a green leaf
+        root = color(130, 90, 50, a)
+        _line(cx, cy, (-3, 3), (2, -1), 2, root)
+        _line(cx, cy, (0, 1), (-1, 4), 1, root)
+        _dot(cx, cy, 2, -3, color(120, 190, 60, a), 2, 2)
+    elif id_ == "clotting_salve":  # a squat clay pot, its grey paste showing
+        pr.draw_rectangle(cx - 3, cy - 1, 6, 4, color(150, 90, 60, a))
+        pr.draw_rectangle(cx - 2, cy - 2, 4, 1, color(190, 185, 175, a))
+        pr.draw_rectangle(cx - 3, cy + 3, 6, 1, color(100, 60, 40, a))
+    elif id_ == "grave_lily":  # a pale bloom on its stem, breathing faintly
+        glow = 0.6 + 0.4 * math.sin(t * 2)
+        pr.draw_circle(cx, cy - 1, 3.5, color(230, 230, 240, rround(a * 0.25 * glow)))
+        _line(cx, cy, (0, 0), (0, 4), 1, color(80, 120, 70, a))
+        for dx, dy in ((-2, -1), (2, -1), (0, -3)):
+            _dot(cx, cy, dx - 0.5, dy - 0.5, color(235, 235, 225, a), 2, 2)
     else:
         pr.draw_circle(cx, cy, 2, color(200, 200, 200, a))
 
@@ -1284,21 +1341,21 @@ def _boss_bar(boss, dy):
         pr.draw_rectangle(x + bw * q // 4, y, 1, bh, HUD_EDGE)
 
 
-def messages(game):
+def messages(game, lift=0):
     lines = game.messages[-3:]
     for i, (msg, age) in enumerate(lines):
         alpha = rround(clamp(255 * (5 - age), 0, 255)) if age > 4 else 255
         if alpha <= 0:
             continue
-        y = MESSAGE_Y - (len(lines) - 1 - i) * smallfont.LINE
+        y = MESSAGE_Y - lift - (len(lines) - 1 - i) * smallfont.LINE
         base, hi = color(230, 220, 190, alpha), color(*HIGHLIGHT_RGB, alpha)
         small_marked_centered(msg, W // 2, y + TEXT_DY, base, hi)
 
 
-def prompt(game):
+def prompt(game, lift=0):
     label = game.focus_label()
     if label:
-        small_centered(label, W // 2, PROMPT_Y + TEXT_DY, HIGHLIGHT)
+        small_centered(label, W // 2, PROMPT_Y - lift + TEXT_DY, HIGHLIGHT)
 
 
 def flash(player):
@@ -1307,6 +1364,11 @@ def flash(player):
     if player.spore_t > 0:
         # A sickly yellow-green haze while you choke on spores.
         pr.draw_rectangle(0, 0, W, H, color(150, 170, 60, rround(clamp(player.spore_t, 0, 1) * 70)))
+    if player.ailments.poisoned:  # a faint green breath at the edges while poison works
+        a = rround(18 + 14 * math.sin(pr.get_time() * 3))
+        edge = color(90, 160, 40, a)
+        for i in range(4):
+            pr.draw_rectangle_lines(i, i, W - 2 * i, H - 2 * i, edge)
     if player.hurt_t <= 0:
         return
     pr.draw_rectangle(0, 0, W, H, color(160, 0, 0, rround(clamp(player.hurt_t * 300, 0, 120))))

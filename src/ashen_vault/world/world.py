@@ -18,7 +18,7 @@ from ashen_vault.ai.enemy import (
 )
 from ashen_vault.ai.enemy_types import EnemyTypes
 from ashen_vault.ai.spawns import spawn_enemies
-from ashen_vault.player import remnant
+from ashen_vault.player import ailments, remnant
 from ashen_vault.player.player import Player
 from ashen_vault.player.spells import Spells
 from ashen_vault.render import cemetery_models, forge_models, fortress_props, models, prop_bake, town_models
@@ -91,6 +91,7 @@ class Projectile:
     effect: str | None = None
     dy: float = 0.0  # climb (or drop) per second: spells follow the view up and down
     homing: bool = False  # steers itself toward the nearest foe it can see (Arcane Motes)
+    inflicts: tuple = ()  # a foe's shot: the ailments it builds in you (`EnemyType.inflicts`)
 
 
 @dataclass(eq=False)
@@ -1027,18 +1028,42 @@ class World:
         """Returns how much of the blow got through a raised shield."""
         base = foe_harm(enemy.type.damage * mult * (0.85 + random.random() * 0.3))
         dmg = max(rround(base - self.player.inventory.defense * 0.5), 1)
-        return self.strike_player(dmg, enemy.name, enemy.x, enemy.z)
+        return self.strike_player(dmg, enemy.name, enemy.x, enemy.z, enemy.type.inflicts)
 
-    def strike_player(self, dmg, source, ax, az):
-        """A blow from (ax, az): a raised shield takes what it can before the rest lands.
-        Returns the damage that got through."""
+    def strike_player(self, dmg, source, ax, az, inflicts=()):
+        """A blow from (ax, az): a raised shield takes what it can before the rest lands, and only a
+        blow that gets through builds the ailments it `inflicts`. Returns the damage that got through."""
         taken, block = self.player.take_blow(dmg, ax, az)
         if block is not None and block.blocked:
             self.game.blocked(block)
         if taken > 0:
             self.player.wear_armor()  # a foe's blow wears what you wear; traps and falls don't
             self.game.hurt_player(taken, source)
+            for kind, amount in inflicts:
+                self.afflict_player(kind, amount)
         return taken
+
+    def afflict_player(self, kind, amount):
+        """Builds ailment `kind` in the player by `amount`; when it takes hold, it strikes
+        (see player/ailments.py). Returns True if it took hold."""
+        player = self.player
+        if not player.alive or not player.afflict(kind, amount):
+            return False
+        if kind == "poison":
+            self.game.sfx("hiss", 0.9)
+            self.game.message("You are {poisoned}!")
+        elif kind == "bleed":
+            self.game.sfx("bleed")
+            self.game.message("Your wounds {burst open}!")
+            self.game.hurt_player(ailments.bleed_burst(player.stats.max_hp), "Bleeding")
+        elif kind == "rot":
+            self.game.sfx("afflict")
+            self.game.message("{Rot} sets in. Your flesh greys.")
+        elif kind == "corrosion":
+            self.game.sfx("afflict", 1.3)
+            self.game.message("{Corrosion} eats at your gear!")
+            player.corrode()
+        return True
 
     def boss_rage(self, enemy):
         """A boss enters its second phase."""
@@ -1227,6 +1252,7 @@ class World:
                     hostile=True,
                     rgb=enemy.type.shot_rgb,
                     source=enemy.name,
+                    inflicts=enemy.type.inflicts,
                 )
             )
         self.game.sfx("bell", 0.9 if wave == 0 else 0.7)
@@ -1289,6 +1315,7 @@ class World:
                 rgb=(230, 230, 220) if web else ASH_CLOD if ash else enemy.type.shot_rgb,
                 source=enemy.name,
                 effect="web" if web else "ash" if ash else enemy.type.shot,
+                inflicts=enemy.type.inflicts,
             )
         )
 
@@ -1644,6 +1671,7 @@ class World:
                         pr_.source or "Something",
                         pr_.x - pr_.dx,
                         pr_.z - pr_.dz,
+                        pr_.inflicts,
                     )
                     if pr_.effect == "web":
                         player.webbed_t = WEB_TIME

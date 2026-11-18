@@ -5793,6 +5793,34 @@ def item(r, id_, t):
         ):
             r.part("sphere", x, y, z, d, d * 0.8, d, (60, 140, 190), glow=True)
         r.part("cyl", 0, -0.32, 0, 0.6, 0.06, 0.6, (70, 60, 44))
+    elif id_ == "bitter_root":
+        for x, y, ry, rz, d in (
+            (0, -0.05, 0, 0.5, 0.7),
+            (0.15, -0.25, 1.0, -0.7, 0.4),
+            (-0.18, 0.12, -0.5, 1.2, 0.35),
+        ):
+            r.part("cyl", x, y, 0, 0.12, d, 0.12, (120, 82, 48), ry=ry, rz=rz)
+        r.part("sphere", 0.12, 0.34, 0, 0.18, 0.06, 0.12, (110, 180, 60), rz=-0.45)
+    elif id_ == "clotting_salve":
+        r.part("cyl", 0, -0.12, 0, 0.6, 0.44, 0.6, (150, 90, 60))
+        r.part("cyl", 0, 0.12, 0, 0.66, 0.06, 0.66, (125, 72, 46))
+        r.part("cyl", 0, 0.16, 0, 0.5, 0.04, 0.5, (185, 180, 170))
+    elif id_ == "grave_lily":
+        r.part("cyl", 0, -0.2, 0, 0.05, 0.6, 0.05, (80, 120, 70))
+        for k in range(5):
+            a = k * math.tau / 5
+            r.part(
+                "sphere",
+                math.cos(a) * 0.14,
+                0.18,
+                math.sin(a) * 0.14,
+                0.2,
+                0.08,
+                0.12,
+                (235, 235, 225),
+                ry=-a,
+            )
+        r.part("sphere", 0, 0.2, 0, 0.1, 0.1, 0.1, (240, 220, 120), glow=True)
     elif id_ in ("menders_kit", "mend_gear"):
         menders_kit(r)
     elif Items.ALL.get(id_) and Items.get(id_).kind == "scroll":

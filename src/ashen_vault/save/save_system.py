@@ -1,6 +1,7 @@
 import json
 import os
 
+from ashen_vault.player.ailments import Ailments
 from ashen_vault.player.inventory import Inventory
 from ashen_vault.player.items import Items
 from ashen_vault.player.player import Player
@@ -85,6 +86,8 @@ class SaveSystem:
                 if key in Items.ALL:
                     player.stash[key] = player.stash.get(key, 0) + int(n)
             player.stashed_spells = list(p.get("stashed_spells") or [])
+            player.ailments = Ailments.from_h(p.get("ailments"))  # saves before ailments have none
+            player.sync_rot()
             if p.get("spell"):
                 player.equip_spell(p["spell"])
             return data["map"], player, set(data["flags"])

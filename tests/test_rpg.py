@@ -243,13 +243,19 @@ def test_cycle_spell_wraps_both_ways():
 def test_quick_item_cycles_every_consumable_carried_or_not():
     p = Player()
     assert p.quick_item().id == "red_tonic"
-    assert [i.id for i in p.quick_items()] == ["blue_moss", "red_tonic"]
-    assert p.cycle_quick().id == "blue_moss", "the wheel works even with empty pockets"
-    assert p.cycle_quick().id == "red_tonic"
-    assert p.cycle_quick(-1).id == "blue_moss"
-    p.inventory.add("red_tonic", 2)
-    assert p.quick_item().id == "blue_moss", "an empty slot stays selected"
-    assert p.cycle_quick().id == "red_tonic"
+    assert [i.id for i in p.quick_items()] == [
+        "bitter_root",
+        "blue_moss",
+        "clotting_salve",
+        "grave_lily",
+        "red_tonic",
+    ]
+    assert p.cycle_quick().id == "bitter_root", "the wheel works even with empty pockets"
+    assert p.cycle_quick().id == "blue_moss"
+    assert p.cycle_quick(-1).id == "bitter_root"
+    p.inventory.add("blue_moss", 2)
+    assert p.quick_item().id == "bitter_root", "an empty slot stays selected"
+    assert p.cycle_quick().id == "blue_moss"
 
 
 def test_equip_spell_readies_only_known_spells():

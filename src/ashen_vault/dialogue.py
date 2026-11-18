@@ -29,7 +29,7 @@ SHOPS = {
         "tower_shield",
         "blackened_plate",
     ],
-    "tamsin": ["red_tonic", "blue_moss"],
+    "tamsin": ["red_tonic", "blue_moss", "bitter_root", "clotting_salve", "grave_lily"],
     "corvane": ["katana", "moonless_tachi", "nodachi"],
 }
 SHOP_NAMES = {

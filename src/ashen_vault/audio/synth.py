@@ -304,6 +304,28 @@ def sounds():
         "kindle": gen(
             0.55, lambda t, p: (lowpass(0.25 + (1 - p) * 0.2) * 2.0 + noise() * 0.25) * env(p, 0.08)
         ),
+        # A wound bursting open (bleed takes hold): a wet tearing spurt over a dull thud.
+        "bleed": gen(
+            0.45,
+            lambda t, p: (
+                (
+                    lowpass(0.35) * 2.2 * max(1 - p * 2.5, 0.0)
+                    + math.sin(t * TAU * (110 - p * 60)) * 0.5 * (1 - p) ** 3
+                )
+                * env(p, 0.005)
+            ),
+        ),
+        # Rot or corrosion taking hold: a low sour groan under a dry rasp.
+        "afflict": gen(
+            0.7,
+            lambda t, p: (
+                (
+                    math.sin(t * TAU * (90 + 15 * math.sin(t * 7))) * 0.4
+                    + noise() * 0.25 * math.sin(p * math.pi)
+                )
+                * env(p, 0.08)
+            ),
+        ),
         # Venom sizzling, or mist breathed out (Veil of Mist).
         "hiss": gen(0.6, lambda t, p: noise() * 0.5 * math.sin(p * math.pi) * (0.6 + 0.4 * math.sin(t * 60))),
         # A crack of thunder: a sharp snap, then a rolling rumble (Thunder Spear).

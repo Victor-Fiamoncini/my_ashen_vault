@@ -69,6 +69,9 @@ class EnemyType:
     rise: str | None = None
     # What a blow on it sounds like: the `hit_<material>` sound (audio/synth.py, MATERIALS).
     material: str = "flesh"
+    # Ailments its blows and shots build in you when they get through: (kind, buildup) pairs, the
+    # buildup out of `ailments.FULL` (see player/ailments.py).
+    inflicts: tuple = ()
 
     @property
     def rooted(self):
@@ -116,6 +119,7 @@ class EnemyTypes:
                 height=0.4,
                 tall=0.7,
                 poise=0,
+                inflicts=(("poison", 30), ("corrosion", 35)),
             ),
             EnemyType(
                 id="cinder_wisp",
@@ -193,6 +197,7 @@ class EnemyTypes:
                 moves=("sweep", "pounce", "combo"),
                 phase_moves=("slam",),
                 rage="The Butcher roars and hacks wildly!",
+                inflicts=(("bleed", 45),),
             ),
             EnemyType(
                 id="mimic",
@@ -237,6 +242,7 @@ class EnemyTypes:
                 shot_rgb=(150, 210, 70),
                 shot="thorn",
                 poise=0,
+                inflicts=(("poison", 35),),
             ),
             EnemyType(
                 id="bark_husk",
@@ -303,6 +309,7 @@ class EnemyTypes:
                 poise=16,
                 moves=("sweep", "web", "pounce"),
                 brood="loom_brood",
+                inflicts=(("poison", 25),),
             ),
             EnemyType(
                 id="loom_brood",
@@ -319,6 +326,7 @@ class EnemyTypes:
                 radius=0.35,
                 height=0.75,
                 tall=0.6,
+                inflicts=(("poison", 30),),
             ),
             EnemyType(
                 id="gaoler",
@@ -339,6 +347,7 @@ class EnemyTypes:
                 poise=8,
                 # A hulking jailer who hauls you in on a hooked chain, then clubs you.
                 moves=("hook",),
+                inflicts=(("bleed", 30),),
             ),
             EnemyType(
                 id="bone_crawler",
@@ -358,6 +367,7 @@ class EnemyTypes:
                 tall=0.6,
                 # Lies as a heap of bones until you walk up to it, then skitters after you.
                 lurk=True,
+                inflicts=(("bleed", 30),),
             ),
             EnemyType(
                 id="forge_golem",
@@ -382,6 +392,7 @@ class EnemyTypes:
                 moves=("slam", "sweep"),
                 conductive=True,
                 fireproof=True,
+                inflicts=(("corrosion", 35),),
             ),
             EnemyType(
                 id="iron_bowman",
@@ -405,6 +416,7 @@ class EnemyTypes:
                 shot_rgb=(150, 150, 160),
                 shot="arrow",
                 conductive=True,
+                inflicts=(("bleed", 25),),
             ),
             EnemyType(
                 id="slag_hound",
@@ -423,6 +435,7 @@ class EnemyTypes:
                 tall=1.0,
                 moves=("pounce",),
                 fireproof=True,
+                inflicts=(("bleed", 30),),
             ),
             EnemyType(
                 id="brand",
@@ -506,6 +519,7 @@ class EnemyTypes:
                 radius=0.4,
                 height=0.85,
                 tall=1.7,
+                inflicts=(("rot", 20),),
             ),
             EnemyType(
                 id="mourner",
@@ -530,6 +544,7 @@ class EnemyTypes:
                 lurk=True,
                 moves=("fireball",),
                 shot_rgb=(255, 110, 40),
+                inflicts=(("rot", 30),),
             ),
             EnemyType(
                 id="sexton",
@@ -563,6 +578,7 @@ class EnemyTypes:
                 phase_moves=("knell",),
                 rage="The bell's note rings through the Sexton. Its ash catches fire!",
                 shot_rgb=(255, 150, 60),
+                inflicts=(("rot", 35),),
             ),
         ]
     }
