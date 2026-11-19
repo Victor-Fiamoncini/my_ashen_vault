@@ -965,6 +965,30 @@ def test_a_quick_boss_strikes_sooner():
     assert len(quick_world.struck) > len(world.struck)
 
 
+def test_a_heavy_foe_lands_its_blow_only_once_its_swing_has_followed_through():
+    """With an `impact`, a blow lands that long into the attack rather than as it starts, and the attack
+    holds that much longer; without one, nothing changes."""
+    import dataclasses
+
+    from ashen_vault.ai.enemy import ATTACK_TIMES
+
+    for impact in (0.0, 0.4):
+        e = Enemy(dataclasses.replace(EnemyTypes.get("bone_walker"), impact=impact), 0.0, 0.0)
+        world = FakeWorld(1.0, 0.0)
+        e.state, e.state_t, e.attack_kind, e._struck = "attack", 0.0, "melee", False
+        e._attack(world, 1.0)
+        assert world.strikes == (1 if impact == 0 else 0), impact
+        e.state_t = impact
+        e._attack(world, 1.0)
+        assert world.strikes == 1, impact
+        e.state_t = ATTACK_TIMES.get("melee", 0.2) + impact - 0.01
+        e._attack(world, 1.0)
+        assert e.state == "attack", impact  # still following through
+        e.state_t += 0.02
+        e._attack(world, 1.0)
+        assert e.state == "recover" and world.strikes == 1, impact
+
+
 # --- Old Harrowmere ------------------------------------------------------------------------------
 
 
@@ -1012,12 +1036,12 @@ def test_the_keystone_quakes_and_hurls_only_in_its_second_phase():
     keystone.hp = keystone.type.hp // 2 - 1
     keystone.update(0.05, world)
     assert keystone.phase2 and {"quake", "hurl"} <= set(keystone.cooldowns)
-    keystone.cooldowns = dict.fromkeys(keystone.cooldowns, 0.0)
-    keystone.cooldowns["quake"] = 99.0
+    keystone.cooldowns = dict.fromkeys(keystone.cooldowns, 99.0)
+    keystone.cooldowns["hurl"] = 0.0
     assert keystone._pick_move(world, 10.0) == "hurl"
     keystone._switch("chase")
     keystone._begin_windup("hurl")
-    tick(keystone, world, 2.0)
+    tick(keystone, world, 3.0)  # a slow, heavy throw
     assert world.fired == ["hurl"]
     keystone._switch("chase")
     keystone._begin_windup("quake")

@@ -59,11 +59,16 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   north wall: `--map harrow_sewers --at=41,5,-90 --flags pall_dead --script "wait:0.3 interact"` (go down;
   without the flag it says it is shut). Tiers: `--map old_harrowmere` (the Breach Landing, its `start`, the
   shrine at 6,6), `--at=13,5,50 --script "look_down:0.5"` (the overlook: the chasm, the towers and the lit
-  plaza far below), `--at=15,3,0` (the Cliff Stair, a sexton and a golem on it), `--at=32,3,180` (the
+  plaza far below), `--at=13,5,50 --script "look_up:0.5"` (the vault overhead), `--at=12,27,0 --script
+  "look_up:0.9"` (the shaft of daylight up to its crack in the vault), `--at=15,3,0` (the Cliff Stair, a sexton and a golem on it), `--at=32,3,180` (the
   terrace), `--at=31,9,90` (the bridge to the Bell Tower), `--at=24,12,180` (the Aqueduct), `--at=15,12,180`
   (the Colonnade), `--at=15,24,40` (the Drowned Plaza and its shaft of light), `--at=7,38,90` (the lift
   head at the gallery's end, fastened until ridden from below). Boss: `--at=22,39,90 --level 10 --script
-  "wait:4.5"` (the Keystone rising in its court; its doors at 21,38 and 12,42).
+  "wait:4.5"` (the Keystone rising in its court; its doors at 21,38 and 12,42); `--at=30,43,180 --level 10 --script
+  "wait:4.6"` sees the whole titan and its torch down the court's clear row, between the pillars;
+  `--at=22,39,90 --level 10 --smoke 480 --script "wait:4.5 back:1.5"` catches its first torch smash
+  bursting before it. The lift head's empty shaft, `--at=7,38,90 --script "wait:0.3 forward:1.2"`, is a
+  22 m fall you watch to the bottom (about 110 frames).
 - Vesperholm (`vesperholm`) lies behind the Vesper Gate in Harrowmere's north wall, at the head of the
   cathedral steps; it always stands open: `--map harrowmere --at=22,15,-90` (from the foot of the steps,
   the gate straight ahead up the porch), `--map harrowmere --at=22,2,-90 --script "wait:0.3 interact"`

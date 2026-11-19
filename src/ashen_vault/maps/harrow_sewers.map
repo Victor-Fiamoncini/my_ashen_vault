@@ -134,7 +134,7 @@ M = rat_matron
 N = sodden_pall
 O = door boss=pall_dead
 // Behind it, the breach the Pall's weight wore through the cistern's north wall: down into Old Harrowmere.
-Ñ = exit map=old_harrowmere at=3,3,0 label=Descend_into_Old_Harrowmere model=cistern_breach requires=pall_dead shut="Rubble chokes the breach. Something vast still stirs in the cistern." on=v
+Ñ = exit map=old_harrowmere at=3,3,0 label=Descend_into_Old_Harrowmere model=cistern_breach yaw=90 requires=pall_dead shut="Rubble chokes the breach. Something vast still stirs in the cistern." on=v
 // Her nest has a great door at each mouth: die in there and both give way to fog.
 Ù = door boss=matron_dead
 // Finds: ailments' remedies mostly, for the sewers breed them all.

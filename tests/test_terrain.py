@@ -752,7 +752,10 @@ def test_a_drop_past_fall_lethal_kills_but_a_lesser_one_only_hurts():
     run(h, body, 0.1)
     body.z += 1.0  # one stride over the edge
     hits, events = run(h, body, 0.05)
-    assert events == ["fell_dead"] and body.stats.hp == 0 and hits == []
+    assert events == ["plunge"] and h.fell_into == "drop" and body.stats.hp > 0  # you see yourself fall
+    hits, events = run(h, body, terrain.DROP_TIME_MAX)
+    assert events.count("fell_dead") == 1 and body.stats.hp == 0 and hits == []
+    assert body.y == pytest.approx(0.0)  # down at the foot of the drop
     _m, h = highland()
     body = Body(2, 3)
     body.y = 3.2
@@ -761,6 +764,32 @@ def test_a_drop_past_fall_lethal_kills_but_a_lesser_one_only_hurts():
     body.z += 1.0  # one stride over the edge
     hits, events = run(h, body, 0.05)
     assert events == ["landed"] and body.stats.hp > 0 and hits[0][1] == "The fall"
+
+
+def test_stepping_into_a_deep_empty_shaft_is_a_fall_you_see_until_the_lift_deck_stops_it():
+    """The lift waits 10 m down: stepping into its shaft from the top, you fall, alive, the view
+    dropping, until you hit its deck, which kills you."""
+    deep = SHAFT.replace(". = floor h=0 ceil=4", ". = floor h=4 ceil=8").replace("top=0", "top=4")
+    m = MapLoader(deep.replace("{extra}", ""), name="deep").parse()
+    h = terrain.Terrain(m)
+    (lift,) = h.platforms
+    assert lift.at == "low" and lift.deck == -6.0
+    body = Body(1, 1)
+    body.y = 4.0
+    ride(h, body, 0.1)
+    body.x += 0.8  # to the brink
+    ride(h, body, 0.05)
+    body.x += 0.6  # and one stride on, into the shaft
+    _hits, events = run(h, body, 0.05)
+    assert events == ["plunge"] and h.plunging and body.stats.hp > 0
+    _hits, events = run(h, body, 0.5)
+    assert "fell_dead" not in events and -6.0 < body.y < 4.0  # still on the way down
+    for _ in range(round(terrain.DROP_TIME_MAX / 0.05)):
+        if h.update(0.05, body, lambda *_: None) == "fell_dead":
+            break
+    assert body.stats.hp == 0
+    # It ended on the deck (which the brink's call plate summoned up toward you), not the shaft's floor.
+    assert body.y == pytest.approx(lift.deck, abs=0.15) and lift.deck > -6.0
 
 
 def test_an_empty_shaft_is_a_drop_from_above_but_no_way_under_a_raised_cage():

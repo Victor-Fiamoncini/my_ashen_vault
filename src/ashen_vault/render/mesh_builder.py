@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from ashen_vault.util import rround
 from ashen_vault.world import sea
 from ashen_vault.world.tile_map import TileMap
+from ashen_vault.world.vault import Vault
 
 
 @dataclass
@@ -197,6 +198,7 @@ class MeshBuilder:
         self.ambient = map_.meta.get("ambient", [0.2, 0.2, 0.2])
         self.batches = defaultdict(Batch)
         self.roofs = map_.meta.get("roofs") == "true"
+        self.vault = Vault.of(map_)  # a cavern's roof of rock over the whole map (`world/vault.py`)
         # On a map whose sea is open (`world/sea.py`), the deep water and the far water past the grid's
         # edge go into a batch of their own, which `World` draws with the sea's thinner fog.
         self.open_sea = sea.is_open(map_)
@@ -229,6 +231,10 @@ class MeshBuilder:
             if e.kind in KINDLING and "unlit" in e.props and not (lit and lit(e)):
                 continue
             lights.append(MeshBuilder.light_for(map_, e))
+        vault = Vault.of(map_)
+        if vault is not None and (crack := vault.crack_light()) is not None:
+            x, y, z, radius, color = crack
+            lights.append(Light(x, y, z, radius, color))  # the daylight on the rock round the crack
         return lights + MeshBuilder.lava_lights(map_)
 
     @staticmethod
@@ -307,7 +313,27 @@ class MeshBuilder:
                 self._build_open(tx, tz, tile)
         if self.open_sea:
             self._build_far_sea()
+        if self.vault is not None:
+            self._build_vault()
         return self
+
+    def _build_vault(self):
+        """The cavern's vault: a ceiling of rock in SEG cells over every tile it covers, each corner
+        at the vault's height there (lumps, stalactites), the cells in its crack left open."""
+        v = self.vault
+        n = rround(T / SEG)
+        for tx, tz, tile in self.map.each_tile():
+            if not v.covers(tile):
+                continue
+            for i in range(n):
+                for j in range(n):
+                    ax, az = tx * T + i * SEG, tz * T + j * SEG
+                    if v.in_crack(ax + SEG / 2, az + SEG / 2):
+                        continue
+                    corners = ((ax, az), (ax, az + SEG), (ax + SEG, az + SEG), (ax + SEG, az))
+                    pts = [(x, v.height_at(x, z), z) for x, z in corners]
+                    uvs = [(x / T, z / T) for x, z in corners]
+                    self._quad(v.tex, pts, uvs, (0.0, -1.0, 0.0), 0.75)
 
     def _build_far_sea(self):
         """The open water past the grid's edge, lit by the ambient light alone (no lamp reaches it)."""

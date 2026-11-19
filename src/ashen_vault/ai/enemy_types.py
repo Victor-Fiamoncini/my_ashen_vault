@@ -87,6 +87,10 @@ class EnemyType:
     # How quick it fights: its windups, recovers, move cooldowns and combo gaps are scaled by this
     # (below 1 is faster). Windups never drop below `enemy.MIN_WINDUP`.
     tempo: float = 1.0
+    # Seconds into an attack before its blow lands (and its move goes off): a giant's heavy swing
+    # follows through before it strikes, rather than snapping down at once. The attack pose holds
+    # this much longer as well.
+    impact: float = 0.0
 
     @property
     def rooted(self):
@@ -875,11 +879,15 @@ class EnemyTypes:
                 id="keystone",
                 material="stone",
                 name="The Keystone",
-                # The giant the first city was raised on: it bore the foundations on its back, and when
-                # the city sank it lay down under the rubble. It rises out of the ruin when you step into
-                # its court, slams its fists and sweeps them all round; at half HP its shell splits on an
-                # ember core, and it stamps the ground so a ring of shock runs out (step in under it, or
-                # stand well off) and hurls masonry at you from afar.
+                # The giant the first city was raised on: a titan of its foundation stone, who bore the
+                # city up and held the torch that lit its streets, and when the city sank lay down under
+                # the rubble. It rises out of the ruin when you step into its court. It is slow, every
+                # swing heaved through before it lands (`tempo`, `impact`): it slams its fists, sweeps
+                # them all round and brings its torch down before it in a great burst of fire. At half HP
+                # its shell bursts on an ember core: it stamps the ground so a ring of shock runs out
+                # (step in under it, or stand well off), hurls masonry at you from afar, drags its torch
+                # along the floor in a line of fire (step aside), shakes it overhead so embers rain down
+                # round you, and drives it into the ground so rings of fire run out from it.
                 hp=380,
                 speed=0.9,
                 damage=22,
@@ -890,8 +898,8 @@ class EnemyTypes:
                 exp=260,
                 gold=range(120, 137),
                 radius=1.7,
-                height=4.6,
-                tall=6.0,
+                height=6.5,
+                tall=6.8,
                 boss=True,
                 dead_flag="keystone_dead",
                 rise="ash",
@@ -900,12 +908,14 @@ class EnemyTypes:
                 turn_rate=1.4,
                 back_mult=1.5,
                 brittle=True,
-                moves=("slam", "sweep"),
-                phase_moves=("quake", "hurl"),
-                rage="The Keystone's shell splits, and an ember core glows through the cracks!",
+                moves=("slam", "sweep", "torch_smash"),
+                phase_moves=("quake", "hurl", "breath", "cinder_rain", "ember_nova"),
+                tempo=1.4,
+                impact=0.45,
+                rage="The Keystone's stone shell bursts apart, and the giant burns on like an ember!",
                 shot="rubble",
                 shot_rgb=(150, 132, 104),
-                mouth=4.2,
+                mouth=5.0,
             ),
             # --- Vesperholm, the Moonbound City ----------------------------------------------------
             EnemyType(

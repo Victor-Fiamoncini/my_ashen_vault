@@ -28,6 +28,7 @@ FALL_SAFE = 1.8  # metres you can drop without getting hurt
 FALL_PER_M = 15  # HP per metre dropped past FALL_SAFE
 FALL_LETHAL = 8.0  # metres: a drop this far kills you outright
 PLUNGE_TIME = 1.2  # seconds you fall into a chasm before the fall kills you
+DROP_TIME_MAX = 6.0  # a lethal drop off an edge lasts until you hit the bottom; no drop is longer
 DROWN_TIME = 1.6  # seconds deep water takes to drag you under for good
 DROWN_SINK = 1.2  # m/s you go down through deep water: slower than a fall
 DROWN_DEPTH = 1.3  # metres under the water's floor level your feet sink to, the eye just above it
@@ -694,6 +695,8 @@ class Terrain:
                 return self._plunge(body)
             # A chasm floor at your feet (the bottom of an empty lift shaft) is only ground.
 
+        if self._lethal_drop(body):
+            return self._plunge(body, into="drop")
         landed = self._landing(body, hurt)
         event = event or landed
         event = self._spores(dt, body, hurt) or event
@@ -710,6 +713,17 @@ class Terrain:
             # A thin wall's margin: its tile's middle is the slab, so remember where you stand.
             self.safe = (body.x, body.z) if self.map.tile_at(*safe).solid else safe
         return event
+
+    def _lethal_drop(self, body):
+        """Did you just step off an edge (a lift's deck, a ledge, into an empty shaft) over a drop of
+        FALL_LETHAL or more? Then you fall it, plainly, before it kills you (`_plunge`), rather than
+        dying where you stood. A teleport is no fall, and a pit trap is the World's own."""
+        prev, last = self._ground, self._last
+        if prev is None or math.hypot(body.x - last[0], body.z - last[1]) > 1.0:
+            return False
+        if self.map.tile_at(body.x, body.z).pit:
+            return False
+        return prev - self.floor(body.x, body.z) >= FALL_LETHAL
 
     def _landing(self, body, hurt):
         """A drop of more than FALL_SAFE metres hurts. A big jump sideways is a teleport, not a fall,
@@ -749,9 +763,10 @@ class Terrain:
         if d < HEARING:
             self.sounds.append((name, volume * (1 - d / HEARING * 0.7)))
 
-    def _plunge(self, body):
-        """You went over the brink of a chasm: from here you only fall (`_plunging`)."""
-        self.fell_into = "ravine"
+    def _plunge(self, body, into="ravine"):
+        """You went over the brink of a chasm ("ravine"), or off an edge over a lethal drop ("drop"):
+        from here you only fall (`_plunging`)."""
+        self.fell_into = into
         self.plunge = 0.0
         self._vy = 0.0
         self.under = None
@@ -770,6 +785,8 @@ class Terrain:
 
     @property
     def _plunge_time(self):
+        if self.fell_into == "drop":
+            return DROP_TIME_MAX  # a drop ends when you hit the bottom
         return DROWN_TIME if self.fell_into == "sea" else PLUNGE_TIME
 
     def _plunging(self, dt, body):
@@ -780,7 +797,8 @@ class Terrain:
         if self.plunge >= end:
             return None  # already dead
         self.plunge += dt
-        floor = self.map.floor_at(body.x, body.z)
+        # A drop ends on whatever is below, a lift's deck at the bottom of its shaft among them.
+        floor = self.floor(body.x, body.z) if self.fell_into == "drop" else self.map.floor_at(body.x, body.z)
         if self.fell_into == "sea":
             self._vy = DROWN_SINK
             floor -= DROWN_DEPTH  # the water stands over you; there is no bottom to land on
