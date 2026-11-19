@@ -133,6 +133,38 @@ SHOTS = [
         "The Sodden Pall, a towering bell of green ooze with a drowned face in its folds, in its flooded cistern",
     ),
     Shot(
+        "harrowmere_chasm",
+        "--map old_harrowmere --at=13,5,50 --level 5 --equip primary=spiked_club,secondary=round_shield "
+        '--smoke 60 --script "look_down:0.22"',
+        "Old Harrowmere, from the Breach Landing",
+        "Looking out from a ledge over a vast amber-lit chasm, ruined brick towers rising out of it and a "
+        "plaza far below",
+    ),
+    Shot(
+        "drowned_plaza",
+        "--map old_harrowmere --at=15,24,40 --level 5 --equip primary=spiked_club,secondary=round_shield "
+        "--smoke 60",
+        "The Drowned Plaza, under its shaft of daylight",
+        "A broad sunken plaza, a shaft of warm daylight falling on its fountain, stone golems standing "
+        "like statues among the pillars",
+    ),
+    Shot(
+        "sunken_sexton",
+        "--map old_harrowmere --at=17,2,8 --level 5 --equip primary=spiked_club,secondary=round_shield "
+        '--smoke 120 --script "wait:1"',
+        "A Sunken Sexton on the Cliff Stair",
+        "A stooped, sodden bell-keeper with a lantern and a bell-hammer on a stair cut into the cliff, a "
+        "stone golem behind it",
+    ),
+    Shot(
+        "keystone",
+        "--map old_harrowmere --at=22,39,90 --level 6 --equip primary=spiked_club,secondary=round_shield "
+        '--smoke 300 --script "wait:3.4 back:1.2 look_up:0.12"',
+        "The Keystone, in the Foundation Court",
+        "The Keystone, a stone giant carrying a slab of the old city's floor on its back, rising in its "
+        "torchlit court, its health bar above",
+    ),
+    Shot(
         "combat",
         "--map abandoned_prison --at 15,22,0 --level 4 --equip primary=claymore,body=ringmail,hands=chain_mitts "
         "--smoke 100",

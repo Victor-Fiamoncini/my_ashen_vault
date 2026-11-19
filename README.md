@@ -98,6 +98,22 @@ trademarks of FromSoftware, Inc. (*Dark Souls* is published by Bandai Namco Ente
     <td align="center"><sub>The Sodden Pall, behind its great door</sub></td>
   </tr>
   <tr>
+    <td><img src="docs/screenshots/harrowmere_chasm.png" alt="Looking out from a ledge over a vast amber-lit chasm, ruined brick towers rising out of it and a plaza far below"></td>
+    <td><img src="docs/screenshots/drowned_plaza.png" alt="A broad sunken plaza, a shaft of warm daylight falling on its fountain, stone golems standing like statues among the pillars"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Old Harrowmere, from the Breach Landing</sub></td>
+    <td align="center"><sub>The Drowned Plaza, under its shaft of daylight</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/sunken_sexton.png" alt="A stooped, sodden bell-keeper with a lantern and a bell-hammer on a stair cut into the cliff, a stone golem behind it"></td>
+    <td><img src="docs/screenshots/keystone.png" alt="The Keystone, a stone giant carrying a slab of the old city's floor on its back, rising in its torchlit court, its health bar above"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>A Sunken Sexton on the Cliff Stair</sub></td>
+    <td align="center"><sub>The Keystone, in the Foundation Court</sub></td>
+  </tr>
+  <tr>
     <td><img src="docs/screenshots/combat.png" alt="A claymore held in both hands, ringmail sleeves and chain mitts, facing a bone walker"></td>
     <td><img src="docs/screenshots/warden.png" alt="The Ashen Warden boss in his hall"></td>
   </tr>
