@@ -2922,13 +2922,12 @@ OAK = (96, 66, 40)
 
 
 def lever(r, k, wall=True, wood=False):
-    """A plain lever: a shaft pivoting on a block, thrown from up-and-back to down-and-forward as
-    `k` (0..1) runs. Mounted on a wall at local -X, or free-standing."""
-    with r.at(0, 0, 0, s=1.2):
-        if wood:
+    """A lever, thrown as `k` (0..1) runs. Mounted on a wall at local -X, or free-standing."""
+    if wood:
+        with r.at(0, 0, 0, s=1.2):
             _wood_lever(r, k, wall)
-        else:
-            _lever(r, k, wall)
+    else:
+        _lever(r, k, wall)
 
 
 def _wood_lever(r, k, wall):
@@ -2942,18 +2941,33 @@ def _wood_lever(r, k, wall):
         r.part("cube", 0, 0.75, 0, 0.17, 0.22, 0.15, (70, 110, 46))  # vine-wound grip
 
 
+LEVER_PLATE_Y = 1.15  # height of an iron lever's pivot above the floor
+LEVER_UP = (
+    0.35  # radians the iron lever's arm leans off straight up when raised (and off straight down thrown)
+)
+LEVER_PLATE = (66, 50, 42)  # its backplate, iron gone brown with rust
+
+
 def _lever(r, k, wall):
-    """The prison's lever: an iron shaft with a ball grip, pivoting in a slotted plate on a stone block."""
-    bx = -0.5 if wall else -0.15
-    r.part("cube", bx, 0.4, 0, 0.55, 0.8, 0.7, WHITE, tex="rough_stone")
-    r.part("cube", bx, 0.83, 0, 0.62, 0.06, 0.76, (110, 106, 100))  # capstone
-    px, py = bx + 0.3, 0.95
-    for z in (-0.1, 0.1):  # the slotted plate the shaft swings in
-        r.part("cube", px - 0.02, py - 0.02, z, 0.3, 0.3, 0.04, DARK_IRON)
-    r.part("cyl", px, py, 0, 0.1, 0.3, 0.1, IRON, rx=math.pi / 2)  # the axle
-    with r.at(px, py, 0, rz=0.95 - 1.9 * k):
-        r.part("cube", 0, 0.42, 0, 0.08, 0.85, 0.08, IRON)
-        r.part("sphere", 0, 0.88, 0, 0.18, 0.18, 0.18, DARK_IRON)  # the ball grip
+    """The prison's lever: a rusted iron plate bolted to the wall at waist height, and a short arm
+    swinging across its face from raised to thrown down, a worn wooden handle at its end. Free-standing,
+    the plate hangs on a squat iron post."""
+    wx = -0.97 if wall else -0.08  # the face the plate is bolted to
+    if not wall:
+        r.part("cube", -0.14, 0.06, 0, 0.34, 0.12, 0.34, WHITE, tex="rough_stone")  # the footing
+        r.part("cube", -0.14, 0.66, 0, 0.12, 1.1, 0.12, DARK_IRON)  # the post
+    y = LEVER_PLATE_Y
+    r.part("cube", wx + 0.02, y, 0, 0.04, 0.5, 0.26, LEVER_PLATE)  # the backplate
+    for dy in (-0.21, 0.21):  # its rivets
+        for dz in (-0.09, 0.09):
+            r.part("cube", wx + 0.05, y + dy, dz, 0.02, 0.03, 0.03, DARK_IRON)
+    for dz in (-0.07, 0.07):  # the cheeks the arm swings between
+        r.part("cube", wx + 0.08, y, dz, 0.08, 0.1, 0.02, DARK_IRON)
+    r.part("cyl", wx + 0.08, y, 0, 0.05, 0.18, 0.05, IRON, rx=math.pi / 2)  # the pin
+    with r.at(wx + 0.08, y, 0, rx=-LEVER_UP - (math.pi - 2 * LEVER_UP) * k):
+        r.part("cube", 0, 0.17, 0, 0.04, 0.34, 0.05, IRON)  # the arm
+        r.part("cyl", 0.07, 0.33, 0, 0.045, 0.14, 0.045, (78, 54, 36), rz=math.pi / 2)  # the handle
+        r.part("cube", 0.0, 0.33, 0, 0.03, 0.03, 0.06, DARK_IRON)  # the collar it turns in
 
 
 def lift(r, t, moving, chain_h, model="", doors=(), pressed=0.0):
