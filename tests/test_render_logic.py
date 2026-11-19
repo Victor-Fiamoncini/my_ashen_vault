@@ -2038,3 +2038,55 @@ def test_vesperholms_lances_beams_and_mist_draw():
     before = len(gpu.parts)
     moon_models.moonbeam(r, 0.0, 0.0, 1.0)  # not yet called down: nothing
     assert len(gpu.parts) == before > 80
+
+
+def test_the_reverse_cut_mirrors_the_slash_and_smears_the_other_way():
+    from ashen_vault.player import weapons
+    from ashen_vault.player.inventory import Inventory
+    from ashen_vault.player.player import Player
+    from ashen_vault.render import models
+
+    for a in weapons.HEAVY_OVERRIDES.values():
+        assert a.motion in models.MOTIONS, a.motion
+    wind, strike, follow = models.MOTIONS["slash_left"]
+    s_wind, _s_strike, s_follow = models.MOTIONS["slash"]
+    # The slash winds up on the right and finishes low on the left; the reverse cut the other way round.
+    assert s_wind[2] > 0 > s_follow[2]
+    assert wind[2] < 0 < follow[2] and wind[1] > 0 > follow[1]
+    assert wind[4] < strike[4] < follow[4], "the blade swings across to the right"
+    rest = (0.9, -0.33, 0.27, 0.25, 0.7, -0.55)
+
+    def tip(motion, phase):
+        pose = tuple(b + d for b, d in zip(rest, models._motion(motion, phase, 0.45), strict=True))
+        return models._weapon_point(pose, 1, 1.6)
+
+    # Through the blow, the blade's tip travels right (+z) in the reverse cut and left in the slash.
+    assert tip("slash_left", 0.45)[2] > tip("slash_left", 0.36)[2]
+    assert tip("slash", 0.45)[2] < tip("slash", 0.36)[2]
+    # The long katanas' heavy leaves its smear of ghost blades, and an art's smear burns in its light.
+    for id_ in ("moonless_tachi", "nodachi"):
+        p = Player(inventory=Inventory(right=id_))
+        p.stats.level = 99
+        a = p.start_swing(kind=weapons.HEAVY, secrets=False)
+        assert a.motion == "slash_left"
+        p.swing_t = p.swing_hit_at
+        gpu = _RecordingGpu()
+        models.weapon_view(rig.Rig(gpu), p, 0.0)
+        assert sum(1 for kind, _ in gpu.parts if kind == "blade") >= models.TRAIL_GHOSTS, id_
+
+
+def test_the_pale_crescent_draws_as_a_broad_glowing_arc_that_fades():
+    from ashen_vault.render import moon_models
+
+    def drawn(life):
+        gpu = _GlowGpu()
+        moon_models.crescent_wave(rig.Rig(gpu), (190, 215, 255), 2.4, life, 0.3)
+        return gpu
+
+    full = drawn(0.9)
+    assert full.glows == len(full.parts) >= 2 * moon_models.CRESCENT_SEGMENTS
+    gpu = _PlacingGpu()
+    moon_models.crescent_wave(rig.Rig(gpu), (190, 215, 255), 2.4, 0.9, 0.3)
+    zs = [z for _, _, z in gpu.at]
+    assert max(zs) - min(zs) > 1.8, "as broad as the wave it shows"
+    assert all(x <= 0.05 for x, _, _ in gpu.at), "bowed forward: its apex leads"

@@ -2,7 +2,7 @@
 
 import math
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from ashen_vault import map_path
 from ashen_vault.ai.enemy import (
@@ -102,6 +102,11 @@ class Projectile:
     dy: float = 0.0  # climb (or drop) per second: spells follow the view up and down
     homing: bool = False  # steers itself toward the nearest foe it can see (Arcane Motes)
     inflicts: tuple = ()  # a foe's shot: the ailments it builds in you (`EnemyType.inflicts`)
+    # A piercing shot (the Moonless Tachi's Pale Crescent, effect "crescent") cuts through the foes it
+    # meets instead of stopping at the first, each only once (`hit_ids`), and only a wall ends it.
+    pierce: bool = False
+    hit_ids: set = field(default_factory=set)
+    width: float = 0.0  # metres across: a wide shot strikes a body this far to either side of its path
 
 
 @dataclass(eq=False)
@@ -1849,8 +1854,9 @@ class World:
             player.place(*self._safe, player.yaw, self.map)
 
     def _knock_player(self, dx, dz):
-        """Shoves the player in small steps so walls stop the push."""
+        """Shoves the player in small steps so walls stop the push (and ends a lunge under way)."""
         player = self.player
+        player.cancel_lunge()
         for _ in range(8):
             player.x, player.z = collision.move(
                 self.map, player.x, player.z, dx / 8, dz / 8, radius=Player.RADIUS, blocked=self.blocker
@@ -1961,6 +1967,8 @@ class World:
                         player.chill_t = max(player.chill_t, LANCE_CHILL)
                         self.game.message("Moon-frost numbs your legs!")
                     pr_.life = 0
+            elif pr_.pierce:
+                self._cut_through(pr_)
             else:
                 target = next(
                     (
@@ -1975,15 +1983,29 @@ class World:
                     None,
                 )
                 if target:
-                    element = elements.EFFECT_ELEMENT.get(pr_.effect)
-                    dmg = max(rround(pr_.damage * elements.mult(target.type, element)), 1)
-                    jolt = elements.staggers(target.type, element)
-                    self.game.damage_enemy(target, dmg, 99.0 if jolt else 1.0)
-                    if pr_.effect in ("venom", "thorn") and target.alive:
-                        target.afflict("poison", *Spells.venom_poison(self.player.stats.magic))
-                        self.game.sfx("hiss", 0.6)
+                    self._shot_lands(pr_, target)
                     pr_.life = 0
         self.projectiles = [p for p in self.projectiles if p.life > 0]
+
+    def _shot_lands(self, pr_, target):
+        """One of your shots strikes `target`: its damage, its element's touch and its poison."""
+        element = elements.EFFECT_ELEMENT.get(pr_.effect)
+        dmg = max(rround(pr_.damage * elements.mult(target.type, element)), 1)
+        jolt = elements.staggers(target.type, element)
+        self.game.damage_enemy(target, dmg, 99.0 if jolt else 1.0)
+        if pr_.effect in ("venom", "thorn") and target.alive:
+            target.afflict("poison", *Spells.venom_poison(self.player.stats.magic))
+            self.game.sfx("hiss", 0.6)
+
+    def _cut_through(self, pr_):
+        """A piercing wave cuts every foe across its breadth that it has not cut yet, and flies on."""
+        for e in self.enemies:
+            if not e.alive or e.unseen or id(e) in pr_.hit_ids:
+                continue
+            span = shots.body_span(e.type, self.enemy_y(e))
+            if shots.sweeps(pr_.x, pr_.y, pr_.z, pr_.dx, pr_.dz, pr_.width, e.x, e.z, e.radius, span):
+                pr_.hit_ids.add(id(e))
+                self._shot_lands(pr_, e)
 
     # --- player actions --------------------------------------------------------
 
@@ -2143,6 +2165,35 @@ class World:
         """`count` shots fanned `spread` radians apart about your aim (Thornlash's Thorn Volley)."""
         for i in range(count):
             self.fire_bolt(damage, effect, rgb, speed, yaw_offset=(i - (count - 1) / 2) * spread)
+
+    def crescent_wave(self, damage, width, speed, life, rgb, effect="crescent"):
+        """The Moonless Tachi's Pale Crescent: one wide crescent of pale light loosed along your view.
+        It cuts every foe across its `width` that it meets, each once, and flies on through them until
+        a wall or its `life` ends it. Returns it."""
+        player = self.player
+        dx, dy, dz = shots.aim(player.yaw, player.pitch, speed)
+        lead = 0.9 / speed  # sets out where the blade's cut ended, a step ahead
+        pr_ = Projectile(
+            x=player.x + dx * lead,
+            y=player.eye_y - shots.BOLT_DROP + dy * lead,
+            z=player.z + dz * lead,
+            dx=dx,
+            dy=dy,
+            dz=dz,
+            life=life,
+            damage=damage,
+            hostile=False,
+            rgb=rgb,
+            effect=effect,
+            pierce=True,
+            width=width,
+        )
+        self.projectiles.append(pr_)
+        return pr_
+
+    def bodies(self):
+        """The foes' bodies a lunge stops short of, as (x, z, radius): the same ones that push you out."""
+        return [(e.x, e.z, e.radius) for e in self.enemies if e.alive and e.state != "ashes"]
 
     def slag_ring(self, damage_for, radius):
         """Slagbreaker's Slag Burst: molten flame bursts out all around you along the floor.
@@ -2682,7 +2733,7 @@ class World:
                         models.gout_puff(rig, size, heat, self._time, seed=i * 1.7)
         for pr_ in self.projectiles:
             gpu.model_light((1.6, 1.4, 1.2))
-            if pr_.effect in ("arrow", "thunder", "thorn", "mote", "rat", "lance"):  # these fly point first
+            if pr_.effect in ("arrow", "thunder", "thorn", "mote", "rat", "lance", "crescent"):  # point first
                 heading = -math.atan2(pr_.dz, pr_.dx)
                 climb = math.atan2(pr_.dy, math.hypot(pr_.dx, pr_.dz))
                 with rig.at(pr_.x, pr_.y, pr_.z, ry=heading, rz=climb):
@@ -2696,6 +2747,8 @@ class World:
                         sewer_models.swarm_rat(rig, self._time + id(pr_) % 5)
                     elif pr_.effect == "lance":
                         moon_models.frost_lance(rig, pr_.rgb, self._time + id(pr_) % 3)
+                    elif pr_.effect == "crescent":
+                        moon_models.crescent_wave(rig, pr_.rgb, pr_.width, pr_.life, self._time)
                     else:
                         forge_models.thunder_spear(rig, self._time)
                 continue

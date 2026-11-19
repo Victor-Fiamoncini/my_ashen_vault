@@ -34,7 +34,7 @@ def test_every_art_belongs_to_a_real_weapon_and_costs_mp():
         assert item.kind == "weapon"
         assert weapons.art(item) is art
         assert art.mp > 0 and art.damage > 0
-        assert art.kind in (weapons.CONE, weapons.BOLT, weapons.VOLLEY, weapons.RING)
+        assert art.kind in (weapons.CONE, weapons.BOLT, weapons.VOLLEY, weapons.RING, weapons.WAVE)
         assert (art.reach > 0) == (art.kind in (weapons.CONE, weapons.RING)), item_id
         assert len(art.rgb) == 3
 
@@ -245,3 +245,71 @@ def test_snare_blooms_spit_thorns():
     world.enemy_fire(bloom)
     (thorn,) = world.projectiles
     assert thorn.effect == "thorn" and thorn.hostile
+
+
+# --- the Moonless Tachi's Pale Crescent -----------------------------------------------------------
+
+
+def test_the_pale_crescent_is_primed_and_paid_for_like_any_art_and_plays_as_a_draw():
+    art = weapons.ARTS["moonless_tachi"]
+    assert art.kind == weapons.WAVE and art.width > 2 and art.speed > 0 and art.life > 0
+    p = primed("moonless_tachi")
+    assert p.art_ready() is art
+    mp = p.stats.mp
+    a = p.start_swing(kind=weapons.HEAVY, art=True)
+    assert p.swing_art is art and p.stats.mp == mp - art.mp
+    assert a.kind == weapons.HEAVY and a.motion == "draw" and a.lunge == 0
+    p = primed("moonless_tachi")  # without the art, the heavy is the reverse cut
+    assert p.start_swing(kind=weapons.HEAVY).motion == "slash_left"
+
+
+def _loose(world, art):
+    return world.crescent_wave(9, art.width, art.speed, art.life, art.rgb, art.effect)
+
+
+def _fly(world, seconds=1.0, dt=1 / 60):
+    for _ in range(round(seconds / dt)):
+        world._update_projectiles(dt)
+
+
+def test_the_pale_crescent_cuts_through_a_line_of_foes_each_once():
+    _game, world = jungle((15, 31), yaw=0.0)
+    first = foe(world, "bark_husk", (17, 31))
+    second = foe(world, "bark_husk", (19, 31))
+    wide = foe(world, "bark_husk", (18, 31))
+    wide.z += 1.0  # off its path, but within its breadth
+    art = weapons.ARTS["moonless_tachi"]
+    wave = _loose(world, art)
+    assert wave.pierce and wave.width == art.width
+    _fly(world)
+    for e in (first, second, wide):
+        assert e.hp == e.type.hp - 9, "struck once, and only once"
+    assert len(wave.hit_ids) == 3
+    assert not world.projectiles, "it fades after its flight"
+
+
+def test_the_pale_crescent_misses_what_lies_beyond_its_breadth():
+    _game, world = jungle((15, 31), yaw=0.0)
+    aside = foe(world, "bark_husk", (17, 31))
+    aside.z += 2.5
+    _loose(world, weapons.ARTS["moonless_tachi"])
+    _fly(world)
+    assert aside.hp == aside.type.hp
+
+
+def test_the_pale_crescent_dies_on_a_wall():
+    _game, world = jungle((24, 31), yaw=0.0)  # the hollow's wall rises at tile 27
+    beyond = foe(world, "bark_husk", (28, 31))
+    wave = _loose(world, weapons.ARTS["moonless_tachi"])
+    _fly(world, 0.6)
+    assert wave not in world.projectiles
+    assert beyond.hp == beyond.type.hp
+
+
+def test_a_plain_bolt_still_stops_at_the_first_foe():
+    _game, world = jungle((15, 31), yaw=0.0)
+    first = foe(world, "bark_husk", (17, 31))
+    second = foe(world, "bark_husk", (19, 31))
+    world.fire_bolt(9)
+    _fly(world)
+    assert first.hp == first.type.hp - 9 and second.hp == second.type.hp

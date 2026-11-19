@@ -113,6 +113,15 @@ MOVESETS = {
     },
 }
 
+# A few weapons swing their heavy differently from the rest of their category: the long katanas cut
+# a reverse slash, high on the left and down across to the right, where the Katana lunges. Only the
+# heavy changes; the light, the secret, the ST and the tempo stay the category's.
+_REVERSE_CUT = _heavy("Reverse cut", "slash_left", 0.39, damage=1.6, reach=1.1, cone=0.45, targets=2)
+HEAVY_OVERRIDES = {
+    "moonless_tachi": _REVERSE_CUT,
+    "nodachi": _REVERSE_CUT,
+}
+
 CATEGORY_NAMES = {
     "fists": "Fists",
     "sword": "Sword",
@@ -165,7 +174,11 @@ WEIGHT_NAMES = {LIGHTWEIGHT: "Light", MEDIUM: "Medium", HEAVYWEIGHT: "Heavy", GR
 
 
 def moveset(item):
-    return MOVESETS[item.category or "sword"]
+    """`item`'s attacks by kind: its category's moveset, with its own heavy if it has one
+    (`HEAVY_OVERRIDES`)."""
+    moves = MOVESETS[item.category or "sword"]
+    heavy = HEAVY_OVERRIDES.get(item.id)
+    return {**moves, HEAVY: heavy} if heavy else moves
 
 
 def weight(item):
@@ -243,7 +256,7 @@ def secret(item, kind, ctx):
 # --- weapon arts ----------------------------------------------------------------------------------
 # A few weapons hide an art: release a heavy with both the ATK gauge and the heavy charge full, and
 # with the MP to pay for it, and the swing looses something more than steel (the Ashblade spills fire).
-CONE, BOLT, VOLLEY, RING = "cone", "bolt", "volley", "ring"
+CONE, BOLT, VOLLEY, RING, WAVE = "cone", "bolt", "volley", "ring", "wave"
 
 
 @dataclass(frozen=True)
@@ -251,7 +264,9 @@ class Art:
     id: str
     name: str
     mp: int  # MP it costs; short of it, the swing is a plain heavy
-    kind: str  # CONE (a gout of flame ahead), BOLT (one shot), VOLLEY (a fan of shots), RING (all around)
+    # CONE (a gout of flame ahead), BOLT (one shot), VOLLEY (a fan of shots), RING (all around), WAVE (one
+    # wide crescent that cuts through every foe in its path)
+    kind: str
     damage: float  # multiplier on the weapon's full-gauge blow (Combat.damage)
     rgb: tuple  # its colour on the HUD bar and in the world
     reach: float = 0.0  # metres a cone or ring reaches
@@ -260,6 +275,9 @@ class Art:
     speed: float = 0.0  # a shot's speed (0: the spell bolt's)
     count: int = 1  # shots in a volley
     spread: float = 0.0  # radians between a volley's shots
+    width: float = 0.0  # a wave's breadth, in metres
+    life: float = 0.0  # seconds a wave flies
+    motion: str | None = None  # the swing it plays as, when not the weapon's heavy (`models.MOTIONS`)
 
 
 ARTS = {
@@ -279,6 +297,20 @@ ARTS = {
         "thorn_volley", "Thorn Volley", 5, VOLLEY, 0.6, (140, 220, 70), effect="thorn", count=3, spread=0.16
     ),
     "slagbreaker": Art("slag_burst", "Slag Burst", 8, RING, 1.2, (255, 80, 20), reach=4.0, element="fire"),
+    # The tachi is drawn in one stroke and its cut flies on as a crescent of pale light.
+    "moonless_tachi": Art(
+        "pale_crescent",
+        "Pale Crescent",
+        12,
+        WAVE,
+        1.6,
+        (190, 215, 255),
+        effect="crescent",
+        speed=11.0,
+        width=2.4,
+        life=0.9,
+        motion="draw",
+    ),
 }
 
 

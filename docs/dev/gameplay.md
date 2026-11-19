@@ -83,7 +83,14 @@ Equipment, combat, spells, shops, saves and the story.
   through `weapons.WEIGHTS` (`weapons.attack` returns the sized Attack) and adds `WEIGHT_TEMPO` to its
   `tempo`, which sets how long its swings take. Each hand's ATK gauge refills over the weapon's
   `speed` times `weapons.GAUGE_REFILL` (`weapons.refill_time`); a swing hits as hard as the gauge was
-  full. Attacks that strike twice (the Aftershock) use `pulses`. Attack poses are keyframed in
+  full. Attacks that strike twice (the Aftershock) use `pulses`. A weapon may swing a heavy of its own
+  in place of its category's (`weapons.HEAVY_OVERRIDES`, resolved by `weapons.moveset`, so ST, tempo, the
+  charge, arts and secrets work unchanged): the Katana keeps the Lunging thrust, while the Moonless Tachi
+  and the Nodachi cut a Reverse cut (`slash_left`, the slash mirrored: high left down to low right, the
+  wrist rolled so the edge leads). An attack's `lunge` carries you forward over a few frames
+  (`Player.step_lunge`, `LUNGE_SPEED`), setting off `LUNGE_LEAD` of the swing before the blow lands; walls
+  and fog stop it as they stop walking, it ends short of a foe's body (`collision.runs_into`,
+  `World.bodies`), and a blow, a shove, the swing's end or being set down elsewhere cancels it. Attack poses are keyframed in
   `models.MOTIONS` (wind, strike, follow, each `(dx, dy, dz, rx, ry, rz)`), the strike lands at the
   attack's `hit_at`, and edged weapons (`TRAILS`) smear a fan of ghost blades through the blow. A motion
   ends part way home (`models._settle`); the view's `PoseBlend` (`player/view_blend.py`, kept by `Game`
@@ -94,10 +101,14 @@ Equipment, combat, spells, shops, saves and the story.
 - Secret attacks are listed in `weapons.secret()`; performing one adds a `secret:<category>` flag,
   which reveals its name in Belongings and the shop.
 - Weapon arts (`weapons.ARTS`, keyed by item id: the Ashblade's Ember Spill, Stormbrand's Thunderstroke,
-  Thornlash's Thorn Volley, Slagbreaker's Slag Burst): releasing a heavy with both the ATK gauge and the
+  Thornlash's Thorn Volley, Slagbreaker's Slag Burst, the Moonless Tachi's Pale Crescent): releasing a heavy with both the ATK gauge and the
   heavy charge full, and the art's `mp`, sets `Player.swing_art` (`art_ready`; a secret outranks it), and
   `Game._release_art` looses it as the blow lands, through the spells' plumbing (`World.flame_cone`, which
-  Pyre shares, `fire_bolt`, `volley`, `slag_ring`). The weapon button's bar shows the ATK gauge on its top
+  Pyre shares, `fire_bolt`, `volley`, `slag_ring`, `crescent_wave`). An art with a `motion` swings that
+  instead of the heavy (the Pale Crescent is drawn as the `draw`). The Pale Crescent (kind `WAVE`) looses
+  one wide crescent of pale light (`Projectile` with `pierce`, its `width`; `shots.sweeps`) that cuts
+  through every foe across its breadth, each once (`hit_ids`), until a wall or its `life` ends it; it is
+  drawn by `moon_models.crescent_wave`, and the blade's smear burns in the art's `rgb`. The weapon button's bar shows the ATK gauge on its top
   row and the heavy charge on its bottom one (`ui/atk_bar.py`); a ready art burns it in the art's `rgb`.
   Belongings and the shop list the art under the weapon's moves.
 - Weapons may carry an `element` (`"lightning"`, `"fire"`): `Game._strike` multiplies by
