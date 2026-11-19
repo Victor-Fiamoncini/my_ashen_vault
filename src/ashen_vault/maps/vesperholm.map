@@ -1,6 +1,6 @@
 [meta]
 name = Vesperholm
-ambient = 0.47 0.52 0.66
+ambient = 0.52 0.57 0.72
 fog = 0.34 0.39 0.53
 fog_range = 14 84
 model_range = 46
@@ -63,8 +63,8 @@ c = floor tex=moon_glass h=0 ceil=13 ceil_tex=silver_slate side=moonstone dark=0
 ###aaaaaaa#%%%nnnVnnnnnnnnnnn%%%%#,Æ,,,,,,##
 ###aaaaaaa#%%%ÖnnnÉnnnnnÉVnnÖ%%%%#,,,,,,,,##
 ###aaaaaaa#%%%nnÈnnnnÒnnnnÈnn%%%%#,,,,,,,,##
-#Õ###pp####%%%%%%á%%%â%%%á%%%%%%%#pppp,,,,Õ#
-###,,,,,,,Ó,,,,à,,,àÒ,Òà,,,à,,,,Ó,,,,,,,,###
+#Õ###pp####%%%%%%á%%nân%%á%%%%%%%#pppp,,,,Õ#
+###,,,,,,,Ó,,à,à,,,,Ò,Ò,,,,à,à,,Ó,,,,,,,,###
 ###,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,###
 ###,,,,,S,,,,,V,,,,,,,,,,,,,,,,,,,,,,,,,,###
 ###,Ó,,,,,,,,,,,,,,,,,,,,,,,,,,,,S,,,,,Ó,###
@@ -151,22 +151,25 @@ O = chest item=bitter_root count=2 gold=100 model=coffer
 // The skyline: slender spires on the castle's walls, and the cathedral's two great spires.
 Õ = moon_spire height=16 on=#
 Ø = moon_spire height=24 on=%
-// Roofs of silvered slate, each on its block's north-west corner.
-À = roof span=10,4 ridge=x top=5.5 pitch=3.2 eave=0.4 tex=silver_slate wall=moonstone on=h
-Á = roof span=6,4 ridge=x top=5.5 pitch=3 eave=0.4 tex=silver_slate wall=moonstone on=h
-Â = roof span=6,5 ridge=z top=5.5 pitch=3 eave=0.4 tex=silver_slate wall=moonstone on=h
-Ã = roof span=11,7 ridge=x top=5.5 pitch=3.6 eave=0.4 tex=silver_slate wall=moonstone on=h
-Ë = roof span=5,3 ridge=x top=5.5 pitch=2.6 eave=0.4 tex=silver_slate wall=moonstone on=h
-Ì = roof span=6,3 ridge=x top=5.5 pitch=2.6 eave=0.4 tex=silver_slate wall=moonstone on=h
-Í = roof span=13,8 ridge=x top=5.5 pitch=3.8 eave=0.4 tex=silver_slate wall=moonstone on=h
-Î = roof span=10,4 ridge=x top=5.5 pitch=3.2 eave=0.4 tex=silver_slate wall=moonstone on=h
-Ï = roof span=7,2 ridge=x top=5.5 pitch=2.2 eave=0.4 tex=silver_slate wall=moonstone on=h
-Ð = roof span=12,2 ridge=x top=5.5 pitch=2.2 eave=0.4 tex=silver_slate wall=moonstone on=h
-Ý = roof span=6,6 ridge=z top=5.5 pitch=3.4 eave=0.4 tex=silver_slate wall=moonstone on=h
-ß = roof span=22,18 ridge=z top=14 pitch=7 eave=0.5 tex=silver_slate wall=moonstone on=%
-// The cathedral's front on the bailey: an arched portal, tall windows of moon-glass hung high on it,
-// and a spire either side; statues of the Duchess's handmaids and silver trees before it.
-â = door_arch yaw=90 height=7 spring=3.2 rose on=n
+// Roofs of silvered slate in polychrome courses, crested in iron, with dormers and chimney stacks,
+// each on its block's north-west corner; the cathedral's is steeper and grander, a flèche on its ridge.
+À = moon_roof span=10,4 ridge=x top=5.5 pitch=3.2 eave=0.4 on=h
+Á = moon_roof span=6,4 ridge=x top=5.5 pitch=3 eave=0.4 on=h
+Â = moon_roof span=6,5 ridge=z top=5.5 pitch=3 eave=0.4 on=h
+Ã = moon_roof span=11,7 ridge=x top=5.5 pitch=3.6 eave=0.4 on=h
+Ë = moon_roof span=5,3 ridge=x top=5.5 pitch=2.6 eave=0.4 on=h
+Ì = moon_roof span=6,3 ridge=x top=5.5 pitch=2.6 eave=0.4 on=h
+Í = moon_roof span=13,8 ridge=x top=5.5 pitch=3.8 eave=0.4 on=h
+Î = moon_roof span=10,4 ridge=x top=5.5 pitch=3.2 eave=0.4 on=h
+Ï = moon_roof span=7,2 ridge=x top=5.5 pitch=2.2 eave=0.4 on=h
+Ð = moon_roof span=12,2 ridge=x top=5.5 pitch=2.2 eave=0.4 on=h
+Ý = moon_roof span=6,6 ridge=z top=5.5 pitch=3.4 eave=0.4 on=h
+ß = moon_roof span=22,18 ridge=z top=14 pitch=9 eave=0.5 grand on=%
+// The cathedral's front on the bailey: its great gate, three tiles wide, under a gable and between
+// pinnacles, the great rose of moon-glass high in the roof's gable over it; traceried windows of
+// moon-glass hung high either side, and a spire either side; statues of the Duchess's handmaids and
+// silver trees before it.
+â = moon_portal yaw=90 height=14 rose=17 on=n
 à = moon_window rise=3.5 size=1.7
 á = moon_spire height=20 on=%
 ã = veiled_statue

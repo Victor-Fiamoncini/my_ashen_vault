@@ -376,6 +376,38 @@ def test_every_harrowmere_turret_is_seated_on_a_corner_of_its_house():
             assert any(x0 <= px <= x1 and z0 <= pz <= z1 for x0, z0, x1, z1 in slabs), where
 
 
+def test_harrowmeres_cathedral_rises_up_a_grand_stair_to_a_great_door_three_tiles_wide():
+    """The cathedral's great door opens three tiles wide on a porch; the grand stair runs straight down
+    from the porch to the north road, a step at a time, between cheek walls whose tops step down with
+    it; the plainer flight still climbs to the porch from the south; and its floor is marble."""
+    m = MapLoader.load_file(map_path("harrowmere"))
+    (portal,) = _spec(m, "cathedral_portal")
+    for dz in (-1, 0, 1):
+        tile = m[portal.tx, portal.tz + dz]
+        assert not tile.solid and tile.ceil is not None and tile.floor_tex == "cathedral_floor", dz
+    for side in (-2, 2):
+        assert m[portal.tx, portal.tz + side].solid  # walled either side of the doorway
+    porch = m[portal.tx + 1, portal.tz].floor
+    (stair,) = _spec(m, "grand_stair")
+    run, rise = int(stair.props["run"]), float(stair.props.get("rise", "0.4"))
+    assert stair.tz == portal.tz and "yaw" not in stair.props  # on the door's axis, coming down from it
+    for tx in range(portal.tx + 1, stair.tx):  # across the porch before it
+        assert all(m[tx, portal.tz + dz].floor == porch for dz in (-1, 0, 1)), tx
+    for i in range(run):
+        for dz in (-1, 0, 1):
+            tile = m[stair.tx + i, stair.tz + dz]
+            assert tile.floor == pytest.approx(porch - (i + 1) * rise), (i, dz)
+        for side in (-2, 2):  # a cheek wall, its top the floor of the stair tile above it
+            cheek = m[stair.tx + i, stair.tz + side]
+            assert cheek.solid and cheek.top == pytest.approx(porch - i * rise), (i, side)
+    assert m[stair.tx + run, stair.tz].floor == pytest.approx(0)  # the north road at its foot
+    reach = _reachable(m, (stair.tx + run, stair.tz))
+    assert (portal.tx, portal.tz) in reach and (portal.tx - 1, portal.tz) in reach  # up into the nave
+    (flight,) = _spec(m, "stair_flight")
+    assert flight.props["yaw"] == "90" and m[flight.tx, flight.tz - 1].floor == pytest.approx(porch)
+    assert (flight.tx, flight.tz + int(flight.props["run"])) in reach  # down to the lane south of it
+
+
 def test_harrowmere_has_the_jungle_cave():
     """The jungle is reached by a trail out of the square's east side, ending at a cave mouth."""
     m = MapLoader.load_file(os.path.join(MAP_DIR, "harrowmere.map"))
@@ -1118,6 +1150,26 @@ def test_vesperholm_is_solvable():
     assert (lever.tx, lever.tz) in full
     for tile in full:
         assert start in _reachable(m, tile, open_tiles=doors, shortcuts=True), tile
+
+
+def test_vesperholms_cathedral_front_is_a_great_gate_under_victorian_roofs():
+    """The cathedral's front on the bailey is its great gate, standing in a doorway three tiles wide
+    that you can walk straight through into the nave, its windows hung clear of it; every roof in the
+    city is a Victorian one of polychrome slate, and the cathedral's is the grand one."""
+    m = _vesperholm()
+    (portal,) = _spec(m, "moon_portal")
+    for dx in (-1, 0, 1):
+        tile = m[portal.tx + dx, portal.tz]
+        assert not tile.solid and tile.ceil is not None, dx  # under the arch, three tiles wide
+        assert not m[portal.tx + dx, portal.tz + 1].solid and not m[portal.tx + dx, portal.tz - 1].solid
+    for side in (-2, 2):
+        assert m[portal.tx + side, portal.tz].solid  # walled either side of the doorway
+    for w in _spec(m, "moon_window"):
+        if w.tz == portal.tz + 1:
+            assert abs(w.tx - portal.tx) >= 6, (w.tx, w.tz)  # clear of the portal's buttresses
+    assert not _spec(m, "roof") and len(_spec(m, "moon_roof")) >= 10
+    (grand,) = [s for s in _spec(m, "moon_roof") if "grand" in s.props]
+    assert grand.props["span"] == "22,18" and float(grand.props["pitch"]) > 7
 
 
 def test_vesperholms_gorge_is_a_sheer_drop_under_the_open_moon():

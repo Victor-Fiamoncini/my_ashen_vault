@@ -13,10 +13,13 @@ from ashen_vault.render.models import (
     REALM_VIOLET,
     SWORDS,
     WHITE,
+    _arch_top,
     _bar,
     _dim,
     _flame,
+    _pointed_arch,
     _weapon,
+    _wheel,
     garment,
     gauntlet,
     katana,
@@ -824,6 +827,296 @@ def flying_buttress(r, seed, top=9.0):
             _dim(stone, 0.92),
             rz=a - math.pi / 2,
         )
+
+
+# --- the cathedral's great west front, its stair and its nave -------------------------------------
+
+CATHEDRAL_STONE = (226, 222, 214)  # the cathedral's pale stone, under the rough stone's grain
+STEP_STONE = (204, 198, 186)  # the treads of its stairs, worn smooth
+PORTAL_HALF = 3.0  # half the width of the cathedral's doorway: three tiles across
+PORTAL_SPRING = 3.8  # where its arches spring from their colonnettes
+PORTAL_OFF = 0.9  # how far past the middle its arcs are centred: how sharply they point
+PORTAL_ORDER = 0.35  # the depth of each receding order of the arch
+
+
+def _saint(r, s, seed):
+    """A carved saint of the realm in a hooded robe, a book held open against the chest and a gilt
+    halo behind the head: the cathedral's statues, standing on their corbels."""
+    stone = _dim(CATHEDRAL_STONE, 1.04)
+    with r.at(0, 0, 0, s=s):
+        r.part("cone", 0, 0.75, 0, 0.56, 1.5, 0.5, stone, tex="rough_stone")  # the robe
+        r.part("cube", 0, 1.42, 0, 0.26, 0.36, 0.42, stone, tex="rough_stone")  # the shoulders
+        r.part("sphere", 0.02, 1.72, 0, 0.14, 0.18, 0.14, stone)  # the head
+        r.part("cone", -0.02, 1.7, 0, 0.3, 0.44, 0.3, _dim(stone, 0.92))  # the hood
+        r.part("cyl", -0.14, 1.78, 0, 0.5, 0.03, 0.5, GILT, rz=math.pi / 2)  # the halo
+        r.part("cube", 0.16, 1.22, 0, 0.08, 0.3, 0.36, _dim(stone, 0.86), ry=0.1 * (seed % 3 - 1))  # the book
+        for side in (-1, 1):
+            _bar(r, (0.04, 1.38, side * 0.2), (0.18, 1.2, side * 0.12), 0.08, stone)  # the arms holding it
+
+
+def great_rose(r, seed, radius=1.6):
+    """The cathedral's great rose over its west door, centred on the origin in the plane x = 0 facing
+    +X: a deep moulded ring under a hood, an outer ring of glowing roundels, twelve lancet petals of
+    ruby and cobalt between stone spokes, a ring of trefoils of gold and green, and a gold sun at its
+    heart."""
+    rad = radius
+    stone = CATHEDRAL_STONE
+    r.part("cyl", -0.08, 0, 0, 2 * rad + 0.5, 0.06, 2 * rad + 0.5, _dim(stone, 0.8), tex="rough_stone",
+           rz=math.pi / 2)  # fmt: skip  # the stone it is set in
+    r.part("cyl", -0.03, 0, 0, 2 * rad, 0.04, 2 * rad, LEAD, rz=math.pi / 2)  # the leading behind
+    _wheel(r, 0.08, rad, 28, 0.26, 0.26, stone, tex="rough_stone")  # the moulded ring
+    _wheel(r, 0.14, rad + 0.24, 32, 0.12, 0.16, _dim(stone, 0.8))  # its hood
+    for i in range(16):  # the outer roundels
+        a = 2 * math.pi * (i + 0.5) / 16
+        rgb = STAINED[(i + seed) % 2 * 2]  # ruby and gold in turn
+        r.part("cyl", 0.0, math.sin(a) * 0.86 * rad, math.cos(a) * 0.86 * rad, 0.17 * rad, 0.03, 0.17 * rad,
+               rgb, glow=True, rz=math.pi / 2)  # fmt: skip
+    for i in range(12):  # the petals, parted by stone spokes
+        a = 2 * math.pi * i / 12
+        ca, sa = math.cos(a), math.sin(a)
+        rgb = STAINED[1] if i % 2 else STAINED[0]
+        r.part("cube", 0.0, sa * 0.52 * rad, ca * 0.52 * rad, 0.03, 0.4 * rad, 0.16 * rad, rgb, glow=True,
+               rx=math.pi / 2 - a)  # fmt: skip
+        r.part("cube", 0.0, sa * 0.73 * rad, ca * 0.73 * rad, 0.03, 0.08 * rad, 0.09 * rad, STAINED[4],
+               glow=True, rx=math.pi / 2 - a)  # fmt: skip
+        b = a + math.pi / 12  # the spoke between this petal and the next
+        r.part("cube", 0.05, math.sin(b) * 0.56 * rad, math.cos(b) * 0.56 * rad, 0.1, 0.62 * rad, 0.06,
+               _dim(stone, 0.92), rx=math.pi / 2 - b)  # fmt: skip
+    _wheel(r, 0.06, 0.74 * rad, 24, 0.06, 0.1, _dim(stone, 0.95))  # the ring between petals and roundels
+    _wheel(r, 0.06, 0.3 * rad, 16, 0.08, 0.12, stone)  # the inner ring
+    for i in range(6):  # trefoils of gold and green round the heart
+        a = 2 * math.pi * i / 6
+        rgb = STAINED[2] if i % 2 else STAINED[3]
+        for j in range(3):
+            b = a + j * 2 * math.pi / 3
+            r.part("cyl", 0.01, math.sin(a) * 0.2 * rad + math.sin(b) * 0.04 * rad,
+                   math.cos(a) * 0.2 * rad + math.cos(b) * 0.04 * rad, 0.07 * rad, 0.03, 0.07 * rad, rgb,
+                   glow=True, rz=math.pi / 2)  # fmt: skip
+    r.part("cyl", 0.04, 0, 0, 0.18 * rad, 0.04, 0.18 * rad, STAINED[2], glow=True, rz=math.pi / 2)  # the sun
+    r.part("cyl", 0.06, 0, 0, 0.08 * rad, 0.04, 0.08 * rad, (250, 220, 140), glow=True, rz=math.pi / 2)
+
+
+def cathedral_portal(r, seed, height=9.0, rose=10.6, gable=3.5, span=14.7):
+    """The cathedral's great west door, in the middle of its three-tile doorway and facing out along +X
+    from the wall's outer face (x = 1), as a `door_arch` does. Three receding orders of pointed arches
+    on clustered colonnettes, a crocketed hood mould with a gilt sun at its point, the realm's crest in
+    gilt in the tympanum in a ring of rays; stepped buttresses either side with a saint on a corbel under
+    a canopy, rising into crocketed pinnacles; and the two great leaves of dark oak, banded in iron,
+    standing open against the jambs inside. The wall above runs up to `height`; over it a stone gable
+    (`gable` high, `span` across its foot) fronts the nave's roof and holds the great rose
+    (`great_rose`), centred `rose` up."""
+    half, spring, off = PORTAL_HALF, PORTAL_SPRING, PORTAL_OFF
+    stone, pale, dark = CATHEDRAL_STONE, _dim(CATHEDRAL_STONE, 1.08), _dim(CATHEDRAL_STONE, 0.78)
+    # The wall above the inner arch, up to the wall's top, across the whole doorway.
+    strips = 16
+    for i in range(strips):
+        z0 = -half - 0.2 + (2 * half + 0.4) * i / strips
+        z1 = z0 + (2 * half + 0.4) / strips
+        under = _arch_top((z0 + z1) / 2, spring, half, off)
+        r.part("cube", 0.86, (under + height) / 2, (z0 + z1) / 2, 0.3, height - under, z1 - z0 + 0.01, stone,
+               tex="rough_stone")  # fmt: skip
+    # The receding orders, innermost (recessed into the doorway) to outermost.
+    for k in range(3):
+        hk = half + PORTAL_ORDER * (k + 0.5)
+        xk = 0.62 + 0.28 * k
+        for side in (-1, 1):
+            z = side * hk
+            r.part("cube", xk, spring / 2, z, 0.38, spring, PORTAL_ORDER, stone, tex="ashlar")  # the jamb
+            r.part("cube", xk + 0.04, 0.3, z, 0.48, 0.6, PORTAL_ORDER + 0.08, dark, tex="ashlar")  # plinth
+            r.part("cyl", xk + 0.2, spring / 2 + 0.25, z, 0.18, spring - 0.9, 0.18, pale)  # its colonnette
+            r.part("cube", xk + 0.12, spring - 0.15, z, 0.46, 0.3, PORTAL_ORDER + 0.12, pale)  # its capital
+            r.part("cube", xk + 0.18, spring - 0.34, z, 0.32, 0.1, 0.28, _dim(pale, 0.9))  # leaves under it
+        _pointed_arch(r, xk, spring, hk, off, 9, 0.4, PORTAL_ORDER, pale if k % 2 else stone, tex="ashlar")
+        if k == 1:  # little gilt suns carved along the middle order's soffit
+            turn = math.acos(off / (hk + off))
+            for i in range(1, 9, 2):
+                a = turn * i / 9
+                y = spring + (hk + off - 0.2) * math.sin(a)
+                zz = (hk + off - 0.2) * math.cos(a) - off
+                for side in (-1, 1):
+                    r.part("cyl", xk + 0.21, y, side * zz, 0.14, 0.04, 0.14, GILT, rz=math.pi / 2)
+    # The hood mould over the outermost order, crocketed, with carved heads for its label stops.
+    hood_half = half + PORTAL_ORDER * 3 + 0.1
+    apex = _pointed_arch(r, 1.42, spring, hood_half, off, 10, 0.22, 0.2, dark, tex="ashlar")
+    radius = hood_half + off
+    turn = math.acos(off / radius)
+    for side in (-1, 1):
+        r.part("cube", 1.42, spring - 0.22, side * hood_half, 0.28, 0.3, 0.3, pale)  # a label stop
+        r.part("sphere", 1.56, spring - 0.24, side * hood_half, 0.16, 0.2, 0.16, _dim(pale, 0.95))  # its head
+        for i in range(1, 10, 2):  # crockets curling up off the hood
+            a = turn * i / 10
+            r.part("cube", 1.44, spring + (radius + 0.18) * math.sin(a), side * ((radius + 0.18) * math.cos(a) - off),
+                   0.14, 0.14, 0.14, pale, rx=math.pi / 4)  # fmt: skip
+    r.part("cube", 1.42, apex + 0.3, 0, 0.12, 0.5, 0.12, pale)  # the finial at its point
+    r.part("cyl", 1.46, apex + 0.6, 0, 0.36, 0.05, 0.36, GILT, rz=math.pi / 2)  # a gilt sun on it
+    # The lintel over the doorway, a carved frieze along it, and the tympanum above.
+    r.part("cube", 0.5, spring - 0.25, 0, 0.36, 0.5, 2 * half + 0.1, pale, tex="ashlar")
+    for i in range(13):
+        r.part("cube", 0.69, spring - 0.25, -half + 0.25 + i * (2 * half - 0.5) / 12, 0.04, 0.22, 0.22,
+               GILT if i % 2 else dark, rx=math.pi / 4)  # fmt: skip
+    for i in range(12):
+        z0 = -half + 2 * half * i / 12
+        zm = z0 + half / 12
+        hi = _arch_top(zm, spring, half, off)
+        if hi > spring + 0.05:
+            r.part("cube", 0.44, (spring + hi) / 2, zm, 0.06, hi - spring, 2 * half / 12 + 0.01,
+                   _dim(stone, 0.9), tex="ashlar")  # fmt: skip
+    with r.at(0.48, spring + 1.75, 0):  # the realm's crest in gilt, in a ring of rays
+        _wheel(r, 0.02, 1.25, 20, 0.12, 0.08, pale)
+        for i in range(16):
+            a = 2 * math.pi * i / 16
+            r.part("cube", 0.02, math.sin(a) * 1.0, math.cos(a) * 1.0, 0.03, 0.3 + 0.12 * (i % 2), 0.05, GILT,
+                   rx=math.pi / 2 - a)  # fmt: skip
+        realm_crest(r, GILT, cy=0.0, scale=2.2)
+    # The buttresses either side, stepping back as they rise into crocketed pinnacles.
+    bz = hood_half + 0.5
+    top = height - 0.6
+    for side in (-1, 1):
+        z = side * bz
+        r.part("cube", 1.4, 1.9, z, 0.84, 3.8, 0.66, stone, tex="ashlar")
+        r.part("wedge", 1.56, 4.0, z, 0.66, 0.4, 0.52, dark, tex="ashlar", ry=math.pi / 2)  # its set-off
+        r.part("cube", 1.28, (3.8 + top) / 2, z, 0.6, top - 3.8, 0.56, stone, tex="ashlar")
+        r.part("cube", 1.28, top - 0.1, z, 0.7, 0.2, 0.66, dark)
+        r.part("cone", 1.28, top + 1.3, z, 0.66, 2.6, 0.66, pale, tex="ashlar")  # the pinnacle
+        for i in range(3):  # crockets up its edges
+            for j in range(4):
+                a = j * math.pi / 2 + math.pi / 4
+                kk = 0.2 + 0.25 * i
+                rr = 0.3 * (1 - kk)
+                r.part("cube", 1.28 + math.cos(a) * rr, top + 2.6 * kk, z + math.sin(a) * rr, 0.08, 0.08, 0.08,
+                       pale)  # fmt: skip
+        r.part("sphere", 1.28, top + 2.66, z, 0.12, 0.12, 0.12, GILT)
+        # A saint on a corbel up its face, under a gabled canopy.
+        r.part("cone", 1.88, 4.5, z, 0.5, 0.36, 0.5, dark, rx=math.pi)  # the corbel
+        with r.at(1.86, 4.68, z):
+            _saint(r, 0.95, seed + side)
+        r.part("wedge", 1.86, 6.75, z, 0.66, 0.44, 0.62, pale, tex="ashlar", ry=math.pi / 2)  # canopy
+        r.part("cube", 1.86, 6.47, z, 0.6, 0.12, 0.56, dark)
+    # The gable over the wall, fronting the roof, coped, with the great rose in it.
+    r.part("wedge", 1.4, height + gable / 2, 0, span, gable, 0.16, stone, tex="rough_stone", ry=math.pi / 2)
+    tilt = math.atan2(gable, span / 2)
+    length = math.hypot(gable, span / 2)
+    for side in (-1, 1):
+        r.part(
+            "cube", 1.5, height + gable / 2, side * span / 4, 0.24, 0.2, length + 0.2, dark, rx=side * tilt
+        )
+    r.part("cube", 1.5, height + gable + 0.3, 0, 0.1, 0.8, 0.1, IRON)  # a gilt sun over the gable
+    r.part("cyl", 1.5, height + gable + 0.75, 0, 0.5, 0.05, 0.5, GILT, rz=math.pi / 2)
+    r.part("cube", 1.42, height + 0.05, 0, 0.3, 0.16, span - 0.4, dark)  # a string course at its foot
+    with r.at(1.62, rose, 0):
+        great_rose(r, seed)
+    # The leaves, standing open against the jambs inside: dark oak, iron bands, great ring handles.
+    leaf_h = spring - 0.4
+    for side in (-1, 1):
+        z = side * (half - 0.1)
+        face = z - side * 0.08
+        r.part("cube", -1.05, leaf_h / 2, z, half - 0.1, leaf_h, 0.12, DARK_WOOD, tex="door_wood")
+        for y in (0.6, leaf_h / 2, leaf_h - 0.6):  # its iron bands, studded
+            r.part("cube", -1.05, y, face, half - 0.2, 0.12, 0.04, IRON)
+            for x in (-0.3, -1.05, -1.8):
+                r.part("cube", x, y, face - side * 0.02, 0.06, 0.06, 0.04, IRON)
+        r.part("cyl", -2.1, 1.3, face - side * 0.03, 0.26, 0.04, 0.26, IRON, rx=math.pi / 2)  # a ring handle
+    r.part("cube", 1.02, 0.03, 0, 0.24, 0.06, 2 * half, _dim(stone, 0.85), tex="flagstone")  # the threshold
+
+
+def grand_stair(r, run=5, width=3, rise=0.4, steps=4, offset=0.0, cheeks=True):
+    """A flight of stone steps from the prop's tile (the top) down along +X over `run` tiles, each a
+    stair tile `rise` below the last and cut into `steps` steps, so its top step meets the floor above
+    it; `width` tiles across, centred `offset` metres along Z. With `cheeks`, the cathedral's own: on
+    the cheek walls either side a raking stone balustrade, a pedestal at each end, wrought-iron
+    lanterns burning on the top pair and stone urns on the foot pair. A tile's floor is its lowest
+    step, so everything sits on or above it."""
+    d = T / steps
+    across = width * T
+    for i in range(run):
+        floor = -i * rise
+        for k in range(steps):
+            x0 = i * T - T / 2 + k * d
+            h = rise * (steps - k) / steps
+            rgb = _dim(STEP_STONE, 0.94 + 0.06 * ((i * steps + k) % 2))
+            r.part("cube", x0 + d / 2, floor + h / 2, offset, d, h, across, rgb, tex="flagstone")
+            r.part(
+                "cube", x0 + d - 0.02, floor + h - 0.02, offset, 0.08, 0.05, across + 0.02, _dim(rgb, 0.82)
+            )
+    if not cheeks:
+        return
+    slope = rise / T
+    x_top, x_foot = -T / 2, run * T - T / 2
+    length = (x_foot - x_top) / math.cos(math.atan(slope))
+    tilt = -math.atan(slope)
+
+    def line(x):  # the height of the cheek walls' tops where they step down, at x
+        return rise - (x - T / 2) * slope
+
+    stone = CATHEDRAL_STONE
+    mid = (x_top + x_foot) / 2
+    for side in (-1, 1):
+        zc = offset + side * (across / 2 + T / 2)  # the middle of the cheek wall
+        zb = offset + side * (across / 2 + 0.45)  # the balustrade, along its inner edge
+        r.part("cube", mid, line(mid) - 0.1, zc, length, 0.7, T + 0.04, stone, tex="rough_stone", rz=tilt)
+        r.part(
+            "cube", mid, line(mid) + 0.27, zb, length, 0.06, 0.62, _dim(stone, 1.08), rz=tilt
+        )  # the plinth
+        r.part("cube", mid, line(mid) + 1.16, zb, length, 0.14, 0.4, _dim(stone, 1.1), rz=tilt)  # the rail
+        r.part("cube", mid, line(mid) + 1.07, zb, length, 0.06, 0.3, _dim(stone, 0.9), rz=tilt)
+        n = int((x_foot - x_top - 2.4) / 0.36)
+        for j in range(n + 1):  # the balusters, upright under the raking rail
+            x = x_top + 1.2 + j * (x_foot - x_top - 2.4) / n
+            b = line(x) + 0.3
+            r.part("cyl", x, b + 0.08, zb, 0.16, 0.16, 0.16, stone)
+            r.part("sphere", x, b + 0.3, zb, 0.2, 0.3, 0.2, stone)
+            r.part("cyl", x, b + 0.58, zb, 0.1, 0.26, 0.1, stone)
+            r.part("cube", x, b + 0.73, zb, 0.18, 0.06, 0.18, _dim(stone, 0.92))
+        # The newel pedestals, panelled, capped: the top pair at the head of the flight, the foot pair
+        # standing on the ground at its bottom.
+        for x, base, h in ((x_top + 0.55, rise, 1.5), (x_foot - 0.55, -(run - 1) * rise, 1.7)):
+            r.part("cube", x, base + h / 2, zb, 1.0, h, 1.0, stone, tex="rough_stone")
+            r.part("cube", x, base + 0.15, zb, 1.16, 0.3, 1.16, _dim(stone, 0.86), tex="rough_stone")
+            r.part("cube", x, base + h + 0.08, zb, 1.2, 0.16, 1.2, _dim(stone, 1.1))
+            for face in (-1, 1):  # sunk panels on its faces
+                r.part("cube", x + face * 0.5, base + h / 2 + 0.1, zb, 0.02, h - 0.6, 0.6, _dim(stone, 0.8))
+                r.part("cube", x, base + h / 2 + 0.1, zb + face * 0.5, 0.6, h - 0.6, 0.02, _dim(stone, 0.8))
+            top = base + h + 0.16
+            if x < mid:  # a wrought-iron lantern on a scrolled stand
+                r.part("cube", x, top + 0.06, zb, 0.5, 0.12, 0.5, IRON)
+                r.part("cyl", x, top + 0.6, zb, 0.1, 1.0, 0.1, IRON)
+                for a in range(4):
+                    ca, sa = math.cos(a * math.pi / 2), math.sin(a * math.pi / 2)
+                    _bar(r, (x + ca * 0.24, top + 0.1, zb + sa * 0.24), (x, top + 0.7, zb), 0.04, IRON)
+                with r.at(x, top + 1.35, zb):
+                    r.part("cube", 0, -0.3, 0, 0.44, 0.06, 0.44, IRON)
+                    r.part("cube", 0, 0, 0, 0.36, 0.54, 0.36, (236, 184, 100), glow=True)  # its panes, lit
+                    for dx in (-0.19, 0.19):
+                        for dz in (-0.19, 0.19):
+                            r.part("cube", dx, 0, dz, 0.04, 0.6, 0.04, IRON)
+                    r.part("cone", 0, 0.45, 0, 0.56, 0.36, 0.56, IRON)  # its crown
+                    r.part("sphere", 0, 0.68, 0, 0.08, 0.08, 0.08, GILT)
+            else:  # a stone urn
+                r.part("cyl", x, top + 0.1, zb, 0.4, 0.2, 0.4, stone)
+                r.part("sphere", x, top + 0.5, zb, 0.7, 0.6, 0.7, stone)
+                r.part("cyl", x, top + 0.86, zb, 0.6, 0.14, 0.6, _dim(stone, 1.06))
+                r.part("cone", x, top + 1.08, zb, 0.36, 0.34, 0.36, _dim(stone, 0.95))
+
+
+def nave_runner(r, length=12, head=True, foot=True):
+    """A long crimson runner down the nave from the prop's tile toward local -X for `length` tiles: a
+    gold border, gold lozenges down its middle a tile apart, and a fringe at its `head` (the door's
+    end) and its `foot`. Without one, that end runs on to the tile's edge to meet the next stretch:
+    a runner longer than a bake chunk is laid in stretches, each in a chunk of its own."""
+    crimson, gold = (122, 28, 36), (190, 150, 70)
+    x0 = T / 2 - (0.3 if head else 0.0)
+    x1 = T / 2 - length * T + (0.3 if foot else 0.0)
+    mid, span = (x0 + x1) / 2, x0 - x1
+    r.part("cube", mid, 0.012, 0, span, 0.02, 1.6, crimson, tex="plaster")
+    for side in (-1, 1):
+        r.part("cube", mid, 0.024, side * 0.68, span, 0.01, 0.1, gold)
+        r.part("cube", mid, 0.024, side * 0.56, span, 0.01, 0.03, gold)
+    for i in range(length):
+        r.part("cube", -i * T, 0.024, 0, 0.42, 0.01, 0.42, gold, ry=math.pi / 4)
+        r.part("cube", -i * T, 0.03, 0, 0.22, 0.01, 0.22, (86, 30, 90), ry=math.pi / 4)
+    for x, end in ((x0, head), (x1, foot)):
+        if end:
+            r.part("cube", x, 0.016, 0, 0.12, 0.02, 1.6, _dim(gold, 0.85))  # the fringe
 
 
 def fountain(r, t, seed):

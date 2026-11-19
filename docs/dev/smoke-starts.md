@@ -31,7 +31,7 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   "forward:0.6 interact"` (touch the Silent Bell; `world.INTERACT_REACH` lets you reach it from its plinth), `--map harrowmere --at=6,26,180 --script "forward:2 interact"`
   (Corvane; below `--level 5` they stay silent), `--map harrowmere --at=31,4,-90` (the north road's gate),
   `--map harrowmere --at=22,30,-60` (the Bell Square), `--map harrowmere --at=28,37,-90` (the market's fountain
-  and benches), `--map harrowmere --at=23,6,180` (the cathedral's west door and rose window),
+  and benches), `--map harrowmere --at=31,6,180` (the cathedral's great stair, west door and rose window),
   `--map harrowmere --at=8,25,-90 --script "look_up:0.1"` (a house's face, its balcony and the cathedral's
   towers behind), `--map harrowmere --at=14,33,-90 --script "forward:3"` (walk to a thin wall's slab:
   you stop at z=62.9), `--map harrowmere --at=17,6,180` (the cathedral's nave;

@@ -4420,6 +4420,39 @@ def _burnt_banner(r, t, seed, cloth):
     realm_crest(r, (150, 118, 70))
 
 
+def _arch_top(z, spring, half, off):
+    """Height of a pointed arch's intrados over `z`: two arcs of radius `half + off`, centred `off`
+    past the middle, springing at +-`half` and meeting at the apex. `spring` beyond its span."""
+    if abs(z) >= half:
+        return spring
+    radius, u = half + off, abs(z) + off
+    return spring + math.sqrt(max(radius * radius - u * u, 0.0))
+
+
+def _pointed_arch(r, x, spring, half, off, n, depth, thick, rgb, tex="white"):
+    """The voussoirs of a pointed arch in the plane x, facing +X: `n` a side along two arcs of radius
+    `half + off` (their centres `off` past the middle), `thick` deep from intrados to extrados and `depth`
+    thick through the wall. Its centre line springs at +-`half`. Returns the apex's height."""
+    radius = half + off
+    top = math.acos(off / radius)  # how far each arc turns, from its springing to the apex
+    seg = radius * top / n * 1.1
+    for side in (-1, 1):
+        for i in range(n):
+            a = (i + 0.5) * top / n
+            r.part("cube", x, spring + radius * math.sin(a), side * (radius * math.cos(a) - off), depth, thick,
+                   seg, _dim(rgb, 1.0 if i % 2 else 0.92), tex=tex, rx=side * (math.pi / 2 - a))  # fmt: skip
+    return spring + radius * math.sin(top)
+
+
+def _wheel(r, x, radius, n, thick, depth, rgb, tex="white"):
+    """A ring of `n` blocks of radius `radius` round the origin in the plane x, facing +X."""
+    seg = 2 * math.pi * radius / n * 1.08
+    for i in range(n):
+        a = 2 * math.pi * i / n
+        r.part("cube", x, math.sin(a) * radius, math.cos(a) * radius, depth, thick, seg, rgb, tex=tex,
+               rx=math.pi / 2 - a)  # fmt: skip
+
+
 def realm_crest(r, rgb, cy=-0.82, scale=1.0, through=0.0):
     """The realm's crest, stitched on its banners and carved over its doors: a lone watchtower standing
     dark against a sun half sunk below the sea's horizon, rays fanning above, waves beneath, all

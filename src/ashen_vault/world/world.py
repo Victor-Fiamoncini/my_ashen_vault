@@ -331,6 +331,10 @@ LANDMARKS = (
     "wall_tower",
     "rampart_bay",
     "moon_spire",
+    "moon_roof",
+    "moon_portal",
+    "cathedral_portal",
+    "grand_stair",
     "sunken_tower",
     "sun_shaft",
 )
@@ -347,9 +351,18 @@ STATIC_PROPS = frozenset(
         *("gravestone", "open_grave", "cemetery_gate", "mourning_statue", "crypt_front", "grave_railing"),
         *("shop_sign", "forge_bellows", "grindstone", "town_statue", "forge_statue", "ore_cart"),
         *("roof_turret", "wall_tower", "rampart_bay"),
+        *("cathedral_portal", "grand_stair", "stair_flight", "nave_runner"),
         *("weapon_rack", "armor_stand", "katana_stand", "bookcase", "drawers"),
         *("sluice_wheel", "outfall_grate", "rat_nest", "inkcaps", "sump_caps"),
-        *("moon_lamp", "veiled_statue", "silver_tree", "moon_window", "moon_spire"),
+        *(
+            "moon_lamp",
+            "veiled_statue",
+            "silver_tree",
+            "moon_window",
+            "moon_spire",
+            "moon_roof",
+            "moon_portal",
+        ),
         *("prisoner_remains", "old_idol", "sunken_tower"),
         "ash_mound",
         "spire",
@@ -364,7 +377,7 @@ FACING_PROPS = (
     *("ore_cart", "armor_stand", "katana_stand", "bookcase", "drawers", "old_idol"),
 )
 # Ways through a wall that its rampart bays keep clear of (`World._dress_ramparts`).
-RAMPART_GATES = ("exit", "cemetery_gate", "door", "gate", "door_arch")
+RAMPART_GATES = ("exit", "cemetery_gate", "door", "gate", "door_arch", "moon_portal", "cathedral_portal")
 # Harrowmere's buildings, furniture and street dressing (`render/town_models.py`).
 TOWN_PROPS = (
     "rampart_bay",
@@ -406,6 +419,10 @@ TOWN_PROPS = (
     "katana_stand",
     "bookcase",
     "drawers",
+    "cathedral_portal",
+    "grand_stair",
+    "stair_flight",
+    "nave_runner",
 )
 ANVIL_SOUND = (0.35, 14.0)  # (volume, metres to silence) of the smith's hammer on his anvil
 HAZARD_KINDS = ("spikes", "pendulum", "crumble", "flame_jet", "magma_vent")
@@ -3062,6 +3079,26 @@ class World:
                 moon_models.moon_window(rig, p.tx * 7 + p.tz * 3)
         elif k == "moon_spire":
             moon_models.moon_spire(rig, p.tx * 7 + p.tz * 3, float(p.props.get("height", "14")))
+        elif k == "moon_roof":
+            w, d = (int(v) for v in p.props.get("span", "2,2").split(","))
+            moon_models.moon_roof(
+                rig,
+                w,
+                d,
+                ridge=p.props.get("ridge", "x"),
+                top=float(p.props.get("top", "5.5")),
+                pitch=float(p.props.get("pitch", "3")),
+                eave=float(p.props.get("eave", "0.4")),
+                seed=p.tx * 7 + p.tz * 3,
+                grand="grand" in p.props,
+            )
+        elif k == "moon_portal":  # `rose=` sets the height of the great rose over it
+            moon_models.moon_portal(
+                rig,
+                p.tx * 7 + p.tz * 3,
+                float(p.props.get("height", "14")),
+                float(p.props.get("rose", "17.6")),
+            )
         elif k == "sunken_tower":
             sunken_models.sunken_tower(rig, p.tx * 7 + p.tz * 3, float(p.props.get("height", "18")))
         elif k == "sun_shaft":
@@ -3122,6 +3159,28 @@ class World:
                 "rose" in p.props,
                 leaf=not hinged(p.props),  # a house's own door is drawn apart, as it swings
             )
+        elif k == "cathedral_portal":  # `rose=` sets the height of the great rose over it
+            town_models.cathedral_portal(
+                rig,
+                seed,
+                float(p.props.get("height", "9")),
+                float(p.props.get("rose", "10.6")),
+                float(p.props.get("gable", "3.5")),
+                float(p.props.get("span", "14.7")),
+            )
+        elif k in ("grand_stair", "stair_flight"):  # down along its yaw from its top tile
+            town_models.grand_stair(
+                rig,
+                int(p.props.get("run", "5")),
+                int(p.props.get("width", "3")),
+                float(p.props.get("rise", "0.4")),
+                int(p.props.get("steps", "4")),
+                float(p.props.get("offset", "0")),
+                cheeks=k == "grand_stair",
+            )
+        elif k == "nave_runner":
+            ends = p.props.get("ends", "head,foot").split(",")
+            town_models.nave_runner(rig, int(p.props.get("length", "12")), "head" in ends, "foot" in ends)
         elif k == "house_door":
             town_models.house_door(rig, p.open_t, float(p.props.get("spring", "2.2")), seed)
         elif k == "roof_turret":  # `shift=dx,dz` sets it out on the house's corner

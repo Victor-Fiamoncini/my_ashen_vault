@@ -56,7 +56,7 @@ How `.map` files work and what can stand on a tile.
 | `src/ashen_vault/world/hints.py` | Tutorial hints (`hint text="...\|..."`): shown once, the first time you step onto any of its marker's tiles (`hint:<map>:<marker>` flag); `World._update_hints` fires them |
 | `src/ashen_vault/world/footsteps.py` | Footsteps: each floor `tex` belongs to a surface (stone, wood, soft, mud, water, metal, gravel, glass (Vesperholm's `moon_glass`); the platform under you overrides it), and `Game._footstep` plays its `step_<surface>` sound. A new floor texture needs a surface (`tests/test_footsteps.py`) |
 | `src/ashen_vault/world/rest.py` | The shrine rest: timing and the pixelated ember fog pattern drawn while you pray |
-| `src/ashen_vault/world/sky.py`, `render/sky.py` | Skies (`[meta] sky = overcast\|dusk\|jungle\|ember\|moonlit`): a gradient dome meeting the fog at the horizon, a sun and halo, drifting cloud banks and an overhead cap, horizon mist; every sky's sun stands at `SUN_AT` (low in the south, over the town's sea), but Vesperholm's `moonlit` sky hangs a vast pale moon at `MOON_AT` instead (high in the north, over its cathedral; `Sky.moon` makes it full, lit all over and a touch dimmer at its limb, `LIMB_SHADE`, its seas scattered across it, `sky.maria` / `MARIA`, and still wisps of cloud across it, `sky.wisps`) and buries the sun itself in a bank of cloud silvered at its rims (`Sky.veiled`, `sky.shroud`, with a faint glow round it) among a crowd of stars (`Sky.star_count`), stars glint behind the clouds (`Sky.stars`, their brightness; none in the jungle's daylight), its disc drawn over the clouds (`sky.sun`) and its halo behind them; dimmed by darkness and the Veil. Built pure in `world/sky.py`, drawn first each frame without fog or depth by `render/sky.py` |
+| `src/ashen_vault/world/sky.py`, `render/sky.py` | Skies (`[meta] sky = overcast\|dusk\|jungle\|ember\|moonlit`): a gradient dome meeting the fog at the horizon, a sun and halo, drifting cloud banks and an overhead cap, horizon mist; every sky's sun stands at `SUN_AT` (low in the south, over the town's sea), but Vesperholm's `moonlit` sky hangs a vast pale moon at `MOON_AT` instead (high in the north, over its cathedral; `Sky.moon` makes it full, lit all over and a touch dimmer at its limb, `LIMB_SHADE`, its seas scattered across it, `sky.maria` / `MARIA`, and still wisps of cloud across it, `sky.wisps`) and buries the sun itself in a bank of cloud silvered at its rims (`Sky.veiled`, `sky.shroud`, with a faint glow round it) among a crowd of stars (`Sky.star_count`) that reach up to the moon's bright corona (`Sky.corona`, `CORONA_SCALE`; stars keep only `Sky.star_clear` degrees clear of the disc, and shine over its halo), with the galaxy's band strewn across them (`Sky.galaxy`, `sky.galaxy_field`) and moonlit cloud overhead, stars glint behind the clouds (`Sky.stars`, their brightness; none in the jungle's daylight), its disc drawn over the clouds (`sky.sun`) and its halo behind them; dimmed by darkness and the Veil. Built pure in `world/sky.py`, drawn first each frame without fog or depth by `render/sky.py` |
 | `tools/level_planner/` | A top-down level planner (`index.html`, open it in a browser; a design aid, not part of the game): paint tiles, pin NPCs, gates and wells, export JSON or an ASCII grid. `map_to_planner.py <map>` turns a game map into JSON for its Import box |
 | `tools/level_sketch/` | A free-form top-down sketchpad for level design (`index.html`, open it in Chrome; a design aid, not part of the game): shapes, lines and markers measured in metres, on layers, over an optional faint underlay of a game map (`map_to_underlay.py <map>`), saved as `<name>.sketch.json` + `.svg` in `sketches/` for planning a level's rebuild. Its logic is `model.js`, tested with `node --test tools/level_sketch/` (not in CI) |
 
@@ -136,9 +136,23 @@ How `.map` files work and what can stand on a tile.
   `boat` rides on water, `ash_mound` and `bones` lie on the floor, `crypt_front` is built out of a wall, `shelf`, `hearth` and `window` hang on a wall (the last two are lights), `cage`, `roots` and `meat_hooks` hang from the ceiling, `prisoner_remains` slump in their chains against a wall, `grate` sits in the
   floor, `mushrooms` dot it (the sewers grow their own: pale `inkcaps`, and `sump_caps` on rotten timber, a
   dim yellow-green light), and `cobweb`, `skull_niche`, `winch`, `lever` and `shelf_fungus` mount on
-  the nearest wall (`WALL_PROPS`), as does Vesperholm's `moon_window`, a lancet of moon-glass and a
-  light (`rise=` hangs it up its wall, `size=` scales it about the wall's face). Its skyline is
-  `moon_spire`s (`height=`), landmarks on wall tiles no one walks. `lever model=wood` is the jungle's wooden lever.
+  the nearest wall (`WALL_PROPS`), as does Vesperholm's `moon_window`, a traceried pair of lancets of
+  moon-glass and a light (`rise=` hangs it up its wall, `size=` scales it about the wall's face). Its skyline is
+  `moon_spire`s (`height=`), landmarks on wall tiles no one walks. Its roofs are `moon_roof`s (the same
+  `span=`, `ridge=`, `top=`, `pitch=` and `eave=` as `roof`, on the block's NW corner tile; `grand` makes
+  the cathedral's, with a flèche on its ridge). `moon_portal` (`yaw=`, `height=` the wall's top, `rose=`
+  the height of the great rose in the roof's gable) is the cathedral's great gate, in the middle tile
+  of a doorway three tiles wide; it faces out as a `door_arch` does and blocks nothing. Harrowmere's
+  cathedral has its own, `cathedral_portal` (`height=` the wall's top, `rose=` the great rose's height
+  in the stone gable it raises over the wall, `gable=` and `span=` that gable's height and foot), set
+  the same way. Its stairs are `grand_stair` and `stair_flight` (`run=` tiles, `rise=` metres each tile
+  drops, `steps=` steps to a tile, `width=` tiles across, `offset=` metres across to centre it, `yaw=`
+  the way it goes down): on the top tile, fine steps drawn over stair tiles that each sit `rise` below
+  the last, a tile's floor its lowest step, so the top step meets the floor above. `grand_stair` adds
+  raking balustrades on cheek walls either side (wall tiles whose `top=` is that tile's top step),
+  newels with lanterns at its head (it is a light) and urns at its foot. `nave_runner` (`length=`
+  tiles toward -X, `ends=head,foot` for its fringes) is laid in stretches, one to a bake chunk.
+  `lever model=wood` is the jungle's wooden lever.
   Every `banner`, in every map, is the realm's violet (`models.REALM_VIOLET`) and carries its crest (`models.realm_crest`: a lone watchtower dark
   against a sun half sunk below the sea, in a heater shield); the town flies it on `banner_pole`s and
   carves it in `crest_plaque`s, and `through=` draws one crest that shows on both faces of a cloth or
@@ -150,7 +164,7 @@ How `.map` files work and what can stand on a tile.
   toadstools, and every shrine, `save_statue`: a stone post with a flame burning in an iron dish). A `brazier unlit` or `bonfire unlit` stays cold until Pyre or a Flame Bolt kindles it
   (`World.kindle`); it then burns for good under a `lit:<map>:<tx>,<tz>` flag, and its light is added
   to the baked mesh in place (`MeshBuilder.add_light`).
-  Every house's `door_arch` (all but the cathedral's `rose` one, or one marked `open`) hangs a `house_door`
+  Every house's `door_arch` (all but a `rose` one, or one marked `open`) hangs a `house_door`
   (`world.hinged`): shut whenever the map loads, never saved; interact swings it open or shut (`World.swing_door`,
   which won't shut it on anyone in the doorway), and shut it fills its tile.
   `chest model=iron` is the Cinderhold's iron chest (`models.chest` style), and `mimic model=iron` hides as

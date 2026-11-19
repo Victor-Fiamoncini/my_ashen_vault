@@ -33,8 +33,8 @@ STAR_SIZE = (0.22, 0.45)  # a star's radius, degrees: one to three pixels at 320
 STAR_SEED = 1709  # the same sky of stars over every map, every time
 STAR_TINTS = ((0.92, 0.95, 1.0), (1.0, 0.94, 0.82), (0.78, 0.86, 1.0))  # cool white, warm white, pale blue
 # Where Vesperholm's moon hangs: in the north, over the Duchess's cathedral, high enough to stand clear
-# of its roofs from the gate court. It never sets.
-MOON_AT = (270.0, 24.0)
+# of its roofs (and the flèche on its ridge) from Lantern Square and the gate court. It never sets.
+MOON_AT = (270.0, 30.0)
 # Vesperholm's moon is full: its whole disc lit, a touch dimmer toward its limb (LIMB_SHADE), so it
 # reads as a sphere, its seas scattered across it.
 LIMB_SHADE = 0.93
@@ -50,14 +50,29 @@ MARIA = (
     (-0.3, -0.56, 0.12, 0.2),
     (0.58, -0.18, 0.1, 0.15),
 )
-MARIA_SHADE = 0.8  # how dark the seas are against the disc
+MARIA_SHADE = 0.8  # how dark the seas are against the disc (a sky can set its own, `maria_shade`)
 MARIA_STEPS = 14
 # Wisps of cloud trailing across the moon: (height across the disc, bow, thickness, length), as shares
 # of its radius, the rise measured up the disc.
-WISPS = ((0.35, -0.1, 0.22, 3.4), (-0.25, 0.08, 0.16, 2.8), (-0.7, -0.06, 0.26, 3.8))
+WISPS = (
+    (0.35, -0.1, 0.22, 3.4),
+    (-0.25, 0.08, 0.16, 2.8),
+    (-0.7, -0.06, 0.26, 3.8),
+    (0.95, 0.05, 0.12, 2.6),
+    (-1.15, -0.04, 0.18, 3.2),
+)
 WISP_SLOPE = -0.18  # they lean a little, rising to the left
 WISP_LIGHT = 0.35  # how far the moon lights them
 WISP_SCALE = 1 / 30.0  # uv per degree along them
+# A moon's corona: a bright glow hugging the disc, CORONA_SCALE times its radius, inside the wide halo.
+CORONA_SCALE = 2.4
+# A band of the galaxy across the night: a crowd of faint stars strewn about a great circle tipped
+# across the sky, thickest along it. Its pole, as (azimuth, elevation) degrees.
+GALAXY_POLE = (200.0, 38.0)
+GALAXY_COUNT = 700
+GALAXY_SPREAD = 7.0  # degrees: how far, typically, its stars stray from the circle
+GALAXY_SIZE = (0.16, 0.3)  # smaller than the field's stars
+GALAXY_SEED = 3301
 # The sun Vesperholm denies: still low in the south (SUN_AT), but buried in a bank of cloud so only a
 # cold glow leaks round its edges. (centre across, up, size) of each billow, in VEILED_SIZE degrees.
 VEILED_SIZE = 3.6
@@ -89,7 +104,11 @@ class Sky:
     mist: tuple | None = None  # the haze along the horizon
     stars: float = 0.0  # how brightly the stars show through it (0: none)
     star_count: int = STAR_COUNT  # how many: a clear night shows far more than a dusk
+    star_clear: float | None = None  # degrees kept clear of stars around the disc (None: its whole halo)
+    galaxy: bool = False  # a band of the galaxy strewn across the stars
     moon: bool = False  # the disc is a full moon: its seas on it (`maria`), wisps across it
+    maria_shade: float = MARIA_SHADE  # how dark a moon's seas are against its disc
+    corona: tuple | None = None  # a moon's bright glow hugging its disc
     veiled: tuple | None = None  # a sun hidden in a bank of cloud in the south: the light leaking round it
 
 
@@ -148,24 +167,28 @@ SKIES = {
         mist=(0.36, 0.13, 0.07),
         stars=0.24,
     ),
-    # Vesperholm: a night that never ends, drowned in the light of a vast, bright full moon hung in the
-    # north over the cathedral, wisps of cloud trailing across it, a sky crowded with stars, and in the
-    # south the sun the city denies, buried in a bank of cloud.
+    # Vesperholm: a night that never ends, drowned in the light of a vast, blazing full moon hung in
+    # the north over the cathedral, wisps of cloud trailing across it and a thin moonlit layer drifting
+    # overhead, a sky crowded with stars right up to the moon's glow and the galaxy strewn across them,
+    # and in the south the sun the city denies, buried in a bank of cloud.
     "moonlit": Sky(
-        zenith=(0.03, 0.05, 0.13),
-        sun=(0.95, 0.97, 1.0),
+        zenith=(0.03, 0.05, 0.14),
+        sun=(1.0, 1.0, 1.0),
         sun_at=MOON_AT,
         sun_size=8.5,
-        halo=(0.36, 0.5, 0.72),
+        halo=(0.48, 0.6, 0.84),
         halo_size=48.0,
-        clouds=(0.36, 0.4, 0.52),
-        cloud_under=(0.14, 0.17, 0.27),
+        clouds=(0.36, 0.42, 0.58),
+        cloud_under=(0.12, 0.15, 0.25),
         drift=0.0015,
-        cap=False,
         mist=(0.4, 0.46, 0.6),
-        stars=0.95,
-        star_count=640,
+        stars=1.0,
+        star_count=960,
+        star_clear=14.0,
+        galaxy=True,
         moon=True,
+        maria_shade=0.88,
+        corona=(0.86, 0.92, 1.0),
         veiled=(0.62, 0.6, 0.55),
     ),
 }
@@ -246,6 +269,10 @@ def dome(spec, fog, dark=0.0, veil=False):
             )
     if spec.sun:
         _halo(mesh, spec, fog, zenith, dark, veil)
+    if spec.sun and spec.corona:  # fading into the halo it lies on, not the bare sky
+        halo = (shade(spec.halo or spec.sun, dark, veil), spec.halo_size)
+        corona = shade(spec.corona, dark, veil)
+        _glow(mesh, spec.sun_at, corona, spec.sun_size * CORONA_SCALE, fog, zenith, under=halo)
     if spec.veiled:
         _glow(mesh, SUN_AT, shade(spec.veiled, dark, veil), VEILED_GLOW, fog, zenith)
     return mesh
@@ -276,19 +303,33 @@ def _halo(mesh, spec, fog, zenith, dark, veil):
     _glow(mesh, spec.sun_at, shade(spec.halo or spec.sun, dark, veil), spec.halo_size, fog, zenith)
 
 
-def _glow(mesh, at, rgb, size, fog, zenith):
-    """A glow of `rgb` `size` degrees round the direction `at`, fading into the dome at its rim."""
+GLOW_RINGS = ((0.0, 1.0), (0.35, 0.55), (1.0, 0.0))  # (share of a glow's radius, how much glow shows)
+
+
+def glow_share(share):
+    """How much of a glow shows `share` of the way out to its rim (as `_glow` shades it)."""
+    for (r0, k0), (r1, k1) in pairwise(GLOW_RINGS):
+        if share <= r1:
+            return k0 + (k1 - k0) * (max(share, r0) - r0) / (r1 - r0)
+    return 0.0
+
+
+def _glow(mesh, at, rgb, size, fog, zenith, under=None):
+    """A glow of `rgb` `size` degrees round the direction `at`, fading into the dome at its rim (or
+    into the glow `under` it, an (rgb, size) round the same direction)."""
     d = direction(*at)
     u, v = _basis(d)
     steps = 20
-    rings = ((0.0, 1.0), (0.35, 0.55), (1.0, 0.0))  # (share of the glow's radius, how much glow shows)
-    for (r0, k0), (r1, k1) in pairwise(rings):
+    for (r0, k0), (r1, k1) in pairwise(GLOW_RINGS):
         for i in range(steps):
             a0, a1 = 2 * math.pi * i / steps, 2 * math.pi * (i + 1) / steps
             corners = []
             for r, k, a in ((r0, k0, a0), (r0, k0, a1), (r1, k1, a0), (r1, k1, a1)):
                 p = _around(d, u, v, size * r, a)
-                corners.append((p, (0, 0), _mix(dome_color(_elev(p), fog, zenith), rgb, k), RADIUS * 0.99))
+                behind = dome_color(_elev(p), fog, zenith)
+                if under:
+                    behind = _mix(behind, under[0], glow_share(size * r / under[1]))
+                corners.append((p, (0, 0), _mix(behind, rgb, k), RADIUS * 0.99))
             mesh.quad(*corners)
 
 
@@ -299,9 +340,9 @@ def _at(d, u, v, x, y):
 
 def sun_color(spec, dark=0.0, veil=False):
     """The sun's disc colour as the eye sees it (also the glints it lays on the sea): glaring toward
-    white, a little of the clouds' undersides if it shines through them."""
+    white, a little of the clouds' undersides if it shines through them. A moon outshines its wisps."""
     rgb = _mix(spec.sun, (1.0, 1.0, 1.0), SUN_GLARE)
-    if spec.clouds:
+    if spec.clouds and not spec.moon:
         rgb = _mix(rgb, spec.cloud_under, SUN_THROUGH_CLOUD)
     return shade(rgb, dark, veil)
 
@@ -338,7 +379,7 @@ def maria(spec, dark=0.0, veil=False):
     if not (spec.sun and spec.moon):
         return None
     mesh = SkyMesh()
-    rgb = [c * MARIA_SHADE for c in sun_color(spec, dark, veil)]
+    rgb = [c * spec.maria_shade for c in sun_color(spec, dark, veil)]
     d = direction(*spec.sun_at)
     u, v = _basis(d)
     for n, (x, y, size, wobble) in enumerate(MARIA):
@@ -422,19 +463,56 @@ def star_field(count=STAR_COUNT):
     return out
 
 
+def galaxy_field(count=GALAXY_COUNT):
+    """[(direction, radius, tint, brightness)] for the galaxy's faint stars, the same each time: strewn
+    about the great circle round GALAXY_POLE, thickest along it, kept to the stars' band."""
+    rng = random.Random(GALAXY_SEED)
+    pole = direction(*GALAXY_POLE)
+    e1, e2 = _basis(pole)
+    lo, hi = STAR_BAND
+    out = []
+    while len(out) < count:
+        along = rng.uniform(0.0, 2 * math.pi)
+        off = math.radians(rng.gauss(0.0, GALAXY_SPREAD))
+        d = tuple(
+            math.cos(off) * (math.cos(along) * e1[k] + math.sin(along) * e2[k]) + math.sin(off) * pole[k]
+            for k in range(3)
+        )
+        if lo <= _elev(d) <= hi:
+            out.append((d, rng.uniform(*GALAXY_SIZE), rng.choice(STAR_TINTS), rng.uniform(0.3, 0.7)))
+    return out
+
+
+def star_clear(spec):
+    """Degrees kept clear of stars around the sun or moon: its whole halo unless the sky says less."""
+    return spec.halo_size if spec.star_clear is None else spec.star_clear
+
+
 def stars(spec, fog, dark=0.0, veil=False):
     """Small diamonds of light over the dome, behind the clouds so the banks hide some and they glint
-    in the gaps. None where the light hides them (`spec.stars` 0); none within the sun's halo."""
+    in the gaps, and the galaxy's band if the sky has one. None where the light hides them
+    (`spec.stars` 0); none within `star_clear` of the sun."""
     if not spec.stars:
         return None
     mesh = SkyMesh()
     zenith = shade(spec.zenith, dark, veil)
-    away = math.cos(math.radians(spec.halo_size)) if spec.sun else 2.0
+    away = math.cos(math.radians(star_clear(spec))) if spec.sun else 2.0
     sun_d = direction(*spec.sun_at)
-    for d, size, tint, bright in star_field(spec.star_count):
-        if sum(a * b for a, b in zip(d, sun_d, strict=True)) > away:
+    field = star_field(spec.star_count) + (galaxy_field() if spec.galaxy else [])
+    glows = []  # the halo and corona round the sun: a star there shines over them, not over bare sky
+    if spec.sun:
+        glows.append((shade(spec.halo or spec.sun, dark, veil), spec.halo_size))
+        if spec.corona:
+            glows.append((shade(spec.corona, dark, veil), spec.sun_size * CORONA_SCALE))
+    for d, size, tint, bright in field:
+        cos = sum(a * b for a, b in zip(d, sun_d, strict=True))
+        if cos > away:
             continue
-        rgb = _mix(dome_color(_elev(d), fog, zenith), shade(tint, dark, veil), spec.stars * bright)
+        behind = dome_color(_elev(d), fog, zenith)
+        apart = math.degrees(math.acos(max(-1.0, min(1.0, cos))))
+        for rgb_glow, reach in glows:
+            behind = _mix(behind, rgb_glow, glow_share(apart / reach))
+        rgb = _mix(behind, shade(tint, dark, veil), spec.stars * bright)
         u, v = _basis(d)
         tips = [(_around(d, u, v, size, a * math.pi / 2), (0, 0), rgb, RADIUS * 0.98) for a in range(4)]
         mesh.quad(tips[0], tips[1], tips[3], tips[2])

@@ -2097,6 +2097,8 @@ def test_vesperholms_dressing_draws_and_stands_still():
         ("silver_tree", lambda r: moon_models.silver_tree(r, 4)),
         ("moon_window", lambda r: moon_models.moon_window(r, 4)),
         ("moon_spire", lambda r: moon_models.moon_spire(r, 4, 16.0)),
+        ("moon_roof", lambda r: moon_models.moon_roof(r, 6, 4, "x", 5.5, 3.0, 0.4, seed=3)),
+        ("moon_portal", lambda r: moon_models.moon_portal(r, 4)),
     ):
         gpu = _GlowGpu()
         fn(rig.Rig(gpu))
@@ -2104,8 +2106,58 @@ def test_vesperholms_dressing_draws_and_stands_still():
         assert min(y for _, y in gpu.parts) > -0.1, name
         assert name in STATIC_PROPS, name
     assert {"moon_lamp", "veiled_statue", "silver_tree"} <= set(BLOCKING_PROPS)
-    assert "moon_window" in WALL_PROPS and "moon_spire" in LANDMARKS
+    assert "moon_window" in WALL_PROPS and {"moon_spire", "moon_roof", "moon_portal"} <= set(LANDMARKS)
+    assert not {"moon_roof", "moon_portal"} & set(BLOCKING_PROPS)  # the cathedral's doorway stays open
     assert {"moon_lamp", "moon_window"} <= set(mesh_builder.LIGHT_KINDS)  # they cast moonlight
+
+
+def test_vesperholms_cathedral_has_a_great_gate_a_rose_and_a_grand_victorian_roof():
+    """The cathedral's gate spans its three-tile doorway and towers over it, and its great rose glows
+    high in the roof's gable. The cathedral's roof is grander than a house's: a flèche on its ridge and taller dormers."""
+    from ashen_vault.render import bounds, moon_models
+
+    (_, y0, z0), (_, y1, z1) = bounds.measure(lambda r: moon_models.moon_portal(r, 4, 14.0, 17.0))
+    assert z1 - z0 > 3 * 2 + 2 and y1 > 14.0 + 3 and y0 > -0.1  # wider than its doorway, up into the gable
+    gpu = _GlowGpu()
+    moon_models.moon_rose(rig.Rig(gpu), 1, 2.6)
+    assert len(gpu.parts) >= 60
+    house = bounds.measure(lambda r: moon_models.moon_roof(r, 22, 18, "z", 14, 9, 0.5))
+    grand = bounds.measure(lambda r: moon_models.moon_roof(r, 22, 18, "z", 14, 9, 0.5, grand=True))
+    assert grand[1][1] > house[1][1] + 10  # the flèche stands far over the ridge
+    assert moon_models._arch_top(0, 5, 3, 1.25) > moon_models._arch_top(2, 5, 3, 1.25) > 5
+    assert moon_models._arch_top(3.5, 5, 3, 1.25) == 5
+
+
+def test_harrowmeres_cathedral_front_a_great_door_a_grand_stair_and_a_runner_down_the_nave():
+    """The cathedral's great door spans its three-tile doorway and holds the great rose in the gable
+    over it; its stair's steps climb from each tile's floor to the floor of the tile above, never below
+    a tile's floor, the balustrade and newels standing over the cheek walls; the runner lies flat."""
+    from ashen_vault.render import bounds, mesh_builder, town_models
+    from ashen_vault.world.world import BLOCKING_PROPS, LANDMARKS, RAMPART_GATES, STATIC_PROPS
+
+    (_, y0, z0), (_, y1, z1) = bounds.measure(lambda r: town_models.cathedral_portal(r, 4))
+    assert z1 - z0 > 3 * 2 + 2 and y1 > 9 + 3 and y0 > -0.1  # wider than its doorway, up into the gable
+    gpu = _GlowGpu()
+    town_models.great_rose(rig.Rig(gpu), 1)
+    assert len(gpu.parts) >= 60
+    run, rise = 5, 0.4
+    (x0, y0, z0), (x1, y1, z1) = bounds.measure(
+        lambda r: town_models.grand_stair(r, run, 3, rise, cheeks=False)
+    )
+    assert y0 >= -(run - 1) * rise - 1e-6 and y1 == pytest.approx(rise, abs=0.01)  # up to the floor above
+    assert x0 == pytest.approx(-1) and x1 == pytest.approx(run * 2 - 1, abs=0.05) and z1 - z0 < 6.2
+    (_, _, gz0), (_, gy1, gz1) = bounds.measure(lambda r: town_models.grand_stair(r, run, 3, rise))
+    assert gz1 - gz0 > 9 and gy1 > rise + 2  # the cheeks' balustrades either side, lanterns on the newels
+    (_, _, sz0), (_, _, sz1) = bounds.measure(
+        lambda r: town_models.grand_stair(r, 3, 2, offset=-1, cheeks=False)
+    )
+    assert (sz0 + sz1) / 2 == pytest.approx(-1, abs=0.01)  # set across two tiles
+    (_, ry0, _), (rx1, ry1, _) = bounds.measure(lambda r: town_models.nave_runner(r, 3, head=False))
+    assert ry0 >= 0 and ry1 < 0.05 and rx1 == pytest.approx(1)  # it runs on to the tile's edge
+    for k in ("cathedral_portal", "grand_stair", "stair_flight", "nave_runner"):
+        assert k in STATIC_PROPS and k not in BLOCKING_PROPS, k
+    assert {"cathedral_portal", "grand_stair"} <= set(LANDMARKS) and "cathedral_portal" in RAMPART_GATES
+    assert "grand_stair" in mesh_builder.LIGHT_KINDS  # its lanterns light the porch
 
 
 def test_vesperholms_foes_moves_each_strike_their_own_pose_and_the_glaive_never_folds_back():

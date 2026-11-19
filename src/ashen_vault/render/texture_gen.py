@@ -11,6 +11,7 @@ def all_textures():
     return {
         "stone_brick": stone_brick(),
         "flagstone": flagstone(),
+        "cathedral_floor": cathedral_floor(),
         "rough_stone": rough_stone(),
         "wood_plank": wood_plank(),
         "door_wood": door_wood(),
@@ -172,6 +173,28 @@ def flagstone():
         if gap:
             return tint([40, 38, 36], 0.9 + n * 0.2)
         return tint([104, 98, 90], 0.72 + hash_(cx, cy, 3) * 0.3 + (n - 0.5) * 0.4)
+
+    return build(px)
+
+
+def cathedral_floor():
+    """The cathedral's floor: each tile a panel framed in a band of dark red marble with a pale fillet
+    inside it, laid in lozenges of cream limestone and grey-violet slate, worn and faintly veined."""
+
+    def px(x, y):
+        n = fbm(x, y, 41)
+        edge = min(x, y, SIZE - 1 - x, SIZE - 1 - y)
+        if edge < 3:  # the border band
+            return tint([112, 52, 48], 0.8 + n * 0.3)
+        if edge == 3:  # its pale fillet
+            return tint([206, 196, 176], 0.9 + n * 0.1)
+        u, v = x + y, x - y + SIZE
+        if u % 16 == 0 or v % 16 == 0:  # the joints between the lozenges
+            return tint([46, 42, 44], 0.9 + n * 0.2)
+        vein = 0.08 * math.sin((x * 0.35 + y * 0.12) + noise(x, y, 8, 42) * 6)
+        if (u // 16 + v // 16) % 2:
+            return tint([198, 188, 168], 0.86 + (n - 0.5) * 0.24 + vein)
+        return tint([74, 70, 86], 0.86 + (n - 0.5) * 0.3 + vein)
 
     return build(px)
 

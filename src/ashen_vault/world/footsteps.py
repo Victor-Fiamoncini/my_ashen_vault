@@ -6,9 +6,17 @@ DEFAULT = "stone"
 VOLUME = 0.35  # a footstep's volume
 
 _BY_TEX = {
-    # Stone is the default; Vesperholm's moonstone paving and silvered slate and Old Harrowmere's
+    # Stone is the default; Harrowmere's cathedral floor, Vesperholm's moonstone paving and silvered slate and Old Harrowmere's
     # ochre paving are named all the same.
-    "stone": ("moonstone", "moon_paving", "silver_slate", "ochre_flag", "sunken_brick", "cavern_rock"),
+    "stone": (
+        "cathedral_floor",
+        "moonstone",
+        "moon_paving",
+        "silver_slate",
+        "ochre_flag",
+        "sunken_brick",
+        "cavern_rock",
+    ),
     "wood": ("wood_plank", "timber", "bark"),
     "soft": (
         "dirt",

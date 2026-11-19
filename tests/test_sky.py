@@ -1,3 +1,4 @@
+import dataclasses
 import math
 import os
 
@@ -170,7 +171,7 @@ def test_vesperholms_moon_hangs_vast_in_the_north_among_a_crowd_of_stars():
     assert spec.moon and not dusk.moon
     assert spec.sun_size >= 3 * dusk.sun_size
     d = sky.direction(*spec.sun_at)
-    assert d[2] < -0.9 and 15 < spec.sun_at[1] < 35  # north (-z), clear of the cathedral's roofs
+    assert d[2] / math.hypot(d[0], d[2]) < -0.9 and 15 < spec.sun_at[1] < 35  # north (-z), over the roofs
     assert min(spec.sun) > 0.8 and spec.sun[2] >= spec.sun[0]  # pale, a little blue
     assert spec.star_count >= 2 * dusk.star_count and spec.stars > dusk.stars
     stars = sky.stars(spec, FOG)
@@ -232,6 +233,44 @@ def test_vesperholm_buries_the_sun_in_a_bank_of_cloud():
     for name, other in sky.SKIES.items():
         if not other.veiled:
             assert sky.shroud(other) is None and "shroud" not in dict(sky.layers(other, FOG)), name
+
+
+def test_vesperholms_stars_crowd_up_to_the_moons_glow_and_the_galaxy_crosses_them():
+    """The stars keep clear only of the moon's own bright corona, not of its whole halo, so the northern
+    sky over the cathedral is full of them; the galaxy's band adds a crowd of fainter ones, the same
+    every time, and each star still shines brighter than the glow behind it."""
+    spec, dusk = sky.SKIES["moonlit"], sky.SKIES["dusk"]
+    assert sky.star_clear(spec) < spec.halo_size / 2 and sky.star_clear(dusk) == dusk.halo_size
+    assert spec.galaxy and not dusk.galaxy
+    moon_d = sky.direction(*spec.sun_at)
+    verts = _verts(sky.stars(spec, FOG))
+    near = [p for p in verts if _cos_to(p, moon_d) > math.cos(math.radians(spec.halo_size))]
+    assert len(near) > 100  # inside the halo, where once there were none
+    assert all(_cos_to(p, moon_d) < math.cos(math.radians(sky.star_clear(spec) - 1)) for p in verts)
+    band = sky.galaxy_field()
+    assert band == sky.galaxy_field() and len(band) == sky.GALAXY_COUNT
+    pole = sky.direction(*sky.GALAXY_POLE)
+    assert all(abs(_cos_to(d, pole)) < math.sin(math.radians(6 * sky.GALAXY_SPREAD)) for d, *_ in band)
+    lo, hi = sky.STAR_BAND
+    assert all(lo - 1e-6 <= sky._elev(d) <= hi + 1e-6 for d, *_ in band)
+
+
+def test_vesperholms_moon_blazes_in_a_corona_under_moonlit_cloud():
+    """The moon is brighter than any sun: pure white, its seas faint, a bright corona hugging it that
+    melts into the wider halo without a dark rim, and a layer of moonlit cloud drifting overhead."""
+    spec = sky.SKIES["moonlit"]
+    assert min(sky.sun_color(spec)) > 0.97  # no cloud dims it
+    assert spec.maria_shade > sky.MARIA_SHADE
+    assert spec.cap and "cap" in dict(sky.layers(spec, FOG))
+    assert sum(spec.corona) > sum(spec.halo)
+    plain = sky.dome(dataclasses.replace(spec, corona=None, veiled=None), FOG)
+    lit = sky.dome(dataclasses.replace(spec, veiled=None), FOG)
+    assert lit.vertex_count > plain.vertex_count
+    # The corona's rim is the halo's colour there, never darker than the halo beneath it.
+    extra = lit.colors[len(plain.colors) :]
+    halo_rim = sum(sky._mix(sky.dome_color(spec.sun_at[1], FOG, spec.zenith), spec.halo, 0.4))
+    assert min(sum(extra[i : i + 3]) for i in range(0, len(extra), 3)) > halo_rim * 0.8
+    assert sky.glow_share(0.0) == 1.0 and sky.glow_share(1.0) == 0.0 and sky.glow_share(2.0) == 0.0
 
 
 def test_a_sky_without_a_sun_has_no_disc():
