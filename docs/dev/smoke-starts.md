@@ -55,11 +55,10 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   drawbridge down). Bosses: `--at=34,32,-160 --level 10 --script "wait:3.2"` (Mother Gnawl rising in her
   nest, its great doors at 29,28 and 33,34; `--at=29,27,90 --script "interact wait:1 forward:1.5"` walks in
   through the north one), `--at=41,13,-90 --level 10 --script "wait:4.5"` (the Sodden Pall behind its door at 41,15).
-- Vesperholm (`vesperholm`) lies behind the Vesper Gate in Harrowmere's north wall, in the lane behind
-  the cathedral's apse: `--map harrowmere --at=5,2,-90 --script "back:0.35 look_up:0.12 wait:0.3
-  interact"` (shut: its three sockets dark, and it says why), the same with `--flags
-  sigil_taken,verdant_sigil_taken,iron_sigil_taken` (open, moonlight pouring through; `interact` goes
-  through). Areas: `--map vesperholm` (the Gate Court, its `start`, the shrine at 16,50), `--at=21,43,-90
+- Vesperholm (`vesperholm`) lies behind the Vesper Gate in Harrowmere's north wall, at the head of the
+  cathedral steps; it always stands open: `--map harrowmere --at=22,15,-90` (from the foot of the steps,
+  the gate straight ahead up the porch), `--map harrowmere --at=22,2,-90 --script "wait:0.3 interact"`
+  (goes through, even on a fresh save). Areas: `--map vesperholm` (the Gate Court, its `start`, the shrine at 16,50), `--at=21,43,-90
   --script "look_up:0.5"` (the moon and the stars over Lantern Square, from beside its moon pool),
   `--at=21,33,-90` (the Landing, the raised drawbridge across the gorge), `--at=4,35,-90` (the west street
   and the Glass Bridge), `--at=21,26,-90 --script "look_up:0.25"` (the cathedral's front from the bailey),

@@ -261,9 +261,9 @@ SHOTS = [
     ),
     Shot(
         "vesper_gate",
-        "--map harrowmere --at=5,2,-90 --level 10 --flags sigil_taken,verdant_sigil_taken,iron_sigil_taken "
+        "--map harrowmere --at=22,3,-90 --level 10 "
         '--equip primary=stormbrand,secondary=spell:ward --smoke 80 --script "back:0.35 look_up:0.12"',
-        "The Vesper Gate, open to the three sigils",
+        "The Vesper Gate, standing open at the head of the cathedral steps",
         "The Vesper Gate in Harrowmere's north wall standing open, pale moonlight pouring through it",
     ),
     Shot(

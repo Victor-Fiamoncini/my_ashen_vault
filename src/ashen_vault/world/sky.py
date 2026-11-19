@@ -35,22 +35,23 @@ STAR_TINTS = ((0.92, 0.95, 1.0), (1.0, 0.94, 0.82), (0.78, 0.86, 1.0))  # cool w
 # Where Vesperholm's moon hangs: in the north, over the Duchess's cathedral, high enough to stand clear
 # of its roofs from the gate court. It never sets.
 MOON_AT = (270.0, 24.0)
-# Vesperholm's moon is a crescent: a shadow as wide as the disc lies over it, pushed CRESCENT_OFFSET of
-# its radius off centre toward the dark side, leaving a thick bright limb lit from the lower right. The
-# rest of the face still shows faintly in the blue earthshine (EARTHSHINE: how far it takes the halo).
-CRESCENT_OFFSET = 0.62
-CRESCENT_TILT = math.pi + 0.45  # radians round the disc from its first basis vector to the lit side
-CRESCENT_STEPS = 24
-TERMINATOR_SHADE = 0.86  # the lit limb dims toward the shadow's edge
-EARTHSHINE = 0.86
-# The moon's seas: (along the lit side, across it, size), as shares of its radius, all on the crescent.
+# Vesperholm's moon is full: its whole disc lit, a touch dimmer toward its limb (LIMB_SHADE), so it
+# reads as a sphere, its seas scattered across it.
+LIMB_SHADE = 0.93
+# The moon's seas: (across, up, size, wobble), as shares of its radius, each a darker patch with a
+# ragged rim (`wobble` shares of its size), all well inside the disc.
 MARIA = (
-    (0.75, 0.08, 0.12),
-    (0.62, 0.48, 0.1),
-    (0.62, -0.46, 0.1),
-    (0.43, 0.75, 0.07),
+    (-0.34, 0.36, 0.25, 0.22),
+    (0.08, 0.5, 0.17, 0.18),
+    (0.36, 0.14, 0.22, 0.2),
+    (-0.5, -0.06, 0.19, 0.25),
+    (-0.1, -0.06, 0.14, 0.2),
+    (0.22, -0.4, 0.18, 0.22),
+    (-0.3, -0.56, 0.12, 0.2),
+    (0.58, -0.18, 0.1, 0.15),
 )
-MARIA_SHADE = 0.9  # how dark the seas are against the disc
+MARIA_SHADE = 0.8  # how dark the seas are against the disc
+MARIA_STEPS = 14
 # Wisps of cloud trailing across the moon: (height across the disc, bow, thickness, length), as shares
 # of its radius, the rise measured up the disc.
 WISPS = ((0.35, -0.1, 0.22, 3.4), (-0.25, 0.08, 0.16, 2.8), (-0.7, -0.06, 0.26, 3.8))
@@ -88,7 +89,7 @@ class Sky:
     mist: tuple | None = None  # the haze along the horizon
     stars: float = 0.0  # how brightly the stars show through it (0: none)
     star_count: int = STAR_COUNT  # how many: a clear night shows far more than a dusk
-    moon: bool = False  # the disc is a moon: a crescent, its seas on it (`maria`), wisps across it
+    moon: bool = False  # the disc is a full moon: its seas on it (`maria`), wisps across it
     veiled: tuple | None = None  # a sun hidden in a bank of cloud in the south: the light leaking round it
 
 
@@ -147,16 +148,16 @@ SKIES = {
         mist=(0.36, 0.13, 0.07),
         stars=0.24,
     ),
-    # Vesperholm: a night that never ends, drowned in the light of a vast, pale crescent moon hung in the
+    # Vesperholm: a night that never ends, drowned in the light of a vast, bright full moon hung in the
     # north over the cathedral, wisps of cloud trailing across it, a sky crowded with stars, and in the
     # south the sun the city denies, buried in a bank of cloud.
     "moonlit": Sky(
         zenith=(0.03, 0.05, 0.13),
-        sun=(0.86, 0.92, 1.0),
+        sun=(0.95, 0.97, 1.0),
         sun_at=MOON_AT,
         sun_size=8.5,
-        halo=(0.26, 0.42, 0.62),
-        halo_size=42.0,
+        halo=(0.36, 0.5, 0.72),
+        halo_size=48.0,
         clouds=(0.36, 0.4, 0.52),
         cloud_under=(0.14, 0.17, 0.27),
         drift=0.0015,
@@ -307,89 +308,49 @@ def sun_color(spec, dark=0.0, veil=False):
 
 def sun(spec, dark=0.0, veil=False):
     """The sun's disc, drawn over the cloud banks so no sky hides it; under clouds it takes a little
-    of their undersides' colour, as if it shone through them. A moon is its face in earthshine with the
-    lit crescent over it. None for a sky without a sun."""
+    of their undersides' colour, as if it shone through them. A full moon is lit all over, a touch
+    dimmer at its limb. None for a sky without a sun."""
     if not spec.sun:
         return None
     mesh = SkyMesh()
     rgb = sun_color(spec, dark, veil)
+    rim = [c * LIMB_SHADE for c in rgb] if spec.moon else rgb
     d = direction(*spec.sun_at)
     u, v = _basis(d)
-    face = earthshine_color(spec, dark, veil) if spec.moon else rgb
     steps = 20
     for i in range(steps):
         a0, a1 = 2 * math.pi * i / steps, 2 * math.pi * (i + 1) / steps
-        for p in (d, _around(d, u, v, spec.sun_size, a0), _around(d, u, v, spec.sun_size, a1)):
-            mesh.vertex(p, (0, 0), face, RADIUS * 0.84)
-    if spec.moon:
-        _crescent(mesh, spec, rgb, d, u, v)
+        mesh.vertex(d, (0, 0), rgb, RADIUS * 0.84)
+        for a in (a0, a1):
+            mesh.vertex(_around(d, u, v, spec.sun_size, a), (0, 0), rim, RADIUS * 0.84)
     return mesh
 
 
-def earthshine_color(spec, dark=0.0, veil=False):
-    """A moon's unlit face: the disc's colour sunk most of the way into its halo's."""
-    return _mix(sun_color(spec, dark, veil), shade(spec.halo or spec.sun, dark, veil), EARTHSHINE)
-
-
-def _crescent_point(spec, d, u, v, along, across):
-    """The direction at (`along` the lit side, `across` it), in shares of the moon's radius."""
-    c, s = math.cos(CRESCENT_TILT), math.sin(CRESCENT_TILT)
-    x, y = along * c - across * s, along * s + across * c
-    return _at(d, u, v, x * spec.sun_size, y * spec.sun_size)
-
-
-def crescent_bounds(across):
-    """(inner, outer) edges of the lit crescent, along the lit side, at `across` (shares of the radius):
-    the shadow's rim to the disc's limb. Beyond the horns, where the shadow no longer reaches, it is the
-    whole chord."""
-    chord = math.sqrt(max(1.0 - across * across, 0.0))
-    horn = math.sqrt(1.0 - CRESCENT_OFFSET**2 / 4)
-    inner = chord - CRESCENT_OFFSET if abs(across) < horn else -chord
-    return inner, chord
-
-
-def shadow_centre(spec):
-    """The direction of the centre of the shadow that leaves the crescent."""
-    d = direction(*spec.sun_at)
-    u, v = _basis(d)
-    return _crescent_point(spec, d, u, v, -CRESCENT_OFFSET, 0.0)
-
-
-def _crescent(mesh, spec, rgb, d, u, v):
-    """The lit crescent: a strip across the disc from horn to horn, the limb at full light and the
-    terminator a little dimmer, just in front of the face."""
-    dim = [c * TERMINATOR_SHADE for c in rgb]
-    edges = []
-    for i in range(CRESCENT_STEPS + 1):
-        across = -math.cos(math.pi * i / CRESCENT_STEPS)
-        inner, outer = crescent_bounds(across)
-        edges.append(
-            (
-                (_crescent_point(spec, d, u, v, inner, across), (0, 0), dim, RADIUS * 0.838),
-                (_crescent_point(spec, d, u, v, outer, across), (0, 0), rgb, RADIUS * 0.838),
-            )
-        )
-    for (a, b), (c, e) in pairwise(edges):
-        mesh.quad(a, b, c, e)
+def sea_reach(sea):
+    """How far from its centre a sea's ragged rim reaches at most, in shares of the moon's radius."""
+    _x, _y, size, wobble = sea
+    return size * (1 + wobble)
 
 
 def maria(spec, dark=0.0, veil=False):
-    """The seas on a moon's crescent: darker, softer patches laid just in front of it. None for a sun,
-    or a sky without a disc."""
+    """The seas on a full moon: darker patches with ragged rims scattered over its face, laid just in
+    front of it. None for a sun, or a sky without a disc."""
     if not (spec.sun and spec.moon):
         return None
     mesh = SkyMesh()
     rgb = [c * MARIA_SHADE for c in sun_color(spec, dark, veil)]
     d = direction(*spec.sun_at)
     u, v = _basis(d)
-    steps = 10
-    for along, across, size in MARIA:
-        centre = _crescent_point(spec, d, u, v, along, across)
+    for n, (x, y, size, wobble) in enumerate(MARIA):
+        centre = _at(d, u, v, x * spec.sun_size, y * spec.sun_size)
         cu, cv = _basis(centre)
-        for i in range(steps):
-            a0, a1 = 2 * math.pi * i / steps, 2 * math.pi * (i + 1) / steps
-            ring = (_around(centre, cu, cv, spec.sun_size * size, a) for a in (a0, a1))
-            for p in (centre, *ring):
+        rim = []
+        for i in range(MARIA_STEPS + 1):
+            a = 2 * math.pi * i / MARIA_STEPS
+            ragged = 1 + wobble * math.sin(3 * a + n * 1.7) * math.cos(2 * a - n)
+            rim.append(_around(centre, cu, cv, spec.sun_size * size * ragged, a))
+        for p0, p1 in pairwise(rim):
+            for p in (centre, p0, p1):
                 mesh.vertex(p, (0, 0), rgb, RADIUS * 0.835)
     return mesh
 

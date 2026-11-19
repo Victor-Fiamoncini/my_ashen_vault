@@ -177,40 +177,38 @@ def test_vesperholms_moon_hangs_vast_in_the_north_among_a_crowd_of_stars():
     assert stars.vertex_count > 2 * sky.stars(dusk, FOG).vertex_count
 
 
-def test_the_moon_is_a_crescent_over_its_face_in_earthshine():
-    """The disc is the moon's whole face, dim in blue earthshine; over it a bright crescent, lit to its
-    limb, that never strays onto the shadow or off the disc."""
+def test_a_full_moons_disc_is_lit_all_over():
+    """The moon is full: every part of its disc shines near its full light (only a touch dimmer toward
+    the limb), far brighter than the sky behind it, and nothing of it strays off the disc."""
     spec = sky.SKIES["moonlit"]
     d = sky.direction(*spec.sun_at)
-    shadow = sky.shadow_centre(spec)
-    lit, face = sky.sun_color(spec), sky.earthshine_color(spec)
-    assert sum(face) < sum(lit) and face[2] > face[0]  # darker than the crescent, and blue
+    lit = sky.sun_color(spec)
+    assert min(lit) > 0.85  # bright, near white
     zenith = sky.shade(spec.zenith, 0.0)
-    assert sum(face) > sum(sky.dome_color(spec.sun_at[1], FOG, zenith))  # the face still shows
+    behind = sum(sky.dome_color(spec.sun_at[1], FOG, zenith))
     mesh = sky.sun(spec)
-    disc = 20 * 3
-    assert all(mesh.colors[i] == pytest.approx(face[i % 3]) for i in range(disc * 3))
-    crescent = _verts(mesh)[disc:]
-    assert crescent
+    assert mesh.vertex_count == 20 * 3  # the disc alone: no crescent, no shadow
     slack = math.radians(0.05)
-    for p in crescent:
-        assert math.acos(min(_cos_to(p, d), 1.0)) <= math.radians(spec.sun_size) + slack  # on the disc
-        assert math.acos(min(_cos_to(p, shadow), 1.0)) >= math.radians(spec.sun_size) * 0.97  # not shadowed
-    assert sky.crescent_bounds(0.0) == pytest.approx((1.0 - sky.CRESCENT_OFFSET, 1.0))
-    assert sky.crescent_bounds(0.999)[0] < 0  # beyond the horns the whole chord is lit
+    for i, p in enumerate(_verts(mesh)):
+        assert math.acos(min(_cos_to(p, d), 1.0)) <= math.radians(spec.sun_size) + slack
+        rgb = mesh.colors[i * 3 : i * 3 + 3]
+        assert sum(rgb) >= sky.LIMB_SHADE * sum(lit) - 1e-6 and sum(rgb) > 2 * behind
+    centre = mesh.colors[:3]
+    assert centre == pytest.approx(lit)
 
 
-def test_the_moons_seas_lie_on_its_crescent_and_wisps_of_cloud_cross_it():
+def test_the_moons_seas_lie_within_its_disc_and_wisps_of_cloud_cross_it():
     spec, dusk = sky.SKIES["moonlit"], sky.SKIES["dusk"]
     layers = [name for name, _ in sky.layers(spec, FOG)]
     assert layers.index("sun") < layers.index("maria") < layers.index("wisps") < layers.index("mist")
     d = sky.direction(*spec.sun_at)
-    shadow = sky.shadow_centre(spec)
     seas, lit = sky.maria(spec), sky.sun_color(spec)
-    for i, p in enumerate(_verts(seas)):  # every sea lies on the crescent, darker than it
-        assert _cos_to(p, d) > math.cos(math.radians(spec.sun_size))
-        assert _cos_to(p, shadow) < math.cos(math.radians(spec.sun_size))
+    for i, p in enumerate(_verts(seas)):  # every sea lies inside the disc, darker than it
+        assert _cos_to(p, d) > math.cos(math.radians(spec.sun_size * 0.95))
         assert sum(seas.colors[i * 3 : i * 3 + 3]) < sum(lit)
+    assert all(math.hypot(x, y) + sky.sea_reach(sea) < 0.9 for sea in sky.MARIA for x, y in [sea[:2]])
+    # Scattered over the whole face: seas in every quarter of it.
+    assert len({(x > 0, y > 0) for x, y, _size, _wobble in sky.MARIA}) == 4
     wisps = sky.wisps(spec)
     on_disc = [p for p in _verts(wisps) if _cos_to(p, d) > math.cos(math.radians(spec.sun_size))]
     assert on_disc and len(on_disc) < wisps.vertex_count  # across the moon and out past its limb

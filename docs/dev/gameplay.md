@@ -42,7 +42,8 @@ Equipment, combat, spells, shops, saves and the story.
   their `dead_flag` (`boss_dead`, `spider_dead`, `gargoyles_dead`, `butcher_dead`, `sexton_dead`, `matron_dead`,
   `pall_dead`, `duchess_dead`) and relics a
   `<relic>_taken` flag (`sigil_taken` for the Ember Sigil); once the first three are taken
-  `vesper_gate_open` (`relics.GATE_FLAG`) opens the Vesper Gate. Shown hints add `hint:<map>:<marker>`, a one-way
+  `vesper_gate_open` (`relics.GATE_FLAG`) is set, though the Vesper Gate stands open from the start and
+  nothing waits on it. Shown hints add `hint:<map>:<marker>`, a one-way
   exit `left:<map>`.
 - Equipment (`player/inventory.py`): two hand slots, shown to players as **Primary** (`right` = left
   mouse button) and **Secondary** (`left` = right button) via `SLOT_NAMES`; never say "hand" in text the
@@ -152,9 +153,10 @@ Equipment, combat, spells, shops, saves and the story.
   death: the moon stopped over it, and it keeps whatever it shines on as it is, her people as pale shades
   and her brother as stone on his throne. With the fourth bent to the moon, the other three fell to
   keepers who went bad (the Warden, the Loom Mother, the gargoyles). From inside the stone the king rang
-  the bell himself, once, to wake the Ashen: the dead, whom the moon cannot keep. The prophecy names only
-  the first three's places; taking all three opens the Vesper Gate behind the cathedral (Odrin's "Find
-  the three, and perhaps it will find you"), and the fourth lies beyond it with the Duchess. Odrin ends
+  the bell himself, once, to wake the Ashen: the dead, whom the moon cannot keep. Odrin names all four
+  at the first meeting: the fourth lies with the Duchess beyond the Vesper Gate at the head of the
+  cathedral steps, which stands open (nobody remembers it shut, nor who opened it), so the whole realm is
+  open to explore from the start. Odrin ends
   the game once you bring him all four (`relics.ENDING_RELICS`); the Enthroned stirs a stage further for
   each you carry (`dialogue.ENTHRONED_LINES`, five stages), and at four confesses he rang the bell. What
   lies below the Bell Square is still a `TODO(story)` in `game.py`.

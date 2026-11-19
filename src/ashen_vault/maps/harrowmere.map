@@ -60,14 +60,14 @@ v = floor tex=jungle_floor h=0
 c = floor tex=rough_stone h=0 ceil=3.4 ceil_tex=cliff_rock side=cliff_rock dark=0.45
 
 [grid]
-®RRRRRRRRRRR¯RRRRRRRRR¯RRRRRRRRRRRRRRRRR¯RRRRR°AAAAAAAAAAAAAA
-R;;;)(;;;;;;;;;;;;;;;;;;;,,,,ÌßNßÿ,,AAAAAAAAAARAAAAAAAAAAAAAA
-R;Ú;;;;í;ìí;ìí;ìí;;CC;;Ú;,,,,,ÞsÞù,,AAAAAAAAAARAAAAAAAAAAAAAA
+®RRRRRRRRRRR¯RRRRRRRRRRRRR¯RRRRRRRRRRRRR¯RRRRR°AAAAAAAAAAAAAA
+R;;;;;;;;;;;;;;;;;;;;)(;;,,,,ÌßNßÿ,,AAAAAAAAAARAAAAAAAAAAAAAA
+R;Ú;;;;í;ìí;ìí;ìí;;CCË;Ë;,,,,,ÞsÞù,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;;ÉCCCCCCCCCCCCCCCèC;;;;,,,,,,s,,,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;;êDaYnnOðnOñnOnnnCË==Ë;,,,,ù,s,ù,ùAAAAAAAAAARAAAAAAAAAAAAAA
-R;;CaannIQQIQQIQQInC====;,,!,,,s,,,,AAAAAAAAAARAAAAAAAAAAAAAA
+R;;CaannIQQIQQIQQInC===Þ;,,!,,,s,,,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;;CîEÓnnnnÊnnnnnnnï====;,,,,,,sX,,,AAAAAAAAAARAAAAAAAAAAAAAA
-R;;CaannIQQIQQIQQInC====;qqsssss.qqq..AAAAAAAARAAAAAAAAAAAAAA
+R;;CaannIQQIQQIQQInC===Þ;qqsssss.qqq..AAAAAAAARAAAAAAAAAAAAAA
 R;;ëDaYenOònOónOnnnCË==Ë;q.s......à.á.AAAAAAAARAAAAAAAAAAAAAA
 R;;CCCCCCCCCCCCCCCCéC==;;,qs|...ÆHHHH¡...á.à..RAAAAAAAAAAAAAA
 R;;;;;;í;ìí;ìí;ìí;;CC44;;ù,s|...H%ii+H.ÈJJJJJ.RAAAAAAAAAAAAAA
@@ -281,10 +281,11 @@ z = mushrooms on=y
 ? = exit map=harrow_sewers at=15,23,-90 label=Descend_into_the_sewers model=sewer_grate
 { = exit map=harrow_sewers at=7,36,-90 label=Descend_into_the_sewers model=sewer_grate
 } = exit map=harrow_sewers at=39,39,-90 label=Descend_into_the_sewers model=sewer_grate
-// The Vesper Gate in the north wall behind the cathedral: pale stone that no one in living memory has
-// seen open. It answers the three sigils: once all three are taken up it stands open on Vesperholm.
-( = exit map=vesperholm at=21,54,-90 label=Pass_the_Vesper_Gate model=vesper_gate yaw=90 on=; requires=vesper_gate_open shut="The pale gate will not move. Three empty sockets wait in its lintel."
-// A cold light over it, so its pale stone shows in the lane behind the apse.
+// The Vesper Gate in the north wall, at the head of the cathedral steps: pale stone, standing open on
+// Vesperholm. Nobody in town remembers it shut, or why it was opened. Lamps flank it and banners line
+// the porch on the way up, so it reads from the foot of the steps.
+( = exit map=vesperholm at=21,54,-90 label=Pass_the_Vesper_Gate model=vesper_gate yaw=90 on=;
+// A cold light beside it, so its pale stone shows at the top of the porch.
 ) = light y=4.5 color=0.62,0.7,0.92 radius=7 on=;
 // The north road, out through the wall to the Cinderhold.
 N = exit map=cinderhold at=30,68,-90 label=Take_the_north_road model=road_gate yaw=-90 on=-

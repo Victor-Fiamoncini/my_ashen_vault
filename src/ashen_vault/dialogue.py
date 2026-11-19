@@ -87,13 +87,9 @@ SIGIL_HINT = {
         "The Iron Sigil is held in the Cinderhold. Take the north road and cross the long bridge over the fire."
     ),
     "argent_sigil": (
-        "The Vesper Gate behind the cathedral stands open. Beyond it lies Vesperholm, and the Argent Sigil."
+        "The Argent Sigil is in Vesperholm. Climb the cathedral steps: the Vesper Gate at their head stands open."
     ),
 }
-# The fourth sigil before the first three are taken: the prophecy keeps its counsel.
-FOURTH_UNKNOWN = (
-    "The fourth... the prophecy will not say where it lies. Find the three, and perhaps it will find you."
-)
 SIGIL_FALLEN = {
     "ember_sigil": (
         "boss_dead",
@@ -123,18 +119,9 @@ def _sigil_lines(flags, held):
         flag, fallen = SIGIL_FALLEN[item]
         if flag in flags and relics.get(item).taken_flag not in flags:
             lines.append(fallen)
-        elif item in relics.FIRST_THREE or relics.GATE_FLAG in flags:
-            lines.append(SIGIL_HINT[item])
         else:
-            lines.append(FOURTH_UNKNOWN)
+            lines.append(SIGIL_HINT[item])
     return lines
-
-
-# What Odrin says once the first three sigils have opened the Vesper Gate.
-GATE_NEWS = (
-    "Three... and did you hear it? Behind the cathedral the Vesper Gate has opened. It has stood shut since "
-    "the king turned to stone."
-)
 
 
 def odrin(game, flags, inv):
@@ -176,7 +163,8 @@ def odrin(game, flags, inv):
                 "It ends at a cave, and beyond it a hollow has grown where no wood should be. Something nests there.",
                 "Then the Iron Sigil. Look north at night: the old fortress on the ridge glows again.",
                 "They call it the Cinderhold. The north road and its long bridge lead there. Its forges are lit.",
-                "The fourth... the prophecy will not say where it lies. Find the three, and perhaps it will find you.",
+                "The fourth is the Argent Sigil. At the head of the cathedral steps the Vesper Gate stands open.",
+                "Beyond it lies Vesperholm, the Moonbound City. Nobody remembers the gate shut, nor who opened it.",
                 "Take these. They are all an old bell-keeper has.",
             ],
             after,
@@ -184,8 +172,6 @@ def odrin(game, flags, inv):
     lines = _sigil_lines(flags, held)
     if held:
         felt = [SIGIL_HELD[i] for i in held]
-        if relics.GATE_FLAG in flags and "argent_sigil" not in held:
-            felt.append(GATE_NEWS)
         return "Odrin", [*felt, "Keep it close. The king will need every one of them.", *lines], None
     dead = [SIGIL_FALLEN[i][1] for i in relics.ENDING_RELICS if SIGIL_FALLEN[i][1] in lines]
     if dead:
@@ -195,6 +181,7 @@ def odrin(game, flags, inv):
         [
             "The well in the square leads down into the old prison. The green trail east leads to the hollow's cave.",
             "The north road climbs to the Cinderhold. Its bridge crosses a gorge of fire.",
+            "The cathedral steps climb to the Vesper Gate. It stands open on Vesperholm, under the moon.",
             "Save your strength at the stone shrines. The old wardens built them for the Ashen. Many knelt there.",
         ],
         None,

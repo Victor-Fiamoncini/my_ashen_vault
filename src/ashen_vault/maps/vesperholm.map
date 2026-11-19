@@ -1,6 +1,6 @@
 [meta]
 name = Vesperholm
-ambient = 0.44 0.49 0.62
+ambient = 0.47 0.52 0.66
 fog = 0.34 0.39 0.53
 fog_range = 14 84
 model_range = 46
@@ -13,9 +13,10 @@ entity_floor = auto
 edge_top = 9
 edge_tex = moonstone
 
-// Vesperholm, the Moonbound City, behind the Vesper Gate in Harrowmere's north wall: the seat of the
-// king's sister, Duchess Ilvane, who wed the moon on the fourth sigil so the night would never end and
-// nothing in her city would die. The moon stopped over it, vast and pale, and has hung in the north
+// Vesperholm, the Moonbound City, behind the Vesper Gate in Harrowmere's north wall at the head of the
+// cathedral steps, which stands open to anyone who climbs them: the seat of the king's sister, Duchess
+// Ilvane, who wed the moon on the fourth sigil so the night would never end and nothing in her city
+// would die. The moon stopped over it, vast, full and pale, and has hung in the north
 // over her cathedral ever since; everything under it is drowned in its light, and every soul in the
 // city has thinned to a moonlit shade of itself. You come through the gate into the Gate Court and its
 // shrine; north of it Lantern Square and its moon pool, the Landing on the gorge's edge, with the
@@ -105,7 +106,7 @@ c = floor tex=moon_glass h=0 ceil=13 ceil_tex=silver_slate side=moonstone dark=0
 
 [entities]
 // The Vesper Gate home to Harrowmere, in the Gate Court's south wall, and the court's shrine.
-A = exit map=harrowmere at=5,2,90 label=Return_to_Harrowmere model=vesper_gate yaw=-90
+A = exit map=harrowmere at=22,2,90 label=Return_to_Harrowmere model=vesper_gate yaw=-90
 B = save_statue
 Q = hint text="The moon here never sets, and it keeps all it shines on.|Nothing in this city has died. Nothing in it lives."
 R = hint text="Across the gorge the castle's drawbridge stands raised.|Its lever must lie on the far side."
