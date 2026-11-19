@@ -91,11 +91,11 @@ trademarks of FromSoftware, Inc. (*Dark Souls* is published by Bandai Namco Ente
   </tr>
   <tr>
     <td><img src="docs/screenshots/mother_gnawl.png" alt="Mother Gnawl, a giant rat with glowing red eyes, risen in her dark nest, her health bar above"></td>
-    <td><img src="docs/screenshots/sump_maw.png" alt="The Sump Maw, a wave of black sludge crusted with skulls, its fanged maw open, in its flooded cistern"></td>
+    <td><img src="docs/screenshots/sodden_pall.png" alt="The Sodden Pall, a towering bell of green ooze with a drowned face in its folds, in its flooded cistern"></td>
   </tr>
   <tr>
     <td align="center"><sub>Mother Gnawl rising in her open nest</sub></td>
-    <td align="center"><sub>The Sump Maw, behind its great door</sub></td>
+    <td align="center"><sub>The Sodden Pall, behind its great door</sub></td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/combat.png" alt="A claymore held in both hands, ringmail sleeves and chain mitts, facing a bone walker"></td>
@@ -210,8 +210,9 @@ trademarks of FromSoftware, Inc. (*Dark Souls* is published by Bandai Namco Ente
   the right one Secondary. Two-handed weapons fill both. The best gear needs a higher level.
 - **Gear that weighs and wears**: a heavy load slows you and costs more stamina; weapons dull, shields
   crack and armor splits until the smith mends them. Body armor and gauntlets change the arms you see.
-- **Ailments**: poison, bleeding, rot and corrosion build up with each blow from the foes that carry
-  them. The herbalist sells their remedies.
+- **Ailments**: poison, bleeding, rot, corrosion and moon-frost build up with each blow from the foes
+  that carry them, and each one that takes hold marks the edges of the view. The herbalist sells their
+  remedies.
 - **Spells taught by scrolls**: Flame Bolt, Mend, Lumen, Ashen Ward, Venom Dart, Veil of Mist, Pyre,
   Thunder Spear and Arcane Motes, found in chests or sold in town. Iron foes conduct lightning and
   shrug off fire.
