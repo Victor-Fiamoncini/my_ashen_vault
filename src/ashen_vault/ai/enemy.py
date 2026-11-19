@@ -33,21 +33,18 @@ MOVES = {
     "knell": (1.3, 9.0, 0.6),
     # The Shrouded Mourner's own: a ball of grave-fire kindled in its bony palm and thrown.
     "fireball": (0.9, 5.0, 0.8),
-    # The Sump Maw's own: a fan of sludge and bone spat from its maw; the undertow, the hands of the
-    # dead it swallowed bursting up under where you stand; and (second phase) the gulp, a surge along
-    # the floor maw-first that swallows you if it passes over you, and gobbets of itself sloughed off
-    # to crawl at you.
+    # The Sodden Pall's own: a fan of bile spat from the mouth in its folds; and (second phase) the
+    # engulf, a lurch along the floor hem-first that flows over you if it passes over you, and clots of
+    # itself sloughed off to crawl at you.
     "bile": (0.9, 6.0, 0.55),
-    "undertow": (0.9, 7.0, 0.8),
-    "gulp": (1.3, 10.0, 1.25),
+    "engulf": (1.3, 10.0, 1.25),
     "shed": (1.1, 13.0, 0.0),
     # Mother Gnawl's own: a lash of her tail at whoever stands behind her, a piercing squeal that
     # staggers all round, a burrow (she sinks into the muck, tunnels after you and bursts up under
-    # you in a ring of filth) and (second phase) a swarm of her litter loosed along the floor at you.
+    # you in a ring of filth).
     "tail_lash": (0.45, 3.5, 0.8),
     "squeal": (0.8, 9.0, 0.3),
     "burrow": (0.6, 10.0, 1.2),
-    "swarm": (1.0, 8.0, 0.35),
     # Vesperholm's: a lance of moon-frost thrown from afar (a fan of three from the Duchess), and a
     # blink, a step through the moonlight to reappear behind you and strike. The Duchess's own: shafts
     # of moonlight falling where you stand and where you would step, and (second phase) the moonfall,
@@ -77,18 +74,16 @@ SPADEFUL_RANGE = (3.5, 11.0)
 GRASP_RANGE = (2.5, 10.0)
 FIREBALL_RANGE = (2.5, 10.0)
 BILE_RANGE = (3.0, 11.0)
-UNDERTOW_RANGE = (2.5, 11.0)
-GULP_RANGE = (3.5, 10.0)  # distances the Maw surges at you from
-GULP_SPEED = 8.0  # m/s along its surge
-GULP_TIME = 1.4  # longest a surge lasts
-GULP_OVERSHOOT = 1.5  # metres it surges on past where you stood
-GULP_HIT = 0.6  # a surge passing this close (beyond its radius) swallows you, once
+ENGULF_RANGE = (3.5, 10.0)  # distances the Pall lurches at you from
+ENGULF_SPEED = 8.0  # m/s along its lurch
+ENGULF_TIME = 1.4  # longest a lurch lasts
+ENGULF_OVERSHOOT = 1.5  # metres it lurches on past where you stood
+ENGULF_HIT = 0.6  # a lurch passing this close (beyond its radius) flows over you, once
 SHED_RANGE = 12.0  # it sheds its gobbets only while you are this close
-SWARM_RANGE = (3.0, 10.0)
 # The lunges along a straight line: speed (m/s), longest (s), overshoot past you (m), hit reach (m).
 LUNGES = {
     "dive": (DIVE_SPEED, DIVE_TIME, DIVE_OVERSHOOT, DIVE_HIT),
-    "gulp": (GULP_SPEED, GULP_TIME, GULP_OVERSHOOT, GULP_HIT),
+    "engulf": (ENGULF_SPEED, ENGULF_TIME, ENGULF_OVERSHOOT, ENGULF_HIT),
 }
 FROST_LANCE_RANGE = (3.0, 12.0)
 BLINK_RANGE = (3.0, 10.0)  # it steps through the moonlight only while you keep your distance
@@ -136,8 +131,6 @@ ATTACK_TIMES = {
     "dust_devil": 0.5,
     "tail_lash": 0.3,
     "squeal": 0.5,
-    "swarm": 0.4,
-    "undertow": 0.6,
     "shed": 0.5,
     "frost_lance": 0.3,
     "moonbeam": 0.5,
@@ -156,8 +149,8 @@ class Enemy:
     for bosses with a brood, summon(enemy, type_id, count); for bosses with a rage, boss_rage(enemy),
     slam(enemy) and eruption(enemy); for hook throwers, hook(enemy, mult, pull);
     for fire-breathers, breath(enemy); for the Sexton, grasp(enemy) and knell(enemy, wave); for
-    Mother Gnawl, tail_lash(enemy), squeal(enemy) and burrow_burst(enemy); for the Sump Maw, undertow(enemy),
-    gulp(enemy), shed(enemy) and can_shed(enemy); for Vesperholm's blinkers, blink(enemy); for the
+    Mother Gnawl, tail_lash(enemy), squeal(enemy) and burrow_burst(enemy); for the Sodden Pall,
+    engulf(enemy), shed(enemy) and can_shed(enemy); for Vesperholm's blinkers, blink(enemy); for the
     Duchess, moonbeam(enemy) and moonfall(enemy). Optional, for twin bosses: rouse_twin(enemy), twin_fallen(enemy)
     and twin_busy(enemy); for bosses that rise from ash, rise_time(enemy) (seconds, or None while it
     should stay a heap; without it the heap rises when it notices you).
@@ -574,14 +567,10 @@ class Enemy:
             options.append("fireball")
         if "bile" in ready and seen and BILE_RANGE[0] <= dist <= BILE_RANGE[1]:
             options.append("bile")
-        if "undertow" in ready and seen and UNDERTOW_RANGE[0] <= dist <= UNDERTOW_RANGE[1]:
-            options.append("undertow")
-        if "gulp" in ready and seen and GULP_RANGE[0] <= dist <= GULP_RANGE[1]:
-            options.append("gulp")
+        if "engulf" in ready and seen and ENGULF_RANGE[0] <= dist <= ENGULF_RANGE[1]:
+            options.append("engulf")
         if "shed" in ready and dist <= SHED_RANGE and world.can_shed(self):
             options.append("shed")
-        if "swarm" in ready and seen and SWARM_RANGE[0] <= dist <= SWARM_RANGE[1]:
-            options.append("swarm")
         if "burrow" in ready and BURROW_RANGE[0] <= dist <= BURROW_RANGE[1]:
             options.append("burrow")
         if "squeal" in ready and dist <= SQUEAL_RADIUS * 0.8:
@@ -646,7 +635,7 @@ class Enemy:
             return self._burrow(world, dt)
         if not self._struck:
             self._struck = True
-            if kind in ("shot", "web", "cinders", "spadeful", "fireball", "bile", "swarm", "frost_lance"):
+            if kind in ("shot", "web", "cinders", "spadeful", "fireball", "bile", "frost_lance"):
                 world.enemy_fire(self, kind)
             elif kind == "summon":
                 world.summon(self, self.type.brood, 2)
@@ -672,8 +661,6 @@ class Enemy:
                 world.tail_lash(self)
             elif kind == "squeal":
                 world.squeal(self)
-            elif kind == "undertow":
-                world.undertow(self)
             elif kind == "shed":
                 world.shed(self)
             elif kind == "moonbeam":
@@ -768,7 +755,7 @@ class Enemy:
             self._switch("recover")
 
     def _dive(self, world, dt):
-        """A low swoop (or the Maw's surge) along a straight line: it strikes you once if it passes
+        """A low swoop (or the Pall's lurch) along a straight line: it strikes you once if it passes
         close, and ends at its mark, against a wall, or when its time runs out."""
         kind = self.attack_kind
         speed, longest, _, hit = LUNGES[kind]
@@ -785,8 +772,8 @@ class Enemy:
             near = math.hypot(world.player_x - self.x, world.player_z - self.z)
             if near <= self.radius + hit:
                 self._struck = True
-                if kind == "gulp":
-                    world.gulp(self)
+                if kind == "engulf":
+                    world.engulf(self)
                 else:
                     world.enemy_strike(self, MOVES["dive"][2])
         if done:

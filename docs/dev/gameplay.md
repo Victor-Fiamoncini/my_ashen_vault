@@ -40,7 +40,7 @@ Equipment, combat, spells, shops, saves and the story.
   chests, broken barrels, revealed walls, slain mimics, kindled fires as `lit:`) or `loot:<key>` for
   dropped items. Bosses add
   their `dead_flag` (`boss_dead`, `spider_dead`, `gargoyles_dead`, `butcher_dead`, `sexton_dead`, `matron_dead`,
-  `maw_dead`, `duchess_dead`) and relics a
+  `pall_dead`, `duchess_dead`) and relics a
   `<relic>_taken` flag (`sigil_taken` for the Ember Sigil); once the first three are taken
   `vesper_gate_open` (`relics.GATE_FLAG`) opens the Vesper Gate. Shown hints add `hint:<map>:<marker>`, a one-way
   exit `left:<map>`.

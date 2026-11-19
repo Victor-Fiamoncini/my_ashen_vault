@@ -45,8 +45,8 @@ class EnemyType:
     lurk: bool = False
     # Special attacks mixed in (see enemy.MOVES): "sweep", "web", "pounce", "cinders", "combo",
     # "slam", "eruption", "hook", "breath", "dive", "exhale", "ashfall", "spadeful", "grasp",
-    # "dust_devil", "knell", "fireball", "bile", "undertow", "gulp", "shed", "tail_lash",
-    # "squeal", "swarm", "frost_lance", "blink", "moonbeam", "moonfall".
+    # "dust_devil", "knell", "fireball", "bile", "engulf", "shed", "tail_lash", "squeal",
+    # "frost_lance", "blink", "moonbeam", "moonfall".
     moves: tuple = ()
     # Enemy type a boss calls to its side once, when it drops to half HP.
     brood: str | None = None
@@ -762,47 +762,63 @@ class EnemyTypes:
                 # The brood-mother of the sewers' rats, swollen to the size of a cart-horse in a nest
                 # of rags and bones: she rakes all round with her claws, springs at you, lashes her
                 # tail at whoever slips behind her, squeals fit to split your skull and burrows into
-                # the muck to burst up under you; at half HP she shrieks for her litter and looses
-                # swarms of it along the floor at you.
+                # the muck to burst up under you; at half HP her old wounds tear open and she fights
+                # on in a frenzy.
                 moves=("sweep", "pounce", "tail_lash", "squeal", "burrow"),
-                phase_moves=("swarm",),
-                brood="sewer_rat",
+                rage="Mother Gnawl shrieks, and her old wounds tear open!",
                 inflicts=(("rot", 30),),
             ),
             EnemyType(
-                id="sump_maw",
-                name="The Sump Maw",
+                id="sodden_pall",
+                name="The Sodden Pall",
                 hp=280,
-                speed=1.2,
+                speed=1.0,
                 damage=18,
-                reach=2.8,
+                reach=2.6,
                 sight=15,
                 windup=0.9,
                 recover=1.2,
                 exp=180,
                 gold=range(90, 101),
-                radius=1.2,
-                height=2.4,
-                tall=3.2,
+                radius=1.3,
+                height=2.6,
+                tall=3.3,
                 boss=True,
-                dead_flag="maw_dead",
+                dead_flag="pall_dead",
                 rise="ash",
-                epitaph="The Sump Maw slumps into a black, still pool, and the bones in it sink out of sight.",
+                epitaph="The Sodden Pall sinks into a green, still pool, and the face in it fades away.",
                 poise=16,
-                # Not a beast but the Sump itself, grown hungry: everything the town ever washed down
-                # its drains settled here, the dead with it, and the sludge woke and rose. It rears
-                # as a wave as tall as a house, its crest crusted with the skulls of the drowned, and
-                # opens into a maw of black fangs glowing sickly green within. It crashes down so the
-                # floor heaves, lashes round with its tail, spits sludge and bone, and the dead it
-                # swallowed claw up from the floor where you stand; at half HP their skulls' eyes
-                # kindle, it surges at you along the floor to swallow you whole, and it sloughs off
-                # gobbets that crawl at you.
-                moves=("slam", "sweep", "bile", "undertow"),
-                phase_moves=("gulp", "shed"),
-                sheds="slimelet",
-                rage="The Sump Maw heaves, and the eyes of the skulls on its crest kindle!",
-                shot_rgb=(110, 200, 140),
+                # Everything the town ever washed down its drains settled in the deepest cistern and
+                # grew a skin: a bell of green ooze twice a man's height that drags itself along on its
+                # hem like a pall dragged off a coffin, and the drowned it took show as a face in its
+                # folds. It rears up and crashes down so the floor heaves, flings its skirt out all
+                # round and spits bile from the mouth in its folds; at half HP the face rises pale in
+                # it, and it lurches along the floor to flow over you and sloughs off clots of itself
+                # that crawl at you.
+                moves=("slam", "sweep", "bile"),
+                phase_moves=("engulf", "shed"),
+                sheds="pall_clot",
+                rage="The Sodden Pall shudders, and a pale face rises in its folds!",
+                shot_rgb=(140, 220, 90),
                 inflicts=(("poison", 30), ("corrosion", 35)),
+            ),
+            EnemyType(
+                id="pall_clot",
+                name="Pall Clot",
+                # A clot of the Pall sloughed off its hem, crawling at you on its own.
+                hp=7,
+                speed=1.6,
+                damage=4,
+                reach=1.1,
+                sight=10,
+                windup=0.4,
+                recover=0.6,
+                exp=3,
+                gold=range(0, 2),
+                radius=0.3,
+                height=0.25,
+                tall=0.4,
+                inflicts=(("poison", 20), ("corrosion", 15)),
             ),
             # --- Vesperholm, the Moonbound City ----------------------------------------------------
             EnemyType(

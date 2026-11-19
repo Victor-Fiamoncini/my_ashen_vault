@@ -69,7 +69,8 @@ def enemy(r, e):
         "slimelet": sewer_models.slimelet,
         "drowned": sewer_models.drowned,
         "bilge_leech": sewer_models.bilge_leech,
-        "sump_maw": sewer_models.sump_maw,
+        "sodden_pall": sewer_models.sodden_pall,
+        "pall_clot": sewer_models.pall_clot,
         "pale_sentinel": moon_models.pale_sentinel,
         "lantern_wraith": moon_models.lantern_wraith,
         "moonhound": moon_models.moonhound,
@@ -2563,9 +2564,9 @@ BOSS_DOORS = {
     "sexton_dead": DoorStyle(
         (118, 112, 106), "wood_plank", (58, 56, 60), (122, 118, 112), "rough_stone", "candle"
     ),
-    # The Sump Maw: the old sluice-boards of the deepest cistern, slimed green, in a sewer-brick arch,
+    # The Sodden Pall: the old sluice-boards of the deepest cistern, slimed green, in a sewer-brick arch,
     # drain-keepers' lanterns burning sickly green on the jambs.
-    "maw_dead": DoorStyle((76, 82, 60), "wood_plank", (88, 62, 44), (100, 74, 62), "sewer_brick", "lantern"),
+    "pall_dead": DoorStyle((76, 82, 60), "wood_plank", (88, 62, 44), (100, 74, 62), "sewer_brick", "lantern"),
     # Mother Gnawl: rotten boards gnawed ragged at the foot, in a sewer-brick arch, a rat's skull on each
     # jamb whose eyes glint red while she lives.
     "matron_dead": DoorStyle(
@@ -2739,27 +2740,28 @@ def _sexton_leaf(r, style, side, face, t, lit):
                _dim(style.wood, 0.5 + 0.08 * k))  # fmt: skip
 
 
-def _maw_arch(r, style, t, lit):
-    """A drain grate set in the lintel, black sludge seeping through it and down the stone, and a
-    skull stuck in the sludge over it, its eyes glowing green while the Maw lives."""
+def _pall_arch(r, style, t, lit):
+    """A curtain of the Pall's green ooze drooping over the lintel in lobes, drips stretching off its
+    hem and falling; it glows faintly from within while the Pall lives."""
+    ooze = (70, 130, 48) if lit else (52, 78, 40)
     for face in (-1, 1):
-        with r.at(face * 0.26, 3.05, 0):
-            for z in (-0.3, -0.1, 0.1, 0.3):
-                r.part("cube", 0, 0, z, 0.03, 0.34, 0.05, style.iron)  # the grate's bars
-            r.part(
-                "cube", 0, -0.2 - 0.05 * math.sin(t * 1.3 + face), 0.1, 0.03, 0.4, 0.07, (34, 42, 52)
-            )  # seep
-            r.part("sphere", 0, 0.26, 0, 0.2, 0.14, 0.24, (40, 50, 66))  # a clot of the Maw's sludge
-            r.part("sphere", 0.05, 0.28, 0, 0.12, 0.16, 0.14, (200, 192, 164))  # the skull in it
-            for z in (-0.035, 0.035):  # its eyes
-                r.part(
-                    "cube", 0.11, 0.3, z, 0.01, 0.025, 0.025, (110, 200, 140) if lit else COLD_EMBER, glow=lit
-                )
+        with r.at(face * 0.24, 3.2, 0):
+            r.part("cube", 0, 0.12, 0, 0.1, 0.22, 1.9, _dim(ooze, 0.8))  # the ooze along the lintel
+            for i in range(5):  # its lobes, hanging down
+                z = -0.8 + i * 0.4
+                hang = 0.3 + 0.12 * ((i * 7) % 3) + 0.03 * math.sin(t * 1.5 + i)
+                r.part("sphere", 0, -hang / 2 + 0.05, z, 0.12, hang, 0.3, _dim(ooze, 0.95 + 0.05 * (i % 2)))
+            for i in range(2):  # drips stretching off its hem and falling
+                u = (t * 0.6 + i * 0.5 + face * 0.25) % 1.0
+                z = -0.4 + i * 0.8
+                r.part("sphere", 0, -0.5 - 1.2 * u, z, 0.05, 0.08 + 0.06 * (1 - u), 0.05, ooze)
+            if lit:
+                r.part("sphere", 0, 0.02, 0, 0.06, 0.12, 0.9, (150, 220, 110), glow=True)  # its glow within
 
 
-def _maw_leaf(r, style, side, face, t, lit):
+def _pall_leaf(r, style, side, face, t, lit):
     """Old sluice-boards slimed green to the tide line, an iron ring to haul them by."""
-    r.part("cube", face * 0.085, 0.45, 0, 0.02, 0.9, 0.92, (58, 70, 40))  # the slime below the tide line
+    r.part("cube", face * 0.085, 0.45, 0, 0.02, 0.9, 0.92, (58, 82, 40))  # the slime below the tide line
     r.part("cube", face * 0.1, 1.5, -side * 0.25, 0.03, 0.16, 0.16, style.iron, rx=math.pi / 4)  # the ring
 
 
@@ -2815,7 +2817,7 @@ DOOR_ARCHES = {
     "spider_dead": _loom_arch,
     "gargoyles_dead": _gargoyle_arch,
     "sexton_dead": _sexton_arch,
-    "maw_dead": _maw_arch,
+    "pall_dead": _pall_arch,
     "matron_dead": _matron_arch,
     "duchess_dead": _duchess_arch,
 }
@@ -2825,7 +2827,7 @@ DOOR_LEAVES = {
     "spider_dead": _loom_leaf,
     "gargoyles_dead": _gargoyle_leaf,
     "sexton_dead": _sexton_leaf,
-    "maw_dead": _maw_leaf,
+    "pall_dead": _pall_leaf,
     "matron_dead": _matron_leaf,
     "duchess_dead": _duchess_leaf,
 }

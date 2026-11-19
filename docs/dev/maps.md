@@ -14,7 +14,7 @@ How `.map` files work and what can stand on a tile.
   its `start`), the Canal Culvert and the Quay Outfall, all joined through the Cistern and its shrine;
   Mother Gnawl's nest between the Cistern and the outfall, a great door at each of its two mouths (two
   `door boss=matron_dead`: an arena each over the same tiles, sealing, fogging and opening together), and
-  8 m down the outfall's U-turn stair the Sump and the Sump Maw's cistern behind its great door. Shortcuts: a barred door down from the sluices, the sluice
+  8 m down the outfall's U-turn stair the Sump and the Sodden Pall's cistern behind its great door. Shortcuts: a barred door down from the sluices, the sluice
   pit's drawbridge and a lift from the Sump up to the Cistern (an 8 m ride). Wadeable `sludge` floors (`slow=`, some with
   `flow=`) hold its drowned and leeches; walled in `sewer_brick` under a `sewer_vault`;
   `test_harrow_sewers_is_solvable`), `vesperholm` (the Moonbound City behind the Vesper Gate in

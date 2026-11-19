@@ -424,21 +424,15 @@ KNELL_SPEED = 5.0
 # What wounds you when an eruption of each style catches you (fire otherwise).
 ERUPTION_SOURCES = {
     "hands": "The grasping ash",
-    "drowned": "A drowned hand",
     "moon": "The moonlight",
     "filth": "The filth",
 }
 SQUEAL_STAGGER = 1.2  # seconds Mother Gnawl's squeal leaves you stumbling
-SWARM_SPEED = 7.0  # m/s her litter scurries along the floor
-SWARM_HEIGHT = 0.3  # metres off the floor they run
-SWARM_ROT = (("rot", 22),)
-UNDERTOW_RING = 1.3  # metres from your spot to each of the four hands round it
-UNDERTOW_ROT = 25  # rot the drowned's grip builds
 BURROW_ROT = (("rot", 25),)  # rot the filth Mother Gnawl bursts up through builds in you
 BURST_RING = 1.4  # metres from where she bursts up to each spout of filth round her
 BURST_SPOUTS = 6
-GULP_GLOOM = 2.5  # seconds the dark of the Maw's gut stays on your eyes after it spits you out
-GULP_DARK = 0.85  # how dark it gets, as on a `dark=` tile
+ENGULF_GLOOM = 2.5  # seconds the dark of the Pall's insides stays on your eyes after it lets you go
+ENGULF_DARK = 0.85  # how dark it gets, as on a `dark=` tile
 LANCE_SPEED = 10.0  # m/s a lance of moon-frost flies
 LANCE_FAN = 0.22  # radians between the lances of a fan of three
 LANCE_CHILL = 1.2  # seconds moon-frost numbs your legs (`Player.chill_t`: slowed, as by silk)
@@ -447,7 +441,7 @@ BLINK_BEHIND = 1.8  # metres behind you a blinker steps out of the moonlight
 BLINK_MIST = 1.2  # metres the mist of a blink billows out
 MOONBEAM_ASIDE = 2.4  # metres to either side of you the Duchess's second and third shafts fall
 MOONFALL_RINGS = ((2.6, 6, 0.3), (4.8, 8, 0.6))  # (radius, shafts, delay) of each ring of the moonfall
-SHED_COUNT = 2  # gobbets the Maw sloughs off at a time
+SHED_COUNT = 2  # clots the Pall sloughs off at a time
 SHED_MAX = 4  # it sheds no more while this many of them still crawl
 ASH_CLOD = (150, 144, 138)  # the grey of a spadeful of grave ash
 MAIDEN_CYCLE = 3.0  # seconds the iron maiden's door stays in motion after use
@@ -537,7 +531,7 @@ class World:
         self.hazards = []
         self.eruptions = []  # fire columns the Warden calls up
         self.shockwaves = []  # rings sent out by his slam (only for show)
-        self.gloom_t = 0.0  # seconds left of the dark the Sump Maw's gut leaves on you
+        self.gloom_t = 0.0  # seconds left of the dark the Sodden Pall's insides leave on you
         self.devils = []  # the Sexton's whirlwinds of ash
         self._safe = None  # centre of the last solid tile the player stood on
         self.ash = AshCloud()
@@ -1325,14 +1319,6 @@ class World:
                 self._fire_one(enemy, kind, spread)
             self.game.sfx("hiss", 0.9)
             return
-        if kind == "swarm":
-            # Her litter loosed at you along the floor: five rats in a fan, low enough that only
-            # stepping out of their lines avoids them.
-            for spread in (-0.4, -0.2, 0.0, 0.2, 0.4):
-                self._fire_rat(enemy, spread)
-            self.game.sfx("enemy_die", 0.4)
-            self.game.message(f"{enemy.type.called}'s litter pours out at you!")
-            return
         if kind == "frost_lance":
             # A fan of three lances of moon-frost: each that strikes numbs your legs. Step out of the
             # fan, or between two of its lances.
@@ -1388,28 +1374,6 @@ class World:
             )
         )
 
-    def _fire_rat(self, enemy, spread):
-        y = self.enemy_y(enemy) + SWARM_HEIGHT
-        player = self.player
-        dx, _dy, dz = shots.toward(enemy.x, y, enemy.z, player.x, y, player.z, SWARM_SPEED, spread)
-        lead = enemy.radius / SWARM_SPEED
-        self.projectiles.append(
-            Projectile(
-                x=enemy.x + dx * lead,
-                y=y,
-                z=enemy.z + dz * lead,
-                dx=dx,
-                dz=dz,
-                life=2.0,
-                damage=rround(enemy.type.damage * MOVES["swarm"][2]),
-                hostile=True,
-                rgb=sewer_models.RAT_FUR,
-                source=enemy.name,
-                effect="rat",
-                inflicts=SWARM_ROT,
-            )
-        )
-
     def tail_lash(self, enemy):
         """Mother Gnawl whips her tail round through the arc behind her: it lands only on someone still
         standing there, in its reach."""
@@ -1432,25 +1396,6 @@ class World:
             self.game.hurt_player(max(rround(dmg - player.inventory.defense * 0.3), 1), enemy.name)
             player.webbed_t = max(player.webbed_t, SQUEAL_STAGGER)
             self.game.message(f"{enemy.type.called}'s squeal pierces your skull!")
-
-    def undertow(self, enemy):
-        """The Sump Maw sinks into itself: the sludge bubbles where you stand and round it, then the
-        hands of the dead it swallowed burst up there (`Eruption` style "drowned"). Step off it."""
-        player = self.player
-        damage = rround(enemy.type.damage * MOVES["undertow"][2])
-        spots = [(player.x, player.z)]
-        for i in range(4):
-            a = i * math.pi / 2 + enemy.yaw
-            spots.append((player.x + math.cos(a) * UNDERTOW_RING, player.z + math.sin(a) * UNDERTOW_RING))
-        for n, (x, z) in enumerate(spots):
-            tile = self.map.tile_at(x, z)
-            if tile.solid or not tile.walkable:
-                continue
-            self.eruptions.append(
-                Eruption(x, z, tile.floor, delay=0.0 if n == 0 else 0.12, damage=damage, style="drowned")
-            )
-        self.game.sfx("hiss", 1.0)
-        self.game.message("The sludge stirs under your feet!")
 
     def burrow_burst(self, enemy):
         """Mother Gnawl bursts up out of the muck where her burrow has brought her, in a ring of filth
@@ -1475,14 +1420,14 @@ class World:
         if self.enemy_strike(enemy, MOVES["burrow"][2], inflicts=BURROW_ROT) > 0:
             self.game.message(f"{enemy.type.called} bursts up under you in a spray of filth!")
 
-    def gulp(self, enemy):
-        """The Sump Maw's surge has passed over you: it swallows you whole (a heavy blow, as any
-        shield allows), and for GULP_GLOOM seconds after it spits you out the dark of its gut stays
-        on your eyes."""
-        if self.enemy_strike(enemy, MOVES["gulp"][2]) > 0:
-            self.gloom_t = GULP_GLOOM
+    def engulf(self, enemy):
+        """The Sodden Pall's lurch has passed over you: it flows over you (a heavy blow, as any shield
+        allows), and for ENGULF_GLOOM seconds after it lets you go the dark of its insides stays on
+        your eyes."""
+        if self.enemy_strike(enemy, MOVES["engulf"][2]) > 0:
+            self.gloom_t = ENGULF_GLOOM
             self.game.sfx("hiss", 1.0)
-            self.game.message(f"{enemy.type.called} swallows you whole, and spits you out!")
+            self.game.message(f"{enemy.type.called} flows over you, and lets you go!")
 
     def blink(self, enemy):
         """A blinker steps through the moonlight: mist where it stood, and it steps out BLINK_BEHIND
@@ -1546,9 +1491,9 @@ class World:
 
     def dark_here(self):
         """How dark it is where you stand (0..1): the tile's own darkness, or deeper while the dark of
-        the Maw's gut is still on your eyes."""
+        the Pall's insides is still on your eyes."""
         dark = self.map.tile_at(self.player.x, self.player.z).dark
-        return max(dark, GULP_DARK) if self.gloom_t > 0 else dark
+        return max(dark, ENGULF_DARK) if self.gloom_t > 0 else dark
 
     def summon(self, enemy, type_id, count):
         """A boss calls `count` of its brood, spread out around itself."""
@@ -1573,17 +1518,17 @@ class World:
             self.enemies.append(child)
 
     def can_shed(self, enemy):
-        """Whether the Maw may slough off more gobbets: not while SHED_MAX of them still crawl."""
+        """Whether the Pall may slough off more clots: not while SHED_MAX of them still crawl."""
         alive = sum(e.alive and e.type.id == enemy.type.sheds for e in self.enemies)
         return enemy.type.sheds is not None and alive < SHED_MAX
 
     def shed(self, enemy):
-        """The Maw sloughs SHED_COUNT gobbets of itself off its sides, and they crawl at you."""
+        """The Pall sloughs SHED_COUNT clots of itself off its hem, and they crawl at you."""
         if not self.can_shed(enemy):
             return
         self._spawn_round(enemy, EnemyTypes.get(enemy.type.sheds), SHED_COUNT)
         self.game.sfx("hiss", 1.0)
-        self.game.message(f"{enemy.type.called} sloughs off gobbets of itself, and they crawl at you!")
+        self.game.message(f"{enemy.type.called} sloughs off clots of itself, and they crawl at you!")
 
     def split(self, enemy):
         """A slain splitter bursts into `split_count` of its `splits` type, spread round where it fell
@@ -1778,19 +1723,17 @@ class World:
             self.sfx_near("lob", h.x, h.z, *LOB_SOUND)
 
     def _update_fire(self, dt):
-        """The Warden's fire columns and slam rings, the hands that burst up, and the Maw's gloom."""
+        """The Warden's fire columns and slam rings, the hands that burst up, and the Pall's gloom."""
         player = self.player
         self.gloom_t = max(self.gloom_t - dt, 0.0)
         for f in self.eruptions:
             if f.update(dt):
-                sound = {"hands": "quake", "drowned": "hiss", "moon": "motes", "filth": "splash"}.get(
-                    f.style, "eruption"
-                )
+                sound = {"hands": "quake", "moon": "motes", "filth": "splash"}.get(f.style, "eruption")
                 self.sfx_near(sound, f.x, f.z, *(BOMB_SOUND if f.origin else ERUPTION_SOUND))
             if player.alive:
                 dmg = f.hit(player.x, player.z)
                 if dmg:
-                    hands = f.style in ("hands", "drowned")
+                    hands = f.style == "hands"
                     if f.style == "moon":
                         player.chill_t = max(player.chill_t, LANCE_CHILL)
                     if f.origin is None:  # a foe's fire, not a magma vent's bomb
@@ -1801,9 +1744,6 @@ class World:
                         player.webbed_t = max(player.webbed_t, GRASP_HOLD)
                     if f.style == "hands":
                         self.game.message("Hands of ash clutch at your legs!")
-                    elif f.style == "drowned":
-                        self.afflict_player("rot", UNDERTOW_ROT)
-                        self.game.message("The drowned drag at your legs!")
                     elif f.style == "moon":
                         self.game.message("The moonlight burns you with cold!")
                         self.afflict_player("frost", MOON_FROST)
@@ -2695,8 +2635,6 @@ class World:
             with rig.at(f.x, f.floor, f.z):
                 if f.style == "hands":
                     cemetery_models.ash_hands(rig, f.glow, f.flame, self._time + f.x)
-                elif f.style == "drowned":
-                    sewer_models.drowned_hands(rig, f.glow, f.flame, self._time + f.x)
                 elif f.style == "filth":
                     sewer_models.filth_burst(rig, f.flame, self._time + f.x)
                 elif f.style == "moon":
@@ -2740,7 +2678,7 @@ class World:
                         models.gout_puff(rig, size, heat, self._time, seed=i * 1.7)
         for pr_ in self.projectiles:
             gpu.model_light((1.6, 1.4, 1.2))
-            if pr_.effect in ("arrow", "thunder", "thorn", "mote", "rat", "lance", "crescent"):  # point first
+            if pr_.effect in ("arrow", "thunder", "thorn", "mote", "lance", "crescent"):  # point first
                 heading = -math.atan2(pr_.dz, pr_.dx)
                 climb = math.atan2(pr_.dy, math.hypot(pr_.dx, pr_.dz))
                 with rig.at(pr_.x, pr_.y, pr_.z, ry=heading, rz=climb):
@@ -2750,8 +2688,6 @@ class World:
                         models.thorn_shot(rig, pr_.rgb, self._time)
                     elif pr_.effect == "mote":
                         forge_models.mote(rig, self._time + id(pr_) % 7)
-                    elif pr_.effect == "rat":
-                        sewer_models.swarm_rat(rig, self._time + id(pr_) % 5)
                     elif pr_.effect == "lance":
                         moon_models.frost_lance(rig, pr_.rgb, self._time + id(pr_) % 3)
                     elif pr_.effect == "crescent":

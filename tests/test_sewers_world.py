@@ -1,4 +1,4 @@
-"""The Harrow Sewers' World logic driven headless: slimes that burst into gobbets, the Maw's bile,
+"""The Harrow Sewers' World logic driven headless: slimes that burst into gobbets, the Pall's bile,
 and the two bosses who guard no relic."""
 
 import math
@@ -64,14 +64,14 @@ def test_a_shrine_rest_brings_back_the_slimes_but_not_their_gobbets():
     assert sum(e.type.id == "sludge_slime" for e in world.enemies) == len(slimes)
 
 
-def test_the_maw_spits_a_fan_of_bile_that_poisons_and_corrodes():
+def test_the_pall_spits_a_fan_of_bile_that_poisons_and_corrodes():
     game, world = sewers(at=(41, 12))
-    maw = foe(world, "sump_maw", (41, 7))
-    world.enemy_fire(maw, "bile")
+    pall = foe(world, "sodden_pall", (41, 7))
+    world.enemy_fire(pall, "bile")
     assert len(world.projectiles) == 4
-    damage = round(maw.type.damage * MOVES["bile"][2])
+    damage = round(pall.type.damage * MOVES["bile"][2])
     for p in world.projectiles:
-        assert p.hostile and p.damage == damage and p.rgb == maw.type.shot_rgb
+        assert p.hostile and p.damage == damage and p.rgb == pall.type.shot_rgb
         assert dict(p.inflicts) == {"poison": 30, "corrosion": 35}
     headings = sorted(math.atan2(p.dz, p.dx) for p in world.projectiles)
     assert headings[-1] - headings[0] > 0.5  # a fan: sidestep between its gobbets
@@ -81,26 +81,30 @@ def test_the_maw_spits_a_fan_of_bile_that_poisons_and_corrodes():
 def test_the_sewers_bosses_guard_no_relic():
     """The prophecy's fourth sigil is not down here: neither boss drops a relic, and the three-sigil
     ending is untouched."""
-    for type_id, flag in (("rat_matron", "matron_dead"), ("sump_maw", "maw_dead")):
+    for type_id, flag in (("rat_matron", "matron_dead"), ("sodden_pall", "pall_dead")):
         t = EnemyTypes.get(type_id)
         assert t.boss and t.dead_flag == flag and t.drop is None and t.rise == "ash"
     assert len(relics.RELICS) == len(relics.ENDING_RELICS) == 4
-    assert not {t.drop for t in map(EnemyTypes.get, ("rat_matron", "sump_maw"))} & set(relics.RELICS)
-    assert EnemyTypes.get("rat_matron").brood == "sewer_rat"
-    assert EnemyTypes.get("sump_maw").rage and "bile" in EnemyTypes.get("sump_maw").moves
+    assert not {t.drop for t in map(EnemyTypes.get, ("rat_matron", "sodden_pall"))} & set(relics.RELICS)
+    for type_id in ("rat_matron", "sodden_pall"):  # both rage at half HP; neither calls a brood
+        t = EnemyTypes.get(type_id)
+        assert t.rage and t.brood is None
+    assert "bile" in EnemyTypes.get("sodden_pall").moves
 
 
-def test_the_brood_mother_calls_her_rats_and_wakes_from_her_heap_behind_her_doors():
+def test_the_brood_mother_wakes_from_her_heap_behind_her_doors_and_rages_alone_at_half_hp():
     game, world = sewers(at=(29, 29))
     (matron,) = [e for e in World(world.game, "harrow_sewers").enemies if e.type.id == "rat_matron"]
     world.enemies = [matron]
     assert matron.state == "ashes"
     assert {a.gate for a in world.arenas if a.flag == "matron_dead"} == {(29, 28), (33, 34)}
     assert world.rise_time(matron)  # you stand in her nest, in plain sight of her heap: she rises
-    world.summon(matron, matron.type.brood, 2)
-    assert [e.type.id for e in world.enemies[1:]] == ["sewer_rat", "sewer_rat"]
-    assert "Mother Gnawl shrieks, and her brood answers." in game.messages  # no "The" before her name
-    assert EnemyTypes.get("sump_maw").called == "The Sump Maw"
+    matron.state, matron.hp = "chase", matron.type.hp // 2
+    assert matron._should_turn(world)
+    world.boss_rage(matron)
+    assert world.enemies == [matron]  # no litter comes to her call
+    assert "Mother Gnawl shrieks, and her old wounds tear open!" in game.messages  # no "The" before her
+    assert EnemyTypes.get("sodden_pall").called == "The Sodden Pall"
     assert EnemyTypes.get("sludge_slime").called == "The Sludge Slime"
 
 
@@ -109,8 +113,8 @@ def test_the_brood_mother_calls_her_rats_and_wakes_from_her_heap_behind_her_door
 
 def test_each_sewer_boss_has_moves_no_other_foe_uses():
     own = {
-        "rat_matron": {"tail_lash", "squeal", "burrow", "swarm"},
-        "sump_maw": {"bile", "undertow", "gulp", "shed"},
+        "rat_matron": {"tail_lash", "squeal", "burrow"},
+        "sodden_pall": {"bile", "engulf", "shed"},
     }
     for type_id, moves in own.items():
         t = EnemyTypes.get(type_id)
@@ -118,8 +122,8 @@ def test_each_sewer_boss_has_moves_no_other_foe_uses():
         for other in EnemyTypes.ALL.values():
             if other.id != type_id:
                 assert not moves & (set(other.moves) | set(other.phase_moves)), (type_id, other.id)
-    assert "swarm" in EnemyTypes.get("rat_matron").phase_moves  # her litter comes at half HP
-    assert {"gulp", "shed"} <= set(EnemyTypes.get("sump_maw").phase_moves)
+    assert EnemyTypes.get("rat_matron").phase_moves == ()  # her rage only quickens her
+    assert {"engulf", "shed"} <= set(EnemyTypes.get("sodden_pall").phase_moves)
 
 
 def gnawl(world, at=(30, 31)):
@@ -210,70 +214,40 @@ def test_under_the_muck_she_tunnels_under_your_feet_and_no_one_bumps_into_her():
     assert game.player.x == px
 
 
-def test_her_litter_swarms_along_the_floor_and_rots_what_it_bites():
-    from ashen_vault.world.world import SWARM_HEIGHT
-
-    _game, world = sewers(at=(30, 34))
-    matron = gnawl(world)
-    world.enemy_fire(matron, "swarm")
-    assert len(world.projectiles) == 5
-    floor = world.enemy_y(matron)
-    for p in world.projectiles:
-        assert p.effect == "rat" and p.hostile and p.dy == 0
-        assert p.y == floor + SWARM_HEIGHT  # low along the floor, under your chest
-        assert dict(p.inflicts) == {"rot": 22}
-        assert p.damage == round(matron.type.damage * MOVES["swarm"][2])
-
-
-def test_the_maws_undertow_bursts_up_where_you_stand_and_drags_at_you():
-    game, world = sewers(at=(41, 11))
-    maw = foe(world, "sump_maw", (41, 6))
-    world.undertow(maw)
-    assert len(world.eruptions) == 5 and all(f.style == "drowned" for f in world.eruptions)
-    first = world.eruptions[0]
-    assert (first.x, first.z) == (game.player.x, game.player.z)  # right under you
-    hp = game.player.stats.hp
-    for _ in range(30):
-        world._update_fire(0.05)
-    assert game.player.stats.hp < hp and game.player.webbed_t > 0
-    assert game.player.ailments.meters["rot"] > 0
-    assert "The drowned drag at your legs!" in game.messages
-
-
-def test_the_maws_gulp_swallows_you_and_leaves_its_dark_on_your_eyes():
-    from ashen_vault.world.world import GULP_DARK, GULP_GLOOM
+def test_the_palls_engulf_flows_over_you_and_leaves_its_dark_on_your_eyes():
+    from ashen_vault.world.world import ENGULF_DARK, ENGULF_GLOOM
 
     game, world = sewers(at=(41, 11))
-    maw = foe(world, "sump_maw", (41, 10))
+    pall = foe(world, "sodden_pall", (41, 10))
     before, hp = world.dark_here(), world.player.stats.hp
-    world.gulp(maw)
+    world.engulf(pall)
     assert world.player.stats.hp < hp
-    assert "The Sump Maw swallows you whole, and spits you out!" in game.messages
-    assert world.gloom_t == GULP_GLOOM and world.dark_here() == max(before, GULP_DARK)
-    world._update_fire(GULP_GLOOM + 0.1)
+    assert "The Sodden Pall flows over you, and lets you go!" in game.messages
+    assert world.gloom_t == ENGULF_GLOOM and world.dark_here() == max(before, ENGULF_DARK)
+    world._update_fire(ENGULF_GLOOM + 0.1)
     assert world.dark_here() == before
 
 
 def test_the_sump_lies_eight_metres_down():
     _game, world = sewers()
     assert world.map[41, 20].floor == -8  # the Sump
-    assert world.map[41, 8].floor == -8  # the Maw's cistern
+    assert world.map[41, 8].floor == -8  # the Pall's cistern
     (lift,) = [p for p in world.terrain.platforms if p.kind == "lift"]
     assert lift.high - lift.low == 8
 
 
-def test_the_maw_sloughs_off_gobbets_that_crawl_at_you_but_only_so_many():
+def test_the_pall_sloughs_off_clots_that_crawl_at_you_but_only_so_many():
     from ashen_vault.world.world import SHED_COUNT, SHED_MAX
 
     game, world = sewers(at=(41, 11))
-    maw = foe(world, "sump_maw", (41, 6))
-    world.shed(maw)
-    gobbets = [e for e in world.enemies if e.type.id == "slimelet"]
-    assert len(gobbets) == SHED_COUNT and all(g.state == "chase" for g in gobbets)
-    assert "The Sump Maw sloughs off gobbets of itself, and they crawl at you!" in game.messages
-    while world.can_shed(maw):
-        world.shed(maw)
-    assert sum(e.type.id == "slimelet" for e in world.enemies) == SHED_MAX
-    world.shed(maw)  # no room: nothing more
-    assert sum(e.type.id == "slimelet" for e in world.enemies) == SHED_MAX
-    assert not world.can_shed(foe(world, "rat_matron", (41, 9)))  # she has no gobbets to shed
+    pall = foe(world, "sodden_pall", (41, 6))
+    world.shed(pall)
+    clots = [e for e in world.enemies if e.type.id == "pall_clot"]
+    assert len(clots) == SHED_COUNT and all(c.state == "chase" for c in clots)
+    assert "The Sodden Pall sloughs off clots of itself, and they crawl at you!" in game.messages
+    while world.can_shed(pall):
+        world.shed(pall)
+    assert sum(e.type.id == "pall_clot" for e in world.enemies) == SHED_MAX
+    world.shed(pall)  # no room: nothing more
+    assert sum(e.type.id == "pall_clot" for e in world.enemies) == SHED_MAX
+    assert not world.can_shed(foe(world, "rat_matron", (41, 9)))  # she has no clots to shed

@@ -217,7 +217,7 @@ trademarks of FromSoftware, Inc. (*Dark Souls* is published by Bandai Namco Ente
   shrug off fire.
 - **Bosses behind great doors**: the Ashen Sexton fights with grave ash, the Ashen Warden's blade
   catches fire at half health, the Butcher swings his cleaver among the meat hooks, Mother Gnawl and
-  the Sump Maw rule the sewers, the Loom Mother calls her brood, two iron gargoyles take turns on
+  the Sodden Pall rule the sewers, the Loom Mother calls her brood, two iron gargoyles take turns on
   the keep's roof, and Duchess Ilvane, the Moonwed, calls the moon down on you in her cathedral. Die in
   an arena and only fog remains at its door.
 - **Seven areas, hand-built**:

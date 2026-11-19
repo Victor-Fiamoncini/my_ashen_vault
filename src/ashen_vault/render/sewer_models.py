@@ -1,7 +1,6 @@
 """Models for the Harrow Sewers under the town: its rats and their brood-mother Mother Gnawl, the sludge
-slimes and the gobbets they burst into, the drowned that lie in the sludge, the bilge leeches, the Sump
-Maw (the Sump itself grown hungry: a wave of sludge with a fanged maw, crusted with skulls) in the deepest
-cistern, the ways down from the streets (a grate in town, a ladder below) and the sewers' dressing (drain pipes, sluice wheels, the outfall's great grate, a rat's nest).
+slimes and the gobbets they burst into, the drowned that lie in the sludge, the bilge leeches, the Sodden
+Pall (a bell of green ooze, the drowned's face in its folds) in the deepest cistern and the clots it sheds, the ways down from the streets (a grate in town, a ladder below) and the sewers' dressing (drain pipes, sluice wheels, the outfall's great grate, a rat's nest).
 Original low-poly models assembled from primitives; like everything in `models`, they face +X."""
 
 import math
@@ -51,15 +50,14 @@ LEECH_BELLY = (118, 92, 70)
 LEECH_STRIPE = (130, 110, 50)
 LEECH_MOUTH = (120, 40, 44)
 
-MAW_SLIME = (56, 86, 116)  # the Maw's bulk, black-blue, darker than any slime
-MAW_DARK = (34, 50, 68)
-MAW_GLOW = (110, 200, 140)  # its gullet, the skulls' eyes when it rages, and the sludge it spits
-MAW_GLOW_COLD = (36, 52, 50)
-MAW_GULLET = (16, 40, 36)
-MAW_FANG = (22, 28, 34)  # black, glassy fangs
-MAW_BONE = (218, 210, 190)
-MAW_DIRT = (70, 56, 40)
-MAW_STONE = (96, 94, 88)
+PALL = (64, 122, 44)  # the Pall's ooze, a deep, wet green
+PALL_DARK = (34, 72, 26)  # the runnels down its sides and the pool it drags
+PALL_SHEEN = (120, 178, 74)  # the wet light on its folds
+PALL_HOLLOW = (14, 30, 12)  # the arch in its hem
+PALL_SOCKET = (26, 54, 20)  # the hollows of its face, sunk in the ooze
+PALL_FACE = (196, 236, 156)  # the face risen in it, and the bile it spits
+PALL_FACE_COLD = (40, 60, 34)
+PALL_BONE = (204, 198, 172)
 
 BRICK = (100, 70, 56)
 IRON = (62, 60, 64)
@@ -199,7 +197,7 @@ def giant_rat(r, e, t):
 def rat_matron(r, e, t):
     """Mother Gnawl, the brood-mother of the sewers' rats: a rat swollen to the size of a cart-horse,
     her hide torn open in weeping sores, her belly hanging heavy, a rusted iron collar on her neck with
-    its broken chain dragging. When she has called her litter, her old wounds split open into raw,
+    its broken chain dragging. When she rages at half her strength, her old wounds split open into raw,
     weeping sores along her back and flank, one ear hangs torn, and her eyes blaze. Burrowing, she is
     gone under the muck: only the ripple of her passing shows (`burrow_ripple`)."""
     if e.burrowed:  # gone under the muck: only the ripple of her passing shows
@@ -233,11 +231,16 @@ def rat_matron(r, e, t):
 # --- slimes ---------------------------------------------------------------------------------------
 
 
-def _sludge(r, e, t, k, junk=True):
+SLUDGE_COLOURS = (SLUDGE, SLUDGE_DARK, SLUDGE_SCUM, SLUDGE_EYE)
+PALL_COLOURS = (PALL, PALL_DARK, PALL_SHEEN, PALL_FACE)
+
+
+def _sludge(r, e, t, k, junk=True, colours=SLUDGE_COLOURS):
     """A crawling heap of sludge `k` times a sludge slime's size: a spreading foot, a quivering body
     flecked with scum, two milky eyes, bubbles welling and bursting on its skin and, in the big ones,
     the town's rubbish it has swallowed (a boot, a bottle, a rat's skull). Slain, it slumps into a
-    spreading puddle."""
+    spreading puddle. `colours` is (body, foot, scum, eyes)."""
+    sludge, sludge_dark, scum, eye = colours
     squash = 1 + math.sin(t * (8 if e.state == "chase" else 3)) * 0.1
     if e.state == "windup":
         squash = 1.3
@@ -246,9 +249,9 @@ def _sludge(r, e, t, k, junk=True):
     fall = death_fall(e, 0.8)
     if e.state == "dead":
         squash = 1 + 1.3 * fall
-    body = hit_tint((230, 220, 170)) if e.flashing else SLUDGE
+    body = hit_tint((230, 220, 170)) if e.flashing else sludge
     h = 0.8 / squash
-    r.part("sphere", 0.04 * k, 0.12 * k, 0, 1.2 * squash * k, 0.24 * k, 1.2 * squash * k, SLUDGE_DARK)
+    r.part("sphere", 0.04 * k, 0.12 * k, 0, 1.2 * squash * k, 0.24 * k, 1.2 * squash * k, sludge_dark)
     r.part("sphere", 0, 0.34 / squash * k, 0, 0.95 * squash * k, h * k, 0.95 * squash * k, body)
     r.part("sphere", -0.06 * k, 0.46 / squash * k, 0.08 * k, 0.58 * squash * k, h * 0.65 * k,
            0.58 * squash * k, _dim(body, 1.12))  # fmt: skip
@@ -257,17 +260,17 @@ def _sludge(r, e, t, k, junk=True):
         a = i * 1.7 + 0.3
         rad = 0.32 * squash * k
         r.part("sphere", math.cos(a) * rad, top * (0.55 + 0.1 * (i % 2)), math.sin(a) * rad,
-               0.22 * k, 0.04 * k, 0.16 * k, SLUDGE_SCUM, ry=a)  # fmt: skip
+               0.22 * k, 0.04 * k, 0.16 * k, scum, ry=a)  # fmt: skip
     for i in range(3):  # bubbles welling up and bursting
         u = (t * 0.7 + i / 3) % 1.0
         a = i * 2.1 + 0.5
         rad = 0.4 * squash * k * (1 - u * 0.6)
         size = (0.05 + 0.07 * math.sin(u * math.pi)) * k
         r.part("sphere", math.cos(a) * rad, (0.1 + (top / k - 0.1) * u) * k, math.sin(a) * rad,
-               size, size, size, _dim(SLUDGE_SCUM, 1.1))  # fmt: skip
+               size, size, size, _dim(scum, 1.1))  # fmt: skip
     for side in (-1, 1):
         r.part("sphere", 0.36 * squash * k, 0.42 / squash * k, side * 0.15 * k, 0.09 * k, 0.11 * k, 0.09 * k,
-               SLUDGE_EYE if e.alive else _dim(SLUDGE_EYE, 0.5))  # fmt: skip
+               eye if e.alive else _dim(eye, 0.5))  # fmt: skip
         r.part("cube", 0.4 * squash * k, 0.42 / squash * k, side * 0.15 * k, 0.02 * k, 0.04 * k, 0.03 * k,
                HOLLOW)  # fmt: skip
     if not junk:
@@ -290,6 +293,11 @@ def sludge_slime(r, e, t):
 def slimelet(r, e, t):
     """A gobbet of sludge burst from a slain slime, crawling on."""
     _sludge(r, e, t, 0.5, junk=False)
+
+
+def pall_clot(r, e, t):
+    """A clot of green ooze sloughed off the Sodden Pall's hem, crawling at you on its own."""
+    _sludge(r, e, t, 0.5, junk=False, colours=PALL_COLOURS)
 
 
 # --- the drowned ----------------------------------------------------------------------------------
@@ -408,171 +416,138 @@ def bilge_leech(r, e, t):
                    rz=-math.pi / 2)  # fmt: skip
 
 
-# --- the Sump Maw ---------------------------------------------------------------------------------
+# --- the Sodden Pall ------------------------------------------------------------------------------
+
+PALL_LOBES = 10  # the lobes of its hem, round the skirt
+PALL_RUNNELS = 8  # the runnels down its sides
+PALL_SWELLS = 7  # the swells its bell is stacked of
 
 
-def _maw_pose(e):
-    """(gape, lean, twist, rear) of the Maw through its moves: `gape` opens its jaws from shut (0) to
-    wide (1), `lean` pitches its head forward (+) or back (-), `twist` turns its whole bulk, `rear`
-    stretches it tall (+) or squashes it flat (-). A slam rears it up and crashes it down, a sweep
-    swings it round and its tail with it, bile and the gulp throw its jaws wide, the undertow sinks it
-    into itself, a shed swells it fit to burst."""
+def _pall_pose(e):
+    """(lean, rear, flare, twist) of the Pall through its moves: `lean` tips its bell forward (+) or
+    back (-), `rear` stretches it tall (+) or squashes it flat (-), `flare` throws its skirt out wide,
+    `twist` turns it about. A slam rears it up and crashes it down flat, a sweep flings its skirt out
+    as it turns, bile rocks it back and pitches it forward, the engulf stretches it long and low over
+    its hem, a shed swells it fit to burst."""
     kind = e.attack_kind
     if kind == "slam":
-        return _swing_pose(e, 0.3, 0.6, 0.1), _swing_pose(e, 0, -0.35, 0.6), 0.0, _swing_pose(e, 0, 0.3, -0.3)
+        return 0.0, _swing_pose(e, 0, 0.4, -0.45), _swing_pose(e, 0, -0.1, 0.55), 0.0
     if kind == "sweep":
-        return 0.3, 0.1, _swing_pose(e, 0.0, -0.9, 1.4), 0.0
+        return 0.0, _swing_pose(e, 0, -0.1, -0.15), _swing_pose(e, 0, 0.15, 0.8), _swing_pose(e, 0, -0.8, 1.2)
     if kind == "bile":
-        return _swing_pose(e, 0.35, 0.9, 1.0), _swing_pose(e, 0, -0.25, 0.25), 0.0, 0.1
-    if kind == "undertow":
-        return 0.1, 0.2, 0.0, _swing_pose(e, 0, -0.35, -0.2)
-    if kind == "gulp":
-        return (
-            _swing_pose(e, 0.35, 1.0, 1.0),
-            _swing_pose(e, 0, -0.4, 0.5),
-            0.0,
-            _swing_pose(e, 0, 0.25, -0.15),
-        )
+        return _swing_pose(e, 0, -0.25, 0.3), 0.1, 0.0, 0.0
+    if kind == "engulf":
+        return _swing_pose(e, 0, -0.15, 0.6), _swing_pose(e, 0, 0.1, -0.35), _swing_pose(e, 0, 0, 0.3), 0.0
     if kind == "shed":
-        return 0.2, 0.0, 0.0, _swing_pose(e, 0, -0.15, 0.1)
-    return _swing_pose(e, 0.45, 0.8, 0.5), _swing_pose(e, 0, -0.2, 0.45), 0.0, 0.0
+        return 0.0, _swing_pose(e, 0, -0.15, 0.1), 0.2, 0.0
+    return _swing_pose(e, 0, -0.2, 0.4), _swing_pose(e, 0, 0.1, -0.15), 0.0, 0.0
 
 
-def _skull(r, x, y, z, size, eyes=None, ry=0.0):
-    """A skull stuck in the sludge, facing +X in its own turn `ry`: dark sockets, or `eyes` (a colour)
-    kindled in them."""
-    with r.at(x, y, z, ry=ry, s=size):
-        r.part("sphere", 0, 0, 0, 1.0, 0.9, 0.9, MAW_BONE)
-        r.part("cube", 0.3, -0.38, 0, 0.4, 0.22, 0.56, _dim(MAW_BONE, 0.85))  # its jaw
-        for side in (-1, 1):
-            r.part("cube", 0.4, 0.05, side * 0.2, 0.2, 0.24, 0.24, eyes or HOLLOW, glow=eyes is not None)
+def _pall_gape(e):
+    """How wide the mouth in its folds opens (0..1): wide to spit bile or to flow over you."""
+    if e.attack_kind in ("bile", "engulf") and e.state in ("windup", "attack"):
+        return _swing_pose(e, 0, 0.7, 1.0)
+    return 0.0
 
 
-def sump_maw(r, e, t):
-    """The Sump Maw: the Sump itself grown hungry, a wave of black-blue sludge as tall as a house that
-    rears from a spreading pool and crests forward into a vast maw: a ring of black fangs round a gullet
-    glowing sickly green. Its crest is crusted with the skulls of the drowned, and bones, skulls and
-    clods of the drains' dirt stick out of its sides; a tail of it curls up behind. It swells and
-    bubbles as it crawls; raging, the eyes of the skulls kindle green. Slain, it slumps into a black,
-    still pool, the skulls lying in it."""
+def sodden_pall(r, e, t):
+    """The Sodden Pall: a bell of green ooze twice a man's height, like a sodden shroud with nothing
+    under it. Its rounded peak sags into a bell that flares into a skirt dragged over the floor in
+    lobes, a dark pool spreading round its hem and a low, black arch in the hem at its front. Darker
+    runnels and wet sheen run down its sides, drops crawling down them; bubbles well up in it. In its
+    folds sit the hollows of a face, the drowned it took: raging, the face rises pale and its eyes and
+    mouth glow. Its moves rock, stretch and fling it about (`_pall_pose`). Slain, it slumps into a
+    wide, still pool."""
     fall = death_fall(e, 1.2)
     lit = e.alive
     rage = e.phase2 and lit
-    skin = hit_tint((200, 220, 240)) if e.flashing else MAW_SLIME
-    glow_rgb = MAW_GLOW if lit else MAW_GLOW_COLD
-    eyes = glow_rgb if rage else None
-    gape, lean, twist, rear = _maw_pose(e)
-    gape, lean = _mix(gape, 0.05, fall), _mix(lean, 0.0, fall)
-    quiver = math.sin(t * (6 if e.state == "chase" else 2.2)) * 0.05
+    skin = hit_tint((214, 240, 196)) if e.flashing else PALL
+    lean, rear, flare, twist = _pall_pose(e)
+    lean = _mix(lean, 0.0, fall)
+    gape = _pall_gape(e) if lit else 0.0
+    quiver = math.sin(t * (4.5 if e.state == "chase" else 1.8)) * 0.04
     if e.attack_kind == "shed" and e.state == "windup":
         quiver += 0.06 * math.sin(t * 30)  # shuddering, fit to burst
-    tall = (1 + rear + quiver) * (1 - 0.8 * fall)
-    wide = (1 - 0.4 * rear - quiver) * (1 + 0.4 * fall)
-    spew = e.attack_kind in ("bile", "gulp") and e.state in ("windup", "attack") and lit
-    # The spreading pool it rises from, and the lumps of it heaped round its foot.
-    r.part("sphere", 0.2, 0.1, 0, 4.2 * wide, 0.2, 3.6 * wide, MAW_DARK)
-    for i in range(5):  # ripples running out across the pool
-        a = i * 1.26 + 0.4
-        r.part("sphere", math.cos(a) * 1.8 * wide, 0.06, math.sin(a) * 1.6 * wide, 0.7, 0.08, 0.3,
-               _dim(MAW_DARK, 1.3), ry=-a)  # fmt: skip
-    for x, z, s in ((-1.1, 1.0, 1.3), (-1.2, -0.9, 1.2), (0.9, 1.1, 1.0), (0.8, -1.1, 1.1), (-1.8, 0.1, 1.0)):
-        r.part("sphere", x * wide, 0.42 * s * tall, z * wide, s * wide, 0.85 * s * tall, s * wide,
-               _dim(skin, 0.9 + 0.08 * s))  # fmt: skip
-    # Its tail, curling up behind it, swung round with a sweep.
-    with r.at(-1.9 * wide, 0, -0.8 * wide, ry=-0.5 + twist * 0.6):
-        for i in range(5):
-            k = i / 4
-            size = (0.9 - 0.6 * k) * wide
-            high = size * 1.1 * min(tall * 1.5, 1.0)  # flattening with the rest of it, slain
-            r.part("sphere", -0.45 * i + 0.2 * k * k, max((0.6 + 1.4 * k * k) * tall, high / 2), 0, size, high,
-                   size, _dim(skin, 0.95 + 0.1 * k))  # fmt: skip
-        r.part(
-            "cone", -1.45, max(2.25 * tall, 0.3), 0, 0.22, 0.6 * tall, 0.22, _dim(skin, 1.1), rz=0.9
-        )  # its tip
+    tall = (1 + rear + quiver) * (1 - 0.85 * fall)
+    body = (1 - 0.35 * rear - quiver) * (1 + 0.5 * fall)
+    hem = (1 + flare - 0.2 * rear) * (1 + 0.6 * fall)
+    low = min(tall, 1.0)
+    # The pool it drags along, and the lobes of its skirt lying out over it, rippling outward.
+    r.part("cyl", 0.1, 0.02, 0, 4.4 * hem, 0.04, 4.2 * hem, PALL_DARK)
+    with r.at(0, 0, 0, ry=twist * 0.5):
+        for i in range(PALL_LOBES):
+            a = (i + 0.5) * math.tau / PALL_LOBES  # none straight ahead, where its arch is
+            ripple = 1 + 0.06 * math.sin(t * 2.4 + i * 1.3)
+            d = 1.5 * hem * ripple
+            r.part("sphere", math.cos(a) * d, 0.24 * low, math.sin(a) * d, 1.2 * hem, 0.55 * low, 0.95 * hem,
+                   _dim(skin, 0.84 + 0.05 * (i % 3)), ry=-a)  # fmt: skip
+        for a, tilt in ((2.3, 0.5), (-2.6, -0.4), (1.2, 0.8)):  # bones of the drowned poking out of its hem
+            d = 2.0 * hem
+            r.part("cube", math.cos(a) * d, 0.12, math.sin(a) * d, 0.08, 0.08, 0.6, PALL_BONE, ry=-a + tilt)
+
+    def bent(y):
+        """It leans by bending: its hem stays put on the floor, and the higher up, the further over."""
+        return r.at(0, 0, 0, rz=-lean * min(max((y - 0.4) / 2.4, 0.0), 1.0))
+
     with r.at(0, 0, 0, ry=twist):
-        # The wave of it, rising and leaning back, then cresting forward into the head.
-        r.part("sphere", -0.5 * wide, 1.0 * tall, 0, 2.6 * wide, 2.0 * tall, 2.4 * wide, skin)
-        r.part("sphere", -0.4 * wide, 1.85 * tall, 0, 2.0 * wide, 1.6 * tall, 1.9 * wide, _dim(skin, 1.06))
-        r.part("sphere", -0.1 * wide, 2.5 * tall, 0, 1.6 * wide, 1.2 * tall, 1.6 * wide, _dim(skin, 1.1))
-        for i, (a, y) in enumerate(((0.6, 0.7), (1.9, 1.1), (3.0, 0.6), (4.2, 1.3), (5.4, 0.9))):
-            d = 1.2 * wide  # bubbles welling up its sides
-            u = (t * (0.9 if rage else 0.5) + i / 5) % 1.0
-            b = 0.1 + 0.18 * math.sin(u * math.pi)
-            r.part("sphere", -0.4 + math.cos(a) * d, (y + 1.2 * u) * tall, math.sin(a) * d, b, b, b,
-                   _dim(skin, 1.25))  # fmt: skip
-        # What it swallowed, stuck in its sides: skulls, bones and clods of the drains' dirt.
-        for a, y, size in ((0.9, 0.5, 0.34), (2.2, 0.9, 0.3), (-0.8, 0.6, 0.36), (-2.4, 1.0, 0.28)):
-            y = max(y * tall, size * 0.6)
-            _skull(r, -0.4 + math.cos(a) * 1.25 * wide, y, math.sin(a) * 1.15 * wide, size, eyes, -a)
-        for a, y, tilt in ((1.4, 1.3, 0.7), (-1.6, 0.9, -0.5), (2.8, 1.5, 1.1), (-2.9, 0.4, 0.3)):
-            r.part("cube", -0.4 + math.cos(a) * 1.3 * wide, max(y * tall, 0.4), math.sin(a) * 1.25 * wide, 0.1, 0.1,
-                   0.7, MAW_BONE, ry=-a + tilt, rx=tilt)  # fmt: skip
-        for a, y, size in (
-            (0.3, 0.3, 0.4),
-            (1.2, 0.8, 0.3),
-            (-1.2, 1.4, 0.34),
-            (2.6, 0.3, 0.45),
-            (-2.2, 0.3, 0.4),
-        ):
-            r.part("sphere", -0.4 + math.cos(a) * 1.3 * wide, max(y * tall, size * 0.35), math.sin(a) * 1.2 * wide, size,
-                   size * 0.7, size, MAW_DIRT if size > 0.35 else MAW_STONE)  # fmt: skip
-        # The head: its lower jaw the lip of the wave, its upper jaw the crest, hinged at the back.
-        with r.at(0.55, 2.6 * tall, 0, rz=-lean, s=_mix(1.35, 0.45, fall)):
-            r.part("sphere", 0.7, -0.6, 0, 2.0, 0.75, 1.8, skin)  # the lower jaw
-            r.part("sphere", 0.8, -0.28, 0, 1.6, 0.2, 1.4, glow_rgb, glow=lit)  # the glowing gullet floor
-            r.part("sphere", 0.15, -0.1, 0, 0.7, 0.6, 0.9, MAW_GULLET)  # the throat
-            for i in range(7):  # the lower fangs, pointing up
-                a = -1.35 + i * 0.45
-                r.part("cone", 0.8 + math.cos(a) * 0.82, -0.12, math.sin(a) * 0.72, 0.16, 0.38, 0.16,
-                       MAW_FANG, rz=-0.15)  # fmt: skip
-            if spew:  # a gout of glowing sludge welling up its gullet
-                r.part("sphere", 0.7, -0.15, 0, 0.7, 0.45, 0.6, glow_rgb, glow=True)
-            with r.at(-0.2, -0.2, 0, rz=0.12 + gape * 0.85):
-                r.part("sphere", 0.95, 0.45, 0, 2.1, 0.75, 1.75, _dim(skin, 1.08))  # the upper jaw
-                r.part("sphere", 0.3, 0.8, 0, 1.6, 0.8, 1.5, _dim(skin, 1.12))  # the crest
-                r.part("sphere", 0.95, 0.12, 0, 1.7, 0.12, 1.4, _dim(glow_rgb, 0.8), glow=lit)  # its roof
-                for i in range(8):  # the upper fangs, hanging down
-                    a = -1.4 + i * 0.4
-                    r.part("cone", 0.95 + math.cos(a) * 0.9, -0.12, math.sin(a) * 0.76, 0.18, 0.5, 0.18,
-                           MAW_FANG, rz=math.pi + 0.15)  # fmt: skip
-                # The drowned's skulls crusting its crest.
-                for x, y, z, size in (
-                    (0.2, 1.2, 0.0, 0.34), (0.6, 1.05, 0.45, 0.3), (0.6, 1.05, -0.45, 0.3),
-                    (-0.2, 1.1, 0.4, 0.28), (-0.2, 1.1, -0.4, 0.3), (1.0, 0.85, 0.15, 0.26),
-                    (1.0, 0.85, -0.25, 0.24), (-0.5, 0.9, 0.0, 0.3),
-                ):  # fmt: skip
-                    _skull(r, x, y + 0.1, z, size * 1.25, eyes, ry=z * 0.6)
-                for x, z, tilt in ((0.0, 0.6, 0.6), (-0.4, -0.55, -0.8), (0.8, 0.0, 0.3)):
-                    r.part("cube", x, 1.2, z, 0.08, 0.5, 0.08, MAW_BONE, rx=tilt, rz=-0.4)  # bones in it
-        for i in range(3):  # sludge drooling off its lip
-            u = (t * 0.8 + i / 3) % 1.0
-            r.part("cube", 1.5 * wide, (0.5 + 1.4 * (1 - u)) * tall, (i - 1) * 0.5, 0.08, 0.2, 0.08, skin)
-
-
-def drowned_hands(r, glow, rise, t):
-    """The Maw's undertow, where it will burst (`hazards.Eruption` style "drowned"): first the floor
-    wells with bubbling sludge (`glow` 0..1), then grey-green arms of the drowned grope up out of it
-    (`rise` 0..1) and sink again."""
-    if glow > 0:
-        r.part("cyl", 0, 0.015, 0, 1.4 * glow, 0.02, 1.4 * glow, SLUDGE_DARK)  # the welling sludge
-        for i in range(5):
-            a = i * 1.26 + t * 0.4
-            pop = 0.5 + 0.5 * math.sin(t * 7 + i * 1.7)
-            b = 0.08 + 0.1 * glow * pop
+        # The bell: close-stacked swells narrowing smoothly up to its rounded peak.
+        for i in range(PALL_SWELLS):
+            u = i / (PALL_SWELLS - 1)
+            w = 3.3 - 2.2 * u
+            y = 0.5 + 2.35 * u
+            with bent(y):
+                r.part("sphere", 0, y * tall, 0, w * body, 1.0 * tall, w * body, _dim(skin, 0.9 + 0.2 * u))
+        with bent(3.05):
             r.part(
-                "sphere", math.cos(a) * 0.55 * glow, b / 2, math.sin(a) * 0.55 * glow, b, b, b, SLUDGE_SCUM
-            )
-    if rise <= 0:
-        return
-    for i in range(3):
-        a = i * 2.1 + 0.3
-        x, z = math.cos(a) * 0.3, math.sin(a) * 0.3
-        length = (0.8 + 0.3 * i) * rise
-        with r.at(x, 0, z, rx=math.sin(a) * 0.3, rz=-math.cos(a) * 0.3):
-            r.part("cube", 0, length / 2, 0, 0.14, length, 0.14, DROWNED_DARK)
-            r.part("sphere", 0, 0.05, 0, 0.22, 0.12, 0.22, SLUDGE)  # sludge round the wrist
-            with r.at(0, length, 0, rz=math.pi):
-                hand(r, DROWNED_SKIN, 0.22, curl=1.2 - 0.8 * rise + 0.15 * math.sin(t * 11 + i))
+                "sphere", 0, 3.05 * tall, 0, 0.8 * body, 0.6 * tall, 0.8 * body, _dim(skin, 1.14)
+            )  # its peak
+        # The low, black arch in its hem at the front.
+        r.part("sphere", 1.55 * body, 0.32 * low, 0, 0.3, 0.75 * low, 0.8, PALL_HOLLOW)
+        # Runnels and sheen down its sides, a drop crawling down each.
+        for i in range(PALL_RUNNELS):
+            a = i * math.tau / PALL_RUNNELS + 0.4
+            c, sn = math.cos(a), math.sin(a)
+            shade = PALL_DARK if i % 2 else PALL_SHEEN
+            for y, rad, length, tilt in ((0.75, 1.5, 1.2, 0.5), (1.9, 0.95, 1.2, 0.35)):
+                with bent(y), r.at(c * rad * body, y * tall, sn * rad * body, ry=-a):
+                    r.part("sphere", 0.04, 0, 0, 0.12, length * tall, 0.16, shade, rz=tilt)
+            u = (t * 0.22 + i / PALL_RUNNELS) % 1.0
+            rad, y = 0.75 + 0.85 * u, 2.6 - 2.1 * u
+            with bent(y):
+                r.part("sphere", c * rad * body, y * tall, sn * rad * body, 0.14, 0.2, 0.14, _dim(skin, 1.25))
+        for i in range(4):  # bubbles welling up in it
+            a = i * 1.6 + 0.9
+            u = (t * (0.7 if rage else 0.4) + i / 4) % 1.0
+            rad = (1.4 - 0.8 * u) * body
+            b = 0.08 + 0.12 * math.sin(u * math.pi)
+            y = 0.6 + 2.0 * u
+            with bent(y):
+                r.part("sphere", math.cos(a) * rad, y * tall, math.sin(a) * rad, b, b, b, PALL_SHEEN)
+        if fall < 0.6:
+            with bent(1.9):
+                _pall_face(r, body, tall, rage, lit, gape)
+
+
+def _pall_face(r, body, tall, rage, lit, gape):
+    """The face of the drowned in its folds, facing +X: a brow, two long hollow eyes and a hanging
+    mouth. Raging, the face rises pale and its hollows glow; the mouth gapes to spit or engulf."""
+    glow = PALL_FACE if lit else PALL_FACE_COLD
+    x = 0.98 * body
+    if rage:
+        r.part(
+            "sphere", x - 0.08, 1.9 * tall, 0, 0.5, 1.0 * tall, 0.75, _dim(PALL_FACE, 0.8)
+        )  # the face risen
+    r.part("sphere", x + 0.02, 2.22 * tall, 0, 0.22, 0.14 * tall, 0.8, _dim(PALL, 1.2))  # its brow
+    for side in (-1, 1):
+        r.part("sphere", x, 2.02 * tall, side * 0.26, 0.2, 0.34 * tall, 0.18, glow if rage else PALL_SOCKET,
+               glow=rage)  # fmt: skip
+    mouth_x = 1.16 * body
+    r.part("sphere", mouth_x, 1.5 * tall, 0, 0.2, (0.5 + 0.45 * gape) * tall, 0.2 + 0.3 * gape,
+           glow if rage else PALL_SOCKET, glow=rage)  # fmt: skip
+    if gape > 0.3:  # a gout of glowing bile welling in its mouth
+        r.part(
+            "sphere", mouth_x + 0.05, 1.45 * tall, 0, 0.18, 0.4 * gape * tall, 0.3 * gape, PALL_FACE, glow=lit
+        )
 
 
 def burrow_ripple(r, t, k):
@@ -629,19 +604,6 @@ def squeal_ring(r, k, radius):
             a = i * math.pi / 6 + ring * 0.26
             r.part("cube", math.cos(a) * d, 1.0 + 0.3 * ring, math.sin(a) * d, size, size * 2.5, size,
                    (214, 206, 196), ry=-a, tex="mist")  # fmt: skip
-
-
-def swarm_rat(r, t):
-    """One of Mother Gnawl's litter scurrying along the floor at you, nose first (+X), its tail
-    whipping behind."""
-    bob = abs(math.sin(t * 24)) * 0.04
-    with r.at(0, -0.18 + bob, 0):
-        r.part("sphere", 0, 0, 0, 0.36, 0.17, 0.2, RAT_FUR)
-        r.part("sphere", 0.17, 0.02, 0, 0.16, 0.12, 0.12, RAT_FUR)  # head
-        r.part("cube", 0.26, 0.0, 0, 0.08, 0.05, 0.05, RAT_PINK)  # snout
-        for side in (-1, 1):
-            r.part("cube", 0.2, 0.05, side * 0.04, 0.025, 0.025, 0.02, RAT_EYE_LIT, glow=True)
-        _bar(r, (-0.17, 0, 0), (-0.42, -0.04, math.sin(t * 18) * 0.1), 0.025, RAT_PINK)
 
 
 # --- the ways down from the streets ---------------------------------------------------------------

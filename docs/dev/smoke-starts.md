@@ -54,7 +54,7 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   the outfall's U-turn stair from 45,35; the lift up to the Cistern at 36,20), `--at=26,36,180 --script "wait:0.2 interact wait:2.5"` (let the sluice pit's
   drawbridge down). Bosses: `--at=34,32,-160 --level 10 --script "wait:3.2"` (Mother Gnawl rising in her
   nest, its great doors at 29,28 and 33,34; `--at=29,27,90 --script "interact wait:1 forward:1.5"` walks in
-  through the north one), `--at=41,13,-90 --level 10 --script "wait:4.5"` (the Sump Maw behind its door at 41,15).
+  through the north one), `--at=41,13,-90 --level 10 --script "wait:4.5"` (the Sodden Pall behind its door at 41,15).
 - Vesperholm (`vesperholm`) lies behind the Vesper Gate in Harrowmere's north wall, in the lane behind
   the cathedral's apse: `--map harrowmere --at=5,2,-90 --script "back:0.35 look_up:0.12 wait:0.3
   interact"` (shut: its three sockets dark, and it says why), the same with `--flags

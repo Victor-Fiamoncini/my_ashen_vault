@@ -16,8 +16,8 @@ edge_tex = sewer_brick
 // Drains, narrow vaulted runs under the market lanes; the Canal Culvert by the canal's head; and the
 // Quay Outfall, where the sewers pour out through great grates into the sea. Between the cistern and
 // the outfall Mother Gnawl, the rats' brood-mother, keeps her nest; below the outfall a stair goes down
-// to the Sump, and behind its door the Sump Maw, the Sump itself grown hungry (a wave of sludge as tall
-// as a house, its fanged maw crusted with skulls), fills the deepest cistern. Wadeable sludge (slow
+// to the Sump, and behind its door the Sodden Pall, all the drains ever carried grown a skin (a bell of
+// green ooze twice a man's height, a drowned face in its folds), fills the deepest cistern. Wadeable sludge (slow
 // going) fills the gutters; the clearer channels cast you back out.
 
 [legend]
@@ -126,10 +126,10 @@ L = bilge_leech on==
 Ô = bilge_leech on=-
 Õ = bilge_leech on=p
 Ö = bilge_leech on=k
-// Mother Gnawl in her nest between the cistern and the outfall, and the Sump Maw behind its door.
+// Mother Gnawl in her nest between the cistern and the outfall, and the Sodden Pall behind its door.
 M = rat_matron
-N = sump_maw
-O = door boss=maw_dead
+N = sodden_pall
+O = door boss=pall_dead
 // Her nest has a great door at each mouth: die in there and both give way to fog.
 Ù = door boss=matron_dead
 // Finds: ailments' remedies mostly, for the sewers breed them all.
