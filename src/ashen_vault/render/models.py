@@ -4701,6 +4701,13 @@ MOTIONS = {
         (0.16, -0.04, -0.16, -0.6, -0.4, -1.25),
         (0.0, -0.42, -0.72, -1.15, -0.75, -1.3),
     ),
+    # The reverse cut (the long katanas' heavy): the mirror of the slash, wound up high on the left and
+    # cut down across to the low right, the wrist rolled over so the edge still leads.
+    "slash_left": (
+        (-0.08, 0.28, -0.6, -0.5, -1.0, 0.55),
+        (0.16, -0.04, 0.1, 0.6, 0.25, -1.25),
+        (0.0, -0.42, 0.62, 1.15, 0.9, -1.3),
+    ),
     # A flat arc from right to left, the whole arm turning with it.
     "sweep": (
         (-0.04, 0.04, 0.42, 1.0, 0.75, -0.4),
@@ -5203,7 +5210,8 @@ def _held_weapon(r, player, hand, bob, sprint, armor, view=None, both=False):
     phase = player.swing_phase if swinging else None
     if swinging and item.category in TRAILS:
         rest = tuple(a - b for a, b in zip(pose, (dx, dy, dz, drx, dry, drz), strict=True))
-        _swing_trail(r, item, player.attack, phase, rest, side)
+        art = player.swing_art  # an art's blow smears in its own light (the Pale Crescent's pale blue)
+        _swing_trail(r, item, player.attack, phase, rest, side, art.rgb if art else None)
     with _pose_at(r, pose, side):
         weapon(r, item.id, phase)
         with r.at(0, grips[0], 0):
@@ -5223,15 +5231,17 @@ TRAIL_LAG = 0.08  # how far back (in swing phase) the smear reaches
 TRAIL_GHOSTS = 6
 
 
-def _swing_trail(r, item, a, phase, rest, side):
+def _swing_trail(r, item, a, phase, rest, side, tint=None):
     """A fading smear behind an edged weapon as it cuts: a fan of ghost blades between where it is and
     where it was a moment ago, dimmer the further back. Only around the blow, and drawn first so the
-    weapon covers them."""
+    weapon covers them. It follows the motion, so a reverse cut smears the other way; `tint` colours
+    it (an art's light)."""
     wind_at, follow_at = a.hit_at * 0.8, a.hit_at + (1 - a.hit_at) * 0.15
     if not wind_at < phase < follow_at:
         return
     length = WEAPON_LEN.get(item.id, 1.0) * 0.85
     rgb = (255, 170, 90) if item.element == "fire" else (210, 225, 255) if item.element else (205, 205, 215)
+    rgb = tint or rgb
     now = _motion(a.motion, phase, a.hit_at)
     then = _motion(a.motion, max(phase - TRAIL_LAG, wind_at), a.hit_at)
     headed = item.id in HEADED  # an axe smears only where its bit passes, not along the haft

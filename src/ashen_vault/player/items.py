@@ -229,7 +229,7 @@ class Items:
                 reach=2.5,
                 speed=1.2,
                 level=7,
-                desc="A long, dark-lacquered blade that drinks the lamplight. Patient hands are rewarded.",
+                desc="A long, dark-lacquered blade that drinks the lamplight. Its heavy cuts back from the left.",
             ),
             Item(
                 id="nodachi",
@@ -244,7 +244,7 @@ class Items:
                 speed=1.9,
                 level=10,
                 two_handed=True,
-                desc="A field sword taller than a door. It must be drawn with both hands.",
+                desc="A field sword taller than a door, drawn with both hands. Its heavy cuts back from the left.",
             ),
             Item(
                 id="thornlash",

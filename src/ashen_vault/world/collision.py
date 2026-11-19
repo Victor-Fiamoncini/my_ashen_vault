@@ -133,3 +133,14 @@ def separate(ax, az, ar, bx, bz, br):
         return ax + mn, az
     push = (mn - d) / d
     return ax + dx * push, az + dz * push
+
+
+def runs_into(x, z, nx, nz, radius, bodies):
+    """Whether a circle of `radius` stepping from (x, z) to (nx, nz) would press into one of `bodies`
+    ((bx, bz, br) circles): the step overlaps it and comes nearer than it was. A body you already
+    touch doesn't stop a step away from it."""
+    for bx, bz, br in bodies:
+        near = math.hypot(nx - bx, nz - bz)
+        if near < radius + br and near < math.hypot(x - bx, z - bz):
+            return True
+    return False

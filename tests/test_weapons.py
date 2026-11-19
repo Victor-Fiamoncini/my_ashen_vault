@@ -207,6 +207,37 @@ def test_katana_draw_from_a_still_hold():
     assert p.start_swing(kind=weapons.HEAVY).name == "Sheathed Draw"
 
 
+def test_the_katana_lunges_and_the_long_katanas_cut_back_the_other_way():
+    katana = weapons.attack(Items.get("katana"), weapons.HEAVY)
+    assert katana.motion == "thrust" and katana.lunge == 1.0 and katana.name == "Lunging thrust"
+    for id_ in ("moonless_tachi", "nodachi"):
+        heavy = weapons.attack(Items.get(id_), weapons.HEAVY)
+        assert heavy.motion == "slash_left" and heavy.lunge == 0, id_
+        assert heavy.kind == weapons.HEAVY and heavy.cone < katana.cone, "a cut reaches wider than a thrust"
+
+
+def test_a_heavy_override_leaves_the_rest_of_the_moveset_alone():
+    base = weapons.MOVESETS["katana"]
+    for id_ in ("moonless_tachi", "nodachi"):
+        item = Items.get(id_)
+        moves = weapons.moveset(item)
+        assert moves[weapons.LIGHT] is base[weapons.LIGHT]
+        assert moves[weapons.SECRET] is base[weapons.SECRET]
+        assert weapons.tempo(item) == weapons.TEMPO["katana"] + weapons.WEIGHT_TEMPO[item.weight]
+        # The Sheathed Draw still comes out of a still hold.
+        p = armed(id_)
+        p.update_timers(1.5)
+        p.charge_t = 1.3
+        assert p.start_swing(kind=weapons.HEAVY).name == "Sheathed Draw", id_
+        # A plain charged heavy is the reverse cut, and costs what the category's heavy costs.
+        p = armed(id_)
+        p.charge_t = weapons.CHARGE_TIME
+        a = p.start_swing(kind=weapons.HEAVY, secrets=False)
+        assert a.motion == "slash_left"
+        assert a.stamina == weapons.sized(item, base[weapons.HEAVY]).stamina * p.burden.cost
+    assert weapons.moveset(Items.get("katana")) is base
+
+
 def test_damage_multiplier():
     base = Combat.damage(10, 4, 1.0, 0)
     assert Combat.damage(10, 4, 1.0, 0, mult=2.0) == base * 2

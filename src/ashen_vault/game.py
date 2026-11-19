@@ -542,6 +542,7 @@ class Game:
             floating=self.world.terrain.open_to,
             ground=self.world.terrain.floor,
         )
+        moved = self._lunge(dt) or moved
         self._carry_player(dt)
         if moved:
             self._footstep()
@@ -558,6 +559,25 @@ class Game:
         if inp.pressed("interact"):
             self._interact()
         self._update_world(dt)
+
+    def _lunge(self, dt):
+        """A lunging attack carries you on over a few frames (Player.step_lunge), stopped by walls,
+        fog and foes' bodies as walking is."""
+        w = self.world
+        if w.terrain.plunging or w.fog_walk is not None:  # over the brink, or walking the fog
+            self.player.cancel_lunge()
+            return False
+        return (
+            self.player.step_lunge(
+                w.map,
+                dt,
+                blocked=w.player_blocker,
+                floating=w.terrain.open_to,
+                ground=w.terrain.floor,
+                bodies=w.bodies(),
+            )
+            > 1e-4
+        )
 
     def _carry_player(self, dt):
         """Lifts, rafts and gravity move the player whether or not they walk."""
@@ -604,6 +624,7 @@ class Game:
     def _tick_unpaused(self, dt):
         """Belongings doesn't pause the game: the world goes on and foes still strike while you stand
         there, though you neither walk nor fight."""
+        self._lunge(dt)
         self._carry_player(dt)
         self.player.update_timers(dt)
         self._update_ailments(dt)
@@ -717,8 +738,6 @@ class Game:
         p = self.player
         weapon = p.swing_weapon
         a = p.attack
-        if a.lunge:
-            p.nudge(self.world.map, a.lunge, blocked=self.world.blocker)
         for prop in self.world.strike_props(weapon.reach * a.reach, a.cone):
             self._break(prop)
         targets = self._strike(weapon, a)
@@ -765,6 +784,10 @@ class Game:
         elif art.kind == weapons.RING:
             self.sfx("heavy", 1.0)
             self.world.slag_ring(lambda e: dmg * elements.mult(e.type, art.element), art.reach)
+        elif art.kind == weapons.WAVE:
+            self.sfx("swoosh", 1.0, 0.7)
+            self.sfx("spell", 0.5, 1.3)
+            self.world.crescent_wave(dmg, art.width, speed, art.life, art.rgb, art.effect)
 
     def _strike(self, weapon, a, mult=1.0):
         """Deals one blow of attack `a` to everything in reach; returns who it hit."""
@@ -909,6 +932,7 @@ class Game:
             dmg = Spells.warded(dmg, self.player.stats.magic)
         self.player.stats.hurt(dmg)
         self.player.hurt_t = 0.4
+        self.player.cancel_lunge()  # a blow that lands stops a lunge short
         self.sfx("hurt")
         if dmg >= 10:
             self.message(f"{source} hits you for {dmg}.")

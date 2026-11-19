@@ -25,6 +25,9 @@ class Player:
     HITSTOP = 0.05  # seconds a swing freezes when it connects
     WEBBED = 0.45  # speed multiplier while caught in silk
     SPORED = 0.6  # speed multiplier while choking on spores
+    LUNGE_SPEED = 6.0  # metres a second a lunging attack carries you forward
+    LUNGE_LEAD = 0.12  # the lunge sets off this share of the swing before the blow lands
+    LUNGE_STEP = 0.1  # the longest single step of a lunge, so it stops at a foe and never passes it
 
     def __init__(self, stats=None, inventory=None, spells=None):
         self.stats = stats or Stats()
@@ -55,6 +58,8 @@ class Player:
         self.swing_hand = RIGHT
         self.attack = weapons.attack(self.inventory.weapon_item())
         self.swing_art = None  # the weapon art riding on the current swing (see weapons.ARTS)
+        self.lunge_left = 0.0  # metres a lunging attack still has to carry you (`step_lunge`)
+        self.lunge_at = 0.0  # the swing time the lunge sets off at
         self.charge_t = 0.0  # seconds the attack button has been held
         self.charge_hand = RIGHT  # which button is being held
         self.hitstop_t = 0.0
@@ -84,6 +89,7 @@ class Player:
         self.yaw = yaw
         self.pitch = 0.0
         self.y = map_.floor_at(x, z)
+        self.lunge_left = 0.0  # set down somewhere new: no lunge carries on from where you were
 
     def revive(self):
         """Back on your feet at a shrine: full HP, MP and ST, and every lingering effect cleared."""
@@ -95,6 +101,7 @@ class Player:
         self.hurt_t = self.lumen_t = self.veil_t = self.ward_t = self.webbed_t = self.spore_t = 0.0
         self.chill_t = 0.0
         self.swing_t = None
+        self.lunge_left = 0.0
         self.charge_t = 0.0
         self.guarding = False
         self.guard_break_t = self.hitstop_t = 0.0
@@ -280,20 +287,53 @@ class Player:
     def swinging(self):
         return self.swing_t is not None
 
-    def nudge(self, map_, dist, blocked=None):
-        """Steps straight ahead by `dist` metres, stopped by walls (a lunging attack)."""
+    def step_lunge(self, map_, dt, blocked=None, floating=None, ground=None, bodies=()):
+        """Carries a lunging attack (`Attack.lunge`) on by this frame's share: LUNGE_SPEED metres a
+        second straight ahead, from a little before the blow lands until its distance is covered.
+        Walls, fog and ledges stop it as they stop walking (`blocked`, `floating`, `ground`, as for
+        `walk`), and it ends short of any of `bodies` ((x, z, radius) circles) rather than pressing
+        into one. It holds through hitstop and ends with the swing. Returns the metres moved."""
+        if self.lunge_left <= 0:
+            return 0.0
+        if not self.swinging:
+            self.cancel_lunge()
+            return 0.0
+        if self.swing_t < self.lunge_at or self.hitstop_t > 0:
+            return 0.0
         fx, fz = self.forward()
-        steps = max(math.ceil(dist / 0.1), 1)  # small steps so it stops at a foe, never past it
-        for _ in range(steps):
+        todo = min(self.LUNGE_SPEED * dt, self.lunge_left)
+        moved = 0.0
+        while todo > 1e-9 and self.lunge_left > 0:
+            step = min(todo, self.LUNGE_STEP)
+            nx, nz = self.x + fx * step, self.z + fz * step
+            if collision.runs_into(self.x, self.z, nx, nz, self.RADIUS, bodies):
+                self.cancel_lunge()
+                break
+            ox, oz = self.x, self.z
             self.x, self.z = collision.move(
                 map_,
-                self.x,
-                self.z,
-                fx * dist / steps,
-                fz * dist / steps,
-                radius=self.RADIUS,
+                ox,
+                oz,
+                fx * step,
+                fz * step,
+                self.RADIUS,
                 blocked=blocked,
+                floating=floating,
+                ground=ground,
             )
+            got = math.hypot(self.x - ox, self.z - oz)
+            moved += got
+            todo -= step
+            self.lunge_left -= step
+            if got < step * 0.5:  # into a wall: the lunge spends itself there
+                self.cancel_lunge()
+        if moved > 1e-4:
+            self.still_t = 0.0
+        return moved
+
+    def cancel_lunge(self):
+        """Stops a lunge where it is (a blow staggers you, the swing ends, you leave the area)."""
+        self.lunge_left = 0.0
 
     @property
     def swing_weapon(self):
@@ -377,6 +417,8 @@ class Player:
             ready = None
         if ready:
             self.stats.spend_mp(ready.mp)
+            if ready.motion:  # an art with a stance of its own (the Pale Crescent's draw)
+                a = dataclasses.replace(a, motion=ready.motion, lunge=0.0)
         self.swing_art = ready
         self.stamina.spend(min(a.stamina, self.stamina.value))
         self.veil_t = 0.0  # a blow tears the mist apart
@@ -387,6 +429,8 @@ class Player:
         self.swing_id += 1
         self.hitstop_t = 0.0
         self.guarding = False
+        self.lunge_left = a.lunge
+        self.lunge_at = self.swing_time * max(a.hit_at - self.LUNGE_LEAD, 0.0)
         return a
 
     def _loaded(self, a):
@@ -422,6 +466,7 @@ class Player:
         """A blow of `dmg` from (ax, az): the raised shield blocks what it can. Returns the damage that
         lands and the Block (None when not guarding)."""
         self.since_hit = 0.0
+        self.cancel_lunge()  # a blow, blocked or not, stops you in your tracks
         if not self.guarding:
             return dmg, None
         held = self.hand_item(self.inventory.shield_hand())

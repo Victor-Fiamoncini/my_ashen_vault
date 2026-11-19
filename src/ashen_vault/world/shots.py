@@ -50,6 +50,22 @@ def strikes(x, y, z, ex, ez, radius, span):
     return math.hypot(x - ex, z - ez) < radius + 0.3 and lo - BOLT_SIZE <= y <= hi + BOLT_SIZE
 
 
+def sweeps(x, y, z, dx, dz, width, ex, ez, radius, span):
+    """Whether a wide shot at (x, y, z) flying along (dx, dz) touches a body of `radius` at (ex, ez)
+    spanning `span` in height: it reaches `width` / 2 to either side of its path (a wave of the blade,
+    flat and broad), and a quarter of its width above and below."""
+    speed = math.hypot(dx, dz)
+    if speed < 1e-6:
+        return strikes(x, y, z, ex, ez, radius, span)
+    ux, uz = dx / speed, dz / speed
+    rx, rz = ex - x, ez - z
+    along = rx * ux + rz * uz
+    across = abs(rz * ux - rx * uz)
+    lo, hi = span
+    rise = max(width * 0.25, BOLT_SIZE)
+    return abs(along) < radius + 0.3 and across < width / 2 + radius and lo - rise <= y <= hi + rise
+
+
 def clears(y, floor_y, top):
     """Whether a shot at height `y` flies over a prop standing on `floor_y` and reaching `top` metres
     above it (None: the prop stands full height and stops every shot)."""

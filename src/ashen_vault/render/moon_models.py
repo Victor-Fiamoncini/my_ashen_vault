@@ -715,6 +715,48 @@ def frost_lance(r, rgb, t):
                _dim(rgb, 1 - 0.5 * u), glow=True)  # fmt: skip
 
 
+CRESCENT_SEGMENTS = 9
+CRESCENT_SWEEP = 1.15  # radians to either side of its apex the crescent's horns reach
+CRESCENT_LIFT = 0.45  # how far its horns sweep up, for each metre they sweep back
+CRESCENT_TILT = 0.35  # radians the crescent rolls about its flight, low on the left, as the draw cut
+
+
+def crescent_wave(r, rgb, width, life, t):
+    """The Moonless Tachi's Pale Crescent in flight (+X): a thin, flat arc of pale light as broad as
+    `width`, bowed forward, thickest at its apex and tapering to fine horns, with a white core along
+    its leading edge and a few motes of frost shed behind. It dims as its `life` runs out."""
+    fade = min(life / 0.25, 1.0)
+    shimmer = 0.85 + 0.15 * math.sin(t * 40)
+    radius = width / 2 / math.sin(CRESCENT_SWEEP)
+
+    def at(a):  # a point on the arc: bowed forward, its horns sweeping back and up
+        return radius * (math.cos(a) - 1), CRESCENT_LIFT * radius * (1 - math.cos(a)), radius * math.sin(a)
+
+    step = 2 * CRESCENT_SWEEP / CRESCENT_SEGMENTS
+    # Tilted as the blade left the scabbard; with its horns raised, from behind it reads as a crescent.
+    with r.at(0, 0, 0, rx=CRESCENT_TILT):
+        for i in range(CRESCENT_SEGMENTS):
+            a = (i + 0.5) * step - CRESCENT_SWEEP
+            p, q = at(a - step * 0.58), at(a + step * 0.58)  # a touch long, so the joins overlap
+            dx, dy, dz = q[0] - p[0], q[1] - p[1], q[2] - p[2]
+            length = math.sqrt(dx * dx + dy * dy + dz * dz)
+            yaw, pitch = math.atan2(-dz, dx), math.asin(dy / length)
+            x, y, z = ((u + v) / 2 for u, v in zip(p, q, strict=True))
+            thick = 1 - abs(a) / CRESCENT_SWEEP * 0.8  # the horns taper
+            col = _dim(rgb, (0.6 + 0.4 * thick) * fade * shimmer)
+            r.part("cube", x - 0.06 * thick, y, z, length, 0.03 + 0.1 * thick, 0.26 * thick + 0.04, col, ry=yaw,
+                   rz=pitch, glow=True)  # fmt: skip
+            core = _dim(MOON_GLOW, (0.6 + 0.4 * thick) * fade)
+            r.part("cube", x + 0.03, y, z, length * 0.95, 0.02 + 0.03 * thick, 0.03 + 0.03 * thick, core,
+                   ry=yaw, rz=pitch, glow=True)  # fmt: skip
+        for i in range(4):  # frost motes shed behind it
+            u = (t * 2.5 + i / 4) % 1.0
+            a = (i - 1.5) / 1.5 * CRESCENT_SWEEP * 0.7
+            x, z = radius * (math.cos(a) - 1) - 0.2 - 0.6 * u, radius * math.sin(a)
+            r.part("cube", x, (i % 2 - 0.5) * 0.08, z, 0.05, 0.05, 0.05, _dim(FROST, (1 - u) * fade),
+                   glow=True)  # fmt: skip
+
+
 def moonbeam(r, glow, flame, t):
     """A shaft of moonlight called down (`hazards.Eruption` style "moon"): first a ring of pale runes
     kindles on the floor and frost spreads in it (`glow` 0..1), then the shaft falls, a column of
