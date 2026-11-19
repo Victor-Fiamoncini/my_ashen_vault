@@ -17,7 +17,7 @@ class Attack:
     damage: float = 1.0  # multiplier on Combat.damage
     reach: float = 1.0  # multiplier on the weapon's reach
     cone: float = 0.6  # min cos(angle) between facing and target; below 0 hits all around
-    targets: int = 1  # most enemies one swing can hit
+    targets: int = 1  # most enemies one swing can hit (SINGLE; cuts CLEAVE)
     poise: float = 1.0  # multiplier on the stagger check against enemy poise
     stamina: float = 0.08  # ST spent (0..1)
     lunge: float = 0.0  # metres stepped forward as the hit lands
@@ -42,6 +42,12 @@ COMBO_WINDOW = 2.0  # seconds between club hits on the same foe that keep the co
 GAUGE_REFILL = 1.5  # every weapon's ATK gauge takes this many times its `speed` to refill
 COMBO_HITS = 2  # club: hits already landed on one foe before the Skull-ringer comes out
 
+# How many foes one blow can strike. A cut that travels across the arc goes through everyone in reach
+# inside it (nearest first); a thrust, a jab or a blow that drops straight down stops on the first.
+SINGLE = 1
+CLEAVE = 3
+CLEAVE_CONE = 0.45  # a cut's arc: about 63 degrees either side, where a straight blow keeps 0.6
+
 
 def _light(name, motion, **kw):
     return Attack(name, motion, LIGHT, **kw)
@@ -58,18 +64,18 @@ def _secret(name, motion, stamina, **kw):
 MOVESETS = {
     "fists": {
         LIGHT: _light("Jab", "jab", stamina=0.05),
-        HEAVY: _heavy("Hook", "hook", 0.26, damage=1.4, poise=1.5),
+        HEAVY: _heavy("Hook", "hook", 0.26, damage=1.4, poise=1.5, cone=CLEAVE_CONE, targets=2),
     },
     "sword": {
-        LIGHT: _light("Slash", "slash"),
+        LIGHT: _light("Slash", "slash", cone=CLEAVE_CONE, targets=CLEAVE),
         HEAVY: _heavy("Overhead chop", "chop", 0.39, damage=1.6, poise=1.5),
     },
     "greatsword": {
-        LIGHT: _light("Wide sweep", "sweep", cone=0.25, targets=3, stamina=0.09),
-        HEAVY: _heavy("Overhead cleave", "chop", 0.42, damage=2.0, poise=2.0),
+        LIGHT: _light("Wide sweep", "sweep", cone=0.25, targets=4, stamina=0.09),
+        HEAVY: _heavy("Overhead cleave", "chop", 0.42, damage=2.0, poise=2.0, targets=2),
     },
     "katana": {
-        LIGHT: _light("Quick slash", "katana_cut"),
+        LIGHT: _light("Quick slash", "katana_cut", cone=CLEAVE_CONE, targets=CLEAVE),
         HEAVY: _heavy("Lunging thrust", "thrust", 0.39, damage=1.7, reach=1.4, cone=0.8, lunge=1.0),
         SECRET: _secret(
             "Sheathed Draw",
@@ -95,13 +101,13 @@ MOVESETS = {
         HEAVY: _heavy("Crush", "chop", 0.45, damage=1.8, poise=2.5, pierce_def=True),
     },
     "club": {
-        LIGHT: _light("Clout", "bash", poise=1.3, stamina=0.09),
+        LIGHT: _light("Clout", "bash", poise=1.3, stamina=0.09, cone=0.5, targets=2),
         HEAVY: _heavy("Overhand smash", "chop", 0.4, damage=1.7, poise=2.2),
         SECRET: _secret("Skull-ringer", "chop", 0.4, damage=2.0, poise=99, time=1.0, hit_at=0.4),
     },
     "axe": {
-        LIGHT: _light("Hew", "hew", damage=1.1, stamina=0.1),
-        HEAVY: _heavy("Splitting chop", "cleave", 0.45, damage=1.8, poise=1.8),
+        LIGHT: _light("Hew", "hew", damage=1.1, stamina=0.1, cone=0.5, targets=2),
+        HEAVY: _heavy("Splitting chop", "cleave", 0.45, damage=1.8, poise=1.8, targets=2),
         SECRET: _secret("Leaping Hew", "leap", 0.55, damage=2.2, poise=2.5, lunge=1.5, reach=1.1),
     },
     "hammer": {
@@ -116,7 +122,9 @@ MOVESETS = {
 # A few weapons swing their heavy differently from the rest of their category: the long katanas cut
 # a reverse slash, high on the left and down across to the right, where the Katana lunges. Only the
 # heavy changes; the light, the secret, the ST and the tempo stay the category's.
-_REVERSE_CUT = _heavy("Reverse cut", "slash_left", 0.39, damage=1.6, reach=1.1, cone=0.45, targets=2)
+_REVERSE_CUT = _heavy(
+    "Reverse cut", "slash_left", 0.39, damage=1.6, reach=1.1, cone=CLEAVE_CONE, targets=CLEAVE
+)
 HEAVY_OVERRIDES = {
     "moonless_tachi": _REVERSE_CUT,
     "nodachi": _REVERSE_CUT,

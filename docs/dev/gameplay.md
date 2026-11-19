@@ -83,7 +83,12 @@ Equipment, combat, spells, shops, saves and the story.
   through `weapons.WEIGHTS` (`weapons.attack` returns the sized Attack) and adds `WEIGHT_TEMPO` to its
   `tempo`, which sets how long its swings take. Each hand's ATK gauge refills over the weapon's
   `speed` times `weapons.GAUGE_REFILL` (`weapons.refill_time`); a swing hits as hard as the gauge was
-  full. Attacks that strike twice (the Aftershock) use `pulses`. A weapon may swing a heavy of its own
+  full. A blow strikes the living foes in its `reach` and inside its `cone` (`World.melee_targets`,
+  nearest first), up to `targets` of them: cuts that travel across the arc (the slashes, the Reverse cut,
+  the hew, the clout, the hook) go through `weapons.CLEAVE` foes in a wider `CLEAVE_CONE`, while
+  thrusts, jabs, the whip's crack and blows that drop straight down stop on one (`SINGLE`); every foe
+  struck takes the full blow, the combo and the hitstop follow the nearest. Attacks that strike twice
+  (the Aftershock) use `pulses`. A weapon may swing a heavy of its own
   in place of its category's (`weapons.HEAVY_OVERRIDES`, resolved by `weapons.moveset`, so ST, tempo, the
   charge, arts and secrets work unchanged): the Katana keeps the Lunging thrust, while the Moonless Tachi
   and the Nodachi cut a Reverse cut (`slash_left`, the katana's cut mirrored: high left down to low right,

@@ -270,6 +270,37 @@ def test_melee_cone_and_limit():
     assert narrow == [w.enemies[0]]
 
 
+def _move(category, kind):
+    return weapons.MOVESETS[category][kind]
+
+
+def test_sweeping_cuts_cleave_and_thrusts_do_not():
+    for category in ("sword", "katana"):
+        cut = _move(category, weapons.LIGHT)
+        assert cut.targets == weapons.CLEAVE and cut.cone == weapons.CLEAVE_CONE, category
+    assert weapons.HEAVY_OVERRIDES["nodachi"].targets == weapons.CLEAVE
+    for category, kind in (
+        ("katana", weapons.HEAVY),  # the lunging thrust
+        ("fists", weapons.LIGHT),  # a jab
+        ("whip", weapons.LIGHT),  # the crack of its tip
+        ("mace", weapons.LIGHT),  # overhand blows drop straight onto one foe
+        ("hammer", weapons.LIGHT),
+        ("sword", weapons.HEAVY),
+    ):
+        assert _move(category, kind).targets == weapons.SINGLE, (category, kind)
+
+
+def test_a_cut_goes_through_two_foes_side_by_side_where_a_thrust_stops_on_one():
+    off = math.radians(40)
+    w = fake_world((1.4, 0.0), (1.6 * math.cos(off), 1.6 * math.sin(off)))
+    katana = Items.get("katana")
+    cut = weapons.attack(katana)
+    both = World.melee_targets(w, katana.reach * cut.reach, cut.cone, cut.targets)
+    assert both == w.enemies  # nearest first
+    thrust = weapons.attack(katana, weapons.HEAVY)
+    assert World.melee_targets(w, katana.reach * thrust.reach, thrust.cone, thrust.targets) == [w.enemies[0]]
+
+
 def test_keep_has_the_new_weapon_chests():
     m = MapLoader.load_file(os.path.join(MAP_DIR, "sunken_keep.map"))
     items = {s.props.get("item") for s in m.entities if s.kind == "chest"}
