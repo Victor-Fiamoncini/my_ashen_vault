@@ -136,6 +136,7 @@ def small_marked_centered(s, cx, y, base, hi):
 def hud(game):
     p = game.player
     s = p.stats
+    ailment_borders(p)  # under the HUD boxes, so they stay readable
 
     # Bottom left: the vitals and a small compass in one gold-edged box. It shares its height
     # and bottom edge with the mouse on the right.
@@ -1367,24 +1368,128 @@ def prompt(game, lift=0):
 def flash(player):
     if player.webbed_t > 0:
         _web_overlay(clamp(player.webbed_t, 0, 1))
-    frost = clamp(player.chill_t, 0, 1)
-    if player.ailments.frozen:
-        frost = 1.0  # Frostbite's first seconds: the rime closes in all round
-    elif player.ailments.frostbitten:
-        frost = max(frost, 0.35)  # and lingers faintly at the edges while it thaws
-    if frost > 0:
-        _frost_overlay(frost)
     if player.spore_t > 0:
         # A sickly yellow-green haze while you choke on spores.
         pr.draw_rectangle(0, 0, W, H, color(150, 170, 60, rround(clamp(player.spore_t, 0, 1) * 70)))
-    if player.ailments.poisoned:  # a faint green breath at the edges while poison works
-        a = rround(18 + 14 * math.sin(pr.get_time() * 3))
-        edge = color(90, 160, 40, a)
-        for i in range(4):
-            pr.draw_rectangle_lines(i, i, W - 2 * i, H - 2 * i, edge)
     if player.hurt_t <= 0:
         return
     pr.draw_rectangle(0, 0, W, H, color(160, 0, 0, rround(clamp(player.hurt_t * 300, 0, 120))))
+
+
+def ailment_borders(player):
+    """Each ailment that has hold of you shows at the edges of the view (`Ailments.borders`): one soft
+    glow in their colours mixed, then each one's own mark over it, so several combine."""
+    borders = player.ailments.borders()
+    chill = clamp(player.chill_t, 0, 1)  # moon-frost's numbing chill wears the same rime
+    if chill > borders.get("frost", 0):
+        borders["frost"] = chill
+    tint = ailments.border_tint(borders)
+    if tint:
+        _ailment_vignette(*tint)
+    for kind, k in borders.items():
+        BORDER_MOTIFS[kind](k)
+
+
+VIGNETTE_DEPTH = 28  # px the shared ailment glow reaches in from each edge
+
+
+def _ailment_vignette(rgb, k):
+    """A soft glow breathing in from all four edges in the ailments' mixed colour."""
+    a = rround(110 * k * (0.8 + 0.2 * math.sin(pr.get_time() * 2)))
+    edge, clear = color(*rgb, a), color(*rgb, 0)
+    d = VIGNETTE_DEPTH
+    pr.draw_rectangle_gradient_v(0, 0, W, d, edge, clear)
+    pr.draw_rectangle_gradient_v(0, H - d, W, d, clear, edge)
+    pr.draw_rectangle_gradient_h(0, 0, d, H, edge, clear)
+    pr.draw_rectangle_gradient_h(W - d, 0, d, H, clear, edge)
+
+
+def _scatter(n, seed):
+    """`n` fixed pseudo-random numbers in 0..1, the same every frame (no flicker from rerolls)."""
+    return [(math.sin((i + 1) * 12.9898 + seed * 78.233) * 43758.5453) % 1.0 for i in range(n)]
+
+
+POISON_BUBBLES = 18
+
+
+def _poison_overlay(k):
+    """Bubbles of venom welling up from the bottom and sides of the view, swelling and bursting."""
+    t = pr.get_time()
+    rs = _scatter(POISON_BUBBLES * 2, 3)
+    for i in range(POISON_BUBBLES):
+        u = (t * (0.35 + 0.25 * rs[i]) + rs[POISON_BUBBLES + i]) % 1.0  # how far it has risen
+        rise = rround(6 + 30 * u)
+        r = 1 + rround(2.5 * u)
+        if i % 3 == 0:  # up from the bottom
+            x, y = rround(8 + rs[i] * (W - 16)), H - rise
+        elif i % 3 == 1:  # in from the left
+            x, y = rise, rround(20 + rs[POISON_BUBBLES + i] * (H - 40))
+        else:  # in from the right
+            x, y = W - rise, rround(20 + rs[POISON_BUBBLES + i] * (H - 40))
+        a = rround(190 * k * (1 - u * 0.6))
+        if u > 0.88:  # it bursts
+            pr.draw_circle_lines(x, y, r + 2, color(170, 230, 90, a))
+        else:
+            pr.draw_circle(x, y, r, color(110, 180, 50, a))
+            pr.draw_pixel(x - 1, y - 1, color(220, 255, 170, a))
+
+
+BLEED_DRIPS = 11
+
+
+def _bleed_overlay(k):
+    """Blood: splashes in the top corners and runs trickling down from the top edge, lengthening as
+    the border fades (`k` falls from 1)."""
+    run = 1 - k
+    rs = _scatter(BLEED_DRIPS * 3, 7)
+    dark, bright = color(120, 0, 8, rround(255 * k)), color(185, 8, 18, rround(245 * k))
+    for i in range(BLEED_DRIPS):
+        x = rround(6 + rs[i] * (W - 12))
+        length = rround(8 + (14 + 30 * rs[BLEED_DRIPS + i]) * (0.3 + 0.7 * run))
+        w = 2 + (i % 2)
+        pr.draw_rectangle(x, 0, w, length, dark)
+        pr.draw_circle(x + w // 2, length, w * 0.8, bright)  # the bead at its tip
+    for cx, sx in ((0, 1), (W, -1)):  # splashes in the top corners
+        for j in range(6):
+            r = 3 + rround(9 * rs[2 * BLEED_DRIPS + j])
+            pr.draw_circle(cx + sx * (4 + j * 7), 3 + rround(rs[j] * 14), r, dark if j % 2 else bright)
+
+
+ROT_BLOTCHES = ((6, 6, 16), (24, 4, 9), (4, 26, 11), (20, 20, 7), (38, 10, 5), (10, 42, 6), (32, 28, 4))
+
+
+def _rot_overlay(k):
+    """Grey-brown mould creeping in from each corner, and the colour draining out of the view."""
+    pr.draw_rectangle(0, 0, W, H, color(110, 105, 95, rround(25 * k)))
+    outer, inner = color(80, 70, 52, rround(170 * k)), color(125, 118, 100, rround(140 * k))
+    for cx, cy, sx, sy in ((0, 0, 1, 1), (W, 0, -1, 1), (0, H, 1, -1), (W, H, -1, -1)):
+        for dx, dy, r in ROT_BLOTCHES:
+            pr.draw_circle(cx + sx * dx, cy + sy * dy, r, outer)
+            pr.draw_circle(cx + sx * (dx + 1), cy + sy * (dy + 1), r * 0.5, inner)
+
+
+CORROSION_PITS = 70
+
+
+def _corrosion_overlay(k):
+    """Rust pitting the edges of the view, thickest at the rim, a few pits glinting."""
+    t = pr.get_time()
+    rs = _scatter(CORROSION_PITS * 3, 11)
+    for i in range(CORROSION_PITS):
+        along, depth = rs[i], rround(rs[CORROSION_PITS + i] ** 2 * 30)  # most hug the rim
+        side = i % 4
+        if side == 0:
+            x, y = rround(along * W), depth
+        elif side == 1:
+            x, y = rround(along * W), H - 1 - depth
+        elif side == 2:
+            x, y = depth, rround(along * H)
+        else:
+            x, y = W - 1 - depth, rround(along * H)
+        size = 1 + rround(rs[2 * CORROSION_PITS + i] * 3)
+        glint = 0.6 + 0.4 * math.sin(t * 9 + i) if i % 7 == 0 else 1.0
+        rgb = (230, 150, 70) if i % 7 == 0 else ((170, 85, 35) if i % 2 else (120, 60, 30))
+        pr.draw_rectangle(x - size // 2, y - size // 2, size, size, color(*rgb, rround(210 * k * glint)))
 
 
 def _frost_overlay(k):
@@ -1427,6 +1532,15 @@ def _web_overlay(k):
             ]
             for (x0, y0), (x1, y1) in itertools.pairwise(pts):
                 pr.draw_line(x0, y0, x1, y1, c)
+
+
+BORDER_MOTIFS = {
+    "poison": _poison_overlay,
+    "bleed": _bleed_overlay,
+    "rot": _rot_overlay,
+    "corrosion": _corrosion_overlay,
+    "frost": _frost_overlay,
+}
 
 
 DIALOGUE_H = 56

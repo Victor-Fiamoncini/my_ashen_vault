@@ -1,5 +1,5 @@
 """Usage: python -m ashen_vault [--map NAME] [--at TX,TZ,YAW] [--smoke FRAMES] [--shot PATH] [--script STEPS]
-[--equip SLOT=ID,...] [--level N] [--flags FLAG,...]"""
+[--equip SLOT=ID,...] [--level N] [--flags FLAG,...] [--afflict AILMENT,...]"""
 
 import argparse
 import os
@@ -21,6 +21,7 @@ def main(argv=None):
     )
     ap.add_argument("--level", type=int, help="Debug: start at this character level")
     ap.add_argument("--flags", help="Debug: start with these save flags set, e.g. 'boss_dead,sigil_taken'")
+    ap.add_argument("--afflict", help="Debug: start with these ailments taking hold, e.g. 'poison,rot'")
     args = ap.parse_args(argv)
 
     from ashen_vault.game import Game

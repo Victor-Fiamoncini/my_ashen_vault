@@ -5,6 +5,9 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
 - `interact` uses whatever the player faces within reach, nearest first: an unopened chest in front of
   another prop is opened first.
 - The `smoke:` line includes the player's height (`y=`), handy for checking lifts.
+- Ailment borders: `--map abandoned_prison --at 15,21,180 --smoke 60 --afflict
+  bleed,corrosion,poison,rot,frost` shows them all combined; bleed's and corrosion's last only
+  `ailments.FLARE_TIME` (2.5 s), so keep `--smoke` under 150 frames for those.
 - The Abandoned Prison (`abandoned_prison`): `--map abandoned_prison` (its `start`, in the well's shaft
   under the rope; `--at=15,32,90 --script "back:0.3 look_up:0.5"` looks up the shaft at the well's mouth),
   `--at=15,21,90` (the guard hall), `--at=4,23,-90` (the west cell block's dark aisle; `--at=4,16,-90

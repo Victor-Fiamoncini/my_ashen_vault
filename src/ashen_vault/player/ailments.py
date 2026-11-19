@@ -54,6 +54,11 @@ FROSTBITE_SHARE = 0.15  # of max HP, at once, as it takes hold
 FREEZE_TIME = 3.0  # its first seconds, your legs frozen
 FROZEN = 0.3  # speed multiplier while frozen
 FROST_REFILL = 0.5  # ST refills this much as fast while frostbitten
+FLARE_TIME = 2.5  # seconds a one-off ailment (bleed, corrosion) shows at the screen's edges once it strikes
+FLARES = ("bleed", "corrosion")
+POISON_FADE = 2.0  # poison's border fades over its last seconds
+ROT_BORDER = 0.6  # how strongly rot shows at the edges while it lingers
+FROST_LINGER = 0.35  # how strongly Frostbite shows once your legs thaw
 
 
 def poison_bite(max_hp):
@@ -68,6 +73,16 @@ def frostbite_burst(max_hp):
     return max(rround(max_hp * FROSTBITE_SHARE), 1)
 
 
+def border_tint(strengths):
+    """The shared edge glow for the ailments in `strengths` (kind -> 0..1): their colours mixed by
+    strength, and how strong the glow is (their sum, capped at 1). None when nothing shows."""
+    total = sum(strengths.values())
+    if total <= 0:
+        return None
+    rgb = tuple(rround(sum(KINDS[k].rgb[i] * b for k, b in strengths.items()) / total) for i in range(3))
+    return rgb, min(total, 1.0)
+
+
 def rot_cap(max_hp):
     return max(rround(max_hp * ROT_CAP), 1)
 
@@ -79,6 +94,7 @@ class Ailments:
         self.poison_tick = TICK  # seconds to its next bite
         self.rotted = False
         self.frost_t = 0.0  # seconds of Frostbite left
+        self.flare = dict.fromkeys(FLARES, 0.0)  # seconds left of a one-off ailment's border (not saved)
 
     @property
     def poisoned(self):
@@ -109,6 +125,8 @@ class Ailments:
         if self.meters[kind] < FULL:
             return False
         self.meters[kind] = 0.0
+        if kind in self.flare:
+            self.flare[kind] = FLARE_TIME
         if kind == "poison":
             self.poison_t = POISON_TIME
             self.poison_tick = TICK
@@ -125,6 +143,8 @@ class Ailments:
             if value > 0:
                 self.meters[kind] = max(value - KINDS[kind].decay * dt, 0.0)
         self.frost_t = max(self.frost_t - dt, 0.0)
+        for kind, value in self.flare.items():
+            self.flare[kind] = max(value - dt, 0.0)
         if not self.poisoned:
             return 0
         lost = 0
@@ -141,6 +161,8 @@ class Ailments:
         """Cures `kind` (its meter and what lingers), or every ailment when None."""
         for k in ORDER if kind is None else (kind,):
             self.meters[k] = 0.0
+            if k in self.flare:
+                self.flare[k] = 0.0
             if k == "poison":
                 self.poison_t = 0.0
                 self.poison_tick = TICK
@@ -163,6 +185,22 @@ class Ailments:
     def building(self):
         """The ailments the HUD shows: building up or lingering, in `ORDER`."""
         return [k for k in ORDER if self.meters[k] > 0 or self.active(k)]
+
+    def border(self, kind):
+        """How strongly `kind` shows at the screen's edges, 0..1: lingering ailments while they last
+        (poison fading over its last `POISON_FADE` seconds, Frostbite strongest while your legs are
+        frozen), one-off ones for `FLARE_TIME` after they strike."""
+        if kind == "poison":
+            return min(self.poison_t / POISON_FADE, 1.0)
+        if kind == "rot":
+            return ROT_BORDER if self.rotted else 0.0
+        if kind == "frost":
+            return 1.0 if self.frozen else (FROST_LINGER if self.frostbitten else 0.0)
+        return self.flare.get(kind, 0.0) / FLARE_TIME
+
+    def borders(self):
+        """Every ailment showing at the screen's edges and how strongly, in `ORDER`."""
+        return {k: b for k in ORDER if (b := self.border(k)) > 0}
 
     def to_h(self):
         return {

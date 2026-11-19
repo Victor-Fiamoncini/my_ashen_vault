@@ -205,3 +205,66 @@ def test_frostbite_is_cured_and_saved(tmp_path):
     a.clear("frost")
     assert not a.frostbitten
     assert Ailments.from_h({"frost_t": 999}).frost_t == ailments.FROST_TIME
+
+
+def test_nothing_shows_at_the_edges_of_a_clean_view():
+    assert Ailments().borders() == {}
+    assert ailments.border_tint({}) is None
+
+
+def test_a_meter_still_building_shows_no_border():
+    a = Ailments()
+    a.build("poison", FULL - 1)
+    assert a.borders() == {}
+
+
+@pytest.mark.parametrize("kind", ["poison", "rot", "frost"])
+def test_a_lingering_ailment_shows_at_the_edges_while_it_lasts(kind):
+    a = Ailments()
+    a.build(kind, FULL)
+    assert list(a.borders()) == [kind]
+    a.clear(kind)
+    assert a.borders() == {}
+
+
+@pytest.mark.parametrize("kind", ailments.FLARES)
+def test_a_one_off_ailment_flares_at_the_edges_then_fades(kind):
+    a = Ailments()
+    a.build(kind, FULL)
+    assert a.border(kind) == 1.0
+    run(a, ailments.FLARE_TIME / 2)
+    assert 0 < a.border(kind) < 1
+    run(a, ailments.FLARE_TIME)
+    assert a.borders() == {}
+
+
+def test_poisons_border_fades_over_its_last_seconds():
+    a = Ailments()
+    a.build("poison", FULL)
+    run(a, POISON_TIME - ailments.POISON_FADE / 2)
+    assert a.border("poison") == pytest.approx(0.5, abs=0.05)
+
+
+def test_frostbite_shows_strongest_while_your_legs_are_frozen():
+    a = Ailments()
+    a.build("frost", FULL)
+    assert a.border("frost") == 1.0
+    run(a, ailments.FREEZE_TIME + 0.5)
+    assert a.border("frost") == ailments.FROST_LINGER
+
+
+def test_several_ailments_combine_and_a_cure_clears_every_border():
+    a = Ailments()
+    for kind in ("poison", "bleed", "rot"):
+        a.build(kind, FULL)
+    assert list(a.borders()) == ["poison", "bleed", "rot"]
+    a.clear()
+    assert a.borders() == {}
+
+
+def test_the_shared_glow_mixes_the_ailments_colours():
+    poison, bleed = ailments.KINDS["poison"].rgb, ailments.KINDS["bleed"].rgb
+    assert ailments.border_tint({"poison": 0.5}) == (poison, 0.5)
+    rgb, k = ailments.border_tint({"poison": 1.0, "bleed": 1.0})
+    assert rgb == tuple(ailments.rround((p + b) / 2) for p, b in zip(poison, bleed, strict=True))
+    assert k == 1.0

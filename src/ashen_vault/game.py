@@ -10,7 +10,7 @@ from ashen_vault import map_path
 from ashen_vault.ai.enemy import Enemy
 from ashen_vault.audio.synth import Audio
 from ashen_vault.input import CONTROLS, Input
-from ashen_vault.player import burden, durability, remnant, stash, view_blend, weapons
+from ashen_vault.player import ailments, burden, durability, remnant, stash, view_blend, weapons
 from ashen_vault.player.combat import Combat
 from ashen_vault.player.inventory import LEFT, PRIMARY, RIGHT, SECONDARY, SLOT_ALIASES, SLOT_NAMES, SPELL
 from ashen_vault.player.items import Item, Items
@@ -454,8 +454,9 @@ class Game:
         self.message("A bell tolls, far off. The ash in you stirs.")
 
     def _debug_setup(self):
-        """--level and --equip (slot=id pairs) for smoke runs; gear is added to the pack first, and
-        `spell:<id>` teaches that spell and readies it."""
+        """--level, --equip (slot=id pairs) and --afflict for smoke runs; gear is added to the pack
+        first, `spell:<id>` teaches that spell and readies it, and each --afflict ailment takes hold at
+        once, as a foe's blows would make it (bleed and frost hurt, corrosion wears your gear)."""
         p = self.player
         if self.opts.get("level"):
             p.stats.level = self.opts["level"]
@@ -473,6 +474,8 @@ class Game:
             if id_ != SPELL:
                 p.inventory.add(id_)
             p.inventory.equip(id_, slot if slot in (RIGHT, LEFT) else None)
+        for kind in filter(None, (self.opts.get("afflict") or "").split(",")):
+            self.world.afflict_player(kind, ailments.FULL)
 
     def continue_game(self):
         loaded = self._saves.load()
