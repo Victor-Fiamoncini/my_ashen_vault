@@ -117,23 +117,26 @@ def test_odrin_with_all_four_sigils_ends_the_game_even_before_the_quest():
     assert g.finished
 
 
-def test_the_first_three_sigils_no_longer_end_the_game_but_open_the_vesper_gate():
-    """Three of the four once ended the demo; now the third opens the Vesper Gate, and Odrin sends you
-    through it for the fourth."""
-    g = FakeGame(flags={"quest", *TAKEN, "vesper_gate_open"}, items=FIRST_THREE)
+def test_the_first_three_sigils_do_not_end_the_game_and_odrin_sends_you_for_the_fourth():
+    """Three of the four once ended the demo; now Odrin sends you through the Vesper Gate for the fourth."""
+    g = FakeGame(flags={"quest", *TAKEN}, items=FIRST_THREE)
     _, text = talk("odrin", g)
     assert not g.finished
-    assert dialogue.GATE_NEWS in text and "Vesper Gate" in text and "Argent Sigil" in text
+    assert "Vesper Gate" in text and "Argent Sigil" in text and "cathedral steps" in text
     assert all(g.player.inventory.has(i) for i in FIRST_THREE)
 
 
-def test_odrin_keeps_the_fourth_a_mystery_until_the_gate_opens():
+def test_odrin_names_the_fourth_sigil_and_its_open_gate_from_the_start():
+    """The Vesper Gate stands open from the start, so Odrin names the fourth sigil at the first meeting
+    and points the way to it before a single sigil is taken."""
+    _, text = talk("odrin", FakeGame())
+    assert "Argent Sigil" in text and "Vesper Gate" in text and "Vesperholm" in text
+    assert "cathedral steps" in text and "stands open" in text
     g = FakeGame(flags={"quest"}, items=["ember_sigil"])
     _, text = talk("odrin", g)
-    assert dialogue.FOURTH_UNKNOWN in text and "Vesperholm" not in text
-    g = FakeGame(flags={"quest", *TAKEN, "vesper_gate_open"}, items=["ember_sigil"])
-    _, text = talk("odrin", g)
-    assert dialogue.FOURTH_UNKNOWN not in text and "Vesperholm" in text
+    assert dialogue.SIGIL_HINT["argent_sigil"] in text
+    _, text = talk("odrin", FakeGame(flags={"quest"}))
+    assert "Vesper Gate" in text
 
 
 def test_odrin_reminds_about_the_argent_sigil_once_the_duchess_falls():

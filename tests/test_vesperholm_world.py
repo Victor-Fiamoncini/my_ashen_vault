@@ -1,6 +1,6 @@
 """Vesperholm's World logic driven headless: the lances of moon-frost, the blink that steps a knight out
 of the moonlight behind you, the Duchess's shafts of moonlight, her Argent Sigil, and the Vesper Gate
-that the first three sigils open in Harrowmere."""
+that stands open in Harrowmere."""
 
 import math
 import random
@@ -187,7 +187,8 @@ def test_the_argent_sigil_lies_where_she_fell_until_it_is_taken():
 # --- the Vesper Gate ---------------------------------------------------------------------------------
 
 
-def test_taking_up_the_third_sigil_opens_the_vesper_gate():
+def test_taking_up_the_third_sigil_still_marks_the_first_three_taken():
+    """GATE_FLAG no longer opens anything, but relics still records it once the first three are taken."""
     flags = set()
     for item in ("ember_sigil", "iron_sigil"):
         relics.mark_taken(item, flags)
@@ -200,15 +201,13 @@ def test_taking_up_the_third_sigil_opens_the_vesper_gate():
     assert not relics.open_gate({"sigil_taken", "verdant_sigil_taken"})
 
 
-def test_the_gate_in_town_stays_shut_until_the_three_are_taken():
-    shut = World(JungleGame(), "harrowmere")
-    (gate,) = [p for p in shut.props if p.kind == "exit" and p.props.get("map") == "vesperholm"]
-    assert not shut.exit_open(gate)
-    assert "sockets" in gate.props["shut"]
-    game = JungleGame(THREE_TAKEN)  # a save from before the gate: it catches up as the town loads
-    opened = World(game, "harrowmere")
-    (gate,) = [p for p in opened.props if p.kind == "exit" and p.props.get("map") == "vesperholm"]
-    assert relics.GATE_FLAG in game.flags and opened.exit_open(gate)
+def test_the_gate_in_town_is_always_open_even_on_a_fresh_save():
+    for flags in (set(), THREE_TAKEN):
+        game = JungleGame(flags)
+        town = World(game, "harrowmere")
+        (gate,) = [p for p in town.props if p.kind == "exit" and p.props.get("map") == "vesperholm"]
+        assert town.exit_open(gate) and "shut" not in gate.props
+        assert (relics.GATE_FLAG in game.flags) == bool(flags)  # an older save still catches up
 
 
 def test_the_way_home_from_vesperholm_is_always_open():

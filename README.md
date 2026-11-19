@@ -17,9 +17,9 @@ Beneath the village well, the sealed cells of the Abandoned Prison have begun to
 Verdant Hollow, which has swallowed the old woodcutters' camp. Up the north road, past a long bridge over
 a gorge of fire, the forges of the Cinderhold burn again, and two iron gargoyles keep watch from its roof.
 Take up a rusted sword, bring back the Ember Sigil from the prison, the Verdant Sigil from the hollow and the
-Iron Sigil from the Cinderhold. Then, and only then, the Vesper Gate in the town's north wall opens on
-Vesperholm, a city drowned in the light of a moon that never sets, where a duchess keeps the fourth sigil
-in her cathedral. Bring all four home and let the bell sing again.
+Iron Sigil from the Cinderhold. At the head of the cathedral steps the Vesper Gate stands open on
+Vesperholm, a city drowned in the light of a full moon that never sets, where a duchess keeps the fourth
+sigil in her cathedral. Bring all four home and let the bell sing again.
 
 ### Inspiration
 
@@ -174,7 +174,7 @@ trademarks of FromSoftware, Inc. (*Dark Souls* is published by Bandai Namco Ente
     <td><img src="docs/screenshots/vesperholm.png" alt="Lantern Square in Vesperholm, pale stone and silver roofs under a huge moon and a sky full of stars"></td>
   </tr>
   <tr>
-    <td align="center"><sub>The Vesper Gate, open to the three sigils</sub></td>
+    <td align="center"><sub>The Vesper Gate, standing open at the head of the cathedral steps</sub></td>
     <td align="center"><sub>Vesperholm, the Moonbound City, under a moon that never sets</sub></td>
   </tr>
   <tr>
@@ -233,8 +233,8 @@ trademarks of FromSoftware, Inc. (*Dark Souls* is published by Bandai Namco Ente
   - the Verdant Hollow at the end of the green trail: rafts, ledges, a log slope, spore pods, dark caves
     and a canopy walk;
   - the Cinderhold up the north road, a fortress of lava, flame jets and iron, its keep a map of its own;
-  - and Vesperholm, the Moonbound City behind the Vesper Gate, which opens only to the first three
-    sigils: moonlit streets drowned in the light of a moon that never sets, a glass bridge over a gorge,
+  - and Vesperholm, the Moonbound City behind the Vesper Gate at the head of the cathedral steps:
+    moonlit streets drowned in the light of a moon that never sets, a glass bridge over a gorge,
     and a castle where the dead keep watch as pale shades.
 - **Shortcuts and secrets**: barred doors, fastened lifts and drawbridges fold each area back onto its
   shrine; some walls aren't walls and some chests aren't chests.

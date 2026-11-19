@@ -1057,20 +1057,25 @@ def _vesperholm():
 
 
 def test_the_vesper_gate_joins_town_and_vesperholm_both_ways():
-    """The Vesper Gate stands in Harrowmere's north wall behind the cathedral and stays shut until the
-    three sigils are taken; you come through it into Vesperholm's Gate Court, just before the gate home,
-    and that one leads back out beside the town's gate, on the cathedral's hill. It is never shut."""
-    from ashen_vault.world import relics
-
+    """The Vesper Gate stands open in Harrowmere's north wall at the head of the cathedral steps: from
+    the gate a straight walk south leads down the porch and the steps to the street. You come through it
+    into Vesperholm's Gate Court, just before the gate home, and that one leads back out just south of
+    the town's gate. Neither is ever shut."""
     town, city = MapLoader.load_file(map_path("harrowmere")), _vesperholm()
     (gate,) = _spec(town, "exit", map="vesperholm")
     (home,) = _spec(city, "exit", map="harrowmere")
     assert gate.props["model"] == home.props["model"] == "vesper_gate"
-    assert gate.props["requires"] == relics.GATE_FLAG and gate.props["shut"]
+    assert "requires" not in gate.props and "shut" not in gate.props
     assert "requires" not in home.props and "oneway" not in gate.props
     assert town[gate.tx, gate.tz - 1].solid and gate.tz == 1  # in the north wall
-    (throne,) = _spec(town, "npc", id="enthroned")
-    assert abs(gate.tx - throne.tx) <= 3  # behind the cathedral's apse
+    # In line with the forecourt steps: straight south from the gate every tile is open, down the porch
+    # and its steps (each lower than the last) to the street.
+    floors, tz = [], gate.tz
+    while town[gate.tx, tz].floor > 0:
+        assert town[gate.tx, tz].walkable, (gate.tx, tz)
+        floors.append(town[gate.tx, tz].floor)
+        tz += 1
+    assert town[gate.tx, tz].walkable and floors == sorted(floors, reverse=True) and len(set(floors)) >= 4
     tx, tz = (int(v) for v in gate.props["at"].split(",")[:2])
     assert (tx, tz) == tuple(int(v) for v in city.meta["start"][:2])
     assert abs(tx - home.tx) + abs(tz - home.tz) == 1 and city[tx, tz].walkable

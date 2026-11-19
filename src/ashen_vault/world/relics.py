@@ -25,8 +25,9 @@ RELICS = {
 
 # Odrin ends the game once the player brings him all of these.
 ENDING_RELICS = ("ember_sigil", "verdant_sigil", "iron_sigil", "argent_sigil")
-# The three sigils the prophecy can point to. The fourth, the Argent Sigil, lies behind the Vesper
-# Gate in Harrowmere's north wall, which opens (GATE_FLAG) once all three have been taken up.
+# The three sigils found this side of the Vesper Gate. The fourth, the Argent Sigil, lies in
+# Vesperholm, beyond the gate at the head of Harrowmere's cathedral steps. The gate always stands open
+# now; GATE_FLAG only records that the first three have been taken up (saves still carry it).
 FIRST_THREE = ("ember_sigil", "verdant_sigil", "iron_sigil")
 GATE_FLAG = "vesper_gate_open"
 
@@ -37,15 +38,16 @@ def get(item_id):
 
 def mark_taken(item_id, flags):
     """Called when the player picks up an item; remembers relics so they are never dropped again, and
-    opens the Vesper Gate once the third of the first three is taken."""
+    sets GATE_FLAG once the third of the first three is taken."""
     if item_id in RELICS:
         flags.add(RELICS[item_id].taken_flag)
         open_gate(flags)
 
 
 def open_gate(flags):
-    """Sets GATE_FLAG once the first three sigils have all been taken up (a save from before the gate
-    existed catches up when a map loads). Returns whether the gate stands open."""
+    """Sets GATE_FLAG once the first three sigils have all been taken up (an older save catches up when
+    a map loads), and returns whether it is set. Harmless: nothing waits on the flag any more, since the
+    Vesper Gate stands open from the start."""
     if all(RELICS[i].taken_flag in flags for i in FIRST_THREE):
         flags.add(GATE_FLAG)
     return GATE_FLAG in flags
