@@ -275,7 +275,7 @@ def test_frostbite_bursts_and_freezes_your_legs():
 def test_the_duchess_fights_faster_than_any_other_boss():
     duchess = EnemyTypes.get("moon_duchess")
     assert duchess.tempo < 1 and all(
-        t.tempo == 1 for t in EnemyTypes.ALL.values() if t.boss and t is not duchess
+        t.tempo >= 1 for t in EnemyTypes.ALL.values() if t.boss and t is not duchess
     )
     e = Enemy(duchess, 0.0, 0.0)
     e.attack_kind = "moonbeam"

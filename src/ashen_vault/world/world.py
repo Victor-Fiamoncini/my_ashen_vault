@@ -19,6 +19,7 @@ from ashen_vault.ai.enemy import (
     SQUEAL_RADIUS,
     STATUE_BURST,
     TOLL_RADIUS,
+    TORCH_REACH,
     Enemy,
 )
 from ashen_vault.ai.enemy_types import EnemyTypes
@@ -167,6 +168,7 @@ FALL_MESSAGES = {
     "river": "The river drags you under and casts you back ashore.",
 }
 FALL_DEATH = "You fall to your death."
+DROP_MESSAGE = "You step off into empty air, and fall!"  # an edge over a lethal drop
 DROWN_DEATH = "The sea drags you under."
 DROWN_MESSAGE = "You plunge into the sea, and it will not let you go."
 HAZARD_MESSAGES = {
@@ -417,6 +419,9 @@ SECRET_FALL_RATE = 0.7  # per second: a struck fake wall sears and crumbles over
 OPEN_RATE = 0.8  # per second: how fast doors, lids and levers swing
 HOUSE_DOOR_RATE = 1.7  # per second: a house door swings open or shut in about 0.6 s
 SHIMMER_NEAR = 4.0  # metres within which a fake wall's motes give it away
+REACH_BELOW = 1.2  # metres below a foe's feet its blows still reach (down off the brink of a landing)
+REACH_ABOVE = 1.6  # metres above them; a tall foe reaches higher (World.level_with)
+FIRE_ABOVE = 2.5  # metres above the floor a column of fire bursting up from it still catches you
 FOE_DAMAGE = 1.5  # every blow, shot and spell a foe lands on you hits this much harder
 LAVA_MIN = 20
 MOTE_SIGHT = 14.0  # metres an arcane mote looks for a foe to steer toward
@@ -441,6 +446,18 @@ ENGULF_GLOOM = 2.5  # seconds the dark of the Pall's insides stays on your eyes 
 ENGULF_DARK = 0.85  # how dark it gets, as on a `dark=` tile
 LANCE_SPEED = 10.0  # m/s a lance of moon-frost flies
 RUBBLE_SPEED = 9.0  # m/s a block of masonry the Keystone hurls flies
+# The Keystone's torch (World.torch_smash, cinder_rain, ember_nova).
+TORCH_SIDE = 1.6  # metres to the left of its body it bears the torch
+TORCH_HIGH = 9.5  # metres over the floor the basket is, held up overhead
+SMASH_RADIUS = 2.2  # the burst where its basket comes down, and how little warning it gives
+SMASH_WARN = 0.15
+SMASH_COALS = 6  # coals scattered from it, bursting in a ring this far round where it landed
+SMASH_SCATTER = 3.0
+CINDER_RINGS = ((2.6, 4), (5.2, 6))  # (radius, embers) of each ring of the rain round where you stand
+CINDER_STAGGER = 0.1  # seconds between one ember and the next, the last no later than CINDER_SPAN
+CINDER_SPAN = 1.0
+NOVA_RINGS = ((3.5, 8), (6.5, 12), (9.5, 16))  # (radius, bursts) of the rings of fire round it
+NOVA_GAP = 0.45  # seconds between one ring and the next
 LANCE_FAN = 0.22  # radians between the lances of a fan of three
 LANCE_CHILL = 1.2  # seconds moon-frost numbs your legs (`Player.chill_t`: slowed, as by silk)
 MOON_FROST = 30  # frost a shaft of moonlight builds in you (see player/ailments.py)
@@ -1058,9 +1075,17 @@ class World:
         enemy.x = nx
         enemy.z = nz
 
+    def level_with(self, enemy):
+        """Can a foe's blow reach you up or down from where it stands? Not while you ride a lift past
+        it, metres over its head or down below the brink of its landing."""
+        rise = self.player.y - self.enemy_y(enemy)
+        return -REACH_BELOW <= rise <= max(REACH_ABOVE, enemy.type.height * 0.6)
+
     def enemy_strike(self, enemy, mult=1.0, inflicts=None):
         """Returns how much of the blow got through a raised shield. `inflicts` builds other ailments
-        than the type's own."""
+        than the type's own. A foe you are not level with (`level_with`) cannot land one."""
+        if not self.level_with(enemy):
+            return 0
         base = foe_harm(enemy.type.damage * mult * (0.85 + random.random() * 0.3))
         dmg = max(rround(base - self.player.inventory.defense * 0.5), 1)
         ails = enemy.type.inflicts if inflicts is None else inflicts
@@ -1517,10 +1542,77 @@ class World:
         self.game.sfx("quake", 1.2)
         player = self.player
         d = math.hypot(player.x - enemy.x, player.z - enemy.z)
-        if player.alive and enemy.radius + QUAKE_SAFE < d <= QUAKE_RADIUS:
+        if player.alive and enemy.radius + QUAKE_SAFE < d <= QUAKE_RADIUS and self.level_with(enemy):
             dmg = foe_harm(enemy.type.damage * MOVES["quake"][2])
             self.game.hurt_player(max(rround(dmg - player.inventory.defense * 0.3), 1), enemy.name)
             self.game.message("The ground heaves under you!")
+
+    # --- the Keystone's torch ------------------------------------------------------------------
+
+    def _ember(self, x, z, delay, damage, radius=None, warn=None, origin=None):
+        """A burst of the Keystone's fire at (x, z), unless a wall or the chasm is there."""
+        tile = self.map.tile_at(x, z)
+        if tile.solid or not tile.walkable or tile.needs_footing:
+            return None
+        f = Eruption(x, z, tile.floor, delay=delay, damage=damage, radius=radius, warn=warn, origin=origin)
+        self.eruptions.append(f)
+        return f
+
+    def torch_head(self, enemy):
+        """Where the burning basket of the Keystone's torch is while it holds it up overhead."""
+        c, sn = math.cos(enemy.yaw), math.sin(enemy.yaw)
+        return enemy.x + TORCH_SIDE * sn, self.enemy_y(enemy) + TORCH_HIGH, enemy.z - TORCH_SIDE * c
+
+    def torch_smash(self, enemy):
+        """The Keystone brings its torch down before it: a great burst of fire where the basket lands,
+        TORCH_REACH ahead along the way it faces (it stopped turning partway through the windup), with
+        little warning; then the coals it scatters burst in a ring round it. Step aside from the line
+        it swings along while it heaves the torch back overhead."""
+        c, sn = math.cos(enemy.yaw), math.sin(enemy.yaw)
+        x, z = enemy.x + c * TORCH_REACH, enemy.z + sn * TORCH_REACH
+        damage = rround(enemy.type.damage * MOVES["torch_smash"][2])
+        self._ember(x, z, 0.0, damage, radius=SMASH_RADIUS, warn=SMASH_WARN)
+        for i in range(SMASH_COALS):
+            a = enemy.yaw + (i + 0.5) * math.tau / SMASH_COALS
+            self._ember(x + math.cos(a) * SMASH_SCATTER, z + math.sin(a) * SMASH_SCATTER,
+                        0.15 + 0.05 * i, rround(damage * 0.5))  # fmt: skip
+        self.shockwaves.append(Shockwave(x, z, self.enemy_y(enemy), SMASH_RADIUS + 1.0))
+        self.game.sfx("quake", 1.1)
+        self.game.sfx("eruption", 0.8)
+
+    def cinder_rain(self, enemy):
+        """Second phase: the Keystone shakes its torch over its head and embers rain down round you,
+        each lobbed out of the basket on an arc: one where you stand, then rings of them farther out
+        (CINDER_RINGS), one after another. Keep moving, and read where they glow."""
+        player = self.player
+        damage = rround(enemy.type.damage * MOVES["cinder_rain"][2])
+        origin = self.torch_head(enemy)
+        self._ember(player.x, player.z, 0.0, damage, origin=origin)
+        turn = random.random() * math.tau
+        n = 1
+        for radius, count in CINDER_RINGS:
+            for i in range(count):
+                a = turn + (i + 0.5 * (radius > CINDER_RINGS[0][0])) * math.tau / count
+                x, z = player.x + math.cos(a) * radius, player.z + math.sin(a) * radius
+                self._ember(x, z, min(CINDER_STAGGER * n, CINDER_SPAN), damage, origin=origin)
+                n += 1
+        self.game.sfx("eruption", 0.7)
+        self.game.message("Embers rain from the Keystone's torch!")
+
+    def ember_nova(self, enemy):
+        """Second phase: the Keystone drives its torch down at its feet, and rings of fire burst out
+        round it one after another (NOVA_RINGS), each turned half a gap from the last. Stand in a gap
+        of each ring as it comes, or keep beyond the last."""
+        damage = rround(enemy.type.damage * MOVES["ember_nova"][2])
+        for k, (radius, count) in enumerate(NOVA_RINGS):
+            for i in range(count):
+                a = enemy.yaw + (i + 0.5 * (k % 2)) * math.tau / count
+                self._ember(
+                    enemy.x + math.cos(a) * radius, enemy.z + math.sin(a) * radius, NOVA_GAP * k, damage
+                )
+        self.shockwaves.append(Shockwave(enemy.x, enemy.z, self.enemy_y(enemy), NOVA_RINGS[-1][0]))
+        self.game.sfx("quake", 1.2)
+        self.game.message("The Keystone drives its torch into the ground, and fire runs out from it!")
 
     def moonfall(self, enemy):
         """Second phase: the moon rains down round you, a shaft where you stand and then rings of them
@@ -1631,6 +1723,9 @@ class World:
             self.game.message(FALL_DEATH)
         elif event == "drown":
             self.game.message(DROWN_MESSAGE)
+        elif event == "plunge" and self.terrain.fell_into == "drop":
+            self.game.sfx("swoosh", 0.6)
+            self.game.message(DROP_MESSAGE)
         else:
             if event in HAZARD_MESSAGES:
                 self.game.message(HAZARD_MESSAGES[event])
@@ -1784,7 +1879,7 @@ class World:
             if f.update(dt):
                 sound = {"hands": "quake", "moon": "motes", "filth": "splash"}.get(f.style, "eruption")
                 self.sfx_near(sound, f.x, f.z, *(BOMB_SOUND if f.origin else ERUPTION_SOUND))
-            if player.alive:
+            if player.alive and -REACH_BELOW <= player.y - f.floor <= FIRE_ABOVE:  # not from a lift above it
                 dmg = f.hit(player.x, player.z)
                 if dmg:
                     hands = f.style == "hands"
@@ -2694,7 +2789,7 @@ class World:
                 elif f.style == "moon":
                     moon_models.moonbeam(rig, f.glow, f.flame, self._time + f.x)
                 else:
-                    models.eruption(rig, f.glow, f.flame, self._time)
+                    models.eruption(rig, f.glow, f.flame, self._time, f.radius)
             bomb = f.bomb()
             if bomb:
                 gpu.model_light((1.6, 1.4, 1.2))

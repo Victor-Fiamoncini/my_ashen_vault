@@ -59,6 +59,12 @@ MOVES = {
     "toll": (0.9, 14.0, 0.0),
     "quake": (1.3, 9.0, 1.1),
     "hurl": (1.0, 6.0, 0.9),
+    # The Keystone's torch: brought down overhead in a great burst of fire before it (and the coals
+    # it scatters), and (second phase) shaken over its head to rain embers round you, or driven down
+    # at its feet so rings of fire run out from it.
+    "torch_smash": (1.2, 6.0, 1.2),
+    "cinder_rain": (1.4, 11.0, 0.8),
+    "ember_nova": (1.5, 12.0, 1.0),
 }
 COMBO_SWINGS = 3
 COMBO_GAP = 0.45  # seconds between the swings of a combo (scaled by a type's `tempo`: `Enemy.combo_gap`)
@@ -75,6 +81,10 @@ DIVE_TIME = 1.1  # longest a swoop lasts
 DIVE_OVERSHOOT = 3.0  # metres a swoop carries on past where you stood
 DIVE_HIT = 1.1  # a swoop passing this close (beyond its radius) strikes you, once
 BREATH_RANGE = (3.0, 10.0)  # distances a gout of breath is loosed from
+TORCH_REACH = 4.5  # metres before the Keystone its torch comes down
+TORCH_SMASH_RANGE = (2.5, 6.5)  # distances it brings its torch down from
+CINDER_RAIN_RANGE = 16.0  # it rains embers on you from anywhere up to this far
+EMBER_NOVA_RANGE = 9.0  # it drives its torch down only with you this close: its rings would miss you
 DIVE_RANGE = (5.0, 13.0)
 SPADEFUL_RANGE = (3.5, 11.0)
 GRASP_RANGE = (2.5, 10.0)
@@ -150,6 +160,9 @@ ATTACK_TIMES = {
     "toll": 0.8,
     "quake": 0.5,
     "hurl": 0.35,
+    "torch_smash": 0.5,
+    "cinder_rain": 0.6,
+    "ember_nova": 0.7,
 }
 
 
@@ -166,9 +179,11 @@ class Enemy:
     for fire-breathers, breath(enemy); for the Sexton, grasp(enemy) and knell(enemy, wave); for
     Mother Gnawl, tail_lash(enemy), squeal(enemy) and burrow_burst(enemy); for the Sodden Pall,
     engulf(enemy), shed(enemy) and can_shed(enemy); for Vesperholm's blinkers, blink(enemy); for the
-    Duchess, moonbeam(enemy) and moonfall(enemy). Optional, for twin bosses: rouse_twin(enemy), twin_fallen(enemy)
+    Duchess, moonbeam(enemy) and moonfall(enemy); for the Keystone, quake(enemy), torch_smash(enemy),
+    cinder_rain(enemy) and ember_nova(enemy). Optional, for twin bosses: rouse_twin(enemy), twin_fallen(enemy)
     and twin_busy(enemy); for bosses that rise from ash, rise_time(enemy) (seconds, or None while it
-    should stay a heap; without it the heap rises when it notices you).
+    should stay a heap; without it the heap rises when it notices you); level_with(enemy), False while
+    you are out of its reach above or below (riding a lift past it), so it does not swing at you.
     """
 
     def __init__(self, type_, x, z, yaw=0.0, marker=None, rng=None, loot=None, key=None, look=None):
@@ -512,9 +527,12 @@ class Enemy:
         move = self._pick_move(world, dist)
         if move:
             return self._begin_windup(move)
-        if t.bite_reach and dist <= t.bite_reach:
+        # Riding a lift past it, you are out of its reach above or below: it waits rather than swing.
+        level = getattr(world, "level_with", None)
+        level = level is None or level(self)
+        if t.bite_reach and dist <= t.bite_reach and level:
             return self._begin_windup("bite")
-        in_range = dist <= t.reach
+        in_range = dist <= t.reach and (level or t.ranged)
         if t.ranged and in_range:
             in_range = world.can_see(self.x, self.z, world.player_x, world.player_z)
         # A slow turner must come round to face you before it can swing.
@@ -603,6 +621,12 @@ class Enemy:
             options.append("moonbeam")
         if "moonfall" in ready and dist <= MOONFALL_RANGE:
             options.append("moonfall")
+        if "torch_smash" in ready and TORCH_SMASH_RANGE[0] <= dist <= TORCH_SMASH_RANGE[1]:
+            options.append("torch_smash")
+        if "cinder_rain" in ready and seen and dist <= CINDER_RAIN_RANGE:
+            options.append("cinder_rain")
+        if "ember_nova" in ready and dist <= EMBER_NOVA_RANGE:
+            options.append("ember_nova")
         if "toll" in ready and seen and TOLL_RANGE[0] <= dist <= TOLL_RANGE[1] and world.can_toll(self):
             options.append("toll")
         if "quake" in ready and dist <= QUAKE_RANGE:
@@ -659,7 +683,7 @@ class Enemy:
             return self._blink(world)
         if kind == "burrow":
             return self._burrow(world, dt)
-        if not self._struck:
+        if not self._struck and self.state_t >= self.type.impact:  # a heavy swing follows through first
             self._struck = True
             if kind in ("shot", "web", "cinders", "spadeful", "fireball", "bile", "frost_lance", "hurl"):
                 world.enemy_fire(self, kind)
@@ -697,6 +721,12 @@ class Enemy:
                 world.toll(self)
             elif kind == "quake":
                 world.quake(self)
+            elif kind == "torch_smash":
+                world.torch_smash(self)
+            elif kind == "cinder_rain":
+                world.cinder_rain(self)
+            elif kind == "ember_nova":
+                world.ember_nova(self)
             elif kind == "hook":
                 if dist <= HOOK_RANGE[1] + 0.5 and self._facing(world.player_x, world.player_z):
                     world.hook(self, MOVES["hook"][2], HOOK_PULL)
@@ -705,7 +735,7 @@ class Enemy:
                     world.enemy_strike(self, MOVES["sweep"][2])
             elif dist <= self._strike_reach() + 0.3 and self._facing(world.player_x, world.player_z):
                 world.enemy_strike(self)
-        if self.state_t >= ATTACK_TIMES.get(kind, 0.2):
+        if self.state_t >= ATTACK_TIMES.get(kind, 0.2) + self.type.impact:
             self._switch("recover")
 
     def _knell(self, world):

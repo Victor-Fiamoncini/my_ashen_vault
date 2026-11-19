@@ -4,12 +4,14 @@ tiers, the gate from the Pall's cistern, the shortcut lift, the sextons' bells a
 import math
 
 from ashen_vault import map_path
-from ashen_vault.ai.enemy import QUAKE_RADIUS, QUAKE_SAFE, TOLL_RADIUS
+from ashen_vault.ai.enemy import QUAKE_RADIUS, QUAKE_SAFE, TOLL_RADIUS, TORCH_REACH
 from ashen_vault.ai.enemy_types import EnemyTypes
+from ashen_vault.util import rround
 from ashen_vault.world import collision, relics, terrain
+from ashen_vault.world.hazards import Eruption
 from ashen_vault.world.map_loader import MapLoader
 from ashen_vault.world.tile_map import TileMap
-from ashen_vault.world.world import World
+from ashen_vault.world.world import NOVA_RINGS, World
 from test_verdant_world import JungleGame, foe
 from test_world import BESIDE, _reachable, _spec
 
@@ -83,6 +85,10 @@ def test_the_breach_in_the_cistern_opens_only_once_the_pall_has_fallen():
     world = World(game, "harrow_sewers")
     (prop,) = [p for p in world.props if p.kind == "exit" and p.props.get("map") == "old_harrowmere"]
     assert not world.exit_open(prop)
+    # Its model is set into the cistern's wall: the wall lies behind it (its -X), the cistern before it.
+    behind = world.map[prop.tx - rround(math.cos(prop.yaw)), prop.tz - rround(math.sin(prop.yaw))]
+    ahead = world.map[prop.tx + rround(math.cos(prop.yaw)), prop.tz + rround(math.sin(prop.yaw))]
+    assert behind.solid and ahead.walkable
     game.flags.add("pall_dead")
     assert world.exit_open(prop)
     # It lands you at the foot of the way back up, and that way leads back out beside the breach.
@@ -149,6 +155,23 @@ def test_the_keystone_hurls_masonry():
     assert math.hypot(shot.dx, shot.dz) > 6  # faster than a plain bolt
 
 
+def test_the_keystone_rakes_fire_with_its_torch_in_its_ember_phase():
+    """Once its shell bursts, the Keystone drags its torch along the floor: a line of fire runs out
+    from its feet toward you and on past you, each burst a moment after the one before."""
+    t = EnemyTypes.get("keystone")
+    assert "breath" in t.phase_moves and "breath" not in t.moves
+    _game, world = sunken(at=(22, 39))
+    keystone = foe(world, "keystone", (22, 44))
+    world.eruptions = []
+    world.breath(keystone)
+    fire = world.eruptions
+    assert len(fire) >= 3
+    assert all(abs(e.x - keystone.x) < 0.5 for e in fire)  # straight at you down the court
+    assert all(e.z < keystone.z for e in fire) and min(e.z for e in fire) < world.player.z  # and past you
+    assert all(e.style == "fire" for e in fire)
+    assert [e.t for e in fire] == sorted((e.t for e in fire), reverse=True)  # each bursting after the last
+
+
 def test_golems_stand_on_their_plinths_and_sextons_walk_their_rounds():
     m = _map()
     golems = _spec(m, "stone_golem")
@@ -160,3 +183,82 @@ def test_golems_stand_on_their_plinths_and_sextons_walk_their_rounds():
         assert collision.passable(m, s.tx, s.tz, tile.floor)
     for s in sextons:  # every sexton has stone within reach of its bell
         assert any(math.hypot(g.tx - s.tx, g.tz - s.tz) * 2 <= TOLL_RADIUS for g in golems), (s.tx, s.tz)
+
+
+def test_a_foe_cannot_reach_you_riding_a_lift_past_it_above_or_below():
+    """A foe at a lift's landing, you on the deck going by metres over its head or down below the
+    brink: its blows cannot reach you, so it does not swing; level with it, they land."""
+    game, world = sunken(at=(22, 43))
+    drowned = foe(world, "drowned", (22, 44))
+    drowned.state = "chase"
+    floor = world.enemy_y(drowned)
+    for rise, reaches in ((4.0, False), (-3.0, False), (0.0, True), (0.8, True)):
+        game.player.y = floor + rise
+        assert world.level_with(drowned) == reaches, rise
+        game.wounds.clear()
+        assert (world.enemy_strike(drowned) > 0) == reaches, rise
+        assert bool(game.wounds) == reaches, rise
+    game.player.y = floor + 4.0
+    drowned.cooldowns = {}
+    drowned.update(0.05, world)
+    assert drowned.state == "chase"  # it waits at the brink rather than swing at the air
+    game.player.y = floor
+    for _ in range(40):
+        drowned.update(0.05, world)
+    assert drowned.state in ("windup", "attack", "recover")
+
+
+def test_the_keystone_is_slow_and_bears_its_torch_into_both_phases():
+    t = EnemyTypes.get("keystone")
+    assert t.tempo > 1 and t.impact > 0  # every swing heaved through, as befits its size
+    assert "torch_smash" in t.moves
+    assert {"cinder_rain", "ember_nova"} <= set(t.phase_moves)
+    assert not {"cinder_rain", "ember_nova"} & set(t.moves)
+
+
+def test_the_keystone_brings_its_torch_down_in_a_great_burst_before_it():
+    _game, world = sunken(at=(22, 39))
+    keystone = foe(world, "keystone", (22, 44))
+    keystone.yaw = -math.pi / 2  # facing up the court, toward -z
+    world.eruptions = []
+    world.torch_smash(keystone)
+    big, *coals = world.eruptions
+    assert big.radius > 2 * Eruption.RADIUS and big.warn < Eruption.WARN  # wide, and with little warning
+    assert math.hypot(big.x - keystone.x, big.z - (keystone.z - TORCH_REACH)) < 0.01
+    assert len(coals) >= 4
+    assert all(2.0 < math.hypot(c.x - big.x, c.z - big.z) < 4.0 for c in coals)
+    assert all(c.t < 0 for c in coals)  # they burst a moment after it
+
+
+def test_the_keystone_rains_embers_round_you_from_its_torch():
+    game, world = sunken(at=(22, 39))
+    keystone = foe(world, "keystone", (22, 45))
+    world.eruptions = []
+    world.cinder_rain(keystone)
+    first, *rest = world.eruptions
+    p = game.player
+    assert (first.x, first.z) == (p.x, p.z) and first.t == 0  # one where you stand, at once
+    assert len(rest) >= 6
+    assert all(math.hypot(f.x - p.x, f.z - p.z) < 6.0 for f in rest)
+    assert all(f.origin is not None for f in world.eruptions)  # each lobbed out of its basket
+    assert [f.t for f in world.eruptions] == sorted((f.t for f in world.eruptions), reverse=True)
+
+
+def test_the_keystones_rings_of_fire_run_out_with_gaps_to_stand_in():
+    _game, world = sunken(at=(22, 39))
+    keystone = foe(world, "keystone", (22, 43))
+    world.eruptions = []
+    world.ember_nova(keystone)
+    fire = world.eruptions
+    assert fire
+    rings = {}
+    for f in fire:
+        assert world.map.tile_at(f.x, f.z).walkable  # nothing on a wall or over the chasm
+        d = round(math.hypot(f.x - keystone.x, f.z - keystone.z), 1)
+        rings.setdefault(d, []).append(f)
+    assert sorted(rings) == [r for r, _ in NOVA_RINGS if r in rings] and len(rings) >= 2
+    delays = [-ring[0].t for _, ring in sorted(rings.items())]
+    assert delays == sorted(delays) and len(set(delays)) == len(delays)  # out from it, one after another
+    for radius in rings:  # a gap wider than you between neighbouring bursts
+        count = dict(NOVA_RINGS)[radius]
+        assert 2 * math.pi * radius / count - 2 * Eruption.RADIUS > 0.6

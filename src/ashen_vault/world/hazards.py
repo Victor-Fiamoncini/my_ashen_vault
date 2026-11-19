@@ -214,7 +214,9 @@ class Eruption:
     RADIUS = 1.0
     DAMAGE = 18
 
-    def __init__(self, x, z, floor=0.0, delay=0.0, damage=DAMAGE, origin=None, style="fire"):
+    def __init__(
+        self, x, z, floor=0.0, delay=0.0, damage=DAMAGE, origin=None, style="fire", radius=None, warn=None
+    ):
         self.x = x
         self.z = z
         self.floor = floor
@@ -225,6 +227,10 @@ class Eruption:
         self.origin = origin
         # "fire", or "hands": the Sexton's grasping ash, which hurts and holds you where you stand.
         self.style = style
+        self.radius = (
+            self.RADIUS if radius is None else radius
+        )  # a great burst (the Keystone's torch) is wider
+        self.warn = self.WARN if warn is None else warn  # and may come with less warning
 
     def update(self, dt):
         """Advances it; returns True on the frame the flame bursts up."""
@@ -236,9 +242,9 @@ class Eruption:
     def state(self):
         if self.t < 0:
             return "waiting"
-        if self.t < self.WARN:
+        if self.t < self.warn:
             return "warn"
-        if self.t < self.WARN + self.BURN:
+        if self.t < self.warn + self.BURN:
             return "burst"
         return "done"
 
@@ -249,14 +255,14 @@ class Eruption:
     @property
     def glow(self):
         """0..1 brightness of the warning circle; it brightens as the burst nears."""
-        return min(max(self.t / self.WARN, 0.0), 1.0) if self.state == "warn" else 0.0
+        return min(max(self.t / self.warn, 0.0), 1.0) if self.state == "warn" else 0.0
 
     def bomb(self, arc=6.0):
         """Where a lobbed bomb is in its flight, (x, y, z), or None when it is not in the air: it
         leaves `origin` as the circle starts to glow and lands as the flame bursts."""
         if self.origin is None or self.state != "warn":
             return None
-        k = self.t / self.WARN
+        k = self.t / self.warn
         ox, oy, oz = self.origin
         y = oy + (self.floor - oy) * k + arc * 4 * k * (1 - k)
         return ox + (self.x - ox) * k, y, oz + (self.z - oz) * k
@@ -266,14 +272,14 @@ class Eruption:
         """0..1 height of the flame column: shoots up, then dies away."""
         if self.state != "burst":
             return 0.0
-        k = (self.t - self.WARN) / self.BURN
+        k = (self.t - self.warn) / self.BURN
         return min(k / 0.2, 1.0) * (1 - max(k - 0.6, 0.0) / 0.4)
 
     def hit(self, px, pz):
         """Damage to a body at (px, pz) this frame, or 0."""
         if self.state != "burst" or self.spent:
             return 0
-        if math.hypot(px - self.x, pz - self.z) > self.RADIUS:
+        if math.hypot(px - self.x, pz - self.z) > self.radius:
             return 0
         self.spent = True
         return self.damage

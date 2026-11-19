@@ -18,13 +18,14 @@ How `.map` files work and what can stand on a tile.
   pit's drawbridge and a lift from the Sump up to the Cistern (an 8 m ride). Wadeable `sludge` floors (`slow=`, some with
   `flow=`) hold its drowned and leeches; walled in `sewer_brick` under a `sewer_vault`;
   `test_harrow_sewers_is_solvable`; once the Pall falls, the breach in its cistern's north wall,
-  `exit model=cistern_breach requires=pall_dead`, leads down to Old Harrowmere), `old_harrowmere` (the
+  `exit model=cistern_breach yaw=90 requires=pall_dead`, leads down to Old Harrowmere; like every gate set
+  into a wall, it needs the `yaw=` that turns its back (-X) to the wall), `old_harrowmere` (the
   sunken first city, in a cavern below the sewers: a vertical map of tiers over a 40 m `chasm` that kills,
-  with no sky, so the warm amber fog closes in overhead. The Breach Landing (h 0, its shrine and the
+  with no sky: the cavern's vault (`[meta] vault = 24`, below) hangs over it all. The Breach Landing (h 0, its shrine and the
   `sunken_stair` back up to the cistern), the Cliff Stair down the north wall to the bell-keepers' terrace
   (-8), a bridge out to the Bell Tower, whose stair winds down round three sides of its brick core to the
   Aqueduct (-16), the Colonnade, the Grand Stair down to the Drowned Plaza (-20) under the one shaft of
-  daylight from a crack in the roof (`sun_shaft height= width=` over its fountain, with warm `light`s at
+  daylight from a crack in the vault (`sun_shaft height= width=` over its fountain, with warm `light`s at
   its foot), and the Keystone's Foundation Court (-22) behind two `door boss=keystone_dead` (the front one
   off the plaza's stair, the rear one out to the lift room; one arena, like Mother Gnawl's nest). The
   shortcut: a locked lift from the lift room 22 m up to the dark gallery cut through the rock from the
@@ -83,7 +84,10 @@ How `.map` files work and what can stand on a tile.
   `terrain.PLUNGE_TIME`, unless the chasm floor lies within `FALL_SAFE` of you (an empty shaft's
   bottom, which is only ground). Floors with `tex=lava` are drawn
   at full brightness and light their shores (`mesh_builder.lava_lights`), chasms included. Drops over
-  1.8 m cost HP (`FALL_PER_M` a metre), except into a `pit`; a drop of `terrain.FALL_LETHAL` (8 m) kills.
+  1.8 m cost HP (`FALL_PER_M` a metre), except into a `pit`; a drop of `terrain.FALL_LETHAL` (8 m) kills,
+  but not on the spot: stepping off an edge over one (a ledge, an empty lift shaft, a lift's deck) you
+  fall it, the view dropping, until you hit whatever is below (a lift's deck included), as over a chasm
+  (`Terrain._lethal_drop`, `fell_into == "drop"`, `world.DROP_MESSAGE`).
   Any tile may add `dark=<0..1>`: the share of the map's ambient light it loses. Lights still shine
   there, and standing in one shrinks your own light and pulls the fog in (`world/darkness.py`);
   Lumen pushes both back.
@@ -115,6 +119,13 @@ How `.map` files work and what can stand on a tile.
   gets a roof (`roof=<h>` in its legend, at least `mesh_builder.ROOF_SLAB` over its ceiling;
   `roof_tex=`), the walls rising past a roof show their faces above it, and every wall tile is capped.
   A passage through a wall is roofed at the wall's height (`roof=16`), so the wall runs on over it.
+  `[meta] vault = <h>` (Old Harrowmere) hangs a cavern's roof of rock over the whole map at height `h`
+  (`vault_tex=`, `cavern_rock` by default; `world/vault.py`, built by `MeshBuilder._build_vault`): lumpy,
+  stalactites hanging from it, over every tile but the walls already reaching it and the tiles under
+  their own `ceil`. It is only drawn: no tile gains a ceiling, so collision, sight and open-sky checks are
+  as before. Over the map's `sun_shaft` it opens in a crack (at the top of the leaning shaft,
+  `vault.SHAFT_LEAN`; give the shaft the `height=` to reach it), daylight glowing on the rock round it;
+  `test_old_harrowmeres_vault_hangs_clear_of_everything_below_it`.
   A wall tile may set `dress=rampart` (Harrowmere's great walls): carved bays along its open faces
   (`world/ramparts.py`).
   A wall tile may set `thin=<m>` (the town's houses use 0.5): it stands as a slab that thick, joined to

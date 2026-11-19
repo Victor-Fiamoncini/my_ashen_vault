@@ -119,8 +119,8 @@ def _swing_pose(e, rest, cocked, strike):
     falls and settles back to `rest` while recovering."""
     if e.state == "windup":
         return _mix(rest, cocked, _ease(min(e.state_t / max(e.windup_time, 1e-3), 1)))
-    if e.state == "attack":
-        return _mix(cocked, strike, _ease(min(e.state_t / 0.2, 1)))
+    if e.state == "attack":  # a heavy foe's blow travels over its `impact`
+        return _mix(cocked, strike, _ease(min(e.state_t / max(0.2, e.type.impact), 1)))
     if e.state == "recover":
         return _mix(strike, rest, _ease(min(e.state_t / max(e.recover_time, 1e-3), 1)))
     return rest
@@ -2570,11 +2570,9 @@ BOSS_DOORS = {
     # The Sodden Pall: the old sluice-boards of the deepest cistern, slimed green, in a sewer-brick arch,
     # drain-keepers' lanterns burning sickly green on the jambs.
     "pall_dead": DoorStyle((76, 82, 60), "wood_plank", (88, 62, 44), (100, 74, 62), "sewer_brick", "lantern"),
-    # Mother Gnawl: rotten boards gnawed ragged at the foot, in a sewer-brick arch, a rat's skull on each
-    # jamb whose eyes glint red while she lives.
-    "matron_dead": DoorStyle(
-        (88, 74, 58), "wood_plank", (70, 60, 56), (92, 70, 60), "sewer_brick", "rat_skull"
-    ),
+    # Mother Gnawl: rotten boards gnawed ragged at the foot, in a sewer-brick arch, a tallow-and-rag lamp
+    # guttering smoky on each jamb while she lives.
+    "matron_dead": DoorStyle((88, 74, 58), "wood_plank", (70, 60, 56), (92, 70, 60), "sewer_brick", "tallow"),
     # Duchess Ilvane: leaves of frosted moon-glass leaded in silver, in a moonstone arch crowned with a
     # crescent, cold moon-lanterns on the jambs.
     "duchess_dead": DoorStyle(
@@ -2632,14 +2630,6 @@ def _door_lamp(r, style, face, t, lit):
                 "cube", face * 0.13, 0.26, dz * 0.03, 0.02, 0.02, 0.02, EMBER if lit else COLD_EMBER, glow=lit
             )
         return
-    if style.lamp == "rat_skull":  # a big rat's skull, its sockets glinting red
-        r.part("sphere", face * 0.02, 0.06, 0, 0.14, 0.11, 0.12, RAT_BONE)
-        r.part("cube", face * 0.12, 0.03, 0, 0.12, 0.06, 0.07, RAT_BONE)  # the snout
-        r.part("cube", face * 0.17, -0.02, 0, 0.02, 0.06, 0.03, (200, 170, 90))  # the incisors
-        for dz in (-1, 1):
-            r.part("cube", face * 0.1, 0.1, dz * 0.05, 0.03, 0.03, 0.03, RAT_GLINT if lit else COLD_EMBER,
-                   glow=lit)  # fmt: skip
-        return
     r.part("cube", 0, 0, 0, 0.12, 0.16, 0.12, style.iron)
     if not lit:
         return
@@ -2651,6 +2641,12 @@ def _door_lamp(r, style, face, t, lit):
     elif style.lamp == "moon":  # moonlight caught in a silver cage: a pale, cold, unflickering glow
         r.part("sphere", 0, 0.17, 0, 0.11, 0.13, 0.11, (200, 220, 255), glow=True)
         r.part("cone", 0, 0.3, 0, 0.12, 0.08, 0.12, style.iron)
+    elif style.lamp == "tallow":  # a lump of tallow with a rag for a wick, burning low and smoky
+        flicker = 1 + 0.15 * math.sin(t * 9 + face)
+        r.part("sphere", 0, 0.14, 0, 0.11, 0.1 * flicker, 0.11, (236, 170, 70), glow=True)
+        u = (t * 0.5) % 1.0  # a curl of its smoke, rising and thinning
+        r.part("cube", 0.02 * math.sin(t * 2), 0.28 + 0.35 * u, 0, 0.04 * (1 - u) + 0.01, 0.06,
+               0.04 * (1 - u) + 0.01, (60, 56, 52))  # fmt: skip
     elif style.lamp == "candle":  # a stub of tallow, guttering
         r.part("cyl", 0, 0.14, 0, 0.06, 0.14, 0.06, (214, 204, 180))
         _flame(r, 0, 0.24, 0, 0.05, t)
@@ -2774,7 +2770,6 @@ def _pall_leaf(r, style, side, face, t, lit):
 
 
 RAT_BONE = (196, 184, 156)
-RAT_GLINT = (230, 60, 40)
 
 
 def _matron_arch(r, style, t, lit):
@@ -6537,20 +6532,22 @@ def _sigil_device(r, device, core, y, t):
         r.part("cube", -0.05, y, 0, 0.12, 0.035, 0.08, ink)  # its waist
 
 
-def eruption(r, glow, flame, t):
-    """The Warden's fire from below: a glowing ring of cracks on the floor, then a column of flame."""
+def eruption(r, glow, flame, t, radius=1.0):
+    """The Warden's fire from below: a glowing ring of cracks on the floor, then a column of flame,
+    as wide as the burst's `radius` (1 m for most; the Keystone's torch strikes wider and taller)."""
+    k = radius
     if glow > 0:
         for i in range(8):
             a = i * math.pi / 4 + t * 0.5
             r.part(
-                "cube", math.cos(a) * 0.8, 0.03, math.sin(a) * 0.8, 0.5, 0.03, 0.08,
+                "cube", math.cos(a) * 0.8 * k, 0.03, math.sin(a) * 0.8 * k, 0.5 * k, 0.03, 0.08,
                 (255, rround(80 + 120 * glow), 30), ry=-a + math.pi / 2, glow=True,
             )  # fmt: skip
-        r.part("cyl", 0, 0.02, 0, 0.6 * glow, 0.02, 0.6 * glow, EMBER, glow=True)
+        r.part("cyl", 0, 0.02, 0, 0.6 * glow * k, 0.02, 0.6 * glow * k, EMBER, glow=True)
     if flame > 0:
-        h = 2.6 * flame
-        r.part("cone", 0, h / 2, 0, 1.4, h, 1.4, (255, 120, 40), glow=True)
-        r.part("cone", 0, h * 0.45, 0, 0.8, h * 1.1, 0.8, (255, 220, 130), glow=True)
+        h = 2.6 * flame * (1 + 0.4 * (k - 1))
+        r.part("cone", 0, h / 2, 0, 1.4 * k, h, 1.4 * k, (255, 120, 40), glow=True)
+        r.part("cone", 0, h * 0.45, 0, 0.8 * k, h * 1.1, 0.8 * k, (255, 220, 130), glow=True)
 
 
 def shockwave_ring(r, k, radius):

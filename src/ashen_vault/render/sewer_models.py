@@ -1,6 +1,6 @@
 """Models for the Harrow Sewers under the town: its rats and their brood-mother Mother Gnawl, the sludge
 slimes and the gobbets they burst into, the drowned that lie in the sludge, the bilge leeches, the Sodden
-Pall (a bell of green ooze, the drowned's face in its folds) in the deepest cistern and the clots it sheds, the ways down from the streets (a grate in town, a ladder below) and the sewers' dressing (drain pipes, sluice wheels, the outfall's great grate, a rat's nest).
+Pall (a hunched heap of green ooze hooded like a sodden shroud, the drowned's face in its shadow) in the deepest cistern and the clots it sheds, the ways down from the streets (a grate in town, a ladder below) and the sewers' dressing (drain pipes, sluice wheels, the outfall's great grate, a rat's nest).
 Original low-poly models assembled from primitives; like everything in `models`, they face +X."""
 
 import math
@@ -450,14 +450,65 @@ def _pall_gape(e):
     return 0.0
 
 
+PALL_RUST = (110, 62, 36)  # the rusted junk it has swallowed
+PALL_STRANDS = ((-0.5, 0.55), (0.05, 0.95), (0.45, 0.4))  # (z, length) of the strands off its hood's lip
+PALL_STRAND_BEADS = 5
+
+
+def _pall_arms(e):
+    """(raise, spread) of the Pall's two pseudopods: `raise` lifts them from dragging on the floor
+    ahead (0) up over its hood (1) and crashes them past rest (-), `spread` flings them out to its
+    sides. A slam rears both up and brings them down together, a sweep flings them out wide as it turns,
+    bile draws them back, the engulf reaches them out ahead, a shed hugs them in."""
+    kind = e.attack_kind if e.state in ("windup", "attack", "recover") else None
+    if kind == "slam":
+        return _swing_pose(e, 0.0, 1.0, -0.35), _swing_pose(e, 0.0, -0.15, 0.1)
+    if kind == "sweep":
+        return _swing_pose(e, 0.0, 0.35, 0.2), _swing_pose(e, 0.0, 0.35, 1.0)
+    if kind == "bile":
+        return _swing_pose(e, 0.0, 0.25, 0.05), _swing_pose(e, 0.0, 0.3, 0.1)
+    if kind == "engulf":
+        return _swing_pose(e, 0.0, 0.2, -0.15), _swing_pose(e, 0.0, -0.25, -0.3)
+    if kind == "shed":
+        return 0.15, -0.35
+    return 0.0, 0.0
+
+
+def _pall_arm(r, side, raise_, spread, skin, t, k):
+    """One pseudopod of ooze out of its flank on `side`, a thick rope narrowing to a splayed, dripping
+    tip: at rest it droops forward to drag on the floor, raised it rears over the hood."""
+    pitch = _mix(-0.55, 1.45, raise_) if raise_ >= 0 else -0.55 + 0.6 * raise_
+    yaw = side * (0.35 + 0.95 * spread)
+    bx, by, bz = 0.35 * k, 1.15 * k, side * 1.25 * k
+    sway = 0.05 * math.sin(t * 1.7 + side)
+    x, y, z = bx, by, bz
+    for i in range(5):
+        d = 0.42 * k
+        p = pitch - 0.1 * i * (1 - raise_ if raise_ > 0 else 1)  # it sags under its own weight
+        x += math.cos(p) * math.cos(yaw) * d
+        z += math.cos(p) * math.sin(yaw) * d + sway * i
+        y = max(y + math.sin(p) * d, 0.15)
+        w = (0.62 - 0.08 * i) * k
+        r.part("sphere", x, y, z, w * 1.1, w, w, _dim(skin, 0.92 + 0.04 * (i % 2)))
+    for f in (-1, 0, 1):  # the splayed tip
+        a = yaw + f * 0.45
+        r.part("sphere", x + math.cos(a) * 0.22 * k, max(y - 0.05, 0.1), z + math.sin(a) * 0.22 * k,
+               0.26 * k, 0.16 * k, 0.16 * k, _dim(skin, 1.05), ry=-a)  # fmt: skip
+    u = (t * 0.9 + (side > 0) * 0.5) % 1.0  # a drop falling from it
+    r.part("sphere", x, max(y - 0.15 - 0.6 * u, 0.05), z, 0.07, 0.11, 0.07, _dim(skin, 1.2))
+
+
 def sodden_pall(r, e, t):
-    """The Sodden Pall: a bell of green ooze twice a man's height, like a sodden shroud with nothing
-    under it. Its rounded peak sags into a bell that flares into a skirt dragged over the floor in
-    lobes, a dark pool spreading round its hem and a low, black arch in the hem at its front. Darker
-    runnels and wet sheen run down its sides, drops crawling down them; bubbles well up in it. In its
-    folds sit the hollows of a face, the drowned it took: raging, the face rises pale and its eyes and
-    mouth glow. Its moves rock, stretch and fling it about (`_pall_pose`). Slain, it slumps into a
-    wide, still pool."""
+    """The Sodden Pall: a heap of green ooze twice a man's height, hunched and lopsided like a sodden
+    shroud thrown over the drowned it has taken. Broad and low at the back, it heaves up and forward
+    into a heavy hood that sags over the front, slime stretching in strands from its lip; deep in the
+    hood's shadow hangs the face of the drowned, slack-jawed. Two thick pseudopods of ooze drag from
+    its flanks and rear up to slam and fling out to sweep (`_pall_arms`). Its swallowed dead and the
+    town's rubbish show through its sides: ribs and a hand reaching out, a second face pressing up out
+    of its flank, a rusted lantern, a length of chain, a cart wheel's rim. Runnels, crawling drops and
+    welling bubbles move in it, wet sheen on its curves; a dark pool spreads round its hem of lobes.
+    Raging, the faces rise pale and their hollows glow. Its moves rock, stretch and fling it about
+    (`_pall_pose`). Slain, it slumps into a wide, still pool."""
     fall = death_fall(e, 1.2)
     lit = e.alive
     rage = e.phase2 and lit
@@ -476,78 +527,157 @@ def sodden_pall(r, e, t):
     r.part("cyl", 0.1, 0.02, 0, 4.4 * hem, 0.04, 4.2 * hem, PALL_DARK)
     with r.at(0, 0, 0, ry=twist * 0.5):
         for i in range(PALL_LOBES):
-            a = (i + 0.5) * math.tau / PALL_LOBES  # none straight ahead, where its arch is
+            a = (i + 0.5) * math.tau / PALL_LOBES
             ripple = 1 + 0.06 * math.sin(t * 2.4 + i * 1.3)
-            d = 1.5 * hem * ripple
+            d = (1.5 + 0.25 * (math.cos(a) < 0)) * hem * ripple  # it spreads wider behind
             r.part("sphere", math.cos(a) * d, 0.24 * low, math.sin(a) * d, 1.2 * hem, 0.55 * low, 0.95 * hem,
                    _dim(skin, 0.84 + 0.05 * (i % 3)), ry=-a)  # fmt: skip
         for a, tilt in ((2.3, 0.5), (-2.6, -0.4), (1.2, 0.8)):  # bones of the drowned poking out of its hem
             d = 2.0 * hem
             r.part("cube", math.cos(a) * d, 0.12, math.sin(a) * d, 0.08, 0.08, 0.6, PALL_BONE, ry=-a + tilt)
+        for i in range(5):  # a length of chain trailing out of its hem behind
+            r.part("cube", -1.9 * hem - 0.18 * i, 0.06, -0.9 + 0.12 * i, 0.16, 0.05, 0.08, PALL_RUST,
+                   rx=(i % 2) * math.pi / 2, ry=0.6)  # fmt: skip
 
     def bent(y):
         """It leans by bending: its hem stays put on the floor, and the higher up, the further over."""
         return r.at(0, 0, 0, rz=-lean * min(max((y - 0.4) / 2.4, 0.0), 1.0))
 
     with r.at(0, 0, 0, ry=twist):
-        # The bell: close-stacked swells narrowing smoothly up to its rounded peak.
+        # The heap: swells broad and low, held back from the front, hunched off to one side.
         for i in range(PALL_SWELLS):
             u = i / (PALL_SWELLS - 1)
-            w = 3.3 - 2.2 * u
-            y = 0.5 + 2.35 * u
+            w = 3.4 - 1.5 * u
+            y = 0.5 + 1.7 * u
             with bent(y):
-                r.part("sphere", 0, y * tall, 0, w * body, 1.0 * tall, w * body, _dim(skin, 0.9 + 0.2 * u))
-        with bent(3.05):
+                r.part("sphere", (-0.45 + 0.1 * u) * body, y * tall, 0.18 * math.sin(u * math.pi) * body,
+                       w * body * 1.05, 1.0 * tall, w * body * (0.95 - 0.08 * u), _dim(skin, 0.88 + 0.18 * u))  # fmt: skip
+        with bent(2.9):  # its hunched back, the highest of it
             r.part(
-                "sphere", 0, 3.05 * tall, 0, 0.8 * body, 0.6 * tall, 0.8 * body, _dim(skin, 1.14)
-            )  # its peak
-        # The low, black arch in its hem at the front.
-        r.part("sphere", 1.55 * body, 0.32 * low, 0, 0.3, 0.75 * low, 0.8, PALL_HOLLOW)
+                "sphere",
+                -0.35 * body,
+                2.75 * tall,
+                0.15,
+                2.0 * body,
+                1.3 * tall,
+                2.0 * body,
+                _dim(skin, 1.05),
+            )
+        with bent(2.5):
+            # The hood: a heavy fold heaved forward off its hump, sloping down to a lip that sags low
+            # over the face, the shadow under it hollowed back into the ooze.
+            r.part("sphere", 0.45 * body, 2.45 * tall, 0, 2.3 * body, 1.15 * tall, 2.15 * body, _dim(skin, 1.12),
+                   rz=-0.3 * (1 - fall))  # fmt: skip
+            r.part(
+                "sphere",
+                1.2 * body,
+                2.0 * tall,
+                0,
+                0.75,
+                0.6 * tall,
+                1.85,
+                _dim(skin, 1.02),
+                rz=-0.25 * (1 - fall),
+            )  # its lip
+            r.part("sphere", 0.98 * body, 1.55 * tall, 0, 0.5, 1.0 * tall, 1.35, PALL_HOLLOW)  # its shadow
+            for i, (z, reach) in enumerate(PALL_STRANDS):  # slime drooping in strands off its lip
+                length = (reach + 0.08 * math.sin(t * 0.8 + i * 2.1)) * tall
+                top = 1.85 * tall
+                for j in range(PALL_STRAND_BEADS):  # each strand thins as it stretches, then gathers a drop
+                    u = (j + 1) / PALL_STRAND_BEADS
+                    sway = 0.08 * u * u * math.sin(t * 1.3 + i * 1.7)
+                    w = 0.2 - 0.13 * math.sin(u * math.pi * 0.85) if j < PALL_STRAND_BEADS - 1 else 0.17
+                    r.part("sphere", 1.45 * body + 0.06 * u + sway, top - length * u, z + sway * 0.5,
+                           w, length / PALL_STRAND_BEADS * 1.4, w, _dim(skin, 1.1 + 0.1 * u))  # fmt: skip
+            for x, y, z, w in ((0.7, 2.9, 0.4, 0.5), (-0.3, 3.35, -0.5, 0.45), (1.25, 2.25, -0.55, 0.3)):
+                r.part("sphere", x * body, y * tall, z, w, w * 0.5, w, PALL_SHEEN)  # wet light on its curves
+            if fall < 0.6:
+                _pall_face(r, body, tall, rage, lit, gape)
         # Runnels and sheen down its sides, a drop crawling down each.
         for i in range(PALL_RUNNELS):
             a = i * math.tau / PALL_RUNNELS + 0.4
             c, sn = math.cos(a), math.sin(a)
             shade = PALL_DARK if i % 2 else PALL_SHEEN
-            for y, rad, length, tilt in ((0.75, 1.5, 1.2, 0.5), (1.9, 0.95, 1.2, 0.35)):
+            for y, rad, length, tilt in ((0.75, 1.55, 1.2, 0.5), (1.8, 1.1, 1.1, 0.35)):
                 with bent(y), r.at(c * rad * body, y * tall, sn * rad * body, ry=-a):
                     r.part("sphere", 0.04, 0, 0, 0.12, length * tall, 0.16, shade, rz=tilt)
             u = (t * 0.22 + i / PALL_RUNNELS) % 1.0
-            rad, y = 0.75 + 0.85 * u, 2.6 - 2.1 * u
+            rad, y = 0.85 + 0.85 * u, 2.5 - 2.0 * u
             with bent(y):
                 r.part("sphere", c * rad * body, y * tall, sn * rad * body, 0.14, 0.2, 0.14, _dim(skin, 1.25))
         for i in range(4):  # bubbles welling up in it
             a = i * 1.6 + 0.9
             u = (t * (0.7 if rage else 0.4) + i / 4) % 1.0
-            rad = (1.4 - 0.8 * u) * body
+            rad = (1.4 - 0.7 * u) * body
             b = 0.08 + 0.12 * math.sin(u * math.pi)
-            y = 0.6 + 2.0 * u
+            y = 0.6 + 1.9 * u
             with bent(y):
                 r.part("sphere", math.cos(a) * rad, y * tall, math.sin(a) * rad, b, b, b, PALL_SHEEN)
         if fall < 0.6:
-            with bent(1.9):
-                _pall_face(r, body, tall, rage, lit, gape)
+            with bent(1.3):
+                _pall_swallowed(r, body, tall, rage, lit)
+            raise_, spread = _pall_arms(e) if lit else (0.0, 0.0)
+            k = 1 - fall
+            for side in (-1, 1):
+                _pall_arm(r, side, raise_, spread, skin, t, k)
+
+
+def _pall_swallowed(r, body, tall, rage, lit):
+    """What shows through its sides: the ribs of a drowned man and his hand reaching out of its left
+    flank, a second face pressing up out of its right, a rusted lantern and a cart wheel's rim."""
+    glow = PALL_FACE if lit else PALL_FACE_COLD
+    with r.at(-0.1 * body, 1.1 * tall, -1.72 * body, ry=0.3):  # the ribs, and the arm reaching out
+        for i in range(4):
+            r.part("cube", 0, 0.25 - 0.17 * i, 0, 0.5 - 0.04 * i, 0.05, 0.06, PALL_BONE, rx=0.35, ry=0.2)
+        with r.at(0.25, 0.35, -0.15, rx=-0.7, rz=0.5):
+            r.part("cube", 0, 0.35, 0, 0.07, 0.7, 0.07, PALL_BONE)  # the forearm
+            for f in range(4):  # splayed fingers
+                r.part("cube", 0.03 * (f - 1.5), 0.82, 0, 0.025, 0.24, 0.025, PALL_BONE, rz=0.22 * (f - 1.5))
+    with r.at(-0.75 * body, 1.35 * tall, 1.5 * body, ry=-1.25, rz=0.3):  # a second face, pressing out of it
+        r.part("sphere", 0, 0, 0, 0.16, 0.5, 0.36, _dim(PALL_FACE, 0.55) if rage else _dim(PALL, 1.2))
+        for side in (-1, 1):
+            r.part(
+                "sphere", 0.07, 0.08, side * 0.08, 0.05, 0.1, 0.07, glow if rage else PALL_SOCKET, glow=rage
+            )
+        r.part("sphere", 0.07, -0.13, 0, 0.05, 0.12, 0.08, PALL_SOCKET)  # its mouth, stretched in a cry
+    with r.at(-1.6 * body, 0.85 * tall, -1.2 * body, rz=0.4):  # a rusted lantern, swallowed whole
+        r.part("cube", 0, 0, 0, 0.22, 0.3, 0.22, PALL_RUST)
+        r.part("cube", 0, 0, 0, 0.24, 0.18, 0.12, _dim(PALL_FACE, 0.5) if rage else PALL_SOCKET, glow=rage)
+        r.part("cube", 0, 0.2, 0, 0.04, 0.12, 0.14, PALL_RUST)
+    with r.at(-2.05 * body, 0.95 * tall, 0.6 * body, ry=0.25, rx=0.2):  # a cart wheel's rim, half sunk
+        for i in range(8):
+            a = i * math.tau / 8
+            r.part(
+                "cube",
+                0,
+                math.sin(a) * 0.45,
+                math.cos(a) * 0.45,
+                0.06,
+                0.08,
+                0.36,
+                PALL_RUST,
+                rx=-a - math.pi / 2,
+            )
 
 
 def _pall_face(r, body, tall, rage, lit, gape):
-    """The face of the drowned in its folds, facing +X: a brow, two long hollow eyes and a hanging
-    mouth. Raging, the face rises pale and its hollows glow; the mouth gapes to spit or engulf."""
+    """The face of the drowned deep in the shadow of its hood, facing +X: a sunken brow, two hollow
+    sockets and a slack, hanging jaw. Raging, the face rises pale and its hollows glow; the jaw drops
+    to spit or engulf."""
     glow = PALL_FACE if lit else PALL_FACE_COLD
-    x = 0.98 * body
-    if rage:
-        r.part(
-            "sphere", x - 0.08, 1.9 * tall, 0, 0.5, 1.0 * tall, 0.75, _dim(PALL_FACE, 0.8)
-        )  # the face risen
-    r.part("sphere", x + 0.02, 2.22 * tall, 0, 0.22, 0.14 * tall, 0.8, _dim(PALL, 1.2))  # its brow
+    x = 1.2 * body
+    skin = _dim(PALL_FACE, 0.7) if rage else _dim(PALL, 0.85)
+    r.part("sphere", x, 1.55 * tall, 0, 0.26, 0.7 * tall, 0.52, skin)  # the face, sunk in the shadow
+    r.part("sphere", x + 0.08, 1.8 * tall, 0, 0.14, 0.08 * tall, 0.48, _dim(skin, 1.15))  # its brow
     for side in (-1, 1):
-        r.part("sphere", x, 2.02 * tall, side * 0.26, 0.2, 0.34 * tall, 0.18, glow if rage else PALL_SOCKET,
+        r.part("sphere", x + 0.09, 1.7 * tall, side * 0.13, 0.11, 0.15 * tall, 0.1, glow if rage else PALL_SOCKET,
                glow=rage)  # fmt: skip
-    mouth_x = 1.16 * body
-    r.part("sphere", mouth_x, 1.5 * tall, 0, 0.2, (0.5 + 0.45 * gape) * tall, 0.2 + 0.3 * gape,
+    jaw = (0.18 + 0.4 * gape) * tall
+    r.part("sphere", x + 0.11, (1.4 - 0.5 * jaw) * tall, 0, 0.12, jaw, 0.14 + 0.18 * gape,
            glow if rage else PALL_SOCKET, glow=rage)  # fmt: skip
     if gape > 0.3:  # a gout of glowing bile welling in its mouth
-        r.part(
-            "sphere", mouth_x + 0.05, 1.45 * tall, 0, 0.18, 0.4 * gape * tall, 0.3 * gape, PALL_FACE, glow=lit
-        )
+        r.part("sphere", x + 0.15, (1.32 - 0.4 * jaw) * tall, 0, 0.14, 0.3 * gape * tall, 0.22 * gape, PALL_FACE,
+               glow=lit)  # fmt: skip
 
 
 def burrow_ripple(r, t, k):
