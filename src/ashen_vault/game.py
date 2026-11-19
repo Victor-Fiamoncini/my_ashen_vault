@@ -812,6 +812,7 @@ class Game:
                 * back
                 * mult
                 * elements.mult(target.type, element)
+                * elements.brittle_mult(target.type, weapon)
                 * self._hands_mult(weapon)
                 * self._worn_mult(weapon),
             )

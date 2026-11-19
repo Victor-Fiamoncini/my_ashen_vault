@@ -215,19 +215,22 @@ trademarks of FromSoftware, Inc. (*Dark Souls* is published by Bandai Namco Ente
   remedies.
 - **Spells taught by scrolls**: Flame Bolt, Mend, Lumen, Ashen Ward, Venom Dart, Veil of Mist, Pyre,
   Thunder Spear and Arcane Motes, found in chests or sold in town. Iron foes conduct lightning and
-  shrug off fire.
+  shrug off fire; stone ones crack under blunt weapons.
 - **Bosses behind great doors**: the Ashen Sexton fights with grave ash, the Ashen Warden's blade
   catches fire at half health, the Butcher swings his cleaver among the meat hooks, Mother Gnawl and
-  the Sodden Pall rule the sewers, the Loom Mother calls her brood, two iron gargoyles take turns on
+  the Sodden Pall rule the sewers, the Keystone, the giant the first city stood on, rises in its sunken court, the Loom Mother calls her brood, two iron gargoyles take turns on
   the keep's roof, and Duchess Ilvane, the Moonwed, calls the moon down on you in her cathedral. Die in
   an arena and only fog remains at its door.
-- **Seven areas, hand-built**:
+- **Eight areas, hand-built**:
   - the Cemetery of Ashes where you wake, a short first level that teaches as you go;
   - Harrowmere, a walled town of stone and half-timbered houses under violet-slate roofs, climbing from
     its harbour past the Silent Bell to the cathedral where the Enthroned sits, with a smith, an
     herbalist, a trader and a swordsmith to trade with;
   - the Harrow Sewers under its streets, four grates down to rats, slimes that split, the drowned and
     leeches in the sludge;
+  - Old Harrowmere below them, the sunken first city: tiers of drowned towers and stairs over a sheer
+    chasm, a shaft of daylight from far overhead, stone golems that stand like statues and bell-keepers
+    who ring to wake them;
   - the Abandoned Prison below the well: dark cell blocks where hollow inmates still kneel, a captive
     monk behind his bars, a chapel to faceless old gods, traps, and cage lifts down to a skull-walled
     Undercroft and up to the Warden's Gallery;

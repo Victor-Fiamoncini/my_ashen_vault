@@ -17,7 +17,8 @@ edge_tex = sewer_brick
 // Quay Outfall, where the sewers pour out through great grates into the sea. Between the cistern and
 // the outfall Mother Gnawl, the rats' brood-mother, keeps her nest; below the outfall a stair goes down
 // to the Sump, and behind its door the Sodden Pall, all the drains ever carried grown a skin (a bell of
-// green ooze twice a man's height, a drowned face in its folds), fills the deepest cistern. Wadeable sludge (slow
+// green ooze twice a man's height, a drowned face in its folds), fills the deepest cistern; with it gone,
+// the breach in the cistern's north wall leads down into Old Harrowmere. Wadeable sludge (slow
 // going) fills the gutters; the clearer channels cast you back out.
 
 [legend]
@@ -56,13 +57,15 @@ k = floor tex=sludge h=-8.4 ceil=-4 ceil_tex=sewer_vault side=sewer_brick slow=0
 y = floor tex=bog h=-8.4 ceil=-4 ceil_tex=sewer_vault side=sewer_brick hurt=4 slow=0.5 dark=0.3
 b = floor tex=flagstone h=-8 ceil=-2.5 ceil_tex=sewer_vault side=sewer_brick dark=0.15
 q = floor tex=sludge h=-8.4 ceil=-2.5 ceil_tex=sewer_vault side=sewer_brick slow=0.6 dark=0.15
+// A heap of rubble under the breach in the cistern's north wall, a step up from its floor.
+v = floor tex=flagstone h=-7.6 ceil=-2.5 ceil_tex=sewer_vault side=sewer_brick dark=0.15
 
 [grid]
 ################################################
 ################################################
 ###################.ÍF.Á......Á..F..############
 ###################=================############
-###################Â===========L====#FbbbbbbbbF#
+###################Â===========L====#FbbbÑbbbbF#
 ###################Æ.H.....A......ÇF#bqqbbbqqqb#
 ##########...........HH...Å.........#bqqbbbqqqb#
 ##########F########Æ.......F.....Ç.Q#bbbbbbbÈbb#
@@ -130,6 +133,8 @@ L = bilge_leech on==
 M = rat_matron
 N = sodden_pall
 O = door boss=pall_dead
+// Behind it, the breach the Pall's weight wore through the cistern's north wall: down into Old Harrowmere.
+Ñ = exit map=old_harrowmere at=3,3,0 label=Descend_into_Old_Harrowmere model=cistern_breach requires=pall_dead shut="Rubble chokes the breach. Something vast still stirs in the cistern." on=v
 // Her nest has a great door at each mouth: die in there and both give way to fog.
 Ù = door boss=matron_dead
 // Finds: ailments' remedies mostly, for the sewers breed them all.

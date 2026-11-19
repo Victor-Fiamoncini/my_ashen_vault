@@ -17,7 +17,20 @@ How `.map` files work and what can stand on a tile.
   8 m down the outfall's U-turn stair the Sump and the Sodden Pall's cistern behind its great door. Shortcuts: a barred door down from the sluices, the sluice
   pit's drawbridge and a lift from the Sump up to the Cistern (an 8 m ride). Wadeable `sludge` floors (`slow=`, some with
   `flow=`) hold its drowned and leeches; walled in `sewer_brick` under a `sewer_vault`;
-  `test_harrow_sewers_is_solvable`), `vesperholm` (the Moonbound City behind the Vesper Gate in
+  `test_harrow_sewers_is_solvable`; once the Pall falls, the breach in its cistern's north wall,
+  `exit model=cistern_breach requires=pall_dead`, leads down to Old Harrowmere), `old_harrowmere` (the
+  sunken first city, in a cavern below the sewers: a vertical map of tiers over a 40 m `chasm` that kills,
+  with no sky, so the warm amber fog closes in overhead. The Breach Landing (h 0, its shrine and the
+  `sunken_stair` back up to the cistern), the Cliff Stair down the north wall to the bell-keepers' terrace
+  (-8), a bridge out to the Bell Tower, whose stair winds down round three sides of its brick core to the
+  Aqueduct (-16), the Colonnade, the Grand Stair down to the Drowned Plaza (-20) under the one shaft of
+  daylight from a crack in the roof (`sun_shaft height= width=` over its fountain, with warm `light`s at
+  its foot), and the Keystone's Foundation Court (-22) behind two `door boss=keystone_dead` (the front one
+  off the plaza's stair, the rear one out to the lift room; one arena, like Mother Gnawl's nest). The
+  shortcut: a locked lift from the lift room 22 m up to the dark gallery cut through the rock from the
+  landing. `sunken_tower height=` landmarks rise out of the chasm. Paved in `ochre_flag`, walled in
+  `cavern_rock` and `sunken_brick`; the map is drawn by a script's layout, one legend letter per height;
+  `test_old_harrowmere_is_solvable_from_the_breach_down_to_the_keystone`), `vesperholm` (the Moonbound City behind the Vesper Gate in
   Harrowmere's north wall, at the head of the cathedral steps: the town's `exit model=vesper_gate`, always
   open, ends a straight walk north up the steps and the porch past lamps and banner poles, and leads to
   its `start` in the Gate Court, before the gate home (never shut either), which brings you back just south

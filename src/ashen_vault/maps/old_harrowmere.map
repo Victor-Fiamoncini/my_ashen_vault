@@ -1,0 +1,181 @@
+[meta]
+name = Old Harrowmere
+ambient = 0.5 0.4 0.3
+fog = 0.2 0.13 0.07
+fog_range = 14 110
+torch = 8 0.95 0.75 0.5
+start = 4 3 0
+default = a
+entity_floor = auto
+edge_top = 24
+edge_tex = cavern_rock
+model_range = 60
+
+// The first Harrowmere, sunk into a cavern under the town that was raised on its ruins: below the Sodden
+// Pall's cistern its wall gives way onto a sheer chasm, the drowned city standing in it in tiers. From
+// the Breach Landing the Cliff Stair winds down the north wall to the bell-keepers' terrace; a bridge
+// runs out to the Bell Tower, its stair winding down round the tower's core to the Aqueduct, which
+// carries you west to the Colonnade. From there the Grand Stair goes down to the Drowned Plaza, lit by
+// the one shaft of daylight that falls from a crack in the cavern's roof far overhead. Below the plaza
+// the Keystone, the giant the first city was raised on, lies in its Foundation Court; behind it a lift
+// climbs the old gallery's shaft back up to the landing. Stone Golems stand like statues until you come
+// close, and the Sunken Sextons ring their bells to wake them.
+
+[legend]
+# = wall tex=cavern_rock top=24
+a = floor tex=ochre_flag h=0 side=sunken_brick dark=0.1
+b = floor tex=cavern_rock h=-0.5 side=cavern_rock dark=0.07
+c = floor tex=ochre_flag h=-8 side=sunken_brick dark=0.07
+d = floor tex=ochre_flag h=-16 side=sunken_brick dark=0.15
+e = floor tex=ochre_flag h=-20 side=sunken_brick dark=0.15
+f = floor tex=ochre_flag h=-22 side=sunken_brick dark=0.12
+g = floor tex=cavern_rock h=0 side=cavern_rock ceil=3.4 ceil_tex=cavern_rock dark=0.55
+h = floor tex=ochre_flag h=-22 side=sunken_brick dark=0.2
+i = floor tex=cavern_rock h=-4 side=cavern_rock dark=0.07
+j = water tex=water h=-20.6 side=sunken_brick
+_ = floor tex=cavern_rock h=-40 side=cavern_rock chasm dark=0.6
+k = floor tex=cavern_rock h=-4.5 side=cavern_rock dark=0.07
+l = floor tex=cavern_rock h=-7 side=cavern_rock dark=0.07
+m = floor tex=ochre_flag h=-11 side=sunken_brick dark=0.12
+n = floor tex=ochre_flag h=-22 side=sunken_brick dark=0.17
+o = floor tex=ochre_flag h=-22 side=sunken_brick ceil=4 ceil_tex=cavern_rock chasm dark=0.3
+p = floor tex=cavern_rock h=-1 side=cavern_rock dark=0.07
+q = floor tex=cavern_rock h=-1.5 side=cavern_rock dark=0.07
+r = floor tex=cavern_rock h=-2 side=cavern_rock dark=0.07
+s = floor tex=cavern_rock h=-2.5 side=cavern_rock dark=0.07
+t = floor tex=cavern_rock h=-3 side=cavern_rock dark=0.07
+u = floor tex=cavern_rock h=-3.5 side=cavern_rock dark=0.07
+v = floor tex=cavern_rock h=-5 side=cavern_rock dark=0.07
+w = floor tex=cavern_rock h=-5.5 side=cavern_rock dark=0.07
+x = floor tex=cavern_rock h=-6 side=cavern_rock dark=0.07
+y = floor tex=cavern_rock h=-6.5 side=cavern_rock dark=0.07
+z = floor tex=cavern_rock h=-7.5 side=cavern_rock dark=0.07
+0 = floor tex=cavern_rock h=-8 side=cavern_rock dark=0.07
+1 = floor tex=ochre_flag h=0 side=sunken_brick dark=0.05
+2 = floor tex=ochre_flag h=-8 side=sunken_brick dark=0.1
+3 = floor tex=ochre_flag h=-8 side=sunken_brick dark=0.12
+4 = floor tex=ochre_flag h=-8.5 side=sunken_brick dark=0.12
+5 = floor tex=ochre_flag h=-9 side=sunken_brick dark=0.12
+6 = floor tex=ochre_flag h=-16 side=sunken_brick dark=0.12
+7 = wall tex=sunken_brick top=-2
+8 = floor tex=ochre_flag h=-9.5 side=sunken_brick dark=0.12
+9 = floor tex=ochre_flag h=-15.5 side=sunken_brick dark=0.12
+. = floor tex=ochre_flag h=-10 side=sunken_brick dark=0.12
+, = floor tex=ochre_flag h=-15 side=sunken_brick dark=0.12
+; = floor tex=ochre_flag h=-10.5 side=sunken_brick dark=0.12
+: = floor tex=ochre_flag h=-14.5 side=sunken_brick dark=0.12
+! = floor tex=ochre_flag h=-16.5 side=sunken_brick dark=0.15
+? = floor tex=ochre_flag h=-14 side=sunken_brick dark=0.12
+$ = floor tex=ochre_flag h=-13.5 side=sunken_brick dark=0.12
+% = floor tex=ochre_flag h=-13 side=sunken_brick dark=0.12
+& = floor tex=ochre_flag h=-12.5 side=sunken_brick dark=0.12
+* = floor tex=ochre_flag h=-12 side=sunken_brick dark=0.12
++ = floor tex=ochre_flag h=-11.5 side=sunken_brick dark=0.12
+- = floor tex=ochre_flag h=-17 side=sunken_brick dark=0.15
+< = floor tex=ochre_flag h=-17.5 side=sunken_brick dark=0.15
+> = floor tex=ochre_flag h=-18 side=sunken_brick dark=0.15
+@ = floor tex=ochre_flag h=-18.5 side=sunken_brick dark=0.15
+^ = floor tex=ochre_flag h=-19 side=sunken_brick dark=0.15
+~ = floor tex=ochre_flag h=-19.5 side=sunken_brick dark=0.15
+| = floor tex=ochre_flag h=-20.5 side=sunken_brick dark=0.17
+( = floor tex=ochre_flag h=-21 side=sunken_brick dark=0.17
+) = floor tex=ochre_flag h=-21.5 side=sunken_brick dark=0.17
+{ = wall tex=sunken_brick top=-10
+
+[grid]
+################################################
+################################################
+##aaaaaaaaaaCpqrstuMkvwxyVz0ÑccccccÍ############
+##AaaaaaaaaaCpqrstuiUvwxylz0ccccccXc############
+##aaaaaaaaaa11______________ccccWccc_________###
+##aaaaaaaaaa11______________cXcccccc_________###
+##aaaaBaaaDa11______________EccccÆcE_________###
+##aaaaaaaaaa_____P____________22_____________###
+###g########__________________22_____________###
+###g########LddddddÒ__________22_____________###
+###g########dÀÃddÃdd__________22________Q____###
+###g########FdddZddF__________3345___________###
+###g########dddddddd66666666677778___________###
+###g########ddÃddÃdÈ6666666697777.___________###
+###J########dÀddddÀd________,7777;___________###
+###g########Îddddddd________:7777Y___________###
+###g########__!!____________?$%&*+___________###
+###g######____--_____________________________###
+###g######____<<_____________________________###
+###g######____>>________T____________________###
+###g######____@@_____________________________###
+###g######____^^_____________________________###
+###g######____~~______________________R______###
+###g######____ee_____________________________###
+###g######GeeeeeeeeeeeeeeeeeeeeeG____________###
+###g######eeeeeeeeeeeeeeeeeeeeeee____________###
+###J######eeÄeeeeeeeeOeeeeÂeeeÄee____________###
+###g######eeeeeeÂeeejjjeeeeeeeeee____________###
+###g######eÇeeeeeeOejNjeOeeeeeeee____________###
+###g######eeeeeeeeeejjjeeeeeeeeee____________###
+###g######ÓeeeeeeeeeeOeeeeeeeeeee____________###
+###g######eeÄeeeeeÉeeeeeeeÁeeeÄee_________S__###
+###g######eeÂeeeeeeeeeeeeeeeeeÂee____________###
+###g######ÏeeeeeeeeeeeeeÇeeeeeeeÓ____________###
+###g######___________|_______________________###
+###g######___________(_______________________###
+###g######___________)_______________________###
+###g######{{{{{{{{{{{n{{{{{{{{{{################
+###gggJg####{{{{{{{{{Ë{{{{{{{{{{################
+#######Ì####{HfffffffffffffffffH################
+######Khhhhh{fffffffffffffffffff################
+######hhhhhh{fffÅfffffffffffÅfff################
+######hhhhhhËfffffIfffffffIfffff################
+######hhhhhh{fffffffffÊfffffffff################
+######hhhhhÐ{fffÅfffffffffffÅfff################
+############{fffffffffIfffffffff################
+############{HfffffffffffffffffH################
+################################################
+
+[entities]
+A = exit map=harrow_sewers at=41,5,90 label=Climb_back_up_to_the_cistern model=sunken_stair on=a
+B = save_statue on=a
+C = hint text="Stone shrugs off an edge, but cracks under a blunt blow.|A mace, a hammer or a club will serve you here." on=b
+D = brazier radius=10 on=a
+E = brazier radius=10 on=c
+F = brazier radius=10 on=d
+G = brazier radius=10 on=e
+H = brazier radius=10 on=f
+I = light y=4 color=1.0,0.62,0.32 radius=12 on=f
+J = torch radius=8 on=g
+K = torch radius=8 on=h
+L = torch radius=8 on=d
+M = torch radius=8 on=i
+N = sun_shaft height=26 width=3 on=j
+O = light y=3 color=1.3,1.0,0.55 radius=10 on=e
+P = sunken_tower height=34 on=_
+Q = sunken_tower height=30 on=_
+R = sunken_tower height=38 on=_
+S = sunken_tower height=26 on=_
+T = sunken_tower height=32 on=_
+U = sunken_sexton on=k
+V = stone_golem on=l
+W = sunken_sexton on=c
+X = stone_golem on=c
+Y = stone_golem on=m
+Z = sunken_sexton on=d
+À = stone_golem on=d
+Á = sunken_sexton on=e
+Â = stone_golem on=e
+Ã = pillar on=d
+Ä = pillar on=e
+Å = pillar on=f
+Æ = rubble on=c
+Ç = rubble on=e
+È = bones on=d
+É = bones on=e
+Ê = keystone on=f
+Ë = door boss=keystone_dead on=n
+Ì = lift top=0 locked on=o
+Í = chest item=red_tonic count=2 gold=90 model=worn on=c
+Î = chest item=menders_kit gold=110 model=banded on=d
+Ï = chest item=blue_moss count=2 gold=140 on=e
+Ð = chest gold=260 model=coffer on=h
+Ñ = urn on=c
+Ò = urn on=d
+Ó = urn on=e

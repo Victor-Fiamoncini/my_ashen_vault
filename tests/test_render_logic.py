@@ -29,6 +29,7 @@ def test_mesh_builder_batches_shipped_maps():
         "cinder_keep",
         "harrow_sewers",
         "vesperholm",
+        "old_harrowmere",
     ):
         m = MapLoader.load_file(map_path(name))
         b = MeshBuilder(m, lights=MeshBuilder.lights_for(m)).build()
@@ -482,6 +483,7 @@ def test_bosses_have_boss_level_detail():
         "sexton",
         "sodden_pall",
         "moon_duchess",
+        "keystone",
     )
     for boss in bosses:
         assert _drawn(boss)[1] >= 50, boss
@@ -505,6 +507,8 @@ def test_bosses_have_boss_level_detail():
         "lantern_wraith",
         "veiled_knight",
         "hollow_inmate",
+        "stone_golem",
+        "sunken_sexton",
     )
     for foe in foes:
         assert _drawn(foe)[1] >= 30, foe
@@ -514,6 +518,7 @@ def test_phase_two_changes_how_each_boss_looks():
     for boss in (
         *("ashen_warden", "butcher", "brand", "bellows", "sexton", "rat_matron", "sodden_pall"),
         "moon_duchess",
+        "keystone",
     ):
         (calm, calm_n), (raging, raging_n) = _drawn(boss), _drawn(boss, phase2=True)
         assert raging.glows > calm.glows or raging_n > calm_n, boss
@@ -791,6 +796,56 @@ def test_the_sextons_spade_never_folds_back_in_any_move():
                 assert _off_forearm(models.aim_wrist(blade, hit + elbow)) <= 150, (move, state, t)
 
 
+def test_the_sunken_sextons_hammer_never_folds_back_and_it_lifts_its_bell_to_toll():
+    import random
+
+    from ashen_vault.ai.enemy import Enemy
+    from ashen_vault.ai.enemy_types import EnemyTypes
+    from ashen_vault.render import sunken_models
+
+    type_ = EnemyTypes.get("sunken_sexton")
+    for move in (None, *type_.moves):
+        for state in ("chase", "windup", "attack", "recover"):
+            for t in (0.0, 0.1, 0.3, 0.6, 2.0):
+                e = Enemy(type_, 0, 0, rng=random.Random(0))
+                e.state, e.state_t, e.attack_kind = state, t, move
+                _shoulder, _elbow, wrist, _ring = sunken_models.sexton_arms(e)
+                assert _off_forearm(wrist) <= 150, (move, state, t)
+    e = Enemy(type_, 0, 0, rng=random.Random(0))
+    e.state, e.state_t, e.attack_kind = "attack", 0.1, "toll"
+    assert sunken_models.sexton_arms(e)[3] == 1.0  # the bell held high
+
+
+def test_the_keystones_moves_each_strike_their_own_pose():
+    import random
+
+    from ashen_vault.ai.enemy import Enemy
+    from ashen_vault.ai.enemy_types import EnemyTypes
+    from ashen_vault.render import sunken_models
+
+    type_ = EnemyTypes.get("keystone")
+    poses = set()
+    for move in (*type_.moves, *type_.phase_moves):
+        e = Enemy(type_, 0, 0, rng=random.Random(0))
+        e.state, e.state_t, e.attack_kind = "windup", 0.9, move
+        poses.add(tuple(round(v, 3) for v in sunken_models.keystone_pose(e)))
+    assert len(poses) == len(type_.moves) + len(type_.phase_moves)
+
+
+def test_old_harrowmeres_dressing_draws():
+    from ashen_vault.render import sunken_models
+
+    for name, fn in (
+        ("sun_shaft", lambda r: sunken_models.sun_shaft(r, 0.3)),
+        ("sunken_tower", lambda r: sunken_models.sunken_tower(r, 4, 18.0)),
+        ("rubble_chunk", lambda r: sunken_models.rubble_chunk(r, (150, 132, 104), 0.3)),
+    ):
+        gpu = _GlowGpu()
+        fn(rig.Rig(gpu))
+        assert len(gpu.parts) >= 5, name
+        assert min(y for _, y in gpu.parts) > -0.5, name
+
+
 def test_the_sextons_own_moves_each_strike_their_own_pose():
     import random
 
@@ -904,6 +959,7 @@ def test_every_map_texture_is_generated():
         "cinder_keep",
         "harrow_sewers",
         "vesperholm",
+        "old_harrowmere",
     ):
         m = MapLoader.load_file(ashen_vault.map_path(map_name))
         tiles = {m[tx, tz] for tz in range(m.depth) for tx in range(m.width)}
@@ -1309,6 +1365,7 @@ def test_every_boss_has_its_own_great_door_and_its_lamps_go_out_when_cleared():
         "cinder_keep",
         "harrow_sewers",
         "vesperholm",
+        "old_harrowmere",
     ):
         m = MapLoader.load_file(map_path(name))
         flags |= {s.props["boss"] for s in m.entities if s.kind == "door" and s.props.get("boss")}
@@ -1795,7 +1852,14 @@ def test_villager_hands_are_smaller_than_the_arm_and_close_round_what_they_hold(
 def test_every_way_between_maps_is_built_in_detail():
     """The gates, doors, wells, caves and ropes that lead from map to map are landmarks of their own,
     not a handful of boxes; the road gate's two ends differ."""
-    from ashen_vault.render import cemetery_models, forge_models, models, moon_models, sewer_models
+    from ashen_vault.render import (
+        cemetery_models,
+        forge_models,
+        models,
+        moon_models,
+        sewer_models,
+        sunken_models,
+    )
 
     def parts(fn):
         gpu = _RecordingGpu()
@@ -1814,6 +1878,8 @@ def test_every_way_between_maps_is_built_in_detail():
         "sewer_ladder": lambda r: sewer_models.sewer_ladder(r, 0.3),
         "vesper_gate": lambda r: moon_models.vesper_gate(r, 0.0, 0.3),
         "vesper_gate open": lambda r: moon_models.vesper_gate(r, 1.0, 0.3),
+        "cistern_breach": lambda r: sunken_models.cistern_breach(r, 0.3),
+        "sunken_stair": lambda r: sunken_models.sunken_stair(r, 0.3),
     }
     for name, fn in exits.items():
         assert len(parts(fn)) >= 25, name

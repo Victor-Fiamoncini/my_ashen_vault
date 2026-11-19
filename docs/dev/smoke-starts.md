@@ -55,6 +55,15 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   drawbridge down). Bosses: `--at=34,32,-160 --level 10 --script "wait:3.2"` (Mother Gnawl rising in her
   nest, its great doors at 29,28 and 33,34; `--at=29,27,90 --script "interact wait:1 forward:1.5"` walks in
   through the north one), `--at=41,13,-90 --level 10 --script "wait:4.5"` (the Sodden Pall behind its door at 41,15).
+- Old Harrowmere (`old_harrowmere`) lies below the Sodden Pall's cistern, through the breach at 41,4 in its
+  north wall: `--map harrow_sewers --at=41,5,-90 --flags pall_dead --script "wait:0.3 interact"` (go down;
+  without the flag it says it is shut). Tiers: `--map old_harrowmere` (the Breach Landing, its `start`, the
+  shrine at 6,6), `--at=13,5,50 --script "look_down:0.5"` (the overlook: the chasm, the towers and the lit
+  plaza far below), `--at=15,3,0` (the Cliff Stair, a sexton and a golem on it), `--at=32,3,180` (the
+  terrace), `--at=31,9,90` (the bridge to the Bell Tower), `--at=24,12,180` (the Aqueduct), `--at=15,12,180`
+  (the Colonnade), `--at=15,24,40` (the Drowned Plaza and its shaft of light), `--at=7,38,90` (the lift
+  head at the gallery's end, fastened until ridden from below). Boss: `--at=22,39,90 --level 10 --script
+  "wait:4.5"` (the Keystone rising in its court; its doors at 21,38 and 12,42).
 - Vesperholm (`vesperholm`) lies behind the Vesper Gate in Harrowmere's north wall, at the head of the
   cathedral steps; it always stands open: `--map harrowmere --at=22,15,-90` (from the foot of the steps,
   the gate straight ahead up the porch), `--map harrowmere --at=22,2,-90 --script "wait:0.3 interact"`

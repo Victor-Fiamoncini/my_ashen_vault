@@ -658,6 +658,7 @@ def test_a_boss_of_ash_waits_as_a_heap_untouchable_until_it_rises():
         "rat_matron",
         "sodden_pall",
         "moon_duchess",
+        "keystone",
     ):
         boss = Enemy(EnemyTypes.get(type_id), 0, 0, rng=random.Random(0))
         assert boss.state == "ashes" and boss.unseen and boss.rise_progress == 0.0
@@ -962,3 +963,81 @@ def test_a_quick_boss_strikes_sooner():
     quick_world.move_enemy = lambda *_: None
     tick(quick, quick_world, 0.6)
     assert len(quick_world.struck) > len(world.struck)
+
+
+# --- Old Harrowmere ------------------------------------------------------------------------------
+
+
+class BellWorld(FakeWorld):
+    def __init__(self, px, pz, sleepers=True):
+        super().__init__(px, pz)
+        self.sleepers = sleepers
+        self.tolls = 0
+        self.quakes = 0
+
+    def can_toll(self, _enemy):
+        return self.sleepers
+
+    def toll(self, _enemy):
+        self.tolls += 1
+
+    def quake(self, _enemy):
+        self.quakes += 1
+
+
+def _awake(type_id, x=0.0):
+    e = Enemy(EnemyTypes.get(type_id), x, 0, rng=random.Random(0))
+    e.state = "chase"
+    return e
+
+
+def test_a_sexton_rings_its_bell_only_with_sleepers_near_and_you_kept_off():
+    from ashen_vault.ai.enemy import TOLL_RANGE
+
+    sexton = _awake("sunken_sexton")
+    sexton.cooldowns["toll"] = 0.0
+    assert sexton._pick_move(BellWorld(TOLL_RANGE[0] + 1, 0, sleepers=False), TOLL_RANGE[0] + 1) is None
+    assert sexton._pick_move(BellWorld(1.0, 0), 1.0) is None  # too close: it swings instead
+    world = BellWorld(TOLL_RANGE[0] + 1, 0)
+    assert sexton._pick_move(world, TOLL_RANGE[0] + 1) == "toll"
+    sexton._begin_windup("toll")
+    tick(sexton, world, 2.0)
+    assert world.tolls == 1
+
+
+def test_the_keystone_quakes_and_hurls_only_in_its_second_phase():
+    keystone = _awake("keystone")
+    assert "quake" not in keystone.cooldowns and "hurl" not in keystone.cooldowns
+    world = BellWorld(10.0, 0)
+    keystone.hp = keystone.type.hp // 2 - 1
+    keystone.update(0.05, world)
+    assert keystone.phase2 and {"quake", "hurl"} <= set(keystone.cooldowns)
+    keystone.cooldowns = dict.fromkeys(keystone.cooldowns, 0.0)
+    keystone.cooldowns["quake"] = 99.0
+    assert keystone._pick_move(world, 10.0) == "hurl"
+    keystone._switch("chase")
+    keystone._begin_windup("hurl")
+    tick(keystone, world, 2.0)
+    assert world.fired == ["hurl"]
+    keystone._switch("chase")
+    keystone._begin_windup("quake")
+    tick(keystone, world, 2.0)
+    assert world.quakes == 1
+
+
+def test_a_golem_stands_as_a_statue_until_you_come_close_or_strike_it():
+    golem = Enemy(EnemyTypes.get("stone_golem"), 0, 0, rng=random.Random(0))
+    assert golem.perched
+    tick(golem, FakeWorld(12.0, 0), 1.0)
+    assert golem.perched  # far off: it stays stone
+    golem.update(0.05, FakeWorld(3.0, 0))
+    assert golem.state == "rising"
+
+
+def test_an_idle_foe_answers_the_bell():
+    walker_ = walker()
+    walker_.state = "idle"
+    walker_.alert()
+    assert walker_.state == "chase"
+    walker_.alert()
+    assert walker_.state == "chase"

@@ -30,11 +30,13 @@ def world_on(name, flags=(), at=None):
         ("ashen_cemetery", "sexton_dead", (10, 5)),
         ("harrow_sewers", "pall_dead", (41, 8)),
         ("vesperholm", "duchess_dead", (21, 4)),
+        ("old_harrowmere", "keystone_dead", (22, 43)),
     ],
 )
 def test_every_boss_has_a_closed_arena_behind_a_great_door(map_name, flag, lair):
     _game, world = world_on(map_name)
-    (arena,) = [a for a in world.arenas if a.flag == flag]
+    (arena, *more) = [a for a in world.arenas if a.flag == flag]
+    assert all(a.tiles == arena.tiles for a in more)  # a lair with two doors (the Keystone's) is one arena
     assert lair in arena.tiles
     assert arena.gate not in arena.tiles
     assert 10 < len(arena.tiles) < 200  # closed: the flood never leaked out past the door

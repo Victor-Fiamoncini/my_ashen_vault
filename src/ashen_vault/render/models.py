@@ -76,6 +76,9 @@ def enemy(r, e):
         "moonhound": moon_models.moonhound,
         "veiled_knight": moon_models.veiled_knight,
         "moon_duchess": moon_models.moon_duchess,
+        "stone_golem": sunken_models.stone_golem,
+        "sunken_sexton": sunken_models.sunken_sexton,
+        "keystone": sunken_models.keystone,
     }.get(e.type.id)
     if e.type.id == "bone_walker" and getattr(e, "look", None) == "grave":
         fn = cemetery_models.grave_walker  # the cemetery's own dead, risen in their winding sheets
@@ -2577,6 +2580,11 @@ BOSS_DOORS = {
     "duchess_dead": DoorStyle(
         (176, 190, 220), "moon_glass", (170, 176, 190), (150, 158, 176), "moonstone", "moon"
     ),
+    # The Keystone: sun-bleached old timber in an arch of the drowned city's sandstone, a carved
+    # keystone over it, braziers of embers on the jambs.
+    "keystone_dead": DoorStyle(
+        (120, 104, 82), "wood_plank", (78, 66, 56), (138, 120, 96), "sunken_brick", "ember"
+    ),
 }
 DEFAULT_DOOR = "boss_dead"
 
@@ -2820,6 +2828,7 @@ DOOR_ARCHES = {
     "pall_dead": _pall_arch,
     "matron_dead": _matron_arch,
     "duchess_dead": _duchess_arch,
+    "keystone_dead": lambda *a: sunken_models._keystone_arch(*a),
 }
 DOOR_LEAVES = {
     "boss_dead": _warden_leaf,
@@ -2830,6 +2839,7 @@ DOOR_LEAVES = {
     "pall_dead": _pall_leaf,
     "matron_dead": _matron_leaf,
     "duchess_dead": _duchess_leaf,
+    "keystone_dead": lambda *a: sunken_models._keystone_leaf(*a),
 }
 FOG_RISE = 0.3  # how many times a second a billow of the fog gate climbs from the floor to its top
 
@@ -6698,4 +6708,5 @@ from ashen_vault.render import (  # noqa: E402
     moon_models,
     prison_models,
     sewer_models,
+    sunken_models,
 )

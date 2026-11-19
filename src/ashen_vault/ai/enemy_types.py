@@ -35,7 +35,7 @@ class EnemyType:
     # Color of the projectiles a ranged enemy fires.
     shot_rgb: tuple = (255, 120, 40)
     # What its shots look like when they are not plain bolts of light: "arrow", "thorn", "lance" (a
-    # lance of moon-frost, which numbs the legs of whoever it strikes).
+    # lance of moon-frost, which numbs the legs of whoever it strikes), "rubble" (a hurled block of masonry).
     shot: str | None = None
     # Turning speed in rad/s; None turns instantly. Slow turners can be outflanked.
     turn_rate: float | None = None
@@ -46,7 +46,7 @@ class EnemyType:
     # Special attacks mixed in (see enemy.MOVES): "sweep", "web", "pounce", "cinders", "combo",
     # "slam", "eruption", "hook", "breath", "dive", "exhale", "ashfall", "spadeful", "grasp",
     # "dust_devil", "knell", "fireball", "bile", "engulf", "shed", "tail_lash", "squeal",
-    # "frost_lance", "blink", "moonbeam", "moonfall".
+    # "frost_lance", "blink", "moonbeam", "moonfall", "toll", "quake", "hurl".
     moves: tuple = ()
     # Enemy type a boss calls to its side once, when it drops to half HP.
     brood: str | None = None
@@ -60,6 +60,8 @@ class EnemyType:
     flammable: bool = False
     # Iron foes: lightning hurts them more and jolts them (see world/elements.py).
     conductive: bool = False
+    # Stone foes: blunt weapons crack them, edges skate off (see world/elements.py `brittle_mult`).
+    brittle: bool = False
     # Forged in fire: fire hurts them half as much and never sets them alight.
     fireproof: bool = False
     # Perched like a statue until you come within `sight`; waking one wakes its twin too.
@@ -819,6 +821,91 @@ class EnemyTypes:
                 height=0.25,
                 tall=0.4,
                 inflicts=(("poison", 20), ("corrosion", 15)),
+            ),
+            # --- Old Harrowmere, the sunken city ----------------------------------------------------
+            EnemyType(
+                id="stone_golem",
+                material="stone",
+                name="Stone Golem",
+                # Masonry the first city's builders set walking to carry its stone, then left standing
+                # where the water found them: it waits like a statue until you come close (or a
+                # sexton's bell calls it), slow to turn and cracked open down its back.
+                hp=70,
+                speed=0.85,
+                damage=16,
+                reach=2.2,
+                sight=5,
+                windup=1.0,
+                recover=1.3,
+                exp=40,
+                gold=range(10, 22),
+                radius=0.75,
+                height=2.2,
+                tall=2.4,
+                poise=12,
+                perch=True,
+                turn_rate=1.2,
+                back_mult=2.0,
+                brittle=True,
+                moves=("slam", "sweep"),
+            ),
+            EnemyType(
+                id="sunken_sexton",
+                name="Sunken Sexton",
+                # The old city's bell-keepers, stooped and sodden, still walking their rounds with a
+                # lantern and a bell-hammer. Give one room and it rings its hand-bell: whatever sleeps
+                # in stone round it wakes and comes.
+                hp=38,
+                speed=1.5,
+                damage=9,
+                reach=1.6,
+                sight=11,
+                windup=0.6,
+                recover=0.8,
+                exp=22,
+                gold=range(6, 16),
+                radius=0.4,
+                height=1.5,
+                tall=1.7,
+                poise=6,
+                moves=("toll",),
+                inflicts=(("bleed", 20),),
+            ),
+            EnemyType(
+                id="keystone",
+                material="stone",
+                name="The Keystone",
+                # The giant the first city was raised on: it bore the foundations on its back, and when
+                # the city sank it lay down under the rubble. It rises out of the ruin when you step into
+                # its court, slams its fists and sweeps them all round; at half HP its shell splits on an
+                # ember core, and it stamps the ground so a ring of shock runs out (step in under it, or
+                # stand well off) and hurls masonry at you from afar.
+                hp=380,
+                speed=0.9,
+                damage=22,
+                reach=3.0,
+                sight=16,
+                windup=1.1,
+                recover=1.4,
+                exp=260,
+                gold=range(120, 137),
+                radius=1.7,
+                height=4.6,
+                tall=6.0,
+                boss=True,
+                dead_flag="keystone_dead",
+                rise="ash",
+                epitaph="The Keystone sinks to its knees, and the old city settles one last time upon it.",
+                poise=24,
+                turn_rate=1.4,
+                back_mult=1.5,
+                brittle=True,
+                moves=("slam", "sweep"),
+                phase_moves=("quake", "hurl"),
+                rage="The Keystone's shell splits, and an ember core glows through the cracks!",
+                shot="rubble",
+                shot_rgb=(150, 132, 104),
+                mouth=4.2,
             ),
             # --- Vesperholm, the Moonbound City ----------------------------------------------------
             EnemyType(

@@ -1,11 +1,17 @@
 """Elements: lightning bites iron, fire splashes off what was forged in it. Pure logic, no raylib.
 
+Stone foes are `brittle`: a blunt blow (`STRIKE_CATEGORIES`) cracks them, an edge skates off.
+
 An attack's element is `"lightning"`, `"fire"` or None. Spell bolts carry theirs in their effect,
 weapons in `Item.element`."""
 
 LIGHTNING_MULT = 1.5  # conductive foes (iron) take this much more from lightning
 FIREPROOF_MULT = 0.5  # fireproof foes take this much of a fire attack
 WEAPON_BURN = (3.0, 3)  # seconds and HP per second a fire weapon leaves a foe burning
+
+BRITTLE_STRIKE_MULT = 1.5  # a blunt weapon on a brittle (stone) foe: it cracks
+BRITTLE_EDGE_MULT = 0.75  # any other weapon on one: the edge skates off the stone
+STRIKE_CATEGORIES = frozenset({"club", "hammer", "mace", "fists"})
 
 # Bolt effects and the element each carries.
 EFFECT_ELEMENT = {"flame": "fire", "thunder": "lightning"}
@@ -28,3 +34,11 @@ def burns(type_, element):
 def staggers(type_, element):
     """Lightning jolts conductive foes off their feet whatever their poise (bosses excepted)."""
     return element == "lightning" and type_.conductive and not type_.boss
+
+
+def brittle_mult(type_, weapon):
+    """Damage multiplier for a blow of `weapon` (an Item, or None for bare fists) on `type_`."""
+    if not type_.brittle:
+        return 1.0
+    category = weapon.category if weapon is not None else "fists"
+    return BRITTLE_STRIKE_MULT if category in STRIKE_CATEGORIES else BRITTLE_EDGE_MULT

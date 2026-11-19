@@ -13,9 +13,12 @@ from ashen_vault.ai.enemy import (
     EXHALE_CONE,
     EXHALE_REACH,
     MOVES,
+    QUAKE_RADIUS,
+    QUAKE_SAFE,
     SLAM_RADIUS,
     SQUEAL_RADIUS,
     STATUE_BURST,
+    TOLL_RADIUS,
     Enemy,
 )
 from ashen_vault.ai.enemy_types import EnemyTypes
@@ -32,6 +35,7 @@ from ashen_vault.render import (
     prison_models,
     prop_bake,
     sewer_models,
+    sunken_models,
     town_models,
 )
 from ashen_vault.render.mesh_builder import KINDLING, Batch, MeshBuilder
@@ -327,6 +331,8 @@ LANDMARKS = (
     "wall_tower",
     "rampart_bay",
     "moon_spire",
+    "sunken_tower",
+    "sun_shaft",
 )
 # Props that never move, open, break or flicker: they are baked once into world-space batches
 # (`render/prop_bake.py`) instead of being drawn part by part every frame. A prop drawn with the time
@@ -344,7 +350,7 @@ STATIC_PROPS = frozenset(
         *("weapon_rack", "armor_stand", "katana_stand", "bookcase", "drawers"),
         *("sluice_wheel", "outfall_grate", "rat_nest", "inkcaps", "sump_caps"),
         *("moon_lamp", "veiled_statue", "silver_tree", "moon_window", "moon_spire"),
-        *("prisoner_remains", "old_idol"),
+        *("prisoner_remains", "old_idol", "sunken_tower"),
         "ash_mound",
         "spire",
     }
@@ -434,6 +440,7 @@ BURST_SPOUTS = 6
 ENGULF_GLOOM = 2.5  # seconds the dark of the Pall's insides stays on your eyes after it lets you go
 ENGULF_DARK = 0.85  # how dark it gets, as on a `dark=` tile
 LANCE_SPEED = 10.0  # m/s a lance of moon-frost flies
+RUBBLE_SPEED = 9.0  # m/s a block of masonry the Keystone hurls flies
 LANCE_FAN = 0.22  # radians between the lances of a fan of three
 LANCE_CHILL = 1.2  # seconds moon-frost numbs your legs (`Player.chill_t`: slowed, as by silk)
 MOON_FROST = 30  # frost a shaft of moonlight builds in you (see player/ailments.py)
@@ -1154,7 +1161,9 @@ class World:
             if e.perched:
                 e.rouse()
                 woke = True
-        if woke or not enemy.type.twin:
+        if not enemy.type.twin:
+            self.game.sfx("quake", 0.4)  # a lone statue grinds free of its plinth
+        elif woke:
             self.game.sfx("screech")
             self.game.message("The iron gargoyles tear free of their perches!")
 
@@ -1347,6 +1356,8 @@ class World:
             if enemy.type.shot == "arrow"
             else LANCE_SPEED
             if enemy.type.shot == "lance"
+            else RUBBLE_SPEED
+            if enemy.type.shot == "rubble"
             else 6
         )
         dx, dy, dz = shots.toward(
@@ -1354,7 +1365,7 @@ class World:
         )
         lead = enemy.radius / speed  # leaves from the edge of its body
         damage = enemy.type.damage
-        if kind in ("web", "cinders", "spadeful", "fireball", "bile", "frost_lance"):
+        if kind in ("web", "cinders", "spadeful", "fireball", "bile", "frost_lance", "hurl"):
             damage = rround(damage * MOVES[kind][2])
         self.projectiles.append(
             Projectile(
@@ -1467,6 +1478,49 @@ class World:
             spots.append((player.x - fz * side * MOONBEAM_ASIDE, player.z + fx * side * MOONBEAM_ASIDE, 0.15))
         self._moonlight(spots, damage)
         self.game.message("The moonlight gathers over you!")
+
+    def _sleepers(self, enemy):
+        """The foes a bell rung by `enemy` would wake: statues on their perches and anything standing
+        idle, within TOLL_RADIUS of it (never a boss)."""
+        return [
+            e
+            for e in self.enemies
+            if e is not enemy
+            and not e.type.boss
+            and (e.perched or e.state == "idle")
+            and math.hypot(e.x - enemy.x, e.z - enemy.z) <= TOLL_RADIUS
+        ]
+
+    def can_toll(self, enemy):
+        """A sexton rings its bell only when there is something near it to wake."""
+        return bool(self._sleepers(enemy))
+
+    def toll(self, enemy):
+        """A sexton rings its hand-bell: every sleeper within TOLL_RADIUS of it wakes and comes for you.
+        Kill a sexton before it gets the chance."""
+        woke = self._sleepers(enemy)
+        for e in woke:
+            if e.perched:
+                e.rouse()
+            else:
+                e.alert()
+        self.game.sfx("bell", 0.8)
+        if woke:
+            self.game.message(f"{enemy.type.called} rings its bell, and the stone stirs!")
+
+    def quake(self, enemy):
+        """The Keystone stamps: a ring of shock runs out along the floor to QUAKE_RADIUS. It rises only
+        beyond QUAKE_SAFE of its body, so it passes under whoever stands in close; out past its reach
+        you are safe as well. No shield stops the ground."""
+        floor = self.enemy_y(enemy)
+        self.shockwaves.append(Shockwave(enemy.x, enemy.z, floor, QUAKE_RADIUS))
+        self.game.sfx("quake", 1.2)
+        player = self.player
+        d = math.hypot(player.x - enemy.x, player.z - enemy.z)
+        if player.alive and enemy.radius + QUAKE_SAFE < d <= QUAKE_RADIUS:
+            dmg = foe_harm(enemy.type.damage * MOVES["quake"][2])
+            self.game.hurt_player(max(rround(dmg - player.inventory.defense * 0.3), 1), enemy.name)
+            self.game.message("The ground heaves under you!")
 
     def moonfall(self, enemy):
         """Second phase: the moon rains down round you, a shaft where you stand and then rings of them
@@ -2709,6 +2763,8 @@ class World:
                     forge_models.mote(rig, self._time)
                 elif pr_.effect == "ash":
                     cemetery_models.ash_clod(rig, self._time)
+                elif pr_.effect == "rubble":
+                    sunken_models.rubble_chunk(rig, pr_.rgb, self._time)
                 else:
                     models.bolt(rig, pr_.rgb, self._time)
 
@@ -2895,6 +2951,10 @@ class World:
                 sewer_models.sewer_grate(rig, t)
             elif p.props.get("model") == "vesper_gate":  # it stands open once the three sigils are taken
                 moon_models.vesper_gate(rig, 1.0 if self.exit_open(p) else 0.0, t)
+            elif p.props.get("model") == "cistern_breach":
+                sunken_models.cistern_breach(rig, t)
+            elif p.props.get("model") == "sunken_stair":
+                sunken_models.sunken_stair(rig, t)
             elif p.props.get("model") == "sewer_ladder":  # set back against the wall behind it, if any
                 behind = self.map[p.tx - rround(math.cos(p.yaw)), p.tz - rround(math.sin(p.yaw))]
                 sewer_models.sewer_ladder(rig, t, self._ceil_h(p), LADDER_BACK if behind.solid else 0.0)
@@ -3002,6 +3062,11 @@ class World:
                 moon_models.moon_window(rig, p.tx * 7 + p.tz * 3)
         elif k == "moon_spire":
             moon_models.moon_spire(rig, p.tx * 7 + p.tz * 3, float(p.props.get("height", "14")))
+        elif k == "sunken_tower":
+            sunken_models.sunken_tower(rig, p.tx * 7 + p.tz * 3, float(p.props.get("height", "18")))
+        elif k == "sun_shaft":
+            height = float(p.props.get("height", "14"))
+            sunken_models.sun_shaft(rig, t, height, float(p.props.get("width", "2.4")))
 
     def _draw_town_prop(self, rig, p, k, t):
         seed = p.tx * 7 + p.tz * 3

@@ -494,3 +494,17 @@ def test_a_flame_bolt_aimed_at_bellows_in_flight_burns_it():
             break
     assert bellows.hp < bellows.type.hp
     assert bellows.flashing  # far too heavy to stagger, but the hit shows
+
+
+def test_blunt_weapons_crack_brittle_stone_and_edges_skate_off():
+    from ashen_vault.ai.enemy_types import EnemyTypes
+    from ashen_vault.player.items import Items
+
+    golem = EnemyTypes.get("stone_golem")
+    mace = next(i for i in Items.ALL.values() if i.category == "mace")
+    sword = next(i for i in Items.ALL.values() if i.category == "sword")
+    assert elements.brittle_mult(golem, mace) == elements.BRITTLE_STRIKE_MULT
+    assert elements.brittle_mult(golem, sword) == elements.BRITTLE_EDGE_MULT
+    assert elements.brittle_mult(golem, None) == elements.BRITTLE_STRIKE_MULT  # bare fists
+    assert elements.brittle_mult(EnemyTypes.get("sewer_rat"), mace) == 1.0  # flesh does not care
+    assert EnemyTypes.get("keystone").brittle and not EnemyTypes.get("sunken_sexton").brittle

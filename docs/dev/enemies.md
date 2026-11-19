@@ -6,7 +6,8 @@ Behaviour flags, special moves, bosses and the rules every enemy model must keep
 
 | Path | Contents |
 | --- | --- |
-| `src/ashen_vault/world/elements.py` | Elements: lightning against `conductive` foes, fire against `fireproof` ones, which weapons burn |
+| `src/ashen_vault/world/elements.py` | Elements: lightning against `conductive` foes, fire against `fireproof` ones, which weapons burn; `brittle` stone foes, cracked by blunt weapons (`brittle_mult`: `STRIKE_CATEGORIES` deal `BRITTLE_STRIKE_MULT`, everything else `BRITTLE_EDGE_MULT`) |
+| `src/ashen_vault/render/sunken_models.py` | Old Harrowmere's models: the Stone Golem (stacked masonry courses with moss in the seams, a keystone head with amber eye slits, boulder fists, the right arm cracked and banded in iron, its back split open on an ember glow, the weak spot; on its plinth it stands as a moss-grown statue with dark eyes), the Sunken Sexton (a stooped, sodden bell-keeper in a dripping robe and fallen hood, a horn lantern and a hand-bell at its belt, chopping with a bronze bell-hammer; `sexton_arms` lifts and shakes the bell for its `toll`), the Keystone (a giant of foundation stone hunched under a slab of the old city's floor, column stubs still standing on it, a keystone head sunk between its shoulders, long arms with boulder fists; in phase two its shell splits on a glowing ember core; `keystone_pose` for its moves) and the `rubble_chunk` it hurls, the city's dressing (`sun_shaft`, `sunken_tower`) and the ways in and out (`cistern_breach` in the Pall's cistern, `sunken_stair` below), and the Keystone's door (`_keystone_arch`, `_keystone_leaf`) |
 | `src/ashen_vault/world/shots.py` | Shots in 3D: spells follow the view's pitch, enemy shots aim at your chest, and a shot only hits a body it passes through |
 | `src/ashen_vault/world/relics.py` | Boss relics (the Ember, Verdant, Iron and Argent Sigils), their drop/taken flags, `boss_falls` (twins fall together), the four-sigil ending (`ENDING_RELICS`) and `GATE_FLAG`, set once the last of the `FIRST_THREE` is taken up (`mark_taken`, `open_gate`, which `World` also calls as a map loads, so an older save catches up); the Vesper Gate no longer waits on it |
 | `src/ashen_vault/render/cemetery_models.py` | The Cemetery of Ashes' models: the Ashen Sexton (its `grave_spade`, and `sexton_arms`, its poses for each move; `dust_puff`, `ash_billow` and `dust_devil` draw its ash), the Ashen Husk, the Shrouded Mourner (the cemetery's own lurker), `grave_walker` (the cemetery's Bone Walkers, `bone_walker model=grave`: risen in their winding sheets, a headstone shard for a shield and a length of iron railing for a weapon; the keep's keep their own look), `ash_hands` (the Sexton's grasping ash) and `ash_clod` (its spadeful), `gravestone`, `open_grave` and `cemetery_gate` (a pointed stone arch built out of the wall, black passage behind its iron leaves, a hooded mourner in a niche over the lintel and, unless `sentinels=false` as in town, hooded stone wardens either side; also the gate exit's `model=`, swung open once its `requires=` flag is set) |
@@ -40,7 +41,14 @@ Behaviour flags, special moves, bosses and the rules every enemy model must keep
   dark of its insides stays on your eyes, `World.gloom_t` / `World.dark_here`, which the game's darkness
   eases toward) and `shed` (second phase: `SHED_COUNT` of its `sheds` type, Pall Clots,
   sloughed off round it, `World.shed`; never while `SHED_MAX` of them still crawl, `World.can_shed`;
-  they die with it), and Mother Gnawl's own: `tail_lash` (never picked by `_pick_move`: in `_chase`,
+  they die with it), Old Harrowmere's: the Sunken Sexton's `toll` (from `TOLL_RANGE`, only while `World.can_toll` finds a
+  sleeper near it: it rings its hand-bell and every perched statue within `TOLL_RADIUS` of it tears free
+  and every idle foe gives chase, `Enemy.alert`; never a boss), and the Keystone's (besides `slam` and
+  `sweep`, second phase only): `quake` (a stamp whose ring of shock runs out to `QUAKE_RADIUS`; it rises
+  only past `QUAKE_SAFE` beyond its body, so it passes under you up close; no shield stops it,
+  `World.quake`) and `hurl` (a block of masonry thrown from `HURL_RANGE`, a `shot="rubble"` that flies at
+  `world.RUBBLE_SPEED`). The Stone Golems are `perch` statues that are no twins: one wakes alone, grinding
+  free of its plinth. Stone Golems and the Keystone are `brittle`. And Mother Gnawl's own: `tail_lash` (never picked by `_pick_move`: in `_chase`,
   before she turns, she lashes at you when you stand behind her, past `TAIL_ARC` off her facing and within
   `Enemy.tail_reach`, and keeps her back to you through the windup; `World.tail_lash` only lands on you
   still behind her), `squeal` (unblockable, from any side within `SQUEAL_RADIUS`: light harm and a stagger,

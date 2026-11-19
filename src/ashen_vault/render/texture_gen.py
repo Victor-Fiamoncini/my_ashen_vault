@@ -68,6 +68,9 @@ def all_textures():
         "moon_paving": moon_paving(),
         "silver_slate": silver_slate(),
         "moon_glass": moon_glass(),
+        "sunken_brick": sunken_brick(),
+        "ochre_flag": ochre_flag(),
+        "cavern_rock": cavern_rock(),
         "white": solid(255, 255, 255),
     }
 
@@ -1079,5 +1082,59 @@ def moon_glass():
         if feather > 0.93:
             c = [min(v + 34, 255) for v in c]  # frost feathering across the pane
         return c
+
+    return build(px)
+
+
+# --- Old Harrowmere, the sunken city ---------------------------------------------------------------
+
+
+def sunken_brick():
+    """The drowned city's warm sandstone brick in long, low courses, worn soft at the edges, a pale
+    crust of old silt in the joints and a dark band low down where the water stood for centuries."""
+    base = bricks([150, 118, 84], [70, 58, 44], 601, rows=5, cols=2)
+
+    def px(x, y):
+        c = _rgb_at(base, x, y)
+        if noise(x, y, 8, 602) > 0.7:
+            c = [rround(v + (196 - v) * 0.25) for v in c]  # silt crusted on it
+        if y > 46:
+            c = tint(c, 0.72 + 0.1 * noise(x, y, 4, 603))  # the old water line
+        return c
+
+    return build(px)
+
+
+def ochre_flag():
+    """Big ochre paving slabs, cracked and sunk unevenly, silt and grit drifted in the gaps."""
+
+    def px(x, y):
+        jx = rround(noise(0, y, 16, 611) * 5)
+        jy = rround(noise(x, 0, 16, 612) * 5)
+        cx = (x + jx) // 32
+        cy = (y + jy) // 32
+        gap = (x + jx) % 32 < 2 or (y + jy) % 32 < 2
+        n = fbm(x, y, 613)
+        if gap:
+            return tint([70, 60, 46], 0.85 + n * 0.25)
+        crack = abs(math.sin((x * 0.3 + y * 0.7) * 0.2 + noise(x, y, 8, 614) * 4)) < 0.03
+        if crack and hash_(cx, cy, 615) > 0.6:
+            return tint([78, 66, 52], 0.9)
+        return tint([128, 108, 82], 0.72 + hash_(cx, cy, 616) * 0.24 + (n - 0.5) * 0.3)
+
+    return build(px)
+
+
+def cavern_rock():
+    """The walls of the great cavern the old city sank into: warm brown rock in steep, broken folds,
+    lit amber at the ridges, black in the clefts."""
+
+    def px(x, y):
+        n = fbm(x, y, 621)
+        fold = math.sin((x + noise(x, y, 16, 622) * 14) * 0.35)
+        if fold > 0.9:
+            return tint([30, 24, 20], 0.9 + n * 0.2)  # a cleft
+        k = 0.55 + n * 0.4 + max(fold, 0) * 0.15
+        return tint([120, 96, 70], k)
 
     return build(px)

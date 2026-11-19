@@ -16,6 +16,7 @@ MAPS = (
     "cinder_keep",
     "harrow_sewers",
     "vesperholm",
+    "old_harrowmere",
 )  # the town has no chests
 
 

@@ -53,6 +53,12 @@ MOVES = {
     "blink": (0.6, 8.0, 1.0),
     "moonbeam": (0.9, 7.0, 0.9),
     "moonfall": (1.2, 11.0, 0.8),
+    # Old Harrowmere's: a sexton's hand-bell, rung to wake whatever sleeps in stone round it; the
+    # Keystone's (second phase) quake, a stamp whose ring of shock runs out along the floor (it passes
+    # under whoever stands in close), and a block of masonry hurled from afar.
+    "toll": (0.9, 14.0, 0.0),
+    "quake": (1.3, 9.0, 1.1),
+    "hurl": (1.0, 6.0, 0.9),
 }
 COMBO_SWINGS = 3
 COMBO_GAP = 0.45  # seconds between the swings of a combo (scaled by a type's `tempo`: `Enemy.combo_gap`)
@@ -89,6 +95,12 @@ FROST_LANCE_RANGE = (3.0, 12.0)
 BLINK_RANGE = (3.0, 10.0)  # it steps through the moonlight only while you keep your distance
 MOONBEAM_RANGE = (2.0, 12.0)
 MOONFALL_RANGE = 12.0
+TOLL_RANGE = (3.0, 14.0)  # a sexton rings its bell only while you keep this far off and in sight
+TOLL_RADIUS = 14.0  # metres round the bell that stone sleepers wake
+QUAKE_RANGE = 9.0  # the Keystone stamps only while you are this close
+QUAKE_SAFE = 1.2  # metres beyond its body the ring has not yet risen: stand in close and it passes
+QUAKE_RADIUS = 8.0  # metres the ring of shock runs out
+HURL_RANGE = (5.0, 16.0)
 SQUEAL_RADIUS = 4.5  # metres her squeal staggers you, from any side
 BURROW_RANGE = (4.0, 9.0)  # distances she burrows after you from
 BURROW_TIME = 1.2  # seconds she tunnels under the muck, out of reach
@@ -135,6 +147,9 @@ ATTACK_TIMES = {
     "frost_lance": 0.3,
     "moonbeam": 0.5,
     "moonfall": 0.6,
+    "toll": 0.8,
+    "quake": 0.5,
+    "hurl": 0.35,
 }
 
 
@@ -416,6 +431,11 @@ class Enemy:
         if self.perched:
             self.begin_rise(STATUE_RISE)
 
+    def alert(self):
+        """Something called it (a sexton's bell): an idle foe gives chase at once."""
+        if self.state == "idle":
+            self._switch("chase")
+
     def wake(self, px, pz):
         """A disguised enemy springs: it turns on whoever disturbed it and strikes straight away."""
         if not self.dormant:
@@ -583,6 +603,12 @@ class Enemy:
             options.append("moonbeam")
         if "moonfall" in ready and dist <= MOONFALL_RANGE:
             options.append("moonfall")
+        if "toll" in ready and seen and TOLL_RANGE[0] <= dist <= TOLL_RANGE[1] and world.can_toll(self):
+            options.append("toll")
+        if "quake" in ready and dist <= QUAKE_RANGE:
+            options.append("quake")
+        if "hurl" in ready and seen and HURL_RANGE[0] <= dist <= HURL_RANGE[1]:
+            options.append("hurl")
         if "knell" in ready and dist <= KNELL_RANGE:
             options.append("knell")
         if not options:
@@ -635,7 +661,7 @@ class Enemy:
             return self._burrow(world, dt)
         if not self._struck:
             self._struck = True
-            if kind in ("shot", "web", "cinders", "spadeful", "fireball", "bile", "frost_lance"):
+            if kind in ("shot", "web", "cinders", "spadeful", "fireball", "bile", "frost_lance", "hurl"):
                 world.enemy_fire(self, kind)
             elif kind == "summon":
                 world.summon(self, self.type.brood, 2)
@@ -667,6 +693,10 @@ class Enemy:
                 world.moonbeam(self)
             elif kind == "moonfall":
                 world.moonfall(self)
+            elif kind == "toll":
+                world.toll(self)
+            elif kind == "quake":
+                world.quake(self)
             elif kind == "hook":
                 if dist <= HOOK_RANGE[1] + 0.5 and self._facing(world.player_x, world.player_z):
                     world.hook(self, MOVES["hook"][2], HOOK_PULL)

@@ -121,7 +121,10 @@ Equipment, combat, spells, shops, saves and the story.
   row and the heavy charge on its bottom one (`ui/atk_bar.py`); a ready art burns it in the art's `rgb`.
   Belongings and the shop list the art under the weapon's moves.
 - Weapons may carry an `element` (`"lightning"`, `"fire"`): `Game._strike` multiplies by
-  `elements.mult` and a fire weapon leaves `burn` on what it hits.
+  `elements.mult` and a fire weapon leaves `burn` on what it hits. It also multiplies by
+  `elements.brittle_mult`: a `brittle` foe (Old Harrowmere's Stone Golems and the Keystone) takes
+  `BRITTLE_STRIKE_MULT` from the blunt categories (`STRIKE_CATEGORIES`: club, hammer, mace, fists) and
+  `BRITTLE_EDGE_MULT` from everything else. Spells are untouched.
 - Each weapon has its own small, animated glyph on the HUD mouse (`hud.WEAPON_ICONS`, keyed by item id,
   within `ICON_REACH` of the button's centre); a new weapon needs one, unlike any other
   (`test_weapon_icons_all_look_different_and_fit_their_button`).
