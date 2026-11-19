@@ -10,7 +10,7 @@ from ashen_vault.ai.enemy_types import EnemyTypes
 from ashen_vault.player.player import Player
 from ashen_vault.world.hazards import Eruption
 from ashen_vault.world.tile_map import TileMap
-from ashen_vault.world.world import World
+from ashen_vault.world.world import LIFT_LOCKED, World
 
 
 class _Gpu:
@@ -65,10 +65,6 @@ def lift(world, at):
     )
 
 
-def calls(world, at):
-    return {p.props["end"]: p for p in world.props if p.kind == "lift_call" and p.lift is lift(world, at)}
-
-
 def run_terrain(world, game, seconds):
     for _ in range(round(seconds / 0.05)):
         world.update_terrain(0.05)
@@ -80,22 +76,21 @@ def stand_on(game, world, plate):
     game.player.y = world.player_floor()
 
 
-def test_shortcut_lifts_load_locked_and_their_levers_refuse():
-    game, world = keep(at=(13, 26))  # the shrine room landing; its lift waits below, fastened
+def test_shortcut_lifts_load_locked_with_no_lever_beside_them():
+    _game, world = keep(at=(13, 26))  # the shrine room landing; its lift waits below, fastened
     assert lift(world, CRYPT_LIFT).locked and lift(world, BELFRY_LIFT).locked
     assert not lift(world, (4, 25)).locked
-    world.call_lift(calls(world, CRYPT_LIFT)["high"])
-    assert lift(world, CRYPT_LIFT).at == "low" and not lift(world, CRYPT_LIFT).moving
-    assert any("fastened from the other end" in m for m in game.messages)
+    assert not [p for p in world.props if p.kind == "lift_call"]  # the call plates do the calling
 
 
-def test_a_fastened_lift_ignores_the_call_plate_on_its_far_landing():
+def test_a_fastened_lift_refuses_the_call_plate_on_its_far_landing():
     game, world = keep(at=(13, 26))
     shaft = lift(world, CRYPT_LIFT)
     (plate,) = [c for c in shaft.calls if c.end == "high"]
     stand_on(game, world, plate)
     run_terrain(world, game, 1.0)
     assert plate.pressed and shaft.at == "low" and not shaft.moving
+    assert [m for m in game.messages if "fastened from the other end" in m] == [LIFT_LOCKED]
 
 
 def test_riding_a_shortcut_lift_from_its_open_end_frees_it_for_good():
@@ -136,46 +131,6 @@ def test_every_lift_landing_has_a_call_plate_that_brings_it():
     assert free.at == "high"
     run_terrain(world, game, 2.0)  # standing on the plate calls it only once
     assert free.at == "high"
-
-
-def test_only_shortcut_lifts_have_a_lever_and_it_hangs_on_a_wall_off_the_way_in():
-    _game, world = keep()
-    for p in (p for p in world.terrain.platforms if p.kind == "lift"):
-        levers = [c for c in world.props if c.kind == "lift_call" and c.lift is p]
-        if not p.shortcut:
-            assert levers == []
-            continue
-        (lever,) = levers
-        assert lever.props["end"] != p.start  # on the landing it does not rest at
-        assert "post" not in lever.props  # hung on a wall beside the landing
-        assert abs(lever.y - (p.low if lever.props["end"] == "low" else p.high)) < 1
-        back = world.map[
-            TileMap.tile_coord(lever.x - math.cos(lever.yaw) * 0.1),
-            TileMap.tile_coord(lever.z - math.sin(lever.yaw) * 0.1),
-        ]
-        assert back.solid and not world.map[lever.tx, lever.tz].solid
-        # Out of the middle of the way in: no closer to the shaft's axis than the landing's edge.
-        assert max(abs(lever.x - p.x), abs(lever.z - p.z)) > 1.0
-        world.call_lift(lever)
-        assert lever.open_t > 0
-        for _ in range(20):
-            world.update(0.05)
-        assert lever.open_t == 0  # thrown, and back up ready for the next pull
-
-
-def test_a_lift_lever_is_out_of_reach_from_the_floor_below():
-    game, world = keep({f"lift:sunken_keep:{CRYPT_LIFT[0]},{CRYPT_LIFT[1]}"})
-    lever = calls(world, CRYPT_LIFT)["high"]
-    game.player.x = lever.x + math.cos(lever.yaw) * 0.6
-    game.player.z = lever.z + math.sin(lever.yaw) * 0.6
-    game.player.y = lever.y
-    assert world._interactable(lever)
-    game.player.y = lever.y - 6.0
-    assert not world._interactable(lever)
-    game.player.y = lever.y
-    world.call_lift(lever)  # freed, it calls the lift; while it is on its way there is nothing to call
-    lever.open_t = 0.0
-    assert lever.lift.moving and not world._interactable(lever)
 
 
 def test_gaoler_hook_drags_you_toward_him():

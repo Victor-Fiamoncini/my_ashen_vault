@@ -24,7 +24,7 @@ MAPS = (
 STATEFUL = {
     *world_mod.BREAKABLE_PROPS,
     *world_mod.KINDLING,
-    *("chest", "door", "gate", "lever", "lift_call", "pickup", "npc", "exit", "altar", "iron_maiden"),
+    *("chest", "door", "gate", "lever", "pickup", "npc", "exit", "altar", "iron_maiden"),
     *("winch", "frog_idol", "mimic"),
 }
 

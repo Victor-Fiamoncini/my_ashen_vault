@@ -3001,7 +3001,6 @@ def _lift_plate(r, pressed):
 
 
 CALL_PLATE = 0.84  # side of a landing's call plate, in metres
-LIFT_LEVER_Y = 1.15  # height of a lift lever's pivot above its floor
 
 
 def call_plate(r, sink=0.0, wood=False):
@@ -3032,44 +3031,6 @@ def call_plate(r, sink=0.0, wood=False):
         (190, 160, 120) if wood else (205, 210, 220),
         tex="wood_plank" if wood else "iron_plate",
     )
-
-
-def lift_call(r, k, wood=False, post=False):
-    """A shortcut lift's lever, hung on the wall at local x=0 (+X out of it) or, with `post`, on a
-    squat post: a bolted plate with a short handle that swings down as `k` (0..1) runs, and a few
-    links of the lift's chain running up out of it into the stone."""
-    plate = (112, 82, 52) if wood else DARK_IRON
-    if post:
-        r.part(
-            "cube",
-            -0.1,
-            (LIFT_LEVER_Y + 0.5) / 2,
-            0,
-            0.2,
-            LIFT_LEVER_Y + 0.5,
-            0.2,
-            plate,
-            tex="bark" if wood else "rough_stone",
-        )
-    r.part("cube", 0.025, LIFT_LEVER_Y, 0, 0.05, 0.62, 0.26, plate, tex="bark" if wood else "white")
-    for by in (-0.24, 0.24):  # its bolts
-        r.part("cube", 0.055, LIFT_LEVER_Y + by, 0, 0.03, 0.05, 0.05, IRON)
-    r.part("cube", 0.07, LIFT_LEVER_Y, 0, 0.04, 0.36, 0.07, (24, 22, 20))  # the slot it swings in
-    with r.at(0.08, LIFT_LEVER_Y, 0, rz=0.75 - 1.5 * k):  # up at rest, thrown down
-        r.part("cube", 0.16, 0, 0, 0.32, 0.05, 0.05, (126, 92, 58) if wood else IRON)
-        r.part("cube", 0.34, 0, 0, 0.1, 0.08, 0.08, (70, 110, 46) if wood else (86, 60, 40))  # the grip
-    for i in range(3):  # the chain, up into the wall
-        r.part(
-            "cube",
-            0.04,
-            LIFT_LEVER_Y + 0.38 + i * LINK * 0.6,
-            0,
-            0.03,
-            LINK * 0.6,
-            0.07,
-            IRON,
-            ry=0 if i % 2 else 1.57,
-        )
 
 
 def _cage_lift(r, chain_h, shiver, doors):
@@ -4701,12 +4662,20 @@ MOTIONS = {
         (0.16, -0.04, -0.16, -0.6, -0.4, -1.25),
         (0.0, -0.42, -0.72, -1.15, -0.75, -1.3),
     ),
-    # The reverse cut (the long katanas' heavy): the mirror of the slash, wound up high on the left and
-    # cut down across to the low right, the wrist rolled over so the edge still leads.
+    # The katana's cut: cocked up over the right shoulder with the blade in view, then drawn down across
+    # the whole view on one diagonal, edge first, and carried on out low on the left.
+    "katana_cut": (
+        (-0.15, 0.22, 0.08, 0.67, 0.01, 0.15),
+        (0.22, -0.14, -0.26, 0.34, 0.27, -0.43),
+        (0.17, -0.5, -0.75, -1.22, -0.66, -1.03),
+    ),
+    # The reverse cut (the long katanas' heavy): the katana's cut mirrored, cocked up over the left
+    # shoulder with the blade in view and cut down across to the low right, the wrist rolling over
+    # through the cut so the edge still leads.
     "slash_left": (
-        (-0.08, 0.28, -0.6, -0.5, -1.0, 0.55),
-        (0.16, -0.04, 0.1, 0.6, 0.25, -1.25),
-        (0.0, -0.42, 0.62, 1.15, 0.9, -1.3),
+        (-0.15, 0.22, -0.46, -1.07, -1.36, 0.01),
+        (0.2, -0.11, -0.22, 0.18, -0.52, -0.62),
+        (0.15, -0.5, 0.17, 1.48, 0.11, -1.32),
     ),
     # A flat arc from right to left, the whole arm turning with it.
     "sweep": (
@@ -4726,10 +4695,12 @@ MOTIONS = {
         (0.16, -0.22, -0.12, 0.0, 0.0, -1.0),
         (0.14, -0.65, -0.14, 0.0, 0.0, -1.15),
     ),
+    # The katana's lunge: the body carries the point in (the attack's `lunge`), so the arm drives on
+    # only a short way, kept bent off to the right, the point angled in to the middle of the view.
     "thrust": (
-        (-0.25, 0.08, -0.2, 0.0, -0.25, -1.15),
-        (0.48, 0.08, -0.25, 0.0, -0.35, -1.15),
-        (0.4, 0.06, -0.25, 0.0, -0.3, -1.1),
+        (-0.13, 0.13, -0.05, 0.1, -0.41, -1.0),
+        (0.23, 0.03, -0.09, 0.0, -0.42, -1.02),
+        (0.19, 0.0, -0.09, 0.0, -0.39, -1.0),
     ),
     "stab": (
         (-0.1, 0.04, -0.1, 0.0, -0.2, -0.9),
@@ -4793,6 +4764,9 @@ def _ease_out_back(k, overshoot=1.2):
 
 
 SETTLE = 0.5  # how far from the follow-through toward rest a swing has come back when it ends
+WIND_AT = 0.7  # the fraction of the way to the blow at which a swing is fully wound up
+# Katana cuts wind up sooner and spend longer on the cut itself, so the blade is seen sweeping across.
+CUT_WIND_AT = {"katana_cut": 0.5, "slash_left": 0.5}
 
 
 def _settle(motion):
@@ -4805,7 +4779,7 @@ def _motion(motion, p, hit_at=0.4):
     """Pose offsets (dx, dy, dz, rx, ry, rz) for one attack motion at phase p (0..1), landing at hit_at.
     It ends at `_settle(motion)`, not at rest: the rest of the way home is the view's to blend."""
     wind, strike, follow = MOTIONS.get(motion, MOTIONS["slash"])
-    wind_at = hit_at * 0.7
+    wind_at = hit_at * CUT_WIND_AT.get(motion, WIND_AT)
     follow_at = hit_at + (1 - hit_at) * 0.35
     if p < wind_at:
         return _lerp(REST, wind, _ease(p / wind_at))
@@ -5229,6 +5203,11 @@ HEADED = {
 }  # fmt: skip
 TRAIL_LAG = 0.08  # how far back (in swing phase) the smear reaches
 TRAIL_GHOSTS = 6
+# A katana's long, fast cut leaves a crescent of light where its outer blade passed: many ghosts, each
+# as wide as the gap to the next, so they close up into one sweep rather than a comb of slivers.
+TRAIL_STYLE = {"katana": (0.16, 32)}  # category: (lag, ghosts)
+CRESCENT = (0.45, 0.97)  # the stretch of the blade (fractions of its length) a crescent smear covers
+TRAIL_MAX_W = 0.3  # the widest a crescent's ghost grows, in model units
 
 
 def _swing_trail(r, item, a, phase, rest, side, tint=None):
@@ -5236,17 +5215,25 @@ def _swing_trail(r, item, a, phase, rest, side, tint=None):
     where it was a moment ago, dimmer the further back. Only around the blow, and drawn first so the
     weapon covers them. It follows the motion, so a reverse cut smears the other way; `tint` colours
     it (an art's light)."""
-    wind_at, follow_at = a.hit_at * 0.8, a.hit_at + (1 - a.hit_at) * 0.15
+    wind_at = a.hit_at * (CUT_WIND_AT.get(a.motion, WIND_AT) + 0.1)
+    follow_at = a.hit_at + (1 - a.hit_at) * 0.15
     if not wind_at < phase < follow_at:
         return
+    lag, ghosts = TRAIL_STYLE.get(item.category, (TRAIL_LAG, TRAIL_GHOSTS))
     length = WEAPON_LEN.get(item.id, 1.0) * 0.85
     rgb = (255, 170, 90) if item.element == "fire" else (210, 225, 255) if item.element else (205, 205, 215)
     rgb = tint or rgb
     now = _motion(a.motion, phase, a.hit_at)
-    then = _motion(a.motion, max(phase - TRAIL_LAG, wind_at), a.hit_at)
+    then = _motion(a.motion, max(phase - lag, wind_at), a.hit_at)
     headed = item.id in HEADED  # an axe smears only where its bit passes, not along the haft
-    for i in range(TRAIL_GHOSTS, 0, -1):  # the oldest (dimmest) first
-        k = i / TRAIL_GHOSTS
+    filled = item.category in TRAIL_STYLE
+    if filled:  # how far apart neighbouring ghosts lie across the crescent's middle, in model units
+        mid = 0.2 + length * sum(CRESCENT) / 2
+        ends = (tuple(b + o for b, o in zip(rest, m, strict=True)) for m in (now, then))
+        gap = math.dist(*(_weapon_point(e, side, mid) for e in ends)) / ghosts / 0.7
+        w = min(max(gap * 1.6, 0.035), TRAIL_MAX_W)
+    for i in range(ghosts, 0, -1):  # the oldest (dimmest) first
+        k = i / ghosts
         off = _lerp(now, then, k)
         pose = tuple(b + o for b, o in zip(rest, off, strict=True))
         with _pose_at(r, pose, side):
@@ -5255,6 +5242,10 @@ def _swing_trail(r, item, a, phase, rest, side, tint=None):
             # the plane the cut travels through.
             if headed:
                 r.part("blade", 0.1, length * 0.78, 0, 0.04, length * 0.5, 0.004, col, glow=True)
+            elif filled:  # trailing back from the edge (-X), as wide as the gap to the next ghost
+                lo, hi = (0.2 + length * c for c in CRESCENT)
+                col = _dim(rgb, 0.7 - 0.6 * k)
+                r.part("blade", 0.07 - w / 2, (lo + hi) / 2, 0, w, hi - lo, 0.004, col, glow=True)
             else:
                 r.part("blade", 0.05, 0.2 + length / 2, 0, 0.035, length * 0.9, 0.004, col, glow=True)
 

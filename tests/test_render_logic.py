@@ -1366,7 +1366,7 @@ def test_every_key_has_its_own_shape_and_fits_its_preview():
     assert len(set(shapes.values())) == len(shapes)  # no two built from the same parts
 
 
-def test_a_lift_shows_its_pressure_plates_sinking_and_its_lever_swinging():
+def test_a_lift_shows_its_pressure_plates_sinking():
     from ashen_vault.render import models
 
     up, down = _RecordingGpu(), _RecordingGpu()
@@ -1381,12 +1381,6 @@ def test_a_lift_shows_its_pressure_plates_sinking_and_its_lever_swinging():
         moved = [y for (_, y), (_, y2) in zip(up.parts, down.parts, strict=True) if y != y2]
         assert 0 < len(moved) < len(up.parts)  # the plate sinks in its frame
         assert all(-0.05 < y < 0.08 for _, y in up.parts)  # flush with the floor
-        for post in (False, True):
-            rest, thrown = _GlowGpu(), _GlowGpu()
-            models.lift_call(rig.Rig(rest), 0.0, wood=wood, post=post)
-            models.lift_call(rig.Rig(thrown), 1.0, wood=wood, post=post)
-            assert len(rest.parts) == len(thrown.parts) and rest.parts != thrown.parts
-            assert len(rest.parts) <= 12  # a small fitting on the wall, no wheel or block
 
 
 class _BoxGpu:
@@ -2144,3 +2138,38 @@ def test_the_pale_crescent_draws_as_a_broad_glowing_arc_that_fades():
     zs = [z for _, _, z in gpu.at]
     assert max(zs) - min(zs) > 1.8, "as broad as the wave it shows"
     assert all(x <= 0.05 for x, _, _ in gpu.at), "bowed forward: its apex leads"
+
+
+def test_the_katana_cut_sweeps_the_whole_view_and_its_thrust_keeps_the_arm_bent():
+    from ashen_vault.player import weapons
+    from ashen_vault.player.inventory import Inventory
+    from ashen_vault.player.items import Items
+    from ashen_vault.player.player import Player
+    from ashen_vault.render import models
+
+    assert weapons.moveset(Items.get("katana"))[weapons.LIGHT].motion == "katana_cut"
+    assert weapons.moveset(Items.get("rusted_sword"))[weapons.LIGHT].motion == "slash"
+    rest = (0.9, -0.19, 0.28, 0.25, 0.7, -0.55)
+
+    def tip_on_screen(motion, key):
+        pose = tuple(b + d for b, d in zip(rest, models.MOTIONS[motion][key], strict=True))
+        x, y, z = models._weapon_point(pose, 1, 1.7)
+        return z / x, y / x
+
+    # Wound up with the tip still in view (the slash lifts it out of the top), then carried through
+    # on one long diagonal from the upper right to the lower left.
+    wind, follow = tip_on_screen("katana_cut", 0), tip_on_screen("katana_cut", 2)
+    assert wind[1] < 0.6 < tip_on_screen("slash", 0)[1]
+    assert wind[0] > 0.3 and wind[1] > 0.3 and follow[0] < -0.6 and follow[1] < -0.3
+    assert math.dist(wind, follow) > 1.5
+    # It winds up sooner than other swings, so more of the swing is the cut itself.
+    assert models.CUT_WIND_AT["katana_cut"] < models.WIND_AT
+    # The lunge carries the point in: the arm drives on only a short way.
+    assert all(key[0] <= 0.25 for key in models.MOTIONS["thrust"])
+    # The cut leaves a crescent of many ghosts, more than other blades' smear.
+    p = Player(inventory=Inventory(right="katana"))
+    p.start_swing()
+    p.swing_t = p.swing_hit_at
+    gpu = _RecordingGpu()
+    models.weapon_view(rig.Rig(gpu), p, 0.0)
+    assert sum(1 for kind, _ in gpu.parts if kind == "blade") >= models.TRAIL_STYLE["katana"][1]

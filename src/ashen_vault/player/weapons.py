@@ -69,7 +69,7 @@ MOVESETS = {
         HEAVY: _heavy("Overhead cleave", "chop", 0.42, damage=2.0, poise=2.0),
     },
     "katana": {
-        LIGHT: _light("Quick slash", "slash"),
+        LIGHT: _light("Quick slash", "katana_cut"),
         HEAVY: _heavy("Lunging thrust", "thrust", 0.39, damage=1.7, reach=1.4, cone=0.8, lunge=1.0),
         SECRET: _secret(
             "Sheathed Draw",

@@ -79,7 +79,6 @@ class Prop:
     open_t: float = 0.0
     axis: str | None = None
     wall: bool = False  # hung on the wall behind it (at local -X)
-    lift: object = None  # the terrain.Platform a lift_call lever summons
     goal: float = 0.0  # the open_t a house door is swinging toward (0 shut, 1 open)
     break_t: float = 1.0  # a smashed container's pieces flying out (0 the blow) and settling (1)
 
@@ -173,7 +172,6 @@ HAZARD_MESSAGES = {
     "lift_unlocked": "The lift's chain grinds free. It will answer from either end now.",
 }
 LIFT_LOCKED = "It won't budge. The lift is fastened from the other end."
-CALL_REACH_Y = 1.5  # metres above or below a call lever you can still pull it from
 # Lifts that a lever unchained in older saves (before they were freed by riding them).
 LEGACY_LIFT_LEVERS = {
     ("sunken_keep", 12, 26): "crypt_winch",
@@ -182,7 +180,7 @@ LEGACY_LIFT_LEVERS = {
     ("verdant_hollow", 20, 38): "root_lift",
     ("cinderhold", 19, 24): "smelt_lift",
 }
-WOODEN_LEVER_MAPS = ("verdant_hollow",)  # where the call levers are the jungle's rough timber
+WOODEN_LIFT_MAPS = ("verdant_hollow",)  # where the lifts' call plates are the jungle's rough timber
 
 # Props that fill their whole tile: nothing walks or flies through them.
 BLOCKING_PROPS = (
@@ -729,7 +727,6 @@ class World:
                     self._spill(prop)  # a potion left lying in an earlier visit is still there
         self._dress_ramparts()
         self._respill_slain_loot()
-        self._place_call_levers()
         if (
             "boss_dead" in self.flags
             and self.name == "sunken_keep"
@@ -835,45 +832,6 @@ class World:
         """Ridden once on an earlier visit (or, in an older save, its winch was pulled)."""
         legacy = LEGACY_LIFT_LEVERS.get((self.name, TileMap.tile_coord(lift.x), TileMap.tile_coord(lift.z)))
         return self._lift_key(lift) in flags or (legacy is not None and f"lever:{legacy}" in flags)
-
-    def _place_call_levers(self):
-        """A lever on the far landing of every shortcut lift (`terrain.lever_spot`), hung on the wall
-        beside the shaft: it tells you the lift is fastened from the other end, and calls it once
-        freed. Every other landing calls its lift with the plate in its floor."""
-        for i, lift in enumerate(p for p in self.terrain.platforms if p.kind == "lift"):
-            spot = terrain.lever_spot(self.map, lift)
-            if spot is None:
-                continue
-            x, z, floor, end, yaw, on_wall = spot
-            props = {"end": end}
-            if self.name in WOODEN_LEVER_MAPS:
-                props["model"] = "wood"
-            if not on_wall:
-                props["post"] = "1"
-            self.props.append(
-                Prop(
-                    kind="lift_call",
-                    x=x,
-                    z=z,
-                    y=floor,
-                    tx=TileMap.tile_coord(x + math.cos(yaw) * 0.1),  # the landing, not the wall it hangs on
-                    tz=TileMap.tile_coord(z + math.sin(yaw) * 0.1),
-                    props=props,
-                    key=f"lift_call:{self.name}:{i}:{end}",
-                    yaw=yaw,
-                    lift=lift,
-                )
-            )
-
-    def call_lift(self, prop):
-        """Pulls a landing's call lever: the lever springs back, and the lift comes if it can."""
-        prop.open_t = 0.01
-        self.game.sfx("door", 0.6)
-        event = prop.lift.summon(prop.props["end"])
-        if event == "lift_locked":
-            self.game.message(LIFT_LOCKED)
-        elif event:
-            self.game.sfx(*terrain.LIFT_SOUND[event])
 
     def _opened(self, prop):
         if prop.kind in ("door", "chest", "lever", "altar", *BREAKABLE_PROPS):
@@ -1655,6 +1613,8 @@ class World:
             self.game.sfx(name, volume)
         for lift in self.terrain.unlocked:
             self.flags.add(self._lift_key(lift))
+        if self.terrain.refused:
+            self.game.message(LIFT_LOCKED)
         if event == "fell":
             self.game.sfx("hurt")
             self.game.message(FALL_MESSAGES[self.terrain.fell_into])
@@ -1701,8 +1661,6 @@ class World:
                 self._update_smith(p, dt)
             elif p.kind == "iron_maiden":
                 self._update_maiden(p, dt)
-            elif p.kind == "lift_call" and p.open_t > 0:  # thrown, then it springs back
-                p.open_t = p.open_t + dt * 1.6 if p.open_t + dt * 1.6 < 1.0 else 0.0
             elif p.kind == "frog_idol" and p.open_t > 0:
                 p.open_t = p.open_t + dt if p.open_t + dt < FROG_CROAK else 0.0
             elif p.kind == "house_door":
@@ -2293,8 +2251,6 @@ class World:
             "silent_bell",
         ):
             return True
-        if p.kind == "lift_call":  # only from its own landing, not from the floor below or a moving lift
-            return p.open_t == 0 and not p.lift.moving and abs(p.y - self.player.y) < CALL_REACH_Y
         if p.kind == "door" and p.props.get("boss"):
             a = self.arena_at_door(p)
             if a and a.sealed:
@@ -2659,7 +2615,7 @@ class World:
                     models.plank(rig, pl.creaking)
             for c in pl.calls:
                 with rig.entity(c.x, c.floor, c.z, math.atan2(c.z - pl.z, c.x - pl.x)):
-                    models.call_plate(rig, c.sink, wood=self.name in WOODEN_LEVER_MAPS)
+                    models.call_plate(rig, c.sink, wood=self.name in WOODEN_LIFT_MAPS)
         for chute in self.terrain.chutes:
             y = self.map.floor_at(chute.x, chute.z)
             self._model_light(gpu, chute.x, y + 0.8, chute.z)
@@ -2902,10 +2858,6 @@ class World:
             models.door(rig, p.open_t, p.axis, tex="iron_bars")
         elif k == "lever":
             models.lever(rig, p.open_t, p.wall, wood=p.props.get("model") == "wood")
-        elif k == "lift_call":
-            models.lift_call(
-                rig, math.sin(math.pi * p.open_t), wood=p.props.get("model") == "wood", post="post" in p.props
-            )
         elif k == "pillar":
             models.pillar(rig, p.tx * 3 + p.tz, self._ceil_h(p))
         elif k == "sarcophagus":

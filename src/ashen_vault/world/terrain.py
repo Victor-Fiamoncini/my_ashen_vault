@@ -59,8 +59,6 @@ PLATE_SINK = 0.03  # how far the plate sinks under your weight
 CALL_PLATE_OUT = 0.55  # metres out from the shaft's edge to the middle of a landing's call plate
 CALL_PLATE_R = 0.42  # metres from a call plate's middle that count as standing on it
 CALL_PLATE_Y = 0.5  # metres above or below a call plate's floor you still press it from
-LEVER_BACK = 0.55  # metres from the shaft's edge to a shortcut lift's wall lever, along its landing
-LEVER_POST = 0.8  # metres to one side of the way in a free-standing lever stands, with no wall to hang on
 HEARING = 14.0  # metres within which the player hears a pod burst or a platform give way
 
 # Sounds a platform makes (name, volume): when you first load it, and when it gives way.
@@ -242,7 +240,7 @@ class Platform:
         return "lift_start"
 
     def summon(self, end):
-        """Called to the `end` landing (by its call plate or lever): it comes if it rests at the other end.
+        """Called to the `end` landing by its call plate: it comes if it rests at the other end.
         Returns "lift_start", "lift_locked" (it is fastened from the other side), or None (it is
         already here, or on its way)."""
         if self.at is None or self.at == end:
@@ -437,41 +435,6 @@ def call_plates(map_, lift):
     return out
 
 
-def lever_spot(map_, lift):
-    """Where a shortcut lift's lever stands: on its far landing (the one it does not rest at first),
-    hung on a wall close to the shaft so it never stands in the way: on a wall flanking the landing,
-    or else on the face of the shaft's own wall beside the way in. As (x, z, floor, end, yaw, on_wall),
-    `yaw` facing out of the wall; with no wall at hand (`on_wall` False) it stands on a post to one
-    side, facing the landing. None for a lift that is no shortcut."""
-    if not lift.shortcut:
-        return None
-    tx, tz = TileMap.tile_coord(lift.x), TileMap.tile_coord(lift.z)
-    edge = TileMap.TILE / 2
-    for dx, dz in lift.doors:
-        lx, lz = tx + dx, tz + dz
-        floor = map_[lx, lz].floor
-        end = "low" if abs(floor - lift.low) <= abs(floor - lift.high) else "high"
-        if end == lift.start:
-            continue
-        sides = ((-dz, dx), (dz, -dx))
-        for sx, sz in sides:  # a wall flanking the landing, just out from the shaft
-            if map_[lx + sx, lz + sz].solid:
-                back = edge + map_.wall_inset(lx, lz, sx, sz)
-                x = lift.x + dx * (edge + LEVER_BACK) + sx * back
-                z = lift.z + dz * (edge + LEVER_BACK) + sz * back
-                return x, z, floor, end, math.atan2(-sz, -sx), True
-        for sx, sz in sides:  # the shaft's own wall beside the way in, facing the landing
-            if map_[tx + sx, tz + sz].solid and map_[lx + sx, lz + sz].walkable:
-                x = lift.x + dx * edge + sx * (edge + LEVER_BACK)
-                z = lift.z + dz * edge + sz * (edge + LEVER_BACK)
-                return x, z, floor, end, math.atan2(dz, dx), True
-        sx, sz = sides[0]
-        x = lift.x + dx * (edge + LEVER_BACK) + sx * LEVER_POST
-        z = lift.z + dz * (edge + LEVER_BACK) + sz * LEVER_POST
-        return x, z, floor, end, math.atan2(dz, dx), False
-    return None
-
-
 def build_platforms(map_):
     """Platforms for every raft, plank, ledge and boards entity. A raft's `to=tx,tz` is its far landing;
     `deck=` sets a platform's height (a ledge over a chasm, floorboards over a cellar)."""
@@ -574,6 +537,7 @@ class Terrain:
         self.landed = 0  # metres of the last hard landing
         self.sounds = []  # (name, volume) to play this frame; the World plays and clears them
         self.unlocked = []  # locked lifts whose first ride ended this frame
+        self.refused = []  # fastened lifts whose far call plate was stepped on this frame
         self.plunge = None  # seconds into a fall down a chasm, which no one lives through
         self._vy = 0.0  # how fast you plunge
 
@@ -619,7 +583,8 @@ class Terrain:
 
     def _press_calls(self, lift, body):
         """Stepping onto a landing's call plate clicks it down and calls the lift, if it is free and
-        rests at the other end. Standing on it calls only once: step off and on to call again."""
+        rests at the other end; a fastened lift's far plate only clicks (`refused` lists it). Standing
+        on it calls only once: step off and on to call again."""
         for c in lift.calls:
             on = c.under(body)
             if on and not c.pressed:
@@ -627,6 +592,8 @@ class Terrain:
                 called = lift.summon(c.end)
                 if called == "lift_start":
                     self._hear(lift.x, lift.z, body, *LIFT_SOUND[called])
+                elif called == "lift_locked":
+                    self.refused.append(lift)
             c.pressed = on
 
     @staticmethod
@@ -666,6 +633,7 @@ class Terrain:
         event = None
         self.sounds = []
         self.unlocked = []
+        self.refused = []
         under = None if self.plunging else self.support(body.x, body.z)
         for p in self.platforms:
             was_afloat, was_loaded = p.afloat, p.load_t > 0

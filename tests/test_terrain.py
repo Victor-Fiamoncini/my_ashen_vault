@@ -709,25 +709,6 @@ def test_a_call_plate_lies_on_each_landing_just_out_from_the_shaft():
         assert c.z == lift.z  # in the middle of the way in
 
 
-def test_only_a_shortcut_lift_has_a_lever_on_the_far_landing_hung_on_the_wall():
-    m, h = shaft()
-    assert terrain.lever_spot(m, h.platforms[0]) is None
-    m, h = shaft("locked")
-    (lift,) = h.platforms
-    x, z, floor, end, yaw, on_wall = terrain.lever_spot(m, lift)
-    assert end == "high" and floor == 0.0 and on_wall  # it rests low: the lever waits up top
-    # On the wall beside the landing, facing out of it, close to the shaft.
-    assert m[TileMap.tile_coord(x - math.cos(yaw) * 0.1), TileMap.tile_coord(z - math.sin(yaw) * 0.1)].solid
-    assert not m[
-        TileMap.tile_coord(x + math.cos(yaw) * 0.1), TileMap.tile_coord(z + math.sin(yaw) * 0.1)
-    ].solid
-    assert abs(x - lift.x) < TileMap.TILE
-    # Freed, it keeps its lever where it was.
-    lift.locked = False
-    lift.at, lift.deck = "high", lift.high
-    assert terrain.lever_spot(m, lift)[:4] == (x, z, floor, end)
-
-
 def test_nothing_invisible_holds_you_back_from_a_chasm_or_the_river(river):
     m, h = highland()
     x, z = TileMap.center(2, 1)

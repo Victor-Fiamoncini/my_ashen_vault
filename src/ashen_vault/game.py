@@ -1069,7 +1069,6 @@ class Game:
             "chest": "[E] Open chest",
             "door": "[E] Open door",
             "lever": "[E] Pull lever",
-            "lift_call": "[E] Call the lift",
             "save_statue": "[E] Pray at the shrine",
             "exit": f"[E] {(p.props.get('label') or 'Leave').replace('_', ' ')}",
             "pickup": "[E] Take",
@@ -1101,8 +1100,6 @@ class Game:
             self._open_door(prop)
         elif k == "house_door":
             self.world.swing_door(prop)
-        elif k == "lift_call":
-            self.world.call_lift(prop)
         elif k == "lever":
             self.world.pull_lever(prop)
             self.sfx("door")

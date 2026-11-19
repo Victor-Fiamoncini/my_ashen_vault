@@ -31,7 +31,7 @@ How `.map` files work and what can stand on a tile.
   castle's drawbridge over the gorge (`bridge hinge=n`), let down by its lever in the bailey, back to the
   Landing. Walled in `moonstone`, paved in `moon_paving`, roofed in `silver_slate`;
   `test_vesperholm_is_solvable`) |
-| `src/ashen_vault/world/terrain.py` | Terrain: rafts, planks, ledges, rotten floorboards, chain lifts (pressure plates, call plates, shortcut levers, `summon`), currents, thorns, chasm and river falls, hard landings, the log rack, spore pods (`World.terrain`) |
+| `src/ashen_vault/world/terrain.py` | Terrain: rafts, planks, ledges, rotten floorboards, chain lifts (pressure plates, call plates, `summon`), currents, thorns, chasm and river falls, hard landings, the log rack, spore pods (`World.terrain`) |
 | `src/ashen_vault/world/hazards.py` | Dungeon traps: floor spikes, pendulum blades, crumbling floors, flame jets, magma vents (whose bombs are `Eruption`s with an `origin`); the bosses' fire eruptions and slam shockwaves |
 | `src/ashen_vault/world/thin_walls.py` | Thin walls (`wall ... thin=<m>`): the slab each such tile stands as (hugging the side open to the sky, else a full wall it backs onto, centred between two rooms; a run keeps one line, `test_harrowmere_has_no_slits_between_its_thin_walls`), the margins it lends to its open neighbours (`Layout`), and how far a prop must move back to touch it (`inset`) |
 | `src/ashen_vault/world/ramparts.py` | The great walls' dressing: every face of a `dress=rampart` wall turned to open sky-lit ground at least `MIN_HEIGHT` below its top gets a static `rampart_bay` (`town_models.rampart_bay`: a stepped plinth, a corbelled parapet with merlons, and a `pier` of three engaged columns every `PIER_EVERY` tiles and at each run's ends, blind round arches between), kept clear of wall towers, gates (`world.RAMPART_GATES`) and wall props. Nothing stands out past the player's radius, so bays need no collision |
@@ -80,9 +80,9 @@ How `.map` files work and what can stand on a tile.
   sends it to the other end (step off the plate and on again to go back), and stepping onto the call
   plate set in each landing's floor just out from the shaft (`Platform.calls`, `terrain.call_plates`)
   brings it. A `locked` lift is a one-way shortcut: it rests at its `start` end, the end you reach
-  first; the far landing's call plate ignores you and a lever hung on the wall beside the shaft there
-  (`terrain.lever_spot`, prop `lift_call`, the only lift levers) says it is fastened, until its first
-  ride frees it for good (`lift:<map>:<tx>,<tz>` flag; the lever then calls it too). Floors a lift
+  first; the far landing's call plate only clicks and says it is fastened (`Terrain.refused`), until
+  its first ride frees it for good (`lift:<map>:<tx>,<tz>` flag; that plate then calls it too). Lifts
+  have no levers. Floors a lift
   joins sit far apart (the keep's Undercroft at -10 m, its Gallery at 12 m), so a ride feels like one. `model=cage`
   draws the keep's barred jail cage, open on the sides that face a landing (`terrain.lift_doors`)),
   `bridge lever=id hinge=n|s|e|w deck=` (a drawbridge standing raised on its hinge side until its

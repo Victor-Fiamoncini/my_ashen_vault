@@ -86,13 +86,16 @@ Equipment, combat, spells, shops, saves and the story.
   full. Attacks that strike twice (the Aftershock) use `pulses`. A weapon may swing a heavy of its own
   in place of its category's (`weapons.HEAVY_OVERRIDES`, resolved by `weapons.moveset`, so ST, tempo, the
   charge, arts and secrets work unchanged): the Katana keeps the Lunging thrust, while the Moonless Tachi
-  and the Nodachi cut a Reverse cut (`slash_left`, the slash mirrored: high left down to low right, the
-  wrist rolled so the edge leads). An attack's `lunge` carries you forward over a few frames
+  and the Nodachi cut a Reverse cut (`slash_left`, the katana's cut mirrored: high left down to low right,
+  the wrist rolled so the edge leads). Katanas cut their light with `katana_cut` (wound up with the blade
+  still in view, then one long diagonal across the view), not the sword's `slash`. An attack's `lunge` carries you forward over a few frames
   (`Player.step_lunge`, `LUNGE_SPEED`), setting off `LUNGE_LEAD` of the swing before the blow lands; walls
   and fog stop it as they stop walking, it ends short of a foe's body (`collision.runs_into`,
   `World.bodies`), and a blow, a shove, the swing's end or being set down elsewhere cancels it. Attack poses are keyframed in
   `models.MOTIONS` (wind, strike, follow, each `(dx, dy, dz, rx, ry, rz)`), the strike lands at the
-  attack's `hit_at`, and edged weapons (`TRAILS`) smear a fan of ghost blades through the blow. A motion
+  attack's `hit_at`, and edged weapons (`TRAILS`) smear a fan of ghost blades through the blow; a katana's
+  (`TRAIL_STYLE`) is a denser crescent along its outer blade, and its cuts wind up sooner
+  (`CUT_WIND_AT`) so more of the swing is the cut. A motion
   ends part way home (`models._settle`); the view's `PoseBlend` (`player/view_blend.py`, kept by `Game`
   and passed to `models.weapon_view`) eases the arms the rest of the way, into each new swing, charge or
   shield raise, and lets them trail the turning view (`Sway`). The viewmodel draws over the world
