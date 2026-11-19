@@ -9,7 +9,7 @@ from ashen_vault.render import bounds, town_models
 from ashen_vault.world import ramparts
 from ashen_vault.world.map_loader import MapLoader
 from ashen_vault.world.tile_map import TileMap
-from test_keep_world import FakeGame
+from test_prison_world import FakeGame
 
 
 @pytest.fixture(scope="module")

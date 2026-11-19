@@ -15,7 +15,7 @@ from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.world import LAVA_MIN, LAVA_SHARE, World
 from conftest import risen
 from test_enemy import FakeWorld, tick
-from test_keep_world import FakeGame
+from test_prison_world import FakeGame
 from test_verdant_world import JungleGame, foe
 
 KEEP = "cinder_keep"

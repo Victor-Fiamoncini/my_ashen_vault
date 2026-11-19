@@ -9,7 +9,7 @@ from ashen_vault.world.arena import Arena, flood
 from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.world import FOG_WALK_SPEED, World
 from conftest import risen
-from test_keep_world import FakeGame
+from test_prison_world import FakeGame
 
 
 def world_on(name, flags=(), at=None):
@@ -23,8 +23,8 @@ def world_on(name, flags=(), at=None):
 @pytest.mark.parametrize(
     ("map_name", "flag", "lair"),
     [
-        ("sunken_keep", "boss_dead", (15, 4)),
-        ("sunken_keep", "butcher_dead", (27, 4)),
+        ("abandoned_prison", "boss_dead", (15, 4)),
+        ("abandoned_prison", "butcher_dead", (27, 4)),
         ("verdant_hollow", "spider_dead", (15, 3)),
         ("cinder_keep", "gargoyles_dead", (4, 4)),
         ("ashen_cemetery", "sexton_dead", (10, 5)),
@@ -56,8 +56,8 @@ def test_flood_stops_at_gates_and_gives_up_when_it_leaks():
 
 
 def warden_fight(flags=()):
-    """The keep with the Warden's door opened, the player stepped inside, the Warden awake."""
-    game, world = world_on("sunken_keep", {"door:sunken_keep:15,9", *flags}, at=(15, 7))
+    """The prison with the Warden's door opened, the player stepped inside, the Warden awake."""
+    game, world = world_on("abandoned_prison", {"door:abandoned_prison:15,9", *flags}, at=(15, 7))
     (arena,) = [a for a in world.arenas if a.flag == "boss_dead"]
     warden = next(e for e in world.enemies if e.type.dead_flag == "boss_dead")
     return game, world, arena, warden
@@ -93,8 +93,8 @@ def test_dying_in_the_fight_leaves_fog_that_only_the_boss_walks_through():
     world._update_arenas()
     world.mist_arenas()
     assert arena.fog_key in game.flags
-    # Waking at the shrine reloads the keep: fog stands where the door was.
-    game2, world2 = world_on("sunken_keep", game.flags, at=(15, 10))
+    # Waking at the shrine reloads the prison: fog stands where the door was.
+    game2, world2 = world_on("abandoned_prison", game.flags, at=(15, 10))
     (fog,) = [a for a in world2.arenas if a.flag == "boss_dead"]
     assert fog.fogged(game2.flags)
     assert not world2.blocked_tile(15, 9)  # the boss can come through after you
@@ -165,13 +165,13 @@ def test_the_boss_rises_from_its_ashes_as_you_step_in_and_the_door_slams_behind_
 def test_after_you_fall_the_boss_rises_quicker_through_its_fog():
     from ashen_vault.ai.enemy import ASH_RISE_AGAIN
 
-    _game, world, _arena, warden = warden_fight({"fog:sunken_keep:15,9"})
+    _game, world, _arena, warden = warden_fight({"fog:abandoned_prison:15,9"})
     world.update(1 / 30)
     assert warden.state == "rising" and warden.rise_time == ASH_RISE_AGAIN
 
 
 def test_the_butcher_rises_without_a_doubled_article():
-    game, world = world_on("sunken_keep", {"door:sunken_keep:28,10"}, at=(28, 7))
+    game, world = world_on("abandoned_prison", {"door:abandoned_prison:28,10"}, at=(28, 7))
     world.update(1 / 30)
     assert "The Butcher rises from the ashes!" in game.messages
 

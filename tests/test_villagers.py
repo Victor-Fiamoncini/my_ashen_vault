@@ -6,7 +6,7 @@ from ashen_vault.render import models, rig
 from ashen_vault.world import villagers
 from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.world import World
-from test_keep_world import FakeGame
+from test_prison_world import FakeGame
 
 
 class _Parts:

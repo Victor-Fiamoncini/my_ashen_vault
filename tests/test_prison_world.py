@@ -1,4 +1,4 @@
-"""The keep's World logic driven without a window: a fake game records messages, sounds and wounds."""
+"""The prison's World logic driven without a window: a fake game records messages, sounds and wounds."""
 
 import math
 import random
@@ -46,9 +46,9 @@ class FakeGame:
         pass
 
 
-def keep(flags=(), at=(15, 21)):
+def prison(flags=(), at=(15, 21)):
     game = FakeGame(flags)
-    world = World(game, "sunken_keep")
+    world = World(game, "abandoned_prison")
     x, z = TileMap.center(*at)
     game.player.place(x, z, 0.0, world.map)
     return game, world
@@ -77,14 +77,14 @@ def stand_on(game, world, plate):
 
 
 def test_shortcut_lifts_load_locked_with_no_lever_beside_them():
-    _game, world = keep(at=(13, 26))  # the shrine room landing; its lift waits below, fastened
+    _game, world = prison(at=(13, 26))  # the shrine room landing; its lift waits below, fastened
     assert lift(world, CRYPT_LIFT).locked and lift(world, BELFRY_LIFT).locked
     assert not lift(world, (4, 25)).locked
     assert not [p for p in world.props if p.kind == "lift_call"]  # the call plates do the calling
 
 
 def test_a_fastened_lift_refuses_the_call_plate_on_its_far_landing():
-    game, world = keep(at=(13, 26))
+    game, world = prison(at=(13, 26))
     shaft = lift(world, CRYPT_LIFT)
     (plate,) = [c for c in shaft.calls if c.end == "high"]
     stand_on(game, world, plate)
@@ -94,16 +94,16 @@ def test_a_fastened_lift_refuses_the_call_plate_on_its_far_landing():
 
 
 def test_riding_a_shortcut_lift_from_its_open_end_frees_it_for_good():
-    game, world = keep(at=(11, 26))  # the Undercroft landing, beside the lift resting there
+    game, world = prison(at=(11, 26))  # the Undercroft landing, beside the lift resting there
     game.player.y = world.player_floor()
     shaft = lift(world, CRYPT_LIFT)
     game.player.x, game.player.z = shaft.x, shaft.z  # onto the plate
     run_terrain(world, game, 0.7 + (shaft.high - shaft.low) / shaft.speed + 1.0)
     assert shaft.at == "high" and not shaft.locked
-    assert f"lift:sunken_keep:{CRYPT_LIFT[0]},{CRYPT_LIFT[1]}" in game.flags
+    assert f"lift:abandoned_prison:{CRYPT_LIFT[0]},{CRYPT_LIFT[1]}" in game.flags
     assert any("grinds free" in m for m in game.messages)
     # Come back later: it stays free, and the call plate below brings it down.
-    again_game, again = keep(game.flags, at=(11, 26))
+    again_game, again = prison(game.flags, at=(11, 26))
     freed = lift(again, CRYPT_LIFT)
     assert not freed.locked
     freed.at, freed.deck = "high", freed.high
@@ -116,7 +116,7 @@ def test_riding_a_shortcut_lift_from_its_open_end_frees_it_for_good():
 
 
 def test_every_lift_landing_has_a_call_plate_that_brings_it():
-    game, world = keep()
+    game, world = prison()
     for p in (p for p in world.terrain.platforms if p.kind == "lift"):
         assert len(p.calls) == len(p.doors) and {c.end for c in p.calls} == {"low", "high"}
         for c in p.calls:
@@ -134,7 +134,7 @@ def test_every_lift_landing_has_a_call_plate_that_brings_it():
 
 
 def test_gaoler_hook_drags_you_toward_him():
-    game, world = keep(at=(15, 21))
+    game, world = prison(at=(15, 21))
     g = Enemy(EnemyTypes.get("gaoler"), *TileMap.center(19, 21), rng=random.Random(1))
     before = math.hypot(g.x - game.player.x, g.z - game.player.z)
     world.hook(g, 0.4, 2.5)
@@ -144,7 +144,7 @@ def test_gaoler_hook_drags_you_toward_him():
 
 
 def test_gaoler_hook_never_drags_you_into_him_or_off_a_lift():
-    game, world = keep(at=(15, 21))
+    game, world = prison(at=(15, 21))
     g = Enemy(EnemyTypes.get("gaoler"), *TileMap.center(16, 21), rng=random.Random(1))
     world.hook(g, 0.4, 2.5)
     gap = math.hypot(g.x - game.player.x, g.z - game.player.z)
@@ -156,7 +156,7 @@ def test_gaoler_hook_never_drags_you_into_him_or_off_a_lift():
 
 
 def test_warden_slam_and_eruptions_burn_where_you_stood():
-    game, world = keep(at=(15, 5))
+    game, world = prison(at=(15, 5))
     w = Enemy(EnemyTypes.get("ashen_warden"), *TileMap.center(15, 3), rng=random.Random(1))
     world.slam(w)
     assert world.shockwaves and "quake" in game.sounds
@@ -174,14 +174,14 @@ def test_warden_slam_and_eruptions_burn_where_you_stood():
 
 
 def test_the_wardens_rage_is_announced():
-    game, world = keep()
+    game, world = prison()
     w = Enemy(EnemyTypes.get("ashen_warden"), 0, 0)
     world.boss_rage(w)
     assert game.messages == [EnemyTypes.get("ashen_warden").rage]
 
 
 def test_a_shrine_rest_puts_out_the_fires():
-    _game, world = keep(at=(15, 5))
+    _game, world = prison(at=(15, 5))
     w = Enemy(EnemyTypes.get("ashen_warden"), *TileMap.center(15, 3))
     world.eruption(w)
     world.slam(w)
@@ -190,7 +190,7 @@ def test_a_shrine_rest_puts_out_the_fires():
 
 
 def test_new_props_block_their_tiles():
-    _game, world = keep()
+    _game, world = prison()
     for kind in ("pillar", "sarcophagus", "headsman_block"):
         p = next(p for p in world.props if p.kind == kind)
         assert world.blocked_tile(p.tx, p.tz), kind
@@ -200,7 +200,7 @@ def test_new_props_block_their_tiles():
 
 
 def test_eruptions_never_rise_inside_a_wall():
-    _game, world = keep(at=(10, 4))  # against the hall's west wall
+    _game, world = prison(at=(10, 4))  # against the hall's west wall
     w = Enemy(EnemyTypes.get("ashen_warden"), *TileMap.center(10, 2))
     world.eruption(w)  # the side circles fall east and west: the west one is in the wall
     assert len(world.eruptions) == 2
@@ -208,7 +208,7 @@ def test_eruptions_never_rise_inside_a_wall():
 
 
 def test_a_shield_that_stops_the_hook_stops_the_drag():
-    game, world = keep(at=(15, 21))
+    game, world = prison(at=(15, 21))
     g = Enemy(EnemyTypes.get("gaoler"), *TileMap.center(19, 21))
     world.enemy_strike = lambda *_: 0  # the shield took it all
     x = game.player.x
@@ -221,7 +221,7 @@ def butcher(world):
 
 
 def test_the_butcher_waits_in_his_hall_north_of_the_gallery():
-    _game, world = keep()
+    _game, world = prison()
     b = butcher(world)
     assert b is not None and b.type.boss and b.type.drop is None  # no relic: the ending is untouched
     assert world.map.tile_at(b.x, b.z).floor == pytest.approx(12.0)
@@ -229,24 +229,24 @@ def test_the_butcher_waits_in_his_hall_north_of_the_gallery():
 
 
 def test_the_butcher_drops_his_cleaver_and_stays_dead():
-    _game, world = keep()
+    _game, world = prison()
     b = butcher(world)
     b.kill()
     world.drop_enemy_loot(b)
     assert any(p.kind == "pickup" and p.props["item"] == "butcher_cleaver" for p in world.props)
     # A shrine rest brings back a living boss as he is...
-    _game, world = keep()
+    _game, world = prison()
     world.respawn_enemies()
     assert butcher(world) is not None
     # ...but once he has fallen, neither a reload nor a rest brings him back.
-    _game, world = keep(flags={"butcher_dead"})
+    _game, world = prison(flags={"butcher_dead"})
     assert butcher(world) is None
     world.respawn_enemies()
     assert butcher(world) is None
 
 
-def test_the_keeps_lifts_are_jail_cages_open_toward_their_landings():
-    _game, world = keep()
+def test_the_prisons_lifts_are_jail_cages_open_toward_their_landings():
+    _game, world = prison()
     lifts = [p for p in world.terrain.platforms if p.kind == "lift"]
     assert len(lifts) == 4 and all(p.model == "cage" for p in lifts)
     for p in lifts:
@@ -275,14 +275,14 @@ def _bolt_past(world, kind, pitch=0.0):
 
 
 def test_a_bolt_flies_over_a_table_but_not_through_a_pillar():
-    _game, world = keep()
+    _game, world = prison()
     assert _bolt_past(world, "table") > 3.0
-    _game, world = keep()
+    _game, world = prison()
     assert _bolt_past(world, "pillar") < 3.0
 
 
 def test_a_bolt_aimed_low_still_strikes_the_barrel():
-    _game, world = keep()
+    _game, world = prison()
     assert _bolt_past(world, "barrel", pitch=-0.5) < 3.0
 
 
@@ -297,7 +297,7 @@ def test_the_silent_bell_can_be_touched_from_the_edge_of_its_plinth():
 
 
 def test_the_compass_points_to_the_nearest_living_boss_and_then_to_none():
-    game, world = keep()
+    game, world = prison()
     gates = {a.flag: TileMap.center(*a.gate) for a in world.arenas}
     near = min(gates.values(), key=lambda g: math.hypot(g[0] - game.player.x, g[1] - game.player.z))
     assert world.boss_target() == near
@@ -424,7 +424,7 @@ def test_a_house_door_still_will_not_shut_on_you_in_its_doorway():
 def test_a_struck_foe_glows_red():
     from ashen_vault.world.world import HIT_RED
 
-    _, world = keep()
+    _, world = prison()
     lights = []
 
     class Gpu:
@@ -440,7 +440,7 @@ def test_a_struck_foe_glows_red():
 def test_a_smashed_barrel_flings_its_pieces_out_then_settles_and_a_loaded_one_lies_settled():
     from ashen_vault.world.world import BREAK_TIME
 
-    _game, world = keep()
+    _game, world = prison()
     barrel = next(p for p in world.props if p.kind in ("barrel", "crate"))
     assert barrel.open_t == 0.0 and barrel.break_t == 1.0  # whole: nothing to animate
     world.break_prop(barrel)
@@ -450,6 +450,32 @@ def test_a_smashed_barrel_flings_its_pieces_out_then_settles_and_a_loaded_one_li
     world.update(BREAK_TIME)
     assert barrel.break_t == 1.0
     # Loaded from a save that holds it broken: its wreck already lies still.
-    _game, world = keep(flags={barrel.key})
+    _game, world = prison(flags={barrel.key})
     again = next(p for p in world.props if p.key == barrel.key)
     assert again.open_t == 1.0 and again.break_t == 1.0
+
+
+def test_hollow_inmates_kneel_until_you_come_near_then_rise_and_come_for_you():
+    game, world = prison(at=(15, 32))  # down in the well's shaft, far from the guard hall
+    (inmate,) = [
+        e for e in world.enemies if e.type.id == "hollow_inmate" and (e.x, e.z) == TileMap.center(13, 20)
+    ]
+    for _ in range(20):
+        world.update(0.05)
+    assert inmate.state == "idle"
+    x, z = TileMap.center(13, 22)
+    game.player.place(x, z, -math.pi / 2, world.map)
+    for _ in range(20):
+        world.update(0.05)
+    assert inmate.state != "idle"
+
+
+def test_the_west_cells_lever_raises_every_cell_front_at_once():
+    _game, world = prison(at=(4, 16))
+    gates = [p for p in world.props if p.kind == "gate" and p.props.get("lever") == "west_cells"]
+    (lever,) = [p for p in world.props if p.kind == "lever" and p.props.get("id") == "west_cells"]
+    assert len(gates) >= 4 and all(world.blocked_tile(g.tx, g.tz) for g in gates)
+    world.pull_lever(lever)
+    for _ in range(60):
+        world.update(0.05)
+    assert not any(world.blocked_tile(g.tx, g.tz) for g in gates)

@@ -5,6 +5,12 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
 - `interact` uses whatever the player faces within reach, nearest first: an unopened chest in front of
   another prop is opened first.
 - The `smoke:` line includes the player's height (`y=`), handy for checking lifts.
+- The Abandoned Prison (`abandoned_prison`): `--map abandoned_prison` (its `start`, in the well's shaft
+  under the rope; `--at=15,32,90 --script "back:0.3 look_up:0.5"` looks up the shaft at the well's mouth),
+  `--at=15,21,90` (the guard hall), `--at=4,23,-90` (the west cell block's dark aisle; `--at=4,16,-90
+  --script "wait:0.2 interact wait:2"` pulls its lever and raises every cell's bars), `--at=22,21,90
+  --script "forward:0.6 wait:0.2 interact"` (Brother Marrow, through his cell's bars), `--at=32,21,0`
+  (the chapel of the old gods from its door; `--at=40,21,0` its altar and the Warden's Key).
 - Useful starts: `--at 4,24,90 --script "forward:0.15 wait:5 forward:0.6 wait:5.5"` (step onto the
   landing's call plate to bring the Cistern lift up, then onto its deck's plate and ride 10 m down to the Undercroft), `--at=11,26,90 --script
   "strafe_l:0.7 wait:5"` (ride the shrine lift up, which frees it), `--at=13,26,180 --script "wait:0.2
@@ -67,7 +73,7 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   ashen_cemetery --at=10,3,-90 --script "wait:0.1 interact"` (the gate out, refusing while the
   Sexton lives). Without `--map`, `--script "wait:0.3 confirm confirm"` presses New Game on the title
   and picks the first empty slot in the chooser (with a throwaway save that doesn't exist yet).
-- Boss doors: `--map sunken_keep --at=15,11,-90` faces the Warden's great door, `--at=28,10,-116` the
+- Boss doors: `--map abandoned_prison --at=15,11,-90` faces the Warden's great door, `--at=28,10,-116` the
   Butcher's, `--map verdant_hollow --at=15,11,-90` the Loom Mother's, `--map cinder_keep --at=22,5,180`
   the gargoyles', `--map ashen_cemetery --at=10,11,-90` the Sexton's, `--map vesperholm --at=21,11,-90` the Duchess's. The fog appears only
   after dying in a sealed arena (or with its `fog:` flag set); `tests/test_arena.py` drives the flow.

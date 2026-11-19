@@ -6,11 +6,11 @@ import pytest
 
 from ashen_vault.world.tile_map import SEAT_DEPTH, TileMap
 from ashen_vault.world.world import World
-from test_keep_world import FakeGame
+from test_prison_world import FakeGame
 
 MAPS = (
     "ashen_cemetery",
-    "sunken_keep",
+    "abandoned_prison",
     "verdant_hollow",
     "cinderhold",
     "cinder_keep",

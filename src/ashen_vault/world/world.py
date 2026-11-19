@@ -29,6 +29,7 @@ from ashen_vault.render import (
     fortress_props,
     models,
     moon_models,
+    prison_models,
     prop_bake,
     sewer_models,
     town_models,
@@ -174,8 +175,8 @@ HAZARD_MESSAGES = {
 LIFT_LOCKED = "It won't budge. The lift is fastened from the other end."
 # Lifts that a lever unchained in older saves (before they were freed by riding them).
 LEGACY_LIFT_LEVERS = {
-    ("sunken_keep", 12, 26): "crypt_winch",
-    ("sunken_keep", 25, 16): "belfry_winch",
+    ("abandoned_prison", 12, 26): "crypt_winch",
+    ("abandoned_prison", 25, 16): "belfry_winch",
     ("verdant_hollow", 33, 15): "rim_lift",
     ("verdant_hollow", 20, 38): "root_lift",
     ("cinderhold", 19, 24): "smelt_lift",
@@ -235,6 +236,7 @@ BLOCKING_PROPS = (
     "moon_lamp",
     "veiled_statue",
     "silver_tree",
+    "old_idol",
 )
 # How high a low blocking prop reaches above its floor, in metres: a shot flying higher passes over it
 # (a bolt over a table, a casket or a barrel). Anything not listed stands full height.
@@ -268,6 +270,7 @@ PROP_TOP = {
     "grindstone": 1.2,
     "katana_stand": 1.2,
     "drawers": 1.05,
+    "old_idol": 2.6,
 }
 # Props that block only until they are broken or revealed.
 BREAKABLE_PROPS = ("barrel", "crate", "urn", "cocoon", "secret_wall")
@@ -303,6 +306,7 @@ WALL_PROPS = (
     "sluice_wheel",
     "outfall_grate",
     "moon_window",
+    "prisoner_remains",
 )
 # Props drawn as far as the fog lets you see, however far that is: they make a skyline.
 LANDMARKS = (
@@ -340,6 +344,7 @@ STATIC_PROPS = frozenset(
         *("weapon_rack", "armor_stand", "katana_stand", "bookcase", "drawers"),
         *("sluice_wheel", "outfall_grate", "rat_nest", "inkcaps", "sump_caps"),
         *("moon_lamp", "veiled_statue", "silver_tree", "moon_window", "moon_spire"),
+        *("prisoner_remains", "old_idol"),
         "ash_mound",
         "spire",
     }
@@ -350,7 +355,7 @@ RISE = {"rose_window": "6", "crest_plaque": "3", "shutters": "1.7", "balcony": "
 FACING_PROPS = (
     *("chest", "altar", "table", "bed", "cupboard", "gargoyle_statue", "forge_hearth"),
     *("bench", "hand_cart", "hay_wagon", "mourning_statue", "forge_bellows", "town_statue", "forge_statue"),
-    *("ore_cart", "armor_stand", "katana_stand", "bookcase", "drawers"),
+    *("ore_cart", "armor_stand", "katana_stand", "bookcase", "drawers", "old_idol"),
 )
 # Ways through a wall that its rampart bays keep clear of (`World._dress_ramparts`).
 RAMPART_GATES = ("exit", "cemetery_gate", "door", "gate", "door_arch")
@@ -729,7 +734,7 @@ class World:
         self._respill_slain_loot()
         if (
             "boss_dead" in self.flags
-            and self.name == "sunken_keep"
+            and self.name == "abandoned_prison"
             and not self.player.inventory.has("ember_sigil")
             and "sigil_taken" not in self.flags
         ):
@@ -2228,6 +2233,8 @@ class World:
             dz = p.z - player.z
             d = math.hypot(dx, dz)
             reach = INTERACT_REACH.get(getattr(p, "kind", None), INTERACT_RANGE)
+            if getattr(p, "props", None) and "reach" in p.props:  # one spoken to through a cell's bars
+                reach = float(p.props["reach"])
             in_reach = d < reach and (d < 0.8 or (dx * fx + dz * fz) / d > 0.55)
             if in_reach and (best is None or d < best_d):
                 best, best_d = p, d
@@ -2824,7 +2831,7 @@ class World:
         elif k == "urn":
             models.urn(rig, p.tx * 3 + p.tz * 7, broken=p.open_t > 0, t=p.break_t)
         elif k == "altar":
-            models.warden_altar(rig, p.open_t > 0, t)
+            models.warden_altar(rig, p.open_t > 0, t, p.props.get("model", "warden"))
         elif k == "brazier":
             models.brazier(rig, t, lit=self.is_lit(p))
         elif k == "bonfire":
@@ -2862,6 +2869,10 @@ class World:
             models.pillar(rig, p.tx * 3 + p.tz, self._ceil_h(p))
         elif k == "sarcophagus":
             models.sarcophagus(rig, p.tx * 5 + p.tz)
+        elif k == "prisoner_remains":
+            prison_models.prisoner_remains(rig, p.tx * 5 + p.tz * 3)
+        elif k == "old_idol":
+            prison_models.old_idol(rig, p.tx * 7 + p.tz)
         elif k == "cage":
             models.cage(rig, t, p.tx * 3 + p.tz, self._ceil_h(p))
         elif k == "cobweb":
@@ -2951,8 +2962,8 @@ class World:
             elif p.props.get("model") == "sewer_ladder":  # set back against the wall behind it, if any
                 behind = self.map[p.tx - rround(math.cos(p.yaw)), p.tz - rround(math.sin(p.yaw))]
                 sewer_models.sewer_ladder(rig, t, self._ceil_h(p), LADDER_BACK if behind.solid else 0.0)
-            else:
-                models.rope(rig, t)
+            else:  # a rope hung from a beam just under the ceiling (high up a well's shaft)
+                models.rope(rig, t, self._ceil_h(p) - 0.3)
         elif k == "spire":
             width = float(p.props["width"]) if "width" in p.props else None
             roof = p.props.get("roof", "cone")

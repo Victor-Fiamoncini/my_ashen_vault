@@ -53,6 +53,7 @@ def enemy(r, e):
         "gaoler": gaoler,
         "butcher": butcher,
         "bone_crawler": bone_crawler,
+        "hollow_inmate": prison_models.hollow_inmate,
         "forge_golem": forge_models.forge_golem,
         "iron_bowman": forge_models.iron_bowman,
         "slag_hound": forge_models.slag_hound,
@@ -545,7 +546,7 @@ COLD_EMBER = (70, 40, 30)
 
 
 def ashen_warden(r, e, t):
-    """The keep's warden: a giant in soot-black plate under a ragged ash-grey tabard and cape, a crested
+    """The prison's warden: a giant in soot-black plate under a ragged ash-grey tabard and cape, a crested
     great-helm with an ember burning behind its visor, a sigil smouldering on his breastplate and a
     greatsword in his fist. In his second phase the plate cracks open on the fire inside and his blade
     burns. Slain, he sinks to his knees, braced on his blade, slumps, and every fire goes out."""
@@ -594,7 +595,7 @@ def ashen_warden(r, e, t):
                         )
                     r.part("wedge", 0.27, -0.45, 0, 0.09, 0.12, 0.16, PLATE_DARK, rz=-math.pi / 2)
         # Faulds in three lames, square tassets hung over each thigh, and a straight-hemmed tabard
-        # between the legs bearing the keep's sigil (a diamond with a bar through it).
+        # between the legs bearing the prison's sigil (a diamond with a bar through it).
         r.part("cube", 0, 1.0, 0, 0.38, 0.22, 0.52, PLATE_DARK)
         for i in range(3):
             r.part("cube", 0.12 - i * 0.01, 0.92 - i * 0.08, 0, 0.18, 0.07, 0.5 - i * 0.03, PLATE, rz=-0.25)
@@ -870,7 +871,7 @@ GORE = (96, 30, 26)
 
 
 def butcher(r, e, t):
-    """The keep's slaughterman: a huge, lumpen brute, pot-bellied and humpbacked, in a stitched
+    """The prison's slaughterman: a huge, lumpen brute, pot-bellied and humpbacked, in a stitched
     leather apron black with old blood, a chain belt hung with meat hooks and a sack hood with one
     eye cut and the other sewn shut, a cleaver as long as a man's arm in one fist. His moves share
     the Warden's arm poses. Enraged, his apron runs wet, his eye burns red and steam rolls off him.
@@ -2930,7 +2931,7 @@ def _wood_lever(r, k, wall):
 
 
 def _lever(r, k, wall):
-    """The keep's lever: an iron shaft with a ball grip, pivoting in a slotted plate on a stone block."""
+    """The prison's lever: an iron shaft with a ball grip, pivoting in a slotted plate on a stone block."""
     bx = -0.5 if wall else -0.15
     r.part("cube", bx, 0.4, 0, 0.55, 0.8, 0.7, WHITE, tex="rough_stone")
     r.part("cube", bx, 0.83, 0, 0.62, 0.06, 0.76, (110, 106, 100))  # capstone
@@ -2944,7 +2945,7 @@ def _lever(r, k, wall):
 
 
 def lift(r, t, moving, chain_h, model="", doors=(), pressed=0.0):
-    """A chain lift. `model="cage"` is the keep's jail cage: an iron-barred box hung from a single
+    """A chain lift. `model="cage"` is the prison's jail cage: an iron-barred box hung from a single
     heavy chain, open only on the `doors` sides (dx, dz) that face a landing. Otherwise an oak deck
     in an iron frame, hung from four chains. Both run up to a pulley beam under the shaft's ceiling;
     riding, the chains shiver. In the middle of either floor is the pressure plate that sends it,
@@ -3550,18 +3551,18 @@ def thorn_plant(r, seed, t, rise):
 ROPE = (150, 120, 80)
 
 
-def rope(r, t):
-    """The rope up out of the Sunken Keep: knotted every half metre for the hands and feet, hung from an
-    iron ring on a beam across the shaft above, a stone ring round its foot, a coil of slack on the
-    floor and motes of dust drifting down in the daylight from the well."""
-    with r.at(0, 3.2, 0, rz=math.sin(t * 0.8) * 0.04):
-        r.part("cyl", 0, -1.6, 0, 0.07, 3.2, 0.07, ROPE)
-        for k in range(6):  # the knots
+def rope(r, t, top=3.2):
+    """The rope up out of the Abandoned Prison: knotted every half metre for the hands and feet, hung
+    `top` metres up from an iron ring on a beam across the shaft, a stone ring round its foot, a coil of
+    slack on the floor and motes of dust drifting down in the daylight from the well."""
+    with r.at(0, top, 0, rz=math.sin(t * 0.8) * 0.04 * 3.2 / top):
+        r.part("cyl", 0, -top / 2, 0, 0.07, top, 0.07, ROPE)
+        for k in range(int((top - 0.4) / 0.48)):  # the knots
             r.part("cube", 0, -0.45 - k * 0.48, 0, 0.12, 0.08, 0.12, _dim(ROPE, 0.85), ry=k * 0.5)
-        r.part("cube", 0, -3.0, 0, 0.16, 0.12, 0.16, (130, 100, 70))
-    r.part("cube", 0, 3.3, 0, 0.2, 0.2, 2.0, (80, 60, 40))  # the beam across the shaft
-    r.part("cube", 0, 3.18, 0, 0.14, 0.04, 0.14, (70, 66, 64))  # the ring it hangs from
-    r.part("cube", 0, 3.18, 0, 0.04, 0.14, 0.14, (70, 66, 64))
+        r.part("cube", 0, 0.2 - top, 0, 0.16, 0.12, 0.16, (130, 100, 70))
+    r.part("cube", 0, top + 0.1, 0, 0.2, 0.2, 2.0, (80, 60, 40))  # the beam across the shaft
+    r.part("cube", 0, top - 0.02, 0, 0.14, 0.04, 0.14, (70, 66, 64))  # the ring it hangs from
+    r.part("cube", 0, top - 0.02, 0, 0.04, 0.14, 0.14, (70, 66, 64))
     r.part("cyl", 0, 0.05, 0, 1.0, 0.1, 1.0, (40, 40, 44))
     for i in range(8):  # the stones round its foot
         a = i * math.pi / 4
@@ -3577,8 +3578,11 @@ def rope(r, t):
             0.42 - k * 0.08,
             _dim(ROPE, 0.9 - k * 0.05),
         )
+    if top > 6:  # far up a well's shaft: the daylit mouth of the well, and its light slanting down
+        r.part("cyl", 0, top + 0.25, 0, 1.7, 0.04, 1.7, (206, 214, 226), glow=True)
+        r.part("cyl", 0, top + 0.22, 0, 2.0, 0.03, 2.0, (120, 128, 140), glow=True)  # its halo
     for k in range(4):  # motes of dust drifting down through the daylight from above
-        y = 3.2 - ((t * 0.25 + k / 4) % 1.0) * 3.0
+        y = top - ((t * 0.25 + k / 4) % 1.0) * (top - 0.2)
         r.part("cube", math.sin(k * 2.1 + t * 0.4) * 0.3, y, math.cos(k * 1.7) * 0.3, 0.025, 0.025, 0.025,
                (190, 196, 200), glow=True)  # fmt: skip
 
@@ -3867,7 +3871,7 @@ SECRET_ASH_TEX = "ash_ground"  # what the crumbling cells show: loose ash, not t
 
 
 def secret_wall(r, height, open_t, tex="stone_brick", t=0.0, shimmer=False, near=False):
-    """An illusory wall: a full tile in the texture of the walls beside it (brick in the keep, a
+    """An illusory wall: a full tile in the texture of the walls beside it (brick in the prison, a
     curtain of vines in the jungle). Now and then a faint shimmer climbs it (`shimmer`), and up close
     a few pale motes drift on its faces (`near`): the only tells. Struck (`open_t` 0..1), ember cracks
     run across it as it sears to ash, then it crumbles top-down, cell by cell, into falling ash and
@@ -4528,9 +4532,10 @@ def urn(r, seed, broken=False, t=1.0):
         r.part("cyl", 0, 0.4, 0, 0.62, 0.05, 0.62, tuple(c - 30 for c in clay))  # painted band
 
 
-def warden_altar(r, taken, t):
+def warden_altar(r, taken, t, style="warden"):
     """A stepped altar before a stone statue of the Ashen Warden, who offers a floating key above his
-    cupped hands. Faces +X; the statue stands at the back of the tile."""
+    cupped hands. Faces +X; the statue stands at the back of the tile. `style` "idol" is the prison
+    chapel's: one of its faceless old gods stands behind the altar instead, palms raised to the key."""
     r.part("cube", 0, 0.08, 0, 1.95, 0.16, 1.95, WHITE, tex="rough_stone")  # dais
     r.part("cube", -0.2, 0.24, 0, 1.5, 0.16, 1.6, WHITE, tex="rough_stone")
     # The altar block with a cloth runner and candles.
@@ -4541,7 +4546,10 @@ def warden_altar(r, taken, t):
     for z in (-0.55, 0.55):
         r.part("cyl", 0.55, 1.2, z, 0.08, 0.22, 0.08, (225, 215, 185))
         _flame(r, 0.55, 1.34, z, 0.05, t + z)
-    _warden_statue(r, taken, t)
+    if style == "idol":
+        prison_models.altar_idol(r)
+    else:
+        _warden_statue(r, taken, t)
     if not taken:  # the key hovers just above his offered hands
         bob = math.sin(t * 1.6) * 0.04
         with r.at(0.3, 2.02 + bob, 0, ry=t * 0.8):
@@ -6682,4 +6690,10 @@ def meat_hooks(r, t, seed, ceil_h):
 
 
 # The Cinderhold's models live in their own module; it borrows the helpers above, so it is imported last.
-from ashen_vault.render import cemetery_models, forge_models, moon_models, sewer_models  # noqa: E402
+from ashen_vault.render import (  # noqa: E402
+    cemetery_models,
+    forge_models,
+    moon_models,
+    prison_models,
+    sewer_models,
+)

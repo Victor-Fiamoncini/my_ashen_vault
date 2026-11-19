@@ -12,7 +12,7 @@ from ashen_vault.world import collision
 from ashen_vault.world.map_loader import MapLoader
 from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.world import World
-from test_keep_world import FakeGame
+from test_prison_world import FakeGame
 
 HALL = """[meta]
 name = Hall
@@ -147,7 +147,7 @@ def test_a_body_you_already_touch_does_not_hold_you_but_one_ahead_does():
 
 def test_in_the_keep_a_lunge_never_crosses_a_boss_fog():
     game = FakeGame()
-    world = World(game, "sunken_keep")
+    world = World(game, "abandoned_prison")
     arena = world.arenas[0]
     game.flags.add(arena.fog_key)  # you died in there: its door has given way to fog
     assert arena.fogged(world.flags) and world.player_blocker(*arena.gate)

@@ -2,7 +2,7 @@ from ashen_vault.world import loot
 
 
 def keys(n=600):
-    return [f"barrel:sunken_keep:{i},{i * 7 % 31}" for i in range(n)]
+    return [f"barrel:abandoned_prison:{i},{i * 7 % 31}" for i in range(n)]
 
 
 def test_roll_is_deterministic():

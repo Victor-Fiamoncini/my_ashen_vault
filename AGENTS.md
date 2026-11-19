@@ -39,7 +39,7 @@ line with the game state (position, height `y=`, HP, scene, flags, items, gear, 
 
 ```sh
 ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
-  uv run ashen-vault --map sunken_keep --at 15,21,180 --smoke 200 --script "wait:1.2 attack" --shot /tmp/out.png
+  uv run ashen-vault --map abandoned_prison --at 15,21,180 --smoke 200 --script "wait:1.2 attack" --shot /tmp/out.png
 ```
 
 - Always set `ASHEN_VAULT_SAVE` to a throwaway path, so you never touch the player's real save
@@ -71,7 +71,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/game.py` | Scenes and the main loop |
 | `src/ashen_vault/input.py` | Key bindings and the `--script` driver |
 | `src/ashen_vault/dialogue.py` | NPC conversations, gifts and shops |
-| `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. One per area: `ashen_cemetery`, `harrowmere`, `harrow_sewers`, `sunken_keep`, `verdant_hollow`, `cinderhold`, `cinder_keep` and `vesperholm` (`docs/dev/maps.md` describes each) |
+| `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. One per area: `ashen_cemetery`, `harrowmere`, `harrow_sewers`, `abandoned_prison`, `verdant_hollow`, `cinderhold`, `cinder_keep` and `vesperholm` (`docs/dev/maps.md` describes each) |
 | `tests/` | pytest suite; `conftest.py` has a small test map, `test_*_world.py` build a real `World` headless |
 | `tools/` | `screenshots.py` (the README gallery), the level planner and level sketch (design aids) |
 | `docs/dev/` | The detailed guides below |
@@ -97,7 +97,7 @@ Read the one that covers what you are changing before you start:
 - Use `util.rround` (round half away from zero) instead of built-in `round` in game math. The code was
   ported from Ruby and its numbers depend on that rounding.
 - Keep new logic in the raylib-free packages and add tests for it. `world/world.py` is pure: drive it
-  headless as `tests/test_keep_world.py` does (a `FakeGame` with a no-op GPU).
+  headless as `tests/test_prison_world.py` does (a `FakeGame` with a no-op GPU).
 - Map grids are whitespace-sensitive: never reformat a `.map` file. Each grid character is one 2 m
   tile.
 - Internal resolution is 320x240 (`screen.py`); UI coordinates are in that space. Derive HUD positions

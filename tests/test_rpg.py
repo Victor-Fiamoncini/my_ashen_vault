@@ -300,8 +300,8 @@ def test_load_spot_gives_the_saved_place(tmp_path):
     assert saves.load_spot() is None
     player = Player()
     player.x, player.z, player.yaw = 4.0, 9.5, 1.25
-    saves.save(map="sunken_keep", player=player, flags=set())
-    assert saves.load_spot() == ("sunken_keep", 4.0, 9.5, 1.25)
+    saves.save(map="abandoned_prison", player=player, flags=set())
+    assert saves.load_spot() == ("abandoned_prison", 4.0, 9.5, 1.25)
 
 
 def test_revive_restores_and_clears_effects():

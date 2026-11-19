@@ -302,6 +302,6 @@ def test_a_cut_goes_through_two_foes_side_by_side_where_a_thrust_stops_on_one():
 
 
 def test_keep_has_the_new_weapon_chests():
-    m = MapLoader.load_file(os.path.join(MAP_DIR, "sunken_keep.map"))
+    m = MapLoader.load_file(os.path.join(MAP_DIR, "abandoned_prison.map"))
     items = {s.props.get("item") for s in m.entities if s.kind == "chest"}
     assert {"claymore", "war_hammer"} <= items

@@ -13,7 +13,7 @@ from ashen_vault.player.items import Items
 from ashen_vault.player.player import Player
 from ashen_vault.save.save_system import SaveSystem
 from ashen_vault.world.tile_map import TileMap
-from test_keep_world import keep
+from test_prison_world import prison
 
 
 def run(a, seconds, max_hp=100, dt=0.05):
@@ -115,7 +115,7 @@ def test_ailments_survive_a_save(tmp_path):
     p.afflict("rot", FULL)
     p.afflict("bleed", 30)
     s = SaveSystem(str(tmp_path / "save.json"))
-    s.save("sunken_keep", p, set())
+    s.save("abandoned_prison", p, set())
     _, loaded, _ = s.load()
     assert loaded.ailments.rotted
     assert loaded.ailments.meters["bleed"] == pytest.approx(30)
@@ -128,7 +128,7 @@ def test_old_saves_load_without_ailments():
 
 
 def test_a_butchers_blow_builds_bleed_and_bursts():
-    game, world = keep()
+    game, world = prison()
     butcher = Enemy(EnemyTypes.get("butcher"), *TileMap.center(15, 20), rng=random.Random(1))
     game.player.stats.hp = game.player.stats.max_hp = 400
     while not any(src == "Bleeding" for _, src in game.wounds):
@@ -138,7 +138,7 @@ def test_a_butchers_blow_builds_bleed_and_bursts():
 
 
 def test_a_blocked_blow_builds_nothing():
-    game, world = keep()
+    game, world = prison()
     world.strike_player(0, "Butcher", 0, 0, (("bleed", 40),))
     assert game.player.ailments.building() == []
     world.strike_player(5, "Butcher", 0, 0, (("bleed", 40),))
@@ -146,7 +146,7 @@ def test_a_blocked_blow_builds_nothing():
 
 
 def test_corrosion_taking_hold_wears_gear_and_says_so():
-    game, world = keep()
+    game, world = prison()
     p = game.player
     p.inventory.add("rusted_sword")
     p.inventory.equip("rusted_sword")

@@ -109,8 +109,8 @@ STATIC_BLOCKERS = (
 )
 
 
-def _keep_reach(m, lifts):
-    """Flood fill over the keep from its start (doors and gates count as open). Each lift in
+def _prison_reach(m, lifts):
+    """Flood fill over the prison from its start (doors and gates count as open). Each lift in
     `lifts` links the landings at its two ends; a lift chained fast is just a hole in the floor."""
     solid = {(e.tx, e.tz) for e in m.entities if e.kind in STATIC_BLOCKERS}
     links = {}
@@ -143,8 +143,8 @@ def _keep_reach(m, lifts):
     return seen
 
 
-def _keep():
-    m = MapLoader.load_file(os.path.join(MAP_DIR, "sunken_keep.map"))
+def _prison():
+    m = MapLoader.load_file(os.path.join(MAP_DIR, "abandoned_prison.map"))
     for e in m.entities:  # crumbling floors start solid
         if e.kind == "crumble":
             m.set_override(
@@ -153,13 +153,13 @@ def _keep():
     return m
 
 
-def test_sunken_keep_decor_never_cuts_off_anything():
+def test_abandoned_prison_decor_never_cuts_off_anything():
     """Flood fill from the start (doors and gates count as open, lifts chained fast count as
     shut): every chest, door, lever, exit and the iron maiden must stay reachable, so no barrel
     plugs a corridor and no shortcut is ever needed."""
-    m = _keep()
+    m = _prison()
     lifts = [p for p in terrain.build_platforms(m) if p.kind == "lift"]
-    seen = _keep_reach(m, [p for p in lifts if not p.locked])
+    seen = _prison_reach(m, [p for p in lifts if not p.locked])
 
     def touched(tx, tz):
         return any((tx + dx, tz + dz) in seen for dx, dz in ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)))
@@ -176,16 +176,68 @@ def test_sunken_keep_decor_never_cuts_off_anything():
         assert {round(m[t].floor, 1) for t in near} >= {p.low, p.high}, (sx, sz)
 
 
-def test_sunken_keep_lifts_reach_the_undercroft_and_the_gallery():
-    m = _keep()
+def test_abandoned_prison_lifts_reach_the_undercroft_and_the_gallery():
+    m = _prison()
     lifts = [p for p in terrain.build_platforms(m) if p.kind == "lift"]
     assert sum(p.locked for p in lifts) == 2  # the shortcuts: shrine to Undercroft, Gallery down
     free = [p for p in terrain.build_platforms(m) if p.kind == "lift" and not p.locked]
-    seen = _keep_reach(m, free)
+    seen = _prison_reach(m, free)
     assert any(m[t].floor == -10.0 for t in seen)  # the Undercroft
     assert any(m[t].floor == 12.0 for t in seen)  # the Gallery
-    no_lifts = _keep_reach(m, [])
+    no_lifts = _prison_reach(m, [])
     assert not any(m[t].floor in (-10.0, 12.0) for t in no_lifts)
+
+
+def _near(seen, e):
+    return any((e.tx + dx, e.tz + dz) in seen for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1)))
+
+
+def test_abandoned_prison_opens_in_order_from_the_well_shaft_to_the_chapel():
+    """You climb down the rope into the well's shaft, come in through the breach to the gatehouse, raise
+    the west cells' bars to reach the Cell Key, open the warders' quarters with it, and find the
+    Warden's Key on the altar of the old gods' chapel: all before the Warden's great door."""
+    m = _prison()
+    sx, sz = (int(v) for v in m.meta["start"][:2])
+    shaft = m[sx, sz]
+    assert shaft.ceil - shaft.floor >= 10 and shaft.dark == 0  # the tall shaft, lit from the well above
+    (rope,) = _spec(m, "exit", map="harrowmere")
+    assert rope.props["model"] == "rope" and abs(rope.tx - sx) + abs(rope.tz - sz) == 1
+    (cell_key,) = _spec(m, "chest", item="cell_key")
+    (quarters,) = _spec(m, "door", key="cell_key")
+    (boss,) = _spec(m, "door", key="warden_key")
+    (altar,) = [s for s in m.entities if s.kind == "altar"]
+    (chapel,) = [s for s in _spec(m, "door") if not s.props and s.tz == quarters.tz + 1]
+    west = [(s.tx, s.tz) for s in _spec(m, "gate", lever="west_cells")]
+    assert len(west) >= 4
+    (west_lever,) = _spec(m, "lever", id="west_cells")
+    (north_lever,) = _spec(m, "lever", id="north_lever")
+    (cell_lever,) = _spec(m, "lever", id="marrow_cell")
+    (marrow,) = _spec(m, "npc", id="marrow")
+    (marrow_gate,) = _spec(m, "gate", lever="marrow_cell")
+
+    start = _reachable(m, (sx, sz))
+    assert _near(start, west_lever) and _near(start, marrow_gate)  # spoken to through his bars
+    assert not _near(start, cell_key)  # behind the west cells' bars
+    cells = _reachable(m, (sx, sz), open_tiles=west)
+    assert _near(cells, cell_key) and not _near(cells, north_lever) and not _near(cells, cell_lever)
+    warders = _reachable(m, (sx, sz), open_tiles=[*west, (quarters.tx, quarters.tz)])
+    assert _near(warders, north_lever) and _near(warders, cell_lever)
+    assert not _near(cells, altar)
+    church = _reachable(m, (sx, sz), open_tiles=[(chapel.tx, chapel.tz)])
+    assert _near(church, altar) and altar.props["item"] == "warden_key"
+    assert altar.tx > quarters.tx and (boss.tx, boss.tz) not in church  # the key lies past the corridor
+    assert (marrow.tx, marrow.tz) == (marrow_gate.tx, marrow_gate.tz + 1)  # right behind his cell's bars
+    assert float(marrow.props["reach"]) >= 3.3
+
+
+def test_abandoned_prison_is_dark_but_for_its_lights():
+    """The cell block's aisles lose most of the little light there is; the chapel and the shaft don't."""
+    m = _prison()
+    assert sum(m.meta["ambient"]) < 0.25
+    (west_lever,) = _spec(m, "lever", id="west_cells")
+    assert m[west_lever.tx + 1, west_lever.tz].dark >= 0.4
+    (altar,) = [s for s in m.entities if s.kind == "altar"]
+    assert m[altar.tx - 1, altar.tz].dark == 0
 
 
 def test_wall_yaw_faces_out_of_the_nearest_wall(room):

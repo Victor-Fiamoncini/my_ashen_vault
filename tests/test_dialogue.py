@@ -307,3 +307,16 @@ def test_the_watch_talks_of_the_road_its_gate_keeps():
     assert "cave" in talk("reyna", FakeGame())[1]
     assert talk("reyna", FakeGame()) != talk("reyna", FakeGame(flags={"spider_dead"}))
     assert "cemetery" in talk("fenn", FakeGame())[1]
+
+
+def test_marrow_speaks_through_his_bars_then_gives_his_tonics_once_let_out():
+    g = FakeGame()
+    speaker, text = talk("marrow", g)
+    assert speaker == "Brother Marrow" and "Warden's Key" in text and "lever" in text
+    assert g.player.inventory.count("red_tonic") == 0 and "gift:marrow" not in g.flags
+    g.flags.add(dialogue.MARROW_FREED)  # his cell's lever pulled in the warders' quarters
+    before = g.player.inventory.count("red_tonic")
+    talk("marrow", g)
+    assert g.player.inventory.count("red_tonic") == before + 2 and "gift:marrow" in g.flags
+    _speaker, later = talk("marrow", g)
+    assert g.player.inventory.count("red_tonic") == before + 2 and "Warden" in later

@@ -75,8 +75,44 @@ def test_play_time_reads_as_hours_minutes_seconds():
 
 
 def test_slots_name_their_map_by_its_title(tmp_path):
-    assert map_title(map_path("sunken_keep")) == "The Sunken Keep"
+    assert map_title(map_path("abandoned_prison")) == "The Abandoned Prison"
     assert map_title(str(tmp_path / "lost_halls.map")) == "Lost Halls"
     untitled = tmp_path / "bare.map"
     untitled.write_text("[meta]\nsky = dusk\n", encoding="utf-8")
     assert map_title(str(untitled)) == "Bare"
+
+
+def test_a_save_from_before_the_prison_was_renamed_loads_into_it(tmp_path):
+    """The Sunken Keep became the Abandoned Prison: an older save naming it by its old id wakes there,
+    its remnant and its flags following it, and the slot shows the new name."""
+    s = SaveSystem(str(tmp_path / "save.json"))
+    player = Player()
+    player.remnant = {"map": "sunken_keep", "x": 4.0, "z": 9.0, "gold": 12}
+    s.save("sunken_keep", player, set())
+    with open(s.path, encoding="utf-8") as f:
+        data = json.load(f)
+    data["version"] = 1
+    data["flags"] = [
+        "boss_dead",
+        "door:sunken_keep:15,9",
+        "lift:sunken_keep:12,26",
+        "loot:barrel:sunken_keep:3,4",
+        "left:sunken_keep",
+        "lever:crypt_winch",
+        "chest:harrowmere:3,3",
+    ]
+    with open(s.path, "w", encoding="utf-8") as f:
+        json.dump(data, f)
+    map_name, loaded, flags = s.load()
+    assert map_name == "abandoned_prison"
+    assert loaded.remnant["map"] == "abandoned_prison"
+    assert flags == {
+        "boss_dead",
+        "door:abandoned_prison:15,9",
+        "lift:abandoned_prison:12,26",
+        "loot:barrel:abandoned_prison:3,4",
+        "left:abandoned_prison",
+        "lever:crypt_winch",
+        "chest:harrowmere:3,3",
+    }
+    assert s.summary().map == "abandoned_prison"

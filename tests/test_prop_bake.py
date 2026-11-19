@@ -8,12 +8,12 @@ from ashen_vault.render import prop_bake
 from ashen_vault.render.rig import Rig
 from ashen_vault.world import world as world_mod
 from ashen_vault.world.world import STATIC_PROPS, World
-from test_keep_world import FakeGame
+from test_prison_world import FakeGame
 
 MAPS = (
     "ashen_cemetery",
     "harrowmere",
-    "sunken_keep",
+    "abandoned_prison",
     "verdant_hollow",
     "cinderhold",
     "cinder_keep",

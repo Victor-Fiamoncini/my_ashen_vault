@@ -237,7 +237,7 @@ class MapLoader:
 
 @cache
 def map_title(path):
-    """A map's `[meta] name` (its display name, "The Sunken Keep"), read without parsing the grid; the
+    """A map's `[meta] name` (its display name, "The Abandoned Prison"), read without parsing the grid; the
     file's own name if it has none or can't be read."""
     fallback = os.path.splitext(os.path.basename(path))[0].replace("_", " ").title()
     try:

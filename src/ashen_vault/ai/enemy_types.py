@@ -210,7 +210,7 @@ class EnemyTypes:
                 rise="ash",
                 epitaph="The Butcher topples among his hooks, and does not rise.",
                 poise=12,
-                # The keep's slaughterman, above the Warden's hall: a slow, heavy cleaver that sweeps
+                # The prison's slaughterman, above the Warden's hall: a slow, heavy cleaver that sweeps
                 # all round, a lunge across the floor and a chain of hacks. At half HP he tears into a
                 # frenzy and adds a two-handed chop that shakes the floor.
                 moves=("sweep", "pounce", "combo"),
@@ -367,6 +367,26 @@ class EnemyTypes:
                 # A hulking jailer who hauls you in on a hooked chain, then clubs you.
                 moves=("hook",),
                 inflicts=(("bleed", 30),),
+            ),
+            EnemyType(
+                id="hollow_inmate",
+                name="Hollow Inmate",
+                hp=20,
+                speed=1.5,
+                damage=7,
+                reach=1.7,
+                sight=7,
+                windup=0.75,
+                recover=1.0,
+                exp=10,
+                gold=range(1, 6),
+                radius=0.4,
+                height=0.8,
+                tall=1.7,
+                poise=0,
+                # A prisoner the prison was shut on, gone hollow: it kneels where it was left until you
+                # come near, then shambles after you and brings the chain between its wrists down.
+                lurk=True,
             ),
             EnemyType(
                 id="bone_crawler",

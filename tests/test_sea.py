@@ -60,7 +60,7 @@ def test_the_far_cells_grow_with_distance(town):
 
 
 def test_a_map_without_an_open_sea_has_no_far_water():
-    assert sea.far_cells(MapLoader.load_file(map_path("sunken_keep"))) == []
+    assert sea.far_cells(MapLoader.load_file(map_path("abandoned_prison"))) == []
 
 
 def test_the_suns_glints_lie_along_its_bearing_over_the_sea():

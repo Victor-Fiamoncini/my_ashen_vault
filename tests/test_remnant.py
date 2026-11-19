@@ -26,7 +26,7 @@ def test_dying_leaves_all_your_gold_in_a_heap():
     assert p.inventory.gold == 0
     assert p.remnant == {"map": "harrowmere", "x": 10.0, "z": 12.0, "gold": 120}
     assert remnant.lies_on(p, "harrowmere") == (10.0, 12.0)
-    assert remnant.lies_on(p, "sunken_keep") is None
+    assert remnant.lies_on(p, "abandoned_prison") is None
 
 
 def test_gathering_the_heap_gives_the_gold_back():
@@ -44,8 +44,8 @@ def test_dying_again_before_you_gather_it_loses_it_for_good():
     p.inventory.gold = 200
     remnant.leave(p, "harrowmere", 1.0, 1.0)
     p.inventory.gold = 30
-    assert remnant.leave(p, "sunken_keep", 4.0, 6.0) == (200, 30)
-    assert p.remnant["gold"] == 30 and p.remnant["map"] == "sunken_keep"
+    assert remnant.leave(p, "abandoned_prison", 4.0, 6.0) == (200, 30)
+    assert p.remnant["gold"] == 30 and p.remnant["map"] == "abandoned_prison"
 
 
 def test_dying_penniless_leaves_no_heap_but_still_scatters_the_old_one():
@@ -91,7 +91,7 @@ def test_walking_over_your_heap_in_the_world_gathers_it():
 
 def test_a_heap_on_another_map_is_not_laid_here():
     game = AshenGame(())
-    game.player.remnant = {"map": "sunken_keep", "x": 1.0, "z": 1.0, "gold": 10}
+    game.player.remnant = {"map": "abandoned_prison", "x": 1.0, "z": 1.0, "gold": 10}
     world = World(game, "harrowmere")
     assert not any(p.kind == "remnant" for p in world.props)
     game.player.remnant["map"] = "harrowmere"

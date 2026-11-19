@@ -28,7 +28,7 @@ _BY_TEX = {
 TEX_SURFACE = {tex: surface for surface, texes in _BY_TEX.items() for tex in texes}
 
 # Platforms underfoot: rafts, planks, rotten boards, drawbridges and lift decks are timber; a
-# crumbling ledge is stone; the keep's jail cage is iron.
+# crumbling ledge is stone; the prison's jail cage is iron.
 PLATFORM_SURFACE = {"ledge": "stone"}
 
 

@@ -139,7 +139,9 @@ Equipment, combat, spells, shops, saves and the story.
 - Shops are `dialogue.SHOPS`: Brannoc's forged steel and armour, Pell's scrolls and salvage, Tamsin's remedies,
   and Corvane's blades in the hut on the town's west edge (Corvane won't talk below `CORVANE_LEVEL`).
   Villagers in `dialogue.GIFTS` hand a newcomer something once (`gift:<id>` flag) and then open their shop,
-  if they keep one. Shops hide gear you own; a chest, pickup or gift holding gear or a scroll you already
+  if they keep one; Brother Marrow, in his cell in the Abandoned Prison, gives his only once you have pulled
+  his cell's lever (`dialogue.MARROW_FREED`), and through the bars points you to the chapel and the
+  Warden's Key. Shops hide gear you own; a chest, pickup or gift holding gear or a scroll you already
   own pays gold instead (`loot.claim`). No spell scroll, gear or key may be placed twice across maps and
   gifts (`tests/test_loot.py`): give a new find a new item.
 - The story: the player is one of the Ashen, woken in the Cemetery of Ashes by a toll of the town's bell

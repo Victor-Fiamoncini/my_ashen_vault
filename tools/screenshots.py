@@ -7,7 +7,7 @@
 
 Each shot is a smoke run with its own throwaway save, so the player's real save is never touched.
 The gear in each shot is gear the player could hold by then: the --level and --equip follow the
-game's progression (cemetery, town, sewers, keep, hollow, Cinderhold, Vesperholm).
+game's progression (cemetery, town, sewers, prison, hollow, Cinderhold, Vesperholm).
 """
 
 import argparse
@@ -134,27 +134,27 @@ SHOTS = [
     ),
     Shot(
         "combat",
-        "--map sunken_keep --at 15,22,0 --level 4 --equip primary=claymore,body=ringmail,hands=chain_mitts "
+        "--map abandoned_prison --at 15,22,0 --level 4 --equip primary=claymore,body=ringmail,hands=chain_mitts "
         "--smoke 100",
-        "The keep's Claymore, against a Bone Walker",
+        "The prison's Claymore, against a Bone Walker",
         "A claymore held in both hands, ringmail sleeves and chain mitts, facing a bone walker",
     ),
     Shot(
         "warden",
-        "--map sunken_keep --at=15,7,-90 --level 4 --equip primary=claymore --smoke 300",
+        "--map abandoned_prison --at=15,7,-90 --level 4 --equip primary=claymore --smoke 300",
         "The Ashen Warden",
         "The Ashen Warden boss in his hall",
     ),
     Shot(
         "undercroft_lift",
-        "--map sunken_keep --at 4,24,90 --level 5 --equip primary=bastard_sword,secondary=kite_shield "
+        "--map abandoned_prison --at 4,24,90 --level 5 --equip primary=bastard_sword,secondary=kite_shield "
         '--smoke 680 --script "forward:0.15 wait:5 forward:0.6 wait:7"',
         "Riding the cage lift down into the Undercroft",
         "Riding a barred cage lift down a shaft toward a wall of skulls and bones",
     ),
     Shot(
         "gallery",
-        "--map sunken_keep --at=27,7,-90 --level 5 --equip primary=war_hammer --smoke 300",
+        "--map abandoned_prison --at=27,7,-90 --level 5 --equip primary=war_hammer --smoke 300",
         "The Butcher, waiting in his slaughter hall",
         "The Butcher, a hooded brute with a cleaver, in his slaughter hall above the Warden's Gallery, "
         "meat hooks hanging behind him",

@@ -201,6 +201,13 @@ LOOKS = {
         cloth=(130, 74, 60), hair=(180, 120, 60), build="stout", hair_style="bun", apron=(190, 180, 160),
         tool="tankard",
     ),
+    # Brother Marrow, the lay brother left in a cell of the Abandoned Prison: a grey, stained robe
+    # gone to rags, bare feet, a shaven head and a long beard grown wild in the dark.
+    "marrow": Look(
+        cloth=(86, 80, 70), hair=(150, 146, 138), skin=(170, 150, 128), build="stooped", garb="robe",
+        hair_style="bald", beard="long", beard_tip=(196, 192, 184), trousers=(70, 64, 56),
+        boots=(150, 132, 112), belt=(60, 52, 40), idle="pray",
+    ),
 }  # fmt: skip
 
 

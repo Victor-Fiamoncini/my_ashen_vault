@@ -13,10 +13,10 @@
 You are one of the Ashen, woken in a cemetery of ashes by a single toll of Harrowmere's bell, though no
 hand was on its rope. Old Odrin, the bell-keeper, knows the prophecy: whoever wakes must win four sigils
 to raise the king who sits turned to stone in the cathedral. Many Ashen woke before you. None came back.
-Beneath the village well, the drowned halls of the Sunken Keep have begun to stir, and at the end of a green trail out of the square a cave opens on the jungle of the
+Beneath the village well, the sealed cells of the Abandoned Prison have begun to stir, and at the end of a green trail out of the square a cave opens on the jungle of the
 Verdant Hollow, which has swallowed the old woodcutters' camp. Up the north road, past a long bridge over
 a gorge of fire, the forges of the Cinderhold burn again, and two iron gargoyles keep watch from its roof.
-Take up a rusted sword, bring back the Ember Sigil from the keep, the Verdant Sigil from the hollow and the
+Take up a rusted sword, bring back the Ember Sigil from the prison, the Verdant Sigil from the hollow and the
 Iron Sigil from the Cinderhold. Then, and only then, the Vesper Gate in the town's north wall opens on
 Vesperholm, a city drowned in the light of a moon that never sets, where a duchess keeps the fourth sigil
 in her cathedral. Bring all four home and let the bell sing again.
@@ -102,7 +102,7 @@ trademarks of FromSoftware, Inc. (*Dark Souls* is published by Bandai Namco Ente
     <td><img src="docs/screenshots/warden.png" alt="The Ashen Warden boss in his hall"></td>
   </tr>
   <tr>
-    <td align="center"><sub>The keep's Claymore, against a Bone Walker</sub></td>
+    <td align="center"><sub>The prison's Claymore, against a Bone Walker</sub></td>
     <td align="center"><sub>The Ashen Warden</sub></td>
   </tr>
   <tr>
@@ -227,8 +227,9 @@ trademarks of FromSoftware, Inc. (*Dark Souls* is published by Bandai Namco Ente
     herbalist, a trader and a swordsmith to trade with;
   - the Harrow Sewers under its streets, four grates down to rats, slimes that split, the drowned and
     leeches in the sludge;
-  - the Sunken Keep below the well, with traps, cage lifts down to a skull-walled Undercroft and up to
-    the Warden's Gallery;
+  - the Abandoned Prison below the well: dark cell blocks where hollow inmates still kneel, a captive
+    monk behind his bars, a chapel to faceless old gods, traps, and cage lifts down to a skull-walled
+    Undercroft and up to the Warden's Gallery;
   - the Verdant Hollow at the end of the green trail: rafts, ledges, a log slope, spore pods, dark caves
     and a canopy walk;
   - the Cinderhold up the north road, a fortress of lava, flame jets and iron, its keep a map of its own;
@@ -375,7 +376,7 @@ project layout, conventions and debug flags, with detailed guides in [`docs/dev/
 
 ```sh
 ASHEN_VAULT_SAVE=/tmp/test_save.json \
-  uv run ashen-vault --map sunken_keep --at 15,21,180 --smoke 100 --script "wait:1.2 attack" --shot out.png
+  uv run ashen-vault --map abandoned_prison --at 15,21,180 --smoke 100 --script "wait:1.2 attack" --shot out.png
 ```
 
 - `--map NAME` skips the title and starts on that map; `--at TX,TZ,YAW` sets the tile and heading (write

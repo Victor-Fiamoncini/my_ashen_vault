@@ -6,7 +6,7 @@ How `.map` files work and what can stand on a tile.
 
 | Path | Contents |
 | --- | --- |
-| `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. `ashen_cemetery` (the linear first level, the tutorial: the waking grave and its shrine, the lane with the Rusted Sword, the field of headstones, its husks and the Shrouded Mourners bowed at its graves, the chapel with the Flame Bolt's scroll and its silk-sealed far door, the shrine court, and the Sexton's yard with the one-way gate out to the town; walled and floored in its own ash textures, `ash_rock`, `ash_stone`, `ash_brick`, `ash_ground`, `ash_grass`, `ash_flagstone`), `harrowmere` (the walled town of stone and half-timbered houses under steep violet-slate roofs, turrets on their corners and round towers along its wall, thin-walled (`thin=0.5`), paved in cobbles and setts, a canal running up from the harbour, climbing from its harbour past the market's fountain and the Bell Square, with the Silent Bell, to the twin-towered cathedral on the hill where the Enthroned sits; you arrive by the cemetery's gate in its west wall, its `start`; the sunken well court, the trail gap, the north gate and four street grates down into the sewers lead out), `sunken_keep` (the dungeon below the well, with the Undercroft below its cells and the Warden's Gallery above the boss door, the Butcher's slaughter hall north of it), `verdant_hollow` (the jungle through the cave at the end of the village's east trail: Mossmouth cave, the Root Caverns below the bog, the Canopy Walk to the boss), `cinderhold` (the lava fortress up the north road: the long bridge, the gatehouse and postern, the foundry and the smelter pits below it, the ashworks, the rampart and the tower stair up to the keep), `cinder_keep` (the keep, a map of its own
+| `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. `ashen_cemetery` (the linear first level, the tutorial: the waking grave and its shrine, the lane with the Rusted Sword, the field of headstones, its husks and the Shrouded Mourners bowed at its graves, the chapel with the Flame Bolt's scroll and its silk-sealed far door, the shrine court, and the Sexton's yard with the one-way gate out to the town; walled and floored in its own ash textures, `ash_rock`, `ash_stone`, `ash_brick`, `ash_ground`, `ash_grass`, `ash_flagstone`), `harrowmere` (the walled town of stone and half-timbered houses under steep violet-slate roofs, turrets on their corners and round towers along its wall, thin-walled (`thin=0.5`), paved in cobbles and setts, a canal running up from the harbour, climbing from its harbour past the market's fountain and the Bell Square, with the Silent Bell, to the twin-towered cathedral on the hill where the Enthroned sits; you arrive by the cemetery's gate in its west wall, its `start`; the sunken well court, the trail gap, the north gate and four street grates down into the sewers lead out), `abandoned_prison` (the prison below the well, shut in a single night on its gaolers and prisoners: you climb down the rope into the well's tall, daylit shaft (its `start`) and come in through a breach in its outer wall to the gatehouse and its shrine; the guard hall, the west cell block (barred one-tile cells either side of a dark aisle, `gate lever=west_cells` raised all at once by the lever at its head, which lets out the Hollow Inmates still inside; the Cell Key lies in one), the warders' quarters behind the Cell Key's door, Brother Marrow's cell off the corridor (`npc id=marrow reach=3.6`, spoken to through its bars; its lever is in the warders' quarters), and at the corridor's east end the chapel of the old gods, its pews, faceless `old_idol`s and the altar (`altar model=idol`) where the Warden's Key lies; the Undercroft below its cells and the Warden's Gallery above the boss door, the Butcher's slaughter hall north of it. Its aisles are `dark=`; `test_abandoned_prison_opens_in_order_from_the_well_shaft_to_the_chapel`), `verdant_hollow` (the jungle through the cave at the end of the village's east trail: Mossmouth cave, the Root Caverns below the bog, the Canopy Walk to the boss), `cinderhold` (the lava fortress up the north road: the long bridge, the gatehouse and postern, the foundry and the smelter pits below it, the ashworks, the rampart and the tower stair up to the keep), `cinder_keep` (the keep, a map of its own
   behind the door at the top of the tower stair: the postern landing, the great hall, the switchback stair,
   the antechamber's shrine and the walled rooftop where the twin gargoyles perch), `harrow_sewers` (the
   sewers under the town, reached by four street grates (`sewer_grate`) that each drop onto the ladder
@@ -50,7 +50,7 @@ How `.map` files work and what can stand on a tile.
 
 - Map grids are whitespace-sensitive. Don't reformat `.map` files. Each grid character is one 2 m tile;
   an `[entities]` marker places a prop, enemy or hazard there, standing on the legend tile named by
-  `on=` (the map's `default` otherwise). With `entity_floor = auto` in `[meta]` (the keep uses it), a
+  `on=` (the map's `default` otherwise). With `entity_floor = auto` in `[meta]` (the prison uses it), a
   marker without `on=` stands on the floor most of its neighbours share, so one marker serves every
   level. The jungle uses it too; it ran out of ASCII markers, so a few of its markers are Latin-1
   letters (`À`, `Ñ`...). Wall props (torches, banners, shackles, racks) hang on the
@@ -83,8 +83,8 @@ How `.map` files work and what can stand on a tile.
   first; the far landing's call plate only clicks and says it is fastened (`Terrain.refused`), until
   its first ride frees it for good (`lift:<map>:<tx>,<tz>` flag; that plate then calls it too). Lifts
   have no levers. Floors a lift
-  joins sit far apart (the keep's Undercroft at -10 m, its Gallery at 12 m), so a ride feels like one. `model=cage`
-  draws the keep's barred jail cage, open on the sides that face a landing (`terrain.lift_doors`)),
+  joins sit far apart (the prison's Undercroft at -10 m, its Gallery at 12 m), so a ride feels like one. `model=cage`
+  draws the prison's barred jail cage, open on the sides that face a landing (`terrain.lift_doors`)),
   `bridge lever=id hinge=n|s|e|w deck=` (a drawbridge standing raised on its hinge side until its
   lever lets it down, for good), `log_chute to=tx,tz every= speed= logs=` (a log rack that only
   releases while someone climbs its slope) and `spore_pod every=`.
@@ -115,11 +115,11 @@ How `.map` files work and what can stand on a tile.
   or above a passage's roof (`bastion base=`, `gatehouse`), and no two Cinderhold towers share a shape
   (`test_cinderhold_skyline_has_no_two_towers_alike_and_stands_out_of_reach`).
 - Props that fill their tile are listed in `world/world.py` (`BLOCKING_PROPS`, `BREAKABLE_PROPS`;
-  the keep adds `pillar`, `sarcophagus` and `headsman_block`, the jungle `bonfire`, `giant_mushroom` and
+  the prison adds `pillar`, `sarcophagus`, `headsman_block` and `old_idol`, the jungle `bonfire`, `giant_mushroom` and
   `totem`, the town `pew`, `bed`, `cupboard`, `fence`, `lamp_post`, `banner_pole`, `fountain`, `bench`,
   `hand_cart`, `hay_wagon`, `cargo`, `town_statue`, `flying_buttress`, `tree`, `forge_bellows`, `grindstone`, `armor_stand`, `katana_stand`, `bookcase` and `drawers`, the Cinderhold `forge_statue` and `ore_cart`, the cemetery `gravestone`, `cemetery_gate`, `mourning_statue` and `grave_railing`, Vesperholm's `moon_lamp` (a light), `veiled_statue` and `silver_tree`; `test_harrowmere_trees_cut_off_no_part_of_the_town`
   keeps the trees out of the only way anywhere). Decor that blocks nothing:
-  `boat` rides on water, `ash_mound` and `bones` lie on the floor, `crypt_front` is built out of a wall, `shelf`, `hearth` and `window` hang on a wall (the last two are lights), `cage`, `roots` and `meat_hooks` hang from the ceiling, `grate` sits in the
+  `boat` rides on water, `ash_mound` and `bones` lie on the floor, `crypt_front` is built out of a wall, `shelf`, `hearth` and `window` hang on a wall (the last two are lights), `cage`, `roots` and `meat_hooks` hang from the ceiling, `prisoner_remains` slump in their chains against a wall, `grate` sits in the
   floor, `mushrooms` dot it (the sewers grow their own: pale `inkcaps`, and `sump_caps` on rotten timber, a
   dim yellow-green light), and `cobweb`, `skull_niche`, `winch`, `lever` and `shelf_fungus` mount on
   the nearest wall (`WALL_PROPS`), as does Vesperholm's `moon_window`, a lancet of moon-glass and a
@@ -142,7 +142,7 @@ How `.map` files work and what can stand on a tile.
   `chest model=iron` is the Cinderhold's iron chest (`models.chest` style), and `mimic model=iron` hides as
   one (`Enemy.look`); the wooden chests also come `model=worn` (weathered, roped shut), `banded` (dark wood
   strapped in iron) and `coffer` (a small brass-cornered strongbox), every style a key of `models.CHEST_SHELLS`. An exit's `model=` draws its way through (`road_gate` for both ends of the north road (each stands out in the open before its wall, never sunk between rock; `style=forge` is a sooty variant), `well`, `cave_mouth`, `keep_door`, `cemetery_gate`, `sewer_grate`, `sewer_ladder`, `vesper_gate` (Vesperholm's, both ends: shut, its
-  three sockets dark; open, they shine and moonlight pours through), else a `rope`); each is a landmark of some detail (`test_every_way_between_maps_is_built_in_detail`), and one set against a wall shows black passage through it (`models.PASSAGE_DARK`), never the wall, so the way on stays unseen; a cold `light` hangs over the cemetery's gate on both sides, and a warm one before the north road's Cinderhold end, so their stone shows. An `exit` with `boss=<dead_flag>` is a way on to a boss on another map: the compass
+  three sockets dark; open, they shine and moonlight pours through), else a `rope`, hung from a beam just under its tile's ceiling, so it climbs a tall shaft, with the daylit mouth of the well above it there); each is a landmark of some detail (`test_every_way_between_maps_is_built_in_detail`), and one set against a wall shows black passage through it (`models.PASSAGE_DARK`), never the wall, so the way on stays unseen; a cold `light` hangs over the cemetery's gate on both sides, and a warm one before the north road's Cinderhold end, so their stone shows. An `exit` with `boss=<dead_flag>` is a way on to a boss on another map: the compass
   points at it while that boss lives (`World.boss_target`). `exit requires=<flag> shut="..."` stays shut
   (saying `shut=`) until that flag is set (`World.exit_open`), and `exit oneway` never leads back: going
   through records the journey on the far side at once, so you wake by its shrines, and sets `left:<map>`
@@ -168,7 +168,7 @@ How `.map` files work and what can stand on a tile.
   (`tests/test_arena.py`). `door from=n|s|e|w` is barred on that side: it
   only opens from there. `door model=iron` is the Cinderhold's riveted iron door, set in a stone frame
   that rises to the passage's ceiling (`world.DOOR_FRAME_SKY` under the open sky).
-  After placing props in `sunken_keep.map`, run `tests/test_world.py`: its reachability test fails if
+  An `npc` may set `reach=` (metres): how far away it can be spoken to, through a cell's bars. After placing props in `abandoned_prison.map`, run `tests/test_world.py`: its reachability test fails if
   anything cuts off a chest, door, lever, exit, altar or the iron maiden, or if a locked lift is
   needed to get anywhere (shortcuts must stay optional). `verdant_hollow.map` has its
   own solvability test (counting planks, ledges and floorboards as footing, and decor as solid): every

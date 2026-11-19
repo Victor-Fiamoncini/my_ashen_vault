@@ -23,7 +23,7 @@ def test_mesh_builder_batches_shipped_maps():
     for name in (
         "ashen_cemetery",
         "harrowmere",
-        "sunken_keep",
+        "abandoned_prison",
         "verdant_hollow",
         "cinderhold",
         "cinder_keep",
@@ -505,6 +505,7 @@ def test_bosses_have_boss_level_detail():
         "pale_sentinel",
         "lantern_wraith",
         "veiled_knight",
+        "hollow_inmate",
     )
     for foe in foes:
         assert _drawn(foe)[1] >= 30, foe
@@ -899,7 +900,7 @@ def test_every_map_texture_is_generated():
     for map_name in (
         "ashen_cemetery",
         "harrowmere",
-        "sunken_keep",
+        "abandoned_prison",
         "verdant_hollow",
         "cinderhold",
         "cinder_keep",
@@ -1305,7 +1306,7 @@ def test_every_boss_has_its_own_great_door_and_its_lamps_go_out_when_cleared():
     flags = set()
     for name in (
         "ashen_cemetery",
-        "sunken_keep",
+        "abandoned_prison",
         "verdant_hollow",
         "cinder_keep",
         "harrow_sewers",

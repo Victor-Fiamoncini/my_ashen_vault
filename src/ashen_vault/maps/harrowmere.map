@@ -17,7 +17,7 @@ entity_floor = auto
 // corners and round towers along its wall, all stone underfoot: cobbles, setts and flags. The
 // cemetery's gate in the west wall, shut behind each Ashen who comes through it; the pier, the quay,
 // the canal running up from the harbour and the market lanes; the Bell Square at the heart of town
-// with the Silent Bell on its plinth; the sunken court of the old well (down into the Sunken Keep) east of it, and the watch
+// with the Silent Bell on its plinth; the sunken court of the old well (down into the Abandoned Prison) east of it, and the watch
 // house by the gap in the wall where the green trail leaves for the cave; Brannoc's forge and
 // Corvane's hut to the west; the north road winding up past Odrin's house to the gate; and up the
 // steps on the hill, the cathedral, where the Enthroned sits at the end of the nave.
@@ -259,8 +259,8 @@ T = tree kind=olive
 ü = cemetery_gate yaw=0 sentinels=false
 // A cold grey light falling on it, so its stone shows against the dark beyond.
 ¿ = light y=4.5 color=0.5,0.52,0.62 radius=7
-// The well down into the Sunken Keep, in its sunken court.
-W = exit map=sunken_keep at=15,27,-90 label=Descend_the_well model=well
+// The well down into the Abandoned Prison, in its sunken court.
+W = exit map=abandoned_prison at=15,32,-90 label=Descend_the_well model=well
 // The jungle trail east of the square: a hedged path winding under a canopy that closes in and
 // darkens on the way to the cave mouth into the Verdant Hollow.
 // (its lantern, hung from the timbers shoring the cave's mouth, lights the way in: ¢)

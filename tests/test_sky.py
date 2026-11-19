@@ -24,7 +24,7 @@ def test_each_outdoor_map_names_a_sky_and_the_keep_has_none():
         "cinderhold": sky.SKIES["ember"],
         "vesperholm": sky.SKIES["moonlit"],
     }
-    assert sky.get(_meta("sunken_keep")) is None
+    assert sky.get(_meta("abandoned_prison")) is None
     assert sky.get({"sky": "no_such_sky"}) is None
 
 

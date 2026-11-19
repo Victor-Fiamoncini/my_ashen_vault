@@ -58,6 +58,8 @@ def for_npc(id_, game):
         return maeve(game, flags)
     if id_ == "corvane":
         return corvane(game.player.stats.level, flags)
+    if id_ == "marrow":
+        return marrow(flags)
     if id_ in GIFTS:
         return gift_giver(id_, flags)
     if id_ == "wren":
@@ -169,7 +171,7 @@ def odrin(game, flags, inv):
                 "Whoever wakes to the bell must win the four sigils, and the king on the stone throne shall rise.",
                 "The Enthroned. Our king, turned to stone in his chair in the cathedral, longer than anyone remembers.",
                 "You are not the first to wake. The cemetery you climbed out of is full of the ones who failed.",
-                "Deep in the Sunken Keep the Ember Sigil sits in the Warden's hall. That is one.",
+                "Deep in the Abandoned Prison the Ember Sigil sits in the Warden's hall. That is one.",
                 "The next is the Verdant Sigil. A green trail has crept out of the square's east side.",
                 "It ends at a cave, and beyond it a hollow has grown where no wood should be. Something nests there.",
                 "Then the Iron Sigil. Look north at night: the old fortress on the ridge glows again.",
@@ -191,7 +193,7 @@ def odrin(game, flags, inv):
     return (
         "Odrin",
         [
-            "The well in the square leads down into the keep. The green trail east leads to the hollow's cave.",
+            "The well in the square leads down into the old prison. The green trail east leads to the hollow's cave.",
             "The north road climbs to the Cinderhold. Its bridge crosses a gorge of fire.",
             "Save your strength at the stone shrines. The old wardens built them for the Ashen. Many knelt there.",
         ],
@@ -297,7 +299,7 @@ def maeve(game, flags):
         "Maeve",
         [
             "You smell of dust and lamp oil. Going under, are you?",
-            "My father told me the keep sank in a single night, with its knights still at their posts.",
+            "My father told me the prison was shut in a single night, with its gaolers and its prisoners still inside.",
             "Here, take some moss from the cliffs. Chew it when your spirit runs thin.",
         ],
         after,
@@ -326,7 +328,7 @@ def corvane(level, flags):
     return (
         "Corvane",
         [
-            "So. The one who walks in the keep and comes back up the well.",
+            "So. The one who walks in the prison and comes back up the well.",
             "I am Corvane. I left my island with three blades and a debt. The debt is paid.",
             "The blades are not for anyone with a purse. They are for hands that have learned to wait.",
             "A word, since you have earned one: hold the draw. Stand still, and let the blade decide.",
@@ -373,6 +375,20 @@ GIFTS = {
         ],
         ["Back in one piece? Mostly? Let's see what you need."],
         "tamsin",
+    ),
+    "marrow": (
+        "Brother Marrow",
+        {"red_tonic": 2},
+        [
+            "The bars... they're up. You came back for an old man. The old gods never once did.",
+            "I kept these under the straw. Tonics, from a gaoler who still had a conscience. Take them.",
+            "I'll stay a while. Someone should pray in this place who isn't made to.",
+        ],
+        [
+            "The Warden walks the hall above the antechamber. He was a man once. Remember that, and strike.",
+            "Their chapel is quiet now. Mind the ones still kneeling in it.",
+        ],
+        None,
     ),
     "ilse": (
         "Sister Ilse",
@@ -427,6 +443,28 @@ def gift_giver(id_, flags):
     return speaker, first, after
 
 
+MARROW_FREED = "lever:marrow_cell"  # his cell's lever, in the warders' quarters
+
+
+def marrow(flags):
+    """Brother Marrow, a lay brother of the prison's chapel jailed for refusing its rites. Through the
+    bars he tells you where the Warden's Key lies and where his cell's lever is; once you have let him
+    out, he gives what he hid in his cell (a gift, like the villagers')."""
+    if MARROW_FREED in flags:
+        return gift_giver("marrow", flags)
+    return (
+        "Brother Marrow",
+        [
+            "...A light. Not a gaoler's. You are one of the Ashen, then. Come closer. These bars won't bite.",
+            "I am Marrow. I was a brother of this prison's chapel, until I would not make them kneel.",
+            "The wardens gave the prisoners to the old gods: no names, no faces, only hands held out.",
+            "The Warden's Key lies on their altar, past the end of this corridor. Their chapel keeps it now.",
+            "My cell's lever is in the warders' quarters, beyond the locked door. If you find a way in...",
+        ],
+        None,
+    )
+
+
 def wren_lines(flags):
     if "met_wren" in flags:
         return [
@@ -438,7 +476,7 @@ def wren_lines(flags):
         "Welcome to the Drowned Lantern. I'm Wren. Rooms are cheap, since nobody's travelling.",
         "You'll have seen the bell in the square. The Silent Bell, we call it. Cracked, and dumb for years.",
         "Then one still night it rang. Once. No wind, no storm, and nobody at the rope.",
-        "Since then: the keep below wakes, a wood grows in a cave, the old fortress north is lit again.",
+        "Since then: the prison below wakes, a wood grows in a cave, the old fortress north is lit again.",
         "Three roads out of Harrowmere, and every one of them gone bad.",
     ]
 

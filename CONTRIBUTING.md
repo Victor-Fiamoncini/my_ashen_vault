@@ -44,7 +44,7 @@ agents and humans alike), and the guide in [`docs/dev/`](docs/dev/) for the part
    run is the quickest way, and a screenshot in the PR helps a lot:
 
    ```sh
-   ASHEN_VAULT_SAVE=/tmp/test_save.json uv run ashen-vault --map sunken_keep --smoke 30 --shot shot.png
+   ASHEN_VAULT_SAVE=/tmp/test_save.json uv run ashen-vault --map abandoned_prison --smoke 30 --shot shot.png
    ```
 
    `ASHEN_VAULT_SAVE` keeps test runs away from your real save file.

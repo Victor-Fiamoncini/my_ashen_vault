@@ -15,7 +15,7 @@ from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.world import Gout, World
 from conftest import risen
 from test_enemy import FakeWorld
-from test_keep_world import FakeGame
+from test_prison_world import FakeGame
 
 
 class JungleGame(FakeGame):

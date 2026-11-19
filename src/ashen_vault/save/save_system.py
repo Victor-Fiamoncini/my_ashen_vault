@@ -8,6 +8,28 @@ from ashen_vault.player.player import Player
 from ashen_vault.player.stats import Stats
 from ashen_vault.save.slots import SLOTS, SlotSummary, slot_path
 
+VERSION = 2
+# Maps whose id changed: older saves name them by the old id, in the map, the remnant and the flags.
+RENAMED_MAPS = {"sunken_keep": "abandoned_prison"}
+
+
+def _renamed_flag(flag):
+    """A flag with any renamed map id in it (`door:<map>:x,z`, `left:<map>`) turned to the new id."""
+    parts = flag.split(":")
+    return ":".join(RENAMED_MAPS.get(part, part) if i else part for i, part in enumerate(parts))
+
+
+def migrate(data):
+    """Brings an older save's data up to date in place, and returns it: maps that were renamed are
+    named by their new id (the saved spot, the remnant and every flag)."""
+    data["map"] = RENAMED_MAPS.get(data["map"], data["map"])
+    remnant = data.get("player", {}).get("remnant")
+    if remnant and remnant.get("map") in RENAMED_MAPS:
+        remnant["map"] = RENAMED_MAPS[remnant["map"]]
+    data["flags"] = [_renamed_flag(f) for f in data.get("flags", [])]
+    data["version"] = VERSION
+    return data
+
 
 class SaveSystem:
     """Persists the run to one JSON file: save slot `slot` (1..SLOTS) beside the base save path.
@@ -32,7 +54,7 @@ class SaveSystem:
 
     def save(self, map, player, flags):
         os.makedirs(os.path.dirname(self.path) or ".", exist_ok=True)
-        data = {"version": 1, "map": map, "player": player.to_h(), "flags": sorted(flags)}
+        data = {"version": VERSION, "map": map, "player": player.to_h(), "flags": sorted(flags)}
         with open(self.path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
 
@@ -43,7 +65,7 @@ class SaveSystem:
             return None
         try:
             with open(self.path, encoding="utf-8") as f:
-                data = json.load(f)
+                data = migrate(json.load(f))
             p = data["player"]
             return SlotSummary(
                 slot=self.slot,
@@ -69,7 +91,7 @@ class SaveSystem:
             return None
         try:
             with open(self.path, encoding="utf-8") as f:
-                data = json.load(f)
+                data = migrate(json.load(f))
             p = data["player"]
             inv = p["inventory"]
             inventory = Inventory.from_h({**inv, "counts": {str(k): v for k, v in inv["counts"].items()}})
