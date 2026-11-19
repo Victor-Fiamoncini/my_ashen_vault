@@ -2767,16 +2767,15 @@ RAT_GLINT = (230, 60, 40)
 
 
 def _matron_arch(r, style, t, lit):
-    """A tuft of her nest, rags and straw, stuffed along the lintel, little rat skulls strung under it."""
+    """A tuft of her nest, rags and straw, stuffed along the lintel, gnawed long bones jutting out of it."""
     for face in (-1, 1):
         with r.at(face * 0.27, 3.32, 0):
             for z in (-0.6, -0.15, 0.3, 0.7):
                 r.part("sphere", 0, 0, z, 0.14, 0.1, 0.24, (96, 84, 62) if z < 0 else (120, 104, 70))
-        sway = math.sin(t * 0.9 + face) * 0.05
-        for z in (-0.45, 0.45):
-            with r.at(face * 0.27, 2.78, z, rx=sway):
-                r.part("cube", 0, 0.0, 0, 0.012, 0.08, 0.012, (80, 72, 60))  # the cord
-                r.part("sphere", 0, -0.08, 0, 0.06, 0.05, 0.05, RAT_BONE)  # a skull
+            for z, tilt in ((-0.4, 0.5), (0.5, -0.35)):  # a gnawed bone, its knuckle end sticking out
+                r.part("cube", face * 0.03, -0.02, z, 0.04, 0.04, 0.42, RAT_BONE, rx=tilt)
+                r.part("sphere", face * 0.03, -0.02 - 0.2 * math.sin(tilt), z + 0.2 * math.cos(tilt),
+                       0.07, 0.06, 0.07, _dim(RAT_BONE, 0.9))  # fmt: skip
 
 
 def _matron_leaf(r, style, side, face, t, lit):
@@ -3781,14 +3780,15 @@ STRAW = (176, 152, 90)
 SACKCLOTH = (132, 112, 80)
 
 
-def barrel(r, seed, broken=False):
+def barrel(r, seed, broken=False, t=1.0):
     """A cask; the seed picks its look (`variant`) and nudges its spot, height and lean so rows don't
-    look cloned. A broken one is a ring of staves and a fallen hoop."""
+    look cloned. A broken one is a ring of staves and a fallen hoop; `t` (0 the blow, 1 settled) flings
+    them out to it (`_flung`)."""
     h = 0.95 + (seed % 3) * 0.08
     ox = ((seed * 37) % 7 - 3) * 0.08
     oz = ((seed * 53) % 7 - 3) * 0.08
     if broken:
-        _barrel_wreck(r, ox, oz, seed)
+        _barrel_wreck(r, ox, oz, seed, t)
         return
     look = variant(seed, BARREL_LOOKS)
     if look == 1:
@@ -3837,26 +3837,60 @@ def _cradled_cask(r, ox, oz, seed):
         r.part("cyl", 0.1, 0.005, 0.15, 0.6, 0.01, 0.45, (44, 34, 28))  # the stain
 
 
-def _barrel_wreck(r, ox, oz, seed):
+def _barrel_wreck(r, ox, oz, seed, t=1.0):
     with r.at(ox, 0, oz, ry=seed * 0.7):
-        r.part("cyl", 0, 0.03, 0, 0.84, 0.06, 0.84, DARK_IRON, rx=0.08)
-        r.part("cyl", 0, 0.03, 0, 0.66, 0.05, 0.66, (70, 48, 30))
+        _flung(r, t, 0, 0.12, "cyl", 0, 0.03, 0, 0.84, 0.06, 0.84, DARK_IRON, rx=0.08)
+        _flung(r, t, 1, 0.5, "cyl", 0, 0.03, 0, 0.66, 0.05, 0.66, (70, 48, 30))
         for i in range(7):
             a = i * 0.9 + seed
             d = 0.45 + (i % 3) * 0.12
-            r.part(
-                "cube",
-                math.cos(a) * d,
-                0.04,
-                math.sin(a) * d,
-                0.5 - (i % 2) * 0.15,
-                0.04,
-                0.12,
-                WHITE,
-                tex="wood_plank",
-                ry=a * 1.3,
-            )
-        r.part("cube", 0.25, 0.18, -0.2, 0.06, 0.36, 0.12, WHITE, tex="wood_plank", rz=0.3)
+            _flung(r, t, i + 2, 0.45, "cube", math.cos(a) * d, 0.04, math.sin(a) * d,
+                   0.5 - (i % 2) * 0.15, 0.04, 0.12, WHITE, tex="wood_plank", ry=a * 1.3)  # fmt: skip
+        _flung(r, t, 9, 0.4, "cube", 0.25, 0.18, -0.2, 0.06, 0.36, 0.12, WHITE, tex="wood_plank", rz=0.3)
+        _break_dust(r, t, (92, 74, 56))
+
+
+BREAK_LAND = 0.7  # share of a break by which a flung piece first lands; it bounces once, then lies still
+BREAK_DUST = 4  # puffs of dust a prop throws up as it breaks
+
+
+def _flung(r, t, i, from_y, kind, x, y, z, sx, sy, sz, rgb, **kw):
+    """Piece `i` of a breaking prop at `t` (0 the blow, 1 settled): `r.part(kind, x, y, z, ...)` as it
+    lies in the wreck, but on its way there. It leaves from near the prop's middle, `from_y` up, flies
+    out along an eased path over a hop, spinning (a turn of its own that dies away), lands at
+    BREAK_LAND, bounces once and settles. At t=1 it is exactly the wreck's part."""
+    if t >= 1.0:
+        r.part(kind, x, y, z, sx, sy, sz, rgb, **kw)
+        return
+    t = max(t, 0.0)
+    u = min(t / BREAK_LAND, 1.0)
+    out = 1 - (1 - u) ** 2  # fast at first, slowing as it comes down
+    hop = (0.22 + 0.06 * (i % 3)) * 4 * u * (1 - u)
+    if t > BREAK_LAND:  # the bounce
+        v = (t - BREAK_LAND) / (1 - BREAK_LAND)
+        hop += 0.05 * 4 * v * (1 - v)
+    px, pz = x * (0.25 + 0.75 * out), z * (0.25 + 0.75 * out)
+    py = from_y + (y - from_y) * u + hop
+    spin = (1 - t) ** 2 * (5.0 + (i % 4))
+    tumble = i * 2.399  # the golden angle: each piece tumbles about an axis of its own
+    with r.at(px, py, pz, rx=spin * math.cos(tumble), rz=spin * math.sin(tumble)):
+        r.part(kind, 0, 0, 0, sx, sy, sz, rgb, **kw)
+
+
+def _break_dust(r, t, rgb, spread=1.0):
+    """The dust a breaking prop throws up: BREAK_DUST dim puffs that billow out, swell and fade away
+    before it settles. Nothing once it has (`t` 1)."""
+    if t >= 1.0:
+        return
+    t = max(t, 0.0)
+    fade = 1 - t
+    for i in range(BREAK_DUST):
+        a = i * math.tau / BREAK_DUST + 0.4
+        d = (0.12 + 0.4 * _ease(min(t / 0.6, 1.0))) * spread
+        size = (0.3 + 0.55 * t) * spread * (fade**0.5)
+        y = 0.2 + 0.3 * t + 0.06 * (i % 2)
+        r.part("sphere", math.cos(a) * d, y, math.sin(a) * d, size, size * 0.6, size,
+               _blend(_dim(rgb, 0.8), (150, 140, 124), t), tex="mist")  # fmt: skip
 
 
 SECRET_SEAR = 0.22  # share of a fake wall's fall spent turning to ash before it crumbles
@@ -4045,19 +4079,21 @@ def crumble_slab(r, shake, drop, rise, t):
         r.part("cone", 0, -0.7, 0, 1.2, 0.6, 1.2, WHITE, tex="rough_stone", rx=math.pi)
 
 
-def crate(r, seed, broken=False):
+def crate(r, seed, broken=False, t=1.0):
     """A plank crate with dark battens; sometimes a smaller one stacked on top. Broken, it is a heap of
-    split planks with the lid lying askew."""
+    split planks with the lid lying askew; `t` (0 the blow, 1 settled) flings them out to it."""
     with r.at(((seed * 29) % 5 - 2) * 0.1, 0, ((seed * 41) % 5 - 2) * 0.1, ry=(seed % 5) * 0.3):
         if broken:
             for i in range(6):
                 a = i * 1.1 + seed
                 d = 0.2 + (i % 3) * 0.15
-                r.part(
-                    "cube", math.cos(a) * d, 0.04 + (i % 2) * 0.05, math.sin(a) * d,
+                _flung(
+                    r, t, i, 0.45, "cube", math.cos(a) * d, 0.04 + (i % 2) * 0.05, math.sin(a) * d,
                     0.8 - (i % 3) * 0.15, 0.05, 0.16, WHITE, tex="wood_plank", ry=a * 1.4, rz=(i % 2) * 0.15,
                 )  # fmt: skip
-            r.part("cube", -0.15, 0.12, 0.1, 0.85, 0.06, 0.85, WHITE, tex="wood_plank", ry=0.5, rz=0.2)
+            _flung(r, t, 6, 0.85, "cube", -0.15, 0.12, 0.1, 0.85, 0.06, 0.85, WHITE, tex="wood_plank", ry=0.5,
+                   rz=0.2)  # fmt: skip
+            _break_dust(r, t, (92, 74, 56))
             return
         look = variant(seed, CRATE_LOOKS)
         if look == 1:
@@ -4140,16 +4176,21 @@ def chains(r, t, ceil_h):
                 r.part("cyl", 0, end - 0.08, 0, 0.2, 0.08, 0.2, DARK_IRON, rx=math.pi / 2)
 
 
-def cocoon(r, seed, broken=False):
+def cocoon(r, seed, broken=False, t=1.0):
     """A silk-wrapped bundle, the Loom Mother's larder, lashed to the floor with strands.
-    Cut open, it is a torn husk with something's leftovers inside."""
+    Cut open, it is a torn husk with something's leftovers inside; `t` (0 the cut, 1 settled) flings
+    the shreds out to it."""
     silk = (222, 218, 204)
     with r.at(0, 0, 0, ry=seed * 1.1):
         if broken:
             for k in range(4):
                 a = k * 1.6
-                r.part("sphere", math.cos(a) * 0.3, 0.12, math.sin(a) * 0.2, 0.5, 0.18, 0.3, silk, ry=a)
-            r.part("sphere", 0.05, 0.08, 0, 0.22, 0.2, 0.2, BONE)  # a small skull among the shreds
+                _flung(r, t, k, 0.45, "sphere", math.cos(a) * 0.3, 0.12, math.sin(a) * 0.2, 0.5, 0.18, 0.3,
+                       silk, ry=a)  # fmt: skip
+            _flung(
+                r, t, 4, 0.4, "sphere", 0.05, 0.08, 0, 0.22, 0.2, 0.2, BONE
+            )  # a small skull among the shreds
+            _break_dust(r, t, (196, 192, 180), 0.8)  # a puff of loose silk
             return
         tilt = 0.25 + seed % 3 * 0.15
         with r.at(0, 0.42, 0, rz=tilt):
@@ -4508,14 +4549,16 @@ def rubble(r, seed):
             )  # fmt: skip
 
 
-def urn(r, seed, broken=False):
-    """A clay pot; smashed, a few curved shards."""
+def urn(r, seed, broken=False, t=1.0):
+    """A clay pot; smashed, a few curved shards, which `t` (0 the blow, 1 settled) flings out."""
     clay = (150, 92, 60) if seed % 2 else (126, 110, 90)
     if broken:
         for i in range(5):
             a = i * 1.3 + seed
-            r.part("sphere", math.cos(a) * 0.3, 0.04, math.sin(a) * 0.3, 0.22, 0.06, 0.16, clay, ry=a)
-        r.part("cyl", 0, 0.06, 0, 0.3, 0.12, 0.3, clay)
+            _flung(r, t, i, 0.4, "sphere", math.cos(a) * 0.3, 0.04, math.sin(a) * 0.3, 0.22, 0.06, 0.16, clay,
+                   ry=a)  # fmt: skip
+        _flung(r, t, 5, 0.12, "cyl", 0, 0.06, 0, 0.3, 0.12, 0.3, clay)
+        _break_dust(r, t, clay, 0.7)
         return
     with r.at(((seed * 13) % 5 - 2) * 0.1, 0, ((seed * 17) % 5 - 2) * 0.1):
         r.part("sphere", 0, 0.35, 0, 0.6, 0.62, 0.6, clay)

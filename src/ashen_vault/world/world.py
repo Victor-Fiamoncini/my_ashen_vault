@@ -9,6 +9,7 @@ from ashen_vault.ai.enemy import (
     ASH_RISE,
     ASH_RISE_AGAIN,
     ASHFALL_RADIUS,
+    BURROW_RADIUS,
     EXHALE_CONE,
     EXHALE_REACH,
     MOVES,
@@ -80,6 +81,7 @@ class Prop:
     wall: bool = False  # hung on the wall behind it (at local -X)
     lift: object = None  # the terrain.Platform a lift_call lever summons
     goal: float = 0.0  # the open_t a house door is swinging toward (0 shut, 1 open)
+    break_t: float = 1.0  # a smashed container's pieces flying out (0 the blow) and settling (1)
 
 
 @dataclass(eq=False)
@@ -396,6 +398,7 @@ HAZARD_KINDS = ("spikes", "pendulum", "crumble", "flame_jet", "magma_vent")
 FALL_DAMAGE = 25
 FALL_DEPTH = 1.5  # metres below the pit's rim before a fall counts
 LAVA_SHARE = 0.35  # share of your max HP a dip in lava burns away
+BREAK_TIME = 0.6  # seconds a smashed container's pieces take to fly out and settle
 SECRET_FALL_RATE = 0.7  # per second: a struck fake wall sears and crumbles over about 1.4 s
 OPEN_RATE = 0.8  # per second: how fast doors, lids and levers swing
 HOUSE_DOOR_RATE = 1.7  # per second: a house door swings open or shut in about 0.6 s
@@ -411,13 +414,21 @@ GRASP_HOLD = 1.6  # seconds a hand that catches you holds you (slowed, as by sil
 KNELL_SHOTS = 10  # embers in each ring of the Sexton's knell
 KNELL_SPEED = 5.0
 # What wounds you when an eruption of each style catches you (fire otherwise).
-ERUPTION_SOURCES = {"hands": "The grasping ash", "drowned": "A drowned hand", "moon": "The moonlight"}
+ERUPTION_SOURCES = {
+    "hands": "The grasping ash",
+    "drowned": "A drowned hand",
+    "moon": "The moonlight",
+    "filth": "The filth",
+}
 SQUEAL_STAGGER = 1.2  # seconds Mother Gnawl's squeal leaves you stumbling
 SWARM_SPEED = 7.0  # m/s her litter scurries along the floor
 SWARM_HEIGHT = 0.3  # metres off the floor they run
 SWARM_ROT = (("rot", 22),)
 UNDERTOW_RING = 1.3  # metres from your spot to each of the four hands round it
 UNDERTOW_ROT = 25  # rot the drowned's grip builds
+BURROW_ROT = (("rot", 25),)  # rot the filth Mother Gnawl bursts up through builds in you
+BURST_RING = 1.4  # metres from where she bursts up to each spout of filth round her
+BURST_SPOUTS = 6
 GULP_GLOOM = 2.5  # seconds the dark of the Maw's gut stays on your eyes after it spits you out
 GULP_DARK = 0.85  # how dark it gets, as on a `dark=` tile
 LANCE_SPEED = 10.0  # m/s a lance of moon-frost flies
@@ -1062,9 +1073,10 @@ class World:
 
     def move_enemy(self, enemy, dx, dz):
         nx, nz = collision.move(self.map, enemy.x, enemy.z, dx, dz, radius=enemy.radius, blocked=self.blocker)
-        nx, nz = collision.separate(nx, nz, enemy.radius, self.player.x, self.player.z, Player.RADIUS)
+        if not enemy.burrowed:  # under the muck she tunnels right under your feet
+            nx, nz = collision.separate(nx, nz, enemy.radius, self.player.x, self.player.z, Player.RADIUS)
         for other in self.enemies:
-            if other is enemy or not other.alive or other.state == "ashes":
+            if other is enemy or not other.alive or other.state == "ashes" or other.burrowed:
                 continue
             nx, nz = collision.separate(nx, nz, enemy.radius, other.x, other.z, other.radius)
         tile = self.map.tile_at(nx, nz)
@@ -1077,11 +1089,13 @@ class World:
         enemy.x = nx
         enemy.z = nz
 
-    def enemy_strike(self, enemy, mult=1.0):
-        """Returns how much of the blow got through a raised shield."""
+    def enemy_strike(self, enemy, mult=1.0, inflicts=None):
+        """Returns how much of the blow got through a raised shield. `inflicts` builds other ailments
+        than the type's own."""
         base = foe_harm(enemy.type.damage * mult * (0.85 + random.random() * 0.3))
         dmg = max(rround(base - self.player.inventory.defense * 0.5), 1)
-        return self.strike_player(dmg, enemy.name, enemy.x, enemy.z, enemy.type.inflicts)
+        ails = enemy.type.inflicts if inflicts is None else inflicts
+        return self.strike_player(dmg, enemy.name, enemy.x, enemy.z, ails)
 
     def strike_player(self, dmg, source, ax, az, inflicts=()):
         """A blow from (ax, az): a raised shield takes what it can before the rest lands, and only a
@@ -1470,6 +1484,29 @@ class World:
         self.game.sfx("hiss", 1.0)
         self.game.message("The sludge stirs under your feet!")
 
+    def burrow_burst(self, enemy):
+        """Mother Gnawl bursts up out of the muck where her burrow has brought her, in a ring of filth
+        (`Eruption` style "filth", only for show): within BURROW_RADIUS of her it is a heavy blow, as
+        any shield allows, and the filth builds rot in you. Be elsewhere when the ripple stops."""
+        spots = [(enemy.x, enemy.z)]
+        for i in range(BURST_SPOUTS):
+            a = enemy.yaw + i * math.tau / BURST_SPOUTS
+            spots.append((enemy.x + math.cos(a) * BURST_RING, enemy.z + math.sin(a) * BURST_RING))
+        for n, (x, z) in enumerate(spots):
+            tile = self.map.tile_at(x, z)
+            if tile.solid or not tile.walkable:
+                continue
+            # Already bursting (no warning circle: the ripple was the warning), the ring a beat behind.
+            delay = -Eruption.WARN if n == 0 else 0.06 - Eruption.WARN
+            self.eruptions.append(Eruption(x, z, tile.floor, delay=delay, damage=0, style="filth"))
+        self.game.sfx("splash", 0.7)
+        self.game.sfx("quake", 0.9)
+        player = self.player
+        if not player.alive or math.hypot(player.x - enemy.x, player.z - enemy.z) > BURROW_RADIUS:
+            return
+        if self.enemy_strike(enemy, MOVES["burrow"][2], inflicts=BURROW_ROT) > 0:
+            self.game.message(f"{enemy.type.called} bursts up under you in a spray of filth!")
+
     def gulp(self, enemy):
         """The Sump Maw's surge has passed over you: it swallows you whole (a heavy blow, as any
         shield allows), and for GULP_GLOOM seconds after it spits you out the dark of its gut stays
@@ -1653,6 +1690,8 @@ class World:
         self.enemies = [e for e in self.enemies if not e.gone]
         self.ash.update(dt)
         for p in self.props:
+            if p.break_t < 1.0:
+                p.break_t = min(p.break_t + dt / BREAK_TIME, 1.0)
             if p.kind == "npc":
                 self._update_smith(p, dt)
             elif p.kind == "iron_maiden":
@@ -1776,7 +1815,9 @@ class World:
         self.gloom_t = max(self.gloom_t - dt, 0.0)
         for f in self.eruptions:
             if f.update(dt):
-                sound = {"hands": "quake", "drowned": "hiss", "moon": "motes"}.get(f.style, "eruption")
+                sound = {"hands": "quake", "drowned": "hiss", "moon": "motes", "filth": "splash"}.get(
+                    f.style, "eruption"
+                )
                 self.sfx_near(sound, f.x, f.z, *(BOMB_SOUND if f.origin else ERUPTION_SOUND))
             if player.alive:
                 dmg = f.hit(player.x, player.z)
@@ -1900,7 +1941,7 @@ class World:
     def _push_player_out_of_bodies(self):
         player = self.player
         for e in self.enemies:
-            if not e.alive or e.state == "ashes":
+            if not e.alive or e.state == "ashes" or e.burrowed:
                 continue
             nx, nz = collision.separate(player.x, player.z, Player.RADIUS, e.x, e.z, e.radius)
             tile = self.map.tile_at(nx, nz)
@@ -2377,6 +2418,7 @@ class World:
             p.open_t = 0.01  # the wall fades out over the next second
             return 0, None
         p.open_t = 1.0
+        p.break_t = 0.0  # its pieces fly out and settle (only for show)
         gold, item = loot.roll(p.key, p.props)
         self.player.inventory.gold += gold
         self._spill(p)
@@ -2593,7 +2635,7 @@ class World:
                 continue
             y = self.enemy_y(e)
             self._model_light(gpu, e.x, y + 1.0, e.z, flash=e.flashing, tint=STATUS_TINT.get(e.afflicted))
-            forming = e.unseen and e.type.rise == "ash"
+            forming = e.state in ("ashes", "rising") and e.type.rise == "ash"
             if forming:  # the heap it waits in, sinking as it rises out of it
                 with rig.at(e.x, y, e.z):
                     cemetery_models.ash_heap(rig, self._time, e.rise_progress, max(e.radius, 0.8) * 1.2)
@@ -2641,6 +2683,8 @@ class World:
                     cemetery_models.ash_hands(rig, f.glow, f.flame, self._time + f.x)
                 elif f.style == "drowned":
                     sewer_models.drowned_hands(rig, f.glow, f.flame, self._time + f.x)
+                elif f.style == "filth":
+                    sewer_models.filth_burst(rig, f.flame, self._time + f.x)
                 elif f.style == "moon":
                     moon_models.moonbeam(rig, f.glow, f.flame, self._time + f.x)
                 else:
@@ -2769,7 +2813,7 @@ class World:
         elif k == "rubble":
             models.rubble(rig, p.tx * 11 + p.tz * 5)
         elif k == "urn":
-            models.urn(rig, p.tx * 3 + p.tz * 7, broken=p.open_t > 0)
+            models.urn(rig, p.tx * 3 + p.tz * 7, broken=p.open_t > 0, t=p.break_t)
         elif k == "altar":
             models.warden_altar(rig, p.open_t > 0, t)
         elif k == "brazier":
@@ -2855,7 +2899,7 @@ class World:
                 near = self._baking or math.hypot(p.x - self.player.x, p.z - self.player.z) < DETAIL_RANGE
                 models.npc(rig, villagers.look(npc_id), t + p.tx, near)
         elif k == "barrel":
-            models.barrel(rig, p.tx * 7 + p.tz, broken=p.open_t > 0)
+            models.barrel(rig, p.tx * 7 + p.tz, broken=p.open_t > 0, t=p.break_t)
         elif k == "secret_wall":
             tile = self.map[p.tx, p.tz]
             top = float(p.props["top"]) if "top" in p.props else tile.ceil or tile.floor + 4.0
@@ -2868,11 +2912,11 @@ class World:
                 near = math.hypot(p.x - self.player.x, p.z - self.player.z) < SHIMMER_NEAR
                 models.secret_wall(rig, top - tile.floor, p.open_t, tex=tex, t=t, shimmer=True, near=near)
         elif k == "cocoon":
-            models.cocoon(rig, p.tx * 7 + p.tz * 3, broken=p.open_t > 0)
+            models.cocoon(rig, p.tx * 7 + p.tz * 3, broken=p.open_t > 0, t=p.break_t)
         elif k == "frog_idol":
             models.frog_idol(rig, p.open_t / FROG_CROAK if p.open_t > 0 else 0.0)
         elif k == "crate":
-            models.crate(rig, p.tx * 5 + p.tz * 3, broken=p.open_t > 0)
+            models.crate(rig, p.tx * 5 + p.tz * 3, broken=p.open_t > 0, t=p.break_t)
         elif k == "bones":
             models.bones(rig, p.tx * 3 + p.tz * 11)
         elif k == "chains":

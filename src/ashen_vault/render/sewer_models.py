@@ -6,6 +6,7 @@ Original low-poly models assembled from primitives; like everything in `models`,
 
 import math
 
+from ashen_vault.ai.enemy import BURROW_TIME, BURST_TIME
 from ashen_vault.render.models import (
     PASSAGE_DARK,
     _bar,
@@ -84,6 +85,12 @@ def _rat_pose(e, t):
             spin = 0.5 * k  # coiling the other way
         elif kind == "squeal":
             lift, pitch, stretch = 0.12 * k, 0.9 * k, -0.1 * k  # rearing, the head thrown back
+        elif kind == "burrow":  # nose down into the muck, the body sinking after it
+            lift, pitch, stretch = -0.3 * k, -0.7 * k, 0.08 * k
+    elif e.state == "attack" and kind == "burrow":  # bursting up out of the muck, rearing, then down
+        u = min(max(e.state_t - BURROW_TIME, 0.0) / BURST_TIME, 1.0)
+        rear = math.sin(min(u / 0.35, 1.0) * math.pi / 2) * (1 - _ease(max(u - 0.5, 0.0) / 0.5))
+        lift, pitch, stretch = -0.3 + 0.48 * rear, 0.9 * rear, -0.08 * rear
     elif e.state == "attack":
         k = min(e.state_t / 0.2, 1.0)
         lift, pitch, stretch = 0.05 * k, -0.2 * k, 0.1 * k
@@ -100,13 +107,15 @@ def _rat_pose(e, t):
     return lift, pitch, stretch, spin
 
 
-def _rat(r, e, t, k, fur, eyes_lit, extras=None, blaze=False, sores=()):
-    """A rat `k` times a gutter rat's size, in a few bold shapes: a hunched body that rises to a high,
-    bristling back, the head carried low and long before it, thin pale legs ending in claws, a bare
+def _rat(r, e, t, k, fur, eyes_lit, extras=None, blaze=False, sores=(), torn=False):
+    """A rat `k` times a gutter rat's size, in a few bold shapes: a hunched body whose spine swells
+    smoothly over the shoulders to a high hump and falls to the hips, old scars across its hide, the head
+    carried low and long before it, thin pale legs ending in claws, a bare
     tail, big naked ears, a jaw hung open on its fangs and one round, milky eye a side that catches the
     light while it lives (if `eyes_lit`). `sores` are raw wounds in its hide, (x, y, z, size) in the
     body's frame. Slain, it rolls onto its side and its legs stick out. `extras(r, k)` adds to the
-    body, in its frame; `blaze` sets its eyes ablaze."""
+    body, in its frame; `blaze` sets its eyes ablaze; `torn` rips its right ear half away, the flap
+    hanging by a strip of raw skin."""
     fall = death_fall(e, 0.6)
     running = e.state == "chase"
     gait = math.sin(t * (15 if running else 4)) * (0.6 if running else 0.15) * (1 - fall)
@@ -119,10 +128,16 @@ def _rat(r, e, t, k, fur, eyes_lit, extras=None, blaze=False, sores=()):
     with r.at(stretch * k, y0 * k, 0, ry=spin, rx=fall * math.pi / 2):
         r.part("sphere", -0.02 * k, 0.03 * k, 0, 0.5 * k, 0.27 * k, 0.27 * k, hide)  # the hunched body
         r.part("sphere", -0.14 * k, 0.03 * k, 0, 0.3 * k, 0.27 * k, 0.3 * k, dark)  # haunches
-        for i in range(5):  # the bristling ridge of its back, highest over the hump
-            x = (0.14 - i * 0.08) * k
-            tall = (0.07 + 0.04 * math.sin(i / 4 * math.pi)) * k
-            r.part("cube", x, 0.16 * k + tall / 2, 0, 0.05 * k, tall, 0.13 * k, dark, rz=0.5)
+        # The hunched spine: a smooth swell rising over the shoulders to the hump and falling to the hips.
+        for x, y, sx, sy, sz in ((0.1, 0.1, 0.24, 0.13, 0.22), (-0.03, 0.13, 0.28, 0.15, 0.23),
+                                 (-0.15, 0.09, 0.22, 0.12, 0.24)):  # fmt: skip
+            r.part("sphere", x * k, y * k, 0, sx * k, sy * k, sz * k, hide if x > -0.1 else dark)
+        for side in (-1, 1):  # the bones of its shoulders and hips standing out under the hide
+            r.part("sphere", 0.13 * k, 0.05 * k, side * 0.1 * k, 0.12 * k, 0.1 * k, 0.08 * k, hide)
+            r.part("sphere", -0.17 * k, 0.04 * k, side * 0.12 * k, 0.14 * k, 0.12 * k, 0.08 * k, dark)
+        scar = _dim(hide, 0.55)  # old bite scars, bare and dark across the hide
+        r.part("cube", -0.02 * k, 0.2 * k, 0.02 * k, 0.15 * k, 0.012 * k, 0.025 * k, scar, ry=0.6)
+        r.part("cube", 0.04 * k, 0.1 * k, -0.115 * k, 0.13 * k, 0.025 * k, 0.012 * k, scar, rz=0.5)
         for x, y, z, size in sores:  # raw, weeping wounds in its hide
             r.part("sphere", x * k, y * k, z * k, size * k, size * 0.6 * k, size * k, RAT_SORE)
             r.part("cube", x * k, y * k, z * k, size * 0.45 * k, size * 0.4 * k, size * 0.45 * k, RAT_FLESH)
@@ -150,6 +165,14 @@ def _rat(r, e, t, k, fur, eyes_lit, extras=None, blaze=False, sores=()):
                 if blaze and eye is RAT_EYE_LIT:
                     r.part("cube", 0.115 * k, 0.03 * k, side * 0.065 * k, 0.05 * k, 0.03 * k, 0.04 * k,
                            (255, 220, 140), glow=True)  # fmt: skip
+                if torn and side > 0:  # a ragged stub, and the rest of the ear hanging off it
+                    r.part(
+                        "sphere", 0.0, 0.06 * k, 0.065 * k, 0.03 * k, 0.05 * k, 0.08 * k, RAT_EAR, rx=-0.35
+                    )
+                    r.part("cube", 0.0, 0.08 * k, 0.09 * k, 0.03 * k, 0.015 * k, 0.05 * k, RAT_SORE, rx=-0.35)
+                    r.part("sphere", 0.01 * k, 0.03 * k, 0.12 * k, 0.025 * k, 0.08 * k, 0.06 * k, RAT_EAR,
+                           rx=-0.2 - 0.1 * math.sin(t * 2.6))  # fmt: skip
+                    continue
                 r.part("sphere", 0.0, 0.09 * k, side * 0.065 * k, 0.03 * k, 0.11 * k, 0.09 * k,
                        RAT_EAR, rx=-side * 0.35)  # big naked ears  # fmt: skip
         if extras:
@@ -176,17 +199,17 @@ def giant_rat(r, e, t):
 def rat_matron(r, e, t):
     """Mother Gnawl, the brood-mother of the sewers' rats: a rat swollen to the size of a cart-horse,
     her hide torn open in weeping sores, her belly hanging heavy, a rusted iron collar on her neck with
-    its broken chain dragging. When she has called her litter her hackles rise in a mane and her eyes
-    blaze."""
+    its broken chain dragging. When she has called her litter, her old wounds split open into raw,
+    weeping sores along her back and flank, one ear hangs torn, and her eyes blaze. Burrowing, she is
+    gone under the muck: only the ripple of her passing shows (`burrow_ripple`)."""
+    if e.burrowed:  # gone under the muck: only the ripple of her passing shows
+        burrow_ripple(r, t, 4.4)
+        return
     rage = e.phase2 and e.alive
     fall = death_fall(e, 0.8)
 
     def brood(r, k):
         r.part("sphere", 0, -0.08 * k, 0, 0.36 * k, 0.12 * k, 0.21 * k, (120, 96, 92))  # the hanging belly
-        if rage:
-            for i in range(6):  # her hackles risen in a mane over the ridge
-                x = (0.2 - i * 0.07) * k
-                r.part("cube", x, 0.25 * k, 0, 0.03 * k, 0.12 * k, 0.15 * k, RAT_DARK, rz=0.6)
         with r.at(0.2 * k, 0.03 * k, 0):  # the collar and its broken chain
             r.part("cyl", 0, 0, 0, 0.07 * k, 0.18 * k, 0.18 * k, RUST, rz=math.pi / 2)
             link = (0.0, -0.08 * k, 0.0)
@@ -202,7 +225,9 @@ def rat_matron(r, e, t):
         (-0.08, 0.17, 0.05, 0.08),
         (0.24, 0.05, -0.06, 0.05),
     )
-    _rat(r, e, t, 4.4, (62, 60, 62), eyes_lit=True, extras=brood, blaze=rage, sores=sores)
+    if rage:  # her wounds torn open: raw sores along the hump and down both flanks
+        sores += ((0.08, 0.15, -0.08, 0.12), (-0.04, 0.19, 0.04, 0.1), (-0.15, 0.06, 0.13, 0.12))
+    _rat(r, e, t, 4.4, (62, 60, 62), eyes_lit=True, extras=brood, blaze=rage, sores=sores, torn=rage)
 
 
 # --- slimes ---------------------------------------------------------------------------------------
@@ -548,6 +573,47 @@ def drowned_hands(r, glow, rise, t):
             r.part("sphere", 0, 0.05, 0, 0.22, 0.12, 0.22, SLUDGE)  # sludge round the wrist
             with r.at(0, length, 0, rz=math.pi):
                 hand(r, DROWNED_SKIN, 0.22, curl=1.2 - 0.8 * rise + 0.15 * math.sin(t * 11 + i))
+
+
+def burrow_ripple(r, t, k):
+    """Mother Gnawl tunnelling under the muck toward you (+X): a low swell heaving along, the ridge of
+    her back breaking the surface, a bow wave of scummy sludge before it, rings spreading out behind,
+    and clumps of muck tumbling off its back."""
+    heave = 0.5 + 0.5 * math.sin(t * 9)
+    r.part("sphere", 0, 0.02, 0, 0.42 * k, (0.05 + 0.025 * heave) * k, 0.3 * k, SLUDGE_DARK)  # the swell
+    r.part("sphere", -0.03 * k, 0.03 * k, 0, 0.22 * k, (0.04 + 0.02 * heave) * k, 0.1 * k,
+           (62, 60, 62))  # her back, just breaking the surface  # fmt: skip
+    r.part("sphere", 0.18 * k, 0.025 * k, 0, 0.12 * k, 0.045 * k, 0.32 * k, SLUDGE_SCUM)  # the bow wave
+    for i in range(3):  # rings spreading out behind as it goes
+        u = (t * 1.6 + i / 3) % 1.0
+        d = (0.18 + 0.32 * u) * k
+        r.part("cyl", -0.1 * k * u, 0.006, 0, d, 0.012, d * 0.8, _dim(SLUDGE, 1.1 - 0.3 * u))
+    for i in range(5):  # clumps of muck heaved up and falling back
+        u = (t * 2.2 + i * 0.37) % 1.0
+        a = i * 2.4 + 0.6
+        x, z = math.cos(a) * 0.16 * k - 0.05 * k * u, math.sin(a) * 0.14 * k * (0.6 + 0.6 * u)
+        y = (0.03 + 0.5 * u * (1 - u)) * k
+        size = (0.05 + 0.02 * (i % 2)) * k * (1 - 0.4 * u)
+        r.part("sphere", x, y, z, size, size * 0.8, size, SLUDGE_SCUM if i % 3 == 0 else SLUDGE)
+
+
+def filth_burst(r, rise, t):
+    """A spout of filth where Mother Gnawl bursts up out of the muck (`hazards.Eruption` style
+    "filth"): a column of black sludge thrown up (`rise` 0..1) and falling back, clods of muck and scum
+    flung out round it, a dark stain spreading under it."""
+    if rise <= 0:
+        return
+    r.part("cyl", 0, 0.012, 0, 1.3 * (0.6 + 0.4 * rise), 0.02, 1.3 * (0.6 + 0.4 * rise), SLUDGE_DARK)
+    h = 1.5 * rise
+    r.part("cyl", 0, h / 2, 0, 0.45 * rise, h, 0.45 * rise, SLUDGE_DARK)  # the spout
+    r.part("sphere", 0, h, 0, 0.6 * rise, 0.35 * rise, 0.6 * rise, SLUDGE)  # its head, breaking
+    for i in range(6):  # clods flung out and falling
+        a = i * math.tau / 6 + t * 0.3
+        d = 0.25 + 0.55 * (1 - rise)
+        y = h * (0.4 + 0.15 * (i % 3))
+        size = 0.12 + 0.05 * (i % 2)
+        r.part("sphere", math.cos(a) * d, y, math.sin(a) * d, size, size * 0.8, size,
+               SLUDGE_SCUM if i % 2 else _dim(SLUDGE, 0.8))  # fmt: skip
 
 
 def squeal_ring(r, k, radius):

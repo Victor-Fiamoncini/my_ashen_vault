@@ -42,9 +42,11 @@ MOVES = {
     "gulp": (1.3, 10.0, 1.25),
     "shed": (1.1, 13.0, 0.0),
     # Mother Gnawl's own: a lash of her tail at whoever stands behind her, a piercing squeal that
-    # staggers all round, and (second phase) a swarm of her litter loosed along the floor at you.
+    # staggers all round, a burrow (she sinks into the muck, tunnels after you and bursts up under
+    # you in a ring of filth) and (second phase) a swarm of her litter loosed along the floor at you.
     "tail_lash": (0.45, 3.5, 0.8),
     "squeal": (0.8, 9.0, 0.3),
+    "burrow": (0.6, 10.0, 1.2),
     "swarm": (1.0, 8.0, 0.35),
     # Vesperholm's: a lance of moon-frost thrown from afar (a fan of three from the Duchess), and a
     # blink, a step through the moonlight to reappear behind you and strike. The Duchess's own: shafts
@@ -93,6 +95,11 @@ BLINK_RANGE = (3.0, 10.0)  # it steps through the moonlight only while you keep 
 MOONBEAM_RANGE = (2.0, 12.0)
 MOONFALL_RANGE = 12.0
 SQUEAL_RADIUS = 4.5  # metres her squeal staggers you, from any side
+BURROW_RANGE = (4.0, 9.0)  # distances she burrows after you from
+BURROW_TIME = 1.2  # seconds she tunnels under the muck, out of reach
+BURROW_SPEED = 1.3  # times her chase speed she tunnels at: step aside as she comes up and she misses
+BURST_TIME = 0.45  # seconds she rears up out of the muck once she bursts
+BURROW_RADIUS = 2.2  # metres round where she bursts up that the filth catches you
 TAIL_ARC = 1.9  # radians off her facing beyond which you stand in reach of her tail
 TAIL_REACH = 1.0  # extra reach of her tail over her bite
 EXHALE_REACH = 5.0  # metres the Sexton's breath of grave dust carries
@@ -149,7 +156,7 @@ class Enemy:
     for bosses with a brood, summon(enemy, type_id, count); for bosses with a rage, boss_rage(enemy),
     slam(enemy) and eruption(enemy); for hook throwers, hook(enemy, mult, pull);
     for fire-breathers, breath(enemy); for the Sexton, grasp(enemy) and knell(enemy, wave); for
-    Mother Gnawl, tail_lash(enemy) and squeal(enemy); for the Sump Maw, undertow(enemy),
+    Mother Gnawl, tail_lash(enemy), squeal(enemy) and burrow_burst(enemy); for the Sump Maw, undertow(enemy),
     gulp(enemy), shed(enemy) and can_shed(enemy); for Vesperholm's blinkers, blink(enemy); for the
     Duchess, moonbeam(enemy) and moonfall(enemy). Optional, for twin bosses: rouse_twin(enemy), twin_fallen(enemy)
     and twin_busy(enemy); for bosses that rise from ash, rise_time(enemy) (seconds, or None while it
@@ -392,8 +399,13 @@ class Enemy:
 
     @property
     def unseen(self):
-        """Still a heap of ash, or not yet whole: nothing can strike it."""
-        return self.state in ("ashes", "rising")
+        """Still a heap of ash, not yet whole, or tunnelling under the muck: nothing can strike it."""
+        return self.state in ("ashes", "rising") or self.burrowed
+
+    @property
+    def burrowed(self):
+        """Under the muck mid-burrow: out of reach and in no one's way, only a ripple shows."""
+        return self.state == "attack" and self.attack_kind == "burrow" and self.state_t < BURROW_TIME
 
     @property
     def rise_progress(self):
@@ -570,6 +582,8 @@ class Enemy:
             options.append("shed")
         if "swarm" in ready and seen and SWARM_RANGE[0] <= dist <= SWARM_RANGE[1]:
             options.append("swarm")
+        if "burrow" in ready and BURROW_RANGE[0] <= dist <= BURROW_RANGE[1]:
+            options.append("burrow")
         if "squeal" in ready and dist <= SQUEAL_RADIUS * 0.8:
             options.append("squeal")
         if "frost_lance" in ready and seen and FROST_LANCE_RANGE[0] <= dist <= FROST_LANCE_RANGE[1]:
@@ -628,6 +642,8 @@ class Enemy:
             return self._knell(world)
         if kind == "blink":
             return self._blink(world)
+        if kind == "burrow":
+            return self._burrow(world, dt)
         if not self._struck:
             self._struck = True
             if kind in ("shot", "web", "cinders", "spadeful", "fireball", "bile", "swarm", "frost_lance"):
@@ -693,6 +709,24 @@ class Enemy:
             world.blink(self)
             self.face(world.player_x, world.player_z)
             self._begin_windup("melee")
+
+    def _burrow(self, world, dt):
+        """Under the muck for BURROW_TIME, tunnelling after you no faster than BURROW_SPEED times her
+        chase; then she bursts up where she has got to, and rears there for BURST_TIME."""
+        if self.state_t < BURROW_TIME:
+            dx, dz = world.player_x - self.x, world.player_z - self.z
+            d = math.hypot(dx, dz)
+            if d > 1e-6:
+                speed = self.type.speed * (1.25 if self.enraged else 1.0) * BURROW_SPEED
+                step = min(speed * dt, d)
+                self.yaw = math.atan2(dz, dx)
+                world.move_enemy(self, dx / d * step, dz / d * step)
+            return
+        if not self._struck:
+            self._struck = True
+            world.burrow_burst(self)
+        if self.state_t >= BURROW_TIME + BURST_TIME:
+            self._switch("recover")
 
     @property
     def combo_swing(self):

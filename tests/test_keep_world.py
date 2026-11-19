@@ -480,3 +480,21 @@ def test_a_struck_foe_glows_red():
     assert lights == [HIT_RED]
     red, green, blue = HIT_RED
     assert red > max(green, blue) * 1.5  # red leads, without drowning the body's own look
+
+
+def test_a_smashed_barrel_flings_its_pieces_out_then_settles_and_a_loaded_one_lies_settled():
+    from ashen_vault.world.world import BREAK_TIME
+
+    _game, world = keep()
+    barrel = next(p for p in world.props if p.kind in ("barrel", "crate"))
+    assert barrel.open_t == 0.0 and barrel.break_t == 1.0  # whole: nothing to animate
+    world.break_prop(barrel)
+    assert barrel.open_t == 1.0 and barrel.break_t == 0.0  # broken at once (loot, path, save)
+    world.update(BREAK_TIME / 2)
+    assert 0.0 < barrel.break_t < 1.0
+    world.update(BREAK_TIME)
+    assert barrel.break_t == 1.0
+    # Loaded from a save that holds it broken: its wreck already lies still.
+    _game, world = keep(flags={barrel.key})
+    again = next(p for p in world.props if p.key == barrel.key)
+    assert again.open_t == 1.0 and again.break_t == 1.0

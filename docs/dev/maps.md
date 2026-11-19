@@ -151,7 +151,10 @@ How `.map` files work and what can stand on a tile.
   (`test_every_cemetery_hint_fits_the_screen`).
   Breakables (`barrel`, `crate`, `urn`, `cocoon`) spill loot from `world/loot.py` (`loot.roll`); a barrel or
   crate takes one of several looks from its tile (`models.variant`: a cask, a water butt or a cask on its
-  side; a plank crate, a slatted one or a long strapped one), so the same marker never repeats one model; a `secret_wall`
+  side; a plank crate, a slatted one or a long strapped one), so the same marker never repeats one model.
+  Smashed, one is broken at once (`open_t` 1: its loot, its tile and the save), while its pieces fly out
+  over `BREAK_TIME` (`Prop.break_t` 0 to 1; 1 for one loaded broken) to lie as its wreck
+  (`models._flung`, `_break_dust`); a `secret_wall`
   takes the texture of the real walls beside it (`world.secret_wall_tex`), a shade duller, with a faint
   shimmer climbing it now and then and pale motes on its faces within `SHIMMER_NEAR`; struck, ember
   cracks sear it to ash and it crumbles top-down into falling ash and embers over about 1.4 s

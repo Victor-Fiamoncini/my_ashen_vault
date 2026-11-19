@@ -740,7 +740,7 @@ class SewerWorld(FakeWorld):
         return self.room
 
     def __getattr__(self, name):
-        if name in ("tail_lash", "squeal", "undertow", "gulp", "shed"):
+        if name in ("tail_lash", "squeal", "undertow", "gulp", "shed", "burrow_burst"):
             return lambda _enemy: self.moves.append(name)
         raise AttributeError(name)
 
@@ -765,6 +765,8 @@ def sewer_boss(type_id, ready, phase2=False):
     ("type_id", "move", "near", "far", "phase2"),
     [
         ("rat_matron", "squeal", 3.0, 6.0, False),
+        ("rat_matron", "burrow", 6.0, 11.0, False),
+        ("rat_matron", "burrow", 6.0, 3.0, True),  # in both phases, but never from up close
         ("rat_matron", "swarm", 6.0, 12.0, True),
         ("sump_maw", "undertow", 6.0, 13.0, False),
         ("sump_maw", "gulp", 6.0, 14.0, True),
@@ -815,6 +817,33 @@ def test_a_tail_lash_strikes_through_the_world_once_it_lands():
     w = SewerWorld(2.0, 0.0)  # in front of her
     tick(e, w, 0.3)
     assert "tail_lash" not in w.moves
+
+
+def test_she_burrows_out_of_reach_after_you_and_bursts_up_no_faster_than_her_cap():
+    from ashen_vault.ai.enemy import BURROW_SPEED, BURROW_TIME, BURST_TIME
+
+    e = sewer_boss("rat_matron", "burrow")
+    e.cooldowns["burrow"] = 99.0
+    w = SewerWorld(6.0, 0.0)
+    e._begin_windup("burrow")
+    while e.state == "windup":
+        tick(e, w, 0.05)
+    assert e.state == "attack" and e.burrowed and e.unseen
+    hp = e.hp
+    assert e.take_hit(50) is False and e.hp == hp  # nothing reaches her under the muck
+    start = e.x
+    w.player_z = 1.0  # you move: she tunnels after where you are now
+    tick(e, w, BURROW_TIME - 0.1)
+    assert e.burrowed and w.moves == []
+    tick(e, w, 0.2)
+    assert not e.burrowed and w.moves == ["burrow_burst"]  # once she surfaces
+    cap = e.type.speed * BURROW_SPEED * BURROW_TIME
+    travelled = math.hypot(e.x - start, e.z)
+    assert 0.5 * cap < travelled <= cap + 1e-6
+    assert e.z > 0  # she turned after you
+    assert e.take_hit(1) is False and e.hp == hp - 1  # back in reach as she rears
+    tick(e, w, BURST_TIME)
+    assert e.state == "recover" and w.moves == ["burrow_burst"]
 
 
 def test_the_sewer_bosses_moves_reach_the_world():

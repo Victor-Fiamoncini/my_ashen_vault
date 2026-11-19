@@ -109,7 +109,7 @@ def test_the_brood_mother_calls_her_rats_and_wakes_from_her_heap_behind_her_door
 
 def test_each_sewer_boss_has_moves_no_other_foe_uses():
     own = {
-        "rat_matron": {"tail_lash", "squeal", "swarm"},
+        "rat_matron": {"tail_lash", "squeal", "burrow", "swarm"},
         "sump_maw": {"bile", "undertow", "gulp", "shed"},
     }
     for type_id, moves in own.items():
@@ -174,6 +174,40 @@ def test_her_squeal_staggers_you_from_any_side_but_only_in_earshot():
     hp = game.player.stats.hp
     world.squeal(matron)
     assert game.player.stats.hp == hp and game.player.webbed_t == 0
+
+
+def test_she_bursts_up_out_of_the_muck_in_a_ring_of_filth_that_hurts_and_rots_only_near_her():
+    from ashen_vault.ai.enemy import BURROW_RADIUS
+
+    game, world = sewers(at=(31, 31))  # a tile ahead of her: in the burst
+    matron = gnawl(world)
+    hp = game.player.stats.hp
+    world.burrow_burst(matron)
+    assert world.eruptions and all(f.style == "filth" and f.damage == 0 for f in world.eruptions)
+    assert (world.eruptions[0].x, world.eruptions[0].z) == (matron.x, matron.z)
+    assert game.player.stats.hp < hp and game.player.ailments.meters["rot"] == 25
+    assert "Mother Gnawl bursts up under you in a spray of filth!" in game.messages
+    for _ in range(30):  # the spouts are only for show: no second wound
+        world._update_fire(0.05)
+    assert len(game.wounds) == 1
+    game, world = sewers(at=(25, 30))  # well off: out of it
+    matron = gnawl(world, at=(31, 30))
+    assert math.hypot(game.player.x - matron.x, game.player.z - matron.z) > BURROW_RADIUS
+    hp = game.player.stats.hp
+    world.burrow_burst(matron)
+    assert game.player.stats.hp == hp and game.player.ailments.meters["rot"] == 0
+
+
+def test_under_the_muck_she_tunnels_under_your_feet_and_no_one_bumps_into_her():
+    game, world = sewers(at=(31, 31))
+    matron = gnawl(world)
+    matron.state, matron.attack_kind, matron.state_t = "attack", "burrow", 0.1
+    assert matron.burrowed
+    world.move_enemy(matron, game.player.x - matron.x, 0.0)
+    assert matron.x == game.player.x  # right under you
+    px = game.player.x
+    world._push_player_out_of_bodies()
+    assert game.player.x == px
 
 
 def test_her_litter_swarms_along_the_floor_and_rots_what_it_bites():

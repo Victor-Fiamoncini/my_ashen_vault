@@ -741,9 +741,10 @@ class EnemyTypes:
                 poise=10,
                 # The brood-mother of the sewers' rats, swollen to the size of a cart-horse in a nest
                 # of rags and bones: she rakes all round with her claws, springs at you, lashes her
-                # tail at whoever slips behind her and squeals fit to split your skull; at half HP she
-                # shrieks for her litter and looses swarms of it along the floor at you.
-                moves=("sweep", "pounce", "tail_lash", "squeal"),
+                # tail at whoever slips behind her, squeals fit to split your skull and burrows into
+                # the muck to burst up under you; at half HP she shrieks for her litter and looses
+                # swarms of it along the floor at you.
+                moves=("sweep", "pounce", "tail_lash", "squeal", "burrow"),
                 phase_moves=("swarm",),
                 brood="sewer_rat",
                 inflicts=(("rot", 30),),

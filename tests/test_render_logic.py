@@ -830,8 +830,20 @@ def test_the_sewer_bosses_own_moves_each_strike_their_own_pose():
     moves = ("slam", "undertow", "gulp", "shed")
     maw = {m: posed("sump_maw", m, sewer_models._maw_pose) for m in moves}
     assert len(set(maw.values())) == len(moves)
-    rat = {m: posed("rat_matron", m, sewer_models._rat_pose) for m in ("pounce", "tail_lash", "squeal")}
-    assert len(set(rat.values())) == 3
+    rat_moves = ("pounce", "tail_lash", "squeal", "burrow")
+    rat = {m: posed("rat_matron", m, sewer_models._rat_pose) for m in rat_moves}
+    assert len(set(rat.values())) == len(rat_moves)
+    # Under the muck only her ripple shows, low on the floor; bursting up, she rears out of it.
+    from ashen_vault.ai.enemy import BURROW_TIME
+
+    e = Enemy(EnemyTypes.get("rat_matron"), 0, 0, rng=random.Random(0))
+    e.state, e.state_t, e.attack_kind, e.anim_t = "attack", 0.5, "burrow", 1.0
+    under = _ExtentGpu()
+    sewer_models.rat_matron(rig.Rig(under), e, 1.0)
+    assert under.top < 1.0 and under.glows == 0  # she stands 1.6 m tall
+    e.state_t = BURROW_TIME + 0.12
+    burst = sewer_models._rat_pose(e, 0.0)
+    assert burst[0] > 0 and burst[1] > 0.5  # reared up, the head thrown back
     # Its gullet glows while it gapes to gulp, and goes out with it.
     e = Enemy(EnemyTypes.get("sump_maw"), 0, 0, rng=random.Random(0))
     e.state, e.state_t, e.anim_t, e.attack_kind = "windup", 0.5, 1.0, "gulp"
@@ -846,9 +858,13 @@ def test_the_sewer_bosses_own_moves_each_strike_their_own_pose():
     for k in (0.1, 0.5, 0.9):
         sewer_models.drowned_hands(r, k, k, 1.0)
         sewer_models.squeal_ring(r, k, 4.5)
+        sewer_models.filth_burst(r, k, 1.0)
+        sewer_models.burrow_ripple(r, k * 3, 4.4)
     sewer_models.swarm_rat(r, 1.0)
     sewer_models.drowned_hands(r, 0.0, 0.0, 1.0)  # not yet stirring: nothing
-    assert len(gpu.parts) > 80
+    n = len(gpu.parts)
+    sewer_models.filth_burst(r, 0.0, 1.0)  # not yet bursting: nothing
+    assert len(gpu.parts) == n > 80
 
 
 def test_a_burning_web_glows_only_while_it_burns():
@@ -1934,9 +1950,9 @@ def test_crates_and_barrels_take_a_look_by_their_tile_and_stay_on_it(kind, looks
     shapes = set()
     for look, seeds in _seeds_for_each(looks).items():
         for seed in seeds[:6]:
-            for broken in (False, True):
+            for broken, t in ((False, 1.0), (True, 0.0), (True, 0.5), (True, 1.0)):
                 gpu = _FootprintGpu()
-                draw(rig.Rig(gpu), seed, broken=broken)
+                draw(rig.Rig(gpu), seed, broken=broken, t=t)
                 assert gpu.parts, (kind, look, seed)
                 assert min(y for _, y in gpu.parts) > -0.1, (kind, look, seed)
                 top = max(y for _, y in gpu.parts)  # part centres: the tallest cask's lid sits a hair over
@@ -1947,6 +1963,44 @@ def test_crates_and_barrels_take_a_look_by_their_tile_and_stay_on_it(kind, looks
         shapes.add(frozenset(gpu.looks))
     assert len(shapes) == looks  # each look is drawn its own way
     assert [models.variant(s, looks) for s in range(50)] == [models.variant(s, looks) for s in range(50)]
+
+
+class _MatrixGpu(_GlowGpu):
+    """Also keeps every part's whole matrix, to tell two drawings apart exactly."""
+
+    def __init__(self):
+        super().__init__()
+        self.matrices = []
+
+    def draw_part(self, kind, matrix, rgb, tex="white", glow=False):
+        super().draw_part(kind, matrix, rgb, tex, glow)
+        self.matrices.append(tuple(matrix))
+
+
+@pytest.mark.parametrize("kind", ["barrel", "crate", "urn", "cocoon"])
+def test_a_smashed_container_flings_its_pieces_out_and_settles_into_its_wreck(kind):
+    from ashen_vault.world.world import PROP_TOP
+
+    draw = getattr(models, kind)
+    for seed in range(12):
+        settled, default = _MatrixGpu(), _MatrixGpu()
+        draw(rig.Rig(settled), seed, broken=True, t=1.0)
+        draw(rig.Rig(default), seed, broken=True)
+        assert settled.matrices == default.matrices and settled.looks == default.looks
+        assert all(tex != "mist" for _, _, tex in settled.looks)  # the dust has settled
+        flying = []
+        for t in (0.0, 0.2, 0.5, 0.8, 0.99):
+            gpu = _FootprintGpu()
+            draw(rig.Rig(gpu), seed, broken=True, t=t)
+            # The dust puffs come on top of the pieces, and only while it breaks.
+            assert len(gpu.parts) == len(settled.parts) + models.BREAK_DUST, (kind, seed, t)
+            assert min(y for _, y in gpu.parts) > -0.1, (kind, seed, t)
+            assert max(y for _, y in gpu.parts) < PROP_TOP[kind] + 0.05, (kind, seed, t)
+            assert all(abs(x) < 1.0 and abs(z) < 1.0 for x, z in gpu.spots), (kind, seed, t)
+            mid = _MatrixGpu()
+            draw(rig.Rig(mid), seed, broken=True, t=t)
+            flying.append(mid.matrices[: len(settled.matrices)])
+        assert all(m != settled.matrices for m in flying)  # on the move until it settles
 
 
 def test_every_chest_style_draws_opens_and_is_spelt_right_in_the_maps():
