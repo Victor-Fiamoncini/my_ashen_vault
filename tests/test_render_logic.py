@@ -922,6 +922,55 @@ def test_the_keystones_moves_each_strike_their_own_pose():
     assert len(poses) == len(type_.moves) + len(type_.phase_moves)
 
 
+def test_the_keystone_holds_its_boulder_overhead_until_it_lets_it_fly():
+    import random
+
+    from ashen_vault.ai.enemy import Enemy
+    from ashen_vault.ai.enemy_types import EnemyTypes
+    from ashen_vault.render import sunken_models
+
+    type_ = EnemyTypes.get("keystone")
+    e = Enemy(type_, 0, 0, rng=random.Random(0))
+    e.attack_kind = "hurl"
+    seen = []
+    for state, t in (("windup", 0.1), ("windup", 2.0), ("windup", 9.0), ("attack", 0.1), ("attack", 0.6)):
+        e.state, e.state_t = state, t
+        _lean, left, left_elbow, right, right_elbow, _stamp, hurl, _charge = sunken_models.keystone_pose(e)
+        assert (left, left_elbow) == (right, right_elbow)  # both arms, together
+        seen.append((hurl, right))
+    assert all(h > 0 for h, _ in seen[:4]) and seen[4][0] < 0  # held through the heave, then let go
+    assert seen[2][1] > 2.5  # up before it and over its head at the end of the windup
+    counts = []
+    for state, t in (("windup", 9.0), ("attack", 0.6)):
+        e.state, e.state_t = state, t
+        gpu = _RecordingGpu()
+        models.enemy(rig.Rig(gpu), e)
+        counts.append(len(gpu.parts))
+        if state == "windup":
+            assert max(y for _, y in gpu.parts) > 8.0  # the boulder up over its head
+    assert counts[0] > counts[1]
+    gpu = _RecordingGpu()
+    sunken_models.boulder(rig.Rig(gpu), 0.3, 1.0)
+    assert len(gpu.parts) >= 8
+
+
+def test_a_giants_ash_spread_draws_wide_and_is_drawn_in_as_it_rises():
+    from ashen_vault.render import cemetery_models
+
+    class _Where(_GlowGpu):
+        def draw_part(self, kind, matrix, rgb, tex="white", glow=False):
+            super().draw_part(kind, matrix, rgb, tex, glow)
+            self.reach = max(getattr(self, "reach", 0.0), math.hypot(matrix[3], matrix[11]))
+
+    wide, half, gone = (_Where(), _Where(), _Where())
+    for gpu, k in ((wide, 0.0), (half, 0.5), (gone, 0.9)):
+        cemetery_models.ash_spread(rig.Rig(gpu), 1.0, k, 4.25)
+    assert len(wide.parts) >= 30 and wide.glows >= 18  # many ember cracks
+    assert wide.reach > 3.0  # far out past the heap
+    assert 0 < half.reach < wide.reach  # drawn in toward its feet as it forms
+    assert not gone.parts  # and gone once it stands whole
+
+
 def test_old_harrowmeres_dressing_draws():
     from ashen_vault.render import sunken_models
 
@@ -930,7 +979,8 @@ def test_old_harrowmeres_dressing_draws():
         ("vault_rift", lambda r: sunken_models.vault_rift(r, 40.0, (28.0, 6.0), 1.2)),
         ("waterfall", lambda r: sunken_models.waterfall(r, 0.3, 14.0, 4.0, 0.0)),
         ("sunken_tower", lambda r: sunken_models.sunken_tower(r, 4, 18.0)),
-        ("rubble_chunk", lambda r: sunken_models.rubble_chunk(r, (150, 132, 104), 0.3)),
+        ("boulder_mark", lambda r: sunken_models.boulder_mark(r, 0.5, 0.0, 0.3, 1.8)),
+        ("boulder_burst", lambda r: sunken_models.boulder_mark(r, 0.0, 0.8, 0.3, 1.8)),
     ):
         gpu = _GlowGpu()
         fn(rig.Rig(gpu))

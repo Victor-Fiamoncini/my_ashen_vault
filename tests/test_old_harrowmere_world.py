@@ -4,14 +4,30 @@ tiers, the gate from the Pall's cistern, the shortcut lift, the sextons' bells a
 import math
 
 from ashen_vault import map_path
-from ashen_vault.ai.enemy import QUAKE_RADIUS, QUAKE_SAFE, SLAB_REACH, TOLL_RADIUS
+from ashen_vault.ai.enemy import (
+    PILLAR_RADIUS,
+    PILLAR_REACH,
+    QUAKE_RADIUS,
+    QUAKE_SAFE,
+    SLAB_REACH,
+    TOLL_RADIUS,
+)
 from ashen_vault.ai.enemy_types import EnemyTypes
 from ashen_vault.util import rround
 from ashen_vault.world import collision, relics, terrain
 from ashen_vault.world.hazards import Eruption
 from ashen_vault.world.map_loader import MapLoader
 from ashen_vault.world.tile_map import TileMap
-from ashen_vault.world.world import MORTAR_TEAL, NOVA_RINGS, QUENCHED_HP, World
+from ashen_vault.world.world import (
+    BOULDER_FLIGHT,
+    BOULDER_RADIUS,
+    BOULDER_SCATTER,
+    BOULDER_SHARDS,
+    MORTAR_TEAL,
+    NOVA_RINGS,
+    QUENCHED_HP,
+    World,
+)
 from test_verdant_world import JungleGame, foe
 from test_world import BESIDE, _reachable, _spec
 
@@ -317,13 +333,132 @@ def test_the_quake_passes_under_you_close_in_and_runs_out_to_its_reach():
         assert world.shockwaves
 
 
-def test_the_keystone_hurls_masonry():
-    _game, world = sunken(at=(22, 39))
+def _land(world, f, dt=0.05):
+    """Runs the world's fire until `f` has come down."""
+    for _ in range(200):
+        world._update_fire(dt)
+        if f.state != "warn":
+            return
+
+
+def test_the_keystone_lobs_its_boulder_to_where_you_stood_and_it_bursts_into_shards():
+    game, world = sunken(at=(22, 39))
     keystone = foe(world, "keystone", (22, 45))
-    world.enemy_fire(keystone, "hurl")
-    (shot,) = world.projectiles
-    assert shot.hostile and shot.effect == "rubble"
-    assert math.hypot(shot.dx, shot.dz) > 6  # faster than a plain bolt
+    keystone.face(game.player.x, game.player.z)
+    world.eruptions = []
+    stood = (game.player.x, game.player.z)
+    boulder = world.hurl(keystone)
+    assert world.projectiles == [] and world.eruptions == [boulder]  # lobbed, not shot straight
+    assert (boulder.x, boulder.z) == stood and boulder.style == "boulder"
+    assert boulder.radius >= BOULDER_RADIUS and boulder.warn == BOULDER_FLIGHT  # its shadow glows meanwhile
+    _ox, oy, oz = boulder.origin
+    assert oy - boulder.floor > 6.0  # let go from up over its head
+    world._update_fire(BOULDER_FLIGHT / 2)
+    x, y, z = boulder.bomb()
+    assert y > (oy + boulder.floor) / 2 + 1.0  # on an arc...
+    assert min(oz, stood[1]) < z < max(oz, stood[1]) and abs(x - stood[0]) < 0.5  # ...on its way to you
+    game.wounds.clear()
+    _land(world, boulder)
+    assert game.wounds and "boulder" in game.wounds[0][1]  # you never moved: it crushes you
+    assert "boulder" in game.sounds
+    shards = [f for f in world.eruptions if f is not boulder]
+    # (none where a wall stands)
+    assert 4 <= len(shards) <= BOULDER_SHARDS and all(f.style == "core" and f.origin for f in shards)
+    for f in shards:  # flung out in a ring round where it landed
+        assert abs(math.hypot(f.x - boulder.x, f.z - boulder.z) - BOULDER_SCATTER) < 0.01
+
+
+def test_step_out_from_under_the_boulder_or_meet_it_with_your_shield():
+    game, world = sunken(at=(22, 39))
+    keystone = foe(world, "keystone", (22, 45))
+    world.eruptions = []
+    boulder = world.hurl(keystone)
+    game.player.x += BOULDER_RADIUS + 0.5  # stepped aside while it flew
+    _land(world, boulder)
+    assert not any("boulder" in src for _, src in game.wounds)
+    game, world = sunken(at=(22, 39))
+    keystone = foe(world, "keystone", (22, 45))
+    world.eruptions = []
+    boulder = world.hurl(keystone)
+    p = game.player
+    p.inventory.add("tower_shield")
+    p.inventory.equip("tower_shield")
+    p.yaw = math.atan2(keystone.z - p.z, keystone.x - p.x)  # facing its thrower
+    assert p.raise_guard(True)
+    _land(world, boulder)
+    assert not any("boulder" in src for _, src in game.wounds) and p.stamina.value < 1.0  # blocked
+
+
+def test_the_keystone_hammers_its_fists_down_before_it_and_not_beside_it():
+    keystone_type = EnemyTypes.get("keystone")
+    for d, side, hurt in (
+        (PILLAR_REACH, 0.0, True),  # right where its fists come down
+        (keystone_type.radius + 0.6, 0.0, True),  # up close before it
+        (PILLAR_REACH + PILLAR_RADIUS + 0.6, 0.0, False),  # backed off out of reach
+        (0.0, keystone_type.radius + 1.0, False),  # round at its flank
+    ):
+        game, world = sunken(at=(22, 39))
+        keystone = foe(world, "keystone", (22, 44))
+        keystone.yaw = -math.pi / 2  # facing up the court, toward -z
+        game.player.x, game.player.z = keystone.x + side, keystone.z - d
+        world.eruptions = []
+        world.pillar_crush(keystone)
+        (burst,) = world.eruptions
+        assert burst.radius == PILLAR_RADIUS and burst.style == "core"
+        assert math.hypot(burst.x - keystone.x, burst.z - (keystone.z - PILLAR_REACH)) < 0.01
+        for _ in range(30):
+            world._update_fire(0.05)
+        assert bool(game.wounds) == hurt, (d, side)
+
+
+def test_the_keystones_fault_line_runs_along_the_floor_at_you_and_glows_all_at_once():
+    game, world = sunken(at=(22, 39))
+    keystone = foe(world, "keystone", (22, 44))
+    world.eruptions = []
+    world.fault_line(keystone)
+    fault = world.eruptions
+    p = game.player
+    assert len(fault) >= 3 and all(f.style == "core" for f in fault)
+    assert all(abs(f.x - keystone.x) < 0.01 for f in fault)  # straight at you...
+    assert all(f.z < keystone.z for f in fault) and min(f.z for f in fault) < p.z  # ...and on past you
+    assert all(f.t == 0 for f in fault)  # the whole line glows at once...
+    assert [f.warn for f in fault] == sorted(f.warn for f in fault)  # ...and bursts running out from it
+    assert len({f.warn for f in fault}) == len(fault)
+    game.wounds.clear()
+    p.x += 2.0  # stepped sideways off the line
+    for _ in range(40):
+        world._update_fire(0.05)
+    assert not game.wounds
+    game, world = sunken(at=(22, 39))
+    keystone = foe(world, "keystone", (22, 44))
+    world.eruptions = []
+    world.fault_line(keystone)
+    for _ in range(40):
+        world._update_fire(0.05)
+    assert game.wounds  # stood your ground on it
+
+
+def test_the_keystone_rises_out_of_a_wide_spread_of_ash():
+    _game, world = sunken(at=(22, 39))
+    keystone = foe(world, "keystone", (22, 44))
+    world.ash.flakes.clear()
+    keystone.begin_rise(keystone.type.rise_secs)
+    world._rising(keystone, True, 0.0, 0.05)
+    spread = keystone.radius * keystone.type.ash_spread
+    burst = list(world.ash.flakes)
+    assert len(burst) >= 150  # a dense burst...
+    far = max(math.hypot(f.x - keystone.x, f.z - keystone.z) for f in burst)
+    assert spread * 0.8 < far <= spread + 0.01  # ...over the whole wide spread
+    world.ash.flakes.clear()
+    keystone.state_t = keystone.rise_time * 0.3
+    world._rising(keystone, False, 0.25, 0.5)
+    assert len(world.ash.flakes) >= 100  # drawn in hard, from all across it
+    assert all(math.hypot(f.x - keystone.x, f.z - keystone.z) <= spread + 0.01 for f in world.ash.flakes)
+    sexton = foe(world, "sexton", (22, 40))
+    world.ash.flakes.clear()
+    sexton.begin_rise(3.0)
+    world._rising(sexton, True, 0.0, 0.05)
+    assert len(world.ash.flakes) < 100  # the other bosses of ash rise as they did
 
 
 def test_the_keystone_rakes_a_beam_of_light_from_its_heart_in_its_second_phase():

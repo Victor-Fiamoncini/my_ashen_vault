@@ -305,6 +305,10 @@ class WorldView:
             forming = e.state in ("ashes", "rising") and e.type.rise == "ash"
             if forming:  # the heap it waits in, sinking as it rises out of it
                 with rig.at(e.x, y, e.z):
+                    if e.type.ash_spread:  # a giant's ash, spread wide over the floor, drawn in under it
+                        cemetery_models.ash_spread(
+                            rig, world._time, e.rise_progress, e.radius * e.type.ash_spread
+                        )
                     cemetery_models.ash_heap(rig, world._time, e.rise_progress, max(e.radius, 0.8) * 1.2)
                 if e.state == "ashes":
                     continue
@@ -354,6 +358,8 @@ class WorldView:
                     moon_models.moonbeam(rig, f.glow, f.flame, world._time + f.x)
                 elif f.style == "core":
                     sunken_models.core_burst(rig, f.glow, f.flame, world._time, f.radius)
+                elif f.style == "boulder":
+                    sunken_models.boulder_mark(rig, f.glow, f.flame, world._time, f.radius)
                 else:
                     models.eruption(rig, f.glow, f.flame, world._time, f.radius)
             bomb = f.bomb()
@@ -362,6 +368,8 @@ class WorldView:
                 with rig.at(*bomb):
                     if f.style == "core":
                         sunken_models.core_shard(rig, world._time + f.x)
+                    elif f.style == "boulder":
+                        sunken_models.boulder(rig, world._time, world._time)
                     else:
                         forge_models.magma_bomb(rig, world._time)
         for w in world.shockwaves:
@@ -445,8 +453,6 @@ class WorldView:
                     forge_models.mote(rig, world._time)
                 elif pr_.effect == "ash":
                     cemetery_models.ash_clod(rig, world._time)
-                elif pr_.effect == "rubble":
-                    sunken_models.rubble_chunk(rig, pr_.rgb, world._time)
                 else:
                     models.bolt(rig, pr_.rgb, world._time)
 

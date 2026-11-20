@@ -74,7 +74,10 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   "wait:4.5"` (the Keystone rising in its court; its doors at 21,38 and 12,42); `--at=30,43,180 --level 10 --script
   "wait:4.6"` sees the whole titan and its torch down the court's clear row, between the pillars;
   `--at=22,39,90 --level 10 --smoke 480 --script "wait:4.5 back:1.5"` catches its first torch smash
-  bursting before it. The lift head's empty shaft, `--at=7,38,90 --script "wait:0.3 forward:1.2"`, is a
+  bursting before it; `--at=22,39,90 --level 10 --smoke 150 --script "wait:2"` its wide spread of ash
+  drawn in mid-rise. From `--at=30,43,180 --level 10 --script "wait:30"`, about `--smoke 680` shows its
+  first fault line glowing down the court at you (a sidestep, `right:0.9` from 10.6 s, lets you live on
+  to see more of it); the boulder (`hurl`), the fists (`pillar_crush`) and the rest come at random. The lift head's empty shaft, `--at=7,38,90 --script "wait:0.3 forward:1.2"`, is a
   22 m fall you watch to the bottom (about 110 frames). The rift and its falls: `--at=14,29,0 --script "look_up:0.8"`
   (up to the rift), `--at=16,23,0` (a fall past the Grand Stair),
   `--at=22,24,-90 --script "look_down:0.5"` (one plunging into the chasm). The Oubliette:

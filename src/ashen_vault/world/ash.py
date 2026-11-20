@@ -115,9 +115,10 @@ class AshCloud:
         front = base_y + height * (1.0 - dissolve)
         self.emit(x, front, z, radius * 0.8, count)
 
-    def gather(self, x, base_y, z, radius, height, k, rate, dt):
+    def gather(self, x, base_y, z, radius, height, k, rate, dt, ring=(1.8, 1.6)):
         """Draws flakes and embers in from a wide ring round a body that is `k` of the way through
-        rising out of its ashes, each drifting in and up to the climbing front where it forms."""
+        rising out of its ashes, each drifting in and up to the climbing front where it forms. `ring`
+        is (inner edge, width) of the ring they start from, in body radii."""
         _, dissolve = rise_phases(k)
         if dissolve <= 0.0 or k >= 1.0:
             return
@@ -127,7 +128,7 @@ class AshCloud:
         front = base_y + height * (1.0 - dissolve)
         for _ in range(count):
             a = rng.random() * math.tau
-            d = radius * (1.8 + rng.random() * 1.6)
+            d = radius * (ring[0] + rng.random() * ring[1])
             life = 0.6 + rng.random() * 0.5
             sx, sz = x + math.cos(a) * d, z + math.sin(a) * d
             sy = base_y + rng.random() * 0.3
