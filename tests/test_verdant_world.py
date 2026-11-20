@@ -391,3 +391,16 @@ start = 1 1 0
 """
     ).parse()
     assert m[1, 1].dark == 0.0 and m[0, 0].dark == 1.0
+
+
+def test_a_burning_weapon_lights_the_dark_and_tints_your_light():
+    torch = [8, 0.7, 0.78, 0.55]
+    radius, _ = darkness.player_light(torch, 1.0, carried=7.0)
+    assert radius == 7.0  # darkness can't shrink firelight you hold
+    _, rgb = darkness.player_light([0, 0, 0, 0], 1.0, carried=7.0)
+    assert rgb[0] > rgb[2]  # warm
+    # A weaker flame than the light you already have changes nothing.
+    assert darkness.player_light(torch, 0.0, carried=2.0) == (8, [0.7, 0.78, 0.55])
+    # Lumen still outshines it.
+    lumen, _ = darkness.player_light(torch, 1.0, lumen=True, carried=7.0)
+    assert lumen == 7.0 + darkness.LUMEN_RADIUS

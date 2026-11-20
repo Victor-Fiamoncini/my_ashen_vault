@@ -26,6 +26,7 @@ class Item:
     weight: str | None = None  # weapons: "light", "medium", "heavy" or "great" (see weapons.WEIGHTS)
     mass: float = 0.0  # kilograms it adds to your load when equipped (see player/burden.py)
     durability: int | None = None  # gear: overrides its maximum (see player/durability.py)
+    light: float = 0.0  # weapons: metres of firelight it sheds while held (see world/darkness.py)
 
 
 class Items:
@@ -201,6 +202,39 @@ class Items:
                 two_handed=True,
                 element="fire",
                 desc="A foundry maul whose head never cooled. What it strikes catches fire.",
+            ),
+            Item(
+                id="torch_greathammer",
+                name="Torch Greathammer",
+                kind="weapon",
+                mass=13.0,
+                category="hammer",
+                weight="great",
+                price=0,
+                power=25,
+                reach=2.1,
+                speed=2.7,
+                level=7,
+                two_handed=True,
+                element="fire",
+                light=7.0,
+                desc="The bell-keepers' signal brazier, caged on a stone haft. It lights the dark it breaks.",
+            ),
+            Item(
+                id="ember_stone_sword",
+                name="Ember Stone Sword",
+                kind="weapon",
+                mass=5.5,
+                category="sword",
+                weight="medium",
+                price=0,
+                power=18,
+                reach=2.4,
+                speed=1.8,
+                level=6,
+                element="fire",
+                light=2.5,
+                desc="A slab of foundation stone ground to an edge. Its seams still hold the city's last fire.",
             ),
             Item(
                 id="flamberge",

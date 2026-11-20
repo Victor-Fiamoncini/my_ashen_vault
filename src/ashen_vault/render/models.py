@@ -5262,6 +5262,7 @@ TRAILS = {"sword", "greatsword", "katana", "axe"}  # edged weapons leave a smear
 # turned a quarter about the haft by `weapon` so it leads along +X: the way every swing travels.
 HEADED = {
     "hatchet", "bearded_axe", "butcher_cleaver", "war_hammer", "great_iron_hammer", "slagbreaker",
+    "torch_greathammer",
 }  # fmt: skip
 TRAIL_LAG = 0.08  # how far back (in swing phase) the smear reaches
 TRAIL_GHOSTS = 6
@@ -5643,6 +5644,8 @@ WEAPON_LEN = {
     "spiked_club": 1.05,
     "stormbrand": 1.45,
     "slagbreaker": 1.5,
+    "torch_greathammer": 1.55,
+    "ember_stone_sword": 1.45,
 }
 
 
@@ -5660,7 +5663,7 @@ def edge_turn(item_id):
     """The quarter turn about the grip that brings a weapon's edge onto +X, the way swings travel and the
     hand's knuckles face: axe bits, hammer faces and straight blades are built on +-Z, a katana's edge
     on -Z."""
-    if item_id in HEADED or item_id in SWORDS or item_id == "stormbrand":
+    if item_id in HEADED or item_id in SWORDS or item_id in ("stormbrand", "ember_stone_sword"):
         return math.pi / 2
     if item_id in KATANAS:
         return -math.pi / 2
@@ -5688,6 +5691,10 @@ def _weapon(r, item_id, phase=None):
         forge_models.stormbrand(r)
     elif item_id == "slagbreaker":
         forge_models.slagbreaker(r)
+    elif item_id == "torch_greathammer":
+        sunken_models.torch_greathammer(r)
+    elif item_id == "ember_stone_sword":
+        sunken_models.ember_stone_sword(r)
     else:
         sword(r, item_id)
 

@@ -894,6 +894,42 @@ def _icon_slagbreaker(cx, cy, t, a, ready):
         _dot(cx, cy, 2 + 3 * i + math.sin(t * 5 + i), -6 - k * 3, color(255, 170, 70, rround(a * (1 - k))))
 
 
+def _icon_torch_greathammer(cx, cy, t, a, ready):
+    """A pale stone haft under an iron cage of coals, flames licking up out of it."""
+    _line(cx, cy, (-6, 7), (1, 0), 2, color(150, 136, 112, a))
+    for n in (-4, -1):
+        _dot(cx, cy, n, -n, color(52, 48, 46, a))  # iron bands
+    cage = color(70, 64, 60, a)
+    _line(cx, cy, (0, -3), (5, 2), 4, cage)
+    heat = 0.6 + 0.4 * math.sin(t * 5)
+    _line(cx, cy, (1, -2), (4, 1), 2, color(255, rround(100 + 70 * heat), 36, a))  # the coals
+    for i in range(3):
+        k = (t * 1.2 + i / 3) % 1
+        _dot(
+            cx,
+            cy,
+            1 + 2 * i + math.sin(t * 7 + i),
+            -4 - k * 4,
+            color(255, rround(200 - 100 * k), 60, rround(a * (1 - k))),
+        )
+    if ready:
+        _glint(cx, cy, [(0, -3), (5, 2)], t, a)
+
+
+def _icon_ember_stone_sword(cx, cy, t, a, ready):
+    """A broad grey slab of a blade, an iron guard, and an ember seam pulsing up its middle."""
+    g = -3
+    root, tip = (g, -g), _diag(g, 10)
+    _line(cx, cy, root, tip, 3, color(118, 112, 106, a))
+    glow = 0.55 + 0.45 * math.sin(t * 3)
+    _line(cx, cy, _diag(g, 2), _diag(g, 8), 1, color(255, rround(120 + 60 * glow), 50, rround(a * glow)))
+    _line(cx, cy, (g - 3, -g - 3), (g + 3, -g + 3), 2, color(52, 48, 46, a))  # the guard
+    _line(cx, cy, (g - 4, -g + 4), root, 2, color(96, 76, 54, a))  # the grip
+    _dot(cx, cy, g - 5, -g + 5, color(255, 110, 36, a))  # the coal pommel
+    if ready:
+        _glint(cx, cy, [root, tip], t, a)
+
+
 def _icon_oak_cudgel(cx, cy, t, a, ready):
     """A knotted length of oak, thickening toward the head."""
     wood = color(130, 92, 58, a)
@@ -1005,6 +1041,8 @@ WEAPON_ICONS = {
     "war_hammer": _icon_war_hammer,
     "great_iron_hammer": _icon_great_iron_hammer,
     "slagbreaker": _icon_slagbreaker,
+    "torch_greathammer": _icon_torch_greathammer,
+    "ember_stone_sword": _icon_ember_stone_sword,
     "oak_cudgel": _icon_oak_cudgel,
     "spiked_club": _icon_spiked_club,
     "hatchet": _icon_hatchet,

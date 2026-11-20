@@ -5,6 +5,7 @@ DARK_RADIUS = 3.0  # metres your own light reaches in a pitch-dark place
 DARK_GLOW = (0.32, 0.28, 0.22)  # that light's colour where the map gives you none
 LUMEN_RADIUS = 9.0  # metres Lumen adds to your light
 LUMEN_RGB = (0.6, 0.65, 0.75)
+FIRE_RGB = (0.95, 0.6, 0.3)  # the light a burning weapon sheds
 DARK_FOG_RANGE = (2.0, 20.0)  # fog start and end in a pitch-dark place
 LUMEN_FOG_RANGE = (5.0, 28.0)  # ...and with Lumen burning
 VEIL_FOG = (0.55, 0.58, 0.6)
@@ -25,9 +26,10 @@ def ease_toward(current, target, dt, rate=EASE_RATE):
     return current + step if target > current else current - step
 
 
-def player_light(meta_torch, dark, lumen=False):
+def player_light(meta_torch, dark, lumen=False, carried=0.0):
     """(radius, rgb) of the light you carry. `meta_torch` is the map's `torch` (radius r g b),
-    `dark` the darkness (0..1) where you stand."""
+    `dark` the darkness (0..1) where you stand, `carried` the metres of firelight your weapon sheds
+    (Item.light): darkness can't shrink it, and where it outreaches your own light it tints it."""
     radius, *rgb = [*meta_torch, 0.0, 0.0, 0.0, 0.0][:4]
     radius = max(radius, 0.0)
     if radius > 0:
@@ -36,6 +38,10 @@ def player_light(meta_torch, dark, lumen=False):
         dim_radius, dim_rgb = DARK_RADIUS, list(DARK_GLOW)
     radius = _lerp(radius, dim_radius, dark)
     rgb = [_lerp(a, b, dark) for a, b in zip(rgb, dim_rgb, strict=True)]
+    if carried > radius:
+        k = 1.0 - radius / carried
+        rgb = [_lerp(a, b, k) for a, b in zip(rgb, FIRE_RGB, strict=True)]
+        radius = carried
     if lumen:
         return radius + LUMEN_RADIUS, list(LUMEN_RGB)
     return radius, rgb

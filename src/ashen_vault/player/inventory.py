@@ -236,6 +236,10 @@ class Inventory:
                 return item
         return Items.FISTS
 
+    def carried_light(self):
+        """Metres of firelight the weapons in your hands shed (the brightest of them; 0 for none)."""
+        return max(self.hand_item(h).light for h in HANDS)
+
     def body_item(self):
         return Items.get(self.body) if self.body else None
 

@@ -1805,7 +1805,10 @@ class Game:
         gpu.set_vec3("fogColor", fog)
         gpu.set_vec2("fogRange", fog_range)
         radius, torch = darkness.player_light(
-            meta.get("torch", [0, 0, 0, 0]), self._dark_k or 0.0, self.player.lumen_t > 0
+            meta.get("torch", [0, 0, 0, 0]),
+            self._dark_k or 0.0,
+            self.player.lumen_t > 0,
+            self.player.inventory.carried_light(),
         )
         gpu.set_vec3("torchColor", torch)
         gpu.set_float("torchRadius", radius)

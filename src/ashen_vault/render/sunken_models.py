@@ -18,6 +18,7 @@ from ashen_vault.render.models import (
     _spider_move,
     _swing_pose,
     aim_wrist,
+    blade_parts,
     chop_angle,
     death_fall,
     elbow_bend,
@@ -463,6 +464,80 @@ def rubble_chunk(r, rgb, t):
 
 
 # --- Old Harrowmere's dressing --------------------------------------------------------------------
+
+
+# --- weapons (grip at the origin, pointing up +Y, like models.weapon) ---------------------------
+
+SIGNAL_STONE = (150, 136, 112)  # the brazier-hammer's pale stone haft
+CAGE_IRON = (52, 48, 46)
+COAL = (255, 110, 36)
+EMBER_SEAM = (255, 150, 60)
+
+
+def torch_greathammer(r):
+    """The bell-keepers' signal brazier on a stone haft: a long column of pale stone banded in iron,
+    then a squat iron cage full of coals, a flat iron striking plate on +Z, a short spike on -Z and
+    flames licking up out of the cage."""
+    r.part("cube", 0, 0.36, 0, 0.08, 1.34, 0.08, SIGNAL_STONE)  # the haft
+    for k in range(4):
+        r.part("cube", 0, 0.02 + k * 0.24, 0, 0.095, 0.035, 0.095, CAGE_IRON)
+    r.part("cube", 0, -0.22, 0, 0.09, 0.24, 0.09, (78, 58, 40))  # the grip
+    r.part("cube", 0, -0.37, 0, 0.12, 0.06, 0.12, CAGE_IRON)
+    with r.at(0, 1.12, 0):
+        r.part("cube", 0, -0.16, 0, 0.3, 0.05, 0.42, CAGE_IRON)  # the cage's floor
+        for dx in (-0.14, 0.14):  # ...its open rim
+            r.part("cube", dx, 0.16, 0, 0.03, 0.04, 0.42, CAGE_IRON)
+        for dz in (-0.2, 0.2):
+            r.part("cube", 0, 0.16, dz, 0.3, 0.04, 0.03, CAGE_IRON)
+        for dx in (-0.13, 0.13):  # bars
+            for dz in (-0.19, 0.0, 0.19):
+                r.part("cube", dx, 0, dz, 0.03, 0.32, 0.03, CAGE_IRON)
+        r.part("cube", 0, -0.02, 0, 0.26, 0.22, 0.38, COAL, glow=True)  # the coals, heaped to the bars
+        r.part("cube", 0, 0, 0.23, 0.34, 0.34, 0.04, (88, 84, 82))  # the striking plate
+        for dx in (-0.09, 0.09):
+            r.part("cube", dx, 0, 0.255, 0.05, 0.28, 0.02, (120, 116, 112))
+        r.part("wedge", 0, 0, -0.3, 0.1, 0.14, 0.1, CAGE_IRON, rx=-math.pi / 2)  # the spike
+        for dz, size in ((-0.12, 0.1), (0.03, 0.14), (0.14, 0.09)):  # the flames licking out of it
+            r.part("cone", 0, 0.1 + size, dz, size * 1.2, size * 2.6, size * 1.2, (255, 140, 40), glow=True)
+            r.part("cone", 0, 0.08 + size, dz, size * 0.6, size * 1.8, size * 0.6, (255, 230, 150), glow=True)
+
+
+def ember_stone_sword(r):
+    """A slab of grey foundation stone ground to an edge, set in a plain iron guard, with seams of
+    ember glowing through both faces and a coal for a pommel stone."""
+    blade_parts(
+        r,
+        1.2,
+        0.16,
+        (118, 112, 106),
+        thick=0.05,
+        edge=(160, 154, 146),
+        fuller=(84, 78, 72),
+        guard="straight",
+        guard_w=0.34,
+        guard_rgb=CAGE_IRON,
+        grip=0.24,
+        grip_rgb=(60, 44, 34),
+        wrap=(96, 76, 54),
+        pommel="stopper",
+        pommel_rgb=CAGE_IRON,
+    )
+    for i in range(6):  # the glowing seams, splitting the stone on both faces
+        y = 0.3 + i * 0.16
+        for side in (-1, 1):
+            r.part(
+                "cube",
+                side * 0.027,
+                y,
+                0.02 * (-1) ** i,
+                0.01,
+                0.14,
+                0.018,
+                EMBER_SEAM,
+                rx=0.5 * (-1) ** i,
+                glow=True,
+            )
+    r.part("sphere", 0, -0.17, 0, 0.04, 0.04, 0.04, COAL, glow=True)
 
 
 def sun_shaft(r, t, height=14.0, width=2.4):

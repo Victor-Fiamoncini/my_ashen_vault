@@ -305,6 +305,22 @@ ARTS = {
         "thorn_volley", "Thorn Volley", 5, VOLLEY, 0.6, (140, 220, 70), effect="thorn", count=3, spread=0.16
     ),
     "slagbreaker": Art("slag_burst", "Slag Burst", 8, RING, 1.2, (255, 80, 20), reach=4.0, element="fire"),
+    # The bell-keepers' brazier swings round in a wheel of sparks that kindles every cold fire it passes.
+    "torch_greathammer": Art(
+        "brand_sweep", "Brand Sweep", 7, RING, 1.1, (255, 150, 50), reach=3.5, element="fire"
+    ),
+    # The stone's seams split and spit one coal down your aim.
+    "ember_stone_sword": Art(
+        "kindle_seam",
+        "Kindle Seam",
+        5,
+        BOLT,
+        1.4,
+        (255, 120, 50),
+        element="fire",
+        effect="flame",
+        speed=14.0,
+    ),
     # The tachi is drawn in one stroke and its cut flies on as a crescent of pale light.
     "moonless_tachi": Art(
         "pale_crescent",
