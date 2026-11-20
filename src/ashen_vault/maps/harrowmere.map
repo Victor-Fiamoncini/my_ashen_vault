@@ -47,13 +47,16 @@ P = wall tex=flagstone top=0.8 cap=flagstone
 . = floor tex=cobble h=0
 s = floor tex=setts h=0
 - = floor tex=setts h=0
-// The flagged kerbs raised along the main streets, and the gardens' earth.
+// The flagged kerbs raised along the main streets, the gardens' earth paths and the grass inside
+// their fences.
 / = floor tex=flagstone h=0.15 side=flagstone
 _ = floor tex=dirt h=0 side=rough_stone
-// The Gaol Ward's terrace, a metre up: its street (0), its plaza (3) and its orchard (o); and the
-// east lane, half a metre up (5).
+G = floor tex=grass h=0 side=rough_stone
+// The Gaol Ward's terrace, a metre up: its street (0), its plaza (3) and its orchard, grassed (J)
+// round the earth of its gate (o); and the east lane, half a metre up (5).
 0 = floor tex=setts h=1 side=rough_stone
 o = floor tex=dirt h=1 side=rough_stone
+J = floor tex=grass h=1 side=rough_stone
 5 = floor tex=cobble h=0.5 side=rough_stone
 ; = floor tex=flagstone h=2 side=rough_stone
 = = floor tex=flagstone h=2 side=rough_stone
@@ -86,7 +89,7 @@ c = floor tex=rough_stone h=0 ceil=3.4 ceil_tex=cliff_rock side=cliff_rock dark=
 [grid]
 ®RRRRRRRRRRR¯RRRRRRRRRRRRR¯RRRRRRRRRRRRR¯RRRRR°AAAAAAAAAAAAAA
 R;;;;;;;;;;;;;;;;;;;;)(;;,,,,ÌßNßÿ,!AAAAAAAAAARAAAAAAAAAAAAAA
-R;Ú;;;;í;ìí;ìí;ìí;;CCË;Ë;,,,,,ÞsÞù,,AAAAAAAAAARAAAAAAAAAAAAAA
+R;;;;;;í;ìí;ìí;ìí;;CCË;Ë;,,,,,ÞsÞù,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;;ÉCCCCCCCCCCCCCCCèC;;,,,,,,,,s,,,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;;êDaYnnOðnOñnOnnnC===9876,Þù,s,ù,ùAAAAAAAAAARAAAAAAAAAAAAAA
 R;;CaannIQQIQQIQQInn===4321,,,,s,,,,AAAAAAAAAARAAAAAAAAAAAAAA
@@ -95,36 +98,36 @@ R;;CaannIQQIQQIQQInn===4321sssss.,,,..AAAAAAAARAAAAAAAAAAAAAA
 R;;ëDaYenOònOónOnnnC===9876sČ.P.....Ü.AAAAAAAARAAAAAAAAAAAAAA
 R;;CCCCCCCCCCCCCCCCéC==[]]]111]]]]]]]]3L3ß3L33RAAAAAAAAAAAAAA
 R;;;;;;í;ìí;ìí;ìí;;CC'400002Ć23Þ3333333333333ÏRAAAAAAAAAAAAAA
-R;Ú;;;;;;;Ú;;;;;;;Ú;;33ą000000X333X3333333X33ÎRAAAAAAAAAAAAAA
-±;;;;;Ú;;;;;;;Ú;;;;;;2200000003333333333333333²AAAAAAAAAAAAAA
+R;;;;;;;;;;;;;;;;;;;;33ą000000X333X3333333X33ÎRAAAAAAAAAAAAAA
+±;;;;;;;;;;;;;;;;;;;;2200000003333333333333333²AAAAAAAAAAAAAA
 R[[[[[[[[[[[[[[[[[[[[11]]]]00033333333Wċg33333RAAAAAAAAAAAAAA
 R?.............,,,..sss/..]000ù333333333333333RAAAAAAAAAAAAAA
 R..ÀHHHHH¡...|||||||sss/ù.]0003333X3333333X333RAAAAAAAAAAAAAA
-R..Hû¸ãkÏHþ..|_T___PsĂsP..]000X33333Õ333Õ33333RAAAAAAAAAAAAAA
-R..H×kkkºH...|___T_|sss/ù.]0Ą0]]]]]||||||00033RAAAAAAAAAAAAAA
-R..Hôkbkk¹Ç..|||_|||sss/..P2ć2P...]ooooo|00033RAAAAAAAAAAAAAA
-R..HÍkúkkHÈ.......sssssssss111ssss]oTooo|000X3RAAAAAAAAAAAAAA
-±..H*k¸ýÎHá.......sXsssss¦sssssXss]oooTo|00033²AAAAAAAAAAAAAA
-R..ÑHHHHHH........ssssssssssssssss]oooooo00033RAAAAAAAAAAAAAA
-R...,,T,â.........ssssssssssssssss]oTooo|00033RVVVVVVVVAAAAAA
-R..à.,,,...,,,,,,.ssssssPPPsssssss]oooTo|000X3RwUwvvwwVAAAAAA
-RÁqqqq,..-|||||||/ÞsssssPBPsMsssÞs]ooooo|00033RwwwvvwwVAAAAAA
-Rq»Liq·..-|_T___|/ssssssPPPsssssÛs]||||||00033RwwVVVwwVAAAAAA
-RqZiiä----|___T_|/sssSssssssssssss]33333300033RwõVAVwwVAAAAAA
+R..Hû¸ãkÏHþ..|GTGGGPsĂsP..]000X33333Õ333Õ33333RAAAAAAAAAAAAAA
+R..H×kkkºH...|GGGTG|sss/ù.]0Ą0]]]]]||||||00033RAAAAAAAAAAAAAA
+R..Hôkbkk¹Ç..|||_|||sss/..P2ć2P...]JJJJJ|00033RAAAAAAAAAAAAAA
+R..HÍkúkkHÈ.......sssssssss111ssss]JTJJJ|000X3RAAAAAAAAAAAAAA
+±..H*k¸ýÎHá.......sXsssss¦sssssXss]JJJTJ|00033²AAAAAAAAAAAAAA
+R..ÑHHHHHH........ssssssssssssssss]JJJJJo00033RAAAAAAAAAAAAAA
+R...,,T,â.........ssssssssssssssss]JTJJJ|00033RVVVVVVVVAAAAAA
+R..à.,,,...,,,,,,.ssssssPPPsssssss]JJJTJ|000X3RwUwvvwwVAAAAAA
+RÁqqqq,..-|||||||/ÞsssssPBPsMsssÞs]JJJJJ|00033RwwwvvwwVAAAAAA
+Rq»Liq·..-|GTGGG|/ssssssPPPsssssÛs]||||||00033RwwVVVwwVAAAAAA
+RqZiiä----|GGGTG|/sssSssssssssssss]33333300033RwõVAVwwVAAAAAA
 Rq»iÏq....|||_|||Pssssssssssssssss]]]]]]]2Ĉ2h]RwwVAVwUVAAAAAA
 Rqqqqq..../X////X/sXsssssssssssXssssssss15555]RvvVAVwwVAAAAAA
 R¥.á..à...sssssssăssssssssssssssssăsssssĉ5555ĊvvvVAVwwVVVVVAA
-R,,,ÂHHHHHX./à//X/sssssssssssssssssàs¶às155551vvöVAVwwVVyx¢KA
-Rü,,Å%¼¼LHÆ/Ãā#æ##ā#sss/..........ÄHæHH¡.5555§RVVVAVwwVVyyVAA
+R,,,ÂHHHHHX./à//X/ssssssssssssssssàss¶às155551vvöVAVwwVVyx¢KA
+Rü,,Å%¼¼LH./Ãā#æ##ā#sss/..........ÄHæHH¡.5555§RVVVAVwwVVyyVAA
 R,¿,HiiÒiH./#Liii%i#sss/..Õ.Ô.Ö..DH%iiLH......RAAAAVwõVVFyVAA
-Rø,àH&imiä./#iiiili#ássX..........Hiid¾H..RRRRRAAAAVwwyyyyVAA
+R,,àH&imiä./#iiiili#ássX..........Hiid¾H..RRRRRAAAAVwwyyyyVAA
 R...H>iĎHHµ/#iÒiiii#Dss/....Ù....áH%ii¾H..RRRRRAAAAVUwyzyyVAA
 RRR.H%½H.Ï./#$iiÒiÏ#sss/..........H+Òi$H,.RRRRRAAAAVVVVVVVVAA
 RRR,«HH¤.../#ii<iiÏ#sĂsP..ÐÏ......HHHHH¤,,RRRRRAAAAAAAAAAAAAA
-RRR{,,,,,,rr########ss¨........ÏÎ.....,,ø,RRRRRAAAAAAAAAAAAAA
-RRR,,,,,ø,ppÎ...Ā...ss.................,,,RRRRRAAAAAAAAAAAAAA
+RRR{,,,,,,rr########ss¨........ÏÎ.....,,,}RRRRRAAAAAAAAAAAAAA
+RRR,,,,,ø,ppÎ...Ā...ss.................,,øRRRRRAAAAAAAAAAAAAA
 RRR,,,,,,Xrr........ss..Ý.....X.........,.RRRRRAAAAAAAAAAAAAA
-±RR.......÷rÝ...ÏÐ.ÞssÞÝ..Û............}..RRRR²AAAAAAAAAAAAAA
+±RR.......÷rÝ...ÏÐ.ÞssÞÝ..Û...............RRRR²AAAAAAAAAAAAAA
 R~~~~~~~~~~~~~~~~~~~pp~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
 R~~~~~~~~~~~~~~~~~~~pp~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
 R~~~~~~~~~@~~~~~~~~~pp~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
@@ -219,9 +222,9 @@ Y = candles
 D = banner
 // The houses' roofs of weathered clay tile, each on its building's north-west corner, and each house
 // built its own way: Brannoc's forge under a long gable, a pentice over the anvil at its door;
-// Corvane's low timbered hut under a single gable; Pell's house an L of two crossing gables, a stone
-// stair climbing its east gable to the loft door; Wren's timbering jettied out over its ashlar ground
-// floor toward the harbour, dormers in its roof; and Tamsin's stone hall under a hipped roof.
+// Corvane's low timbered hut under a single gable; Pell's house an L of two crossing gables; Wren's
+// timbering jettied out over its ashlar ground floor toward the harbour, dormers in its roof; and
+// Tamsin's stone hall under a hipped roof.
 À = roof span=7,7 ridge=z top=5.6 pitch=4.4 eave=0.45 tex=clay_tile wall=ashlar on=H
 Á = roof span=5,5 ridge=x top=4.4 pitch=2.6 eave=0.5 tex=clay_tile wall=timber on=q
 Â = roof span=6,5 ridge=x top=5.6 pitch=3.8 eave=0.45 tex=clay_tile wall=ashlar on=H
@@ -232,7 +235,6 @@ D = banner
 Ď = chimney height=7.5 on=^
 Ç = pentice len=3 height=2.5 roof_tex=clay_tile
 È = anvil
-Æ = outside_stair run=2 rise=3
 Ā = jetty len=7 rise=3 height=2.4
 ā = dormer y=5.6 yaw=-90 on=#
 // Round turrets corbelled out from the houses' corners under witch-hat cones of clay tile.
@@ -311,7 +313,6 @@ $ = hearth
 T = tree kind=olive
 ø = tree kind=pine
 ù = tree kind=cypress
-Ú = tree kind=cypress on=;
 // The gate of the Cemetery of Ashes in the west wall: the Ashen come through it into town, and it
 // shuts behind them for good.
 ü = cemetery_gate yaw=0 sentinels=false
@@ -335,12 +336,12 @@ F = fungus radius=4 on=y
 z = mushrooms on=y
 // Four grates down into the Harrow Sewers, tucked away in the town's corners, each over its own
 // district below: in the north road's corner beside its gate, in the west lane below the cathedral
-// terrace, at the harbour lane's west corner and on the quay. The sewers join up beneath, so each is
-// a short way back to the others.
+// terrace, and at either end of the harbour lane, against the west and east walls. The sewers join up
+// beneath, so each is a short way back to the others.
 ! = exit map=harrow_sewers at=35,2,90 label=Descend_into_the_sewers model=sewer_grate
 ? = exit map=harrow_sewers at=2,14,0 label=Descend_into_the_sewers model=sewer_grate
 { = exit map=harrow_sewers at=3,36,-90 label=Descend_into_the_sewers model=sewer_grate
-} = exit map=harrow_sewers at=39,39,-90 label=Descend_into_the_sewers model=sewer_grate
+} = exit map=harrow_sewers at=40,37,180 label=Descend_into_the_sewers model=sewer_grate
 // The Vesper Gate in the north wall, at the head of the cathedral steps: pale stone, standing open on
 // Vesperholm. Nobody in town remembers it shut, or why it was opened. Lamps flank it and banners line
 // the porch on the way up, so it reads from the foot of the steps.

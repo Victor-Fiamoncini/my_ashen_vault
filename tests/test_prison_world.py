@@ -11,7 +11,7 @@ from ashen_vault.player.player import Player
 from ashen_vault.render.world_view import WorldView
 from ashen_vault.world.hazards import Eruption
 from ashen_vault.world.tile_map import TileMap
-from ashen_vault.world.world import LIFT_LOCKED, World, stair_footprint
+from ashen_vault.world.world import LIFT_LOCKED, Prop, World, stair_footprint
 
 
 class _Gpu:
@@ -334,15 +334,27 @@ def test_town_props_hang_on_the_thin_house_walls_and_the_stalls_are_gone():
     assert world.map.wall_inset(4, 17, -1, 0) == pytest.approx(1.5)
 
 
-def test_pells_outside_stair_is_solid_and_leaves_his_doorstep_free():
+def test_pells_shopfront_is_a_closed_wall_with_his_doorstep_free():
     world = World(FakeGame(), "harrowmere")
-    stair = next(p for p in world.props if p.kind == "outside_stair")
-    tiles = stair_footprint(stair)
-    assert len(tiles) == int(stair.props.get("run", "2"))
-    assert all(world.blocked_tile(*t) for t in tiles)
-    assert (10, 33) not in tiles and not world.blocked_tile(10, 33)  # the step outside Pell's door
-    # The alley beside the flight stays open.
-    assert all(world.map[11, z].walkable and not world.blocked_tile(11, z) for z in range(29, 34))
+    assert not any(p.kind == "outside_stair" for p in world.props)  # no stair up to a loft door
+    assert not world.blocked_tile(10, 33)  # the step outside Pell's door
+    assert all(
+        world.map[x, z].walkable and not world.blocked_tile(x, z) for x in (10, 11) for z in range(31, 36)
+    )
+    # The corner south of his door, where the sign hangs, closes the east face right up to the doorway.
+    assert world.map.tile_at(19.75, 68.5).solid
+    assert not world.map.tile_at(20.25, 68.5).solid  # the street outside it
+
+
+def test_an_outside_stairs_flight_fills_the_tiles_it_climbs_over():
+    """No map has one now, but an `outside_stair` is still a solid flight `run` tiles long."""
+    world = World(FakeGame(), "harrowmere")
+    stair = Prop(kind="outside_stair", x=0, z=0, y=0, tx=10, tz=32, props={"run": "2"}, key=None, yaw=0)
+    assert stair_footprint(stair) == {(10, 32), (10, 33)}
+    stair.props["flip"] = "true"
+    assert stair_footprint(stair) == {(10, 32), (10, 31)}
+    world.props.append(stair)
+    assert world.blocked_tile(10, 31) and not world.blocked_tile(10, 34)
 
 
 def _town_door(at=(9, 33)):

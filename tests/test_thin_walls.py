@@ -244,6 +244,44 @@ def test_a_slab_backing_onto_a_low_wall_keeps_the_line_of_its_run():
     assert _seams(backed) == []
 
 
+# A house whose door (in its east wall) sits right beside its south-east corner.
+CORNER_DOOR = """[meta]
+name = Corner door
+start = 1 1 0
+
+[legend]
+# = wall tex=stone_brick top=6
+H = wall tex=plaster top=4 thin=0.5
+. = floor h=0
+i = floor h=0.2 ceil=3
+
+[grid]
+#######
+#.....#
+#HHHH.#
+#HiiH.#
+#Hiii.#
+#HHHH.#
+#.....#
+#######
+"""
+
+
+def test_a_corner_beside_a_doorway_closes_its_face_up_to_the_door():
+    town = MapLoader(CORNER_DOOR, name="corner_door").parse()
+    corner = town.layout(4, 5)  # the run's end south of the door at (4, 4)
+    assert corner.xs[1] == 1.5 and corner.zs[1] == 1.5  # hugging the street east and the yard south
+    assert _local_slab(corner) == {(0, 1), (1, 1), (1, 0)}  # an L, its east arm up to the doorway
+    assert town.tile_at(9.75, 10.5).solid  # the east face beside the door, no notch into the house
+    assert not town.tile_at(10.25, 10.5).solid
+    assert town.tile_at(8.5, 10.5) is town[4, 4]  # the inside of the corner still lent to the doorway
+    # A doorway in the middle of a straight run leaves its jambs as they were.
+    assert _local_slab(town.layout(4, 3)) == {(1, 0), (1, 1), (1, 2)}
+    # A gap open to the sky is a street, not a doorway: the slab doesn't run toward it.
+    assert _local_slab(town.layout(4, 2)) == {(0, 1), (1, 1), (1, 2)}
+    assert _seams(town) == []
+
+
 def test_harrowmere_has_no_slits_between_its_thin_walls():
     town = MapLoader.load_file(os.path.join(MAP_DIR, "harrowmere.map"))
     assert _seams(town) == []

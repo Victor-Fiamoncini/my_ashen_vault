@@ -22,6 +22,7 @@ _BY_TEX = {
         "dirt",
         "ash_ground",
         "ash_grass",
+        "grass",
         "ash_road",
         "jungle_floor",
         "leaf_litter",

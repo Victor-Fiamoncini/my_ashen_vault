@@ -89,11 +89,26 @@ def _band(map_, tx, tz, before, after, size, thick):
     return (size - thick) / 2
 
 
+def _doorway(map_, tx, tz, d):
+    """Whether the neighbour toward `d` is an outer doorway through a thin wall: a roofed, open tile
+    with thin wall again beyond it, the sky on one side of it and floor on the other. The slab runs
+    on toward it as toward the wall it interrupts, so a run's last tile at a corner beside a door
+    still closes the face the doorway's wall stands in, instead of lending that corner to the doorway
+    as a notch open to the street."""
+    nx, nz = tx + d[0], tz + d[1]
+    near = map_[nx, nz]
+    far = map_[nx + d[0], nz + d[1]]
+    if near.solid or near.open_sky or not (far.solid and far.thin):
+        return False
+    sides = (map_[nx + d[1], nz + d[0]], map_[nx - d[1], nz - d[0]])
+    return not any(t.solid for t in sides) and any(t.open_sky for t in sides)
+
+
 def layout(map_, tx, tz):
     """The cut of thin tile (tx, tz)."""
     size = TILE
     thick = min(max(map_[tx, tz].thin, 0.05), size)
-    joins = {d: map_[tx + d[0], tz + d[1]].solid for d in (N, S, W, E)}
+    joins = {d: map_[tx + d[0], tz + d[1]].solid or _doorway(map_, tx, tz, d) for d in (N, S, W, E)}
     across_x = joins[W] or joins[E]  # a run along X: its band spans Z
     across_z = joins[N] or joins[S]
     zb = _band(map_, tx, tz, N, S, size, thick)

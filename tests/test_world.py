@@ -979,7 +979,7 @@ def test_harrowmere_trees_cut_off_no_part_of_the_town():
                 todo.append(n)
         return seen
 
-    assert len(trees) > 20
+    assert len(trees) > 15
     assert reach(others) - trees == reach(others | trees)
 
 

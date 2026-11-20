@@ -53,7 +53,7 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
 - The Harrow Sewers (`harrow_sewers`) lie under the town; each town grate stands over the sewer ladder that
   climbs back to it, at the same tile: `--map harrowmere --at=2,14,180 --script "wait:0.3 interact"`
   (go down the west lane's grate, under the cathedral terrace; the others are at 35,1 in the north road's
-  corner by its gate, 3,37 at the harbour lane's west corner and 39,40 on the quay), `--map harrow_sewers
+  corner by its gate, 3,37 and 41,37 at the harbour lane's west and east ends), `--map harrow_sewers
   --at=35,2,-90 --script "wait:0.3 interact"` (climb back up by the north road). Districts: `--map
   harrow_sewers` (the drain into the Market Drains, its `start`), `--at=27,6,0`
   (the North Sluices), `--at=4,36,0` (the Canal Culvert), `--at=36,36,90` (the Quay Outfall and its
