@@ -20,6 +20,7 @@ MAPS = (
     "harrow_sewers",
     "vesperholm",
     "old_harrowmere",
+    "vigil_chapel",
 )
 # Props whose look follows their state (opened, broken, pulled, taken, kindled) or who speak.
 STATEFUL = {

@@ -1,0 +1,70 @@
+[meta]
+name = The Vigil Chapel
+ambient = 0.34 0.38 0.5
+fog = 0.05 0.06 0.1
+fog_range = 12 60
+torch = 7 0.8 0.86 1.0
+start = 8 20 -90
+default = n
+edge_top = 16
+edge_tex = moonstone
+entity_floor = auto
+
+[legend]
+// Walls of moonstone, rising past the nave's vault.
+# = wall tex=moonstone top=16 cap=silver_slate
+// The vestibule inside the door, under a low vault.
+v = floor tex=moon_paving h=0 ceil=5 ceil_tex=silver_slate side=moonstone dark=0.25
+// The nave, tall and dim, and the lower aisles either side of its pillars.
+n = floor tex=moon_paving h=0 ceil=12 ceil_tex=silver_slate side=moonstone dark=0.2
+a = floor tex=moon_paving h=0 ceil=7 ceil_tex=silver_slate side=moonstone dark=0.3
+// The step up to the chancel, and the chancel itself, floored in moon-glass.
+s = floor tex=moon_paving h=0.5 ceil=12.5 ceil_tex=silver_slate side=moonstone dark=0.15
+c = floor tex=moon_glass h=1 ceil=13 ceil_tex=silver_slate side=moonstone dark=0.1
+
+[grid]
+#################
+####SCWcAcWCS####
+####ccLcccLcc####
+####CcccccccC####
+####sssssssss####
+##aannnnnnnnnaa##
+##WaPnnnNnnnPaW##
+##aanBBBRBBBnaa##
+##aanBBBnBBBnaa##
+##aaPnnnnnnnPaa##
+##WanBBBnBBBnaW##
+##aanBBBNBBBnaa##
+##aaPnnnnnnnPaa##
+##aanBBBnBBBnaa##
+##WanBBBnBBBnaW##
+##aaPnnnQnnnPaa##
+##aannnnUnnnnaa##
+######vvvvv######
+######TvvvT######
+######HHHHH######
+######vvvvv######
+########X########
+#################
+
+[entities]
+// The door back out to the lift room behind the Keystone's court, and a hint as you come in.
+X = exit map=old_harrowmere at=8,44,-90 label=Return_to_the_lift_room model=chapel_door yaw=-90
+H = hint text="A chapel the fall never reached. Its vigil was kept for the moon.|Something still shines on its altar."
+T = torch radius=7
+// The nave: an arcade of pillars, pews facing the altar and a crimson runner down the middle, laid
+// in a stretch to each bake chunk.
+P = pillar
+B = pew yaw=-90
+U = nave_runner length=1 ends=head yaw=90
+Q = nave_runner length=8 ends= yaw=90
+R = nave_runner length=3 ends=foot yaw=90
+// Moonlight: windows of moon-glass down the aisles and either side of the altar, and cold lights
+// hung in the nave and the chancel.
+W = moon_window
+N = light y=8 color=0.6,0.7,1.0 radius=11
+L = light y=4 color=0.7,0.8,1.0 radius=8 on=c
+// The chancel: the Vesper Moonbrand planted in its altar, veiled statues and candles about it.
+A = altar item=vesper_moonbrand model=moon yaw=90 said="It drinks the light of the candles as you draw it from the stone.|The chapel's moon-glass dims behind you." on=c
+S = veiled_statue on=c
+C = candles on=c

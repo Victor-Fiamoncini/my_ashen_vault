@@ -3281,6 +3281,7 @@ class World:
                 "lance",
                 "crescent",
                 "rift",
+                "moonray",
             ):  # point first
                 heading = -math.atan2(pr_.dz, pr_.dx)
                 climb = math.atan2(pr_.dy, math.hypot(pr_.dx, pr_.dz))
@@ -3297,6 +3298,9 @@ class World:
                         moon_models.crescent_wave(rig, pr_.rgb, pr_.width, pr_.life, self._time)
                     elif pr_.effect == "rift":
                         sunken_models.rift_lance(rig, pr_.rgb, self._time + id(pr_) % 3)
+                    elif pr_.effect == "moonray":  # its tail stops short of the eye it left
+                        tail = math.dist((pr_.x, pr_.z), (self.player.x, self.player.z)) - 1.0
+                        moon_models.moon_ray(rig, pr_.rgb, pr_.width, pr_.life, self._time, tail)
                     else:
                         forge_models.thunder_spear(rig, self._time)
                 continue
@@ -3374,7 +3378,10 @@ class World:
         elif k == "urn":
             models.urn(rig, p.tx * 3 + p.tz * 7, broken=p.open_t > 0, t=p.break_t)
         elif k == "altar":
-            models.warden_altar(rig, p.open_t > 0, t, p.props.get("model", "warden"))
+            if p.props.get("model") == "moon":  # the vigil chapel's, the Moonbrand planted in it
+                moon_models.moon_altar(rig, p.open_t > 0, t)
+            else:
+                models.warden_altar(rig, p.open_t > 0, t, p.props.get("model", "warden"))
         elif k == "brazier":
             models.brazier(rig, t, lit=self.is_lit(p))
         elif k == "bonfire":
@@ -3506,6 +3513,8 @@ class World:
                 moon_models.vesper_gate(rig, 1.0 if self.exit_open(p) else 0.0, t)
             elif p.props.get("model") == "cistern_breach":
                 sunken_models.cistern_breach(rig, t)
+            elif p.props.get("model") == "chapel_door":
+                moon_models.chapel_door(rig, t)
             elif p.props.get("model") == "sunken_stair":
                 sunken_models.sunken_stair(rig, t)
             elif p.props.get("model") == "sewer_ladder":  # set back against the wall behind it, if any

@@ -30,6 +30,7 @@ def test_mesh_builder_batches_shipped_maps():
         "harrow_sewers",
         "vesperholm",
         "old_harrowmere",
+        "vigil_chapel",
     ):
         m = MapLoader.load_file(map_path(name))
         b = MeshBuilder(m, lights=MeshBuilder.lights_for(m)).build()
@@ -706,6 +707,63 @@ def test_an_iron_chest_and_its_mimic_look_iron_open_or_shut():
         assert "iron_plate" in gpu.texes and "wood_plank" not in gpu.texes
 
 
+class _SolidsGpu:
+    """Keeps every box-like part's matrix, to ask which parts fill a given point."""
+
+    def __init__(self):
+        self.mats = []
+
+    def to_matrix(self, m):
+        return m
+
+    def draw_part(self, kind, m, rgb, tex="white", glow=False):
+        if kind in ("cube", "cyl", "sphere"):
+            self.mats.append(m)
+
+    def fills(self, p):
+        """Whether any part's unit box holds point `p` (its affine matrix inverted by Cramer's rule)."""
+        for m in self.mats:
+            a = [[m[0], m[1], m[2]], [m[4], m[5], m[6]], [m[8], m[9], m[10]]]
+            v = [p[0] - m[3], p[1] - m[7], p[2] - m[11]]
+
+            def det(c):
+                return (
+                    c[0][0] * (c[1][1] * c[2][2] - c[1][2] * c[2][1])
+                    - c[0][1] * (c[1][0] * c[2][2] - c[1][2] * c[2][0])
+                    + c[0][2] * (c[1][0] * c[2][1] - c[1][1] * c[2][0])
+                )
+
+            d = det(a)
+            if abs(d) < 1e-12:
+                continue
+            u = []
+            for col in range(3):
+                c = [row[:] for row in a]
+                for i in range(3):
+                    c[i][col] = v[i]
+                u.append(det(c) / d)
+            if all(abs(k) <= 0.5 for k in u):
+                return True
+        return False
+
+
+def test_an_open_chest_is_hollow_with_a_bottom():
+    """Every chest, shut, is solid; opened, its inside is empty down to a floor, and its lid's underside
+    and lining add detail a shut chest doesn't draw."""
+    from ashen_vault.render import models
+
+    floors = {"wood": 0.02, "worn": 0.02, "banded": 0.02, "iron": 0.08, "coffer": 0.08}
+    for style, floor_y in floors.items():
+        shut, opened = _SolidsGpu(), _SolidsGpu()
+        models.chest(rig.Rig(shut), False, style)
+        models.chest(rig.Rig(opened), True, style)
+        inside = (0.0, 0.3, 0.0)
+        assert shut.fills(inside), style
+        assert not opened.fills(inside), style
+        assert opened.fills((0.1, floor_y, 0.1)), style  # the bottom
+        assert len(opened.mats) > len(shut.mats), style
+
+
 def test_a_perched_gargoyle_is_a_cold_grey_statue():
     import random
 
@@ -977,6 +1035,7 @@ def test_every_map_texture_is_generated():
         "harrow_sewers",
         "vesperholm",
         "old_harrowmere",
+        "vigil_chapel",
     ):
         m = MapLoader.load_file(ashen_vault.map_path(map_name))
         tiles = {m[tx, tz] for tz in range(m.depth) for tx in range(m.width)}
@@ -1899,6 +1958,7 @@ def test_every_way_between_maps_is_built_in_detail():
         "vesper_gate open": lambda r: moon_models.vesper_gate(r, 1.0, 0.3),
         "cistern_breach": lambda r: sunken_models.cistern_breach(r, 0.3),
         "sunken_stair": lambda r: sunken_models.sunken_stair(r, 0.3),
+        "chapel_door": lambda r: moon_models.chapel_door(r, 0.3),
     }
     for name, fn in exits.items():
         assert len(parts(fn)) >= 25, name

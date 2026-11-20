@@ -104,6 +104,10 @@ def _camera(pos, target, fovy):
     return pr.Camera3D(pos, target, (0, 1, 0), fovy, pr.CAMERA_PERSPECTIVE)
 
 
+# What the prison's altar says as you lift the Warden's Key; an `altar said="...|..."` says its own.
+WARDEN_ALTAR_SAID = "The statue's eyes gutter out as you lift the key.|Somewhere above, a great door awaits."
+
+
 class Game:
     W = W
     H = H
@@ -1144,8 +1148,8 @@ class Game:
             self.player.inventory.add(item.id)
             self.sfx("bell", 0.7)
             self.message(f"Obtained {{{item.name}}}.")
-            self.message("The statue's eyes gutter out as you lift the key.")
-            self.message("Somewhere above, a great door awaits.")
+            for line in prop.props.get("said", WARDEN_ALTAR_SAID).split("|"):
+                self.message(line)
         elif k == "iron_maiden":
             self._enter_maiden(prop)
         elif k == "frog_idol":

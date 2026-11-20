@@ -155,8 +155,8 @@ $ = floor tex=ochre_flag h=-13.5 side=sunken_brick dark=0.12
 #ł####hhhhhh{fffÅfffffffffffÅfff################################
 #Ċ##õôhhhhhhËfffffIfffffffIfffff################################
 #ł####hhhhhh{fffffffffÊfffffffff################################
-#ł####hhhhhÐ{fffÅfffffffffffÅfff################################
-#ł##########{fffffffffIfffffffff################################
+#ł####hhÜhhÐ{fffÅfffffffffffÅfff################################
+#ł######Û###{fffffffffIfffffffff################################
 #ł##########{HfffffffffffffffffH################################
 #Ž##############################################################
 #łöööööööööööööööööööööööööööö######ööö#########################
@@ -222,6 +222,9 @@ Z = sunken_sexton on=d
 Î = chest item=menders_kit gold=110 model=banded on=d
 Ï = chest item=blue_moss count=2 gold=140 on=e
 Ð = chest gold=260 model=coffer on=h
+// In the lift room's south wall, the door to the Vigil Chapel: shut until the Keystone falls.
+Û = exit map=vigil_chapel at=8,20,-90 label=Enter_the_Vigil_Chapel model=chapel_door yaw=-90 requires=keystone_dead shut="The chapel door is sealed with mortar-light. Something in the court still holds it." on=h
+Ü = light y=3 color=0.6,0.7,1.0 radius=6 on=h
 Ñ = urn on=c
 Ò = urn on=d
 Ó = urn on=e

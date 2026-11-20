@@ -313,3 +313,34 @@ def test_a_plain_bolt_still_stops_at_the_first_foe():
     world.fire_bolt(9)
     _fly(world)
     assert first.hp == first.type.hp - 9 and second.hp == second.type.hp
+
+
+# --- the Vesper Moonbrand's Vesper Ray -----------------------------------------------------------
+
+
+def test_the_vesper_ray_is_a_narrow_fast_piercing_beam_from_a_greatsword():
+    art = weapons.ARTS["vesper_moonbrand"]
+    tachi = weapons.ARTS["moonless_tachi"]
+    assert art.kind == weapons.WAVE and art.effect == "moonray"
+    assert art.width < tachi.width / 2 and art.speed > tachi.speed * 1.5
+    assert art.speed * art.life > tachi.speed * tachi.life * 1.5  # it reaches well past the crescent
+    item = Items.ALL["vesper_moonbrand"]
+    assert item.two_handed and item.category == "greatsword"
+    p = primed("vesper_moonbrand")
+    assert p.art_ready() is art
+    a = p.start_swing(kind=weapons.HEAVY, art=True)
+    assert p.swing_art is art and a.kind == weapons.HEAVY
+
+
+def test_the_vesper_ray_runs_through_a_line_of_foes_far_down_its_path():
+    _game, world = jungle((15, 31), yaw=0.0)
+    near = foe(world, "bark_husk", (17, 31))
+    far = foe(world, "bark_husk", (22, 31))  # 14 m off: past the Pale Crescent's flight
+    aside = foe(world, "bark_husk", (19, 31))
+    aside.z += 1.5  # within a crescent's breadth, but wide of the ray
+    ray = _loose(world, weapons.ARTS["vesper_moonbrand"])
+    assert ray.pierce and ray.effect == "moonray"
+    _fly(world)
+    assert near.hp == near.type.hp - 9 and far.hp == far.type.hp - 9
+    assert aside.hp == aside.type.hp
+    assert not world.projectiles

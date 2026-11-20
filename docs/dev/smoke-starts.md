@@ -100,6 +100,16 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   every cell front below rises), `--at=31,56,-90 --script "wait:0.5 interact"` (Brannick, in the cell
   beside the office), `--at=43,56,90 --script "wait:0.5 interact"` (Sister Vell, at the flooded deep
   cells' far end).
+- The Vigil Chapel (`vigil_chapel`) lies behind the door in Old Harrowmere's lift room, shut until the
+  Keystone falls: `--map old_harrowmere --at 8,42,90 --flags keystone_dead --script "look_up:0.2"` (the
+  door), `--at 8,44,90 --flags keystone_dead --script "wait:0.3 interact"` (go through; without the flag
+  it says it is sealed). In the chapel: `--map vigil_chapel --at=8,19,-90` (down the nave from the
+  vestibule), `--at=8,4,-90 --script "look_up:0.25"` (the altar and the Moonbrand in it), `--at=8,2,-90
+  --script "wait:0.3 interact"` (take it). The Vesper Ray: `--at=8,20,-90 --equip right=vesper_moonbrand
+  --level 10 --smoke 230 --script "wait:1.5 attack:1.6"` (a full heavy, the ray running down the nave).
+- Hollow chests: open one and look in, e.g. `--map old_harrowmere --at 10,44,0 --flags keystone_dead
+  --smoke 110 --script "forward:0.35 interact wait:0.5 look_down:0.5"` (the Keystone's coffer) or `--map
+  cinder_keep --at 3,23,180 --smoke 80 --script "interact wait:0.5 look_down:0.35"` (an iron chest).
 - Vesperholm (`vesperholm`) lies behind the Vesper Gate in Harrowmere's north wall, at the head of the
   cathedral steps; it always stands open: `--map harrowmere --at=22,15,-90` (from the foot of the steps,
   the gate straight ahead up the porch), `--map harrowmere --at=22,2,-90 --script "wait:0.3 interact"`

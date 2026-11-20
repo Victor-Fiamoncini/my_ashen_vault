@@ -744,6 +744,38 @@ def _icon_zweihander(cx, cy, t, a, ready):
     _line(cx, cy, (hx - 2, hy - 2), (hx + 2, hy + 2), 1, color(150, 136, 104, a))
 
 
+def _icon_vesper_moonbrand(cx, cy, t, a, ready):
+    """A broad blade of pale sea-glass breathing moonlight, a gilt guard with a green stone and red
+    claws at its ends, a gilt grip."""
+    g = -3
+    root, tip = _sword(
+        cx,
+        cy,
+        t,
+        a,
+        False,
+        grip=4,
+        length=10,
+        width=4,
+        steel=(120, 214, 228),
+        guard="bar",
+        guard_w=3,
+        guard_rgb=(214, 178, 64),
+        wrap=(214, 178, 64),
+        pommel="stopper",
+        pommel_rgb=(214, 178, 64),
+        start=-8,
+    )
+    pulse = 0.5 - 0.5 * math.cos(t * 2.2)
+    _line(cx, cy, _diag(g, 1), _diag(g, 8), 1, color(220, 248, 255, rround(a * (0.35 + 0.5 * pulse))))
+    _dot(cx, cy, g, -g, color(70, 190, 90, a))  # the green stone
+    claw = color(140, 34, 24, a)
+    _dot(cx, cy, g - 4, -g - 3, claw)
+    _dot(cx, cy, g + 3, -g + 4, claw)
+    if ready:
+        _glint(cx, cy, [root, tip], t, a)
+
+
 def _katana(cx, cy, t, a, ready, *, grip, blade_pts, width, blade, cord, tsuba, hamon=None, glint=True):
     """A curved blade: a cord-wrapped grip from the bottom-left, a round tsuba, the blade bowing up."""
     root = blade_pts[0]
@@ -1032,6 +1064,7 @@ WEAPON_ICONS = {
     "stormbrand": _icon_stormbrand,
     "claymore": _icon_claymore,
     "zweihander": _icon_zweihander,
+    "vesper_moonbrand": _icon_vesper_moonbrand,
     "katana": _icon_katana,
     "moonless_tachi": _icon_moonless_tachi,
     "nodachi": _icon_nodachi,

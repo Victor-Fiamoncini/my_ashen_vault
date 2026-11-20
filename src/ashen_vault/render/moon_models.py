@@ -25,6 +25,7 @@ from ashen_vault.render.models import (
     _bar,
     _dim,
     _ease,
+    _flame,
     _mix,
     _pointed_arch,
     _wheel,
@@ -765,6 +766,95 @@ def crescent_wave(r, rgb, width, life, t):
                    glow=True)  # fmt: skip
 
 
+MOONBRAND_BLADE = (120, 214, 228)  # pale sea-glass, lit from within
+MOONBRAND_EDGE = (196, 244, 250)
+MOONBRAND_RUNE = (36, 60, 84)
+GILT = (214, 178, 64)
+GILT_DARK = (150, 116, 40)
+GUARD_GEM = (70, 190, 90)
+CLAW_RED = (128, 30, 22)
+
+
+def moonbrand(r):
+    """The Vesper Moonbrand, the vigil chapel's relic, grip at the origin and blade up +Y (flat faces
+    +-X, edges on +-Z): a long, broad blade of pale glass that glows with stored moonlight, bright
+    bevelled edges, a silvered panel cut with dark runes near its base on both faces, a diamond guard
+    plate of gilt set with a green stone and four claws of red iron at its corners, a long gilt grip
+    bound in darker gilt and a pointed pommel with a red inset."""
+    length, width, thick, base = 1.72, 0.25, 0.05, 0.2
+    # Grip and pommel.
+    grip = 0.4
+    r.part("cube", 0, 0.08 - grip / 2, 0, 0.06, grip, 0.06, GILT)
+    for i in range(5):
+        r.part("cube", 0, 0.08 - grip + 0.05 + i * 0.075, 0, 0.068, 0.022, 0.068, GILT_DARK)
+    py = 0.08 - grip
+    r.part("cyl", 0, py - 0.015, 0, 0.09, 0.03, 0.09, GILT_DARK)  # the collar
+    r.part("frustum", 0, py - 0.08, 0, 0.08, 0.1, 0.08, GILT, rz=math.pi)  # the pommel, tapering down
+    r.part("cone", 0, py - 0.165, 0, 0.05, 0.07, 0.05, GILT, rz=math.pi)  # its point
+    for side in (1, -1):  # the red inset, both faces
+        r.part("lozenge", side * 0.038, py - 0.08, 0, 0.012, 0.06, 0.03, CLAW_RED, glow=True)
+    # The guard: a diamond plate of gilt across the blade's root.
+    gy = 0.13
+    r.part("cube", 0, gy, 0, 0.09, 0.2, 0.2, GILT, rx=math.pi / 4)
+    r.part("cube", 0, gy, 0, 0.1, 0.14, 0.14, GILT_DARK, rx=math.pi / 4)  # its raised boss
+    for side in (1, -1):
+        r.part("sphere", side * 0.052, gy, 0, 0.03, 0.06, 0.05, GUARD_GEM, glow=True)  # the green stone
+        # Two claws of red iron at each side corner, one hooked up the blade, one down the grip.
+        for up in (1, -1):
+            r.part("wedge", 0, gy + up * 0.05, side * 0.16, 0.06, 0.09, 0.05, CLAW_RED,
+                   rx=side * (math.pi / 2 - up * 0.5))  # fmt: skip
+    # The blade.
+    y0 = base
+    r.part("blade", 0, y0 + length / 2, 0, thick, length, width, MOONBRAND_BLADE, glow=True)
+    body = length * 0.84
+    lean = math.atan2(width * 0.09, body)
+    for side in (1, -1):  # bevelled edges
+        r.part("cube", 0, y0 + body / 2, side * width * 0.4, thick * 0.32, body - 0.02, width * 0.08,
+               MOONBRAND_EDGE, rx=-side * lean, glow=True)  # fmt: skip
+    panel = 0.42
+    for side in (1, -1):  # the rune panel at the blade's root, on both faces
+        r.part("cube", side * thick * 0.5, y0 + 0.04 + panel / 2, 0, 0.008, panel, width * 0.3, FROST)
+        for i in range(5):  # its runes, each a different cut
+            y = y0 + 0.09 + i * 0.075
+            r.part("cube", side * thick * 0.56, y, 0, 0.006, 0.012, width * 0.18, MOONBRAND_RUNE)
+            r.part("cube", side * thick * 0.56, y + 0.014, (i % 3 - 1) * width * 0.06, 0.006, 0.03, 0.01,
+                   MOONBRAND_RUNE, rx=0.4 * (i % 2 * 2 - 1))  # fmt: skip
+
+
+MOONRAY_LENGTH = 9.0  # metres of light the Vesper Ray trails behind its head, back toward the blade
+
+
+def moon_ray(r, rgb, width, life, t, tail=MOONRAY_LENGTH):
+    """The Vesper Moonbrand's Vesper Ray in flight (+X): a long narrow shaft of moonlight, a white core
+    inside a pale sheath that thins toward its tail, a bright flared head and motes of frost peeling off
+    behind. Its `tail` reaches back at most MOONRAY_LENGTH metres (less just after it leaves the blade);
+    it dims as its `life` runs out."""
+    fade = min(life / 0.2, 1.0)
+    shimmer = 0.85 + 0.15 * math.sin(t * 50)
+    half = width / 2
+    tail = max(min(tail, MOONRAY_LENGTH), 0.1)
+    n = 6
+    seg = tail / n
+    for i in range(n):  # the sheath, in sections that thin and dim toward the tail
+        u = i / n
+        thick = half * (1 - 0.6 * u)
+        r.part("cube", -seg * (i + 0.5), 0, 0, seg * 1.05, thick * 0.7, thick * 0.7,
+               _dim(rgb, (1 - 0.5 * u) * fade * shimmer), glow=True, tex="mist")  # fmt: skip
+    core = _dim(MOON_GLOW, fade)
+    r.part("cube", -tail / 2, 0, 0, tail, half * 0.22, half * 0.22, core, glow=True)  # the core
+    r.part("lozenge", 0.05, 0, 0, 0.5, half * 0.9, half * 0.9, _dim(FROST, fade), glow=True)  # the head
+    with r.at(0, 0, 0, rx=t * 9):
+        for i in range(4):  # a flare of four rays about the head, spinning
+            a = i * math.pi / 2
+            r.part("cube", 0, math.cos(a) * half * 0.6, math.sin(a) * half * 0.6, 0.06, 0.04 + half * 0.5, 0.04,
+                   _dim(rgb, fade), rx=a, glow=True)  # fmt: skip
+    for i in range(4):  # frost motes shed from its tail, dwindling (not darkening) as they drift off
+        u = (t * 3 + i / 4) % 1.0
+        size = 0.06 * (1 - u) * fade + 0.005
+        r.part("cube", -tail * (0.3 + 0.7 * u), math.sin(i * 2.1) * half * 0.8, math.cos(i * 1.6) * half * 0.8,
+               size, size, size, FROST, glow=True)  # fmt: skip
+
+
 def moonbeam(r, glow, flame, t):
     """A shaft of moonlight called down (`hazards.Eruption` style "moon"): first a ring of pale runes
     kindles on the floor and frost spreads in it (`glow` 0..1), then the shaft falls, a column of
@@ -1397,3 +1487,101 @@ def moon_portal(r, seed, height=14.0, rose=17.6):
     r.part("cube", 0.9, 0.03, 0, 0.6, 0.06, 2 * half + 1.6, dark, tex="moonstone")  # the threshold
     with r.at(1.62, rose, 0):  # the great rose, high in the roof's gable (before its overhang)
         moon_rose(r, seed, 2.6)
+
+
+# --- the vigil chapel, behind the Keystone's court -------------------------------------------------
+
+CHAPEL_OAK = (150, 128, 104)  # pale limed oak, the chapel door's leaves
+ALTAR_CLOTH = (196, 204, 228)  # silver-white linen on the moon altar
+
+
+def chapel_door(r, t):
+    """The vigil chapel's door, set into the wall behind its tile (-X) and facing +X: two leaves of pale
+    limed oak strapped in silver under a pointed arch of moonstone on slender shafts, a ring on each,
+    a hood moulding over the arch and a moon rosette above it, a glowing disc in a ring of petals; a
+    little moon lamp burns on a bracket either side."""
+    stone, dark = MOONSTONE, MOONSTONE_DARK
+    spring, half = 2.4, 0.68  # sized to a one-tile niche: its jambs stand just inside the walls
+    mid = 2 * half + 0.15
+    with r.at(-0.92, 0, 0):
+        for side in (-1, 1):
+            z = side * (half + 0.15)
+            r.part("cube", 0, spring / 2, z, 0.4, spring, 0.3, stone, tex="moonstone")  # the jamb
+            r.part("cyl", 0.22, spring / 2, z - side * 0.14, 0.1, spring - 0.2, 0.1, _dim(stone, 1.12))
+            r.part("cube", 0.04, 0.12, z, 0.5, 0.24, 0.46, dark, tex="moonstone")  # its base
+            r.part("cube", 0.04, spring, z, 0.48, 0.14, 0.44, dark, tex="moonstone")  # its capital
+            span = math.pi - math.acos(-half / mid)
+            for i in range(5):  # the voussoirs of the pointed arch
+                a = math.pi - (i + 0.5) * span / 5
+                vz, vy = half + mid * math.cos(a), spring + mid * math.sin(a)
+                r.part("cube", 0, vy, side * vz, 0.42, 0.32, 0.34, stone if i % 2 else _dim(stone, 0.92),
+                       tex="moonstone", rx=side * (math.pi / 2 - a))  # fmt: skip
+                hy, hz = vy + 0.18 * math.sin(a), side * (vz + 0.18 * math.cos(a))  # the hood moulding
+                r.part("cube", 0.22, hy, hz, 0.06, 0.08, 0.36, SILVER_DARK, rx=side * (math.pi / 2 - a))
+        apex = spring + math.sqrt(mid * mid - half * half)
+        r.part("cube", 0.02, apex, 0, 0.46, 0.42, 0.3, _dim(stone, 1.1), tex="moonstone")  # the keystone
+        for k in range(5):  # the tympanum between the leaves and the arch
+            h = 0.12 + k * 0.22
+            w = min(half, max(half * (1 - h / (apex - spring)), 0.0) + 0.05)
+            r.part("cube", -0.06, spring + h, 0, 0.2, 0.22, 2 * w, dark, tex="moonstone")
+        for side in (-1, 1):  # the leaves, strapped in silver, a ring on each
+            zc = side * half / 2
+            r.part("cube", 0.05, spring / 2, zc, 0.1, spring, half - 0.02, CHAPEL_OAK, tex="wood_plank")
+            for y in (0.4, 1.2, 2.0):
+                r.part("cube", 0.11, y, zc, 0.02, 0.09, half - 0.06, SILVER)
+                r.part("cube", 0.12, y, side * (half - 0.08), 0.03, 0.14, 0.1, SILVER_DARK)  # hinge knuckle
+            r.part("cyl", 0.13, 1.15, side * 0.13, 0.16, 0.025, 0.16, SILVER, rz=math.pi / 2)  # its ring
+        r.part("cube", 0.11, spring / 2, 0, 0.03, spring, 0.04, SILVER_DARK)  # the seam
+        r.part("cube", 0.12, 0.03, 0, 0.5, 0.06, 2 * half + 0.6, dark, tex="moonstone")  # the threshold
+        with r.at(0.22, apex + 0.75, 0):  # the moon rosette over the arch
+            r.part("cyl", 0, 0, 0, 0.62, 0.08, 0.62, SILVER_DARK, rz=math.pi / 2)
+            r.part("cyl", 0.03, 0, 0, 0.36, 0.08, 0.36, MOON_GLOW, rz=math.pi / 2, glow=True)
+            for i in range(8):  # its petals
+                a = i * math.pi / 4
+                r.part("lozenge", 0.02, math.sin(a) * 0.4, math.cos(a) * 0.4, 0.05, 0.2, 0.1, SILVER,
+                       rx=-a)  # fmt: skip
+        for side in (-1, 1):  # a moon lamp on a bracket either side
+            with r.at(0.42, 2.0, side * (half + 0.15)):
+                r.part("cube", -0.12, -0.1, 0, 0.24, 0.04, 0.04, IRON_LIGHT, rz=-0.5)
+                r.part("cube", 0.02, 0, 0, 0.16, 0.24, 0.16, LAMP_GLASS, glow=True)
+                r.part("pyramid", 0.02, 0.17, 0, 0.2, 0.1, 0.2, IRON_LIGHT)
+                r.part("sphere", 0.02, 0, 0, 0.06 + 0.01 * math.sin(t * 3 + side), 0.08, 0.06, MOON_GLOW,
+                       glow=True)  # fmt: skip
+
+
+def moon_altar(r, taken, t):
+    """The vigil chapel's altar, facing +X against the wall behind it: a stepped dais of moonstone, an
+    altar block dressed in silver-white linen with candles at its corners, a halo of moon-glass hung on
+    the wall behind it, and, until `taken`, the Vesper Moonbrand planted point-down in the altar's
+    top, glowing, motes of moonlight rising off it. Taken, only the cleft it stood in still shines."""
+    stone, dark = MOONSTONE, MOONSTONE_DARK
+    r.part("cube", 0, 0.1, 0, 1.95, 0.2, 1.95, dark, tex="moonstone")  # the dais
+    r.part("cube", -0.15, 0.3, 0, 1.6, 0.2, 1.7, stone, tex="moonstone")
+    r.part("cube", 0.15, 0.78, 0, 0.7, 0.76, 1.3, stone, tex="moonstone")  # the altar block
+    r.part("cube", 0.15, 1.19, 0, 0.82, 0.08, 1.42, _dim(stone, 1.1), tex="moonstone")  # its slab
+    r.part("cube", 0.15, 1.24, 0, 0.84, 0.02, 0.5, ALTAR_CLOTH)  # the linen runner
+    r.part("cube", 0.57, 0.95, 0, 0.02, 0.56, 0.5, ALTAR_CLOTH)
+    r.part("cube", 0.58, 0.72, 0, 0.02, 0.06, 0.5, SILVER)  # its silver hem
+    for z in (-0.58, 0.58):
+        r.part("cyl", 0.4, 1.36, z, 0.08, 0.26, 0.08, (232, 228, 214))
+        _flame(r, 0.4, 1.52, z, 0.05, t + z)
+    # The halo of moon-glass hung on the wall behind the altar, in a ring of silver.
+    with r.at(-0.9, 2.9, 0):
+        r.part("cyl", 0, 0, 0, 1.7, 0.06, 1.7, SILVER_DARK, rz=math.pi / 2)
+        r.part("cyl", 0.03, 0, 0, 1.4, 0.04, 1.4, _dim(GLASS_LIT, 0.8 if taken else 1.0), rz=math.pi / 2,
+               glow=True)  # fmt: skip
+        for i in range(12):  # its rays
+            a = i * math.pi / 6
+            r.part("cube", 0.05, math.sin(a) * 0.95, math.cos(a) * 0.95, 0.03, 0.3, 0.05, SILVER, rx=-a)
+    cleft = _dim(MOON_GLOW, 0.6) if taken else MOON_GLOW  # the cleft the blade stands in
+    r.part("cube", 0.15, 1.235, 0, 0.3, 0.012, 0.08, cleft, glow=True)
+    if taken:
+        return
+    sink = 0.32
+    with r.at(0.15, 1.23 + 1.92 - sink, 0, rz=math.pi):  # point-down, its flat facing the room
+        moonbrand(r)
+    for i in range(5):  # motes of moonlight rising off the blade
+        u = (t * 0.35 + i / 5) % 1.0
+        a = i * 1.3 + t * 0.8
+        r.part("cube", 0.15 + math.cos(a) * 0.18, 1.4 + u * 2.4, math.sin(a) * 0.22, 0.04, 0.04, 0.04,
+               _dim(FROST, 1 - u), glow=True)  # fmt: skip

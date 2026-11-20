@@ -111,14 +111,18 @@ Equipment, combat, spells, shops, saves and the story.
   which reveals its name in Belongings and the shop.
 - Weapon arts (`weapons.ARTS`, keyed by item id: the Ashblade's Ember Spill, Stormbrand's Thunderstroke,
   Thornlash's Thorn Volley, Slagbreaker's Slag Burst, the Moonless Tachi's Pale Crescent, the Torch
-  Greathammer's Brand Sweep, the Ember Stone Sword's Kindle Seam): releasing a heavy with both the ATK gauge and the
+  Greathammer's Brand Sweep, the Ember Stone Sword's Kindle Seam, the Vesper Moonbrand's Vesper Ray): releasing a heavy with both the ATK gauge and the
   heavy charge full, and the art's `mp`, sets `Player.swing_art` (`art_ready`; a secret outranks it), and
   `Game._release_art` looses it as the blow lands, through the spells' plumbing (`World.flame_cone`, which
   Pyre shares, `fire_bolt`, `volley`, `slag_ring`, `crescent_wave`). An art with a `motion` swings that
   instead of the heavy (the Pale Crescent is drawn as the `draw`). The Pale Crescent (kind `WAVE`) looses
   one wide crescent of pale light (`Projectile` with `pierce`, its `width`; `shots.sweeps`) that cuts
   through every foe across its breadth, each once (`hit_ids`), until a wall or its `life` ends it; it is
-  drawn by `moon_models.crescent_wave`, and the blade's smear burns in the art's `rgb`. The weapon button's bar shows the ATK gauge on its top
+  drawn by `moon_models.crescent_wave`, and the blade's smear burns in the art's `rgb`. The Vesper Ray
+  is a `WAVE` too, narrow and fast (effect `moonray`): a ray of moonlight that runs through every foe in
+  a line twice as far as the crescent flies, drawn by `moon_models.moon_ray`, its shaft trailing back
+  toward the blade (never past the eye). The Vesper Moonbrand, a two-handed greatsword of pale glass, is
+  the Vigil Chapel's relic (`moon_models.moonbrand`), planted in its altar behind the Keystone. The weapon button's bar shows the ATK gauge on its top
   row and the heavy charge on its bottom one (`ui/atk_bar.py`); a ready art burns it in the art's `rgb`.
   Belongings and the shop list the art under the weapon's moves.
 - Weapons may carry an `element` (`"lightning"`, `"fire"`): `Game._strike` multiplies by

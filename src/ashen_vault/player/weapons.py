@@ -335,6 +335,19 @@ ARTS = {
         life=0.9,
         motion="draw",
     ),
+    # The chapel's glass greatsword sheds its stored moonlight down the swing as one narrow, piercing ray.
+    "vesper_moonbrand": Art(
+        "vesper_ray",
+        "Vesper Ray",
+        16,
+        WAVE,
+        2.2,
+        (150, 225, 240),
+        effect="moonray",
+        speed=24.0,
+        width=0.7,
+        life=0.75,
+    ),
 }
 
 

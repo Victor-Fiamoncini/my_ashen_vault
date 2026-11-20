@@ -2391,55 +2391,119 @@ CHEST_SHELLS = {
 }
 
 
+CHEST_WALL = 0.05  # how thick an open chest's planks show at its rim
+CHEST_CLOTH = (150, 50, 44)  # the faded red cloth an open chest's floor is lined with
+
+
 def chest(r, is_open, style="wood"):
     """A chest facing +X, its lid hinged at the back. `style` (see CHEST_SHELLS) picks its look: "wood"
     the plain one; "worn" weathered, roped shut, its lid cracked; "banded" dark wood strapped in iron
     with a ring pull; "coffer" a small brass-cornered strongbox on feet with a domed lid; "iron" the
     Cinderhold's: riveted black bands, corner brackets, iron feet, a rounded lid and a heavy hasp with
-    an ember-lit keyhole."""
+    an ember-lit keyhole. Shut, its body is one block; open, it is hollow (`_chest_body`), and the
+    battens under its lid show."""
     shell, tex = CHEST_SHELLS.get(style, CHEST_SHELLS["wood"])
     if style in _CHEST_STYLES:
         _CHEST_STYLES[style](r, is_open, shell, tex)
         return
     if style != "iron":
-        r.part("cube", 0, 0.25, 0, 0.6, 0.5, 0.9, shell, tex=tex)
-        r.part("cube", 0, 0.26, 0, 0.62, 0.06, 0.92, IRON)
+        _chest_body(r, 0.6, 0.5, 0.9, 0.0, shell, tex, is_open)
+        _belt(r, 0, 0.26, 0, 0.62, 0.06, 0.92, IRON, is_open)
         with r.at(-0.3, 0.5, 0, rz=1.9 if is_open else 0):
             r.part("cube", 0.3, 0.08, 0, 0.6, 0.16, 0.9, shell, tex=tex)
+            if is_open:
+                _lid_inside(r, 0.3, 0.6, 0.9, shell, tex)
         if not is_open:
             r.part("cube", 0.31, 0.42, 0, 0.04, 0.12, 0.1, (200, 170, 80))
         return
-    r.part("cube", 0, 0.29, 0, 0.6, 0.46, 0.9, shell, tex=tex)
+    _chest_body(r, 0.6, 0.46, 0.9, 0.06, shell, tex, is_open)
     for x, z in ((0.25, 0.4), (0.25, -0.4), (-0.25, 0.4), (-0.25, -0.4)):
         r.part("cube", x, 0.04, z, 0.14, 0.08, 0.14, IRON_CHEST_BAND)  # feet
         r.part("cube", x * 1.06, 0.29, z * 1.03, 0.06, 0.48, 0.06, IRON_CHEST_BAND)  # corner brackets
     for z in (-0.25, 0.25):  # bands over the front and back, riveted
-        r.part("cube", 0, 0.29, z, 0.63, 0.48, 0.07, IRON_CHEST_BAND)
+        _belt(r, 0, 0.29, z, 0.63, 0.48, 0.07, IRON_CHEST_BAND, is_open)
         for y in (0.12, 0.29, 0.46):
             r.part("cube", 0.32, y, z, 0.02, 0.035, 0.035, RIVET_IRON)
-    r.part("cube", 0, 0.5, 0, 0.63, 0.05, 0.93, IRON_CHEST_BAND)  # the rim
+    _belt(r, 0, 0.5, 0, 0.63, 0.05, 0.93, IRON_CHEST_BAND, is_open)  # the rim
     with r.at(-0.3, 0.52, 0, rz=1.9 if is_open else 0):
         r.part("cube", 0.3, 0.06, 0, 0.6, 0.12, 0.9, shell, tex=tex)
         r.part("cyl", 0.3, 0.12, 0, 0.58, 0.88, 0.2, shell, tex=tex, rx=math.pi / 2)  # the rounded top
         for z in (-0.25, 0.25):
             r.part("cyl", 0.3, 0.12, z, 0.62, 0.07, 0.24, IRON_CHEST_BAND)
         r.part("cube", 0.6, 0.0, 0, 0.04, 0.18, 0.14, IRON_CHEST_BAND)  # the hasp, hanging from the lid
+        if is_open:
+            _lid_inside(r, 0.3, 0.6, 0.9, shell, tex, strap=IRON_CHEST_BAND)
     if not is_open:
         r.part("cube", 0.315, 0.36, 0, 0.04, 0.16, 0.16, IRON)  # the lock plate
         r.part("cube", 0.34, 0.35, 0, 0.01, 0.06, 0.025, (200, 90, 30), glow=True)  # the keyhole
 
 
+def _chest_body(r, w, h, d, y0, shell, tex, is_open, wall=CHEST_WALL):
+    """A chest's body, `w` deep (x), `h` tall from `y0` and `d` wide (z), centred on the origin. Shut,
+    a single block; open, a hollow box: a bottom and four plank walls `wall` thick, lined inside in
+    darker wood, a batten round the inside of the rim and a crumpled cloth on the floor."""
+    if not is_open:
+        r.part("cube", 0, y0 + h / 2, 0, w, h, d, shell, tex=tex)
+        return
+    ym = y0 + h / 2
+    iw, id_ = w - 2 * wall, d - 2 * wall
+    r.part("cube", 0, y0 + wall / 2, 0, w, wall, d, shell, tex=tex)  # the bottom
+    for side in (1, -1):
+        r.part("cube", side * (w - wall) / 2, ym, 0, wall, h, d, shell, tex=tex)  # front and back
+        r.part("cube", 0, ym, side * (d - wall) / 2, iw, h, wall, shell, tex=tex)  # the ends
+    lining = _dim(shell, 0.45)
+    inner_h = h - wall
+    yi = y0 + wall + inner_h / 2
+    r.part("cube", 0, y0 + wall + 0.004, 0, iw, 0.008, id_, lining, tex=tex)  # the floor's lining
+    for side in (1, -1):  # the walls' lining, and a batten round the inside of the rim
+        r.part("cube", side * (iw / 2 - 0.004), yi, 0, 0.008, inner_h, id_, lining, tex=tex)
+        r.part("cube", 0, yi, side * (id_ / 2 - 0.004), iw, inner_h, 0.008, lining, tex=tex)
+        r.part("cube", side * (iw / 2 - 0.015), y0 + h - 0.03, 0, 0.03, 0.03, id_, _dim(shell, 0.6), tex=tex)
+    # The cloth the treasure lay on, crumpled into a few folds.
+    cloth_y = y0 + wall + 0.02
+    r.part("cube", -0.02 * w, cloth_y, 0, iw * 0.82, 0.04, id_ * 0.86, CHEST_CLOTH, ry=0.05)
+    for k, z in enumerate((-0.25, 0.1, 0.3)):
+        r.part("cube", (k - 1) * iw * 0.18, cloth_y + 0.035, z * id_, iw * 0.5, 0.04, 0.06,
+               _dim(CHEST_CLOTH, 0.8), ry=0.4 * (k - 1))  # fmt: skip
+
+
+def _belt(r, x, y, z, sx, sy, sz, rgb, is_open, t=0.035):
+    """A band of iron (or rope) wrapped round a chest's body. Shut, a block just bigger than the body;
+    open, only its outside shows: a belt thin in y runs round all four sides, a strap thin in z
+    runs down the front, under the bottom and up the back, so neither fills the hollow."""
+    if not is_open:
+        r.part("cube", x, y, z, sx, sy, sz, rgb)
+        return
+    for side in (1, -1):
+        r.part("cube", x + side * (sx - t) / 2, y, z, t, sy, sz, rgb)
+    if sy <= min(sx, sz):  # a belt round the sides
+        for side in (1, -1):
+            r.part("cube", x, y, z + side * (sz - t) / 2, sx - 2 * t, sy, t, rgb)
+    else:  # a strap round the front, bottom and back
+        r.part("cube", x, y - sy / 2 + t / 2, z, sx - 2 * t, t, sz, rgb)
+
+
+def _lid_inside(r, cx, w, d, shell, tex, strap=None):
+    """The underside of an open lid (in the lid's frame, its underside at y=0): darker boards and two
+    battens across them, or iron straps."""
+    r.part("cube", cx, -0.004, 0, w * 0.88, 0.008, d * 0.9, _dim(shell, 0.5), tex=tex)
+    for z in (-0.28 * d, 0.28 * d):
+        r.part("cube", cx, -0.02, z, w * 0.8, 0.03, 0.06, strap or _dim(shell, 0.65), tex="white")
+
+
 def _chest_worn(r, is_open, shell, tex):
     """Weathered planks gone grey, a corner of the lid split away, roped shut and pegged."""
-    r.part("cube", 0, 0.25, 0, 0.6, 0.5, 0.9, shell, tex=tex)
+    _chest_body(r, 0.6, 0.5, 0.9, 0.0, shell, tex, is_open, wall=0.045)
     r.part("cube", 0.0, 0.03, 0, 0.64, 0.06, 0.94, _dim(shell, 0.7), tex=tex)  # the warped skid
     for z in (-0.3, 0.3):  # rope lashings round the body
-        r.part("cube", 0, 0.3, z, 0.63, 0.04, 0.05, CHEST_ROPE)
+        _belt(r, 0, 0.3, z, 0.63, 0.04, 0.05, CHEST_ROPE, is_open, t=0.02)
     with r.at(-0.3, 0.5, 0, rz=1.9 if is_open else 0):
         r.part("cube", 0.3, 0.07, 0.05, 0.6, 0.14, 0.8, shell, tex=tex)  # a corner plank gone
         r.part("cube", 0.3, 0.07, -0.41, 0.36, 0.14, 0.08, shell, tex=tex, ry=0.05)
         r.part("cube", 0.3, 0.145, 0.1, 0.62, 0.01, 0.03, (40, 34, 28))  # the split along it
         r.part("cube", 0.61, 0.0, 0, 0.03, 0.12, 0.1, CHEST_ROPE)  # the loop of the rope
+        if is_open:
+            _lid_inside(r, 0.3, 0.6, 0.8, shell, tex)
     if not is_open:
         r.part("cube", 0.32, 0.42, 0, 0.05, 0.1, 0.04, (110, 86, 58))  # the peg through it
 
@@ -2447,9 +2511,9 @@ def _chest_worn(r, is_open, shell, tex):
 def _chest_banded(r, is_open, shell, tex):
     """Dark-stained wood strapped by three iron bands, studded, capped at the corners, with a heavy
     ring pull on the front."""
-    r.part("cube", 0, 0.25, 0, 0.6, 0.5, 0.9, shell, tex=tex)
+    _chest_body(r, 0.6, 0.5, 0.9, 0.0, shell, tex, is_open)
     for z in (-0.32, 0, 0.32):
-        r.part("cube", 0, 0.25, z, 0.63, 0.52, 0.06, DARK_IRON)
+        _belt(r, 0, 0.25, z, 0.63, 0.52, 0.06, DARK_IRON, is_open)
         r.part("cube", 0.32, 0.1, z, 0.02, 0.03, 0.03, RIVET_IRON)
     for x, z in ((0.28, 0.43), (0.28, -0.43), (-0.28, 0.43), (-0.28, -0.43)):
         r.part("cube", x, 0.06, z, 0.08, 0.12, 0.08, DARK_IRON)  # corner caps
@@ -2457,6 +2521,8 @@ def _chest_banded(r, is_open, shell, tex):
         r.part("cube", 0.3, 0.08, 0, 0.6, 0.16, 0.9, shell, tex=tex)
         for z in (-0.32, 0, 0.32):
             r.part("cube", 0.3, 0.08, z, 0.63, 0.18, 0.06, DARK_IRON)
+        if is_open:
+            _lid_inside(r, 0.3, 0.6, 0.9, shell, tex, strap=DARK_IRON)
     r.part("cyl", 0.33, 0.3, 0, 0.16, 0.025, 0.16, RIVET_IRON, rz=math.pi / 2)  # the ring pull
     r.part("cube", 0.315, 0.38, 0, 0.03, 0.08, 0.08, DARK_IRON)  # its boss
     if not is_open:
@@ -2467,13 +2533,15 @@ def _chest_coffer(r, is_open, shell, tex):
     """A small strongbox on short feet: oiled wood, brass corners and a brass lock plate, a domed lid."""
     for x, z in ((0.17, 0.28), (0.17, -0.28), (-0.17, 0.28), (-0.17, -0.28)):
         r.part("sphere", x, 0.04, z, 0.08, 0.08, 0.08, CHEST_BRASS)  # feet
-    r.part("cube", 0, 0.24, 0, 0.45, 0.36, 0.7, shell, tex=tex)
+    _chest_body(r, 0.45, 0.36, 0.7, 0.06, shell, tex, is_open, wall=0.04)
     for x, z in ((0.22, 0.34), (0.22, -0.34), (-0.22, 0.34), (-0.22, -0.34)):
         r.part("cube", x, 0.24, z, 0.04, 0.38, 0.04, CHEST_BRASS)
     with r.at(-0.22, 0.42, 0, rz=1.9 if is_open else 0):
         r.part("cyl", 0.22, 0.02, 0, 0.44, 0.7, 0.2, shell, tex=tex, rx=math.pi / 2)  # the dome
         for z in (-0.33, 0.33):
             r.part("cyl", 0.22, 0.02, z, 0.46, 0.04, 0.22, CHEST_BRASS)
+        if is_open:
+            _lid_inside(r, 0.22, 0.44, 0.7, shell, tex, strap=CHEST_BRASS)
     if not is_open:
         r.part("cube", 0.235, 0.34, 0, 0.02, 0.12, 0.12, CHEST_BRASS)  # the lock plate
         r.part("cube", 0.25, 0.33, 0, 0.01, 0.05, 0.02, (30, 24, 20))  # its keyhole
@@ -5660,6 +5728,7 @@ WEAPON_LEN = {
     "slagbreaker": 1.5,
     "torch_greathammer": 1.55,
     "ember_stone_sword": 1.45,
+    "vesper_moonbrand": 2.45,
 }
 
 
@@ -5677,7 +5746,11 @@ def edge_turn(item_id):
     """The quarter turn about the grip that brings a weapon's edge onto +X, the way swings travel and the
     hand's knuckles face: axe bits, hammer faces and straight blades are built on +-Z, a katana's edge
     on -Z."""
-    if item_id in HEADED or item_id in SWORDS or item_id in ("stormbrand", "ember_stone_sword"):
+    if (
+        item_id in HEADED
+        or item_id in SWORDS
+        or item_id in ("stormbrand", "ember_stone_sword", "vesper_moonbrand")
+    ):
         return math.pi / 2
     if item_id in KATANAS:
         return -math.pi / 2
@@ -5709,6 +5782,8 @@ def _weapon(r, item_id, phase=None):
         sunken_models.torch_greathammer(r)
     elif item_id == "ember_stone_sword":
         sunken_models.ember_stone_sword(r)
+    elif item_id == "vesper_moonbrand":
+        moon_models.moonbrand(r)
     else:
         sword(r, item_id)
 
