@@ -91,7 +91,8 @@ Equipment, combat, spells, shops, saves and the story.
 - Every attack costs ST. Each category's moveset (`weapons.MOVESETS`) is tuned for a medium weapon;
   an item's `weight` (`light` / `medium` / `heavy` / `great`) scales each attack's ST, damage and poise
   through `weapons.WEIGHTS` (`weapons.attack` returns the sized Attack) and adds `WEIGHT_TEMPO` to its
-  `tempo`, which sets how long its swings take. Each hand's ATK gauge refills over the weapon's
+  `tempo`, which sets how long its swings take. Heavy and great weapons (`weapons.is_heavy`) also
+  stagger a foe with `heavy_stagger` on every blow, past its poise (see enemies.md). Each hand's ATK gauge refills over the weapon's
   `speed` times `weapons.GAUGE_REFILL` (`weapons.refill_time`); a swing hits as hard as the gauge was
   full. A blow strikes the living foes in its `reach` and inside its `cone` (`World.melee_targets`,
   nearest first), up to `targets` of them: cuts that travel across the arc (the slashes, the Reverse cut,

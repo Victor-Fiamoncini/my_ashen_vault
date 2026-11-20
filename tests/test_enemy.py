@@ -965,6 +965,92 @@ def test_a_quick_boss_strikes_sooner():
     assert len(quick_world.struck) > len(world.struck)
 
 
+def duchess(phase2=False):
+    e = risen(Enemy(EnemyTypes.get("moon_duchess"), 0.0, 0.0, rng=random.Random(0)))
+    e.state, e.phase2 = "chase", phase2
+    e.cooldowns = dict.fromkeys(e.cooldowns, 99.0)
+    return e
+
+
+def test_the_duchess_eases_off_in_her_second_phase():
+    from ashen_vault.ai.enemy import COMBO_GAP, MOVES
+
+    t = EnemyTypes.get("moon_duchess")
+    calm, rage = duchess(), duchess(phase2=True)
+    for e in (calm, rage):
+        e.attack_kind = "sweep"
+    base = MOVES["sweep"][0]
+    assert calm.windup_time == pytest.approx(base * t.tempo)  # her first phase is as quick as ever
+    assert calm._cooldown("sweep") == pytest.approx(MOVES["sweep"][1] * t.tempo)
+    assert calm.stride == 1.0
+    # Her rage once quickened her by the common 0.8 / 0.7 / 1.25 on top of her tempo; now far less.
+    assert rage.windup_time > base * t.tempo * 0.8
+    assert rage._cooldown("sweep") > MOVES["sweep"][1] * t.tempo * 0.7
+    assert rage.recover_time > calm.recover_time and rage.combo_gap > COMBO_GAP * t.tempo
+    assert 1.0 < rage.stride < 1.25
+
+
+def test_other_bosses_keep_the_common_rage():
+    from ashen_vault.ai.enemy import MOVES
+
+    for t in EnemyTypes.ALL.values():
+        if t.id == "moon_duchess":
+            continue
+        assert (t.phase_tempo, t.rage_windup, t.rage_cooldown, t.rage_speed) == (None, 0.8, 0.7, 1.25), t.id
+        assert t.heavy_stagger == 0, t.id
+    boss = risen(Enemy(EnemyTypes.get("ashen_warden"), 0.0, 0.0))
+    boss.phase2, boss.attack_kind = True, "slam"
+    assert boss.tempo == 1.0 and boss.stride == 1.25
+    assert boss.windup_time == pytest.approx(MOVES["slam"][0] * 0.8)
+
+
+def test_a_heavy_weapon_staggers_the_duchess_and_a_light_one_does_not():
+    light, heavy = duchess(), duchess()
+    light.take_hit(5)
+    heavy.take_hit(5, heavy=True)
+    assert light.state == "chase" and heavy.state == "hurt"
+    assert heavy.guard_t == EnemyTypes.get("moon_duchess").heavy_stagger
+    big = duchess()
+    big.take_hit(30)  # past her poise: any weapon staggers her
+    assert big.state == "hurt" and big.guard_t == 0
+
+
+def test_after_a_heavy_stagger_she_guards_for_a_while():
+    e = duchess()
+    w = FakeWorld(12.0, 0.0)
+    e.take_hit(5, heavy=True)
+    tick(e, w, 0.4)
+    assert e.state == "chase"
+    e.take_hit(5, heavy=True)
+    assert e.state == "chase"  # still on guard
+    tick(e, w, e.type.heavy_stagger)
+    assert e.guard_t == 0
+    e.take_hit(5, heavy=True)
+    assert e.state == "hurt"
+
+
+def test_lingering_harm_and_foes_without_it_ignore_a_heavy_blow():
+    e = duchess()
+    e.take_hit(5, stagger=False, heavy=True)
+    assert e.state == "chase" and e.guard_t == 0
+    boss = risen(Enemy(EnemyTypes.get("ashen_warden"), 0, 0))
+    boss.take_hit(5, heavy=True)
+    assert boss.state != "hurt"
+
+
+def test_nothing_staggers_a_boss_out_of_its_turn_at_half_hp():
+    e = duchess()
+    w = FakeWorld(2.0, 0.0)
+    e.hp = e.type.hp // 2
+    e.update(0.01, w)
+    assert e.state == "windup" and e.attack_kind == "kindle"
+    e.take_hit(5, heavy=True)
+    e.take_hit(40)
+    assert e.state == "windup" and e.attack_kind == "kindle" and e.guard_t == 0
+    tick(e, w, 1.5)
+    assert w.raged == 1
+
+
 def test_a_heavy_foe_lands_its_blow_only_once_its_swing_has_followed_through():
     """With an `impact`, a blow lands that long into the attack rather than as it starts, and the attack
     holds that much longer; without one, nothing changes."""

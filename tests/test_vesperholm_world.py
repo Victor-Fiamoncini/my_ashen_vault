@@ -272,16 +272,19 @@ def test_frostbite_bursts_and_freezes_your_legs():
     assert stride() == pytest.approx(free * ailments.FROZEN)
 
 
-def test_the_duchess_fights_faster_than_any_other_boss():
+def test_the_duchess_fights_faster_than_any_other_boss_until_her_rage():
+    """Her first phase is the quickest of any boss's; in her rage she eases off (her new moves are
+    the danger), though she never grows slower than a boss of the common tempo."""
     duchess = EnemyTypes.get("moon_duchess")
     assert duchess.tempo < 1 and all(
         t.tempo >= 1 for t in EnemyTypes.ALL.values() if t.boss and t is not duchess
     )
     e = Enemy(duchess, 0.0, 0.0)
     e.attack_kind = "moonbeam"
-    assert e.windup_time < MOVES["moonbeam"][0]
+    calm = e.windup_time
+    assert calm < MOVES["moonbeam"][0]
     e.phase2 = True
-    assert e.windup_time < MOVES["moonbeam"][0] * 0.8
+    assert calm < e.windup_time < MOVES["moonbeam"][0]
 
 
 def test_vesperholm_outmatches_the_areas_before_it():
