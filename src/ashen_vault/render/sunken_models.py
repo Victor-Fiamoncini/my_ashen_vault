@@ -540,43 +540,90 @@ def ember_stone_sword(r):
     r.part("sphere", 0, -0.17, 0, 0.04, 0.04, 0.04, COAL, glow=True)
 
 
-def sun_shaft(r, t, height=14.0, width=2.4):
-    """The light that falls from a crack in the cavern's roof far overhead: a tall, slanting column of
+def sun_shaft(r, t, height=14.0, width=2.4, rift=(CRACK_LEN, CRACK_WIDTH), yaw=0.0):
+    """The light that falls from a crack in the cavern's roof far overhead: a tall, slanting curtain of
     sunlit haze, threads of brighter light running down through it, brightest where it lands in a pool
     on the floor, motes of dust turning in it. At its top, the crack itself: a jagged sliver of daylight
-    set in the vault's hole (`world/vault.py`), a rim of gold round it."""
-    with r.at(-height * math.sin(SHAFT_LEAN), height * math.cos(SHAFT_LEAN), 0):  # the crack
-        r.part("cube", 0, 0.6, 0, CRACK_WIDTH * 1.2, 0.1, CRACK_LEN * 1.1, (255, 246, 220), glow=True)
-        for i in range(5):  # the sliver, jagged: wider and narrower along its length
-            z = (i - 2) / 4 * CRACK_LEN * 0.8
-            w = CRACK_WIDTH * (0.45 + 0.25 * ((i * 3) % 4) / 3)
-            r.part("cube", 0.1 * (i % 2), 0.3, z, w, 0.12, CRACK_LEN * 0.24, (255, 240, 200), glow=True,
+    set in the vault's hole (`world/vault.py`), a rim of gold round it. `rift` (length, width) and `yaw`
+    (radians) widen the crack into a great rift: the curtain then runs the length of it."""
+    length, crack_w = rift
+    span = max(width * 0.85, length * 0.4)  # how far the curtain of haze runs along the rift
+    with r.at(-height * math.sin(SHAFT_LEAN), height * math.cos(SHAFT_LEAN), 0, ry=yaw):  # the crack
+        r.part("cube", 0, 0.6, 0, crack_w * 1.2, 0.1, length * 1.1, (255, 246, 220), glow=True)
+        n = max(5, rround(length / 1.4))
+        for i in range(n):  # the sliver, jagged: wider and narrower along its length
+            z = (i / (n - 1) - 0.5) * length * 0.85
+            w = crack_w * (0.45 + 0.25 * ((i * 3) % 4) / 3)
+            r.part("cube", 0.1 * (i % 2), 0.3, z, w, 0.12, length * 1.2 / n, (255, 240, 200), glow=True,
                    ry=0.25 * (i % 3 - 1))  # fmt: skip
         for side in (-1, 1):  # its rim of gold, where the daylight catches the rock's broken lip
-            r.part("cube", side * CRACK_WIDTH * 0.45, -0.1, 0, 0.2, 0.3, CRACK_LEN * 0.9,
+            r.part("cube", side * crack_w * 0.45, -0.1, 0, 0.2 + crack_w * 0.03, 0.3, length * 0.9,
                    _dim(GOLD_LIGHT, 0.85), tex="mist", glow=True, ry=side * 0.06)  # fmt: skip
-    with r.at(0, 0, 0, rz=SHAFT_LEAN):  # it falls a little aslant, from the crack off to one side
-        for i in range(3):  # the haze, in layers, widening as it falls
+    with r.at(0, 0, 0, ry=yaw), r.at(0, 0, 0, rz=SHAFT_LEAN):  # it falls a little aslant
+        for i in range(3):  # the haze, in thin layers, widening and fading as it falls
             k = i / 2
-            w = width * (0.55 + 0.45 * k)
-            r.part("cube", 0, height * (0.82 - 0.3 * i), 0, w, height * 0.36, w * 0.85,
-                   _dim(GOLD_LIGHT, 1.0 - 0.12 * i), tex="mist", glow=True, ry=0.4 * i)  # fmt: skip
-        for i in range(5):  # threads of brighter light down through it
+            w = width * (0.35 + 0.35 * k)
+            r.part("cube", 0, height * (0.82 - 0.3 * i), 0, w, height * 0.36, span * (0.7 + 0.3 * k),
+                   _dim(GOLD_LIGHT, 0.8 - 0.15 * i), tex="mist", glow=True, ry=0.1 * i)  # fmt: skip
+        threads = max(5, rround(span / 1.5))
+        for i in range(threads):  # threads of brighter light down through it
             a = i * 1.3 + 0.4
-            rad = width * 0.28 * (0.4 + 0.6 * ((i * 3) % 5) / 5)
+            x = math.cos(a) * width * 0.25
+            z = (i / max(threads - 1, 1) - 0.5) * span * 0.9
             shimmer = 0.85 + 0.15 * math.sin(t * 0.8 + i * 1.7)
-            r.part("cube", math.cos(a) * rad, height * 0.5, math.sin(a) * rad, 0.06, height, 0.06,
-                   _dim(GOLD_LIGHT, shimmer), glow=True)  # fmt: skip
-    r.part("cyl", 0, 0.02, 0, width * 1.2, 0.02, width * 1.2, _dim(GOLD_LIGHT, 0.8), tex="mist", glow=True)
-    r.part(
-        "cyl", 0, 0.03, 0, width * 0.7, 0.02, width * 0.7, (255, 236, 190), glow=True
-    )  # the pool it lands in
-    for k in range(10):  # motes of dust turning in it
-        u = (t * 0.05 + k / 10) % 1.0
-        a = t * 0.3 + k * 2.4
-        rad = width * 0.35 * (0.3 + 0.7 * ((k * 7) % 5) / 5)
-        r.part("cube", math.cos(a) * rad, 0.3 + u * height * 0.8, math.sin(a) * rad, 0.04, 0.04, 0.04,
-               GOLD_LIGHT, glow=True)  # fmt: skip
+            r.part("cube", x, height * 0.5, z, 0.06, height, 0.06, _dim(GOLD_LIGHT, shimmer), glow=True)
+        motes = 10 + rround(span)
+        for k in range(motes):  # motes of dust turning in it
+            u = (t * 0.05 + k / motes) % 1.0
+            a = t * 0.3 + k * 2.4
+            z = (((k * 7) % motes) / motes - 0.5) * span * 0.9
+            r.part("cube", math.cos(a) * width * 0.3, 0.3 + u * height * 0.8, z + math.sin(a) * 0.4,
+                   0.04, 0.04, 0.04, GOLD_LIGHT, glow=True)  # fmt: skip
+    with r.at(0, 0, 0, ry=yaw):  # the pool it lands in, drawn out along the rift
+        r.part("cyl", 0, 0.02, 0, width * 1.2, 0.02, max(width * 1.2, span), _dim(GOLD_LIGHT, 0.8),
+               tex="mist", glow=True)  # fmt: skip
+        r.part("cyl", 0, 0.03, 0, width * 0.7, 0.02, max(width * 0.7, span * 0.7), (255, 236, 190), glow=True)
+
+
+WATER_SHEET = (150, 178, 196)
+WATER_DEEP = (84, 112, 132)
+FOAM = (226, 236, 240)
+SPRAY = (196, 214, 224)
+
+
+def waterfall(r, t, top=12.0, width=3.0, foot=0.0):
+    """Water pouring off a broken lip `top` metres up down to `foot` (below 0 it plunges on past the
+    floor into the chasm's haze): a pale sheet as wide as `width` with a darker heart, ribs of foam
+    sliding down it ever faster, a lip of white where it spills over, and at the foot a churned pool
+    with spray and mist rising off it (over the chasm, with `foot` below 0, it only plunges on). Its
+    sheet runs along X, thin along Z, so it faces +Z and -Z alike."""
+    drop = top - foot
+    mid = (top + foot) / 2
+    r.part("cube", 0, top + 0.15, 0, width * 1.1, 0.3, 1.2, MASONRY_DARK)  # the broken lip it spills from
+    r.part("cube", 0, top - 0.05, 0.1, width * 1.05, 0.2, 0.7, FOAM, glow=True)  # white where it pours over
+    r.part("cube", 0, mid, 0, width, drop, 0.35, WATER_SHEET, tex="rapids", glow=True)
+    # its darker heart
+    r.part("cube", 0, mid, 0.02, width * 0.55, drop, 0.3, WATER_DEEP, tex="rapids", glow=True)
+    for i in range(6):  # ribs of foam, sliding down and quickening as they fall
+        u = (t * 0.55 + i / 6) % 1.0
+        y = top - drop * u * u
+        w = width * (0.6 + 0.35 * ((i * 5) % 3) / 2)
+        r.part("cube", (i % 3 - 1) * width * 0.15, y, 0.12, w, 0.25 + 1.2 * u, 0.12, FOAM, glow=True)
+    for i in range(4):  # threads of white down its face
+        x = ((i + 0.5) / 4 - 0.5) * width * 0.8
+        r.part("cube", x, mid, 0.19, 0.08, drop * 0.95, 0.04, _dim(FOAM, 0.85 + 0.1 * math.sin(t * 2 + i)))
+    if foot >= -0.5:  # it lands: a churned pool, spray thrown up, mist rising
+        r.part("cyl", 0, foot + 0.06, 0.6, width * 1.4, 0.12, 2.2, (120, 150, 166), tex="mist", glow=True)
+        r.part("cyl", 0, foot + 0.1, 0.4, width * 0.9, 0.08, 1.2, FOAM, glow=True)
+        for i in range(8):
+            u = (t * 1.3 + i / 8) % 1.0
+            a = i * 2.1
+            r.part("cube", math.cos(a) * width * 0.5, foot + 0.2 + u * 1.6, 0.5 + math.sin(a) * 0.9,
+                   0.12, 0.12, 0.12, SPRAY, glow=True)  # fmt: skip
+        for i in range(3):  # mist rising off its foot
+            u = (t * 0.25 + i / 3) % 1.0
+            r.part("cube", (i - 1) * width * 0.3, foot + 0.6 + u * 3.0, 0.5, width * (0.7 + u * 0.6),
+                   1.2 + u, 1.6 + u, _dim(SPRAY, 1.0 - 0.5 * u), tex="mist", glow=True)  # fmt: skip
 
 
 def sunken_tower(r, seed, height=18.0):

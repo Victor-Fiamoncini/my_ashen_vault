@@ -53,6 +53,7 @@ from ashen_vault.world import (
     shots,
     sky,
     terrain,
+    vault,
     villagers,
 )
 from ashen_vault.world.arena import Arena, flood
@@ -314,6 +315,7 @@ WALL_PROPS = (
     "moon_window",
     "prisoner_remains",
 )
+FALL_LIP = 0.4  # metres below the vault a waterfall without its own `top` spills from
 # Props drawn as far as the fog lets you see, however far that is: they make a skyline.
 LANDMARKS = (
     "spire",
@@ -339,6 +341,7 @@ LANDMARKS = (
     "grand_stair",
     "sunken_tower",
     "sun_shaft",
+    "waterfall",
 )
 # Props that never move, open, break or flicker: they are baked once into world-space batches
 # (`render/prop_bake.py`) instead of being drawn part by part every frame. A prop drawn with the time
@@ -579,6 +582,7 @@ class World:
         self._time = 0.0
         self.blocker = self.blocked_tile
         self.terrain = terrain.Terrain(self.map)
+        self.vault = vault.Vault.of(self.map)  # the cavern's roof, or None
         for p in self.terrain.platforms:
             if p.lever and f"lever:{p.lever}" in game.flags:
                 p.locked = False
@@ -3198,7 +3202,31 @@ class World:
             sunken_models.sunken_tower(rig, p.tx * 7 + p.tz * 3, float(p.props.get("height", "18")))
         elif k == "sun_shaft":
             height = float(p.props.get("height", "14"))
-            sunken_models.sun_shaft(rig, t, height, float(p.props.get("width", "2.4")))
+            sunken_models.sun_shaft(
+                rig,
+                t,
+                height,
+                float(p.props.get("width", "2.4")),
+                vault.rift_of(p),
+                math.radians(float(p.props.get("rift_yaw", "0"))),
+            )
+        elif k == "waterfall":
+            sunken_models.waterfall(
+                rig,
+                t + p.tx * 0.37,
+                self._fall_top(p),
+                float(p.props.get("width", "3")),
+                float(p.props.get("foot", "0")),
+            )
+
+    def _fall_top(self, p):
+        """How high over its floor a `waterfall` pours from: its `top=`, else from a fissure just under
+        the cavern's vault overhead."""
+        if "top" in p.props:
+            return float(p.props["top"])
+        if self.vault is None:
+            return 12.0
+        return self.vault.height_at(p.x, p.z) - FALL_LIP - p.y
 
     def _draw_town_prop(self, rig, p, k, t):
         seed = p.tx * 7 + p.tz * 3

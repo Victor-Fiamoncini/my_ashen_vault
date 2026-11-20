@@ -18,11 +18,12 @@ vault_tex = cavern_rock
 // the Breach Landing the Cliff Stair winds down the north wall to the bell-keepers' terrace; a bridge
 // runs out to the Bell Tower, its stair winding down round the tower's core to the Aqueduct, which
 // carries you west to the Colonnade. From there the Grand Stair goes down to the Drowned Plaza, lit by
-// the one shaft of daylight that falls from a crack in the cavern's vault far overhead. Below the plaza
+// the curtain of daylight that falls from a great rift in the cavern's vault far overhead, falls of
+// water pouring from the vault's fissures past it into the chasm. Below the plaza
 // the Keystone, the giant the first city was raised on, lies in its Foundation Court; behind it a lift
 // climbs the old gallery's shaft back up to the landing. Stone Golems stand like statues until you come
 // close, and the Sunken Sextons ring their bells to wake them. Over it all hangs the vault of the cavern,
-// rough rock 24 m up with stalactites hanging from it (`vault`); the shaft falls through a crack in it.
+// rough rock 24 m up with stalactites hanging from it (`vault`); the shaft falls through a rift in it.
 
 [legend]
 # = wall tex=cavern_rock top=24
@@ -99,7 +100,7 @@ $ = floor tex=ochre_flag h=-13.5 side=sunken_brick dark=0.12
 ###g########dÀÃddÃdd__________22________Q____###
 ###g########FdddZddF__________3345___________###
 ###g########dddddddd66666666677778___________###
-###g########ddÃddÃdÈ6666666697777.___________###
+###g########ddÃddÃdÈ6666666697777.__Ø________###
 ###J########dÀddddÀd________,7777;___________###
 ###g########Îddddddd________:7777Y___________###
 ###g########__!!____________?$%&*+___________###
@@ -107,21 +108,21 @@ $ = floor tex=ochre_flag h=-13.5 side=sunken_brick dark=0.12
 ###g######____<<_____________________________###
 ###g######____>>________T____________________###
 ###g######____@@_____________________________###
-###g######____^^_____________________________###
+###g######____^^______Ö______________________###
 ###g######____~~______________________R______###
 ###g######____ee_____________________________###
 ###g######GeeeeeeeeeeeeeeeeeeeeeG____________###
 ###g######eeeeeeeeeeeeeeeeeeeeeee____________###
-###J######eeÄeeeeeeeeOeeeeÂeeeÄee____________###
+###J######eeÄeeeeeeeeOeeeeÂeeeÄee_Ô__________###
 ###g######eeeeeeÂeeejjjeeeeeeeeee____________###
 ###g######eÇeeeeeeOejNjeOeeeeeeee____________###
 ###g######eeeeeeeeeejjjeeeeeeeeee____________###
 ###g######ÓeeeeeeeeeeOeeeeeeeeeee____________###
-###g######eeÄeeeeeÉeeeeeeeÁeeeÄee_________S__###
+###g######eeÄeeeeeÉeeeeeeeÁeeeÄee_Õ_______S__###
 ###g######eeÂeeeeeeeeeeeeeeeeeÂee____________###
 ###g######ÏeeeeeeeeeeeeeÇeeeeeeeÓ____________###
 ###g######___________|_______________________###
-###g######___________(_______________________###
+###g######___________(_____Ù_________________###
 ###g######___________)_______________________###
 ###g######{{{{{{{{{{{n{{{{{{{{{{################
 ###gggJg####{{{{{{{{{Ë{{{{{{{{{{################
@@ -149,7 +150,13 @@ J = torch radius=8 on=g
 K = torch radius=8 on=h
 L = torch radius=8 on=d
 M = torch radius=8 on=i
-N = sun_shaft height=45 width=3 on=j
+N = sun_shaft height=45 width=4 rift=36,7 rift_yaw=90 on=j
+// Falls pour out of fissures under the vault, down past the plaza into the chasm.
+Ô = waterfall width=5 yaw=90 foot=-1 on=_
+Õ = waterfall width=4 yaw=90 foot=-1 on=_
+Ö = waterfall width=6 foot=-1 on=_
+Ø = waterfall width=4 yaw=90 foot=-1 on=_
+Ù = waterfall width=5 foot=-1 on=_
 O = light y=3 color=1.3,1.0,0.55 radius=10 on=e
 P = sunken_tower height=34 on=_
 Q = sunken_tower height=30 on=_

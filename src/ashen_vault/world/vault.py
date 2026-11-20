@@ -47,26 +47,42 @@ def _noise(x, z, cell, salt):
 
 
 class Vault:
-    def __init__(self, height, tex, crack=None):
+    def __init__(self, height, tex, crack=None, crack_len=CRACK_LEN, crack_width=CRACK_WIDTH, crack_yaw=0.0):
         self.height = height
         self.tex = tex
         self.crack = crack  # (x, z) of the crack's centre, or None
+        # A `sun_shaft`'s `rift=<length>,<width>` and `rift_yaw=` (degrees from +z) make its crack a great
+        # rift: longer, wider, and running whichever way across the roof.
+        self.crack_len = crack_len
+        self.crack_width = crack_width
+        self.crack_yaw = crack_yaw
 
     @classmethod
     def of(cls, map_):
         """The map's vault, or None when its `[meta]` sets no `vault`."""
         if "vault" not in map_.meta:
             return None
-        return cls(float(map_.meta["vault"]), map_.meta.get("vault_tex", "cavern_rock"), crack_at(map_))
+        length, width, yaw = crack_shape(map_)
+        return cls(
+            float(map_.meta["vault"]),
+            map_.meta.get("vault_tex", "cavern_rock"),
+            crack_at(map_),
+            length,
+            width,
+            yaw,
+        )
 
     def _crack_reach(self, x, z):
         """How far (x, z) lies inside the crack's outline: below 1 inside it, 1 on its lip."""
         if self.crack is None:
             return math.inf
         dx, dz = x - self.crack[0], z - self.crack[1]
+        if self.crack_yaw:  # into the rift's own frame: along it is local z, across it local x
+            c, s = math.cos(self.crack_yaw), math.sin(self.crack_yaw)
+            dx, dz = dx * c - dz * s, dx * s + dz * c
         # A jagged outline: its width changes along its length, hashed metre by metre.
         jag = 0.75 + 0.5 * _hash(rround(dz), 7, 31)
-        return math.hypot(dz / (CRACK_LEN / 2), dx / (CRACK_WIDTH / 2 * jag))
+        return math.hypot(dz / (self.crack_len / 2), dx / (self.crack_width / 2 * jag))
 
     def in_crack(self, x, z):
         """Whether the point (a cell's centre) lies open in the crack."""
@@ -80,7 +96,7 @@ class Vault:
         if ix % SPIKE_EVERY == 0 and iz % SPIKE_EVERY == 0 and _hash(ix, iz, 3) < SPIKE_CHANCE:
             drop += SPIKE_DROP[0] + (SPIKE_DROP[1] - SPIKE_DROP[0]) * _hash(ix, iz, 4)
         if self.crack is not None:  # flat round the crack, so its lip meets the shaft's top
-            past = (self._crack_reach(x, z) - 1.0) * min(CRACK_LEN, CRACK_WIDTH) / 2
+            past = (self._crack_reach(x, z) - 1.0) * min(self.crack_len, self.crack_width) / 2
             drop *= min(max(past / CRACK_CALM, 0.0), 1.0)
         return self.height - drop
 
@@ -95,7 +111,8 @@ class Vault:
         """(x, y, z, radius, color) of the daylight on the rock round the crack, or None."""
         if self.crack is None:
             return None
-        return (self.crack[0], self.height - 2.0, self.crack[1], CRACK_LIGHT_RADIUS, list(CRACK_LIGHT))
+        radius = max(CRACK_LIGHT_RADIUS, self.crack_len * 0.75)
+        return (self.crack[0], self.height - 2.0, self.crack[1], radius, list(CRACK_LIGHT))
 
 
 def shaft_top(map_, spec):
@@ -113,3 +130,21 @@ def crack_at(map_):
             x, _, z = shaft_top(map_, spec)
             return x, z
     return None
+
+
+def crack_shape(map_):
+    """(length, width, yaw in radians) of the crack over the map's sun shaft: CRACK_LEN by CRACK_WIDTH
+    along z unless the shaft sets `rift=<length>,<width>` and `rift_yaw=` (degrees)."""
+    for spec in map_.entities:
+        if spec.kind == "sun_shaft":
+            length, width = rift_of(spec)
+            return length, width, math.radians(float(spec.props.get("rift_yaw", "0")))
+    return CRACK_LEN, CRACK_WIDTH, 0.0
+
+
+def rift_of(spec):
+    """(length, width) of a `sun_shaft`'s crack."""
+    if "rift" not in spec.props:
+        return CRACK_LEN, CRACK_WIDTH
+    length, width = (float(v) for v in spec.props["rift"].split(","))
+    return length, width

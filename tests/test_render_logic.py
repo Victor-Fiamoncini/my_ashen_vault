@@ -837,6 +837,8 @@ def test_old_harrowmeres_dressing_draws():
 
     for name, fn in (
         ("sun_shaft", lambda r: sunken_models.sun_shaft(r, 0.3)),
+        ("rift_shaft", lambda r: sunken_models.sun_shaft(r, 0.3, 40.0, 4.0, (28.0, 6.0), 1.2)),
+        ("waterfall", lambda r: sunken_models.waterfall(r, 0.3, 14.0, 4.0, 0.0)),
         ("sunken_tower", lambda r: sunken_models.sunken_tower(r, 4, 18.0)),
         ("rubble_chunk", lambda r: sunken_models.rubble_chunk(r, (150, 132, 104), 0.3)),
     ):

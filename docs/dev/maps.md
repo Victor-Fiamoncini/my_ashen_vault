@@ -24,9 +24,10 @@ How `.map` files work and what can stand on a tile.
   with no sky: the cavern's vault (`[meta] vault = 24`, below) hangs over it all. The Breach Landing (h 0, its shrine and the
   `sunken_stair` back up to the cistern), the Cliff Stair down the north wall to the bell-keepers' terrace
   (-8), a bridge out to the Bell Tower, whose stair winds down round three sides of its brick core to the
-  Aqueduct (-16), the Colonnade, the Grand Stair down to the Drowned Plaza (-20) under the one shaft of
-  daylight from a crack in the vault (`sun_shaft height= width=` over its fountain, with warm `light`s at
-  its foot), and the Keystone's Foundation Court (-22) behind two `door boss=keystone_dead` (the front one
+  Aqueduct (-16), the Colonnade, the Grand Stair down to the Drowned Plaza (-20) under the curtain of
+  daylight from a great rift in the vault (`sun_shaft height= width= rift=36,7 rift_yaw=90` over its
+  fountain, with warm `light`s at its foot; `waterfall`s pour from fissures under the vault past the
+  plaza and the Bell Tower into the chasm), and the Keystone's Foundation Court (-22) behind two `door boss=keystone_dead` (the front one
   off the plaza's stair, the rear one out to the lift room; one arena, like Mother Gnawl's nest). The
   shortcut: a locked lift from the lift room 22 m up to the dark gallery cut through the rock from the
   landing. `sunken_tower height=` landmarks rise out of the chasm. Paved in `ochre_flag`, walled in
@@ -125,7 +126,13 @@ How `.map` files work and what can stand on a tile.
   their own `ceil`. It is only drawn: no tile gains a ceiling, so collision, sight and open-sky checks are
   as before. Over the map's `sun_shaft` it opens in a crack (at the top of the leaning shaft,
   `vault.SHAFT_LEAN`; give the shaft the `height=` to reach it), daylight glowing on the rock round it;
-  `test_old_harrowmeres_vault_hangs_clear_of_everything_below_it`.
+  `test_old_harrowmeres_vault_hangs_clear_of_everything_below_it`. The shaft's `rift=<length>,<width>`
+  (metres) and `rift_yaw=` (degrees from +z) widen the crack into a long rift; the shaft's haze then
+  hangs as a curtain along it (`sunken_models.sun_shaft`).
+  A `waterfall width= [top=] [foot=]` (a landmark) pours from a broken lip down to `foot` over its
+  floor: without `top=` it spills from just under the vault (`World._fall_top`); `foot` below 0 plunges
+  on without a pool (over the chasm), otherwise it lands in a churned pool with spray and mist. Its
+  sheet runs along local X: `yaw=90` turns it to run along z.
   A wall tile may set `dress=rampart` (Harrowmere's great walls): carved bays along its open faces
   (`world/ramparts.py`).
   A wall tile may set `thin=<m>` (the town's houses use 0.5): it stands as a slab that thick, joined to
@@ -135,7 +142,8 @@ How `.map` files work and what can stand on a tile.
   test the slab itself, the mesh draws its faces and the margins' floors and ceilings, a doorway's
   lintel rises to the thin walls beside it, and wall props, facing props, chests and wall lights move
   back onto the slab (`TileMap.backed`, `wall_inset`). `tests/test_thin_walls.py` covers it.
-  `LANDMARKS` (`spire`, `keep`, `bastion`, `smokestack`, `gatehouse`, `lavafall`, `battlement`) are
+  `LANDMARKS` (`spire`, `keep`, `bastion`, `smokestack`, `gatehouse`, `lavafall`, `battlement`,
+  `waterfall`, ...) are
   drawn out to the fog. They stand on tiles no one reaches (wall tops, the moat)
   or above a passage's roof (`bastion base=`, `gatehouse`), and no two Cinderhold towers share a shape
   (`test_cinderhold_skyline_has_no_two_towers_alike_and_stands_out_of_reach`).

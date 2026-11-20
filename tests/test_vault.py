@@ -107,8 +107,11 @@ def test_the_shaft_of_daylight_falls_from_a_crack_in_the_vault():
     assert v.crack == pytest.approx((x, z))
     assert x < (spec.tx + 0.5) * 2  # it leans, its top off to the west of where it lands
     assert v.height - 0.5 <= y <= v.height + 1.0  # the shaft reaches up to the crack
-    assert v.in_crack(x, z) and v.in_crack(x, z + 2) and not v.in_crack(x + 3, z)
-    assert v.height_at(round(x), round(z) + 4) == pytest.approx(v.height, abs=0.3)  # flat round its lip
+    # A great rift running along x, across the plaza.
+    assert v.in_crack(x, z) and v.in_crack(x + 12, z) and v.in_crack(x - 12, z)
+    assert not v.in_crack(x, z + v.crack_width) and not v.in_crack(x + v.crack_len, z)
+    lip = next(d / 4 for d in range(80) if not v.in_crack(x, z + d / 4))
+    assert v.height_at(x, z + lip) == pytest.approx(v.height, abs=0.3)  # flat round its lip
     # Its light glows on the rock round the crack.
     lights = MeshBuilder.lights_for(m)
     assert any(math.hypot(l.x - x, l.z - z) < 0.1 and l.y > 20 for l in lights)
@@ -118,7 +121,22 @@ def test_the_shaft_of_daylight_falls_from_a_crack_in_the_vault():
     for i in range(0, len(verts), 18):  # each quad: six vertices, centred on its cell
         quad = verts[i : i + 18]
         cx, cy, cz = (sum(quad[k::3]) / 6 for k in range(3))
-        if cy > 10:  # a cell of the roof, never one in the crack
+        flat = min(quad[0::3]) < max(quad[0::3]) and min(quad[2::3]) < max(quad[2::3])  # not a wall's face
+        if cy > 10 and flat:  # a cell of the roof, never one in the crack
             cells += 1
             assert not v.in_crack(cx, cz)
     assert cells > 1000
+
+
+def test_a_rift_runs_long_and_wide_whichever_way_it_is_turned():
+    v = Vault(24.0, "cavern_rock", (50.0, 50.0), crack_len=30.0, crack_width=6.0, crack_yaw=math.pi / 2)
+    # Turned a quarter, it runs along x: open 12 m out along x, closed 6 m out along z.
+    assert v.in_crack(50.0, 50.0) and v.in_crack(62.0, 50.0) and v.in_crack(38.0, 50.0)
+    assert not v.in_crack(50.0, 56.0) and not v.in_crack(70.0, 50.0)
+    assert v.crack_light()[3] >= 30.0 * 0.75  # its daylight spreads along it
+
+
+def test_old_harrowmeres_crack_is_a_great_rift():
+    m = _harrowmere()
+    v = Vault.of(m)
+    assert v.crack_len >= 20 and v.crack_width >= 5
