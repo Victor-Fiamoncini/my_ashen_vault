@@ -138,8 +138,8 @@ $ = floor tex=ochre_flag h=-13.5 side=sunken_brick dark=0.12
 #Ŵ#g######GeeeeeeeeeeeeeeeeeeeeeG____________eee#{eeeeeeeeeee{##
 #ď#g######eeeeeeeeeeeeeeeeeeúeeee____________eƇe#{eƉeeƉeƊeƉee{##
 #đ#J######eeÄeúeeeeeeOeeeeÂeeeÄee_Ô__________eee#{eeeeeeeeeee{##
-#ē#g######eeeeeeÂeeŸjŰjŸeeeeeeeee____________eeeƋƋeeeeeeeeeeƎ{##
-#ĕ#g######eÇeeeeeeOejNjeOeeeeeeúü___ü___ü____eƏeƋƋeeƐeeƑeeeeƓ{##
+#ē#g######eeeeeeÂeeŸjNjŸeeeeeeeee____________eeeƋƋeeeeeeeeeeƎ{##
+#ĕ#g######eÇeeeeeeOejŰjeOeeeeeeúü___ü___ü____eƏeƋƋeeƐeeƑeeeeƓ{##
 #ė#g####óòeeeeeeeeeŸjjjŸeeeeeeeeeýýýeýýýeþþþþeeeƋƋeeeeeeeeeeƔ{##
 #ę#g######ÓeeeeeeeeeeOeeeeeeeeeeÚ___þ___þ____eee#{eƉeeƉeƖeƉee{##
 #ł#g######eeÄeeeeeÉeeeeeeeÁeeeÄee_Õ_þ___þ_S__eƇe#{eeeeeeeeeee{##
@@ -270,7 +270,7 @@ Z = sunken_sexton on=d
 õ = chest item=ember_draught count=2 gold=300 model=banded on=h
 // The mortar-light: the energy core on the fountain's plinth, under the rift of daylight. While
 // it burns it sustains the golems round it; its ward shield stands unless the teal road (set c) does.
-Ű = energy_core height=1.2 radius=10 seal=c on=j
+Ű = energy_core height=1.2 radius=10 seal=c scale=1.7 y=4.1 light_radius=12 on=j
 Ÿ = light y=3 color=0.45,1.25,1.0 radius=9 on=e
 // The third road: from the second island a pale road runs east to the Mortar Sisters' quay; from the
 // quay a gold road runs out to the core's shield ward, alone on its island. Striking it first feeds the

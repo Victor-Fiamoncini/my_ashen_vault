@@ -842,7 +842,17 @@ def ward_crystal(r, t, active):
 # --- the energy core (the mortar-light) -------------------------------------------------------
 
 
-def energy_core(r, t, height=1.2, quenched=False, shielded=False, tethers=(), yaw=0.0):
+TETHER_Y = 1.8  # where a core's tether meets its golem, over its feet
+
+
+def energy_core(r, t, height=1.2, quenched=False, shielded=False, tethers=(), yaw=0.0, scale=1.0):
+    """The energy core, all of it sized by `scale` (its tethers still meet their golems): see `_energy_core`."""
+    with r.at(0, 0, 0, s=scale):
+        ends = [(dx / scale, (dy + TETHER_Y) / scale - TETHER_Y, dz / scale) for dx, dy, dz in tethers]
+        _energy_core(r, t, height, quenched, shielded, ends, yaw)
+
+
+def _energy_core(r, t, height, quenched, shielded, tethers, yaw):
     """The energy core: the mortar-light that animates the giants. A carved plinth `height` tall of
     stacked masonry, the masons' marks cut in its faces glowing teal, four stone claws rising from its
     cap to cradle a great faceted crystal heart (about 1.2 m) floating over it, turning slowly and
@@ -909,7 +919,7 @@ def energy_core(r, t, height=1.2, quenched=False, shielded=False, tethers=(), ya
     )
     with r.at(0, 0, 0, ry=yaw):  # the tethers, in world axes
         for i, (dx, dy, dz) in enumerate(tethers):
-            a, b = (0.0, heart_y, 0.0), (dx, dy + 1.8, dz)
+            a, b = (0.0, heart_y, 0.0), (dx, dy + TETHER_Y, dz)
             _bar(r, a, b, 0.035, _dim(CORE_TEAL, 0.7 + 0.3 * breath), glow=True)
             u = (t * 0.7 + i * 0.37) % 1.0  # a bead of light running out along it
             r.part("cube", a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u,

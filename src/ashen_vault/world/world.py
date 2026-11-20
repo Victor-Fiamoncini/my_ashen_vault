@@ -518,6 +518,7 @@ CORE_RADIUS = "16"  # metres it sustains them within, unless the map's `radius=`
 CORE_REGEN = 2.0  # HP a second it gives back to each golem it sustains
 CORE_QUENCHED_MULT = 1.25  # what a blow on one of its golems deals once it is quenched
 CORE_HUM = (0.22, 12.0, 2.6)  # its hum: base volume, metres at which it falls silent, seconds apart
+CORE_BODY = 1.1  # metres its body reaches out from its centre at `scale=1`: the shards orbiting its heart
 
 
 # Fire and lava sounds fade with distance: (base volume, metres at which they fall silent).
@@ -973,6 +974,8 @@ class World:
             if p.tx == tx and p.tz == tz and self._blocks(p):
                 return True
             if p.kind == "outside_stair" and (tx, tz) in stair_footprint(p):
+                return True
+            if p.kind == "energy_core" and (tx, tz) in core_footprint(p):
                 return True
         return (tx, tz) in self._piles
 
@@ -2876,7 +2879,8 @@ class World:
                 continue
             dx, dz = p.x - player.x, p.z - player.z
             d = math.hypot(dx, dz) or 1e-6
-            if d > reach + TileMap.TILE / 2 or (cone >= 0 and (dx * fx + dz * fz) / d <= min(cone, 0.5)):
+            edge = TileMap.TILE * (core_ring(p) + 0.5)  # the edge of the tiles its body fills
+            if d > reach + edge or (cone >= 0 and (dx * fx + dz * fz) / d <= min(cone, 0.5)):
                 continue
             if self.core_shielded(p):
                 self.game.sfx("spell", 0.5)
@@ -2944,6 +2948,19 @@ class World:
 def flag(props, key):
     """Whether entity flag `key` is set: written bare (`hip`) or as anything but `=false` / `=0`."""
     return key in props and props[key] not in ("false", "0")
+
+
+def core_ring(p):
+    """How many rings of tiles round its own an `energy_core` fills: none at its own size, more once its
+    `scale=` would carry its body (CORE_BODY) past where you could stand beside its tile."""
+    body = CORE_BODY * float(p.props.get("scale", "1"))
+    return max(0, math.ceil((body - TileMap.TILE / 2 - Player.RADIUS) / TileMap.TILE))
+
+
+def core_footprint(p):
+    """The tiles an `energy_core` fills: its own and `core_ring` rings round it."""
+    n = core_ring(p)
+    return {(p.tx + dx, p.tz + dz) for dx in range(-n, n + 1) for dz in range(-n, n + 1)}
 
 
 def stair_footprint(p):

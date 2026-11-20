@@ -90,7 +90,7 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   The third road: `--at=42,29,0` (the pale road east to the Mortar Sisters' quay), `--at=38,18,-90
   --script "wait:0.3 attack wait:1.2"` (strike the core's shield ward: it feeds and wakes the teal road),
   `--at=38,18,180 --flags ward:old_harrowmere:c,ward_fed:old_harrowmere` (the teal road home to the
-  plaza), `--at=17,27,0` (the energy core on the fountain's plinth at 21,27, beside the shaft's foot, teal
+  plaza), `--at=17,28,0` (the energy core on the fountain's plinth at 21,28, in the middle of its pool, teal
   lights round the pool). The Mortar Sisters' Workshop: `--at=46,28,0` (from the quay through its arch:
   benches, golems, a sexton; its chest at 60,23). The Under-Cells: `--at=3,18,180` (the gaolers' postern
   across the gallery, barred), `--at=7,17,0 --script "wait:0.3 interact wait:1.5"` (pull the postern's
