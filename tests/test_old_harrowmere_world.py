@@ -334,3 +334,85 @@ def test_bellward_staggers_every_foe_about_you_and_spares_those_further():
     assert set(map(id, struck)) == {id(close), id(behind)}
     assert close.state == "hurt" and behind.state == "hurt" and far.state == "chase"
     assert sum(p.effect == "flare" and p.damage == 0 for p in world.projectiles) >= 8  # the toll's ring
+
+
+def _fly(world, e, seconds, dt=0.05):
+    for _ in range(round(seconds / dt)):
+        e.update(dt, world)
+        world._ground(e)
+
+
+def test_a_harpy_wings_out_over_the_chasm_at_its_cruising_height():
+    _game, world = sunken(at=(20, 28))
+    harpy = foe(world, "harpy", (31, 28))  # on the plaza's east edge
+    world._ground(harpy)
+    floor = world.map[31, 28].floor
+    assert world.enemy_y(harpy) == floor + harpy.type.fly
+    for _ in range(40):  # out east, over the chasm
+        world.move_enemy(harpy, 0.1, 0.0)
+    tile = world.map.tile_at(harpy.x, harpy.z)
+    assert tile.chasm and world.enemy_y(harpy) == floor + harpy.type.fly  # held up off the plaza's floor
+    # A walker would have stopped at the brink.
+    walker = foe(world, "sunken_sexton", (31, 27))
+    x0 = walker.x
+    for _ in range(40):
+        world.move_enemy(walker, 0.1, 0.0)
+    assert not world.map.tile_at(walker.x, walker.z).chasm and walker.x > x0  # up to the brink, no further
+
+
+def test_a_harpy_cannot_fly_into_a_cliff_higher_than_it_flies():
+    _game, world = sunken(at=(20, 28))
+    harpy = foe(world, "harpy", (16, 24))  # at the plaza's foot of the Grand Stair
+    world._ground(harpy)
+    for _ in range(200):  # straight north, toward the colonnade 4 m above it and higher
+        world.move_enemy(harpy, 0.0, -0.1)
+    assert world.map.tile_at(harpy.x, harpy.z).floor <= world.enemy_y(harpy) + 0.5
+
+
+def test_a_harpy_is_out_of_a_blades_reach_on_the_wing_and_stoops_to_strike():
+    from ashen_vault.ai.enemy import MOVES
+
+    game, world = sunken(at=(20, 28))
+    harpy = foe(world, "harpy", (20, 28))
+    world._ground(harpy)
+    game.player.x, game.player.z = harpy.x - 1.0, harpy.z
+    assert not world.melee_targets(2.5, cone=-1)  # over your head
+    assert not world.level_with(harpy)
+    # It drops into its swoop over the windup...
+    harpy.state, harpy.state_t, harpy.attack_kind = "windup", 0.0, "dive"
+    harpy._target = (game.player.x, game.player.z)
+    for _ in range(round(MOVES["dive"][0] * harpy.type.tempo / 0.05) + 6):
+        harpy.fly(0.05)
+        world._ground(harpy)
+    assert world.level_with(harpy) and world.melee_targets(2.5, cone=-1) == [harpy]
+    # ...and climbs back to its cruising height after.
+    harpy.state, harpy.attack_kind = "recover", None
+    for _ in range(80):
+        harpy.fly(0.05)
+        world._ground(harpy)
+    assert harpy.alt == harpy.type.fly
+
+
+def test_a_slain_harpy_falls_into_the_chasm_or_onto_the_floor_below_it():
+    _game, world = sunken(at=(20, 28))
+    over_plaza = foe(world, "harpy", (24, 28))
+    over_chasm = foe(world, "harpy", (32, 28))
+    world._ground(over_plaza)
+    world._ground(over_chasm)
+    for _ in range(25):
+        world.move_enemy(over_chasm, 0.1, 0.0)  # out over the chasm
+    assert world.map.tile_at(over_chasm.x, over_chasm.z).chasm
+    for e in (over_plaza, over_chasm):
+        e.kill()
+        _fly(world, e, 4.0)
+    assert world.enemy_y(over_plaza) == world.map[24, 28].floor  # down on the plaza
+    assert world.enemy_y(over_chasm) == world.map.floor_at(over_chasm.x, over_chasm.z)  # lost below
+
+
+def test_harpies_wheel_over_the_plaza_and_the_terrace():
+    m = _map()
+    harpies = _spec(m, "harpy")
+    assert len(harpies) >= 4
+    for s in harpies:
+        tile = m[s.tx, s.tz]
+        assert tile.walkable and not tile.chasm  # they reckon their height from solid ground

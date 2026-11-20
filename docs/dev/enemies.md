@@ -121,6 +121,14 @@ Behaviour flags, special moves, bosses and the rules every enemy model must keep
   on it makes (`Enemy.hit_sound`; an iron-chest mimic rings as iron), pitched at random within
   `game.HIT_PITCH`.
   A hovering foe's shot span reaches from its hover height up to its `tall` (`shots.body_span`).
+  A flyer (`EnemyType.fly`, Old Harrowmere's Bell-Harpies) truly flies: `Enemy.fly` eases its `alt`
+  toward its cruising height, down to `STRIKE_ALT` over a `dive`'s windup and swoop (`DESCEND_RATE`),
+  back up after (`CLIMB_RATE`), and down like a stone when slain (`FALL_RATE`). `World.enemy_y` puts it
+  at `ground + alt`, `ground` being the floor of the last solid tile it crossed (`World._ground`), so it
+  holds its height out over a chasm; `World._fly_enemy` lets it cross chasm tiles and steps but not walls
+  or a floor rising above it. Swings only reach it when it comes down within `SWING_HEIGHT`
+  (`World._within_swing`); spells and shots use its real height. Over your head and too close to swoop,
+  it backs off to `DIVE_RANGE`. Place flyers on solid tiles: their height is reckoned from there.
   Every model has a death pose (eased by `models.death_fall`); `tests/test_render_logic.py` checks
   that each one collapses, stays above the floor and fits its `height`, so update both together.
   Its `tall` is the top of the standing body: a spell bolt flying higher misses it (`world/shots.py`).

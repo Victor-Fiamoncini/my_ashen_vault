@@ -435,6 +435,7 @@ FALL_DAMAGE = 25
 FALL_DEPTH = 1.5  # metres below the pit's rim before a fall counts
 LAVA_SHARE = 0.35  # share of your max HP a dip in lava burns away
 BREAK_TIME = 0.6  # seconds a smashed container's pieces take to fly out and settle
+SWING_HEIGHT = 2.4  # metres over your feet a swing reaches: a flyer above it is out of reach
 RIFT_GOLD = (255, 226, 150)  # a rift lance: daylight from the vault's rift
 BELL_PALE = (236, 222, 170)  # the motes of a Bellward's toll
 BELL_MOTES = 16
@@ -1083,6 +1084,8 @@ class World:
         return collision.line_of_sight(self.map, ax, az, bx, bz, blocked=self.blocker)
 
     def move_enemy(self, enemy, dx, dz):
+        if enemy.type.fly is not None:
+            return self._fly_enemy(enemy, dx, dz)
         nx, nz = collision.move(self.map, enemy.x, enemy.z, dx, dz, radius=enemy.radius, blocked=self.blocker)
         if not enemy.burrowed:  # under the muck she tunnels right under your feet
             nx, nz = collision.separate(nx, nz, enemy.radius, self.player.x, self.player.z, Player.RADIUS)
@@ -1099,6 +1102,45 @@ class World:
             return
         enemy.x = nx
         enemy.z = nz
+
+    def _fly_enemy(self, enemy, dx, dz):
+        """A flyer wings over the chasm and down past steps, but not through walls, and never into a
+        floor that rises past the height it flies at (the cliff up to a higher tier)."""
+        y = self.enemy_y(enemy)
+        nx, nz = collision.move(
+            self.map,
+            enemy.x,
+            enemy.z,
+            dx,
+            dz,
+            radius=enemy.radius,
+            blocked=self.blocker,
+            floating=lambda _tx, _tz: True,  # nothing under it need bear its weight
+            ground=lambda _x, _z: y,
+        )
+        for other in self.enemies:
+            if other is enemy or not other.alive or other.state == "ashes" or other.burrowed:
+                continue
+            nx, nz = collision.separate(nx, nz, enemy.radius, other.x, other.z, other.radius)
+        tile = self.map.tile_at(nx, nz)
+        if not tile.walkable or self.blocked_tile(TileMap.tile_coord(nx), TileMap.tile_coord(nz)):
+            return
+        if tile.floor > y + collision.STEP_HEIGHT:
+            return
+        enemy.x, enemy.z = nx, nz
+        self._ground(enemy)
+
+    def _ground(self, enemy):
+        """Keeps a flyer's `ground` (the floor its height is reckoned from) on the last solid tile it
+        crossed, its height level as it passes over a step, and stops a falling one on the floor."""
+        tile = self.map.tile_at(enemy.x, enemy.z)
+        y = self.enemy_y(enemy)
+        if tile.walkable and not tile.needs_footing:
+            enemy.ground = tile.floor
+            enemy.alt = y - tile.floor if enemy.alive else max(y - tile.floor, 0.0)
+        elif enemy.ground is None:
+            enemy.ground = tile.floor
+        enemy.alt = max(enemy.alt, tile.floor - enemy.ground)
 
     def level_with(self, enemy):
         """Can a foe's blow reach you up or down from where it stands? Not while you ride a lift past
@@ -1758,7 +1800,11 @@ class World:
                 self.game.sfx("heavy", 0.8)
 
     def enemy_y(self, enemy):
-        return self.map.floor_at(enemy.x, enemy.z)
+        floor = self.map.floor_at(enemy.x, enemy.z)
+        if enemy.type.fly is None:
+            return floor
+        ground = floor if enemy.ground is None else enemy.ground
+        return max(ground + enemy.alt, floor)
 
     # --- update --------------------------------------------------------------
 
@@ -1769,6 +1815,8 @@ class World:
         for e in self.enemies:
             was, rose = e.state, e.rise_progress
             e.update(dt, self)
+            if e.type.fly is not None:
+                self._ground(e)
             if e.state == "rising":
                 self._rising(e, was != "rising", rose, dt)
             harm = e.status_tick(dt)
@@ -2141,12 +2189,20 @@ class World:
             d = math.hypot(dx, dz)
             if d > reach + e.radius:
                 continue
+            if e.type.fly is not None and not self._within_swing(e):
+                continue  # on the wing, over your head
             if d < e.radius + 0.2 or (
                 (cone < 0 or (dx * fx + dz * fz) / d > cone) and self.can_see(player.x, player.z, e.x, e.z)
             ):
                 out.append(e)
         out.sort(key=lambda e: math.hypot(e.x - player.x, e.z - player.z))
         return out[:limit] if limit else out
+
+    def _within_swing(self, enemy):
+        """Whether a flyer's body comes down within a swing's height (you on your feet, your blade up to
+        SWING_HEIGHT over them)."""
+        lo, _hi = shots.body_span(enemy.type, self.enemy_y(enemy))
+        return lo <= self.player.y + SWING_HEIGHT
 
     def _steer(self, pr_, dt):
         """An arcane mote turns toward the nearest living foe it can see ahead of it."""

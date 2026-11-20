@@ -35,7 +35,9 @@ How `.map` files work and what can stand on a tile.
   Coldry, Ysolde, a hollow inmate and a mimic, and the gaoler's hall with the lever and the Torch
   Greathammer. Two more false walls (`top=24`, as the map has no ceilings) open narrow fissures: one in
   the plaza's west cliff with the Ember Stone Sword, one in the lift room;
-  `test_the_oubliette_hides_behind_a_false_wall_and_its_lever_opens_the_cells`. `sunken_tower height=` landmarks rise out of the chasm. Paved in `ochre_flag`, walled in
+  `test_the_oubliette_hides_behind_a_false_wall_and_its_lever_opens_the_cells`.
+  `sunken_tower height=` landmarks rise out of the chasm. Bell-Harpies (`harpy`, flyers) wheel over
+  the plaza and the terrace and out over the chasm. Paved in `ochre_flag`, walled in
   `cavern_rock` and `sunken_brick`; the map is drawn by a script's layout, one legend letter per height;
   `test_old_harrowmere_is_solvable_from_the_breach_down_to_the_keystone`), `vesperholm` (the Moonbound City behind the Vesper Gate in
   Harrowmere's north wall, at the head of the cathedral steps: the town's `exit model=vesper_gate`, always

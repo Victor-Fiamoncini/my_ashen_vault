@@ -86,6 +86,12 @@ TORCH_SMASH_RANGE = (2.5, 6.5)  # distances it brings its torch down from
 CINDER_RAIN_RANGE = 16.0  # it rains embers on you from anywhere up to this far
 EMBER_NOVA_RANGE = 9.0  # it drives its torch down only with you this close: its rings would miss you
 DIVE_RANGE = (5.0, 13.0)
+# A flyer (`EnemyType.fly`) holds its cruising height, drops to STRIKE_ALT over a swoop's windup and
+# its swoop, then climbs back; dead, it falls like a stone.
+STRIKE_ALT = 0.3
+DESCEND_RATE = 7.0  # m/s it drops into a swoop
+CLIMB_RATE = 2.5  # m/s it climbs back to its cruising height
+FALL_RATE = 14.0  # m/s a slain flyer drops
 SPADEFUL_RANGE = (3.5, 11.0)
 GRASP_RANGE = (2.5, 10.0)
 FIREBALL_RANGE = (2.5, 10.0)
@@ -224,6 +230,9 @@ class Enemy:
         self._target = None  # where a pounce is headed
         # Lingering harm: kind ("poison", "burn") -> [seconds left, HP per tick, time to next tick].
         self.status = {}
+        # A flyer's height over `ground`, the floor of the last solid tile it crossed (set by the world).
+        self.alt = type_.fly or 0.0
+        self.ground = None
 
     @property
     def alive(self):
@@ -267,6 +276,8 @@ class Enemy:
         self.state_t += dt
         self.flash_t = max(self.flash_t - dt, 0.0)
         self._update_trail(dt)
+        if self.type.fly is not None:
+            self.fly(dt)
         if self.state in ("dead", "dormant"):
             return
         dist = math.hypot(world.player_x - self.x, world.player_z - self.z)
@@ -326,6 +337,25 @@ class Enemy:
     def combo_gap(self):
         """Seconds between the swings of its combo."""
         return COMBO_GAP * self.type.tempo
+
+    def flight_target(self):
+        """The height a flyer heads for: down to strike over a swoop, its cruising height otherwise,
+        and nowhere but down once it is dead."""
+        if not self.alive:
+            return -math.inf
+        if self.state in ("windup", "attack") and self.attack_kind == "dive":
+            return STRIKE_ALT
+        return self.type.fly
+
+    def fly(self, dt):
+        """Eases a flyer's height toward `flight_target`: it drops fast into a swoop, climbs back
+        slower, and falls when slain (the world stops it on whatever floor lies under it)."""
+        target = self.flight_target()
+        if target < self.alt:
+            rate = FALL_RATE if not self.alive else DESCEND_RATE
+            self.alt = max(self.alt - rate * dt, target)
+        else:
+            self.alt = min(self.alt + CLIMB_RATE * dt, target)
 
     def _cooldown(self, move):
         """Seconds before `move` comes round again: quicker for a quick type and in a boss's rage."""
@@ -541,7 +571,9 @@ class Enemy:
             return self._begin_windup("shot" if t.ranged else "melee")
         if t.rooted:
             return
-        direction = -1.0 if self.type.ranged and dist < 4.0 else 1.0
+        # A shooter keeps its distance; so does a flyer over your head, out to where it can swoop again.
+        aloft = t.fly is not None and not level and dist < DIVE_RANGE[0]
+        direction = -1.0 if (self.type.ranged and dist < 4.0) or aloft else 1.0
         speed = self.type.speed * (1.25 if self.enraged else 1.0)
         self._step(world, math.cos(self.yaw) * direction, math.sin(self.yaw) * direction, speed * dt)
 

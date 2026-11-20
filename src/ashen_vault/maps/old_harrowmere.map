@@ -96,7 +96,7 @@ $ = floor tex=ochre_flag h=-13.5 side=sunken_brick dark=0.12
 ##aaaaaaaaaaCpqrstuMkvwxyVz0ÑccccccÍ############
 ##AaaaaaaaaaCpqrstuiUvwxylz0ccccccXc############
 ##aaaaaaaaaa11______________ccccWccc_________###
-##aaaaaaaaaa11______________cXcccccc_________###
+##aaaaaaaaaa11______________cXûccccc_________###
 ##aaaaBaaaDa11______________EccccÆcE_________###
 ##aaaaaaaaaa_____P____________22_____________###
 ###g########__________________22_____________###
@@ -116,14 +116,14 @@ $ = floor tex=ochre_flag h=-13.5 side=sunken_brick dark=0.12
 ###g######____~~______________________R______###
 ###g######____ee_____________________________###
 ###g######GeeeeeeeeeeeeeeeeeeeeeG____________###
-###g######eeeeeeeeeeeeeeeeeeeeeee____________###
-###J######eeÄeeeeeeeeOeeeeÂeeeÄee_Ô__________###
+###g######eeeeeeeeeeeeeeeeeeúeeee____________###
+###J######eeÄeúeeeeeeOeeeeÂeeeÄee_Ô__________###
 ###g######eeeeeeÂeeejjjeeeeeeeeee____________###
-###g######eÇeeeeeeOejNjeOeeeeeeee____________###
+###g######eÇeeeeeeOejNjeOeeeeeeúe____________###
 ###g####óòeeeeeeeeeejjjeeeeeeeeee____________###
 ###g######ÓeeeeeeeeeeOeeeeeeeeeee____________###
 ###g######eeÄeeeeeÉeeeeeeeÁeeeÄee_Õ_______S__###
-###g######eeÂeeeeeeeeeeeeeeeeeÂee____________###
+###g######eeÂeeeeeeeeeeeeúeeeeÂee____________###
 ###g######ÏeeeeeeeeeeeeeÇeeeeeeeÓ____________###
 ###g######___________|_______________________###
 ###g######___________(_____Ù_________________###
@@ -193,6 +193,9 @@ Z = sunken_sexton on=d
 Ñ = urn on=c
 Ò = urn on=d
 Ó = urn on=e
+// Bell-Harpies wheel over the plaza and the terrace, out over the chasm and back.
+ú = harpy on=e
+û = harpy on=c
 // The Bell-keepers' Oubliette, behind a false wall in the gallery: a corridor of barred cells where the
 // old city's gaolers locked away those who knew too much, and the gaoler's hall at its end, whose lever
 // raises every cell front at once. Aubel the Ringer, Sister Coldry and Ysolde Vane still wait inside.

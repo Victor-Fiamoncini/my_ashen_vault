@@ -21,6 +21,9 @@ class EnemyType:
     poise: int = 0
     ranged: bool = False
     hover: float | None = None
+    # A flyer's cruising height (metres over the last solid ground it crossed): it wings out over the
+    # chasm, swoops down to strike (`dive`) and climbs again; see `Enemy.fly` and `World.enemy_y`.
+    fly: float | None = None
     mouth: float | None = None  # height its shots leave from, if not the usual chest height
     boss: bool = False
     drop: str | None = None
@@ -874,6 +877,31 @@ class EnemyTypes:
                 poise=6,
                 moves=("toll",),
                 inflicts=(("bleed", 20),),
+            ),
+            # The Bell-Harpies of Old Harrowmere: gaunt winged hunters masked in shards of the city's
+            # broken bells. They wheel high over the plaza and the chasm, out of a blade's reach, and
+            # stoop on you in a swoop of talons; between swoops they climb away again.
+            EnemyType(
+                id="harpy",
+                material="flesh",
+                name="Bell-Harpy",
+                hp=30,
+                speed=3.0,
+                damage=11,
+                reach=1.6,
+                sight=18,
+                windup=0.8,
+                recover=1.1,
+                exp=42,
+                gold=range(8, 20),
+                radius=0.45,
+                height=1.0,
+                tall=1.7,
+                fly=4.0,
+                moves=("dive",),
+                tempo=0.5,
+                flammable=True,
+                inflicts=(("bleed", 18),),
             ),
             EnemyType(
                 id="keystone",

@@ -223,6 +223,97 @@ def sunken_sexton(r, e, t):
                         r.part("cube", -0.14, 0, 0, 0.06, 0.07, 0.07, _dim(HAFT, 0.8))  # the butt
 
 
+# --- the Bell-Harpy -------------------------------------------------------------------------------
+
+HARPY_SKIN = (150, 140, 132)  # grey and drawn, like something kept too long in the dark
+HARPY_WING = (104, 94, 86)
+HARPY_FEATHER = (84, 76, 70)
+HARPY_HAIR = (30, 26, 26)
+TALON = (40, 36, 30)
+MASK_GLOW = (230, 220, 180)  # the pale light behind the slits of its bell-shard mask
+
+
+def harpy_pose(e, t):
+    """(wing beat, wing lift, body pitch, talon reach) for a Bell-Harpy: an easy flap on the wing, the
+    wings hauled high and the body tipped forward as it gathers to stoop, swept back with its talons
+    thrust out as it swoops, beating hard to climb away after."""
+    beat = math.sin(t * 8.0)
+    if e.state == "windup":
+        k = _windup_k(e)
+        return beat * (1 - k) * 0.5, 0.2 + 0.9 * k, 0.5 * k, 0.3 * k
+    if e.state == "attack":
+        return 0.0, -0.9, 0.9, 1.0
+    if e.state in ("recover", "hurt"):
+        return math.sin(t * 14.0), 0.2, -0.2, 0.2
+    return beat * 0.7, 0.1, 0.1, 0.0
+
+
+def _harpy_wing(r, side, beat, lift, rgb, feather):
+    """One wing, its leading edge (the arm) in three joints out along +-Z, a fringe of long tattered
+    feathers hanging from each, wider toward the tip."""
+    with r.at(0, 0, 0, rx=side * (lift + beat * 0.6)):
+        r.part("cube", 0, 0, side * 0.25, 0.09, 0.08, 0.5, rgb)  # the upper arm
+        for i in range(2):
+            r.part("cube", -0.12, -0.12, side * (0.12 + i * 0.22), 0.26, 0.24, 0.02, feather)
+        with r.at(0, 0, side * 0.5, rx=side * (0.25 + beat * 0.3)):
+            r.part("cube", 0, 0, side * 0.3, 0.07, 0.06, 0.6, rgb)  # the forearm
+            for i in range(3):
+                r.part("cube", -0.18, -0.2, side * (0.08 + i * 0.2), 0.36, 0.38, 0.02, feather, ry=0.1 * i)
+            with r.at(0, 0, side * 0.6, rx=side * (0.2 + beat * 0.25)):
+                r.part("cube", 0, 0, side * 0.2, 0.05, 0.05, 0.4, rgb)  # the long finger bones
+                for i in range(3):  # the ragged primaries, longest at the tip
+                    r.part("cube", -0.24 - 0.04 * i, -0.06, side * (0.1 + i * 0.13), 0.5 + 0.08 * i, 0.04, 0.1,
+                           feather, ry=-side * 0.15 * i)  # fmt: skip
+
+
+def harpy(r, e, t):
+    """A Bell-Harpy: a gaunt grey body with arms grown into great ragged wings, long black hair, and
+    for a face a curved shard of a broken bronze bell, a pale light behind its eye slits. Bird legs end
+    in hooked talons. It hangs in the air on easy beats; to stoop it hauls its wings high and tips
+    forward, then sweeps them back and thrusts its talons out. Slain, it crumples in a heap of wing."""
+    fall = death_fall(e, 0.7)
+    dead = e.state == "dead"
+    beat, lift, pitch, reach = harpy_pose(e, t)
+    if dead:
+        beat, lift, pitch, reach = 0.0, 0.0, 0.0, 0.0
+    skin = hit_tint((236, 226, 216)) if e.flashing else HARPY_SKIN
+    wing = hit_tint((200, 190, 184)) if e.flashing else HARPY_WING
+    feather = hit_tint((170, 160, 156)) if e.flashing else HARPY_FEATHER
+    glow = not dead
+    eye = MASK_GLOW if glow else COLD
+    # It hangs from its shoulders in flight; slain, it pitches onto its face, wings spread flat.
+    with r.at(-0.3 * fall, 0.75 - 0.5 * fall, 0, rz=-pitch * (1 - fall) - 1.45 * fall):
+        for side in (-1, 1):  # the legs, drawn up in flight, thrust forward to strike
+            with r.at(0, -0.05, side * 0.1, rz=0.6 - 1.4 * reach):
+                r.part("cube", 0, -0.18, 0, 0.09, 0.36, 0.09, skin)  # the thigh
+                with r.at(0, -0.36, 0, rz=-0.9 + 0.6 * reach):
+                    r.part("cube", 0, -0.16, 0, 0.06, 0.32, 0.06, TALON)  # the scaled shank
+                    for k in (-1, 0, 1):  # hooked talons
+                        r.part("cone", 0.06, -0.34, k * 0.05, 0.03, 0.12, 0.03, TALON, rz=-1.2 + 0.2 * k)
+        r.part("cube", 0, 0.25, 0, 0.26, 0.52, 0.3, skin)  # the gaunt torso
+        for i in range(3):  # ribs showing through
+            r.part("cube", 0.13, 0.15 + i * 0.1, 0, 0.02, 0.03, 0.26, _dim(skin, 0.75))
+        r.part("cube", -0.06, 0.08, 0, 0.2, 0.2, 0.26, feather)  # the ragged down at its hips
+        with r.at(0, 0.48, 0):  # the shoulders, from which the wings spread
+            for side in (-1, 1):
+                with r.at(0, 0, side * 0.14):
+                    _harpy_wing(r, side, beat * (1 - fall), lift * (1 - fall), wing, feather)
+            with r.at(0.04, 0.16, 0):  # the head
+                r.part("sphere", 0, 0, 0, 0.18, 0.2, 0.17, skin)
+                for i in range(4):  # long black hair, hanging lank behind
+                    r.part("cube", -0.1, -0.14 - 0.04 * (i % 2), (i - 1.5) * 0.06, 0.06, 0.34, 0.05, HARPY_HAIR,
+                           rz=0.25)  # fmt: skip
+                with r.at(0.09, 0.01, 0):  # the mask: a curved shard of a bell
+                    r.part("cube", 0, 0, 0, 0.05, 0.22, 0.2, BELL_BRONZE)
+                    r.part("cube", 0.01, 0.1, 0, 0.05, 0.03, 0.22, _dim(BELL_BRONZE, 0.75))  # its lip
+                    r.part("cube", 0.03, -0.1, 0.04, 0.03, 0.06, 0.04, _dim(BELL_BRONZE, 0.85))  # broken edge
+                    for side in (-1, 1):
+                        r.part(
+                            "cube", 0.03, 0.03, side * 0.05, 0.02, 0.025, 0.05, eye, glow=glow
+                        )  # eye slits
+                    r.part("cube", 0.03, -0.06, 0, 0.02, 0.02, 0.07, (40, 30, 24))  # the mouth slot
+
+
 # --- the Keystone ---------------------------------------------------------------------------------
 
 CHAR = (64, 50, 44)  # the Keystone's stone once its shell has burst: charred, the fire showing through

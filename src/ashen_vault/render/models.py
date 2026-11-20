@@ -79,6 +79,7 @@ def enemy(r, e):
         "stone_golem": sunken_models.stone_golem,
         "sunken_sexton": sunken_models.sunken_sexton,
         "keystone": sunken_models.keystone,
+        "harpy": sunken_models.harpy,
     }.get(e.type.id)
     if e.type.id == "bone_walker" and getattr(e, "look", None) == "grave":
         fn = cemetery_models.grave_walker  # the cemetery's own dead, risen in their winding sheets
