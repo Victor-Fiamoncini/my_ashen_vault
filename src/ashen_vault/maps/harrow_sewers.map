@@ -4,16 +4,17 @@ ambient = 0.2 0.22 0.17
 fog = 0.045 0.06 0.045
 fog_range = 4 22
 torch = 9 0.72 0.7 0.52
-start = 15 23 -90
+start = 2 14 0
 default = .
 entity_floor = auto
 edge_top = 6
 edge_tex = sewer_brick
 
-// The sewers under Harrowmere: four grates in the town's streets drop into four districts, all joined
+// The sewers under Harrowmere: four grates in the town's corners drop into four districts, all joined
 // through the old cistern at the heart of them, so each way down is a short way back to the others.
 // The North Sluices under the north road, with the gate machinery of the sluice channel; the Market
-// Drains, narrow vaulted runs under the market lanes; the Canal Culvert by the canal's head; and the
+// Drains, narrow vaulted runs under the market lanes, reached down a drain from the west lane's grate;
+// the Canal Culvert under the harbour lane; and the
 // Quay Outfall, where the sewers pour out through great grates into the sea. Between the cistern and
 // the outfall Mother Gnawl, the rats' brood-mother, keeps her nest; below the outfall a stair goes down
 // to the Sump, and behind its door the Sodden Pall, all the drains ever carried grown a skin (a bell of
@@ -66,8 +67,8 @@ v = floor tex=flagstone h=-7.6 ceil=-2.5 ceil_tex=sewer_vault side=sewer_brick d
 ###################.ÍF.Á......Á..F..############
 ###################=================############
 ###################Â===========L====#FbbbÑbbbbF#
-###################Æ.H.....A......ÇF#bqqbbbqqqb#
-##########...........HH...Å.........#bqqbbbqqqb#
+###################Æ.H............ÇF#bqqbbbqqqb#
+##########...........HH...Å........A#bqqbbbqqqb#
 ##########F########Æ.......F.....Ç.Q#bbbbbbbÈbb#
 ##########.#############.############bbbbNbbbbb#
 ##########.#############X############ÌbPbbbbPbÌ#
@@ -75,7 +76,7 @@ v = floor tex=flagstone h=-7.6 ceil=-2.5 ceil_tex=sewer_vault side=sewer_brick d
 ##########.#############G############bÈbÊbbÊqqb#
 ##########É#############.############bqqbËbbqqb#
 ########d......ÍF#######.############bqqbbbbqqb#
-########d###.###Â#######,############FbbbbbbbbF#
+#Bddddddd###.###Â#######,############FbbbbbbbbF#
 ########d###H###-##F,,F,,,,F,,F##########O######
 ########G###H###Ë##,E,,,,,,H,,Ç##########u######
 ####SdÇ#d###H###-##,,P,Ê,,,,P,,##########u######
@@ -85,7 +86,7 @@ v = floor tex=flagstone h=-7.6 ceil=-2.5 ceil_tex=sewer_vault side=sewer_brick d
 ########s###F###.##F,,Åwwww,,,,######uukkÓuuuu##
 ########.ÍJ......##,,J,wwww,,,,######uukÓkuuuu##
 ########F######.###,,,,wwwwÅ,,F######ÉuÖËkuuuÂ##
-########d######B###F,,Ì,,,,Ì,,,######uuuuuuJuÆ##
+########d######.###F,,Ì,,,,Ì,,,######uuuuuuJuÆ##
 ########J######R###,,P,,,,,,P,Æ######Vuuuuuuuu##
 ########d##########,,,H,,,Ê,I,,######FuFuuÍFuu##
 ########dHHddd#####F,,,F,,F,,,F#######h#########
@@ -97,8 +98,8 @@ v = floor tex=flagstone h=-7.6 ceil=-2.5 ceil_tex=sewer_vault side=sewer_brick d
 #T######d########d######xxnnnnnnÄnn##########2##
 #dW.FI....F.....ÈÍ###############Ù###########1##
 #G#~~.~~~~~~ËÔ--K-#############FooFooppoooFooF##
-###ÂÍ.........F..F.....Z.Y.....oooooopÕoooooÇo##
-#######C#######################ÂoooooËpooooooo##
+###.Í.........F..F.....Z.Y.....oooooopÕoooooÇo##
+###C###########################ÂoooooËpooooooo##
 ###############################FooHHoÒpooooIoF##
 ###############################ÆooHHopÒooooooÇ##
 ###############################oooooopËDoooooo##
@@ -108,9 +109,9 @@ v = floor tex=flagstone h=-7.6 ceil=-2.5 ceil_tex=sewer_vault side=sewer_brick d
 
 [entities]
 // The four ladders up to the town's grates, each under the grate it climbs to.
-A = exit map=harrowmere at=27,6,90 label=Climb_up_to_the_north_road model=sewer_ladder
-B = exit map=harrowmere at=15,25,90 label=Climb_up_to_the_market model=sewer_ladder
-C = exit map=harrowmere at=7,38,0 label=Climb_up_to_the_canal model=sewer_ladder yaw=-90
+A = exit map=harrowmere at=35,7,90 label=Climb_up_to_the_north_road model=sewer_ladder yaw=180
+B = exit map=harrowmere at=2,14,0 label=Climb_up_to_the_west_lane model=sewer_ladder
+C = exit map=harrowmere at=4,37,0 label=Climb_up_to_the_harbour model=sewer_ladder yaw=-90
 D = exit map=harrowmere at=39,39,-90 label=Climb_up_to_the_quay model=sewer_ladder
 // The cistern's shrine, its pillars and the light.
 E = save_statue

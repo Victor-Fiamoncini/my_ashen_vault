@@ -72,8 +72,8 @@ R;;;;;;;;;;;;;;;;;;;;)(;;,,,,ÌßNßÿ,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;Ú;;;;í;ìí;ìí;ìí;;CCË;Ë;,,,,,ÞsÞù,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;;ÉCCCCCCCCCCCCCCCèC;;,,,,,,,,s,,,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;;êDaYnnOðnOñnOnnnC===9876,Þù,s,ù,ùAAAAAAAAAARAAAAAAAAAAAAAA
-R;;CaannIQQIQQIQQInn===4321!,,,s,,,,AAAAAAAAAARAAAAAAAAAAAAAA
-R;;CîEÓnnnnÊnnn`nn:ï¬=="321,,,,sX,,,AAAAAAAAAARAAAAAAAAAAAAAA
+R;;CaannIQQIQQIQQInn===4321,,,,s,,,,AAAAAAAAAARAAAAAAAAAAAAAA
+R;;CîEÓnnnnÊnnn`nn:ï¬=="321,,,,sX,,!AAAAAAAAAARAAAAAAAAAAAAAA
 R;;CaannIQQIQQIQQInn===4321sssss.qqq..AAAAAAAARAAAAAAAAAAAAAA
 R;;ëDaYenOònOónOnnnC===9876sÞ.....à.á.AAAAAAAARAAAAAAAAAAAAAA
 R;;CCCCCCCCCCCCCCCCéC==,,,qs|...ÆHHHH¡...á.à..RAAAAAAAAAAAAAA
@@ -81,7 +81,7 @@ R;;;;;;í;ìí;ìí;ìí;;CC'4;;ù,s|...H%ii+H.ÈJJJJJ.RAAAAAAAAAAAAAA
 R;Ú;;;;;;;Ú;;;;;;;Ú;;33;;,qs|...çiiiiH.J+^i&J.RAAAAAAAAAAAAAA
 ±;;;;;Ú;;;;;;;Ú;;;;;;22Ú;q.s|...HiÒiiHâJiiiiJâ²AAAAAAAAAAAAAA
 R;;;;;;;;;Ú;;;;;;;;;;11;;..ssss.H>ii$H.JÒiiiJ.RAAAAAAAAAAAAAA
-R....á.à.......q,q...ss.ÅJJJ£.s.HHHHHH.Jiii$J.RAAAAAAAAAAAAAA
+R?...á.à.......q,q...ss.ÅJJJ£.s.HHHHHH.Jiii$J.RAAAAAAAAAAAAAA
 R..ÀHHHHH¡..q.q,T,q..ssàJ+i$Jás..q,q...ªJåJJ©.RAAAAAAAAAAAAAA
 R..Hû¸ãkÏHþq,q.q,q...ssDJiiiJ.sÜq,T,q.....q,q.RAAAAAAAAAAAAAA
 R..H×kkkºHq,T,q.q....ss.J>i&J.s..q________,ø,qRAAAAAAAAAAAAAA
@@ -91,7 +91,7 @@ R..HÍkúkkH..q.....sssssssssssssss._oooooo_.q..RAAAAAAAAAAAAAA
 R..ÑHHHHHH........sssssssssssssss._ooooooH+^iHRAAAAAAAAAAAAAA
 R...q,T,â.........sssssssssssssss._oooogÏHiiÍHRVVVVVVVVAAAAAA
 R..à.q,q...qqqqqq.ssssssPPPssssss._______HLiiHRwUwvvwwVAAAAAA
-RÁHHH¡q..-q,,,,?,qÞsssssPBPsMsssÞ....q,qàHiiÍHRwwwvvwwVAAAAAA
+RÁHHH¡q..-q,,,,,,qÞsssssPBPsMsssÞ....q,qàHiiÍHRwwwvvwwVAAAAAA
 RH»LiH·..-q,,,,,,qssssssPPPsssssÛ...q,ø,qHÒiiHRwwVVVwwVAAAAAA
 RHZiiä----q,,T,,,qsssSsssssssssss....q,qáHiiiHRwõVAVwwVAAAAAA
 RH»iÏH....q,,,,,,qsssssssssssssss-----q..«HåHHRwwVAVwUVAAAAAA
@@ -104,7 +104,7 @@ R.q.H&imiä..JiiiiliJás............Hiid¾H..RRRRRAAAAVwwyyyyVAA
 R...H>iÒiHµ.JiÒiiiiJDs......Ù....áH%ii¾H..RRRRRAAAAVUwyzyyVAA
 RRR.H%i½½Hâ.J$iiÒiÏJss............HiÒi$Hq.RRRRRAAAAVVVVVVVVAA
 RRRqHHHHH¤..Jii<iiÏJss....ÐÏ......HHHHH¤,qRRRRRAAAAAAAAAAAAAA
-RRR,,,,{,qrrJJJJJJJ©ss¨........ÏÎ.....q,ø,RRRRRAAAAAAAAAAAAAA
+RRR{,,,,,qrrJJJJJJJ©ss¨........ÏÎ.....q,ø,RRRRRAAAAAAAAAAAAAA
 RRR,,,,,ø,ppÎ.......ss.................q,qRRRRRAAAAAAAAAAAAAA
 RRRqqqqqqXrr........ss..Ý.....X.........q.RRRRRAAAAAAAAAAAAAA
 ±RR.......÷rÝ...ÏÐ.ÞssÞÝ..Û............}..RRRR²AAAAAAAAAAAAAA
@@ -293,12 +293,13 @@ U = torch radius=5 on=w
 õ = mushrooms on=w
 F = fungus radius=4 on=y
 z = mushrooms on=y
-// Four grates down into the Harrow Sewers, each over its own district below: by the north road, in
-// the market lanes, at the canal's head and on the quay. The sewers join up beneath, so each is a
-// short way back to the others.
-! = exit map=harrow_sewers at=27,6,90 label=Descend_into_the_sewers model=sewer_grate
-? = exit map=harrow_sewers at=15,23,-90 label=Descend_into_the_sewers model=sewer_grate
-{ = exit map=harrow_sewers at=7,36,-90 label=Descend_into_the_sewers model=sewer_grate
+// Four grates down into the Harrow Sewers, tucked away in the town's corners, each over its own
+// district below: under the cliffs at the north road's east end, in the west lane below the cathedral
+// terrace, at the harbour lane's west corner and on the quay. The sewers join up beneath, so each is
+// a short way back to the others.
+! = exit map=harrow_sewers at=34,6,180 label=Descend_into_the_sewers model=sewer_grate
+? = exit map=harrow_sewers at=2,14,0 label=Descend_into_the_sewers model=sewer_grate
+{ = exit map=harrow_sewers at=3,36,-90 label=Descend_into_the_sewers model=sewer_grate
 } = exit map=harrow_sewers at=39,39,-90 label=Descend_into_the_sewers model=sewer_grate
 // The Vesper Gate in the north wall, at the head of the cathedral steps: pale stone, standing open on
 // Vesperholm. Nobody in town remembers it shut, or why it was opened. Lamps flank it and banners line
