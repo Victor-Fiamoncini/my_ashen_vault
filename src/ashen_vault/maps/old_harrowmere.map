@@ -22,10 +22,10 @@ vault_tex = cavern_rock
 // fissures past it into the chasm. Below the plaza, across the masons'
 // two roads of light (only one standing at a time; a ward crystal swaps them), the Keystone, the giant
 // the first city was raised on, lies in its Foundation Court; behind it a lift
-// climbs the old gallery's shaft back up to the landing; a false wall in that gallery hides the
-// Bell-keepers' Oubliette. Stone Golems stand like statues until you come close, and the Sunken
-// Sextons toll through their mortar-light staves to wake them. Over it all hangs the vault of the
-// cavern, rough rock 24 m up with stalactites hanging from it (`vault`), the rift (`sun_shaft`) in it.
+// climbs the old gallery's shaft back up to its door in the landing's south wall; a false wall in
+// that gallery hides the Bell-keepers' Oubliette. Stone Golems stand like statues until you come
+// close, and the Sunken Sextons toll through their mortar-light staves to wake them. Over it all
+// hangs the vault of the cavern, rough rock 24 m up with stalactites hanging from it (`vault`), the rift (`sun_shaft`) in it.
 // Below the Oubliette the gaolers' stair runs down to the Under-Cells; east of the roads of light the
 // Mortar Sisters' Workshop stands on its quay, and a third, teal road (fed from the mortar-light in the
 // plaza's fountain) runs home from the core's shield ward.
@@ -119,7 +119,7 @@ $ = floor tex=ochre_flag h=-13.5 side=sunken_brick dark=0.12
 ##aaaaaaaaaa11______________cXûccccc_________###################
 ##aaaaBaaaDa11______________EccccÆcE_________###################
 ##aaaaaaaaaa_____P____________22_____________###################
-###g########__________________22_____________###################
+###Ď########__________________22_____________###################
 ###gáààààöö#LddddddÒ__________22_____________###################
 ###ñ#ãâààâä#dÀÃddÃdd__________22________Q____###################
 ###g#ööààöö#FdddZddF__________3345___________###################
@@ -217,6 +217,8 @@ Z = sunken_sexton on=d
 É = bones on=e
 Ê = keystone on=f
 Ë = door boss=keystone_dead on=n
+// The landing's south wall: a plain door down into the dark old gallery.
+Ď = door on=g
 Ì = lift top=0 locked on=o
 Í = chest item=red_tonic count=2 gold=90 model=worn on=c
 Î = chest item=menders_kit gold=110 model=banded on=d

@@ -39,24 +39,25 @@ def test_old_harrowmere_is_solvable_from_the_breach_down_to_the_keystone():
     doors = [(s.tx, s.tz) for s in _spec(m, "door", boss="keystone_dead")]
     assert len(doors) == 2
     (keystone,) = _spec(m, "keystone")
-    before = _reachable(m, start)
+    gallery = _gallery_door(m)
+    before = _reachable(m, start, open_tiles=[gallery])
     assert (keystone.tx, keystone.tz) not in before  # its court lies behind its great door
     (shrine,) = _spec(m, "save_statue")
     assert {(shrine.tx + dx, shrine.tz + dz) for dx, dz in BESIDE} & before
     (front,) = [d for d in doors if m[d[0], d[1] - 1].walkable]  # the one the plaza's stair leads to
-    court = _reachable(m, start, open_tiles=[front])
+    court = _reachable(m, start, open_tiles=[gallery, front])
     assert (keystone.tx, keystone.tz) in court
     # Behind the false walls and the cell fronts (raised by the levers of the Oubliette, the gaolers'
     # postern and the Under-Cells) every chest but the boss's reward and the lift room's hidden one lies
     # open before the Keystone falls.
     secrets = [(s.tx, s.tz) for s in _spec(m, "secret_wall")]
     cells = [(s.tx, s.tz) for s in _spec(m, "gate")]
-    explored = _reachable(m, start, open_tiles=secrets + cells)
+    explored = _reachable(m, start, open_tiles=[gallery, *secrets, *cells])
     behind_boss = {(s.tx, s.tz) for s in _spec(m, "chest") if (s.tx, s.tz) not in explored}
     (coffer,) = _spec(m, "chest", model="coffer")
     (lift_room,) = [w for w in secrets if m[w[0], w[1]].floor == m[coffer.tx, coffer.tz].floor]
     assert behind_boss == {(coffer.tx, coffer.tz), next(t for t in _beside(lift_room) if t in behind_boss)}
-    everything = doors + secrets + cells
+    everything = [gallery, *doors, *secrets, *cells]
     opened = _reachable(m, start, open_tiles=everything, shortcuts=True)
     assert (coffer.tx, coffer.tz) in opened and (coffer.tx, coffer.tz) not in court  # the boss's reward
     assert behind_boss <= opened
@@ -72,6 +73,42 @@ def _beside(tile):
     return [(tile[0] + dx, tile[1] + dz) for dx, dz in BESIDE]
 
 
+def _gallery_door(m):
+    """The plain door in the landing's south wall, down into the dark old gallery. Nothing locks it, so
+    the walks below count it open."""
+    (door,) = [s for s in _spec(m, "door") if not s.props.get("boss")]
+    return (door.tx, door.tz)
+
+
+def test_a_plain_door_leads_from_the_landing_down_into_the_old_gallery():
+    """The landing's south wall is closed but for one doorway onto the dark gallery, and a plain door
+    stands in it: no key, no bar, no boss, so it opens from either side. The lift shortcut comes up the
+    gallery's shaft and through that door back onto the landing."""
+    m = _map()
+    start = (4, 3)
+    door = _gallery_door(m)
+    (spec,) = [s for s in _spec(m, "door") if (s.tx, s.tz) == door]
+    assert not {"key", "from", "boss"} & spec.props.keys()
+    landing, gallery = (door[0], door[1] - 1), (door[0], door[1] + 1)
+    assert m[landing].walkable and m[landing].ceil is None  # under the open cavern
+    assert m[gallery].walkable and m[gallery].ceil is not None  # cut through the rock
+    assert m[door].floor == m[landing].floor == m[gallery].floor
+    # The landing's south wall is whole but for the door.
+    assert all(not m[x, door[1]].walkable for x in range(2, 12) if x != door[0])
+    assert gallery not in _reachable(m, start)
+    assert gallery in _reachable(m, start, open_tiles=[door])
+    (lift,) = [p for p in terrain.build_platforms(m) if p.kind == "lift"]
+    foot = next(
+        t
+        for t in _beside((TileMap.tile_coord(lift.x), TileMap.tile_coord(lift.z)))
+        if m[t].walkable and m[t].floor == lift.low
+    )
+    assert start not in _reachable(
+        m, foot, shortcuts=True
+    )  # shut, the door keeps the gallery from the landing
+    assert start in _reachable(m, foot, open_tiles=[door], shortcuts=True)
+
+
 def test_the_oubliette_hides_behind_a_false_wall_and_its_lever_opens_the_cells():
     """The Bell-keepers' Oubliette opens off the dark gallery through a false wall; its gaoler's lever
     lies in the hall at its end, past no cell front, and raises them all. Its prisoners can be spoken
@@ -84,12 +121,13 @@ def test_the_oubliette_hides_behind_a_false_wall_and_its_lever_opens_the_cells()
     assert len(gallery) == 1
     (wall,) = gallery
     assert m[wall.tx - 1, wall.tz].walkable and m[wall.tx - 1, wall.tz].floor == m[wall.tx, wall.tz].floor
-    plain = _reachable(m, start)
-    inside = _reachable(m, start, open_tiles=[(wall.tx, wall.tz)])
+    door = _gallery_door(m)
+    plain = _reachable(m, start, open_tiles=[door])
+    inside = _reachable(m, start, open_tiles=[door, (wall.tx, wall.tz)])
     assert (lever.tx, lever.tz) not in plain and (lever.tx, lever.tz) in inside
     cells = [(s.tx, s.tz) for s in _spec(m, "gate", lever="oubliette")]
     assert len(cells) == 6 and not set(cells) & inside
-    freed = _reachable(m, start, open_tiles=[(wall.tx, wall.tz), *cells])
+    freed = _reachable(m, start, open_tiles=[door, (wall.tx, wall.tz), *cells])
     held = [npc for npc in _spec(m, "npc") if npc.props["id"] in {"aubel", "coldry", "ysolde"}]
     for npc in held:
         (front,) = [c for c in cells if c in _beside((npc.tx, npc.tz))]  # each behind its own bars
@@ -123,21 +161,24 @@ def test_the_under_cells_lie_down_the_gaolers_stair_and_the_wardens_lever_opens_
     assert len(postern) == 2 and len(deep) >= 10
     (stair_lever,) = _spec(m, "lever", id="under_stair")
     (warden_lever,) = _spec(m, "lever", id="undercells")
-    inside = _reachable(m, start, open_tiles=[(wall.tx, wall.tz)])
+    door = _gallery_door(m)
+    inside = _reachable(m, start, open_tiles=[door, (wall.tx, wall.tz)])
     assert (stair_lever.tx, stair_lever.tz) in inside  # in the gaoler's hall, past no cell front
     # The postern's gates stand either side of the gallery: the hall on one side, the stair on the other.
     (cross,) = set(_beside(postern[0])) & set(_beside(postern[1]))
-    assert m[cross].ceil is not None and m[cross].floor == 0 and cross in _reachable(m, start)
-    shut = _reachable(m, start, open_tiles=[(wall.tx, wall.tz), *oubliette])
+    assert (
+        m[cross].ceil is not None and m[cross].floor == 0 and cross in _reachable(m, start, open_tiles=[door])
+    )
+    shut = _reachable(m, start, open_tiles=[door, (wall.tx, wall.tz), *oubliette])
     assert (warden_lever.tx, warden_lever.tz) not in shut
-    down = _reachable(m, start, open_tiles=[(wall.tx, wall.tz), *postern])
+    down = _reachable(m, start, open_tiles=[door, (wall.tx, wall.tz), *postern])
     assert (warden_lever.tx, warden_lever.tz) in down
     assert m[warden_lever.tx, warden_lever.tz].floor <= -6  # a tier below the Oubliette
     assert all(m[x, z].ceil is not None for x, z in down - inside if m[x, z].walkable)  # all under rock
     flooded = [t for t in down if m[t].floor_tex == "water" and m[t].walkable]
     assert len(flooded) >= 20 and all(m[t].slow < 1 for t in flooded)
     assert {s.kind for s in m.entities if (s.tx, s.tz) in down} >= {"gaoler", "hollow_inmate", "stone_golem"}
-    opened = _reachable(m, start, open_tiles=[(wall.tx, wall.tz), *postern, *deep])
+    opened = _reachable(m, start, open_tiles=[door, (wall.tx, wall.tz), *postern, *deep])
     for npc_id in ("brannick", "sister_vell"):
         (npc,) = _spec(m, "npc", id=npc_id)
         (front,) = [c for c in deep if c in _beside((npc.tx, npc.tz))]
@@ -147,7 +188,7 @@ def test_the_under_cells_lie_down_the_gaolers_stair_and_the_wardens_lever_opens_
     chests = {(s.tx, s.tz) for s in _spec(m, "chest") if s.tz >= 47}
     assert len(chests) >= 6 and chests <= opened and not chests <= down
     for tile in opened:
-        assert start in _reachable(m, tile, open_tiles=[(wall.tx, wall.tz), *postern, *deep]), tile
+        assert start in _reachable(m, tile, open_tiles=[door, (wall.tx, wall.tz), *postern, *deep]), tile
     # Brannick is held in the cell beside the warden's office; the way to the deep cells runs through it.
     (brannick,) = _spec(m, "npc", id="brannick")
     office = _reachable(m, (warden_lever.tx, warden_lever.tz), avoid=deep)

@@ -1999,6 +1999,29 @@ def test_every_way_between_maps_is_built_in_detail():
     assert parts(exits["vesper_gate"]) != parts(exits["vesper_gate open"])
 
 
+def test_a_sewer_ladder_climbs_into_the_dark_not_a_glow():
+    """A ladder up out of the sewers or the prison ends in a black opening in its shaft's vault: nothing
+    of it glows, and the topmost part is the dark of the climb beyond."""
+    from ashen_vault.render import sewer_models
+
+    class Gpu:
+        def __init__(self):
+            self.parts = []
+
+        def to_matrix(self, m):
+            return m
+
+        def draw_part(self, kind, m, rgb, tex="white", glow=False):
+            self.parts.append((m[7], rgb, glow))
+
+    for height in (3.4, 11.0):
+        gpu = Gpu()
+        sewer_models.sewer_ladder(rig.Rig(gpu), 0.3, height)
+        assert not any(glow for _, _, glow in gpu.parts), height
+        y, rgb, _ = max(gpu.parts, key=lambda p: p[0])
+        assert y == pytest.approx(height - 0.02) and rgb == parts.PASSAGE_DARK, height
+
+
 def test_town_and_fortress_statues_and_carts_are_detailed():
     from ashen_vault.render import fortress_props, town_models
 

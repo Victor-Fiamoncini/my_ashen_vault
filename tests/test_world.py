@@ -1067,6 +1067,11 @@ def test_the_sewer_grates_and_ladders_join_town_and_sewers_both_ways():
         assert "boss" not in grate.props  # the compass points nowhere in town
         (ladder,) = [s for s in ladders if (s.tx, s.tz) == (grate.tx, grate.tz)]  # right under it
         assert ladder.props["model"] == "sewer_ladder"
+        shaft = sewers[ladder.tx, ladder.tz]  # a tall shaft up to the street, walled as high as it climbs
+        assert shaft.ceil - shaft.floor >= 9
+        for nx, nz in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            side = sewers[ladder.tx + nx, ladder.tz + nz]
+            assert not side.solid or side.top >= shaft.ceil, (ladder.tx + nx, ladder.tz + nz)
         tx, tz = (int(v) for v in grate.props["at"].split(",")[:2])
         assert abs(tx - ladder.tx) + abs(tz - ladder.tz) == 1 and sewers[tx, tz].walkable
         bx, bz = (int(v) for v in ladder.props["at"].split(",")[:2])

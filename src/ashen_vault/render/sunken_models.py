@@ -999,77 +999,95 @@ def sunken_tower(r, seed, height=18.0):
                tex="sunken_brick", ry=a)  # fmt: skip
 
 
-BREACH_HALF = 1.05  # half the width of the ragged hole in the wall, at its foot
-BREACH_TOP = 3.1  # its height, at the middle of its broken crown
+BREACH_HALF = 0.82  # half the width of the passage through the hole in the wall
+BREACH_TOP = 2.9  # the height of its dark roof
+BREACH_DEPTH = 0.8  # how far the brick round the hole stands out of the wall, the passage running through it
 BREACH_BRICK = (100, 74, 62)  # the sewers' brick round the hole
 WALL_FACE = -1.0  # a gate model's tile stands against its wall, whose face is here (local -X)
+BREACH_FRONT = WALL_FACE + BREACH_DEPTH  # the face of the brick, where the passage opens
 
 
-def _breach_opening(r, steps, lit, gloom, up):
-    """A ragged hole knocked through the wall at the tile's -X face: a black opening flush on the face,
-    broken courses of sewer brick standing out round it (stepped in toward a crown, a few bricks
-    jutting), the lips of a stair painted down (or up) into the dark, fainter the farther they go, and
-    the light at its far end: `gloom` low down for a stair going down, high up for one climbing."""
-    x = WALL_FACE + 0.02
-    r.part("cube", x, BREACH_TOP / 2, 0, 0.02, BREACH_TOP, 2 * BREACH_HALF, PASSAGE_DARK)
-    for side in (-1, 1):  # the broken edge, its courses stepping in toward the crown
+def _breach_opening(r):
+    """A ragged hole knocked through the wall at the tile's -X face, built like the road gate's tunnel:
+    a passage running back into the wall, black at its end, its sides and its roof, walled in by a
+    thick lining of sewer brick that stands out of the wall, so it reads as a way on from any angle and
+    shows no black past its edges. Round the mouth the broken courses step in toward a crown of bricks
+    fallen in over it, a few of them jutting."""
+    mid = (WALL_FACE + BREACH_FRONT) / 2
+    r.part("cube", WALL_FACE + 0.02, BREACH_TOP / 2, 0, 0.04, BREACH_TOP, 2 * BREACH_HALF, PASSAGE_DARK)
+    for side in (-1, 1):
+        r.part("cube", mid, BREACH_TOP / 2, side * BREACH_HALF, BREACH_DEPTH, BREACH_TOP, 0.04, PASSAGE_DARK)
+    r.part("cube", mid, BREACH_TOP, 0, BREACH_DEPTH, 0.04, 2 * BREACH_HALF, PASSAGE_DARK)
+    # The lining, carried from the wall out to the mouth, so the passage is walled in brick on its
+    # flanks and over its roof; its outer edge ragged course by course.
+    for side in (-1, 1):
         for k in range(7):
             y = 0.22 + k * 0.44
-            inward = 0.08 * k + 0.06 * ((k * 5 + (side > 0)) % 3)
-            z = side * (BREACH_HALF + 0.12 - inward)
-            jut = 0.18 + 0.1 * ((k * 3 + (side > 0)) % 3)
-            r.part("cube", WALL_FACE + jut / 2, y, z, jut, 0.4, 0.36 + 0.08 * (k % 2),
-                   _dim(BREACH_BRICK, 0.85 + 0.06 * (k % 3)), tex="sewer_brick", ry=0.12 * side * (k % 2))  # fmt: skip
-    for k in range(5):  # the broken crown, lumps of brick fallen in over the hole
-        z = -0.7 + k * 0.35
-        y = BREACH_TOP - 0.1 + 0.18 * ((k * 2) % 3) - 0.12 * (k == 2)
-        r.part("cube", WALL_FACE + 0.14, y, z, 0.28, 0.42, 0.42, _dim(BREACH_BRICK, 0.8 + 0.07 * (k % 2)),
+            w = 0.34 + 0.1 * ((k * 2 + (side > 0)) % 3)
+            d = BREACH_DEPTH - 0.08 * ((k + (side > 0)) % 2)
+            r.part("cube", WALL_FACE + d / 2, y, side * (BREACH_HALF + 0.02 + w / 2), d, 0.44, w,
+                   _dim(BREACH_BRICK, 0.92 + 0.06 * (k % 3)), tex="sewer_brick")  # fmt: skip
+    for k in range(4):  # over the roof, stepped back as they rise
+        h = 0.3 + 0.1 * (k % 2)
+        r.part("cube", WALL_FACE + (BREACH_DEPTH - 0.12 * k) / 2, BREACH_TOP + 0.2 + 0.32 * k, 0,
+               BREACH_DEPTH - 0.12 * k, h, 2 * BREACH_HALF + 0.8 - 0.35 * k, _dim(BREACH_BRICK, 0.9 + 0.05 * k),
+               tex="sewer_brick")  # fmt: skip
+    for side in (-1, 1):  # the broken edge at the mouth, its courses stepping in toward the crown
+        for k in range(7):
+            y = 0.22 + k * 0.44
+            inward = 0.05 * k + 0.05 * ((k * 5 + (side > 0)) % 3)
+            z = side * (BREACH_HALF + 0.1 - inward)
+            jut = 0.12 + 0.08 * ((k * 3 + (side > 0)) % 3)
+            r.part("cube", BREACH_FRONT - 0.12 + jut / 2, y, z, 0.24 + jut, 0.4, 0.3 + 0.08 * (k % 2),
+                   _dim(BREACH_BRICK, 0.95 + 0.06 * (k % 3)), tex="sewer_brick", ry=0.12 * side * (k % 2))  # fmt: skip
+    for k in range(5):  # the broken crown, lumps of brick fallen in over the mouth
+        z = -0.64 + k * 0.32
+        y = BREACH_TOP - 0.08 + 0.16 * ((k * 2) % 3) - 0.14 * (k == 2)
+        r.part("cube", BREACH_FRONT - 0.04, y, z, 0.36, 0.42, 0.4, _dim(BREACH_BRICK, 0.8 + 0.07 * (k % 2)),
                tex="sewer_brick", rx=0.2 * (k - 2))  # fmt: skip
-    gy = BREACH_TOP - 0.55 if up else 0.42  # where the light at the stair's far end gathers
-    for k in range(4):  # that light, soft: bands fading out from its heart, widest and faintest outside
-        band = 0.16 + 0.22 * k
-        r.part("cube", x + 0.004 + 0.002 * (3 - k), gy, 0, 0.004, band * 0.9, band * 2.2,
-               _dim(gloom, 0.95 - 0.22 * k), glow=True)  # fmt: skip
-    for k in range(steps):  # the stair's lips, in perspective, catching that light as they near it
-        u = k / max(steps - 1, 1)
-        y = (0.12 + 0.34 * k) if up else (0.9 - 0.11 * k)
-        half = BREACH_HALF * (0.85 - 0.45 * u)
-        rgb = _mix_rgb(_dim(lit, 0.75), _dim(gloom, 0.8), u)
-        r.part("cube", x + 0.016, y, 0, 0.01, 0.045, 2 * half, rgb, glow=u > 0.5)
 
 
 def cistern_breach(r, t):
     """The way down out of the Pall's cistern, set in the wall behind its tile (-X) and facing +X: a
-    ragged hole where the cistern's wall gave way onto an older city beneath (`_breach_opening`), the
-    worn sandstone lips of a stair going down into the dark, a warm glow far below, the brick it burst
-    spilled out over the floor and dust still sifting from its broken crown."""
-    _breach_opening(r, 5, MASONRY, (200, 140, 70), up=False)
+    ragged hole where the cistern's wall gave way onto an older city beneath (`_breach_opening`), a
+    worn sandstone lip where its floor falls away into the dark, the brick it burst spilled out over the
+    floor and dust still sifting from its broken crown."""
+    _breach_opening(r)
+    lip = BREACH_FRONT - 0.3  # past this the floor drops away down a stair no light reaches
+    r.part("cube", (WALL_FACE + lip) / 2, 0.012, 0, lip - WALL_FACE, 0.02, 2 * BREACH_HALF, PASSAGE_DARK)
+    r.part(
+        "cube", lip + 0.06, 0.03, 0, 0.12, 0.06, 2 * BREACH_HALF - 0.1, _dim(MASONRY, 0.7), tex="rough_stone"
+    )
     for i in range(9):  # the rubble, fanned out over the floor from the hole
         a = (i - 4) * 0.33
-        d = 0.35 + 0.45 * ((i * 5) % 3)
+        d = 0.3 + 0.45 * ((i * 5) % 3)
         size = 0.34 - 0.06 * ((i * 5) % 3)
-        r.part("cube", WALL_FACE + 0.1 + d * math.cos(a), size * 0.4, 1.1 * d * math.sin(a), size, size * 0.8,
-               size * 0.9, _dim(BREACH_BRICK, 0.85 + 0.05 * (i % 3)), tex="sewer_brick", ry=i * 1.3)  # fmt: skip
+        r.part("cube", BREACH_FRONT + 0.1 + d * math.cos(a), size * 0.4, 1.1 * d * math.sin(a), size,
+               size * 0.8, size * 0.9, _dim(BREACH_BRICK, 0.85 + 0.05 * (i % 3)), tex="sewer_brick",
+               ry=i * 1.3)  # fmt: skip
     for i in range(3):  # dust sifting down from the broken crown
         u = (t * 0.4 + i / 3) % 1.0
-        r.part("cube", WALL_FACE + 0.35, BREACH_TOP - 0.2 - 2.8 * u, -0.5 + 0.5 * i, 0.03, 0.06, 0.03,
+        r.part("cube", BREACH_FRONT + 0.25, BREACH_TOP - 0.2 - 2.6 * u, -0.5 + 0.5 * i, 0.03, 0.06, 0.03,
                (170, 150, 120))  # fmt: skip
 
 
 def sunken_stair(r, t):
     """The way back up to the sewers from the old city, set in the cavern wall behind its tile (-X): the
-    same ragged hole (`_breach_opening`), seen from below, a stair of sewer brick climbing up into it
-    toward the green gloom of the cistern, rubble at its foot and drips falling from its crown."""
-    _breach_opening(r, 6, BREACH_BRICK, (60, 90, 50), up=True)
-    for k in range(2):  # the stair's first steps, standing out of the hole
-        r.part("cube", WALL_FACE + 0.25 - 0.12 * k, 0.1 + 0.2 * k, 0, 0.5, 0.2, 1.6, BREACH_BRICK,
-               tex="sewer_brick")  # fmt: skip
+    same ragged hole (`_breach_opening`), seen from below, a stair of sewer brick climbing out of it and
+    on up into the dark, each step dimmer than the last, rubble at its foot and drips falling from its
+    crown."""
+    _breach_opening(r)
+    for k in range(4):  # the stair, climbing back into the passage and fading as it goes
+        h = 0.2 * (k + 1)
+        r.part("cube", BREACH_FRONT + 0.25 - 0.27 * k, h / 2, 0, 0.28, h, 2 * BREACH_HALF - 0.04,
+               _dim(BREACH_BRICK, 1.1 - 0.3 * k), tex="sewer_brick")  # fmt: skip
     for i in range(6):
         a = i * 2.3
-        r.part("cube", 0.0 + 0.4 * math.cos(a), 0.1, 0.7 * math.sin(a), 0.28, 0.18, 0.24, MASONRY_DARK, ry=a)
+        r.part("cube", BREACH_FRONT + 0.7 + 0.35 * math.cos(a), 0.1, 0.7 * math.sin(a), 0.28, 0.18, 0.24,
+               MASONRY_DARK, ry=a)  # fmt: skip
     for i in range(3):  # drips off the crown
         u = (t * 0.7 + i / 3) % 1.0
-        r.part("cube", WALL_FACE + 0.3, BREACH_TOP - 0.3 - 2.8 * u, -0.4 + 0.4 * i, 0.02, 0.06, 0.02,
+        r.part("cube", BREACH_FRONT + 0.25, BREACH_TOP - 0.3 - 2.6 * u, -0.4 + 0.4 * i, 0.02, 0.06, 0.02,
                (150, 180, 150))  # fmt: skip
 
 

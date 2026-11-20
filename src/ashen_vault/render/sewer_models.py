@@ -777,9 +777,9 @@ def sewer_grate(r, t):
 
 
 def sewer_ladder(r, t, height=3.4, back=0.0):
-    """The way back up to the street: an iron ladder bolted to the brick from the floor to a square
-    shaft in the vault, a faint shaft of daylight falling down it, drips glinting in the light and a
-    puddle at its foot. `back` sets it that far back toward a wall behind it (-X)."""
+    """The way back up to the street: an iron ladder bolted to the brick from the floor up a tall shaft
+    to a square opening in its vault, black with the dark of the climb beyond, slow drips falling from it
+    and a puddle at its foot. `back` sets it that far back toward a wall behind it (-X)."""
     with r.at(-back, 0, 0):
         _ladder(r, t, height)
 
@@ -796,15 +796,12 @@ def _ladder(r, t, height):
         a = i * math.pi / 2
         c, s = math.cos(a), math.sin(a)
         r.part("cube", c * 0.62, height - 0.08, s * 0.62, 0.18, 0.16, 1.4, GRATE_STONE, ry=-a)
-    r.part("cube", 0, height - 0.02, 0, 1.1, 0.03, 1.1, (150, 156, 170), glow=True)  # daylight up the shaft
-    r.part(
-        "cube", 0.1, height * 0.6, 0, 0.5, height * 0.8, 0.5, (58, 64, 72), tex="mist", glow=True
-    )  # its fall
+    r.part("cube", 0, height - 0.02, 0, 1.1, 0.03, 1.1, PASSAGE_DARK)  # the black of the climb beyond
     r.part("cube", 0.2, 0.012, 0, 1.2, 0.02, 1.0, (70, 80, 72))  # the puddle at its foot
-    for k in range(4):  # drips falling through the light
+    for k in range(4):  # drips falling from the dark
         u = (t * 0.7 + k / 4) % 1.0
         r.part("cube", 0.25 + 0.1 * math.sin(k * 2.1), height - 0.1 - u * (height - 0.2), (k - 1.5) * 0.15,
-               0.025, 0.06, 0.025, (190, 200, 210), glow=True)  # fmt: skip
+               0.025, 0.06, 0.025, (74, 82, 76))  # fmt: skip
 
 
 # --- the sewers' dressing -------------------------------------------------------------------------

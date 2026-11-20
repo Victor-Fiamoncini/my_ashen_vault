@@ -46,3 +46,13 @@ def test_releasing_the_sky_unloads_its_meshes():
     assert len(gpu.unloaded) == len(gpu.uploaded) and sky_pass._meshes == []
     sky_pass._bake(sky.SKIES["ember"], FOG, 0.0, False)  # the next frame bakes it afresh
     assert len(gpu.uploaded) == 2 * len(gpu.unloaded)
+
+
+def test_the_far_moon_is_baked_still_behind_the_drifting_banks():
+    gpu = _Gpu()
+    sky_pass = SkyPass(gpu)
+    sky_pass._bake(sky.SKIES["dusk"], FOG, 0.0, False)
+    names = [name for name, _ in sky.layers(sky.SKIES["dusk"], FOG)]
+    baked = dict(zip(names, sky_pass._meshes, strict=True))
+    assert baked["far_moon"][1:] == ("white", False) and baked["far_wisps"][1:] == ("cloud_cap", False)
+    assert baked["clouds"][2] and names.index("far_wisps") < names.index("clouds")

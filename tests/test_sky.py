@@ -275,3 +275,58 @@ def test_vesperholms_moon_blazes_in_a_corona_under_moonlit_cloud():
 
 def test_a_sky_without_a_sun_has_no_disc():
     assert sky.sun(sky.Sky(zenith=(0.2, 0.3, 0.5))) is None
+
+
+def test_harrowmere_sees_vesperholms_moon_far_off_in_the_north_behind_its_clouds():
+    """Over the Vesper Gate, Harrowmere's dusk shows Vesperholm's full moon where it hangs over that
+    city: smaller than there, pale, its seas on it, behind the drifting banks and veiled by wisps."""
+    spec, moonlit = sky.SKIES["dusk"], sky.SKIES["moonlit"]
+    far = spec.far_moon
+    assert far and not spec.moon and moonlit.far_moon is None
+    assert far.at == moonlit.sun_at == sky.MOON_AT
+    d = sky.direction(*far.at)
+    assert d[2] / math.hypot(d[0], d[2]) < -0.9 and 15 < far.at[1] < 35  # north (-z), over the gate
+    assert far.size < moonlit.sun_size and min(far.color) > 0.7 and far.color[2] >= far.color[0]
+    order = [name for name, _ in sky.layers(spec, FOG)]
+    assert order.index("stars") < order.index("far_moon") < order.index("far_wisps") < order.index("clouds")
+    assert sky.TEXTURES["far_moon"] == "white" and sky.TEXTURES["far_wisps"] == "cloud_cap"
+    assert "far_moon" not in sky.DRIFTING and "far_wisps" not in sky.DRIFTING
+    # The upper cloud bank reaches over it, so the banks drift across its face.
+    lo, hi, _, _ = sky.CLOUD_BANDS[-1]
+    assert lo < far.at[1] - far.size and far.at[1] < hi
+    # The disc and its seas stay on the disc; the seas are darker than it.
+    disc, lit = sky.far_moon(spec), sky.far_moon_color(spec)
+    for i, p in enumerate(_verts(disc)):
+        assert _cos_to(p, d) > math.cos(math.radians(far.size + 0.05))
+        assert sum(disc.colors[i * 3 : i * 3 + 3]) <= sum(lit) + 1e-6
+    assert disc.colors[:3] == pytest.approx(lit) and min(lit) > 0.6
+    wisps = sky.far_wisps(spec)
+    on_disc = [p for p in _verts(wisps) if _cos_to(p, d) > math.cos(math.radians(far.size))]
+    assert on_disc and len(on_disc) < wisps.vertex_count  # across the moon and out past its limb
+    # Its faint halo lies in the dome, behind the stars.
+    assert (
+        sky.dome(spec, FOG).vertex_count
+        > sky.dome(dataclasses.replace(spec, far_moon=None), FOG).vertex_count
+    )
+
+
+def test_no_star_shines_on_the_far_moon():
+    spec = sky.SKIES["dusk"]
+    d = sky.direction(*spec.far_moon.at)
+    stars = _verts(sky.stars(spec, FOG))
+    assert stars and all(_cos_to(p, d) < math.cos(math.radians(spec.far_moon.size + 1)) for p in stars)
+
+
+def test_darkness_and_the_veil_dim_the_far_moon():
+    spec = sky.SKIES["dusk"]
+    for layer in (sky.far_moon, sky.far_wisps):
+        assert max(layer(spec, dark=1.0).colors) == pytest.approx(0.0)
+        assert layer(spec, veil=True).colors != layer(spec).colors
+
+
+@pytest.mark.parametrize("name", sorted(n for n, s in sky.SKIES.items() if not s.far_moon))
+def test_skies_without_a_far_moon_have_no_such_layer(name):
+    spec = sky.SKIES[name]
+    assert sky.far_moon(spec) is None and sky.far_wisps(spec) is None
+    built = dict(sky.layers(spec, FOG))
+    assert "far_moon" not in built and "far_wisps" not in built

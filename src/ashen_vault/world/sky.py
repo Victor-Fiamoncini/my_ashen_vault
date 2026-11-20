@@ -90,6 +90,20 @@ SHROUD_RIM = 0.7  # how far each billow's rim takes the hidden sun's light
 
 
 @dataclass(frozen=True)
+class FarMoon:
+    """Another land's moon seen from afar: a small full moon (its seas on it) in a faint halo, low
+    enough that the drifting cloud banks pass over it, with wisps of the sky's own cloud across it."""
+
+    at: tuple = MOON_AT  # (azimuth, elevation) in degrees
+    size: float = 5.0  # the disc's radius, degrees
+    color: tuple = (0.8, 0.84, 0.92)
+    halo: tuple = (0.24, 0.26, 0.36)
+    halo_size: float = 13.0
+    maria_shade: float = 0.84
+    wisps: float = 0.85  # how much of the sky's cloud colour its wisps take (the rest the moon's light)
+
+
+@dataclass(frozen=True)
 class Sky:
     zenith: tuple  # colour straight up; the horizon is always the map's fog colour
     sun: tuple | None = None  # the sun's disc colour (None: no sun)
@@ -110,6 +124,7 @@ class Sky:
     maria_shade: float = MARIA_SHADE  # how dark a moon's seas are against its disc
     corona: tuple | None = None  # a moon's bright glow hugging its disc
     veiled: tuple | None = None  # a sun hidden in a bank of cloud in the south: the light leaking round it
+    far_moon: FarMoon | None = None  # another land's moon, far off, behind the cloud banks
 
 
 SKIES = {
@@ -126,7 +141,8 @@ SKIES = {
         mist=(0.39, 0.4, 0.43),
         stars=0.32,
     ),
-    # Harrowmere: dusk under a bruised ceiling of cloud, a dull copper sun sinking through it.
+    # Harrowmere: dusk under a bruised ceiling of cloud, a dull copper sun sinking through it, and in
+    # the north, over the Vesper Gate, Vesperholm's full moon, small and far, half lost in the cloud.
     "dusk": Sky(
         zenith=(0.07, 0.07, 0.12),
         sun=(0.92, 0.6, 0.38),
@@ -138,6 +154,7 @@ SKIES = {
         cloud_under=(0.12, 0.12, 0.17),
         mist=(0.18, 0.18, 0.23),
         stars=0.5,
+        far_moon=FarMoon(),
     ),
     # The hollow: thick, humid green-gold haze over the canopy and a pale sun glaring through it.
     "jungle": Sky(
@@ -275,6 +292,9 @@ def dome(spec, fog, dark=0.0, veil=False):
         _glow(mesh, spec.sun_at, corona, spec.sun_size * CORONA_SCALE, fog, zenith, under=halo)
     if spec.veiled:
         _glow(mesh, SUN_AT, shade(spec.veiled, dark, veil), VEILED_GLOW, fog, zenith)
+    if spec.far_moon:
+        far = spec.far_moon
+        _glow(mesh, far.at, shade(far.halo, dark, veil), far.halo_size, fog, zenith)
     return mesh
 
 
@@ -356,15 +376,20 @@ def sun(spec, dark=0.0, veil=False):
     mesh = SkyMesh()
     rgb = sun_color(spec, dark, veil)
     rim = [c * LIMB_SHADE for c in rgb] if spec.moon else rgb
-    d = direction(*spec.sun_at)
+    _disc(mesh, spec.sun_at, spec.sun_size, rgb, rim, RADIUS * 0.84)
+    return mesh
+
+
+def _disc(mesh, at, size, rgb, rim, r):
+    """A disc `size` degrees round the direction `at`: `rgb` at its heart, `rim` at its edge."""
+    d = direction(*at)
     u, v = _basis(d)
     steps = 20
     for i in range(steps):
         a0, a1 = 2 * math.pi * i / steps, 2 * math.pi * (i + 1) / steps
-        mesh.vertex(d, (0, 0), rgb, RADIUS * 0.84)
+        mesh.vertex(d, (0, 0), rgb, r)
         for a in (a0, a1):
-            mesh.vertex(_around(d, u, v, spec.sun_size, a), (0, 0), rim, RADIUS * 0.84)
-    return mesh
+            mesh.vertex(_around(d, u, v, size, a), (0, 0), rim, r)
 
 
 def sea_reach(sea):
@@ -380,20 +405,25 @@ def maria(spec, dark=0.0, veil=False):
         return None
     mesh = SkyMesh()
     rgb = [c * spec.maria_shade for c in sun_color(spec, dark, veil)]
-    d = direction(*spec.sun_at)
+    _seas(mesh, spec.sun_at, spec.sun_size, rgb, RADIUS * 0.835)
+    return mesh
+
+
+def _seas(mesh, at, moon_size, rgb, r):
+    """The MARIA on a moon `moon_size` degrees across round `at`, in `rgb`."""
+    d = direction(*at)
     u, v = _basis(d)
     for n, (x, y, size, wobble) in enumerate(MARIA):
-        centre = _at(d, u, v, x * spec.sun_size, y * spec.sun_size)
+        centre = _at(d, u, v, x * moon_size, y * moon_size)
         cu, cv = _basis(centre)
         rim = []
         for i in range(MARIA_STEPS + 1):
             a = 2 * math.pi * i / MARIA_STEPS
             ragged = 1 + wobble * math.sin(3 * a + n * 1.7) * math.cos(2 * a - n)
-            rim.append(_around(centre, cu, cv, spec.sun_size * size * ragged, a))
+            rim.append(_around(centre, cu, cv, moon_size * size * ragged, a))
         for p0, p1 in pairwise(rim):
             for p in (centre, p0, p1):
-                mesh.vertex(p, (0, 0), rgb, RADIUS * 0.835)
-    return mesh
+                mesh.vertex(p, (0, 0), rgb, r)
 
 
 def wisps(spec, dark=0.0, veil=False):
@@ -404,9 +434,14 @@ def wisps(spec, dark=0.0, veil=False):
     mesh = SkyMesh()
     lit = _mix(shade(spec.clouds, dark, veil), sun_color(spec, dark, veil), WISP_LIGHT)
     under = _mix(shade(spec.cloud_under, dark, veil), lit, 0.4)
-    d = direction(*spec.sun_at)
+    _streamers(mesh, spec.sun_at, spec.sun_size, lit, under, RADIUS * 0.83)
+    return mesh
+
+
+def _streamers(mesh, at, size, lit, under, r):
+    """The WISPS across a moon `size` degrees across round `at`: `lit` above, `under` beneath."""
+    d = direction(*at)
     u, v = _basis(d)
-    size = spec.sun_size
     steps = 12
     for n, (height, bow, thick, length) in enumerate(WISPS):
         row = []
@@ -418,12 +453,45 @@ def wisps(spec, dark=0.0, veil=False):
             uu = n * 0.37 + x * WISP_SCALE
             row.append(
                 (
-                    (_at(d, u, v, -x, y - half), (uu, 1.0), under, RADIUS * 0.83),
-                    (_at(d, u, v, -x, y + half), (uu, 0.0), lit, RADIUS * 0.83),
+                    (_at(d, u, v, -x, y - half), (uu, 1.0), under, r),
+                    (_at(d, u, v, -x, y + half), (uu, 0.0), lit, r),
                 )
             )
         for (a, b), (c, e) in pairwise(row):
             mesh.quad(a, c, b, e)
+
+
+def far_moon_color(spec, dark=0.0, veil=False):
+    """A far moon's disc colour as the eye sees it, a little dulled by the cloud it lies behind."""
+    far = spec.far_moon
+    rgb = _mix(far.color, spec.cloud_under, SUN_THROUGH_CLOUD) if spec.clouds else far.color
+    return shade(rgb, dark, veil)
+
+
+def far_moon(spec, dark=0.0, veil=False):
+    """Another land's full moon seen from afar: its disc, a touch dimmer at its limb, and its seas,
+    behind the cloud banks so they drift across it. None for a sky without one."""
+    far = spec.far_moon
+    if not far:
+        return None
+    mesh = SkyMesh()
+    rgb = far_moon_color(spec, dark, veil)
+    _disc(mesh, far.at, far.size, rgb, [c * LIMB_SHADE for c in rgb], RADIUS * 0.97)
+    _seas(mesh, far.at, far.size, [c * far.maria_shade for c in rgb], RADIUS * 0.965)
+    return mesh
+
+
+def far_wisps(spec, dark=0.0, veil=False):
+    """Wisps of the sky's own cloud hanging still across a far moon, barely lit by it, so it shows
+    half veiled even where the drifting banks leave it clear. None without a far moon under cloud."""
+    far = spec.far_moon
+    if not (far and spec.clouds):
+        return None
+    mesh = SkyMesh()
+    moon = far_moon_color(spec, dark, veil)
+    lit = _mix(moon, shade(spec.clouds, dark, veil), far.wisps)
+    under = _mix(moon, shade(spec.cloud_under, dark, veil), far.wisps)
+    _streamers(mesh, far.at, far.size, lit, under, RADIUS * 0.96)
     return mesh
 
 
@@ -491,7 +559,7 @@ def star_clear(spec):
 def stars(spec, fog, dark=0.0, veil=False):
     """Small diamonds of light over the dome, behind the clouds so the banks hide some and they glint
     in the gaps, and the galaxy's band if the sky has one. None where the light hides them
-    (`spec.stars` 0); none within `star_clear` of the sun."""
+    (`spec.stars` 0); none within `star_clear` of the sun, nor in a far moon's halo."""
     if not spec.stars:
         return None
     mesh = SkyMesh()
@@ -504,10 +572,14 @@ def stars(spec, fog, dark=0.0, veil=False):
         glows.append((shade(spec.halo or spec.sun, dark, veil), spec.halo_size))
         if spec.corona:
             glows.append((shade(spec.corona, dark, veil), spec.sun_size * CORONA_SCALE))
+    far = spec.far_moon
+    far_d = direction(*far.at) if far else None
     for d, size, tint, bright in field:
         cos = sum(a * b for a, b in zip(d, sun_d, strict=True))
         if cos > away:
             continue
+        if far and sum(a * b for a, b in zip(d, far_d, strict=True)) > math.cos(math.radians(far.halo_size)):
+            continue  # nor within a far moon's halo
         behind = dome_color(_elev(d), fog, zenith)
         apart = math.degrees(math.acos(max(-1.0, min(1.0, cos))))
         for rgb_glow, reach in glows:
@@ -586,6 +658,8 @@ TEXTURES = {
     "stars": "white",
     "cap": "cloud_cap",
     "clouds": "clouds",
+    "far_moon": "white",
+    "far_wisps": "cloud_cap",
     "shroud": "white",
     "sun": "white",
     "maria": "white",
@@ -597,12 +671,14 @@ DRIFTING = ("cap", "clouds")  # layers that turn slowly around you
 
 def layers(spec, fog, dark=0.0, veil=False):
     """[(layer, mesh)] for a sky, back to front: the dome (with the sun's halo), the stars, the overhead
-    cap, the cloud banks, the bank a veiled sun hides in, the sun's disc (and a moon's seas and the wisps
+    cap, a far moon and the wisps across it, the cloud banks, the bank a veiled sun hides in, the sun's disc (and a moon's seas and the wisps
     across it) and the mist. Layers the sky lacks are left out."""
     built = (
         ("dome", dome(spec, fog, dark, veil)),
         ("stars", stars(spec, fog, dark, veil)),
         ("cap", cap(spec, dark, veil)),
+        ("far_moon", far_moon(spec, dark, veil)),
+        ("far_wisps", far_wisps(spec, dark, veil)),
         ("clouds", clouds(spec, dark, veil)),
         ("shroud", shroud(spec, dark, veil)),
         ("sun", sun(spec, dark, veil)),
