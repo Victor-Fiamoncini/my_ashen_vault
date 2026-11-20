@@ -88,7 +88,7 @@ TITLE_ORBIT = (25, 24)  # the title camera circles Harrowmere's Silent Bell (its
 COMPARE_COLORS = {1: ui.color(120, 210, 110), -1: ui.color(225, 95, 80), 0: ui.TEXT}
 ENDING = [
     "The bell of Harrowmere rings again.",
-    "Its note rolls down the well into the drowned halls,",
+    "Its note rolls down the grates into the drowned halls,",
     "through the roots of the green hollow and the forges,",
     "and over Vesperholm, where at last the moon goes down.",
     "On the hill, the stone king stirs upon his throne.",

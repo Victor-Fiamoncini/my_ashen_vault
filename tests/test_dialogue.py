@@ -72,7 +72,7 @@ def test_nobody_in_town_takes_the_ashen_for_a_sailor():
 def test_odrin_without_sigils_gives_directions():
     g = FakeGame(flags={"quest"})
     _, text = talk("odrin", g)
-    assert "well" in text and "green trail" in text and "north road" in text
+    assert "grate" in text and "green trail" in text and "north road" in text
     assert not g.finished
 
 
@@ -81,15 +81,15 @@ def test_odrin_with_only_the_ember_sigil_points_to_the_other_two():
     _, text = talk("odrin", g)
     assert "green trail" in text and "Verdant Sigil" in text
     assert "north road" in text and "Iron Sigil" in text
-    assert "well in the square" not in text
+    assert "gaol's grate" not in text
     assert not g.finished
     assert g.player.inventory.has("ember_sigil")
 
 
-def test_odrin_with_only_the_verdant_sigil_points_to_the_well_and_the_road():
+def test_odrin_with_only_the_verdant_sigil_points_to_the_grate_and_the_road():
     g = FakeGame(flags={"quest"}, items=["verdant_sigil"])
     _, text = talk("odrin", g)
-    assert "well" in text and "Ember Sigil" in text and "Iron Sigil" in text
+    assert "grate" in text and "Ember Sigil" in text and "Iron Sigil" in text
     assert not g.finished
 
 

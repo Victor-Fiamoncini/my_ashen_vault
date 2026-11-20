@@ -10,6 +10,7 @@ scales them the same way:
   segments, fullers, horn and claw shafts.
 - `wedge`: a triangular prism whose triangle (in X/Y) points up +Y: axe bits, spikes, teeth, fangs,
   quillon tips, horns.
+- `pyramid`: a square pyramid, its apex up +Y: the hipped ends of roofs.
 - `frustum`: an octagonal prism that narrows toward +Y to `TAPER` of its base: the faceted, tapering
   limbs, fingers and necks of the first-person arms and the villagers.
 
@@ -136,4 +137,22 @@ def frustum():
     return _solid(tris, _wrapped_uv)
 
 
-SHAPES = {"blade": blade, "lozenge": lozenge, "wedge": wedge, "frustum": frustum}
+def _faced_uv(p, _tri, n):
+    """Each sloping face mapped flat on the axis it runs along, as the wedge's slopes are."""
+    if abs(n[1]) > 0.9:
+        return (p[0] + 0.5, p[2] + 0.5)
+    if abs(n[0]) > abs(n[2]):
+        return (p[2] + 0.5, p[1] + 0.5)
+    return (p[0] + 0.5, p[1] + 0.5)
+
+
+def pyramid():
+    base = [(-0.5, -0.5, -0.5), (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (-0.5, -0.5, 0.5)]
+    apex = (0.0, 0.5, 0.0)
+    tris = _quad(*base)
+    for i in range(4):
+        tris.append((base[i], base[(i + 1) % 4], apex))
+    return _solid(tris, _faced_uv)
+
+
+SHAPES = {"blade": blade, "lozenge": lozenge, "wedge": wedge, "frustum": frustum, "pyramid": pyramid}

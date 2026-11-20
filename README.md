@@ -13,7 +13,7 @@
 You are one of the Ashen, woken in a cemetery of ashes by a single toll of Harrowmere's bell, though no
 hand was on its rope. Old Odrin, the bell-keeper, knows the prophecy: whoever wakes must win four sigils
 to raise the king who sits turned to stone in the cathedral. Many Ashen woke before you. None came back.
-Beneath the village well, the sealed cells of the Abandoned Prison have begun to stir, and at the end of a green trail out of the square a cave opens on the jungle of the
+Beneath the grate in the old gaol's yard, the sealed cells of the Abandoned Prison have begun to stir, and at the end of a green trail out of the square a cave opens on the jungle of the
 Verdant Hollow, which has swallowed the old woodcutters' camp. Up the north road, past a long bridge over
 a gorge of fire, the forges of the Cinderhold burn again, and two iron gargoyles keep watch from its roof.
 Take up a rusted sword, bring back the Ember Sigil from the prison, the Verdant Sigil from the hollow and the
@@ -239,15 +239,15 @@ trademarks of FromSoftware, Inc. (*Dark Souls* is published by Bandai Namco Ente
   an arena and only fog remains at its door.
 - **Eight areas, hand-built**:
   - the Cemetery of Ashes where you wake, a short first level that teaches as you go;
-  - Harrowmere, a walled town of stone and half-timbered houses under violet-slate roofs, climbing from
-    its harbour past the Silent Bell to the cathedral where the Enthroned sits, with a smith, an
+  - Harrowmere, a walled town of stone and half-timbered houses under clay-tile roofs, climbing in
+    terraces from its harbour past the Silent Bell to the cathedral where the Enthroned sits, with a smith, an
     herbalist, a trader and a swordsmith to trade with;
   - the Harrow Sewers under its streets, four grates down to rats, slimes that split, the drowned and
     leeches in the sludge;
   - Old Harrowmere below them, the sunken first city: tiers of drowned towers and stairs over a sheer
     chasm, a shaft of daylight from far overhead, stone golems that stand like statues and bell-keepers
     who ring to wake them;
-  - the Abandoned Prison below the well: dark cell blocks where hollow inmates still kneel, a captive
+  - the Abandoned Prison below the gaol's grate: dark cell blocks where hollow inmates still kneel, a captive
     monk behind his bars, a chapel to faceless old gods, traps, and cage lifts down to a skull-walled
     Undercroft and up to the Warden's Gallery;
   - the Verdant Hollow at the end of the green trail: rafts, ledges, a log slope, spore pods, dark caves

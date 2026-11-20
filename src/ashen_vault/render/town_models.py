@@ -26,6 +26,7 @@ from ashen_vault.render.models import (
     realm_crest,
     shield,
 )
+from ashen_vault.util import rround
 from ashen_vault.world.tile_map import TileMap
 
 T = TileMap.TILE
@@ -46,29 +47,69 @@ HAY = (200, 168, 88)
 SACK = (160, 136, 98)
 
 
-def roof(r, w, d, ridge="x", top=4.2, pitch=1.8, tex="roof", wall_tex="timber", eave=0.35):
-    """A gabled roof over a `w` x `d` tile building whose NW corner tile holds the prop: a pitched
-    slab running along `ridge`, the gable ends filled in the wall's texture, a ridge beam, and the
-    eaves overhanging the walls by `eave`."""
+CLAY_RIDGE = (150, 76, 52)  # the half-round ridge and hip tiles of a terracotta roof
+PLASTER_WHITE = (240, 234, 222)  # lime plaster, under the plaster texture's own tint
+
+
+def _ridge_rgb(tex):
+    """The ridge's colour: capping tiles on a terracotta roof, an oak beam on slate."""
+    return CLAY_RIDGE if tex == "clay_tile" else DARK_WOOD
+
+
+def roof(r, w, d, ridge="x", top=4.2, pitch=1.8, tex="roof", wall_tex="timber", eave=0.35, hip=False):
+    """A roof over a `w` x `d` tile building whose NW corner tile holds the prop, its eaves overhanging
+    the walls by `eave` and a ridge along `ridge`. Gabled, it is a pitched slab with the gable ends
+    filled in the wall's texture and barge boards up their slopes; `hip`ped, it slopes on all four
+    sides at one pitch, its ridge shorter by the building's width and capped hips running down to
+    each corner."""
     cx, cz = (w - 1) * T / 2, (d - 1) * T / 2
     span_x, span_z = w * T, d * T
     if ridge == "x":  # the wedge's ridge runs along its Z: turn it so it runs along X
         across, along, ry = span_z, span_x, math.pi / 2
     else:
         across, along, ry = span_x, span_z, 0.0
+    cap = _ridge_rgb(tex)
     with r.at(cx, top, cz, ry=ry):
+        if hip:
+            _hip_roof(r, across + eave * 2, along + eave * 2, pitch, tex, cap)
+            r.part("cube", 0, 0.02, 0, across + eave * 2, 0.08, along + eave * 2 + 0.02, _dim(DARK_WOOD, 0.8))
+            return
         r.part("wedge", 0, pitch / 2, 0, across + eave * 2, pitch, along + eave * 2, WHITE, tex=tex)
         # The gable walls just inside the overhang, and a dark band where the roof meets them.
         r.part(
             "wedge", 0, (pitch - 0.1) / 2, 0, across - 0.05, pitch - 0.1, along + 0.04, WHITE, tex=wall_tex
         )
         r.part("cube", 0, 0.02, 0, across + eave * 2, 0.08, along + eave * 2 + 0.02, _dim(DARK_WOOD, 0.8))
-        r.part("cube", 0, pitch + 0.04, 0, 0.18, 0.14, along + eave * 2 + 0.1, DARK_WOOD)  # ridge beam
+        r.part("cube", 0, pitch + 0.04, 0, 0.18, 0.14, along + eave * 2 + 0.1, cap)  # ridge beam
         for end in (-1, 1):  # barge boards along each gable's slopes
             for side in (-1, 1):
                 slope = math.atan2(pitch, across / 2 + eave)
                 with r.at(side * (across / 4 + eave / 2), pitch / 2, end * (along / 2 + eave + 0.02)):
                     r.part("cube", 0, 0, 0, across / 2 + eave + 0.2, 0.1, 0.06, DARK_WOOD, rz=-side * slope)
+
+
+def hip_ridge(across, along):
+    """The length of a hipped roof's ridge over eaves `across` x `along` (the ridge running along
+    `along`): all four slopes rise at one pitch, so each hip end takes half the width off each end."""
+    return max(along - across, 0.0)
+
+
+def _hip_roof(r, across, along, pitch, tex, cap):
+    """A hipped roof's slopes over eaves `across` x `along`, its ridge along Z: a pyramid at each end
+    whose long faces carry on the wedge's slopes between them, the wedge cut into lengths about the
+    pyramids' own so the tiles keep one size all over, and capping along the ridge and down the hips."""
+    ridge = hip_ridge(across, along)
+    run = min(across, along) / 2  # how far each slope reaches in from the eaves
+    pieces = max(1, rround(ridge / (run * 2))) if ridge > 0.01 else 0
+    for i in range(pieces):
+        z = -ridge / 2 + ridge * (i + 0.5) / pieces
+        r.part("wedge", 0, pitch / 2, z, across, pitch, ridge / pieces + 0.01, WHITE, tex=tex)
+    for end in (-1, 1):
+        r.part("pyramid", 0, pitch / 2, end * ridge / 2, across, pitch, run * 2, WHITE, tex=tex)
+        for side in (-1, 1):  # the hip, capped down to its corner
+            _bar(r, (0, pitch + 0.04, end * ridge / 2), (side * across / 2, 0.04, end * along / 2), 0.14, cap)
+    if ridge > 0.01:
+        r.part("cube", 0, pitch + 0.04, 0, 0.18, 0.14, ridge + 0.1, cap)  # the ridge's capping
 
 
 def silent_bell(r, t):
@@ -532,10 +573,10 @@ def shutters(r, seed, timber=False):
             _board_shutter(r, 0.44, 1.12, paint, seed + side)
 
 
-def balcony(r, seed):
+def balcony(r, seed, roof_tex="violet_slate"):
     """An upper-floor gallery jettied out of the wall at local -X: a plank deck on carved corbels and
     raking braces, a parapet of boards under a rail, a half-open door behind it, and a pent roof of slate
-    over it on two brackets; some days a rug airs over the boards or a lantern hangs from the roof."""
+    (or `roof_tex`) over it on two brackets; some days a rug airs over the boards or a lantern hangs from the roof."""
     wood = _dim(WOOD, 0.9)
     r.part("cube", -0.98, 1.05, 0, 0.03, 2.1, 1.0, (34, 28, 24))  # the doorway behind
     with r.at(-0.97, 1.05, -0.5, ry=-1.1):
@@ -560,7 +601,7 @@ def balcony(r, seed):
         _bar(r, (-0.98, 1.9, z), (-0.3, 2.5, z), 0.08, DARK_WOOD)
     with r.at(-0.55, 2.62, 0, rz=-0.38):  # the pent roof, slates over boards
         r.part("cube", 0, 0, 0, 1.05, 0.06, 2.3, DARK_WOOD, tex="wood_plank")
-        r.part("cube", 0, 0.05, 0, 1.05, 0.05, 2.3, WHITE, tex="violet_slate")
+        r.part("cube", 0, 0.05, 0, 1.05, 0.05, 2.3, WHITE, tex=roof_tex)
     if seed % 3 == 0:
         r.part("cube", -0.12, 0.62, 0.2, 0.05, 0.62, 0.9, CLOTH[seed % len(CLOTH)])  # a rug over the boards
     elif seed % 3 == 1:
@@ -663,23 +704,25 @@ def house_door(r, open_t, spring=2.2, seed=0):
 VIOLET_TRIM = (60, 44, 70)  # the dark painted timber of turrets
 
 
-def roof_turret(r, seed, height=3.2, radius=0.9, cap=3.6):
+def roof_turret(r, seed, height=3.2, radius=0.9, cap=3.6, roof_tex="violet_slate"):
     """A little round turret set out on a house's corner, its foot at the origin: a cone of corbels
     swelling out of the wall below, a plastered drum with a slit window or two lit from within, a
-    timber band at the eaves, and a tall witch-hat cone of violet slate with an iron finial."""
+    timber band at the eaves, and a tall witch-hat cone of violet slate (or `roof_tex`) with an iron
+    finial."""
     d = radius * 2
+    trim = VIOLET_TRIM if roof_tex == "violet_slate" else OAK  # painted to suit its roof
     stone = (176, 166, 152)
     r.part("cone", 0, -0.6, 0, d, 1.2, d, _dim(stone, 0.85), tex="ashlar", rx=math.pi)  # the corbelling
     r.part("cyl", 0, height / 2, 0, d, height, d, stone, tex="plaster" if seed % 2 else "ashlar")
-    r.part("cyl", 0, 0.05, 0, d + 0.1, 0.16, d + 0.1, VIOLET_TRIM)  # string course at its foot
-    r.part("cyl", 0, height - 0.08, 0, d + 0.12, 0.18, d + 0.12, VIOLET_TRIM)  # band at the eaves
+    r.part("cyl", 0, 0.05, 0, d + 0.1, 0.16, d + 0.1, trim)  # string course at its foot
+    r.part("cyl", 0, height - 0.08, 0, d + 0.12, 0.18, d + 0.12, trim)  # band at the eaves
     for k in range(2 if seed % 3 else 1):  # slit windows, warm behind
         a = seed * 0.7 + k * math.pi * 0.8
         x, z = math.cos(a) * (radius - 0.02), math.sin(a) * (radius - 0.02)
         r.part("cube", x, height * 0.55, z, 0.08, 0.7, 0.22, (32, 26, 24), ry=-a)
         r.part("cube", x * 1.01, height * 0.55, z * 1.01, 0.06, 0.56, 0.12, (150, 108, 62), ry=-a, glow=True)
-    r.part("cone", 0, height + cap / 2, 0, d + 0.5, cap, d + 0.5, WHITE, tex="violet_slate")  # witch's hat
-    r.part("cyl", 0, height + 0.1, 0, d + 0.56, 0.12, d + 0.56, _dim(VIOLET_TRIM, 0.8))  # its flared eave
+    r.part("cone", 0, height + cap / 2, 0, d + 0.5, cap, d + 0.5, WHITE, tex=roof_tex)  # witch's hat
+    r.part("cyl", 0, height + 0.1, 0, d + 0.56, 0.12, d + 0.56, _dim(trim, 0.8))  # its flared eave
     r.part("cube", 0, height + cap + 0.3, 0, 0.06, 0.7, 0.06, IRON)  # the finial
     r.part("sphere", 0, height + cap + 0.2, 0, 0.14, 0.14, 0.14, IRON)
 
@@ -1847,3 +1890,374 @@ def drawers(r, seed, apothecary=False):
         r.part("cube", -0.3, 1.11, 0.25, 0.22, 0.12, 0.34, DARK_WOOD)
         r.part("cube", -0.2, 1.11, 0.25, 0.01, 0.04, 0.06, BRASS)
     r.part("cube", -0.3, 1.06, -0.1 if top != 1 else 0.4, 0.3, 0.02, 0.4, (180, 168, 140), ry=0.2)  # a cloth
+
+
+# --- the redesigned town: jetties, dormers, pentices, outside stairs, street arches, the gaol grate ---
+
+GATE_STONE = (206, 198, 184)  # the street arch's dressed stone, under the ashlar's grain
+GAOL_IRON = (46, 44, 48)
+GAOL_STONE = (128, 122, 112)
+GAOL_RUST = (112, 66, 42)
+SHAFT_DARK = (12, 11, 12)
+
+
+def _lantern(r, x, y, z, t=None):
+    """A small iron lantern hung from a hook at (x, y, z): horn panes lit within, corner rods, a pointed
+    cap. With the time `t` a flame burns in it; without, it only glows (a baked prop must stay still)."""
+    with r.at(x, y, z):
+        r.part("cube", 0, 0.05, 0, 0.02, 0.1, 0.02, IRON)  # the hook
+        r.part("cube", 0, -0.32, 0, 0.22, 0.04, 0.22, IRON)  # the base
+        r.part("cube", 0, -0.16, 0, 0.18, 0.28, 0.18, (230, 170, 90), glow=True)  # the panes, lit
+        for dx in (-0.1, 0.1):
+            for dz in (-0.1, 0.1):
+                r.part("cube", dx, -0.16, dz, 0.025, 0.32, 0.025, IRON)
+        r.part("cone", 0, 0.06, 0, 0.28, 0.18, 0.28, IRON)  # the cap
+        if t is not None:
+            _flame(r, 0, -0.18, 0, 0.05, t)
+
+
+def jetty(r, seed, length=3, height=2.4):
+    """An overhanging upper storey along a house's wall at local -X, `length` tiles long and centred on
+    the prop's tile, its sill at the origin (`rise=` sets it up the wall): floor joists running out of
+    the wall carry a moulded bressummer 0.6 m proud of the face, curved brackets on stone corbels prop
+    them from below, and over it a frame of oak posts, rails and braces holds a lime-plaster infill
+    with a leaded window glowing in each tile's bay, under a moulded top plate."""
+    span = length * T
+    face = -0.4  # the jettied face, 0.6 m out from the wall
+    oak = _dim(OAK, 0.95 + 0.05 * (seed % 3))
+    r.part("cube", -0.7, 0.0, 0, 0.6, 0.04, span, _dim(DARK_WOOD, 0.85), tex="wood_plank")  # the soffit
+    for z in range(-length * 2, length * 2 + 1):  # joists every half metre, their ends showing
+        zj = z * span / (length * 4)
+        r.part("cube", -0.7, -0.07, zj, 0.64, 0.14, 0.13, DARK_WOOD)
+        r.part("cube", face + 0.01, -0.07, zj, 0.04, 0.12, 0.11, _dim(DARK_WOOD, 0.75))  # its end grain
+    r.part("cube", face + 0.04, 0.1, 0, 0.16, 0.22, span + 0.08, oak, tex="wood_plank")  # the bressummer
+    r.part("cube", face + 0.12, 0.0, 0, 0.04, 0.04, span + 0.08, _dim(oak, 0.7))  # its moulding
+    for i in range(length + 1):  # a bracket under each post, rising off a stone corbel in the wall
+        z = -span / 2 + i * T
+        z = max(-span / 2 + 0.12, min(span / 2 - 0.12, z))
+        r.part("cube", -0.94, -1.12, z, 0.14, 0.3, 0.22, (176, 166, 150), tex="ashlar")  # the corbel
+        for k in range(4):  # the bracket's curve, built up in short lengths
+            a0, a1 = k * math.pi / 8, (k + 1) * math.pi / 8
+            p0 = (-1 + 0.56 * (1 - math.cos(a0)), -1.0 + 0.9 * math.sin(a0), z)
+            p1 = (-1 + 0.56 * (1 - math.cos(a1)), -1.0 + 0.9 * math.sin(a1), z)
+            _bar(r, p0, p1, 0.13, oak)
+    # The infill, then the frame over it.
+    r.part("cube", face - 0.03, height / 2 + 0.1, 0, 0.06, height - 0.2, span, PLASTER_WHITE, tex="plaster")
+    for end in (-1, 1):  # the jetty's return at each end, back to the wall
+        r.part("cube", -0.7, height / 2 + 0.1, end * span / 2, 0.6, height - 0.2, 0.06, PLASTER_WHITE,
+               tex="plaster")  # fmt: skip
+        r.part("cube", -0.7, height / 2 + 0.1, end * (span / 2 + 0.02), 0.6, 0.12, 0.04, oak)  # its rail
+    r.part("cube", face + 0.03, height, 0, 0.16, 0.16, span + 0.1, oak, tex="wood_plank")  # the top plate
+    r.part("cube", face + 0.09, height + 0.1, 0, 0.12, 0.06, span + 0.16, _dim(oak, 1.15))  # its moulding
+    r.part("cube", face + 0.02, height * 0.42, 0, 0.06, 0.1, span, oak)  # the mid rail
+    for i in range(length * 2 + 1):  # posts a metre apart
+        z = -span / 2 + 0.05 + i * (span - 0.1) / (length * 2)
+        r.part("cube", face + 0.02, height / 2 + 0.1, z, 0.08, height - 0.1, 0.13, oak)
+    for i in range(length):  # each tile's bay: braces either side of a window
+        zc = -span / 2 + T * (i + 0.5)
+        lean = 1 if (seed + i) % 2 else -1
+        for side in (-1, 1):
+            low = (face + 0.03, 0.22, zc + side * 0.95)
+            high = (face + 0.03, height * 0.42, zc + side * 0.55)
+            _bar(r, low if lean > 0 else (low[0], low[1], zc + side * 0.55),
+                 high if lean > 0 else (high[0], high[1], zc + side * 0.95), 0.08, oak)  # fmt: skip
+        wy = height * 0.42 + (height - height * 0.42) / 2
+        r.part("cube", face + 0.0, wy, zc, 0.03, 0.7, 0.62, (30, 26, 22))  # the reveal
+        r.part("cube", face + 0.01, wy, zc, 0.02, 0.6, 0.52, WINDOW_GLOW, glow=True)
+        for rx in (math.pi / 4, -math.pi / 4):  # leaded quarries
+            r.part("cube", face + 0.03, wy, zc, 0.012, 0.015, 0.74, LEAD, rx=rx)
+        r.part("cube", face + 0.04, wy, zc, 0.04, 0.66, 0.05, oak)  # the mullion
+        r.part("cube", face + 0.06, wy - 0.36, zc, 0.12, 0.06, 0.72, oak)  # the sill
+        r.part("cube", face + 0.05, wy + 0.36, zc, 0.1, 0.07, 0.72, oak)  # the head
+
+
+def dormer(r, seed, roof_tex="clay_tile"):
+    """A small gabled dormer window standing on a roof's slope, its foot at the origin and its face
+    toward +X: a plastered front in an oak frame round a glowing leaded casement, tile-hung cheeks of
+    `roof_tex` running back into the roof, and its own little gabled roof with barge boards and a
+    finial at the apex. Its back stands 1.7 m deep, to bury itself in the main roof behind."""
+    oak = OAK
+    r.part("cube", 0.12, 0.02, 0, 0.3, 0.04, 1.5, (94, 96, 100))  # lead flashing at its foot
+    r.part("cube", -0.04, 0.55, 0, 0.08, 1.1, 1.24, PLASTER_WHITE, tex="plaster")  # the front
+    for z in (-0.62, 0.62):
+        r.part("cube", 0.0, 0.55, z, 0.12, 1.14, 0.1, oak)  # corner posts
+    r.part("cube", 0.0, 0.05, 0, 0.14, 0.1, 1.36, oak)  # the sill beam
+    r.part("cube", 0.0, 1.08, 0, 0.14, 0.1, 1.36, oak)  # the head beam
+    r.part("cube", 0.0, 0.58, 0, 0.03, 0.62, 0.6, (30, 26, 22))  # the casement's reveal
+    r.part("cube", 0.01, 0.58, 0, 0.02, 0.54, 0.52, WINDOW_GLOW, glow=True)
+    for rx in (math.pi / 4, -math.pi / 4):
+        r.part("cube", 0.03, 0.58, 0, 0.012, 0.015, 0.72, LEAD, rx=rx)
+    r.part("cube", 0.04, 0.58, 0, 0.04, 0.6, 0.05, oak)  # the mullion
+    r.part("cube", 0.04, 0.58, 0, 0.04, 0.05, 0.58, oak)  # the transom
+    r.part("cube", 0.08, 0.25, 0, 0.14, 0.05, 0.7, _dim(oak, 0.85))  # the casement's sill
+    if seed % 2:  # a pot of something hardy on it
+        r.part("cube", 0.12, 0.33, 0.2, 0.12, 0.12, 0.12, (150, 80, 52))
+        r.part("sphere", 0.12, 0.43, 0.2, 0.16, 0.12, 0.16, (70, 96, 58))
+    for side in (-1, 1):  # tile-hung cheeks back into the roof
+        r.part("cube", -0.85, 0.55, side * 0.66, 1.7, 1.1, 0.06, WHITE, tex=roof_tex)
+    with r.at(-0.8, 1.13, 0, ry=math.pi / 2):  # its own gabled roof, ridge running back into the slope
+        r.part("wedge", 0, 0.28, 0, 1.6, 0.56, 1.9, WHITE, tex=roof_tex)
+        r.part("cube", 0, 0.58, 0, 0.12, 0.1, 1.94, CLAY_RIDGE if roof_tex == "clay_tile" else DARK_WOOD)
+    # The front gable: a plaster triangle under barge boards, an oak king post, a finial.
+    r.part("wedge", -0.06, 1.38, 0, 1.24, 0.5, 0.06, PLASTER_WHITE, tex="plaster", ry=math.pi / 2)
+    r.part("cube", -0.02, 1.36, 0, 0.06, 0.46, 0.08, oak)
+    slope = math.atan2(0.56, 0.8)
+    for side in (-1, 1):
+        r.part("cube", 0.12, 1.41, side * 0.4, 0.05, 0.1, 0.98, DARK_WOOD, rx=side * slope)
+    r.part("cube", 0.12, 1.8, 0, 0.06, 0.32, 0.06, DARK_WOOD)  # the finial
+    r.part("sphere", 0.12, 1.98, 0, 0.09, 0.09, 0.09, DARK_WOOD)
+
+
+def pentice(r, seed, length=1, height=2.5, roof_tex="clay_tile"):
+    """A lean-to awning over a door or a shopfront in the wall at local -X, `length` tiles wide and
+    centred on the prop's tile: a slab of `roof_tex` on rafters falls from a wall plate to a beam
+    `height` up on two oak posts (stone pads at their feet, knee braces at their heads), the half-round
+    tiles' mouths showing along its eave; now and then a string of something drying hangs under it."""
+    span = length * T
+    out = 0.45  # where the posts stand, out from the tile's middle
+    rise = 0.6
+    oak = _dim(OAK, 0.95 + 0.05 * (seed % 3))
+    for side in (-1, 1):  # the posts, on stone pads, braced to the beam
+        z = side * (span / 2 - 0.15)
+        r.part("cube", out, 0.06, z, 0.3, 0.12, 0.3, (150, 142, 130), tex="ashlar")
+        r.part("cube", out, height / 2, z, 0.16, height, 0.16, oak, tex="wood_plank")
+        _bar(r, (out, height - 0.55, z), (out, height - 0.08, z - side * 0.5), 0.09, oak)
+    r.part("cube", out, height, 0, 0.18, 0.18, span, oak, tex="wood_plank")  # the beam
+    r.part("cube", -0.94, height + rise, 0, 0.12, 0.16, span, _dim(oak, 0.85))  # the wall plate
+    for i in range(length * 4 + 1):  # rafters every half metre
+        z = -span / 2 + 0.06 + i * (span - 0.12) / (length * 4)
+        _bar(r, (-0.95, height + rise + 0.06, z), (out + 0.2, height + 0.08, z), 0.07, DARK_WOOD)
+    run = out + 0.3 + 0.95
+    slope = math.atan2(rise, run)
+    mx, my = (out + 0.3 - 0.95) / 2, height + rise / 2 + 0.14
+    with r.at(mx, my, 0, rz=-slope):
+        r.part("cube", 0, 0, 0, run / math.cos(slope), 0.04, span + 0.2, DARK_WOOD, tex="wood_plank")
+        r.part("cube", 0, 0.05, 0, run / math.cos(slope), 0.06, span + 0.2, WHITE, tex=roof_tex)
+    n = length * 8  # the eave: each barrel tile's open mouth
+    ex, ey = out + 0.28, height + 0.14
+    for i in range(n):
+        z = -span / 2 - 0.1 + (span + 0.2) * (i + 0.5) / n
+        r.part("cyl", ex, ey, z, 0.16, 0.08, 0.16, _dim(CLAY_RIDGE, 0.9 + 0.1 * ((seed + i) % 3)),
+               rz=math.pi / 2)  # fmt: skip
+    r.part("cube", -0.92, height + rise + 0.14, 0, 0.08, 0.06, span + 0.2, (94, 96, 100))  # lead flashing
+    if seed % 3 == 0:  # a string of onions (or herbs) drying under it
+        for i in range(5):
+            r.part("sphere", 0.1, height - 0.2 - 0.1 * (i % 2), -0.4 + i * 0.2, 0.1, 0.1, 0.1,
+                   (186, 140, 82) if i % 2 else (120, 140, 70))  # fmt: skip
+
+
+def outside_stair(r, seed, run=2, rise=3.0, flip=False):
+    """A stone stair up the face of the wall at local -X to an upper door: a solid flight 0.9 m wide
+    rising `rise` metres from the prop's tile toward local +Z (toward -Z when `flip`) over `run` tiles,
+    its treads lighter than the risers, an iron handrail on balusters along its open side, and at the
+    top a landing with a parapet before a plank door under a little tiled hood, a lantern glowing
+    beside it."""
+    sz = -1.0 if flip else 1.0
+    stone = (176, 168, 154)
+    x, w = -0.55, 0.9  # the flight's middle and its width
+    landing = 1.1
+    length = run * T - landing
+    steps = max(2, rround(rise / 0.2))
+    tread = length / steps
+    lift = rise / steps
+    z0 = -1.0  # the foot, at the tile's edge
+    for k in range(steps):
+        h = lift * (k + 1)
+        zc = sz * (z0 + tread * (k + 0.5))
+        r.part(
+            "cube", x, h / 2, zc, w, h, tread + 0.01, _dim(stone, 0.92 + 0.06 * (k % 2)), tex="rough_stone"
+        )
+        r.part("cube", x + 0.02, h + 0.02, zc + sz * 0.02, w + 0.04, 0.05, tread, _dim(stone, 1.12))
+    zl = sz * (z0 + length + landing / 2)  # the landing, on a solid pier
+    r.part("cube", x, rise / 2, zl, w, rise, landing, stone, tex="rough_stone")
+    r.part("cube", x + 0.02, rise + 0.03, zl, w + 0.06, 0.06, landing + 0.04, _dim(stone, 1.12))
+    rail = (-0.13, 0.95)  # the handrail: along the flight, then round the landing
+    for k in range(0, steps + 1, 2):
+        zb = sz * (z0 + tread * (k + 0.5)) if k < steps else sz * (z0 + length - tread / 2)
+        hb = lift * (min(k, steps - 1) + 1)
+        r.part("cube", rail[0], hb + 0.45, zb, 0.04, 0.9, 0.04, IRON)  # a baluster
+    _bar(r, (rail[0], lift + rail[1], sz * (z0 + tread / 2)),
+         (rail[0], rise + rail[1], sz * (z0 + length)), 0.05, IRON)  # fmt: skip
+    r.part("cube", -0.12, rise + 0.5, zl, 0.14, 0.9, landing, stone, tex="ashlar")  # the landing's parapet
+    r.part("cube", -0.12, rise + 0.98, zl, 0.2, 0.08, landing + 0.06, _dim(stone, 1.1))  # its coping
+    # The upper door, its lintel and the hood over it.
+    r.part("cube", -0.97, rise + 1.05, zl, 0.06, 2.0, 0.86, DARK_WOOD, tex="door_wood")
+    for y in (0.5, 1.5):
+        r.part("cube", -0.93, rise + y, zl, 0.02, 0.06, 0.8, IRON)  # its straps
+    r.part("cyl", -0.92, rise + 1.0, zl + sz * 0.28, 0.1, 0.03, 0.1, IRON, rz=math.pi / 2)  # its ring
+    for side in (-1, 1):
+        r.part("cube", -0.93, rise + 1.05, zl + side * 0.5, 0.1, 2.1, 0.14, _dim(stone, 1.05), tex="ashlar")
+    r.part("cube", -0.92, rise + 2.15, zl, 0.14, 0.2, 1.16, _dim(stone, 1.05), tex="ashlar")  # the lintel
+    with r.at(-0.7, rise + 2.45, zl, rz=-0.5):  # a little tiled hood on two brackets
+        r.part("cube", 0, 0, 0, 0.7, 0.05, 1.1, WHITE, tex="clay_tile")
+    for side in (-1, 1):
+        _bar(r, (-0.97, rise + 2.25, zl + side * 0.55), (-0.5, rise + 2.4, zl + side * 0.55), 0.06, DARK_WOOD)
+    r.part("cube", -0.95, rise + 1.9, zl - sz * 0.62, 0.06, 0.04, 0.04, IRON)  # the lantern's bracket
+    _lantern(r, -0.82, rise + 1.88, zl - sz * 0.68)
+
+
+def _segment_top(z, spring, half, rise):
+    """Height of a segmental arch's intrados over `z`: an arc through (+-half, spring) rising `rise` at
+    its crown; `spring` beyond its span."""
+    if abs(z) >= half:
+        return spring
+    radius = (half * half + rise * rise) / (2 * rise)
+    return spring + rise - radius + math.sqrt(max(radius * radius - z * z, 0.0))
+
+
+ARCH_SPRING = 3.0  # where the street arch's segmental arch springs from its piers
+ARCH_RISE = 1.1  # how far its crown rises over that
+ARCH_WALL = 4.7  # the top of the wall it carries, under the parapet
+ARCH_DEPTH = 1.0  # its thickness along the street
+
+
+def street_arch(r, seed, width=3, style="crenel"):
+    """A free-standing stone gate arch thrown across a street `width` tiles wide, centred on the prop's
+    tile with the street running along local X beneath it: two piers on the tiles either side of the
+    street (inside the walls or houses there), a segmental arch of dressed voussoirs with a keystone,
+    a solid spandrel wall over it, a string course, and on top a crenellated parapet (`style=crenel`)
+    or a little tiled gable (`style=gable`). The realm's crest is carved in a panel on both faces, and
+    a lantern hangs on a chain under the crown. Nothing stands in the street: you walk under it."""
+    half = width * T / 2 + 0.3  # the piers' inner faces, just outside the street
+    pier = (width + 1) * T / 2  # the piers' middles, on the tiles flanking the street
+    stone = GATE_STONE
+    d = ARCH_DEPTH
+    for side in (-1, 1):  # the piers: plinth, shaft, impost
+        z = side * pier
+        r.part("cube", 0, 0.2, z, d + 0.4, 0.4, 1.8, _dim(stone, 0.85), tex="ashlar")
+        r.part("cube", 0, ARCH_SPRING / 2, z, d + 0.2, ARCH_SPRING, 1.4, stone, tex="ashlar")
+        r.part("cube", 0, ARCH_SPRING - 0.1, z, d + 0.36, 0.2, 1.56, _dim(stone, 1.08))  # the impost
+        for face in (-1, 1):  # a shallow pilaster on each face
+            r.part("cube", face * (d / 2 + 0.14), ARCH_SPRING / 2, z - side * 0.3, 0.08, ARCH_SPRING - 0.6,
+                   0.4, _dim(stone, 0.96), tex="ashlar")  # fmt: skip
+    # The arch: voussoirs round a segment of a circle, the keystone proud.
+    radius = (half * half + ARCH_RISE * ARCH_RISE) / (2 * ARCH_RISE)
+    reach = math.asin(half / radius)
+    n = 15
+    seg = 2 * radius * reach / n * 1.06
+    for i in range(n):
+        a = -reach + (i + 0.5) * 2 * reach / n
+        key = i == n // 2
+        cy = ARCH_SPRING + ARCH_RISE - radius + math.cos(a) * (radius + 0.18)
+        r.part("cube", 0.0, cy, math.sin(a) * (radius + 0.18), d + (0.12 if key else 0.04),
+               0.46 if key else 0.36, seg * (0.85 if key else 1.0),
+               _dim(stone, 1.1 if key else 0.92 + 0.06 * (i % 2)), tex="ashlar", rx=a)  # fmt: skip
+    # The spandrels: solid wall from the arch's back up to the string course, in strips.
+    strips = 12
+    for i in range(strips):
+        z0, z1 = (
+            -pier - 0.7 + (2 * pier + 1.4) * i / strips,
+            -pier - 0.7 + (2 * pier + 1.4) * (i + 1) / strips,
+        )
+        zm = (z0 + z1) / 2
+        under = _segment_top(zm, ARCH_SPRING, half, ARCH_RISE) + 0.3 if abs(zm) < half else ARCH_SPRING
+        if under < ARCH_WALL:
+            r.part("cube", 0, (under + ARCH_WALL) / 2, zm, d, ARCH_WALL - under, z1 - z0, stone, tex="ashlar")
+    span = 2 * pier + 1.4
+    r.part("cube", 0, ARCH_WALL + 0.08, 0, d + 0.2, 0.16, span + 0.2, _dim(stone, 1.1))  # the string course
+    if style == "gable":  # a little tiled gable over it
+        with r.at(0, ARCH_WALL + 0.16, 0):
+            r.part("wedge", 0, 0.4, 0, d + 0.5, 0.8, span + 0.3, WHITE, tex="clay_tile")
+            r.part("cube", 0, 0.82, 0, 0.14, 0.1, span + 0.34, CLAY_RIDGE)
+            for side in (-1, 1):  # finials at the ends of its ridge
+                r.part("cone", 0, 1.05, side * (span / 2 + 0.1), 0.18, 0.4, 0.18, CLAY_RIDGE)
+    else:  # a parapet, its merlons over the crown and the piers
+        r.part("cube", 0, ARCH_WALL + 0.4, 0, d, 0.5, span, stone, tex="ashlar")
+        merlons = 7
+        for i in range(merlons):
+            z = -span / 2 + 0.35 + i * (span - 0.7) / (merlons - 1)
+            r.part("cube", 0, ARCH_WALL + 0.95, z, d + 0.04, 0.6, 0.62, _dim(stone, 0.96 + 0.06 * (i % 2)),
+                   tex="ashlar")  # fmt: skip
+            r.part("cube", 0, ARCH_WALL + 1.27, z, d + 0.12, 0.06, 0.7, _dim(stone, 1.1))  # its coping
+    # The crest in a sunk panel over the crown, on both faces.
+    crown = ARCH_SPRING + ARCH_RISE
+    cy = (crown + 0.5 + ARCH_WALL) / 2
+    r.part("cube", 0, cy, 0, d + 0.06, ARCH_WALL - crown - 0.55, 1.1, _dim(stone, 0.8), tex="ashlar")
+    with r.at(0, cy, 0):
+        realm_crest(r, GILT if seed % 2 else _dim(GILT, 0.85), cy=0.0, scale=0.9, through=d + 0.1)
+    # The lantern, on a short chain from the crown's underside.
+    for k in range(3):
+        r.part("cube", 0, crown - 0.12 - k * 0.12, 0, 0.03, 0.12, 0.05 if k % 2 else 0.02, IRON)
+    _lantern(r, 0, crown - 0.45, 0)
+
+
+def gaol_grate(r, t):
+    """The way down into the prison from a plaza: a 2 m square kerb of worn stones flush with the
+    paving round a black shaft, its inner faces falling away darker and darker; a heavy square grid of
+    crossing iron bars, riveted where they meet, over all of it but one hinged hatch, swung up and
+    chained open to a short winch post with a crank on its drum and a lantern on its arm; an iron
+    ladder's top curling over the rim in the hatch's mouth; and the cold breath of the cells rising."""
+    hole = 0.7  # half the shaft's width
+    r.part("cube", 0, 0.012, 0, hole * 2, 0.02, hole * 2, SHAFT_DARK)  # the black of the shaft
+    for ring, shade in enumerate(((58, 54, 50), (38, 36, 34), (24, 22, 22))):  # its walls, falling away
+        inset = hole - 0.04 - ring * 0.07
+        for i in range(4):
+            a = i * math.pi / 2
+            r.part("cube", math.cos(a) * inset, 0.016, math.sin(a) * inset, 0.07, 0.01, inset * 2 + 0.07,
+                   shade, ry=-a)  # fmt: skip
+    for i in range(4):  # the kerb: four long stones and four corner blocks, flush with the ground
+        a = i * math.pi / 2
+        c, s = math.cos(a), math.sin(a)
+        r.part("cube", c * 0.85, 0.025, s * 0.85, 0.3, 0.05, 1.4, GAOL_STONE, tex="ashlar", ry=-a)
+        r.part("cube", (c - s) * 0.85, 0.026, (s + c) * 0.85, 0.3, 0.052, 0.3, _dim(GAOL_STONE, 0.85),
+               tex="ashlar")  # fmt: skip
+        r.part(
+            "cube", c * 0.715, 0.05, s * 0.715, 0.04, 0.012, 1.4, _dim(GAOL_STONE, 0.6), ry=-a
+        )  # its rebate
+    # The grid: five bars each way, but those that cross the hatch (x 0..0.7, z -0.7..0) stop at it.
+    bars = (-0.56, -0.28, 0.0, 0.28, 0.56)
+    for b in bars:
+        if b > 0:  # bars along Z, east of the hatch's hinge line: only the half clear of it
+            r.part("cube", b, 0.07, hole / 2, 0.07, 0.07, hole, GAOL_IRON)
+        else:
+            r.part("cube", b, 0.07, 0, 0.07, 0.07, hole * 2, GAOL_IRON)
+        if b < 0:  # bars along X, over the hatch's half: only the half clear of it
+            r.part("cube", -hole / 2, 0.085, b, hole, 0.07, 0.07, GAOL_IRON)
+        else:
+            r.part("cube", 0, 0.085, b, hole * 2, 0.07, 0.07, GAOL_IRON)
+    for x, z in ((-0.28, -0.28), (-0.28, 0.28), (0.28, 0.28), (-0.56, 0.0), (0.0, 0.56)):  # rivet heads
+        r.part("cube", x, 0.125, z, 0.1, 0.03, 0.1, _dim(GAOL_IRON, 1.3))
+    for x, z, sx, sz in ((hole / 2, 0.0, hole, 0.1), (0.0, -hole / 2, 0.1, hole)):  # the hatch's frame
+        r.part("cube", x, 0.08, z, sx, 0.08, sz, _dim(GAOL_IRON, 0.85))
+    # The ladder's top, in the hatch's mouth against the shaft's east face.
+    for z in (-0.55, -0.15):
+        r.part("cube", 0.6, 0.3, z, 0.06, 0.6, 0.06, GAOL_RUST)
+        r.part("cube", 0.66, 0.62, z, 0.16, 0.05, 0.06, GAOL_RUST, rz=-0.6)  # curled over the rim
+    for y in (0.12, 0.38):
+        r.part("cube", 0.6, y, -0.35, 0.04, 0.04, 0.44, _dim(GAOL_RUST, 1.1))
+    # The hatch, hinged on the kerb's edge and swung up past upright, a grid of its own.
+    with r.at(hole, 0.09, -hole / 2, rz=-(math.pi / 2 + 0.18)):
+        r.part("cube", -hole / 2, 0, -0.33, hole, 0.06, 0.07, GAOL_IRON)
+        r.part("cube", -hole / 2, 0, 0.33, hole, 0.06, 0.07, GAOL_IRON)
+        for x in (-0.04, -0.66):
+            r.part("cube", x, 0, 0, 0.07, 0.06, hole - 0.02, GAOL_IRON)
+        for x in (-0.24, -0.45):
+            r.part("cube", x, 0, 0, 0.05, 0.05, hole - 0.04, _dim(GAOL_IRON, 1.15))
+        r.part("cube", -hole / 2, 0, 0, hole - 0.04, 0.05, 0.05, _dim(GAOL_IRON, 1.15))
+        for z in (-0.25, 0.25):
+            r.part("cyl", 0, 0, z, 0.1, 0.14, 0.1, GAOL_IRON, rx=math.pi / 2)  # its hinge knuckles
+        r.part("cube", -0.68, 0.05, 0, 0.06, 0.06, 0.1, IRON)  # the eye for the chain
+    free = (hole + 0.68 * math.cos(math.pi / 2 - 0.18), 0.09 + 0.68 * math.sin(math.pi / 2 - 0.18), -hole / 2)
+    # The winch post on the kerb's corner, its drum, crank and lantern arm.
+    px, pz = 0.85, -0.85
+    r.part("cube", px, 0.65, pz, 0.2, 1.3, 0.2, OAK, tex="wood_plank")
+    r.part("cube", px, 0.06, pz, 0.3, 0.12, 0.3, GAOL_IRON)  # its iron shoe, leaded into the kerb
+    r.part("cyl", px - 0.16, 1.0, pz, 0.2, 0.26, 0.2, OAK, rz=math.pi / 2)  # the drum
+    for k in range(3):  # chain wound round it
+        r.part("cyl", px - 0.24 + k * 0.08, 1.0, pz, 0.23, 0.04, 0.23, GAOL_IRON, rz=math.pi / 2)
+    r.part("cube", px + 0.14, 1.0, pz, 0.1, 0.04, 0.04, GAOL_IRON)  # the axle
+    r.part("cube", px + 0.2, 0.88, pz, 0.04, 0.26, 0.04, GAOL_IRON)  # the crank's arm
+    r.part("cube", px + 0.26, 0.76, pz, 0.14, 0.05, 0.05, OAK)  # its handle
+    drum = (px - 0.16, 0.92, pz + 0.04)
+    links = 7  # the chain from drum to hatch, link by link
+    for k in range(links):
+        a = [drum[i] + (free[i] - drum[i]) * k / links for i in range(3)]
+        b = [drum[i] + (free[i] - drum[i]) * (k + 1) / links for i in range(3)]
+        _bar(r, a, b, 0.035 if k % 2 else 0.05, _dim(GAOL_IRON, 1.2))
+    r.part("cube", px, 1.36, pz + 0.22, 0.06, 0.06, 0.5, GAOL_IRON)  # the lantern's arm
+    _lantern(r, px, 1.33, pz + 0.42, t)
+    for i in range(4):  # the cells' cold breath, curling up through the bars
+        u = (t * 0.28 + i / 4) % 1.0
+        s = 0.2 + 0.32 * u
+        r.part("cube", math.sin(t * 0.6 + i * 1.7) * 0.3, 0.12 + u * 1.5, math.cos(i * 2.1) * 0.3,
+               s, s * 0.5, s, (112, 116, 120), tex="mist")  # fmt: skip

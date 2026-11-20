@@ -247,6 +247,9 @@ BLOCKING_PROPS = (
     "silver_tree",
     "old_idol",
 )
+# Ways to another map that fill their tile, so you take them by facing them and interacting: the well
+# and the gaol's grate in Harrowmere's plaza.
+BLOCKING_EXITS = ("well", "gaol_grate")
 # How high a low blocking prop reaches above its floor, in metres: a shot flying higher passes over it
 # (a bolt over a table, a casket or a barrel). Anything not listed stands full height.
 PROP_TOP = {
@@ -305,6 +308,9 @@ WALL_PROPS = (
     "crest_plaque",
     "shutters",
     "balcony",
+    "jetty",
+    "pentice",
+    "outside_stair",
     "stained_window",
     "rose_window",
     "flying_buttress",
@@ -336,6 +342,9 @@ LANDMARKS = (
     "roof_turret",
     "wall_tower",
     "rampart_bay",
+    "jetty",
+    "dormer",
+    "street_arch",
     "moon_spire",
     "moon_roof",
     "moon_portal",
@@ -358,6 +367,7 @@ STATIC_PROPS = frozenset(
         *("gravestone", "open_grave", "cemetery_gate", "mourning_statue", "crypt_front", "grave_railing"),
         *("shop_sign", "forge_bellows", "grindstone", "town_statue", "forge_statue", "ore_cart"),
         *("roof_turret", "wall_tower", "rampart_bay"),
+        *("jetty", "dormer", "pentice", "outside_stair", "street_arch"),
         *("cathedral_portal", "grand_stair", "stair_flight", "nave_runner"),
         *("weapon_rack", "armor_stand", "katana_stand", "bookcase", "drawers"),
         *("sluice_wheel", "outfall_grate", "rat_nest", "inkcaps", "sump_caps"),
@@ -376,7 +386,7 @@ STATIC_PROPS = frozenset(
     }
 )
 # How far up its wall a hung town prop is set, in metres, unless its entity says `rise=`.
-RISE = {"rose_window": "6", "crest_plaque": "3", "shutters": "1.7", "balcony": "3.6"}
+RISE = {"rose_window": "6", "crest_plaque": "3", "shutters": "1.7", "balcony": "3.6", "jetty": "3"}
 # Props that turn to face into the room.
 FACING_PROPS = (
     *("chest", "altar", "table", "bed", "cupboard", "gargoyle_statue", "forge_hearth"),
@@ -430,6 +440,11 @@ TOWN_PROPS = (
     "grand_stair",
     "stair_flight",
     "nave_runner",
+    "jetty",
+    "dormer",
+    "pentice",
+    "outside_stair",
+    "street_arch",
 )
 ANVIL_SOUND = (0.35, 14.0)  # (volume, metres to silence) of the smith's hammer on his anvil
 HAZARD_KINDS = ("spikes", "pendulum", "crumble", "flame_jet", "magma_vent")
@@ -1058,6 +1073,8 @@ class World:
         for p in self.props:
             if p.tx == tx and p.tz == tz and self._blocks(p):
                 return True
+            if p.kind == "outside_stair" and (tx, tz) in stair_footprint(p):
+                return True
         return (tx, tz) in self._piles
 
     def _blocks(self, p):
@@ -1070,7 +1087,7 @@ class World:
             return p.open_t < 0.9
         if p.kind in BREAKABLE_PROPS:
             return p.open_t == 0
-        return p.kind in BLOCKING_PROPS or (p.kind == "exit" and p.props.get("model") == "well")
+        return p.kind in BLOCKING_PROPS or (p.kind == "exit" and p.props.get("model") in BLOCKING_EXITS)
 
     def shot_blocked(self, x, y, z):
         """Whether a shot at (x, y, z) runs into a prop on its tile: low props only stop it below their
@@ -3452,6 +3469,8 @@ class World:
                 cemetery_models.cemetery_gate(rig, 1.0 if self.exit_open(p) else 0.0)
             elif p.props.get("model") == "sewer_grate":
                 sewer_models.sewer_grate(rig, t)
+            elif p.props.get("model") == "gaol_grate":
+                town_models.gaol_grate(rig, t)
             elif p.props.get("model") == "vesper_gate":  # it stands open once the three sigils are taken
                 moon_models.vesper_gate(rig, 1.0 if self.exit_open(p) else 0.0, t)
             elif p.props.get("model") == "cistern_breach":
@@ -3650,6 +3669,7 @@ class World:
                 tex=p.props.get("tex", "roof"),
                 wall_tex=p.props.get("wall", "timber"),
                 eave=float(p.props.get("eave", "0.35")),
+                hip=flag(p.props, "hip"),
             )
         elif k == "silent_bell":
             town_models.silent_bell(rig, t)
@@ -3670,7 +3690,7 @@ class World:
             town_models.flying_buttress(rig, seed, float(p.props.get("top", "9")))
         elif k == "stained_window":
             town_models.stained_window(rig, seed)
-        elif k in ("rose_window", "crest_plaque", "shutters", "balcony"):  # `rise=` sets it up the wall
+        elif k in ("rose_window", "crest_plaque", "shutters", "balcony", "jetty"):  # `rise=`: up the wall
             with rig.at(0, float(p.props.get("rise", RISE[k])), 0):
                 if k == "rose_window":
                     town_models.rose_window(rig, seed)
@@ -3679,8 +3699,12 @@ class World:
                 elif k == "shutters":  # an oak frame in a half-timbered wall, dressed stone in any other
                     wall = self.map.wall_behind(p.tx, p.tz, p.yaw)
                     town_models.shutters(rig, seed, timber=wall is not None and wall.wall_tex == "timber")
+                elif k == "jetty":
+                    town_models.jetty(
+                        rig, seed, int(p.props.get("len", "3")), float(p.props.get("height", "2.4"))
+                    )
                 else:
-                    town_models.balcony(rig, seed)
+                    town_models.balcony(rig, seed, p.props.get("roof_tex", "violet_slate"))
         elif k == "door_arch":
             town_models.door_arch(
                 rig,
@@ -3723,6 +3747,7 @@ class World:
                     float(p.props.get("height", "3.2")),
                     float(p.props.get("radius", "0.9")),
                     float(p.props.get("cap", "3.6")),
+                    p.props.get("roof_tex", "violet_slate"),
                 )
         elif k == "rampart_bay":
             town_models.rampart_bay(rig, p.props["kind"], float(p.props["height"]), seed)
@@ -3785,6 +3810,44 @@ class World:
             town_models.bookcase(rig, seed, scrolls=p.props.get("style") == "scrolls")
         elif k == "drawers":
             town_models.drawers(rig, seed, apothecary=p.props.get("style") == "apothecary")
+        elif k == "dormer":  # `y=` lifts it onto its roof's slope
+            with rig.at(0, float(p.props.get("y", "5.6")), 0):
+                town_models.dormer(rig, seed, p.props.get("roof_tex", "clay_tile"))
+        elif k == "pentice":
+            town_models.pentice(
+                rig,
+                seed,
+                int(p.props.get("len", "1")),
+                float(p.props.get("height", "2.5")),
+                p.props.get("roof_tex", "clay_tile"),
+            )
+        elif k == "outside_stair":
+            town_models.outside_stair(
+                rig,
+                seed,
+                int(p.props.get("run", "2")),
+                float(p.props.get("rise", "3")),
+                flag(p.props, "flip"),
+            )
+        elif k == "street_arch":  # `shift=dx,dz` centres it between two tiles, over a street of even width
+            dx, dz = (float(v) for v in p.props.get("shift", "0,0").split(","))
+            with rig.at(dx, 0, dz):
+                town_models.street_arch(
+                    rig, seed, int(p.props.get("width", "3")), p.props.get("style", "crenel")
+                )
+
+
+def flag(props, key):
+    """Whether entity flag `key` is set: written bare (`hip`) or as anything but `=false` / `=0`."""
+    return key in props and props[key] not in ("false", "0")
+
+
+def stair_footprint(p):
+    """The tiles an `outside_stair` climbs over, which its solid flight fills: its own tile and the
+    next `run - 1` along its local +Z (-Z when `flip`), as `town_models.outside_stair` draws it."""
+    sz = -1 if flag(p.props, "flip") else 1
+    dx, dz = rround(-math.sin(p.yaw)) * sz, rround(math.cos(p.yaw)) * sz
+    return {(p.tx + dx * k, p.tz + dz * k) for k in range(int(p.props.get("run", "2")))}
 
 
 def hinged(props):

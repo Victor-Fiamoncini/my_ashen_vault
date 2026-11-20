@@ -89,7 +89,7 @@ m = chest item=blue_moss count=2 gold=30 model=coffer
 z = chest item=claymore on=- model=worn
 h = chest item=war_hammer on=: model=banded
 S = save_statue
-E = exit map=harrowmere at=37,20,0 label=Climb_the_rope model=rope
+E = exit map=harrowmere at=38,14,90 label=Climb_the_ladder model=sewer_ladder yaw=-90
 ^ = spikes on=|
 * = spikes phase=0.9 on=|
 + = spikes phase=1.8 on=|
@@ -142,7 +142,7 @@ V = headsman_block
 ) = meat_hooks
 u = butcher yaw=90 item=butcher_cleaver
 l = door boss=butcher_dead on=/
-// The well shaft you climb down into: daylight falls from the well far above onto the rope.
+// The gaol's shaft you climb down into: daylight falls through the grate far above onto the ladder.
 Ç = light y=6 color=0.85,0.9,1.0 radius=13
 Ê = light y=2.4 color=0.7,0.76,0.9 radius=8
 // The west cell block: one lever at the head of its aisle raises every barred cell front at once, and

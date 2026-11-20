@@ -118,7 +118,8 @@ def convert(path: Path) -> dict:
                 to = re.search(r"map=(\w+)", spec).group(1)
                 label = re.search(r"label=(\S+)", spec)
                 name = label.group(1).replace("_", " ") if label else f"Exit to {to}"
-                where = "well" if "model=well" in spec else "cave" if "model=cave" in spec else "gate"
+                descent = any(f"model={m}" in spec for m in ("well", "gaol_grate"))  # a way down
+                where = "well" if descent else "cave" if "model=cave" in spec else "gate"
                 add(where, x, z, name, f"To {to}")
             elif kind == "cemetery_gate":
                 add("gate", x, z, "Cemetery gate", "Arrival from ashen_cemetery (one-way)")

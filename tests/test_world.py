@@ -192,16 +192,16 @@ def _near(seen, e):
     return any((e.tx + dx, e.tz + dz) in seen for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1)))
 
 
-def test_abandoned_prison_opens_in_order_from_the_well_shaft_to_the_chapel():
-    """You climb down the rope into the well's shaft, come in through the breach to the gatehouse, raise
+def test_abandoned_prison_opens_in_order_from_the_gaol_shaft_to_the_chapel():
+    """You climb down the ladder into the gaol's shaft, come in through the breach to the gatehouse, raise
     the west cells' bars to reach the Cell Key, open the warders' quarters with it, and find the
     Warden's Key on the altar of the old gods' chapel: all before the Warden's great door."""
     m = _prison()
     sx, sz = (int(v) for v in m.meta["start"][:2])
     shaft = m[sx, sz]
-    assert shaft.ceil - shaft.floor >= 10 and shaft.dark == 0  # the tall shaft, lit from the well above
-    (rope,) = _spec(m, "exit", map="harrowmere")
-    assert rope.props["model"] == "rope" and abs(rope.tx - sx) + abs(rope.tz - sz) == 1
+    assert shaft.ceil - shaft.floor >= 10 and shaft.dark == 0  # the tall shaft, lit through the grate above
+    (ladder,) = _spec(m, "exit", map="harrowmere")
+    assert ladder.props["model"] == "sewer_ladder" and abs(ladder.tx - sx) + abs(ladder.tz - sz) == 1
     (cell_key,) = _spec(m, "chest", item="cell_key")
     (quarters,) = _spec(m, "door", key="cell_key")
     (boss,) = _spec(m, "door", key="warden_key")
@@ -278,8 +278,8 @@ def _spec(m, kind, **props):
 
 def test_harrowmere_every_villager_shop_and_road_is_reachable_from_the_cemetery_gate():
     """From the cemetery's gate, where the Ashen come into town, you can walk to every villager, the
-    shrine, the well, the cave trail, the north gate and the throne; the cathedral stands on its hill
-    above the square."""
+    shrine, the gaol's grate, the cave trail, the north gate and the throne; the cathedral stands on its
+    hill above the square."""
     m = MapLoader.load_file(os.path.join(MAP_DIR, "harrowmere.map"))
     sx, sz = (int(v) for v in m.meta["start"][:2])
     (gate,) = _spec(m, "cemetery_gate")
@@ -311,7 +311,7 @@ def test_harrowmere_every_villager_shop_and_road_is_reachable_from_the_cemetery_
     (bell,) = _spec(m, "silent_bell")
     assert m[throne.tx, throne.tz].floor >= m[bell.tx, bell.tz - 2].floor + 2.0  # up on the hill
     assert all(s.props.get("span") for s in _spec(m, "roof"))  # no flat-topped boxes left
-    assert len(_spec(m, "roof")) >= 8
+    assert len(_spec(m, "roof")) >= 6  # the cathedral's and the five houses'
 
 
 def test_every_harrowmere_gate_has_a_watchman_beside_it():
@@ -330,7 +330,8 @@ def test_every_harrowmere_gate_has_a_watchman_beside_it():
 
 def test_harrowmere_wall_is_towered_and_its_houses_turreted():
     """Round towers stand in the town wall, at its corners and along it, never beside a way out;
-    turrets sit on the houses' walls, and every roof is of violet slate."""
+    turrets sit on the houses' walls; the houses' roofs and turrets are of clay tile, and only the
+    cathedral's of dark slate, so the hilltop stands out."""
     m = MapLoader.load_file(os.path.join(MAP_DIR, "harrowmere.map"))
     towers = {(s.tx, s.tz) for s in _spec(m, "wall_tower")}
     assert all(m[x, z].solid for x, z in towers)
@@ -340,8 +341,12 @@ def test_harrowmere_wall_is_towered_and_its_houses_turreted():
         assert all(abs(x - gx) + abs(z - gz) > 2 for gx, gz in [*ways, gap]), (x, z)
     assert {(0, 0), (46, 0)} <= towers and len(towers) >= 10
     turrets = _spec(m, "roof_turret")
-    assert len(turrets) >= 9 and all(m[s.tx, s.tz].thin for s in turrets)
-    assert all(s.props["tex"] == "violet_slate" for s in _spec(m, "roof"))
+    assert len(turrets) >= 5 and all(m[s.tx, s.tz].thin for s in turrets)
+    assert all(s.props.get("roof_tex") == "clay_tile" for s in turrets)
+    roofs = _spec(m, "roof")
+    (cathedral,) = [s for s in roofs if s.props["wall"] == "rough_stone"]
+    assert cathedral.props["tex"] == "violet_slate"
+    assert all(s.props["tex"] == "clay_tile" for s in roofs if s is not cathedral)
     signs = {s.props["emblem"]: s for s in _spec(m, "shop_sign")}
     for keeper, emblem in (
         ("brannoc", "anvil"),
@@ -403,9 +408,64 @@ def test_harrowmeres_cathedral_rises_up_a_grand_stair_to_a_great_door_three_tile
     assert m[stair.tx + run, stair.tz].floor == pytest.approx(0)  # the north road at its foot
     reach = _reachable(m, (stair.tx + run, stair.tz))
     assert (portal.tx, portal.tz) in reach and (portal.tx - 1, portal.tz) in reach  # up into the nave
-    (flight,) = _spec(m, "stair_flight")
+    (flight,) = _spec(m, "stair_flight", on="4")  # the cathedral's own; the town's terraces have theirs
     assert flight.props["yaw"] == "90" and m[flight.tx, flight.tz - 1].floor == pytest.approx(porch)
     assert (flight.tx, flight.tz + int(flight.props["run"])) in reach  # down to the lane south of it
+
+
+def test_every_harrowmere_house_roof_covers_a_house_with_someone_living_in_it():
+    """No empty houses: each roof (on its building's north-west corner, `span` tiles across) covers a
+    roofed room where one of the townsfolk stands."""
+    m = MapLoader.load_file(map_path("harrowmere"))
+    npcs = _spec(m, "npc")
+    for roof in _spec(m, "roof"):
+        w, d = (int(v) for v in roof.props["span"].split(","))
+        inside = [
+            s
+            for s in npcs
+            if roof.tx <= s.tx < roof.tx + w
+            and roof.tz <= s.tz < roof.tz + d
+            and m[s.tx, s.tz].ceil is not None
+        ]
+        assert inside, (roof.tx, roof.tz)
+
+
+def test_the_gaol_grate_and_the_prisons_ladder_lead_to_each_other():
+    """The barred pit in the Gaol Ward's plaza drops you at the foot of the prison's ladder; the ladder
+    climbs back up to stand you on the plaza beside the grate, up on the terrace."""
+    town, prison = MapLoader.load_file(map_path("harrowmere")), _prison()
+    (grate,) = _spec(town, "exit", map="abandoned_prison")
+    (ladder,) = _spec(prison, "exit", map="harrowmere")
+    assert grate.props["model"] == "gaol_grate" and ladder.props["model"] == "sewer_ladder"
+    tx, tz = (int(v) for v in grate.props["at"].split(",")[:2])
+    assert prison[tx, tz].walkable and abs(tx - ladder.tx) + abs(tz - ladder.tz) == 1
+    bx, bz = (int(v) for v in ladder.props["at"].split(",")[:2])
+    assert abs(bx - grate.tx) + abs(bz - grate.tz) == 1
+    start = tuple(int(v) for v in town.meta["start"][:2])
+    assert (bx, bz) in _reachable(town, start)
+    assert town[bx, bz].floor == pytest.approx(1.0)  # up on the Gaol Ward's terrace
+
+
+def test_harrowmere_climbs_in_terraces_no_step_too_tall():
+    """The town is laid out on terraces half a metre apart, never more: wherever two walkable tiles
+    meet, the step between them is one a walker can take, so every rise is a stair or a kerb, never a
+    ledge. The Gaol Ward stands a metre over the square, the cathedral's terrace two."""
+    m = MapLoader.load_file(map_path("harrowmere"))
+    reach = _reachable(m, tuple(int(v) for v in m.meta["start"][:2]))
+    heights = {round(m[t].floor, 2) for t in reach}
+    assert {0.0, 0.15, 0.5, 1.0, 1.5, 2.0} <= heights
+    (grate,) = _spec(m, "exit", map="abandoned_prison")
+    (bell,) = _spec(m, "silent_bell")
+    assert m[grate.tx, grate.tz].floor == pytest.approx(m[bell.tx, bell.tz - 2].floor + 1.0)
+    for s in _spec(m, "street_arch"):  # each arch spans its street between two walls
+        w = int(s.props["width"])
+        across = (0, 1) if s.props["yaw"] == "0" else (1, 0)
+        for side in (-1, 1):
+            k = side * (w + 1) // 2
+            assert m[s.tx + across[0] * k, s.tz + across[1] * k].solid, (s.tx, s.tz)
+        assert all(
+            (s.tx + across[0] * i, s.tz + across[1] * i) in reach for i in range(-(w // 2), w // 2 + 1)
+        )
 
 
 def test_harrowmere_has_the_jungle_cave():

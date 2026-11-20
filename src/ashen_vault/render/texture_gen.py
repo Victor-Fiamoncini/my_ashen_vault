@@ -52,6 +52,8 @@ def all_textures():
         "ash_road": ash_road(),
         "slate": slate(),
         "violet_slate": violet_slate(),
+        "clay_tile": clay_tile(),
+        "stone_timber": stone_timber(),
         "clouds": clouds(),
         "cloud_cap": cloud_cap(),
         "mist": mist(),
@@ -915,6 +917,70 @@ def violet_slate():
         k = 0.72 + hash_((x + (2 if row % 2 else 0)) // 4, row, 372) * 0.22 + (n - 0.5) * 0.3
         k += (1 - dy / 4) * 0.08  # lit along the crown, darker toward the lap
         return tint([92, 66, 118], k)
+
+    return build(px)
+
+
+def clay_tile():
+    """Weathered terracotta barrel tiles in staggered courses (eight across, eight up the slope): each
+    tile rounded across its width (lit along its crown, shaded into the pan between), fired its own
+    shade from brick-red to warm tan, darkened by soot toward its foot, with a dark lap shadow where
+    the course above overhangs it and a few flecks of grey lichen and green moss. Row 0 is the eaves:
+    models' faces map their foot to the texture's first row."""
+
+    def px(x, y):
+        row = y // 8
+        shift = 4 if row % 2 else 0
+        ox = (x + shift) % 8
+        tile = (x + shift) // 8 % 8
+        dy = y % 8  # 0 at the tile's foot (toward the eaves), 7 under the lap of the course above
+        n = fbm(x, y, 381)
+        if dy == 7:  # the lap: the course above casts its shadow over this one
+            moss = hash_(x, row, 387) > 0.86
+            return tint([62, 70, 40] if moss else [58, 30, 22], 0.85 + n * 0.3)
+        hue = hash_(tile, row, 382)
+        base = [150 + 26 * hue, 72 + 20 * hue, 48 + 10 * hue]
+        if hash_(tile, row, 383) > 0.86:  # now and then a tile fired darker, or a newer brighter one
+            base = tint(base, 0.78 if hash_(tile, row, 384) > 0.5 else 1.12)
+        curve = math.cos((ox - 3.5) / 4.0 * math.pi / 2)  # round across its width
+        k = 0.5 + curve * 0.6 + (n - 0.5) * 0.22
+        k *= 0.78 + 0.22 * dy / 6  # soot gathered toward its foot
+        if dy == 6:
+            k *= 0.86  # deepening into the lap's shadow
+        if ox in (0, 7):
+            k *= 0.8  # the pan between two barrels
+        k *= 1.0 - 0.12 * (1 - y / 63) ** 2  # rain-blackened along the eaves
+        if hash_(x, y, 385) > 0.982 and noise(x, y, 16, 386) > 0.5:  # a fleck of lichen
+            return tint([150, 148, 112] if hash_(x, y, 388) > 0.5 else [96, 112, 64], 0.85 + n * 0.25)
+        return tint(base, k)
+
+    return build(px)
+
+
+def stone_timber():
+    """A house wall of two storeys in one: a lower half of coursed ashlar (the stone ground floor) and
+    an upper half framed in dark oak (sill beam, posts, a top plate and raking braces) over a lime
+    plaster infill. Its last row is the wall's foot, as on the map's walls: on a wall it repeats every
+    tile's height."""
+    stone = ashlar()
+    lime = plaster()
+
+    def px(x, y):
+        if y >= 32:  # the ground floor's ashlar, two courses of it
+            if y == 32:
+                return tint([46, 34, 24], 0.9)  # the shadow under the sill beam
+            return _rgb_at(stone, x, y)
+        sill = y >= 28
+        plate = y < 3
+        post = x < 3 or x >= 61 or 30 <= x < 34
+        lx = x % 32  # each panel's own coordinates
+        brace = 3 <= y < 28 and (abs((lx - 3) - (y - 3)) < 2 if x < 32 else abs((60 - x) - (y - 3)) < 2)
+        if sill or plate or post or brace:
+            k = 0.78 + fbm(x, y, 391) * 0.3
+            if (sill and y == 31) or (plate and y == 2):
+                k *= 0.8  # a beam's lower arris in shade
+            return tint([70, 48, 30], k)
+        return _rgb_at(lime, x, y + 32)  # the plaster, its grime toward the beam below
 
     return build(px)
 

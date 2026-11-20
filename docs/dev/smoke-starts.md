@@ -8,8 +8,9 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
 - Ailment borders: `--map abandoned_prison --at 15,21,180 --smoke 60 --afflict
   bleed,corrosion,poison,rot,frost` shows them all combined; bleed's and corrosion's last only
   `ailments.FLARE_TIME` (2.5 s), so keep `--smoke` under 150 frames for those.
-- The Abandoned Prison (`abandoned_prison`): `--map abandoned_prison` (its `start`, in the well's shaft
-  under the rope; `--at=15,32,90 --script "back:0.3 look_up:0.5"` looks up the shaft at the well's mouth),
+- The Abandoned Prison (`abandoned_prison`): `--map abandoned_prison` (its `start`, in the gaol's shaft
+  at the foot of the ladder; `--at=15,32,90 --script "back:0.3 look_up:0.5"` looks up the shaft at the grate;
+  `--at=15,32,90 --script "wait:0.3 interact wait:1.5"` climbs the ladder back to the Gaol Ward, beside the grate),
   `--at=15,21,90` (the guard hall), `--at=4,23,-90` (the west cell block's dark aisle; `--at=4,16,-90
   --script "wait:0.2 interact wait:2"` pulls its lever and raises every cell's bars), `--at=22,21,90
   --script "forward:0.6 wait:0.2 interact"` (Brother Marrow, through his cell's bars), `--at=32,21,0`
@@ -37,7 +38,12 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   you stop at z=62.9), `--map harrowmere --at=17,6,180` (the cathedral's nave;
   `--at=6,6,180 --script "wait:0.2 interact"` speaks to the Enthroned), `--map harrowmere --at=7,18,180 --script
   "wait:0.2 interact"` (Brannoc's gift and forge), `--map harrowmere --at=10,18,-90 --script "look_up:0.3"` (the anvil sign by his forge),
-  `--map harrowmere --at=10,33,180 --script "wait:0.2 interact wait:1"` (open Pell's door; `interact` again shuts it), `--map harrowmere --at=37,20,0` (the sunken well court),
+  `--map harrowmere --at=10,33,180 --script "wait:0.2 interact wait:1"` (open Pell's door; `interact` again shuts it), `--map harrowmere --at=38,17,-90` (the Gaol Ward's plaza, the gaol's grate and Hollis beside it;
+  `--at=38,14,-90 --script "wait:0.3 interact wait:1.5"` descends the grate into the prison), `--map harrowmere
+  --at=28,22,-90` (the north road's stair up to the Gaol Ward, under its crenellated arch), `--map harrowmere
+  --at=12,11,60` (from the cathedral's terrace over the clay roofs), `--map harrowmere --at=30,39,180` (the
+  harbour, Tamsin's hipped roof behind), `--map harrowmere --at=43,29,0` (the east lane up to the gap, Garrick
+  on its corner),
   `--map cinderhold --at=29,52,-90 --script "look_up:0.15"` (the long bridge and the fortress's skyline), `--map cinderhold --at=28,30,180`
   (the postern ledge and its flame jets), `--map cinderhold --at=18,17,180` (the foundry),
   `--map cinderhold --at=5,24,0` (the smelter pits), `--map cinderhold --at=47,3,180 --script interact`

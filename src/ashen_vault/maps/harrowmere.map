@@ -12,35 +12,55 @@ edge_top = -0.5
 open_sea = true
 entity_floor = auto
 
-// Harrowmere climbs from its harbour to the cathedral on the hill under a low, darkening dusk, a walled
-// town of stone and half-timbered houses under steep violet-slate roofs, witch-hatted turrets on their
-// corners and round towers along its wall, all stone underfoot: cobbles, setts and flags. The
-// cemetery's gate in the west wall, shut behind each Ashen who comes through it; the pier, the quay,
-// the canal running up from the harbour and the market lanes; the Bell Square at the heart of town
-// with the Silent Bell on its plinth; the sunken court of the old well (down into the Abandoned Prison) east of it, and the watch
-// house by the gap in the wall where the green trail leaves for the cave; Brannoc's forge and
-// Corvane's hut to the west; the north road winding up past Odrin's house to the gate; and up the
-// steps on the hill, the cathedral, where the Enthroned sits at the end of the nave.
+// Harrowmere climbs from its harbour to the cathedral on the hill under a low, darkening dusk: a walled
+// town laid out on terraces half a metre apart, its houses of dressed stone and timber under weathered
+// clay-tile roofs, round towers along its wall, all stone underfoot: setts in the streets, flagged kerbs
+// along them, cobbles in the lanes. Each district is entered under a stone street arch. You come in by
+// the cemetery's gate in the west wall, down the alley between Corvane's hut and Pell's house, to the
+// Bell Square at the heart of town, with the Silent Bell on its plinth and the shrine; Brannoc's forge
+// stands to the west of it by a walled garden, the market and its fountain to the south, and below them
+// the harbour, the pier and the canal. From the square the north road climbs a stair to the Gaol Ward, a
+// terrace a metre up, where the old gaol's barred pit (down into the Abandoned Prison) opens in the
+// middle of its plaza beside an orchard; the road runs on down to the gate under the cathedral's great
+// stair, and the ward's west end meets the cathedral's own flight halfway up the hill. On the terrace at
+// the top, behind its parapet, the cathedral, where the Enthroned sits at the end of the nave. East of
+// the square a lane climbs past Tamsin's hall to the gap in the wall, where the green trail leaves for
+// the cave.
 
 [legend]
 R = wall tex=rough_stone top=7 cap=rough_stone dress=rampart
 A = wall tex=cliff_rock top=6 cap=rough_stone
+// The houses' thin walls: dressed stone (H), half-timbering over an ashlar ground floor (#), and the
+// timbered walls of Corvane's hut (q), a storey lower than the rest.
 H = wall tex=ashlar top=5.6 cap=roof thin=0.5
-J = wall tex=timber top=5.6 cap=roof thin=0.5
+# = wall tex=stone_timber top=5.6 cap=roof thin=0.5
+q = wall tex=timber top=4.4 cap=roof thin=0.5
+// The stone stack in the elbow of Pell's L, its chimney rising from it: a full wall, so both of the
+// thin runs that meet there end against it.
+^ = wall tex=ashlar top=5.6 cap=roof
 C = wall tex=rough_stone h=2 top=11 cap=slate
 P = wall tex=flagstone top=0.8 cap=flagstone
-_ = wall tex=rough_stone top=2.2 cap=cobble
+// The parapets along the terraces' edges: the cathedral terrace's ([) and the Gaol Ward's (]).
+[ = wall tex=rough_stone top=2.7 cap=flagstone
+] = wall tex=rough_stone top=1.8 cap=flagstone
 , = floor tex=cobble h=0
 . = floor tex=cobble h=0
 s = floor tex=setts h=0
-q = floor tex=cobble h=0
 - = floor tex=setts h=0
+// The flagged kerbs raised along the main streets, and the gardens' earth.
+/ = floor tex=flagstone h=0.15 side=flagstone
+_ = floor tex=dirt h=0 side=rough_stone
+// The Gaol Ward's terrace, a metre up: its street (0), its plaza (3) and its orchard (o); and the
+// east lane, half a metre up (5).
+0 = floor tex=setts h=1 side=rough_stone
+o = floor tex=dirt h=1 side=rough_stone
+5 = floor tex=cobble h=0.5 side=rough_stone
 ; = floor tex=flagstone h=2 side=rough_stone
 = = floor tex=flagstone h=2 side=rough_stone
 4 = floor tex=flagstone h=1.5 side=rough_stone
 3 = floor tex=flagstone h=1.0 side=rough_stone
 2 = floor tex=flagstone h=0.5 side=rough_stone
-// The cathedral's stairs: each tile half a metre below the last, its fine steps drawn over it.
+// The stairs: each tile half a metre below the last, its fine steps drawn over it.
 1 = floor tex=flagstone h=0 side=rough_stone
 n = floor tex=cathedral_floor h=2 ceil=10 ceil_tex=slate side=rough_stone dark=0.3
 a = floor tex=cathedral_floor h=2.4 ceil=10 ceil_tex=slate side=rough_stone dark=0.3
@@ -52,14 +72,11 @@ k = floor tex=flagstone h=0 ceil=3.4 ceil_tex=wood_plank side=rough_stone
 8 = wall tex=rough_stone top=1.5 cap=flagstone
 7 = wall tex=rough_stone top=1.0 cap=flagstone
 6 = wall tex=rough_stone top=0.5 cap=flagstone
-o = floor tex=cobble h=-0.8 side=rough_stone
-5 = floor tex=cobble h=-0.4 side=rough_stone
 p = floor tex=wood_plank h=0.1 side=wood_plank
 // The open sea off the quays and the pier is deep: whoever goes in drowns. The canal (r) runs
 // shallow between its banks and only casts you back ashore.
 ~ = water tex=water h=-0.8 side=rough_stone deep
 r = water tex=water h=-0.8 side=rough_stone
-G = wall tex=vine_wall top=3.4 cap=canopy
 V = wall tex=vine_wall top=5.5 cap=canopy
 w = floor tex=jungle_floor h=0 ceil=4.2 ceil_tex=canopy side=vine_wall dark=0.2
 y = floor tex=jungle_floor h=0 ceil=3.8 ceil_tex=canopy side=vine_wall dark=0.4
@@ -74,39 +91,39 @@ R;;ÉCCCCCCCCCCCCCCCèC;;,,,,,,,,s,,,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;;êDaYnnOðnOñnOnnnC===9876,Þù,s,ù,ùAAAAAAAAAARAAAAAAAAAAAAAA
 R;;CaannIQQIQQIQQInn===4321,,,,s,,,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;;CîEÓnnnnÊnnn`nn:ï¬=="321,,,,sX,,,AAAAAAAAAARAAAAAAAAAAAAAA
-R;;CaannIQQIQQIQQInn===4321sssss.qqq..AAAAAAAARAAAAAAAAAAAAAA
-R;;ëDaYenOònOónOnnnC===9876sÞ.....à.á.AAAAAAAARAAAAAAAAAAAAAA
-R;;CCCCCCCCCCCCCCCCéC==,,,qs|...ÆHHHH¡...á.à..RAAAAAAAAAAAAAA
-R;;;;;;í;ìí;ìí;ìí;;CC'4;;ù,s|...H%ii+H.ÈJJJJJ.RAAAAAAAAAAAAAA
-R;Ú;;;;;;;Ú;;;;;;;Ú;;33;;,qs|...çiiiiH.J+^i&J.RAAAAAAAAAAAAAA
-±;;;;;Ú;;;;;;;Ú;;;;;;22Ú;q.s|...HiÒiiHâJiiiiJâ²AAAAAAAAAAAAAA
-R;;;;;;;;;Ú;;;;;;;;;;11;;..ssss.H>ii$H.JÒiiiJ.RAAAAAAAAAAAAAA
-R?...á.à.......q,q...ss.ÅJJJ£.s.HHHHHH.Jiii$J.RAAAAAAAAAAAAAA
-R..ÀHHHHH¡..q.q,T,q..ssàJ+i$Jás..q,q...ªJåJJ©.RAAAAAAAAAAAAAA
-R..Hû¸ãkÏHþq,q.q,q...ssDJiiiJ.sÜq,T,q.....q,q.RAAAAAAAAAAAAAA
-R..H×kkkºHq,T,q.q....ss.J>i&J.s..q________,ø,qRAAAAAAAAAAAAAA
-R..Hôkbkk¹.q,q.......ss.JJåJJ.s..._tooooo_q,q.RAAAAAAAAAAAAAA
-R..HÍkúkkH..q.....sssssssssssssss._oooooo_.q..RAAAAAAAAAAAAAA
-±..H*k¸ýÎHá.......sXsssss¦sssssXs.5oooWooÇHHHH²AAAAAAAAAAAAAA
-R..ÑHHHHHH........sssssssssssssss._ooooooH+^iHRAAAAAAAAAAAAAA
-R...q,T,â.........sssssssssssssss._oooogÏHiiÍHRVVVVVVVVAAAAAA
-R..à.q,q...qqqqqq.ssssssPPPssssss._______HLiiHRwUwvvwwVAAAAAA
-RÁHHH¡q..-q,,,,,,qÞsssssPBPsMsssÞ....q,qàHiiÍHRwwwvvwwVAAAAAA
-RH»LiH·..-q,,,,,,qssssssPPPsssssÛ...q,ø,qHÒiiHRwwVVVwwVAAAAAA
-RHZiiä----q,,T,,,qsssSsssssssssss....q,qáHiiiHRwõVAVwwVAAAAAA
-RH»iÏH....q,,,,,,qsssssssssssssss-----q..«HåHHRwwVAVwUVAAAAAA
-RHHHHH.....qq,T,q.sXsssssssssssXs-----------h-RvvVAVwwVAAAAAA
-Rü¿á..à......q,q..sssssssssssssss....---------vvvVAVwwVVVVVAA
-R¥,qÂHHHH¡...àq..â..ss.X....Ø......à.¶à-------vvöVAVwwVVyx¢KA
-R,ø,H%¼¼LHá.ÃJJæJJJ£ss............ÄHæHH¡.....§RVVVAVwwVVyyVAA
-Rq,qHiiÒiH..JLiii%iJss....Õ.Ô.Ö..DH%iiLH......RAAAAVwõVVFyVAA
-R.q.H&imiä..JiiiiliJás............Hiid¾H..RRRRRAAAAVwwyyyyVAA
-R...H>iÒiHµ.JiÒiiiiJDs......Ù....áH%ii¾H..RRRRRAAAAVUwyzyyVAA
-RRR.H%i½½Hâ.J$iiÒiÏJss............HiÒi$Hq.RRRRRAAAAVVVVVVVVAA
-RRRqHHHHH¤..Jii<iiÏJss....ÐÏ......HHHHH¤,qRRRRRAAAAAAAAAAAAAA
-RRR{,,,,,qrrJJJJJJJ©ss¨........ÏÎ.....q,ø,RRRRRAAAAAAAAAAAAAA
-RRR,,,,,ø,ppÎ.......ss.................q,qRRRRRAAAAAAAAAAAAAA
-RRRqqqqqqXrr........ss..Ý.....X.........q.RRRRRAAAAAAAAAAAAAA
+R;;CaannIQQIQQIQQInn===4321sssss.,,,..AAAAAAAARAAAAAAAAAAAAAA
+R;;ëDaYenOònOónOnnnC===9876sČ.P.....Ü.AAAAAAAARAAAAAAAAAAAAAA
+R;;CCCCCCCCCCCCCCCCéC==[]]]111]]]]]]]]3L3ß3L33RAAAAAAAAAAAAAA
+R;;;;;;í;ìí;ìí;ìí;;CC'400002Ć23Þ3333333333333ÏRAAAAAAAAAAAAAA
+R;Ú;;;;;;;Ú;;;;;;;Ú;;33ą000000X333X3333333X33ÎRAAAAAAAAAAAAAA
+±;;;;;Ú;;;;;;;Ú;;;;;;2200000003333333333333333²AAAAAAAAAAAAAA
+R[[[[[[[[[[[[[[[[[[[[11]]]]00033333333Wċg33333RAAAAAAAAAAAAAA
+R?.............,,,..sss/..]000ù333333333333333RAAAAAAAAAAAAAA
+R..ÀHHHHH¡...|||||||sss/ù.]0003333X3333333X333RAAAAAAAAAAAAAA
+R..Hû¸ãkÏHþ..|_T___PsĂsP..]000X33333Õ333Õ33333RAAAAAAAAAAAAAA
+R..H×kkkºH...|___T_|sss/ù.]0Ą0]]]]]||||||00033RAAAAAAAAAAAAAA
+R..Hôkbkk¹Ç..|||_|||sss/..P2ć2P...]ooooo|00033RAAAAAAAAAAAAAA
+R..HÍkúkkHÈ.......sssssssss111ssss]oTooo|000X3RAAAAAAAAAAAAAA
+±..H*k¸ýÎHá.......sXsssss¦sssssXss]oooTo|00033²AAAAAAAAAAAAAA
+R..ÑHHHHHH........ssssssssssssssss]oooooo00033RAAAAAAAAAAAAAA
+R...,,T,â.........ssssssssssssssss]oTooo|00033RVVVVVVVVAAAAAA
+R..à.,,,...,,,,,,.ssssssPPPsssssss]oooTo|000X3RwUwvvwwVAAAAAA
+RÁqqqq,..-|||||||/ÞsssssPBPsMsssÞs]ooooo|00033RwwwvvwwVAAAAAA
+Rq»Liq·..-|_T___|/ssssssPPPsssssÛs]||||||00033RwwVVVwwVAAAAAA
+RqZiiä----|___T_|/sssSssssssssssss]33333300033RwõVAVwwVAAAAAA
+Rq»iÏq....|||_|||Pssssssssssssssss]]]]]]]2Ĉ2h]RwwVAVwUVAAAAAA
+Rqqqqq..../X////X/sXsssssssssssXssssssss15555]RvvVAVwwVAAAAAA
+Rü¿á..à...sssssssăssssssssssssssssăsssssĉ5555ĊvvvVAVwwVVVVVAA
+R¥,,ÂHHHHHX./à//X/sssssssssssssssssàs¶às155551vvöVAVwwVVyx¢KA
+R,ø,Å%¼¼LHÆ/Ãā#æ##ā#sss/..........ÄHæHH¡.5555§RVVVAVwwVVyyVAA
+R,,,HiiÒiH./#Liii%i#sss/..Õ.Ô.Ö..DH%iiLH......RAAAAVwõVVFyVAA
+R.,àH&imiä./#iiiili#ássX..........Hiid¾H..RRRRRAAAAVwwyyyyVAA
+R...H>iĎHHµ/#iÒiiii#Dss/....Ù....áH%ii¾H..RRRRRAAAAVUwyzyyVAA
+RRR.H%½H.Ï./#$iiÒiÏ#sss/..........H+Òi$H,.RRRRRAAAAVVVVVVVVAA
+RRR,«HH¤.../#ii<iiÏ#sĂsP..ÐÏ......HHHHH¤,,RRRRRAAAAAAAAAAAAAA
+RRR{,,,,,,rr########ss¨........ÏÎ.....,,ø,RRRRRAAAAAAAAAAAAAA
+RRR,,,,,ø,ppÎ...Ā...ss.................,,,RRRRRAAAAAAAAAAAAAA
+RRR,,,,,,Xrr........ss..Ý.....X.........,.RRRRRAAAAAAAAAAAAAA
 ±RR.......÷rÝ...ÏÐ.ÞssÞÝ..Û............}..RRRR²AAAAAAAAAAAAAA
 R~~~~~~~~~~~~~~~~~~~pp~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
 R~~~~~~~~~~~~~~~~~~~pp~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
@@ -124,11 +141,13 @@ R~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
 // Villagers.
 M = npc id=odrin yaw=90
 m = npc id=pell yaw=0
+// Hollis keeps the gaol's pit, beside its grate.
 g = npc id=hollis yaw=180
 f = npc id=maeve yaw=90 on=p
 Z = npc id=corvane yaw=0
 b = npc id=brannoc
-h = npc id=garrick yaw=180
+// Captain Garrick, on the corner where the Gaol Ward's stair comes down to the east lane.
+h = npc id=garrick yaw=90
 // The town watch at its gates: two at the north road's, one by the cemetery's and one at the gap in
 // the east wall where the green trail leaves.
 Ì = npc id=aldous yaw=90
@@ -147,7 +166,7 @@ X = lamp_post
 // turrets at the apse, flying buttresses, stained glass within and without, the great door (three
 // tiles wide) with the great rose in the gable over it and another rose above the throne, pillars,
 // pews facing the throne, a crimson runner down the nave, candles and banners. Its floor is marble
-// lozenges in bordered panels.
+// lozenges in bordered panels. Its roofs stay dark slate, so the hilltop stands out over the town's clay.
 É = roof span=17,7 ridge=x top=9 pitch=3.5 tex=violet_slate wall=rough_stone on=C
 Ê = cathedral_spire height=15 base=11 on=n
 è = cathedral_tower height=15 shift=1,-1 on=C
@@ -168,52 +187,73 @@ X = lamp_post
 Ë = lamp_post
 // The great stair up to the door from the north road: four tiles of fine steps between raking
 // balustrades on the cheek walls, lanterns on the newels at its head (it casts their light), urns at
-// its foot. The plainer flight down the terrace's south side to the Bell Square's lane.
+// its foot. The plainer flight down the terrace's south side: halfway down, the Gaol Ward's west end
+// meets it, and at its foot the stair street runs on down to the Bell Square.
 " = grand_stair run=4 rise=0.5 steps=5 width=3 on=4
 // A pale light on the porch, so the great door's carving shows from the foot of the stair.
 ¬ = light y=5 color=0.78,0.74,0.7 radius=9 on=;
 ' = stair_flight run=4 rise=0.5 steps=5 width=2 offset=-1 yaw=90 on=4
+// The town's other flights, each half a metre a tile: the north road's up from the gate's yard to the
+// Gaol Ward (Ć) and down again into the Bell Square (ć), the ward's step down to the east lane (Ĉ),
+// and the east lane's step up from the square (ĉ) and down again through the gap in the wall (Ċ).
+Ć = stair_flight run=2 rise=0.5 steps=5 width=3 yaw=-90 on=2
+ć = stair_flight run=2 rise=0.5 steps=5 width=3 yaw=90 on=2
+Ĉ = stair_flight run=1 rise=0.5 steps=3 width=3 yaw=90 on=2
+ĉ = stair_flight run=1 rise=0.5 steps=3 width=3 yaw=180 on=1
+Ċ = stair_flight run=1 rise=0.5 steps=3 width=2 offset=1 yaw=0 on=1
+// A stone arch over the street wherever it passes from one district into the next, set on the
+// street's middle tile, its piers on the walls either side: crenellated where the north road enters
+// and leaves the Gaol Ward (Č from the gate's yard, Ą down into the Bell Square), gabled elsewhere: the
+// ward up onto the cathedral's flight (ą), the cemetery road into the square and the square into the
+// east lane (ă), the stair street and the harbour street (Ă).
+Č = street_arch yaw=90 width=3 style=crenel on=s
+Ă = street_arch yaw=90 width=3 style=gable on=s
+ă = street_arch yaw=0 width=3 style=gable on=s
+Ą = street_arch yaw=90 width=3 style=crenel on=0
+ą = street_arch yaw=0 width=3 style=gable on=0
 I = pillar
 Q = pew yaw=180
 O = window
 Y = candles
 Ó = light y=6 color=0.62,0.66,0.82 radius=9
 D = banner
-// Steep roofs of violet slate, each on its building's north-west corner.
-À = roof span=7,7 ridge=z top=5.6 pitch=4.4 eave=0.45 tex=violet_slate wall=ashlar on=H
-Á = roof span=5,5 ridge=x top=5.6 pitch=3.6 eave=0.45 tex=violet_slate wall=ashlar on=H
-Â = roof span=6,7 ridge=z top=5.6 pitch=4.3 eave=0.45 tex=violet_slate wall=ashlar on=H
-Ã = roof span=8,7 ridge=x top=5.6 pitch=4.4 eave=0.45 tex=violet_slate wall=timber on=J
-Ä = roof span=6,6 ridge=x top=5.6 pitch=4.3 eave=0.45 tex=violet_slate wall=ashlar on=H
-Å = roof span=5,5 ridge=z top=5.6 pitch=3.6 eave=0.45 tex=violet_slate wall=timber on=J
-Æ = roof span=6,6 ridge=x top=5.6 pitch=4.3 eave=0.45 tex=violet_slate wall=ashlar on=H
-Ç = roof span=5,8 ridge=z top=5.6 pitch=3.6 eave=0.45 tex=violet_slate wall=ashlar on=H
-È = roof span=6,6 ridge=x top=5.6 pitch=4.3 eave=0.45 tex=violet_slate wall=timber on=J
+// The houses' roofs of weathered clay tile, each on its building's north-west corner, and each house
+// built its own way: Brannoc's forge under a long gable, a pentice over the anvil at its door;
+// Corvane's low timbered hut under a single gable; Pell's house an L of two crossing gables, a stone
+// stair climbing its east gable to the loft door; Wren's timbering jettied out over its ashlar ground
+// floor toward the harbour, dormers in its roof; and Tamsin's stone hall under a hipped roof.
+À = roof span=7,7 ridge=z top=5.6 pitch=4.4 eave=0.45 tex=clay_tile wall=ashlar on=H
+Á = roof span=5,5 ridge=x top=4.4 pitch=2.6 eave=0.5 tex=clay_tile wall=timber on=q
+Â = roof span=6,5 ridge=x top=5.6 pitch=3.8 eave=0.45 tex=clay_tile wall=ashlar on=H
+Å = roof span=4,6 ridge=z top=5.6 pitch=3.6 eave=0.45 tex=clay_tile wall=ashlar on=H
+Ã = roof span=8,7 ridge=x top=5.6 pitch=4.4 eave=0.45 tex=clay_tile wall=timber on=#
+Ä = roof span=6,6 ridge=x top=5.6 pitch=3.6 eave=0.45 hip=true tex=clay_tile wall=ashlar on=H
 Ñ = chimney height=8 on=H
-// Round turrets corbelled out from the houses' corners under witch-hat cones of violet slate.
-¡ = roof_turret shift=0.8,-0.8 on=H
-£ = roof_turret shift=0.8,-0.8 on=J
-¤ = roof_turret shift=0.8,0.8 on=H
-© = roof_turret shift=0.8,0.8 on=J
-ª = roof_turret shift=-0.8,0.8 on=J
-« = roof_turret shift=-0.8,0.8 on=H
+Ď = chimney height=7.5 on=^
+Ç = pentice len=3 height=2.5 roof_tex=clay_tile
+È = anvil
+Æ = outside_stair run=2 rise=3
+Ā = jetty len=7 rise=3 height=2.4
+ā = dormer y=5.6 yaw=-90 on=#
+// Round turrets corbelled out from the houses' corners under witch-hat cones of clay tile.
+¡ = roof_turret shift=0.8,-0.8 roof_tex=clay_tile on=H
+¤ = roof_turret shift=0.8,0.8 roof_tex=clay_tile on=H
+« = roof_turret shift=-0.8,0.8 roof_tex=clay_tile on=H
 // The houses' faces: shuttered windows, balconies and arched front doors.
 à = shutters
 á = shutters
-â = balcony
+â = balcony roof_tex=clay_tile
 ä = door_arch yaw=0 on=i
-å = door_arch yaw=90 on=i
 æ = door_arch yaw=-90 on=i
-ç = door_arch yaw=180 on=i
 ¹ = door_arch yaw=0 on=k
-// The realm's crest: banners on poles about the square, the pier and the gate, carved over the gate.
+// The realm's crest: banners on poles about the square, the pier and the gate, carved over the gate
+// and on the cliff over the gaol's plaza.
 Þ = banner_pole
 ß = crest_plaque
-// The market's fountain and the benches round it, carts and cargo up from the quay.
+// The market's fountain and the benches round it, the gaol plaza's, carts and cargo up from the quay.
 Ô = fountain
 Õ = bench yaw=0
 Ö = bench yaw=180
-Ø = bench yaw=90
 Ù = bench yaw=-90
 Û = hand_cart
 Ü = hay_wagon yaw=-90
@@ -234,7 +274,7 @@ D = banner
 // Brannoc's anvil by the forge, Pell's scroll, Tamsin's flask and Corvane's crossed blades.
 þ = shop_sign emblem=anvil
 µ = shop_sign emblem=scroll
-¶ = shop_sign emblem=flask on=-
+¶ = shop_sign emblem=flask on=s
 · = shop_sign emblem=blades
 // Furniture and street dressing.
 × = forge_hearth
@@ -252,7 +292,6 @@ D = banner
 Ð = crate
 Ò = table
 L = torch radius=6
-t = torch radius=6
 $ = hearth
 % = shelf
 & = cupboard
@@ -265,7 +304,7 @@ $ = hearth
 ¾ = drawers style=apothecary yaw=180
 > = drawers yaw=0
 < = drawers yaw=-90
-^ = drawers yaw=90
+// Wattle fences round the gardens and the Gaol Ward's orchard.
 | = fence
 @ = boat on=~
 ÷ = boat on=r
@@ -278,14 +317,15 @@ T = tree kind=olive
 ü = cemetery_gate yaw=0 sentinels=false
 // A cold grey light falling on it, so its stone shows against the dark beyond.
 ¿ = light y=4.5 color=0.5,0.52,0.62 radius=7
-// The well down into the Abandoned Prison, in its sunken court.
-W = exit map=abandoned_prison at=15,32,-90 label=Descend_the_well model=well
+// The old gaol's pit down into the Abandoned Prison, barred over with an iron grate in the middle of
+// the Gaol Ward's plaza, under the cliff.
+W = exit map=abandoned_prison at=15,32,-90 label=Descend_the_grate model=gaol_grate on=3
+// A lantern on the grate's winch post, so the pit shows across the plaza at dusk.
+ċ = light y=2.5 color=1.0,0.74,0.42 radius=6 on=3
 // The jungle trail east of the square: a hedged path winding under a canopy that closes in and
 // darkens on the way to the cave mouth into the Verdant Hollow.
 // (its lantern, hung from the timbers shoring the cave's mouth, lights the way in: ¢)
 K = exit map=verdant_hollow at=25,33,180 label=Enter_the_cave model=cave_mouth yaw=180 on=c
-u = torch radius=6 on=v
-j = jungle_tree on=v
 ö = mushrooms on=v
 x = fungus radius=4 on=c
 ¢ = light y=2 color=1.0,0.72,0.4 radius=4 on=c

@@ -103,7 +103,18 @@ class _RecordingGpu:
         return m
 
     def draw_part(self, kind, matrix, rgb, tex="white", glow=False):
-        assert kind in ("cube", "sphere", "cyl", "cone", "quad", "blade", "lozenge", "wedge", "frustum")
+        assert kind in (
+            "cube",
+            "sphere",
+            "cyl",
+            "cone",
+            "quad",
+            "blade",
+            "lozenge",
+            "wedge",
+            "frustum",
+            "pyramid",
+        )
         assert all(0 <= c <= 255 for c in rgb), rgb
         self.parts.append((kind, matrix[7]))
 
@@ -1863,6 +1874,7 @@ def test_every_way_between_maps_is_built_in_detail():
         moon_models,
         sewer_models,
         sunken_models,
+        town_models,
     )
 
     def parts(fn):
@@ -1879,6 +1891,7 @@ def test_every_way_between_maps_is_built_in_detail():
         "rope": lambda r: models.rope(r, 0.3),
         "cemetery_gate": lambda r: cemetery_models.cemetery_gate(r, 0.0),
         "sewer_grate": lambda r: sewer_models.sewer_grate(r, 0.3),
+        "gaol_grate": lambda r: town_models.gaol_grate(r, 0.3),
         "sewer_ladder": lambda r: sewer_models.sewer_ladder(r, 0.3),
         "vesper_gate": lambda r: moon_models.vesper_gate(r, 0.0, 0.3),
         "vesper_gate open": lambda r: moon_models.vesper_gate(r, 1.0, 0.3),
@@ -2294,3 +2307,126 @@ def test_the_katana_cut_sweeps_the_whole_view_and_its_thrust_keeps_the_arm_bent(
     gpu = _RecordingGpu()
     models.weapon_view(rig.Rig(gpu), p, 0.0)
     assert sum(1 for kind, _ in gpu.parts if kind == "blade") >= models.TRAIL_STYLE["katana"][1]
+
+
+def test_the_terracotta_tiles_and_the_stone_and_timber_wall_are_generated():
+    tex = texture_gen.all_textures()
+    for name in ("clay_tile", "stone_timber"):
+        assert name in tex and len(tex[name]) == 64 * 64 * 4, name
+    clay = tex["clay_tile"]
+    reds = [clay[i] - clay[i + 2] for i in range(0, len(clay), 4)]
+    assert sum(reds) / len(reds) > 50  # warm fired clay, not slate
+    wall = tex["stone_timber"]
+
+    def mean(rows):
+        px = [sum(wall[(y * 64 + x) * 4 : (y * 64 + x) * 4 + 3]) for y in rows for x in range(64)]
+        return sum(px) / len(px)
+
+    # The foot (the last rows, as on a map's wall) is pale ashlar; the oak beams darken the storey above.
+    assert mean(range(40, 64)) > mean(range(0, 32)) + 40
+    assert mean(range(28, 32)) < 200  # the sill beam between the two
+
+
+def test_a_hipped_roof_slopes_on_every_side_over_the_same_eaves_as_a_gabled_one():
+    from ashen_vault.render import bounds, town_models
+
+    class Tex(_RecordingGpu):
+        def draw_part(self, kind, matrix, rgb, tex="white", glow=False):
+            super().draw_part(kind, matrix, rgb, tex, glow)
+            self.texes = [*getattr(self, "texes", []), (kind, tex)]
+
+    gable = bounds.measure(lambda r: town_models.roof(r, 4, 3, "x", 5.6, 3.0, "clay_tile", eave=0.4))
+    hip = bounds.measure(lambda r: town_models.roof(r, 4, 3, "x", 5.6, 3.0, "clay_tile", eave=0.4, hip=True))
+    for a, b in zip(gable[0] + gable[1], hip[0] + hip[1], strict=True):
+        assert a == pytest.approx(b, abs=0.15)  # the same eaves, the same ridge height
+    gpu = Tex()
+    town_models.roof(rig.Rig(gpu), 4, 3, "x", 5.6, 3.0, "clay_tile", wall_tex="timber", eave=0.4, hip=True)
+    kinds = [k for k, _ in gpu.texes]
+    assert kinds.count("pyramid") == 2  # a hip at each end
+    assert ("wedge", "timber") not in gpu.texes  # no gable ends to fill
+    assert {t for k, t in gpu.texes if k in ("wedge", "pyramid")} == {"clay_tile"}
+    # The ridge is shorter than the building by its width, and gone on a square one.
+    assert town_models.hip_ridge(6.8, 8.8) == pytest.approx(2.0)
+    assert town_models.hip_ridge(6.8, 6.8) == 0.0
+    square = Tex()
+    town_models.roof(rig.Rig(square), 3, 3, hip=True)
+    assert [k for k, _ in square.texes].count("wedge") == 0
+    # Gabled, an existing roof draws just as it did: slate, its gable ends in the wall's texture.
+    old = Tex()
+    town_models.roof(rig.Rig(old), 4, 3, tex="violet_slate", wall_tex="ashlar")
+    assert ("wedge", "ashlar") in old.texes and "pyramid" not in [k for k, _ in old.texes]
+
+
+def test_the_new_town_dressing_is_built_in_detail_and_set_where_it_belongs():
+    """Jetties, dormers, pentices, outside stairs and street arches are full models, all baked; the hung
+    ones take their wall's facing; the arch leaves its street clear and its piers on the tiles either
+    side; turrets and balconies can wear the terracotta too."""
+    from ashen_vault.render import bounds, town_models
+    from ashen_vault.world.world import BLOCKING_PROPS, LANDMARKS, STATIC_PROPS, TOWN_PROPS, WALL_PROPS
+
+    models_ = {
+        "jetty": (lambda r: town_models.jetty(r, 3, 3), 60),
+        "dormer": (lambda r: town_models.dormer(r, 1), 25),
+        "pentice": (lambda r: town_models.pentice(r, 0, 1), 25),
+        "outside_stair": (lambda r: town_models.outside_stair(r, 2, 2, 3.0), 40),
+        "street_arch": (lambda r: town_models.street_arch(r, 1), 60),
+        "street_arch gable": (lambda r: town_models.street_arch(r, 2, 3, "gable"), 50),
+    }
+    for name, (fn, least) in models_.items():
+        gpu = _RecordingGpu()
+        fn(rig.Rig(gpu))
+        assert len(gpu.parts) >= least, (name, len(gpu.parts))
+        kind = name.split()[0]
+        assert kind in STATIC_PROPS and kind in TOWN_PROPS and kind not in BLOCKING_PROPS, kind
+    assert {"jetty", "pentice", "outside_stair"} <= set(WALL_PROPS)
+    assert {"jetty", "dormer", "street_arch"} <= set(LANDMARKS)
+    # A jetty spans its tiles along the wall, overhanging it; a stair climbs `rise` along it, or back.
+    (x0, _, z0), (x1, _, z1) = bounds.measure(lambda r: town_models.jetty(r, 0, 3))
+    assert z1 - z0 == pytest.approx(6.0, abs=0.3) and x0 >= -1.1 and x1 < 0  # 0.6 m proud of the wall
+    (_, sy0, sz0), (_, sy1, sz1) = bounds.measure(lambda r: town_models.outside_stair(r, 0, 2, 3.0))
+    assert sy0 >= -0.01 and sy1 > 3.0 + 2.0 and sz0 >= -1.05 and sz1 <= 3.05
+    (_, _, fz0), (_, _, fz1) = bounds.measure(lambda r: town_models.outside_stair(r, 0, 2, 3.0, flip=True))
+    assert fz0 == pytest.approx(-sz1, abs=0.01) and fz1 == pytest.approx(-sz0, abs=0.01)
+    # The street arch: piers centred on the tiles flanking a 3-tile street, the street itself clear
+    # up past head height, about 5 m tall at its crown and parapet.
+    (_, ay0, az0), (_, ay1, az1) = bounds.measure(lambda r: town_models.street_arch(r, 0))
+    assert az1 == pytest.approx(-az0, abs=0.01) and 4.5 < az1 <= 5.0
+    assert 5.0 < ay1 < 6.6 and ay0 >= -0.01
+
+    class Clear(_RecordingGpu):
+        """Notes every part that comes down into the street's walkway below 2.4 m."""
+
+        def __init__(self):
+            super().__init__()
+            self.low = []
+
+        def draw_part(self, kind, m, rgb, tex="white", glow=False):
+            super().draw_part(kind, m, rgb, tex, glow)
+            for cx in (-0.5, 0.5):
+                for cy in (-0.5, 0.5):
+                    for cz in (-0.5, 0.5):
+                        y = m[4] * cx + m[5] * cy + m[6] * cz + m[7]
+                        z = m[8] * cx + m[9] * cy + m[10] * cz + m[11]
+                        if abs(z) < 3.0 and y < 2.4:
+                            self.low.append((kind, y, z))
+
+    clear = Clear()
+    town_models.street_arch(rig.Rig(clear), 0)
+    assert clear.low == []
+    # Turrets and balconies wear slate unless told otherwise.
+    for fn in (town_models.roof_turret, town_models.balcony):
+        for roof_tex in ("violet_slate", "clay_tile"):
+            gpu = _GlowGpu()
+            if roof_tex == "violet_slate":
+                fn(rig.Rig(gpu), 1)
+            else:
+                fn(rig.Rig(gpu), 1, roof_tex=roof_tex)
+            assert roof_tex in {tex for *_, tex in gpu.looks}, (fn.__name__, roof_tex)
+
+
+def test_the_gaol_grate_blocks_its_tile_like_the_well_and_entity_flags_read_bare_or_valued():
+    from ashen_vault.world import world as world_mod
+
+    assert {"well", "gaol_grate"} <= set(world_mod.BLOCKING_EXITS)
+    assert world_mod.flag({"hip": None}, "hip") and world_mod.flag({"hip": "true"}, "hip")
+    assert not world_mod.flag({"hip": "false"}, "hip") and not world_mod.flag({}, "hip")

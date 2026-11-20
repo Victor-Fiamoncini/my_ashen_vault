@@ -113,7 +113,8 @@ def _marks(grid: list[str], ents: dict[str, str], meta: dict[str, str]) -> list[
                 to_map = to.group(1) if to else "?"
                 label = re.search(r"\blabel=(\S+)", spec)
                 name = label.group(1).replace("_", " ") if label else f"Exit to {to_map}"
-                where = "well" if "model=well" in spec else "cave" if "model=cave" in spec else "gate"
+                descent = any(f"model={m}" in spec for m in ("well", "gaol_grate"))  # a way down
+                where = "well" if descent else "cave" if "model=cave" in spec else "gate"
                 add(where, x, z, name, f"To {to_map}")
             elif kind == "cemetery_gate":
                 add("gate", x, z, "Cemetery gate", "To ashen_cemetery")

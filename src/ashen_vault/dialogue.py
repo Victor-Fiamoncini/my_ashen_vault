@@ -5,7 +5,7 @@ from ashen_vault.player import stash
 from ashen_vault.world import loot, relics
 
 SHOPS = {
-    # Pell deals in what came in by boat or up out of the well: scrolls and odd salvage.
+    # Pell deals in what came in by boat or up out of the gaol's pit: scrolls and odd salvage.
     "pell": ["scroll_mend", "leather_whip", "ashblade", "thornlash"],
     # Brannoc forges the rest: honest steel, shields and armour.
     "brannoc": [
@@ -109,7 +109,7 @@ SIGIL_HELD = {
     "argent_sigil": "Silver, and cold as moonlight on frost... the Argent Sigil. So Ilvane let it go at last.",
 }
 SIGIL_HINT = {
-    "ember_sigil": "The Ember Sigil waits in the Warden's hall. Climb down the well in the square.",
+    "ember_sigil": "The Ember Sigil waits in the Warden's hall. Climb down through the gaol's grate, up on the Gaol Ward.",
     "verdant_sigil": (
         "The Verdant Sigil is in the hollow. Follow the green trail east of the square to the cave. "
         "Take a light."
@@ -210,7 +210,7 @@ def odrin(game, flags, inv):
     return (
         "Odrin",
         [
-            "The well in the square leads down into the old prison. The green trail east leads to the hollow's cave.",
+            "The grate in the Gaol Ward leads down into the old prison. The green trail east leads to the hollow's cave.",
             "The north road climbs to the Cinderhold. Its bridge crosses a gorge of fire.",
             "The cathedral steps climb to the Vesper Gate. It stands open on Vesperholm, under the moon.",
             "Save your strength at the stone shrines. The old wardens built them for the Ashen. Many knelt there.",
@@ -224,7 +224,7 @@ def pell_lines(flags):
         return ["Back again? Take a look."]
     flags.add("met_pell")
     return [
-        "Pell's goods. Most of it came in by boat, and the rest came up out of the well.",
+        "Pell's goods. Most of it came in by boat, and the rest came up out of the gaol's pit.",
         "Coin up front, mind you. Nobody hands out credit to folk going down that hole.",
     ]
 
@@ -237,7 +237,7 @@ def hollis_lines(flags):
         ]
     else:
         lines = [
-            "I'm meant to guard this well. Mostly I guard it from the inside.",
+            "I'm meant to guard this grate. Mostly I guard it from the inside.",
             "Down there a portcullis seals the stairs going north. There's a lever in the east cells.",
             "The cell door's locked, though. My brother dropped the key in the flooded cellar, west side.",
         ]
@@ -346,7 +346,7 @@ def corvane(level, flags):
     return (
         "Corvane",
         [
-            "So. The one who walks in the prison and comes back up the well.",
+            "So. The one who walks in the prison and comes back up through the grate.",
             "I am Corvane. I left my island with three blades and a debt. The debt is paid.",
             "The blades are not for anyone with a purse. They are for hands that have learned to wait.",
             "A word, since you have earned one: hold the draw. Stand still, and let the blade decide.",
@@ -362,7 +362,7 @@ GIFTS = {
         {"hatchet": 1, "menders_kit": 2},
         [
             "Mind the sparks. Brannoc, smith of Harrowmere, for my sins.",
-            "You're going down that well with a rusted sword? No. Take this hatchet. It bites.",
+            "You're going down that pit with a rusted sword? No. Take this hatchet. It bites.",
             "And two mender's kits. Steel dulls, straps tear, plate splits. Mend it before it fails you.",
             "When you've coin, come back. Everything I sell, I forged on this anvil, and I mend what I sell.",
         ],
@@ -374,7 +374,7 @@ GIFTS = {
         {"buckler": 1},
         [
             "Halt. ...Grey skin, ash on your boots. Another one up from the cemetery. Captain Garrick, of the watch.",
-            "Six of us once. Now it's me and Hollis, and Hollis guards the well from the inside.",
+            "Six of us once. Now it's me and Hollis, and Hollis guards the gaol's grate from the inside.",
             "Here, a buckler from the watch stores. Catch the blow, then answer it.",
         ],
         [
@@ -388,7 +388,7 @@ GIFTS = {
         {"red_tonic": 2, "blue_moss": 1},
         [
             "Careful of the pot, it's half boiled down. I'm Tamsin. I mend what the dark breaks.",
-            "Take these, a first dose on the house. Nobody walks out of the well on their own legs twice.",
+            "Take these, a first dose on the house. Nobody climbs out of that pit on their own legs twice.",
             "After that, I'm afraid herbs cost coin like anything else.",
         ],
         ["Back in one piece? Mostly? Let's see what you need."],

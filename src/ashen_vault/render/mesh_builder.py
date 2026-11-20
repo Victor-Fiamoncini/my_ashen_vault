@@ -61,12 +61,14 @@ LIGHT_KINDS = (
     "moon_window",
     "sump_caps",
     "energy_core",
+    "street_arch",
 )
 LIGHT_Y = {
     "energy_core": "2.4",
     "save_statue": "2.4",
     "lamp_post": "2.6",
     "grand_stair": "3.2",
+    "street_arch": "3.4",
     "moon_lamp": "2.95",
     "light": "2.0",
     "candles": "0.6",

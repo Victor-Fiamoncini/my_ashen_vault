@@ -10,7 +10,7 @@ from ashen_vault.ai.enemy_types import EnemyTypes
 from ashen_vault.player.player import Player
 from ashen_vault.world.hazards import Eruption
 from ashen_vault.world.tile_map import TileMap
-from ashen_vault.world.world import LIFT_LOCKED, World
+from ashen_vault.world.world import LIFT_LOCKED, World, stair_footprint
 
 
 class _Gpu:
@@ -330,6 +330,17 @@ def test_town_props_hang_on_the_thin_house_walls_and_the_stalls_are_gone():
     assert world.map.wall_inset(4, 17, -1, 0) == pytest.approx(1.5)
 
 
+def test_pells_outside_stair_is_solid_and_leaves_his_doorstep_free():
+    world = World(FakeGame(), "harrowmere")
+    stair = next(p for p in world.props if p.kind == "outside_stair")
+    tiles = stair_footprint(stair)
+    assert len(tiles) == int(stair.props.get("run", "2"))
+    assert all(world.blocked_tile(*t) for t in tiles)
+    assert (10, 33) not in tiles and not world.blocked_tile(10, 33)  # the step outside Pell's door
+    # The alley beside the flight stays open.
+    assert all(world.map[11, z].walkable and not world.blocked_tile(11, z) for z in range(29, 34))
+
+
 def _town_door(at=(9, 33)):
     """Harrowmere with you on the step outside Pell's door (a door arch at 9,33 facing east)."""
     game = FakeGame()
@@ -353,7 +364,7 @@ def test_house_doors_start_shut_and_bar_the_doorway():
     doors = {(p.tx, p.tz) for p in world.props if p.kind == "house_door"}
     assert {(p.tx, p.tz) for p in arches if "rose" not in p.props} == doors
     assert all((p.tx, p.tz) not in doors for p in arches if "rose" in p.props)
-    assert len(doors) >= 8
+    assert len(doors) == 5  # the forge, Corvane's hut, Pell's, Wren's and Tamsin's
 
 
 def test_a_house_door_opens_lets_you_in_and_shuts_again():
@@ -456,7 +467,7 @@ def test_a_smashed_barrel_flings_its_pieces_out_then_settles_and_a_loaded_one_li
 
 
 def test_hollow_inmates_kneel_until_you_come_near_then_rise_and_come_for_you():
-    game, world = prison(at=(15, 32))  # down in the well's shaft, far from the guard hall
+    game, world = prison(at=(15, 32))  # down in the gaol's shaft, far from the guard hall
     (inmate,) = [
         e for e in world.enemies if e.type.id == "hollow_inmate" and (e.x, e.z) == TileMap.center(13, 20)
     ]
