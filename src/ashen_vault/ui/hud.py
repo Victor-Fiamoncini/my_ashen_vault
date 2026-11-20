@@ -337,8 +337,10 @@ def mouse_hud(player, x, y):
     two = player.inventory.two_handing()
     micro_centered(BUTTON_LABELS[RIGHT], x + HUD_PAD + inner // 2, ly, DIM)
     micro_centered(BUTTON_LABELS[LEFT], x + w - HUD_PAD - inner // 2, ly, dim if two else DIM)
-    n = player.inventory.count(player.quick)
-    micro_centered(f"X{n}", cx, ly, TEXT if n else color(200, 80, 70))
+    item = player.quick_item()
+    if item is not None:  # no count under an empty quick slot
+        n = player.inventory.count(item.id)
+        micro_centered(f"X{n}", cx, ly, TEXT if n else color(200, 80, 70))
 
 
 def mouse_button(player, hand, x, y, w):
@@ -394,9 +396,9 @@ def broken_mark(x, y):
 
 
 def wheel(player, cx, top, h):
-    """The scroll wheel: the selected quick item between up/down chevrons."""
+    """The scroll wheel: the selected quick item between up/down chevrons (bare when its slot is
+    empty)."""
     item = player.quick_item()
-    n = player.inventory.count(item.id)
     hud_box(cx - WHEEL_W // 2, top, WHEEL_W, h, fill=color(0, 0, 0, 220), radius=HUD_INNER_RADIUS)
     chev = color(150, 120, 70)
     pr.draw_triangle(pr.Vector2(cx, top + 2), pr.Vector2(cx - 2, top + 4), pr.Vector2(cx + 2, top + 4), chev)
@@ -404,7 +406,9 @@ def wheel(player, cx, top, h):
     pr.draw_triangle(
         pr.Vector2(cx - 2, bottom - 2), pr.Vector2(cx, bottom), pr.Vector2(cx + 2, bottom - 2), chev
     )
-    item_icon(item.id, cx, top + h // 2, pr.get_time(), 255 if n else 90)
+    if item is not None:
+        n = player.inventory.count(item.id)
+        item_icon(item.id, cx, top + h // 2, pr.get_time(), 255 if n else 90)
 
 
 def gauge_bar(x, y, w, frac, rgb, track=(40, 34, 26)):
@@ -435,7 +439,7 @@ def draw_atk_bar(bar, held_t, x, y, w, track=(40, 34, 26)):
 
 
 def item_icon(id_, cx, cy, t, alpha=255):
-    """Tiny quick-item glyphs for the mouse wheel."""
+    """Tiny quick-item glyphs for the mouse wheel, Belongings' Quick panel and its chooser."""
     a = int(alpha)
     if id_ == "red_tonic":
         pr.draw_rectangle(cx - 1, cy - 4, 2, 2, color(120, 90, 60, a))

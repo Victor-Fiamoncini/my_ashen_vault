@@ -1,5 +1,5 @@
-"""What the Belongings menu shows, as data: which slot holds an item, what each slot holds, and the
-slot chooser's rows. Pure logic, no raylib, so tests can cover it.
+"""What the Belongings menu shows, as data: which slot holds an item, what each slot holds, the
+slot chooser's rows and the quick item slots. Pure logic, no raylib, so tests can cover it.
 
 Players see two equip slots, Primary (the left mouse button) and Secondary (the right one), never
 hands; the inventory still keys them RIGHT / LEFT so saves stay compatible."""
@@ -103,3 +103,43 @@ def pick_options(inv, item, spell_name, spell_id=None):
     if readied and inv.equipped(held_id(item)):
         opts.append(("Unequip", None))
     return opts
+
+
+# --- quick items -----------------------------------------------------------------
+# A consumable's chooser: use it now, or put it in one of the quick slots the mouse wheel picks from.
+USE = "use"  # the chooser row that uses the item
+UNQUICK = "unquick"  # the chooser row that takes it out of its quick slot
+
+
+def quick_mark(player, id_):
+    """Row suffix " [Q2]" for an item sitting in a quick slot, else ""."""
+    slot = player.quick_slot_of(id_)
+    return "" if slot is None else f" [Q{slot + 1}]"
+
+
+def quick_name(player, slot):
+    """What quick slot `slot` holds, by name, or "(empty)"."""
+    id_ = player.quick_slots[slot]
+    return Items.get(id_).name if id_ else "(empty)"
+
+
+def quick_options(player, item):
+    """The quick-slot rows of a consumable's chooser: (label, slot index) for each slot, naming what
+    it holds now, then ("Remove", UNQUICK) when the item already sits in one."""
+    opts = [(f"Quick {i + 1}: {quick_name(player, i)}", i) for i in range(len(player.quick_slots))]
+    if player.quick_slot_of(item.id) is not None:
+        opts.append(("Remove", UNQUICK))
+    return opts
+
+
+def consumable_options(player, item):
+    """A consumable's chooser: ("Use", USE), then its quick-slot rows."""
+    return [("Use", USE), *quick_options(player, item)]
+
+
+def quick_rows(player):
+    """The Quick panel: (slot number, item or None, selected on the wheel) per slot."""
+    return [
+        (i + 1, Items.get(id_) if id_ else None, i == player.quick_index)
+        for i, id_ in enumerate(player.quick_slots)
+    ]

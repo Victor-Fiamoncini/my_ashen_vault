@@ -14,7 +14,7 @@ Equipment, combat, spells, shops, saves and the story.
 | `src/ashen_vault/player/stash.py` | The shrine store: deposit and withdraw items and spells, what may be stored, and what still counts as owned |
 | `src/ashen_vault/player/remnant.py` | The gold you drop when you die (`Player.remnant`, saved with the player): a heap of your ashes (`cemetery_models.remnant`) at `World.death_spot` (the last solid ground if you died down a chasm, in water or lava); walk over it or interact to gather it, die again first and it is lost |
 | `src/ashen_vault/ui/compare.py` | ATK / DEF / Block / SPL / Load now and after equipping (or taking off) an item or spell: the Belongings stats panel, its slot chooser and the shop show it before you choose |
-| `src/ashen_vault/ui/belongings.py` | Belongings as data: its tabs, slot marks, the Equipped panel and the slot chooser (Primary / Secondary) |
+| `src/ashen_vault/ui/belongings.py` | Belongings as data: its tabs, slot marks, the Equipped panel, the slot chooser (Primary / Secondary) and the quick slots' marks (`[Q2]`), chooser rows and Quick panel |
 | `src/ashen_vault/ui/atk_bar.py` | What a weapon button's two-row bar shows (ATK gauge, heavy charge, a ready art), as data; `hud.draw_atk_bar` draws it |
 | `src/ashen_vault/ui/tally.py` | `GoldTally`: the top-right gold counter's bookkeeping (a gain lingers as "+N", then rolls in; spending shows at once). `Game.update` feeds it |
 | `src/ashen_vault/save/slots.py` | Save slots: three journeys side by side (`SLOTS`), slot 1 the base save path (an old single save) and `save_<n>.json` beside it; each records `Player.play_time` (counted by `Game.update` in `PLAYED_SCENES`). The title's New Game and Load Game open the slot chooser (New Game asks before overwriting a used slot), Continue loads the slot saved last (`latest`) |
@@ -50,7 +50,7 @@ Equipment, combat, spells, shops, saves and the story.
   player sees. Each holds a weapon, a shield, the readied spell (`SPELL`) or nothing (a fist), plus
   `body` and `hands` armor. `two_handed` weapons fill both slots and swing from Primary only. The HUD
   draws the slots on a mouse in the bottom right (`hud.mouse_hud`: Primary on its left button, Secondary
-  on its right, the quick item on the wheel). HUD spacing comes from `HUD_MARGIN` (screen edge),
+  on its right, the selected quick slot's item on the wheel). HUD spacing comes from `HUD_MARGIN` (screen edge),
   `HUD_PAD` (inside a box) and `HUD_GAP` (between elements); derive new positions from them. Belongings and the
   shop lay their panels out from `screen.MENU_SPACE` (one margin from the screen edge and between
   panels: `MENU_LIST`, `EQUIPPED_PANEL`, `STATS_PANEL`, `ITEM_PANEL`). Belongings doesn't pause the game
@@ -72,13 +72,22 @@ Equipment, combat, spells, shops, saves and the story.
   broken weapon looses no art. The shield's mouse button shows its durability, not ST (`hud.mouse_button`);
   broken gear carries `hud.broken_mark`. Belongings shows `Dur n/max` by the item's name and `(Broken)` in
   Equipped. Brannoc (`dialogue.REPAIRERS`) opens his shop with `MEND_ROW`, leading to the `repair` scene;
-  the `menders_kit` (kind `repair`, Items tab, not a quick item) mends one piece through the slot
+  the `menders_kit` (kind `repair`, Items tab, never in a quick slot) mends one piece through the slot
   chooser. Kits are sold, gifted, in a few chests and in breakables (`loot.KIT_CHANCE`).
 - Weapons, shields and armor carry a `mass` (kg). Their total sets the player's load tier
   (`player/burden.py`, `Player.burden`): heavier gear walks slower, refills ST slower and pays more ST
   for attacks, sprinting and blocking. New gear needs a `mass` (`tests/test_burden.py`).
 - Belongings is split into tabs (`belongings.TABS`: Items, Weapons, Armor, Spells, Unique), switched
   with `tab_prev` / `tab_next` (A / D, Left / Right) or a click; `tab_of` files each item kind.
+- Quick items: four slots the player fills (`Player.quick_slots`, `QUICK_SLOTS`; a new player has
+  `DEFAULT_QUICK`, Red Tonic and Blue Moss). In Belongings' Items tab, choosing a consumable opens the
+  chooser with Use and a row per slot (`belongings.consumable_options`; Remove when it is slotted);
+  `Player.assign_quick` moves an item already in another slot, `clear_quick` empties one. Rows show
+  `[Q<n>]` (`belongings.quick_mark`) and the Items tab shows a Quick panel in Equipped's place
+  (`Game._draw_quick`). In play the mouse wheel steps through the filled slots only
+  (`Player.cycle_quick`, `quick_index`) and middle click uses the selected one (`Game._quick_use`); a
+  slot whose item has run out stays selected and greys out. Saved as `quick_slots` / `quick_index`;
+  `Player.restore_quick` reads them, seeding slot 1 from an older save's single `quick` item.
 - Every attack costs ST. Each category's moveset (`weapons.MOVESETS`) is tuned for a medium weapon;
   an item's `weight` (`light` / `medium` / `heavy` / `great`) scales each attack's ST, damage and poise
   through `weapons.WEIGHTS` (`weapons.attack` returns the sized Attack) and adds `WEIGHT_TEMPO` to its

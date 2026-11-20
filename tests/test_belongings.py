@@ -11,6 +11,7 @@ from ashen_vault.player.inventory import (
     Inventory,
 )
 from ashen_vault.player.items import Item, Items
+from ashen_vault.player.player import Player
 from ashen_vault.ui import belongings
 
 
@@ -121,3 +122,36 @@ def test_tabs_wrap_and_clicks_find_the_label_under_the_pointer():
     spans = tab_spans(10, [20, 30])
     assert spans == [(10, 30), (30 + TAB_GAP, 60 + TAB_GAP)]
     assert tab_at(spans, 12) == 0 and tab_at(spans, 40) == 1 and tab_at(spans, 5) is None
+
+
+def test_quick_mark_names_the_slot_an_item_sits_in():
+    p = Player()
+    assert belongings.quick_mark(p, "red_tonic") == " [Q1]"
+    assert belongings.quick_mark(p, "blue_moss") == " [Q2]"
+    assert belongings.quick_mark(p, "grave_lily") == ""
+
+
+def test_quick_options_name_each_slot_and_offer_remove_when_slotted():
+    p = Player()
+    lily, tonic = Items.get("grave_lily"), Items.get("red_tonic")
+    assert belongings.quick_options(p, lily) == [
+        ("Quick 1: Red Tonic", 0),
+        ("Quick 2: Blue Moss", 1),
+        ("Quick 3: (empty)", 2),
+        ("Quick 4: (empty)", 3),
+    ]
+    assert belongings.quick_options(p, tonic)[-1] == ("Remove", belongings.UNQUICK)
+    opts = belongings.consumable_options(p, tonic)
+    assert opts[0] == ("Use", belongings.USE) and len(opts) == 6
+
+
+def test_quick_rows_light_the_selected_slot():
+    p = Player()
+    p.cycle_quick()
+    rows = belongings.quick_rows(p)
+    assert [(n, i.id if i else None, sel) for n, i, sel in rows] == [
+        (1, "red_tonic", False),
+        (2, "blue_moss", True),
+        (3, None, False),
+        (4, None, False),
+    ]

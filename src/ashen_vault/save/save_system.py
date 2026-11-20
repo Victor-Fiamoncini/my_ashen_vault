@@ -99,7 +99,7 @@ class SaveSystem:
             player.x = p["x"]
             player.z = p["z"]
             player.yaw = p["yaw"]
-            player.quick = p.get("quick", player.quick)
+            player.restore_quick(p)  # older saves kept one `quick` item
             player.remnant = p.get("remnant")
             player.play_time = float(p.get("play_time", 0.0))
             renamed = Items.RENAMED.get

@@ -10,6 +10,9 @@ from ashen_vault.player.stats import Stats
 from ashen_vault.util import clamp
 from ashen_vault.world import collision
 
+QUICK_SLOTS = 4  # quick item slots, filled from Belongings
+DEFAULT_QUICK = ("red_tonic", "blue_moss", None, None)  # a new player's quick slots
+
 
 class Player:
     """First-person body: old-school dungeon-crawler movement, quick enough to step out of a blow."""
@@ -34,7 +37,9 @@ class Player:
         self.inventory = inventory or Inventory()
         self.spells = spells if spells is not None else ["flame"]
         self.spell_index = 0
-        self.quick = "red_tonic"  # consumable on the middle mouse button
+        # The quick slots the player fills from Belongings: the wheel picks one, middle click uses it.
+        self.quick_slots = list(DEFAULT_QUICK)
+        self.quick_index = 0
         self.remnant = None  # the gold you left where you died: {map, x, z, gold} (`player/remnant.py`)
         self.play_time = 0.0  # seconds played on this save (`Game.update` counts them)
         self.stash = {}  # items put away at a shrine: id -> count (`player/stash.py`)
@@ -139,25 +144,79 @@ class Player:
         self.spell_index = self.spells.index(id_)
         return True
 
-    def quick_items(self):
-        """Every kind of consumable, carried or not, in a stable order: the wheel steps through them
-        all and the HUD greys out the ones you have none of."""
-        return sorted((i for i in Items.ALL.values() if i.kind == "consumable"), key=lambda i: i.name)
-
     def quick_item(self):
-        """The selected quick item, even when you have none left (the HUD greys it out)."""
-        return Items.get(self.quick)
+        """The item in the selected quick slot, even when you have none left (the HUD greys it out);
+        None when that slot is empty."""
+        id_ = self.quick_slots[self.quick_index]
+        return Items.get(id_) if id_ else None
+
+    def _filled_quick(self):
+        return [i for i, id_ in enumerate(self.quick_slots) if id_]
 
     def cycle_quick(self, step=1):
-        """Selects the next (or previous) consumable; None when there is nothing to switch to."""
-        ids = [i.id for i in self.quick_items()]
-        if len(ids) < 2 and self.quick in ids:
+        """Selects the next (or previous) filled quick slot, skipping empty ones; None when there is
+        nothing to switch to."""
+        filled = self._filled_quick()
+        if not filled or filled == [self.quick_index]:
             return None
-        if self.quick in ids:
-            self.quick = ids[(ids.index(self.quick) + step) % len(ids)]
-        else:
-            self.quick = ids[0 if step > 0 else -1]
+        n = QUICK_SLOTS
+        for k in range(1, n + 1):
+            i = (self.quick_index + k * (1 if step > 0 else -1)) % n
+            if self.quick_slots[i]:
+                self.quick_index = i
+                break
         return self.quick_item()
+
+    def quick_slot_of(self, id_):
+        """The quick slot holding `id_`, or None."""
+        return self.quick_slots.index(id_) if id_ in self.quick_slots else None
+
+    def assign_quick(self, slot, id_):
+        """Puts consumable `id_` in quick slot `slot`, moving it there if another slot held it (and
+        the wheel's selection with it). False for anything that isn't a consumable."""
+        if Items.ALL.get(id_) is None or Items.get(id_).kind != "consumable":
+            return False
+        was = self.quick_slot_of(id_)
+        if was is not None:
+            self.quick_slots[was] = None
+            if self.quick_index == was:
+                self.quick_index = slot
+        self.quick_slots[slot] = id_
+        if not self.quick_slots[self.quick_index]:
+            self.quick_index = slot
+        return True
+
+    def clear_quick(self, slot):
+        """Empties quick slot `slot`; the wheel moves on to a filled slot if it was selected."""
+        self.quick_slots[slot] = None
+        self._settle_quick()
+
+    def _settle_quick(self):
+        """Keeps the selection on a filled slot whenever there is one."""
+        filled = self._filled_quick()
+        if filled and self.quick_index not in filled:
+            self.quick_index = next((i for i in filled if i > self.quick_index), filled[0])
+
+    def restore_quick(self, h):
+        """Reads the quick slots from a saved player dict `h`. Saves from before the slots kept one
+        `quick` item: it goes in slot 1 and the defaults fill the rest."""
+        renamed = Items.RENAMED.get
+        if "quick_slots" in h:
+            ids = [renamed(i, i) if i else None for i in (h.get("quick_slots") or [])]
+        else:
+            old = h.get("quick")
+            old = renamed(old, old) if old else None
+            ids = [old, *(d for d in DEFAULT_QUICK if d and d != old)] if old else list(DEFAULT_QUICK)
+        ids = [i if i in Items.ALL and Items.get(i).kind == "consumable" else None for i in ids]
+        ids = (ids + [None] * QUICK_SLOTS)[:QUICK_SLOTS]
+        seen = set()
+        self.quick_slots = []
+        for i in ids:  # an item sits in one slot only
+            self.quick_slots.append(None if i in seen else i)
+            seen.add(i)
+        index = h.get("quick_index", 0)
+        self.quick_index = index if isinstance(index, int) and 0 <= index < QUICK_SLOTS else 0
+        self._settle_quick()
 
     @property
     def heading(self):
@@ -544,7 +603,8 @@ class Player:
             "inventory": self.inventory.to_h(),
             "spells": list(self.spells),
             "spell": self.current_spell().id if self.spells else None,
-            "quick": self.quick,
+            "quick_slots": list(self.quick_slots),
+            "quick_index": self.quick_index,
             "remnant": self.remnant,
             "play_time": self.play_time,
             "stash": dict(self.stash),

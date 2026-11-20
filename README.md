@@ -337,7 +337,8 @@ Without uv, plain pip works: `python3 -m venv .venv`, `.venv/bin/pip install -e 
 | Equip, ready a spell | Belongings (Tab): 1 for Primary, 2 for Secondary, or Enter / click to choose |
 | Use, talk, open | E |
 | Belongings | Tab or I; A / D (or Left / Right) switch tabs |
-| Quick item / choose quick item | Middle mouse / mouse wheel |
+| Use quick item / pick quick slot | Middle mouse / mouse wheel |
+| Set quick slots | Belongings (Tab), Items tab: Enter / click a consumable |
 | Pause | Esc |
 | Menus | Up/Down, Enter, Esc, or point, click, right-click and scroll with the mouse |
 
@@ -346,7 +347,8 @@ The same list is in the game under **Controls** on the title and pause menus.
 ## Tips
 
 - The mouse in the bottom right shows your slots: Primary on its left button, Secondary on its right
-  and your quick item on the wheel. HP, MP, ST and a compass share the bottom-left box; an ember on the
+  and the item in your selected quick slot on the wheel. Fill the four quick slots from the Items tab
+  of Belongings; the wheel steps only through the slots you filled. HP, MP, ST and a compass share the bottom-left box; an ember on the
   compass points to the nearest boss still alive.
 - Your swing hits as hard as the gold **ATK** bar on its button is full: wait for it to flash. Hold
   the button to charge a **heavy attack** (the orange bar), then release.

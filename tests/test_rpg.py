@@ -240,23 +240,52 @@ def test_cycle_spell_wraps_both_ways():
     assert p.cycle_spell().id == "flame"
 
 
-def test_quick_item_cycles_every_consumable_carried_or_not():
+def test_the_wheel_cycles_only_the_filled_quick_slots():
     p = Player()
+    assert p.quick_slots == ["red_tonic", "blue_moss", None, None]
     assert p.quick_item().id == "red_tonic"
-    assert [i.id for i in p.quick_items()] == [
-        "bitter_root",
-        "blue_moss",
-        "clotting_salve",
-        "ember_draught",
-        "grave_lily",
-        "red_tonic",
-    ]
-    assert p.cycle_quick().id == "bitter_root", "the wheel works even with empty pockets"
-    assert p.cycle_quick().id == "blue_moss"
-    assert p.cycle_quick(-1).id == "bitter_root"
+    assert p.cycle_quick().id == "blue_moss", "the wheel works even with empty pockets"
+    assert p.cycle_quick().id == "red_tonic", "empty slots are skipped"
+    assert p.cycle_quick(-1).id == "blue_moss"
+    p.assign_quick(3, "bitter_root")
+    assert p.cycle_quick().id == "bitter_root"
+    assert p.cycle_quick().id == "red_tonic"
     p.inventory.add("blue_moss", 2)
-    assert p.quick_item().id == "bitter_root", "an empty slot stays selected"
-    assert p.cycle_quick().id == "blue_moss"
+    assert p.quick_item().id == "red_tonic", "an empty-handed slot stays selected"
+
+
+def test_one_filled_quick_slot_has_nothing_to_switch_to():
+    p = Player()
+    p.clear_quick(1)
+    assert p.cycle_quick() is None
+    assert p.quick_item().id == "red_tonic"
+    p.clear_quick(0)
+    assert p.quick_item() is None and p.cycle_quick() is None
+    p.assign_quick(2, "grave_lily")
+    assert p.quick_index == 2, "an empty selection moves to the first slot filled"
+    assert p.quick_item().id == "grave_lily"
+
+
+def test_assigning_a_quick_item_moves_it_and_its_selection():
+    p = Player()
+    assert p.assign_quick(3, "red_tonic")
+    assert p.quick_slots == [None, "blue_moss", None, "red_tonic"]
+    assert p.quick_index == 3, "the wheel follows the item it had selected"
+    p.assign_quick(1, "clotting_salve")
+    assert p.quick_slots == [None, "clotting_salve", None, "red_tonic"]
+    assert not p.assign_quick(0, "rusted_sword"), "only consumables go on the wheel"
+    assert not p.assign_quick(0, "menders_kit")
+    assert p.quick_slots[0] is None
+
+
+def test_clearing_the_selected_quick_slot_moves_the_wheel_on():
+    p = Player()
+    p.assign_quick(2, "bitter_root")
+    p.quick_index = 1
+    p.clear_quick(1)
+    assert p.quick_index == 2
+    p.clear_quick(2)
+    assert p.quick_index == 0
 
 
 def test_equip_spell_readies_only_known_spells():
@@ -282,17 +311,44 @@ def test_save_keeps_the_equipped_spell(tmp_path):
     assert saves.load()[1].current_spell().id == "flame"
 
 
-def test_save_keeps_quick_item_and_old_saves_default(tmp_path):
+def test_save_keeps_the_quick_slots(tmp_path):
     saves = SaveSystem(str(tmp_path / "save.json"))
     player = Player()
-    player.quick = "blue_moss"
+    player.assign_quick(2, "grave_lily")
+    player.clear_quick(0)
+    player.quick_index = 2
     saves.save(map="harrowmere", player=player, flags=set())
-    assert saves.load()[1].quick == "blue_moss"
+    loaded = saves.load()[1]
+    assert loaded.quick_slots == [None, "blue_moss", "grave_lily", None]
+    assert loaded.quick_index == 2
 
+
+def test_old_saves_seed_quick_slot_one_from_their_quick_item(tmp_path):
+    saves = SaveSystem(str(tmp_path / "save.json"))
+    saves.save(map="harrowmere", player=Player(), flags=set())
     data = json.loads((tmp_path / "save.json").read_text())
+    del data["player"]["quick_slots"], data["player"]["quick_index"]
+    data["player"]["quick"] = "blue_moss"  # saves from before the slots kept one quick item
+    (tmp_path / "save.json").write_text(json.dumps(data))
+    loaded = saves.load()[1]
+    assert loaded.quick_slots == ["blue_moss", "red_tonic", None, None]
+    assert loaded.quick_index == 0
+
     del data["player"]["quick"]
     (tmp_path / "save.json").write_text(json.dumps(data))
-    assert saves.load()[1].quick == "red_tonic"
+    assert saves.load()[1].quick_slots == ["red_tonic", "blue_moss", None, None]
+
+
+def test_restored_quick_slots_drop_unknown_and_doubled_items():
+    p = Player()
+    p.restore_quick(
+        {"quick_slots": ["grave_lily", "nonsense", "rusted_sword", "grave_lily", "x"], "quick_index": 9}
+    )
+    assert p.quick_slots == ["grave_lily", None, None, None]
+    assert p.quick_index == 0
+    p.restore_quick({"quick_slots": [None, None, "bitter_root"], "quick_index": 0})
+    assert p.quick_slots == [None, None, "bitter_root", None]
+    assert p.quick_index == 2, "the selection lands on a filled slot"
 
 
 def test_load_spot_gives_the_saved_place(tmp_path):

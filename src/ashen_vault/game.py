@@ -579,7 +579,7 @@ class Game:
         if wheel:
             self._cycle_quick(-1 if wheel > 0 else 1)  # wheel down = next
         if inp.pressed("quick"):
-            self._quick_use(p.quick)
+            self._quick_use()
         if inp.pressed("interact"):
             self._interact()
         self._update_world(dt)
@@ -1033,10 +1033,14 @@ class Game:
         if item:
             self.message(f"{item.name} x{self.player.inventory.count(item.id)}")
 
-    def _quick_use(self, id_):
-        if not self.player.inventory.has(id_):
-            return self.message(f"You have no {Items.get(id_).name}.")
-        self._use_item(Items.get(id_))
+    def _quick_use(self):
+        """Middle click: uses the item in the selected quick slot."""
+        item = self.player.quick_item()
+        if item is None:
+            return self.message("No quick item. Set one in Belongings.")
+        if not self.player.inventory.has(item.id):
+            return self.message(f"You have no {item.name}.")
+        self._use_item(item)
 
     def _use_item(self, item):
         inv = self.player.inventory
@@ -1329,7 +1333,8 @@ class Game:
         self._held = dict.fromkeys(self._held, False)
 
     def _open_pick(self, item):
-        """Asks which slot (Primary or Secondary) a one-handed weapon, a shield or a spell goes in."""
+        """Asks which slot (Primary or Secondary) a one-handed weapon, a shield or a spell goes in,
+        which piece a Mender's Kit mends, or whether to use a consumable or set it in a quick slot."""
         self._pick = item
         self._pick_index = 0
 
@@ -1349,6 +1354,8 @@ class Game:
     def _pick_options(self):
         if self._pick.kind == "repair":
             return [(f"{i.name}  {self._wear_mark(i)}", i.id) for i in self._mendable()]
+        if self._pick.kind == "consumable":
+            return belongings.consumable_options(self.player, self._pick)
         spell = self.player.current_spell()
         return belongings.pick_options(
             self.player.inventory, self._pick, self._spell_name(), spell.id if spell else None
@@ -1367,11 +1374,25 @@ class Game:
         self._pick = None
         if item.kind == "repair":
             return self._mend(hand, kit=True)
+        if item.kind == "consumable":
+            return self._choose_quick(item, hand)
         if hand is None:
             self.player.inventory.unequip(belongings.held_id(item))
             self.message(f"Unequipped {item.name}.")
         else:
             self._equip_in(item, hand)
+
+    def _choose_quick(self, item, choice):
+        """A consumable's chooser row: use it, put it in quick slot `choice`, or take it off the wheel."""
+        p = self.player
+        if choice == belongings.USE:
+            return self._use_item(item)
+        self.sfx("step", 0.4)
+        if choice == belongings.UNQUICK:
+            p.clear_quick(p.quick_slot_of(item.id))
+            return self.message(f"{item.name} is off the wheel.")
+        p.assign_quick(choice, item.id)
+        self.message(f"{{{item.name}}} set in Quick {choice + 1}.")
 
     def _mend(self, id_, kit=False):
         """Mends `id_` whole: with a Mender's Kit (`kit`), or paying Brannoc. False if you can't pay."""
@@ -1454,9 +1475,11 @@ class Game:
         clicked = self._menu_pointer(
             lambda px, py: list_row_at(*MENU_LIST, len(items), px, py, self._menu_top, LIST_ROWS)
         )
-        if clicked or self._input.pressed("confirm"):
-            return self._use_item(items[self._menu_index])
         item = items[self._menu_index]
+        if clicked or self._input.pressed("confirm"):
+            if item.kind == "consumable":
+                return self._open_pick(item)  # use it, or set it in a quick slot
+            return self._use_item(item)
         for slot, action in ((PRIMARY, "slot1"), (SECONDARY, "slot2")):
             if self._input.pressed(action):
                 if belongings.slottable(item):
@@ -1991,23 +2014,35 @@ class Game:
         )
         self._draw_tabs()
         item = items[self._menu_index] if self._menu_index < len(items) else None
-        self._draw_equipped()
+        if self._menu_tab == "Items":
+            self._draw_quick()
+        else:
+            self._draw_equipped()
         self._draw_stats(self._changes(item) if item else {})
         self._draw_item_panel(
             item,
             self._item_detail(item) if item else "",
-            "A/D: tab   1/2: Primary/Secondary   Enter: choose",
+            "A/D: tab   Enter: use or set quick slot"
+            if self._menu_tab == "Items"
+            else "A/D: tab   1/2: Primary/Secondary   Enter: choose",
         )
         self._draw_marks(self._gear_marks(item) if item else [])
         if self._pick:
             x, y, w = PICK_LIST
             rows = [(label,) for label, _ in self._pick_options()]
-            mending = self._pick.kind == "repair"
-            title = "Mend which?" if mending else f"Equip {self._pick.name}"
+            kind = self._pick.kind
+            title = {"repair": "Mend which?", "consumable": self._pick.name}.get(
+                kind, f"Equip {self._pick.name}"
+            )
             ui.list_menu(title, *PICK_LIST, rows, self._pick_index)
             for i, (_, slot) in enumerate(self._pick_options()):
-                if slot is not None and not mending:
-                    ui.mini_mouse(x + w - 11, y + ROW_TOP + i * ROW_H, belongings.SLOT_BUTTONS[slot])
+                ry = y + ROW_TOP + i * ROW_H
+                if kind == "consumable":
+                    held = self.player.quick_slots[slot] if isinstance(slot, int) else None
+                    if held:  # what the quick slot holds now, by its wheel glyph
+                        ui.item_icon(held, x + w - 9, ry + 4, pr.get_time())
+                elif slot is not None and kind != "repair":
+                    ui.mini_mouse(x + w - 11, ry, belongings.SLOT_BUTTONS[slot])
 
     def _changes(self, item):
         """What the highlighted row would change: in the slot chooser, putting it in the hovered slot
@@ -2016,7 +2051,7 @@ class Game:
         spell = self.player.current_spell()
         spell_id = spell.id if spell else None
         kw = {"magic": self.player.stats.magic, "spell": spell_id}
-        if self._pick and self._pick.kind == "repair":
+        if self._pick and self._pick.kind in ("repair", "consumable"):
             return {}
         if self._pick:
             opts = self._pick_options()
@@ -2060,6 +2095,25 @@ class Game:
             else:
                 ui.tiny(slot.upper(), x + 6, ry + 2, ui.DIM)
             ui.text(name, x + 30, ry, ui.DIM if name.startswith("(") or name == "-" else ui.TEXT)
+
+    def _draw_quick(self):
+        """The Items tab's Quick panel, in Equipped's place: what each quick slot holds, the one the
+        mouse wheel has selected lit, with how many you carry."""
+        x, y, w = EQUIPPED_PANEL
+        ui.panel(x, y, w, EQUIPPED_H)
+        ui.text("Quick", x + 8, y + 5, ui.HIGHLIGHT)
+        inv = self.player.inventory
+        for num, item, selected in belongings.quick_rows(self.player):
+            ry = y + ROW_TOP + (num - 1) * ROW_H
+            ui.tiny(f"Q{num}", x + 6, ry + 2, ui.HIGHLIGHT if selected else ui.DIM)
+            if item is None:
+                ui.text("(empty)", x + 30, ry, ui.DIM)
+                continue
+            n = inv.count(item.id)
+            ui.item_icon(item.id, x + 22, ry + 4, pr.get_time(), 255 if n else 90)
+            ui.text(item.name, x + 30, ry, ui.HIGHLIGHT if selected else ui.TEXT if n else ui.DIM)
+            count = f"x{n}"
+            ui.text(count, x + w - 8 - ui.measure(count), ry, ui.TEXT if n else ui.DIM)
 
     def _draw_stats(self, changes=None):
         """Level, vitals and attributes in two columns, then your load and EXP across the bottom.
@@ -2117,7 +2171,10 @@ class Game:
         ui.text(tail, x + 5, y, COMPARE_COLORS[compare.better(stat, *change)])
 
     def _equipped_mark(self, item):
-        """Row suffix: which slots hold the item ([1], [2], [1+2]), or [Worn] for armor."""
+        """Row suffix: which slots hold the item ([1], [2], [1+2]), [Worn] for armor, or the quick
+        slot a consumable sits in ([Q2])."""
+        if item.kind == "consumable":
+            return belongings.quick_mark(self.player, item.id)
         spell = self.player.current_spell()
         return belongings.slot_mark(self.player.inventory, item, spell.id if spell else None)
 
