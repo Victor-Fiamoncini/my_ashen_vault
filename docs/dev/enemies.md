@@ -78,9 +78,20 @@ Behaviour flags, special moves, bosses and the rules every enemy model must keep
   the Argent Sigil. At half
   HP a boss with a `brood` calls it and one with a `rage` kindles it (the Warden's burning blade);
   either way it enters its second phase (`Enemy.phase2`), fights faster and adds its `phase_moves`.
+  Nothing staggers it out of that turn (`Enemy.turning`), so the brood or the rage always comes.
   A type's `tempo` (below 1 is quicker; the Duchess's is 0.72) scales its windups (`Enemy.windup_time`,
   never below `MIN_WINDUP`), recovers (`recover_time`), move cooldowns (`_cooldown`) and combo gap
-  (`combo_gap`); models time their poses by these, not the type's raw numbers. A type's `impact`
+  (`combo_gap`); models time their poses by these, not the type's raw numbers. In the second phase
+  `phase_tempo` takes over from `tempo` if set (`Enemy.tempo`), and the rage quickens it on top:
+  windups by `rage_windup` (0.8), cooldowns by `rage_cooldown` (0.7) and its stride by `rage_speed`
+  (1.25, `Enemy.stride`). The Duchess eases off in her rage (`phase_tempo` 0.9, `rage_windup` 1.0,
+  `rage_cooldown` 0.95, `rage_speed` 1.1): her new moves are the danger, not her pace.
+  A direct blow staggers a foe (`take_hit` → state `hurt`) when its damage times the attack's poise
+  multiplier reaches the type's `poise`. A type with `heavy_stagger` (seconds; the Duchess's is 2.0)
+  is also staggered by every blow of a heavy or great weapon (`weapons.is_heavy`, passed as
+  `take_hit(heavy=True)` by `Game._strike`), whatever its poise, and then guards that long
+  (`Enemy.guard_t`) before the next heavy blow is sure to stagger it again; spells and lingering harm
+  never count as heavy. A type's `impact`
   (seconds; the Keystone's is 0.45) holds back the blow, and whatever its move sets off, until that far
   into the attack, and the attack holds that much longer: a giant's swing follows through visibly
   rather than snapping down (`_swing_pose` and `keystone_pose` travel over it). A foe's blow only reaches

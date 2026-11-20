@@ -842,7 +842,7 @@ class Game:
             if back > 1:
                 self.message(f"You strike the {target.name}'s weak spot!")
             jolt = elements.staggers(target.type, element)
-            self.damage_enemy(target, dmg, 99.0 if jolt else a.poise * back)
+            self.damage_enemy(target, dmg, 99.0 if jolt else a.poise * back, heavy=weapons.is_heavy(weapon))
             if elements.burns(target.type, element) and target.alive:
                 target.afflict("burn", *elements.WEAPON_BURN)
             if a.pull and target.alive:
@@ -921,9 +921,9 @@ class Game:
             self.sfx("hiss", 0.5)  # it sears to ash before it crumbles
             self.message("The wall was an illusion! It crumbles into ash.")
 
-    def damage_enemy(self, enemy, dmg, poise_mult=1.0, stagger=True):
+    def damage_enemy(self, enemy, dmg, poise_mult=1.0, stagger=True, heavy=False):
         dmg = rround(dmg * self.world.core_mult(enemy))  # a golem cut off from its quenched core
-        if not enemy.take_hit(dmg, poise_mult, stagger=stagger):
+        if not enemy.take_hit(dmg, poise_mult, stagger=stagger, heavy=heavy):
             return
         self.sfx("enemy_die")
         t = enemy.type

@@ -305,3 +305,11 @@ def test_keep_has_the_new_weapon_chests():
     m = MapLoader.load_file(os.path.join(MAP_DIR, "abandoned_prison.map"))
     items = {s.props.get("item") for s in m.entities if s.kind == "chest"}
     assert {"claymore", "war_hammer"} <= items
+
+
+def test_only_heavy_and_great_weapons_land_heavy_blows():
+    for heavy in ("bastard_sword", "claymore", "zweihander", "war_hammer"):
+        assert weapons.is_heavy(Items.get(heavy)), heavy
+    for light in ("katana", "leather_whip", "rusted_sword", "mace"):
+        assert not weapons.is_heavy(Items.get(light)), light
+    assert not weapons.is_heavy(SimpleNamespace(weight=None))  # unweighted is medium

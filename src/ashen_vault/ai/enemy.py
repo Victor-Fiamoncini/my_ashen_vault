@@ -303,6 +303,7 @@ class Enemy:
         self.rise_time = 0.0  # how long the current rise takes
         self.anim_t = 0.0
         self.flash_t = 0.0  # counts down after a direct blow: the red hit flash
+        self.guard_t = 0.0  # counts down after a heavy weapon staggers it (`EnemyType.heavy_stagger`)
         self._wander_dir = None
         self._struck = False
         # "melee", "shot", "bite" or a boss move: what the current windup will turn into.
@@ -364,6 +365,7 @@ class Enemy:
         self.anim_t += dt
         self.state_t += dt
         self.flash_t = max(self.flash_t - dt, 0.0)
+        self.guard_t = max(self.guard_t - dt, 0.0)
         self._update_trail(dt)
         if self.type.fly is not None:
             self.fly(dt)
@@ -412,20 +414,31 @@ class Enemy:
 
     @property
     def windup_time(self):
-        """Seconds the current windup lasts: the move's (or the type's) own, quickened by the type's
-        `tempo` and by a boss's rage, but never below MIN_WINDUP (nor its own time, if that is less)."""
+        """Seconds the current windup lasts: the move's (or the type's) own, quickened by its `tempo`
+        and by a boss's rage, but never below MIN_WINDUP (nor its own time, if that is less)."""
         base = MOVES[self.attack_kind][0] if self.attack_kind in MOVES else self.type.windup
-        quick = base * self.type.tempo * (0.8 if self.enraged else 1.0)
+        quick = base * self.tempo * (self.type.rage_windup if self.enraged else 1.0)
         return max(quick, min(base, MIN_WINDUP))
 
     @property
+    def tempo(self):
+        """What its timers are scaled by: the type's `tempo`, or its `phase_tempo` once enraged."""
+        t = self.type
+        return t.phase_tempo if self.enraged and t.phase_tempo is not None else t.tempo
+
+    @property
+    def stride(self):
+        """Its pace multiplier: a boss's rage lengthens its stride (`rage_speed`)."""
+        return self.type.rage_speed if self.enraged else 1.0
+
+    @property
     def recover_time(self):
-        return self.type.recover * self.type.tempo
+        return self.type.recover * self.tempo
 
     @property
     def combo_gap(self):
         """Seconds between the swings of its combo."""
-        return COMBO_GAP * self.type.tempo
+        return COMBO_GAP * self.tempo
 
     def flight_target(self):
         """The height a flyer heads for: down to strike over a swoop, its cruising height otherwise,
@@ -450,7 +463,7 @@ class Enemy:
 
     def _cooldown(self, move):
         """Seconds before `move` comes round again: quicker for a quick type and in a boss's rage."""
-        return MOVES[move][1] * self.type.tempo * (0.7 if self.enraged else 1.0)
+        return MOVES[move][1] * self.tempo * (self.type.rage_cooldown if self.enraged else 1.0)
 
     @property
     def enraged(self):
@@ -511,9 +524,11 @@ class Enemy:
                 del self.status[kind]
         return dmg
 
-    def take_hit(self, amount, poise_mult=1.0, stagger=True):
+    def take_hit(self, amount, poise_mult=1.0, stagger=True, heavy=False):
         """Applies damage and returns True if the hit was fatal. Heavy blows (`poise_mult`)
-        stagger tougher foes; lingering harm (`stagger=False`) never does."""
+        stagger tougher foes; lingering harm (`stagger=False`) never does. A blow from a heavy or
+        great weapon (`heavy`) staggers a foe with `heavy_stagger` whatever its poise, once per guard.
+        Nothing staggers a boss out of turning at half HP (`turning`)."""
         if not self.alive or self.unseen:
             return False
         was_dormant = self.dormant or self.perched
@@ -527,11 +542,23 @@ class Enemy:
             return True
         if self.perched:  # struck on its perch: the statue cracks open
             self.rouse()
-        elif stagger and amount * poise_mult >= self.type.poise:
+        elif stagger and not self.turning and self._staggers(amount * poise_mult, heavy):
             self._switch("hurt")
         elif was_dormant:
             self._switch("chase")
         return False
+
+    def _staggers(self, poise, heavy):
+        """Whether a direct blow of `poise` breaks its guard; a heavy weapon's starts `guard_t`."""
+        if heavy and self.type.heavy_stagger > 0 and self.guard_t <= 0:
+            self.guard_t = self.type.heavy_stagger
+            return True
+        return poise >= self.type.poise
+
+    @property
+    def turning(self):
+        """Calling its brood or kindling its rage: a stagger would cut the turn short and lose it."""
+        return self.state in ("windup", "attack") and self.attack_kind in ("summon", "kindle")
 
     @property
     def dormant(self):
@@ -665,7 +692,7 @@ class Enemy:
         # A shooter keeps its distance; so does a flyer over your head, out to where it can swoop again.
         aloft = self.aloft and not level and dist < DIVE_RANGE[0]
         direction = -1.0 if (self.type.ranged and dist < 4.0) or aloft else 1.0
-        speed = self.type.speed * (1.25 if self.enraged else 1.0) * (LAND_PACE if self.landed else 1.0)
+        speed = self.type.speed * self.stride * (LAND_PACE if self.landed else 1.0)
         self._step(world, math.cos(self.yaw) * direction, math.sin(self.yaw) * direction, speed * dt)
 
     def behind_me(self, px, pz):
@@ -794,7 +821,7 @@ class Enemy:
             dx, dz = world.player_x - self.x, world.player_z - self.z
             d = math.hypot(dx, dz)
             if d > 1e-6:
-                speed = self.type.speed * (1.25 if self.enraged else 1.0) * BURROW_SPEED
+                speed = self.type.speed * self.stride * BURROW_SPEED
                 step = min(speed * dt, d)
                 self.yaw = math.atan2(dz, dx)
                 world.move_enemy(self, dx / d * step, dz / d * step)

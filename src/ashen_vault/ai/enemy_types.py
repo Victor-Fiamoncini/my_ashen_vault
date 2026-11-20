@@ -92,6 +92,16 @@ class EnemyType:
     # How quick it fights: its windups, recovers, move cooldowns and combo gaps are scaled by this
     # (below 1 is faster). Windups never drop below `enemy.MIN_WINDUP`.
     tempo: float = 1.0
+    # A boss's second phase: the tempo it fights at once enraged (None keeps `tempo`), and how its
+    # rage quickens it on top of that: windups (`rage_windup`), move cooldowns (`rage_cooldown`) and
+    # its stride (`rage_speed`). Above 1 would slow it.
+    phase_tempo: float | None = None
+    rage_windup: float = 0.8
+    rage_cooldown: float = 0.7
+    rage_speed: float = 1.25
+    # Seconds of guard after a heavy or great weapon staggers it: every such blow staggers it,
+    # whatever its poise, unless one already did within this long (0: only its poise decides).
+    heavy_stagger: float = 0.0
     # Seconds into an attack before its blow lands (and its move goes off): a giant's heavy swing
     # follows through before it strikes, rather than snapping down at once. The attack pose holds
     # this much longer as well.
@@ -1087,8 +1097,15 @@ class EnemyTypes:
                 shot_rgb=(210, 230, 255),
                 inflicts=(("rot", 30), ("frost", 35)),
                 # Quicker than any foe before her: her windups, recovers and combo come a good quarter
-                # faster, and faster again in her rage.
+                # faster. Her rage lends her new moves and a longer stride, but she takes her time
+                # with them: past half HP she swings at a gentler tempo than her first phase.
                 tempo=0.72,
+                phase_tempo=0.9,
+                rage_windup=1.0,
+                rage_cooldown=0.95,
+                rage_speed=1.1,
+                # For all her poise, a heavy or great weapon rocks her every time, once per two seconds.
+                heavy_stagger=2.0,
             ),
         ]
     }

@@ -193,6 +193,11 @@ def weight(item):
     return item.weight or MEDIUM
 
 
+def is_heavy(item):
+    """Whether `item` is a heavy or great weapon: its blows rock a foe with `heavy_stagger`."""
+    return weight(item) in (HEAVYWEIGHT, GREAT)
+
+
 def sized(item, a):
     """Attack `a` as `item`'s weight class performs it."""
     st, dmg, poise = WEIGHTS[weight(item)][a.kind]
