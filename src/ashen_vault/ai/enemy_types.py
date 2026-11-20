@@ -22,7 +22,8 @@ class EnemyType:
     ranged: bool = False
     hover: float | None = None
     # A flyer's cruising height (metres over the last solid ground it crossed): it wings out over the
-    # chasm, swoops down to strike (`dive`) and climbs again; see `Enemy.fly` and `World.enemy_y`.
+    # chasm and swoops down to strike (`dive`), then lands to fight on foot (`Enemy.landed`); see
+    # `Enemy.fly` and `World.enemy_y`.
     fly: float | None = None
     mouth: float | None = None  # height its shots leave from, if not the usual chest height
     boss: bool = False
@@ -866,7 +867,8 @@ class EnemyTypes:
                 id="sunken_sexton",
                 name="Sunken Sexton",
                 # The old city's bell-keepers, stooped and sodden, still walking their rounds with a
-                # lantern and a bell-hammer. Give one room and it rings its hand-bell: whatever sleeps
+                # lantern and a staff crowned with a shard of the golems' mortar-light. Give one room and
+                # it raises the staff and tolls through it: the shard flares teal, and whatever sleeps
                 # in stone round it wakes and comes.
                 hp=38,
                 speed=1.5,
@@ -882,11 +884,11 @@ class EnemyTypes:
                 tall=1.7,
                 poise=6,
                 moves=("toll",),
-                inflicts=(("bleed", 20),),
             ),
             # The Bell-Harpies of Old Harrowmere: gaunt winged hunters masked in shards of the city's
             # broken bells. They wheel high over the plaza and the chasm, out of a blade's reach, and
-            # stoop on you in a swoop of talons; between swoops they climb away again.
+            # stoop on you in a swoop of talons; that swoop spent, they land and stalk you on foot,
+            # raking with their talons, within a blade's reach for the rest of the fight.
             EnemyType(
                 id="harpy",
                 material="flesh",

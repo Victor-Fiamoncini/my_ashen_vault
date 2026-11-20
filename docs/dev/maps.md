@@ -24,9 +24,9 @@ How `.map` files work and what can stand on a tile.
   with no sky: the cavern's vault (`[meta] vault = 24`, below) hangs over it all. The Breach Landing (h 0, its shrine and the
   `sunken_stair` back up to the cistern), the Cliff Stair down the north wall to the bell-keepers' terrace
   (-8), a bridge out to the Bell Tower, whose stair winds down round three sides of its brick core to the
-  Aqueduct (-16), the Colonnade, the Grand Stair down to the Drowned Plaza (-20) under the curtain of
-  daylight from a great rift in the vault (`sun_shaft height= width= rift=36,7 rift_yaw=90` over its
-  fountain, with warm `light`s at its foot; `waterfall`s pour from fissures under the vault past the
+  Aqueduct (-16), the Colonnade, the Grand Stair down to the Drowned Plaza (-20) under a great rift of
+  daylight in the vault (`sun_shaft height= width= rift=36,7 rift_yaw=90` over its fountain places the
+  rift; no beam falls from it, with warm `light`s at its foot; `waterfall`s pour from fissures under the vault past the
   plaza and the Bell Tower into the chasm), and the Keystone's Foundation Court (-22) behind two
   `door boss=keystone_dead` (the front one at the end of the roads of light, ward decks over the chasm
   east of the plaza, below; the rear one out to the lift room; one arena, like Mother Gnawl's nest). The
@@ -47,8 +47,8 @@ How `.map` files work and what can stand on a tile.
   `test_the_under_cells_lie_down_the_gaolers_stair_and_the_wardens_lever_opens_them`. East of the roads,
   on its quay (x 45-47), the Mortar Sisters' Workshop: their ward-stone carving benches, golems and a
   sexton, a lore hint and a reward chest; `test_the_mortar_sisters_workshop_stands_east_of_the_roads`.
-  The `energy_core` (the mortar-light, `seal=c`) stands in the fountain's pool at 21,27, beside the
-  shaft's foot, teal `light`s (`color=0.45,1.25,1.0`) round it.
+  The `energy_core` (the mortar-light, `seal=c`) stands in the fountain's pool at 21,27, under the
+  rift, teal `light`s (`color=0.45,1.25,1.0`) round it.
   `sunken_tower height=` landmarks rise out of the chasm. Bell-Harpies (`harpy`, flyers) wheel over
   the plaza and the terrace and out over the chasm. Paved in `ochre_flag`, walled in
   `cavern_rock` and `sunken_brick`; the map is drawn by a script's layout, one legend letter per height;
@@ -147,8 +147,8 @@ How `.map` files work and what can stand on a tile.
   as before. Over the map's `sun_shaft` it opens in a crack (at the top of the leaning shaft,
   `vault.SHAFT_LEAN`; give the shaft the `height=` to reach it), daylight glowing on the rock round it;
   `test_old_harrowmeres_vault_hangs_clear_of_everything_below_it`. The shaft's `rift=<length>,<width>`
-  (metres) and `rift_yaw=` (degrees from +z) widen the crack into a long rift; the shaft's haze then
-  hangs as a curtain along it (`sunken_models.sun_shaft`).
+  (metres) and `rift_yaw=` (degrees from +z) widen the crack into a long rift. Only the crack is drawn
+  (`sunken_models.vault_rift`): no beam of light falls from it.
   Ward decks (`ward set=a|b|c deck=<h>`, a platform kind; Old Harrowmere's roads of light: gold, pale
   and teal) stand over a chasm one set at a time: striking any `ward_crystal` (a blocking prop, struck
   like a breakable, `World.strike_wards`) turns them to the next set (`terrain.next_ward`), saved as the

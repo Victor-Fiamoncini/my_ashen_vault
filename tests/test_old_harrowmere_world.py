@@ -11,7 +11,7 @@ from ashen_vault.world import collision, relics, terrain
 from ashen_vault.world.hazards import Eruption
 from ashen_vault.world.map_loader import MapLoader
 from ashen_vault.world.tile_map import TileMap
-from ashen_vault.world.world import NOVA_RINGS, QUENCHED_HP, World
+from ashen_vault.world.world import MORTAR_TEAL, NOVA_RINGS, QUENCHED_HP, World
 from test_verdant_world import JungleGame, foe
 from test_world import BESIDE, _reachable, _spec
 
@@ -241,7 +241,7 @@ def test_the_keystones_court_is_one_arena_behind_both_its_doors():
     assert t.drop not in relics.RELICS
 
 
-def test_a_sextons_bell_wakes_the_stone_round_it_and_nothing_further():
+def test_a_sextons_toll_wakes_the_stone_round_it_and_nothing_further():
     game, world = sunken(at=(20, 30))
     sexton = foe(world, "sunken_sexton", (16, 30))
     near = foe(world, "stone_golem", (14, 30))
@@ -254,10 +254,12 @@ def test_a_sextons_bell_wakes_the_stone_round_it_and_nothing_further():
     assert near.state == "rising"  # tearing free of its plinth
     assert far.perched == (math.hypot(far.x - sexton.x, far.z - sexton.z) > TOLL_RADIUS)
     assert idle.state == "chase"
-    assert keystone.state == "ashes"  # the bell never wakes the giant
-    assert "bell" in game.sounds and any("rings its bell" in m for m in game.messages)
+    assert keystone.state == "ashes"  # the toll never wakes the giant
+    assert "bell" in game.sounds and any("raises its staff" in m for m in game.messages)
+    ring = [p for p in world.projectiles if p.effect == "flare" and p.damage == 0]
+    assert len(ring) >= 8 and all(p.rgb == MORTAR_TEAL for p in ring)  # its ring of mortar-light
     world.enemies = [sexton]
-    assert not world.can_toll(sexton)  # nothing near to wake: it saves its bell
+    assert not world.can_toll(sexton)  # nothing near to wake: it saves its toll
 
 
 def test_the_quake_passes_under_you_close_in_and_runs_out_to_its_reach():
@@ -504,6 +506,59 @@ def test_a_slain_harpy_falls_into_the_chasm_or_onto_the_floor_below_it():
     assert world.enemy_y(over_chasm) == world.map.floor_at(over_chasm.x, over_chasm.z)  # lost below
 
 
+def _swoop(world, harpy, target, dt=0.05):
+    """Sends a harpy on a swoop at `target` and runs it until it ends."""
+    harpy.state, harpy.state_t, harpy.attack_kind, harpy._struck = "attack", 0.0, "dive", True
+    harpy.alt = 0.3
+    harpy._target = target
+    for _ in range(60):
+        harpy.update(dt, world)
+        world._ground(harpy)
+        if harpy.state != "attack":
+            break
+
+
+def test_a_harpy_lands_after_its_first_swoop_and_fights_on_foot_within_reach():
+    game, world = sunken(at=(20, 28))
+    harpy = foe(world, "harpy", (24, 28))
+    world._ground(harpy)
+    game.player.x, game.player.z = TileMap.center(20, 28)
+    assert harpy.aloft and not harpy.landed
+    _swoop(world, harpy, (game.player.x + 1.5, game.player.z))
+    assert harpy.landed and not harpy.aloft and "dive" not in harpy.cooldowns  # it never swoops again
+    _fly(world, harpy, 1.0)
+    assert world.enemy_y(harpy) == world.map.floor_at(harpy.x, harpy.z)  # down on the plaza
+    game.player.x, game.player.z = harpy.x - 1.2, harpy.z
+    assert world.level_with(harpy) and world.melee_targets(2.5, cone=-1) == [harpy]
+    for _ in range(100):  # stalking you, it only ever rakes you within reach: no more swoops
+        harpy.update(0.05, world)
+        world._ground(harpy)
+        assert harpy.attack_kind in (None, "melee")
+        assert world.enemy_y(harpy) == world.map.floor_at(harpy.x, harpy.z)
+
+
+def test_a_harpy_landing_over_the_chasm_glides_in_to_footing_and_keeps_to_it():
+    game, world = sunken(at=(20, 28))
+    harpy = foe(world, "harpy", (32, 27))  # by the plaza's east crystal
+    world._ground(harpy)
+    for _ in range(25):
+        world.move_enemy(harpy, 0.1, 0.0)  # out over the chasm
+    assert world.map.tile_at(harpy.x, harpy.z).chasm
+    _swoop(world, harpy, (harpy.x + 0.5, harpy.z))  # its swoop ends out there
+    assert harpy.landed
+    game.player.x, game.player.z = TileMap.center(27, 27)
+    harpy.state = "chase"
+    for _ in range(200):
+        harpy.update(0.05, world)
+        world._ground(harpy)
+        if world._afoot(harpy):
+            break
+    assert world._afoot(harpy)  # it glided in onto the plaza
+    for _ in range(40):  # and as a walker it stops at the brink
+        world.move_enemy(harpy, 0.1, 0.0)
+    assert not world.map.tile_at(harpy.x, harpy.z).chasm
+
+
 def test_harpies_wheel_over_the_plaza_and_the_terrace():
     m = _map()
     harpies = _spec(m, "harpy")
@@ -728,3 +783,29 @@ def test_quenching_the_core_weakens_the_keystone_and_denies_it_its_surge():
     assert any("gutters" in m for m in game.messages)
     # Only a boss the core fed: the golems keep their HP.
     assert all(e.hp == e.type.hp for e in world.enemies if e.type.id == "stone_golem")
+
+
+def _clear(world, body_x, body_z, radius, floor):
+    tile = (TileMap.tile_coord(body_x), TileMap.tile_coord(body_z))
+    return collision.circle_clear(world.map, body_x, body_z, radius, floor, world.blocker, tile)
+
+
+def test_a_body_shoved_against_the_cliff_stairs_wall_never_sinks_into_the_rock():
+    """On the narrow Cliff Stair, pressing a sexton against the cavern's north wall (or being pressed
+    against it) gives way only as far as the rock allows: neither body ends up half inside it."""
+    game, world = sunken(at=(16, 2))
+    sexton = foe(world, "sunken_sexton", (16, 2))
+    floor = world.map[16, 2].floor
+    wall_face = 2 * TileMap.TILE  # the north edge of row 2
+    sexton.z = wall_face + sexton.radius + 0.2
+    player = game.player
+    for _ in range(30):  # you lean in on it from the south, step after step
+        player.x, player.z = sexton.x, sexton.z + 0.3
+        world.move_enemy(sexton, 0.0, 0.0)
+        assert _clear(world, sexton.x, sexton.z, sexton.radius, floor)
+    # And the other way round: it presses you into the rock.
+    player.x, player.z = sexton.x + 3.0, wall_face + 0.6
+    sexton.x, sexton.z = player.x, player.z + 0.3
+    for _ in range(30):
+        world._push_player_out_of_bodies()
+        assert _clear(world, player.x, player.z, 0.4, player.y)

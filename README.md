@@ -99,14 +99,14 @@ trademarks of FromSoftware, Inc. (*Dark Souls* is published by Bandai Namco Ente
   </tr>
   <tr>
     <td><img src="docs/screenshots/harrowmere_chasm.png" alt="Looking out from a ledge over a vast amber-lit chasm, ruined brick towers rising out of it and a plaza far below"></td>
-    <td><img src="docs/screenshots/drowned_plaza.png" alt="A broad sunken plaza, a shaft of warm daylight falling on its fountain, stone golems standing like statues among the pillars"></td>
+    <td><img src="docs/screenshots/drowned_plaza.png" alt="A broad sunken plaza around its fountain, stone golems standing like statues among the pillars"></td>
   </tr>
   <tr>
     <td align="center"><sub>Old Harrowmere, from the Breach Landing</sub></td>
-    <td align="center"><sub>The Drowned Plaza, under its shaft of daylight</sub></td>
+    <td align="center"><sub>The Drowned Plaza, under its rift of daylight</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/sunken_sexton.png" alt="A stooped, sodden bell-keeper with a lantern and a bell-hammer on a stair cut into the cliff, a stone golem behind it"></td>
+    <td><img src="docs/screenshots/sunken_sexton.png" alt="A stooped, sodden bell-keeper on a stair cut into the cliff, pointing a staff crowned with teal mortar-light"></td>
     <td><img src="docs/screenshots/keystone.png" alt="The Keystone, a stone giant carrying a slab of the old city's floor on its back, rising in its torchlit court, its health bar above"></td>
   </tr>
   <tr>
@@ -245,8 +245,8 @@ trademarks of FromSoftware, Inc. (*Dark Souls* is published by Bandai Namco Ente
   - the Harrow Sewers under its streets, four grates down to rats, slimes that split, the drowned and
     leeches in the sludge;
   - Old Harrowmere below them, the sunken first city: tiers of drowned towers and stairs over a sheer
-    chasm, a shaft of daylight from far overhead, stone golems that stand like statues and bell-keepers
-    who ring to wake them;
+    chasm, a rift of daylight far overhead, stone golems that stand like statues and bell-keepers
+    whose mortar-light staves wake them;
   - the Abandoned Prison below the gaol's grate: dark cell blocks where hollow inmates still kneel, a captive
     monk behind his bars, a chapel to faceless old gods, traps, and cage lifts down to a skull-walled
     Undercroft and up to the Warden's Gallery;

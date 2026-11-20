@@ -144,17 +144,16 @@ SHOTS = [
         "drowned_plaza",
         "--map old_harrowmere --at=15,24,40 --level 5 --equip primary=spiked_club,secondary=round_shield "
         "--smoke 60",
-        "The Drowned Plaza, under its shaft of daylight",
-        "A broad sunken plaza, a shaft of warm daylight falling on its fountain, stone golems standing "
-        "like statues among the pillars",
+        "The Drowned Plaza, under its rift of daylight",
+        "A broad sunken plaza around its fountain, stone golems standing like statues among the pillars",
     ),
     Shot(
         "sunken_sexton",
-        "--map old_harrowmere --at=17,2,8 --level 5 --equip primary=spiked_club,secondary=round_shield "
-        '--smoke 120 --script "wait:1"',
+        "--map old_harrowmere --at=23,3,184 --level 5 --equip primary=spiked_club,secondary=round_shield "
+        "--smoke 120",
         "A Sunken Sexton on the Cliff Stair",
-        "A stooped, sodden bell-keeper with a lantern and a bell-hammer on a stair cut into the cliff, a "
-        "stone golem behind it",
+        "A stooped, sodden bell-keeper on a stair cut into the cliff, pointing a staff crowned with teal "
+        "mortar-light",
     ),
     Shot(
         "keystone",

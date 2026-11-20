@@ -67,16 +67,16 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   without the flag it says it is shut). Tiers: `--map old_harrowmere` (the Breach Landing, its `start`, the
   shrine at 6,6), `--at=13,5,50 --script "look_down:0.5"` (the overlook: the chasm, the towers and the lit
   plaza far below), `--at=13,5,50 --script "look_up:0.5"` (the vault overhead), `--at=12,27,0 --script
-  "look_up:0.9"` (the shaft of daylight up to its crack in the vault), `--at=15,3,0` (the Cliff Stair, a sexton and a golem on it), `--at=32,3,180` (the
+  "look_up:0.9"` (the rift of daylight in the vault), `--at=15,3,0` (the Cliff Stair, a sexton and a golem on it), `--at=32,3,180` (the
   terrace), `--at=31,9,90` (the bridge to the Bell Tower), `--at=24,12,180` (the Aqueduct), `--at=15,12,180`
-  (the Colonnade), `--at=15,24,40` (the Drowned Plaza and its shaft of light), `--at=7,38,90` (the lift
+  (the Colonnade), `--at=15,24,40` (the Drowned Plaza under the rift), `--at=7,38,90` (the lift
   head at the gallery's end, fastened until ridden from below). Boss: `--at=22,39,90 --level 10 --script
   "wait:4.5"` (the Keystone rising in its court; its doors at 21,38 and 12,42); `--at=30,43,180 --level 10 --script
   "wait:4.6"` sees the whole titan and its torch down the court's clear row, between the pillars;
   `--at=22,39,90 --level 10 --smoke 480 --script "wait:4.5 back:1.5"` catches its first torch smash
   bursting before it. The lift head's empty shaft, `--at=7,38,90 --script "wait:0.3 forward:1.2"`, is a
   22 m fall you watch to the bottom (about 110 frames). The rift and its falls: `--at=14,29,0 --script "look_up:0.8"`
-  (the curtain of daylight up to the rift), `--at=16,23,0` (a fall past the Grand Stair),
+  (up to the rift), `--at=16,23,0` (a fall past the Grand Stair),
   `--at=22,24,-90 --script "look_down:0.5"` (one plunging into the chasm). The Oubliette:
   `--at=3,9,0 --equip right=torch_greathammer --level 9 --smoke 420 --script "attack wait:2.5 forward:1.6"`
   (break the gallery's false wall and step in, the hammer lighting the dark), `--at=7,9,90 --flags

@@ -17,15 +17,15 @@ vault_tex = cavern_rock
 // Pall's cistern its wall gives way onto a sheer chasm, the drowned city standing in it in tiers. From
 // the Breach Landing the Cliff Stair winds down the north wall to the bell-keepers' terrace; a bridge
 // runs out to the Bell Tower, its stair winding down round the tower's core to the Aqueduct, which
-// carries you west to the Colonnade. From there the Grand Stair goes down to the Drowned Plaza, lit by
-// the curtain of daylight that falls from a great rift in the cavern's vault far overhead, falls of
-// water pouring from the vault's fissures past it into the chasm. Below the plaza, across the masons'
+// carries you west to the Colonnade. From there the Grand Stair goes down to the Drowned Plaza, under a
+// great rift of daylight in the cavern's vault far overhead, falls of water pouring from the vault's
+// fissures past it into the chasm. Below the plaza, across the masons'
 // two roads of light (only one standing at a time; a ward crystal swaps them), the Keystone, the giant
 // the first city was raised on, lies in its Foundation Court; behind it a lift
 // climbs the old gallery's shaft back up to the landing; a false wall in that gallery hides the
-// Bell-keepers' Oubliette. Stone Golems stand like statues until you come
-// close, and the Sunken Sextons ring their bells to wake them. Over it all hangs the vault of the cavern,
-// rough rock 24 m up with stalactites hanging from it (`vault`); the shaft falls through a rift in it.
+// Bell-keepers' Oubliette. Stone Golems stand like statues until you come close, and the Sunken
+// Sextons toll through their mortar-light staves to wake them. Over it all hangs the vault of the
+// cavern, rough rock 24 m up with stalactites hanging from it (`vault`), the rift (`sun_shaft`) in it.
 // Below the Oubliette the gaolers' stair runs down to the Under-Cells; east of the roads of light the
 // Mortar Sisters' Workshop stands on its quay, and a third, teal road (fed from the mortar-light in the
 // plaza's fountain) runs home from the core's shield ward.
@@ -263,7 +263,7 @@ Z = sunken_sexton on=d
 // Another, in the lift room, hides a coffer the Keystone's keepers forgot.
 ô = secret_wall top=24 on=h
 õ = chest item=ember_draught count=2 gold=300 model=banded on=h
-// The mortar-light: the energy core on the fountain's plinth, beside the foot of the sun shaft. While
+// The mortar-light: the energy core on the fountain's plinth, under the rift of daylight. While
 // it burns it sustains the golems round it; its ward shield stands unless the teal road (set c) does.
 Ű = energy_core height=1.2 radius=10 seal=c on=j
 Ÿ = light y=3 color=0.45,1.25,1.0 radius=9 on=e

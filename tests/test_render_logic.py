@@ -809,7 +809,7 @@ def test_the_sextons_spade_never_folds_back_in_any_move():
                 assert _off_forearm(models.aim_wrist(blade, hit + elbow)) <= 150, (move, state, t)
 
 
-def test_the_sunken_sextons_hammer_never_folds_back_and_it_lifts_its_bell_to_toll():
+def test_the_sunken_sextons_staff_never_folds_back_and_it_raises_it_head_up_to_toll():
     import random
 
     from ashen_vault.ai.enemy import Enemy
@@ -826,7 +826,9 @@ def test_the_sunken_sextons_hammer_never_folds_back_and_it_lifts_its_bell_to_tol
                 assert _off_forearm(wrist) <= 150, (move, state, t)
     e = Enemy(type_, 0, 0, rng=random.Random(0))
     e.state, e.state_t, e.attack_kind = "attack", 0.1, "toll"
-    assert sunken_models.sexton_arms(e)[3] == 1.0  # the bell held high
+    shoulder, elbow, wrist, ring = sunken_models.sexton_arms(e)
+    assert ring == 1.0 and shoulder > 2.0  # the staff raised high...
+    assert abs(shoulder + elbow + wrist - math.pi / 2) < 1e-6  # ...its crown pointing straight up
 
 
 def test_the_keystones_moves_each_strike_their_own_pose():
@@ -849,8 +851,8 @@ def test_old_harrowmeres_dressing_draws():
     from ashen_vault.render import sunken_models
 
     for name, fn in (
-        ("sun_shaft", lambda r: sunken_models.sun_shaft(r, 0.3)),
-        ("rift_shaft", lambda r: sunken_models.sun_shaft(r, 0.3, 40.0, 4.0, (28.0, 6.0), 1.2)),
+        ("vault_crack", lambda r: sunken_models.vault_rift(r)),
+        ("vault_rift", lambda r: sunken_models.vault_rift(r, 40.0, (28.0, 6.0), 1.2)),
         ("waterfall", lambda r: sunken_models.waterfall(r, 0.3, 14.0, 4.0, 0.0)),
         ("sunken_tower", lambda r: sunken_models.sunken_tower(r, 4, 18.0)),
         ("rubble_chunk", lambda r: sunken_models.rubble_chunk(r, (150, 132, 104), 0.3)),

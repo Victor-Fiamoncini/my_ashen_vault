@@ -53,7 +53,8 @@ MOVES = {
     "blink": (0.6, 8.0, 1.0),
     "moonbeam": (0.9, 7.0, 0.9),
     "moonfall": (1.2, 11.0, 0.8),
-    # Old Harrowmere's: a sexton's hand-bell, rung to wake whatever sleeps in stone round it; the
+    # Old Harrowmere's: a sexton's toll, its staff raised so its mortar-light wakes whatever sleeps in
+    # stone round it; the
     # Keystone's (second phase) quake, a stamp whose ring of shock runs out along the floor (it passes
     # under whoever stands in close), and a block of masonry hurled from afar.
     "toll": (0.9, 14.0, 0.0),
@@ -88,12 +89,14 @@ SLAB_SMASH_RANGE = (2.5, 6.5)  # distances it brings its slab down from
 SHARD_RAIN_RANGE = 16.0  # it rains shards on you from anywhere up to this far
 CORE_NOVA_RANGE = 9.0  # it drives its fists down only with you this close: its rings would miss you
 DIVE_RANGE = (5.0, 13.0)
-# A flyer (`EnemyType.fly`) holds its cruising height, drops to STRIKE_ALT over a swoop's windup and
-# its swoop, then climbs back; dead, it falls like a stone.
+# A flyer (`EnemyType.fly`) holds its cruising height and drops to STRIKE_ALT over a swoop's windup and
+# its swoop. Once that first swoop is spent it lands (`Enemy.landed`) and fights on foot from then on,
+# within a blade's reach, at LAND_PACE of its speed on the wing; dead, it falls like a stone.
 STRIKE_ALT = 0.3
 DESCEND_RATE = 7.0  # m/s it drops into a swoop
 CLIMB_RATE = 2.5  # m/s it climbs back to its cruising height
 FALL_RATE = 14.0  # m/s a slain flyer drops
+LAND_PACE = 0.6  # a landed flyer stalks you at this share of its speed on the wing
 SPADEFUL_RANGE = (3.5, 11.0)
 GRASP_RANGE = (2.5, 10.0)
 FIREBALL_RANGE = (2.5, 10.0)
@@ -236,6 +239,12 @@ class Enemy:
         # A flyer's height over `ground`, the floor of the last solid tile it crossed (set by the world).
         self.alt = type_.fly or 0.0
         self.ground = None
+        self.landed = False  # a flyer that has spent its swoop and come down to fight on foot
+
+    @property
+    def aloft(self):
+        """Whether it is a flyer still on the wing (it has not landed yet)."""
+        return self.type.fly is not None and not self.landed
 
     @property
     def alive(self):
@@ -343,9 +352,11 @@ class Enemy:
 
     def flight_target(self):
         """The height a flyer heads for: down to strike over a swoop, its cruising height otherwise,
-        and nowhere but down once it is dead."""
+        the ground once it has landed, and nowhere but down once it is dead."""
         if not self.alive:
             return -math.inf
+        if self.landed:
+            return 0.0
         if self.state in ("windup", "attack") and self.attack_kind == "dive":
             return STRIKE_ALT
         return self.type.fly
@@ -575,9 +586,9 @@ class Enemy:
         if t.rooted:
             return
         # A shooter keeps its distance; so does a flyer over your head, out to where it can swoop again.
-        aloft = t.fly is not None and not level and dist < DIVE_RANGE[0]
+        aloft = self.aloft and not level and dist < DIVE_RANGE[0]
         direction = -1.0 if (self.type.ranged and dist < 4.0) or aloft else 1.0
-        speed = self.type.speed * (1.25 if self.enraged else 1.0)
+        speed = self.type.speed * (1.25 if self.enraged else 1.0) * (LAND_PACE if self.landed else 1.0)
         self._step(world, math.cos(self.yaw) * direction, math.sin(self.yaw) * direction, speed * dt)
 
     def behind_me(self, px, pz):
@@ -877,6 +888,9 @@ class Enemy:
                     world.enemy_strike(self, MOVES["dive"][2])
         if done:
             self._switch("recover")
+            if kind == "dive" and self.type.fly is not None:  # its swoop spent, it comes down to fight
+                self.landed = True
+                self.cooldowns.pop("dive", None)
 
     @property
     def diving(self):

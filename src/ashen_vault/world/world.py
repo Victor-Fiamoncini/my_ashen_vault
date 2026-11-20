@@ -457,6 +457,8 @@ RIFT_GOLD = (255, 226, 150)  # a rift lance: daylight from the vault's rift
 BELL_PALE = (236, 222, 170)  # the motes of a Bellward's toll
 BELL_MOTES = 16
 BELL_RING_TIME = 0.45  # seconds the toll's ring takes to reach its edge
+MORTAR_TEAL = (70, 235, 190)  # the mortar-light a sexton's staff flares with as it tolls
+TOLL_RING_TIME = 0.9  # seconds a sexton's ring of mortar-light takes to run out to TOLL_RADIUS
 SECRET_FALL_RATE = 0.7  # per second: a struck fake wall sears and crumbles over about 1.4 s
 OPEN_RATE = 0.8  # per second: how fast doors, lids and levers swing
 HOUSE_DOOR_RATE = 1.7  # per second: a house door swings open or shut in about 0.6 s
@@ -1123,15 +1125,20 @@ class World:
         return collision.line_of_sight(self.map, ax, az, bx, bz, blocked=self.blocker)
 
     def move_enemy(self, enemy, dx, dz):
-        if enemy.type.fly is not None:
+        if enemy.type.fly is not None and not self._afoot(enemy):
             return self._fly_enemy(enemy, dx, dz)
-        nx, nz = collision.move(self.map, enemy.x, enemy.z, dx, dz, radius=enemy.radius, blocked=self.blocker)
+        mx, mz = collision.move(self.map, enemy.x, enemy.z, dx, dz, radius=enemy.radius, blocked=self.blocker)
+        nx, nz = mx, mz
         if not enemy.burrowed:  # under the muck she tunnels right under your feet
             nx, nz = collision.separate(nx, nz, enemy.radius, self.player.x, self.player.z, Player.RADIUS)
         for other in self.enemies:
             if other is enemy or not other.alive or other.state == "ashes" or other.burrowed:
                 continue
             nx, nz = collision.separate(nx, nz, enemy.radius, other.x, other.z, other.radius)
+        # Shoved out of a body, it gives way only as far as the walls let it: never into the rock.
+        nx, nz = self._nudge(
+            mx, mz, nx, nz, enemy.radius, self.map.floor_at(enemy.x, enemy.z), (enemy.x, enemy.z)
+        )
         tile = self.map.tile_at(nx, nz)
         if tile.needs_footing or not tile.walkable:
             return
@@ -1157,10 +1164,14 @@ class World:
             floating=lambda _tx, _tz: True,  # nothing under it need bear its weight
             ground=lambda _x, _z: y,
         )
+        mx, mz = nx, nz
         for other in self.enemies:
             if other is enemy or not other.alive or other.state == "ashes" or other.burrowed:
                 continue
             nx, nz = collision.separate(nx, nz, enemy.radius, other.x, other.z, other.radius)
+        nx, nz = self._nudge(
+            mx, mz, nx, nz, enemy.radius, y, (enemy.x, enemy.z), floating=lambda _tx, _tz: True
+        )
         tile = self.map.tile_at(nx, nz)
         if not tile.walkable or self.blocked_tile(TileMap.tile_coord(nx), TileMap.tile_coord(nz)):
             return
@@ -1168,6 +1179,22 @@ class World:
             return
         enemy.x, enemy.z = nx, nz
         self._ground(enemy)
+
+    def _afoot(self, enemy):
+        """A landed flyer walks like any other foe once it stands on solid ground, and so stops at the
+        brink; until it reaches some (landing over the chasm or the water) it glides in low."""
+        tile = self.map.tile_at(enemy.x, enemy.z)
+        return enemy.landed and tile.walkable and not tile.needs_footing
+
+    def _nudge(self, x, z, nx, nz, radius, from_floor, home, floating=None):
+        """Where a body at (x, z) shoved toward (nx, nz) ends up: all the way if its circle stays clear
+        of the walls round it, else as far as one axis of the shove allows, else not at all. `home` is
+        the point whose tile it stands on (that tile never blocks it)."""
+        tile = (TileMap.tile_coord(home[0]), TileMap.tile_coord(home[1]))
+        for px, pz in ((nx, nz), (nx, z), (x, nz)):
+            if collision.circle_clear(self.map, px, pz, radius, from_floor, self.blocker, tile, floating):
+                return px, pz
+        return x, z
 
     def _ground(self, enemy):
         """Keeps a flyer's `ground` (the floor its height is reckoned from) on the last solid tile it
@@ -1646,8 +1673,10 @@ class World:
         return bool(self._sleepers(enemy))
 
     def toll(self, enemy):
-        """A sexton rings its hand-bell: every sleeper within TOLL_RADIUS of it wakes and comes for you.
-        Kill a sexton before it gets the chance."""
+        """A sexton raises its staff and tolls through it: a ring of teal mortar-light runs out from it,
+        and every sleeper within TOLL_RADIUS of it wakes and comes for you. Kill a sexton before it gets
+        the chance."""
+        self._mote_ring(enemy.x, self.enemy_y(enemy) + 1.0, enemy.z, TOLL_RADIUS, TOLL_RING_TIME, MORTAR_TEAL)
         woke = self._sleepers(enemy)
         for e in woke:
             if e.perched:
@@ -1656,7 +1685,7 @@ class World:
                 e.alert()
         self.game.sfx("bell", 0.8)
         if woke:
-            self.game.message(f"{enemy.type.called} rings its bell, and the stone stirs!")
+            self.game.message(f"{enemy.type.called} raises its staff, and the stone stirs!")
 
     def quake(self, enemy):
         """The Keystone stamps: a ring of shock runs out along the floor to QUAKE_RADIUS. It rises only
@@ -2167,14 +2196,12 @@ class World:
             if not e.alive or e.state == "ashes" or e.burrowed:
                 continue
             nx, nz = collision.separate(player.x, player.z, Player.RADIUS, e.x, e.z, e.radius)
-            tile = self.map.tile_at(nx, nz)
-            ok = collision.passable(
-                self.map, TileMap.tile_coord(nx), TileMap.tile_coord(nz), player.y, blocked=self.blocker
-            )
-            if not ok and tile is not self.map.tile_at(player.x, player.z):
+            if (nx, nz) == (player.x, player.z):
                 continue
-            player.x = nx
-            player.z = nz
+            # Pushed out of a body, you give way only as far as the walls let you: never into the rock.
+            player.x, player.z = self._nudge(
+                player.x, player.z, nx, nz, Player.RADIUS, player.y, (player.x, player.z)
+            )
 
     def _update_projectiles(self, dt):
         player = self.player
@@ -2392,25 +2419,29 @@ class World:
         targets = self.melee_targets(radius, cone=-1)
         for e in targets:
             self.game.damage_enemy(e, max(damage, 1), 99.0)
-        y0 = player.y + 1.0
+        self._mote_ring(player.x, player.y + 1.0, player.z, radius, BELL_RING_TIME, BELL_PALE)
+        return targets
+
+    def _mote_ring(self, x, y, z, radius, seconds, rgb):
+        """A ring of harmless motes rushing out from (x, y, z) to `radius` over `seconds`: the reach of a
+        toll, shown."""
+        speed = radius / seconds
         for i in range(BELL_MOTES):
             a = i * math.tau / BELL_MOTES
-            speed = radius / BELL_RING_TIME
             self.projectiles.append(
                 Projectile(
-                    x=player.x,
-                    y=y0,
-                    z=player.z,
+                    x=x,
+                    y=y,
+                    z=z,
                     dx=math.cos(a) * speed,
                     dz=math.sin(a) * speed,
-                    life=BELL_RING_TIME,
+                    life=seconds,
                     damage=0,
                     hostile=False,
-                    rgb=BELL_PALE,
+                    rgb=rgb,
                     effect="flare",
                 )
             )
-        return targets
 
     def pyre(self, magic, gauge):
         """A short gout of fire in front of you: it burns the foes it reaches (plants catch and keep
@@ -3606,13 +3637,10 @@ class World:
             )
         elif k == "sunken_tower":
             sunken_models.sunken_tower(rig, p.tx * 7 + p.tz * 3, float(p.props.get("height", "18")))
-        elif k == "sun_shaft":
-            height = float(p.props.get("height", "14"))
-            sunken_models.sun_shaft(
+        elif k == "sun_shaft":  # only the rift in the vault it would fall from: no beam
+            sunken_models.vault_rift(
                 rig,
-                t,
-                height,
-                float(p.props.get("width", "2.4")),
+                float(p.props.get("height", "14")),
                 vault.rift_of(p),
                 math.radians(float(p.props.get("rift_yaw", "0"))),
             )
@@ -3633,9 +3661,6 @@ class World:
                 shielded=self.core_shielded(p) and not quenched,
                 tethers=tethers,
                 yaw=p.yaw,
-                sunlit=any(
-                    q.kind == "sun_shaft" and math.hypot(q.x - p.x, q.z - p.z) < 3 for q in self.props
-                ),
             )
         elif k == "waterfall":
             sunken_models.waterfall(

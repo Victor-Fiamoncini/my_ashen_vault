@@ -212,7 +212,13 @@ class Game:
         rl.UnloadImage(image)
         p = self.player
         inv = p.inventory
-        enemies = ",".join(f"{e.type.id}:{e.state}:{e.hp}" for e in self.world.enemies) if self.world else ""
+        enemies = (
+            ",".join(
+                f"{e.type.id}:{e.state}:{e.hp}{':landed' if e.landed else ''}" for e in self.world.enemies
+            )
+            if self.world
+            else ""
+        )
         print(
             f"smoke: {self._frames} frames, fps={pr.get_fps()}, map={self.world.name if self.world else None}, "
             f"pos={round(p.x, 2)},{round(p.z, 2)} y={round(p.y, 2)} hp={p.stats.hp} lv={p.stats.level} exp={p.stats.exp} "

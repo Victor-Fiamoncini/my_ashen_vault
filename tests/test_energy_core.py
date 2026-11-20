@@ -135,7 +135,7 @@ class _Count:
 
 def test_the_core_model_glows_while_lit_and_goes_cold_when_quenched():
     lit, dome, out = _Count(), _Count(), _Count()
-    sunken_models.energy_core(rig.Rig(lit), 1.0, tethers=[(5.0, 0.0, 3.0)], sunlit=True)
+    sunken_models.energy_core(rig.Rig(lit), 1.0, tethers=[(5.0, 0.0, 3.0)])
     sunken_models.energy_core(rig.Rig(dome), 1.0, shielded=True)
     sunken_models.energy_core(rig.Rig(out), 1.0, quenched=True)
     assert lit.glows > 15 and dome.parts > lit.parts - 4

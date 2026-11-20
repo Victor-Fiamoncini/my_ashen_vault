@@ -8,8 +8,10 @@ import math
 from ashen_vault.ai.enemy import STATUE_BURST
 from ashen_vault.render.models import (
     BLADE_REST,
+    ELBOW_REST,
     EMBER,
     HIT_GLOW,
+    IRON,
     PASSAGE_DARK,
     _bar,
     _dim,
@@ -44,7 +46,7 @@ ROBE_DARK = (40, 44, 38)
 SEXTON_SKIN = (170, 168, 146)  # waterlogged, grey-green
 BELL_BRONZE = (150, 116, 60)
 HAFT = (82, 62, 42)
-GOLD_LIGHT = (255, 214, 140)  # the shaft of light from the crack overhead
+GOLD_LIGHT = (255, 214, 140)  # the daylight in the rift overhead
 GOLD_MIST = (190, 150, 90)
 CORE_TEAL = (70, 235, 190)  # the mortar-light that animates the giants
 CORE_HEART = (200, 255, 235)  # its white-teal heart
@@ -206,28 +208,64 @@ def stone_golem(r, e, t):
 
 
 def sexton_arms(e):
-    """The bell-hammer arm's (shoulder, elbow, wrist) and how high the bell hand is raised (0..1)
-    for its pose: it chops overhead with the hammer, and on a toll lifts the hand-bell high and
-    shakes it."""
+    """The staff arm's (shoulder, elbow, wrist) and how far a toll has raised it (0..1) for its pose:
+    it chops overhead with the staff, and on a toll lifts it high, head up, so its mortar-light flares
+    and calls the stone round it awake."""
     tolling = e.attack_kind == "toll" and e.state in ("windup", "attack")
     if tolling:
         ring = 1.0 if e.state == "attack" else _ease(_windup_k(e))
-        return 0.4, 0.3, aim_wrist(BLADE_REST, 0.7), ring
+        shoulder, elbow = 2.5 * ring, ELBOW_REST - 0.1 * ring
+        return shoulder, elbow, aim_wrist(_mix(BLADE_REST, math.pi / 2, ring), shoulder + elbow), ring
     return chop_angle(e), elbow_bend(e), wrist_angle(e), 0.0
+
+
+SEXTON_STAFF_LEN = 1.7  # metres of the staff, butt to crown
+
+
+def sexton_staff(r, t, flare=0.0, lit=True):
+    """A sexton's staff in a `held` frame (the grip along +X): a long dark haft shod in iron at the
+    butt, crowned with a shard of the golems' mortar-light caged in bent bronze tines, breathing
+    teal. `flare` (0..1) blazes it up as a toll is rung through it; slain, it goes cold."""
+    r.part("cube", 0.35, 0, 0, SEXTON_STAFF_LEN, 0.05, 0.05, HAFT)  # the long haft
+    r.part("cube", -0.5, 0, 0, 0.1, 0.07, 0.07, IRON)  # the iron shoe at its butt
+    head = 0.35 + SEXTON_STAFF_LEN / 2
+    r.part("cube", head - 0.06, 0, 0, 0.1, 0.08, 0.08, BELL_BRONZE)  # the collar under the crown
+    breath = 0.5 + 0.5 * math.sin(t * 2.2)
+    with r.at(head + 0.14, 0, 0):
+        for i in range(3):  # the bronze tines, bent round the shard like a claw
+            a = i * math.tau / 3
+            with r.at(0, math.cos(a) * 0.08, math.sin(a) * 0.08, rx=a):
+                r.part("cube", 0, 0.02, 0, 0.26, 0.025, 0.025, BELL_BRONZE, rz=0.35)
+        if not lit:
+            r.part("lozenge", 0, 0, 0, 0.1, 0.24, 0.1, COLD, rz=-math.pi / 2)
+            return
+        s = 1.0 + 0.5 * flare
+        r.part("lozenge", 0, 0, 0, 0.12 * s, 0.28 * s, 0.12 * s, _dim(CORE_TEAL, 0.8 + 0.2 * breath),
+               rz=-math.pi / 2, ry=t * 1.5, glow=True)  # fmt: skip
+        r.part("lozenge", 0, 0, 0, 0.06 * s, 0.18 * s, 0.06 * s, CORE_HEART, rz=-math.pi / 2, glow=True)
+        if flare > 0.0:  # the light blazing out of it as the toll rings
+            r.part("sphere", 0, 0, 0, 0.5 * flare, 0.5 * flare, 0.5 * flare, _dim(CORE_TEAL, 0.5 + 0.3 * breath),
+                   tex="ward_net", glow=True, ry=t * 3)  # fmt: skip
+            for i in range(4):  # motes spun off it
+                a = t * 4 + i * math.tau / 4
+                r.part("cube", math.cos(a) * 0.35 * flare, math.sin(a) * 0.35 * flare, 0.0, 0.04, 0.04, 0.04,
+                       CORE_HEART, glow=True)  # fmt: skip
 
 
 def sunken_sexton(r, e, t):
     """One of the old city's bell-keepers, stooped and sodden: a long robe dark with the water,
-    clinging and dripping at the hem, a hood fallen forward over a grey, swollen face, a bronze
-    hand-bell on a cord at its belt and a horn lantern hung beside it, burning low. It carries a
-    bell-hammer, a long haft with a heavy bronze head, and chops with it overhead. Given room, it
-    lifts the bell high and shakes it. Slain, it sags and falls onto its back."""
+    clinging and dripping at the hem, a hood fallen forward over a grey, swollen face and a horn lantern
+    hung at its belt, burning low. It carries a staff crowned with a shard of the golems' teal
+    mortar-light (`sexton_staff`) and chops with it overhead. Given room, it lifts the staff high and
+    the shard flares, waking the stone round it. Slain, it sags and falls onto its back."""
     fall = death_fall(e, 0.8)
     dead = e.state == "dead"
     swing = walk_cycle(e, t) * 0.5
     skin = hit_tint((236, 230, 214)) if e.flashing else SEXTON_SKIN
     robe = hit_tint((200, 200, 190)) if e.flashing else ROBE
     shoulder, elbow, wrist, ring = sexton_arms(e)
+    if dead:  # the staff sinks with it, to lie along the floor beside the body on its back
+        wrist = aim_wrist(BLADE_REST - 1.7 * fall, shoulder + elbow)
     hunch = 0.35 - 0.15 * ring
     with r.at(-0.2 * fall, 0.32 * fall, 0, rz=1.35 * fall):
         for side, a in ((-0.11, swing), (0.11, -swing)):  # thin legs under the robe
@@ -244,9 +282,6 @@ def sunken_sexton(r, e, t):
                 "cube", 0.2 - 0.18 * i, 0.5 * (1 - u) + 0.04, (i - 1) * 0.2, 0.02, 0.05, 0.02, (150, 170, 160)
             )
         r.part("cube", 0, 0.92, 0, 0.3, 0.05, 0.4, (60, 48, 36))  # a rope belt
-        with r.at(0.1, 0.84, -0.22):  # the hand-bell on its cord, at the belt, when not in hand
-            if ring == 0.0:
-                r.part("cone", 0, -0.08, 0, 0.12, 0.14, 0.12, BELL_BRONZE)
         with r.at(0.05, 0.86, 0.24):  # a horn lantern hung beside it, burning low
             r.part("cube", 0, -0.1, 0, 0.1, 0.16, 0.1, (150, 120, 80))
             r.part("cube", 0, -0.1, 0, 0.06, 0.1, 0.06, EMBER if not dead else COLD, glow=not dead)
@@ -261,29 +296,20 @@ def sunken_sexton(r, e, t):
                 r.part("cube", 0.11, -0.08, 0, 0.02, 0.03, 0.08, (52, 40, 36))  # a slack mouth
                 r.part("sphere", -0.03, 0.04, 0, 0.3, 0.32, 0.3, ROBE_DARK)  # the hood
                 r.part("cube", 0.1, 0.13, 0, 0.12, 0.06, 0.3, ROBE_DARK)  # its brow, fallen forward
-            # The bell arm (-Z): hangs, or lifts the hand-bell high and shakes it.
-            with r.at(0, 0.55, -0.25, rz=_mix(0.2, 2.6, ring)):
+            # The free arm (-Z): hangs, or spreads its hand toward the stone as the toll rings.
+            with r.at(0, 0.55, -0.25, rz=_mix(0.2, 1.2, ring)):
                 r.part("cube", 0, -0.15, 0, 0.09, 0.3, 0.09, robe)
                 with r.at(0, -0.3, 0, rz=0.3):
                     r.part("cube", 0, -0.13, 0, 0.08, 0.26, 0.08, robe)
                     r.part("sphere", 0, -0.28, 0, 0.09, 0.09, 0.09, skin)
-                    if ring > 0.0:
-                        shake = math.sin(t * 30) * 0.3 * ring
-                        with r.at(0, -0.36, 0, rz=shake):
-                            r.part("cyl", 0, 0.02, 0, 0.03, 0.12, 0.03, HAFT)
-                            r.part("cone", 0, -0.12, 0, 0.18, 0.2, 0.18, BELL_BRONZE, rz=math.pi)
-                            r.part("sphere", 0, -0.22, 0, 0.05, 0.05, 0.05, (90, 70, 40))  # its clapper
-            # The hammer arm (+Z): chops overhead.
+            # The staff arm (+Z): chops overhead, or raises the staff high to toll.
             with r.at(0, 0.55, 0.25, rz=shoulder):
                 r.part("sphere", 0, 0, 0, 0.12, 0.12, 0.12, _dim(robe, 0.9))
                 r.part("cube", 0, -0.15, 0, 0.09, 0.3, 0.09, robe)
                 with r.at(0, -0.3, 0, rz=elbow):
                     r.part("cube", 0, -0.13, 0, 0.08, 0.26, 0.08, robe)
                     with r.at(0, -0.3, 0), held(r, wrist, skin, size=0.1, splay=0.2):
-                        r.part("cube", 0.32, 0, 0, 0.9, 0.05, 0.05, HAFT)  # the long haft
-                        r.part("cyl", 0.8, 0, 0, 0.16, 0.24, 0.16, BELL_BRONZE, rx=math.pi / 2)  # its head
-                        r.part("cyl", 0.8, 0, 0, 0.2, 0.05, 0.2, _dim(BELL_BRONZE, 0.8), rx=math.pi / 2)
-                        r.part("cube", -0.14, 0, 0, 0.06, 0.07, 0.07, _dim(HAFT, 0.8))  # the butt
+                        sexton_staff(r, t, ring, lit=not dead)
 
 
 # --- the Bell-Harpy -------------------------------------------------------------------------------
@@ -299,8 +325,19 @@ MASK_GLOW = (230, 220, 180)  # the pale light behind the slits of its bell-shard
 def harpy_pose(e, t):
     """(wing beat, wing lift, body pitch, talon reach) for a Bell-Harpy: an easy flap on the wing, the
     wings hauled high and the body tipped forward as it gathers to stoop, swept back with its talons
-    thrust out as it swoops, beating hard to climb away after."""
+    thrust out as it swoops, beating hard to climb away after. Landed (`e.landed`), it stands with its
+    wings folded down its sides, mantling them high as it gathers to strike and lunging forward with a
+    rake of one foot's talons."""
     beat = math.sin(t * 8.0)
+    if getattr(e, "landed", False):  # (a positive lift droops the wings, a negative one raises them)
+        if e.state == "windup":
+            k = _windup_k(e)
+            return beat * 0.2 * k, 0.5 - 1.4 * k, 0.15 + 0.2 * k, 0.0
+        if e.state == "attack":
+            return 0.0, -0.4, 0.6, 1.0
+        if e.state in ("recover", "hurt"):
+            return math.sin(t * 14.0) * 0.3, 0.2, 0.0, 0.0
+        return math.sin(t * 2.0) * 0.08, 0.5, 0.2, 0.0
     if e.state == "windup":
         k = _windup_k(e)
         return beat * (1 - k) * 0.5, 0.2 + 0.9 * k, 0.5 * k, 0.3 * k
@@ -345,11 +382,16 @@ def harpy(r, e, t):
     glow = not dead
     eye = MASK_GLOW if glow else COLD
     # It hangs from its shoulders in flight; slain, it pitches onto its face, wings spread flat.
+    landed = getattr(e, "landed", False) and not dead
     with r.at(-0.3 * fall, 0.75 - 0.5 * fall, 0, rz=-pitch * (1 - fall) - 1.45 * fall):
         for side in (-1, 1):  # the legs, drawn up in flight, thrust forward to strike
-            with r.at(0, -0.05, side * 0.1, rz=0.6 - 1.4 * reach):
+            if landed:  # standing on them, bird-kneed; the right foot rakes forward to strike
+                thigh, knee = pitch + 0.3 - 1.3 * reach * (side > 0), -0.6 + 0.4 * reach * (side > 0)
+            else:
+                thigh, knee = 0.6 - 1.4 * reach, -0.9 + 0.6 * reach
+            with r.at(0, -0.05, side * 0.1, rz=thigh):
                 r.part("cube", 0, -0.18, 0, 0.09, 0.36, 0.09, skin)  # the thigh
-                with r.at(0, -0.36, 0, rz=-0.9 + 0.6 * reach):
+                with r.at(0, -0.36, 0, rz=knee):
                     r.part("cube", 0, -0.16, 0, 0.06, 0.32, 0.06, TALON)  # the scaled shank
                     for k in (-1, 0, 1):  # hooked talons
                         r.part("cone", 0.06, -0.34, k * 0.05, 0.03, 0.12, 0.03, TALON, rz=-1.2 + 0.2 * k)
@@ -703,28 +745,13 @@ def ember_stone_sword(r):
     r.part("sphere", 0, -0.17, 0, 0.04, 0.04, 0.04, COAL, glow=True)
 
 
-def _sheet(r, x, y, z, w, h, rgb, tex="sunbeam", ry=0.0):
-    """A thin upright sheet of light seen from both sides: `w` across (local x, then turned by `ry`),
-    `h` tall, centred on (x, y, z). The texture's top row is at its top."""
-    for turn in (0.0, math.pi):
-        r.part("quad", x, y, z, w, 1, h, rgb, tex=tex, rx=math.pi / 2, ry=ry + turn, glow=True)
-
-
-SUN_WHITE = (255, 246, 222)  # the heart of the beam
-
-
-def sun_shaft(r, t, height=14.0, width=2.4, rift=(CRACK_LEN, CRACK_WIDTH), yaw=0.0):
-    """The light that falls from a crack in the cavern's roof far overhead: a tall, slanting beam of
-    sunlit haze built of stacked sheets of light, rays running down them, each sheet thinning to
-    nothing at its sides so the beam's edges are soft and spread as it falls. Its heart is whiter and
-    narrower than its veil. Threads of brighter light run down through it, motes of dust turn and
-    glint in it, and where it lands it pools on the floor: a glow netted with wavering caustics and
-    rings of light rippling out. At its top, the crack itself: a jagged
-    sliver of daylight set in the vault's hole (`world/vault.py`), a rim of gold round it. `rift`
-    (length, width) and `yaw` (radians) widen the crack into a great rift: the beam then runs the
-    length of it."""
+def vault_rift(r, height=14.0, rift=(CRACK_LEN, CRACK_WIDTH), yaw=0.0):
+    """The rift in the cavern's roof far overhead, where the daylight shows through: a jagged sliver
+    of light set in the vault's hole (`world/vault.py`), a rim of gold round it where the daylight
+    catches the rock's broken lip. Drawn from a `sun_shaft`'s floor tile, `height` metres below it
+    and leaning off by SHAFT_LEAN; `rift` (length, width) and `yaw` (radians) shape the crack. No
+    beam falls from it: the light stays up in the roof."""
     length, crack_w = rift
-    span = max(width * 0.85, length * 0.4)  # how far the beam runs along the rift
     with r.at(-height * math.sin(SHAFT_LEAN), height * math.cos(SHAFT_LEAN), 0, ry=yaw):  # the crack
         r.part("cube", 0, 0.6, 0, crack_w * 1.2, 0.1, length * 1.1, (255, 248, 228), glow=True)
         n = max(5, rround(length / 1.4))
@@ -736,63 +763,6 @@ def sun_shaft(r, t, height=14.0, width=2.4, rift=(CRACK_LEN, CRACK_WIDTH), yaw=0
         for side in (-1, 1):  # its rim of gold, where the daylight catches the rock's broken lip
             r.part("cube", side * crack_w * 0.45, -0.1, 0, 0.3 + crack_w * 0.04, 0.4, length * 0.95,
                    GOLD_LIGHT, tex="mist", glow=True, ry=side * 0.06)  # fmt: skip
-    with r.at(0, 0, 0, ry=yaw), r.at(0, 0, 0, rz=SHAFT_LEAN):  # it falls a little aslant
-        mid = height * 0.5
-        for i in range(4):  # the veil: sheets along the rift, one behind another through its depth
-            o = (i - 1.5) / 1.5
-            glow = (0.78 + 0.22 * (1 - abs(o))) * (0.9 + 0.1 * math.sin(t * 0.6 + i * 1.9))
-            _sheet(r, o * width * 0.32, mid, 0, span * (1.12 - 0.1 * abs(o)), height,
-                   _dim(GOLD_LIGHT, glow), ry=math.pi / 2)  # fmt: skip
-        across = max(3, rround(span / 3))
-        for i in range(across):  # and sheets across it, so it holds its body seen down its length
-            z = ((i + 0.5) / across - 0.5) * span * 0.9
-            _sheet(r, 0, mid, z, width * 1.1, height, _dim(GOLD_LIGHT, 0.7 + 0.08 * math.sin(t * 0.5 + i)))
-        for o in (-0.12, 0.12):  # its heart: narrower, whiter
-            _sheet(r, o * width, mid, 0, span * 0.78, height * 0.98, _dim(SUN_WHITE, 0.95), ry=math.pi / 2)
-        threads = max(5, rround(span / 1.5))
-        for i in range(threads):  # threads of brighter light down through it
-            a = i * 1.3 + 0.4
-            x = math.cos(a) * width * 0.25
-            z = (i / max(threads - 1, 1) - 0.5) * span * 0.9
-            shimmer = 0.8 + 0.2 * math.sin(t * 0.8 + i * 1.7)
-            r.part("cube", x, mid, z, 0.05, height, 0.05, _dim(SUN_WHITE, shimmer), glow=True)
-        motes = 16 + rround(span * 1.4)
-        for k in range(motes):  # motes of dust turning in it, glinting as they catch the light
-            u = (t * 0.04 + k / motes) % 1.0
-            a = t * 0.3 + k * 2.4
-            z = (((k * 7) % motes) / motes - 0.5) * span * 0.9
-            glint = 0.5 + 0.5 * math.sin(t * 2.3 + k * 1.37)
-            size = 0.04 + 0.04 * glint
-            rgb = _mix_rgb(GOLD_LIGHT, (255, 255, 248), glint)
-            r.part("cube", math.cos(a) * width * 0.32, 0.3 + (1 - u) * height * 0.7, z + math.sin(a) * 0.4,
-                   size, size, size, rgb, glow=True, ry=a)  # fmt: skip
-    with r.at(0, 0, 0, ry=yaw):  # the pool it lands in, drawn out along the rift
-        pool_w, pool_l = width * 1.5, max(width * 1.5, span * 1.05)
-        r.part("cyl", 0, 0.02, 0, pool_w, 0.02, pool_l, _dim(GOLD_LIGHT, 0.55), tex="mist", glow=True)
-        r.part(
-            "cyl",
-            0,
-            0.03,
-            0,
-            width * 0.8,
-            0.02,
-            max(width * 0.8, span * 0.75),
-            _dim(GOLD_LIGHT, 0.72),
-            tex="mist",
-            glow=True,
-        )
-        for i, spin in enumerate((0.12, -0.08)):  # caustics wavering over it, two nets drifting apart
-            with r.at(0.15 * math.sin(t * 0.4 + i), 0.05 + 0.01 * i, 0, ry=t * spin + i):
-                s = 1.0 + 0.04 * math.sin(t * 1.1 + i * 2)
-                r.part("quad", 0, 0, 0, pool_w * 1.3 * s, 1, pool_l * 1.05 * s,
-                       _dim(_mix_rgb(SUN_WHITE, GOLD_LIGHT, 0.5), 0.75 - 0.1 * i), tex="caustics", glow=True)  # fmt: skip
-        rings = 3
-        for i in range(rings):  # rings of light rippling out from where it falls
-            u = (t * 0.35 + i / rings) % 1.0
-            z = (i - 1) * span * 0.28
-            d = width * (0.4 + 1.5 * u)
-            r.part("quad", 0, 0.07, z, d, 1, d, _mix_rgb(SUN_WHITE, _dim(GOLD_LIGHT, 0.6), u), tex="ripple",
-                   glow=True)  # fmt: skip
 
 
 def rift_lance(r, rgb, t):
@@ -873,15 +843,14 @@ def ward_crystal(r, t, active):
 # --- the energy core (the mortar-light) -------------------------------------------------------
 
 
-def energy_core(r, t, height=1.2, quenched=False, shielded=False, tethers=(), yaw=0.0, sunlit=False):
+def energy_core(r, t, height=1.2, quenched=False, shielded=False, tethers=(), yaw=0.0):
     """The energy core: the mortar-light that animates the giants. A carved plinth `height` tall of
     stacked masonry, the masons' marks cut in its faces glowing teal, four stone claws rising from its
     cap to cradle a great faceted crystal heart (about 1.2 m) floating over it, turning slowly and
     breathing light, stone shards orbiting it. Thin teal tethers run from it to every golem it
     sustains (`tethers`: their offsets in world axes; `yaw` is the prop's heading, undone for them),
     beads of light running out along them. While its ward stands (`shielded`) a lattice dome of light
-    covers it. `sunlit`: the sun shaft falls on it, gilding the crystal's crown. Quenched, the crystal
-    lies split in its cradle, grey and cold, the marks dark, the shards fallen."""
+    covers it. Quenched, the crystal lies split in its cradle, grey and cold, the marks dark, the shards fallen."""
     breath = 0.5 + 0.5 * math.sin(t * 1.6)
     lit = not quenched
     mark = COLD if quenched else _dim(CORE_TEAL, 0.6 + 0.4 * breath)
@@ -921,8 +890,6 @@ def energy_core(r, t, height=1.2, quenched=False, shielded=False, tethers=(), ya
         r.part("lozenge", 0, 0, 0, 0.62, 1.25, 0.62, _dim(CORE_TEAL, 0.75 + 0.3 * breath), glow=True)
         r.part("lozenge", 0, 0, 0, 0.5, 1.05, 0.5, _dim(CORE_TEAL, 0.95), glow=True, ry=math.pi / 4)
         r.part("lozenge", 0, 0, 0, 0.3, 0.85, 0.3, CORE_HEART, glow=True)  # its white heart
-        if sunlit:  # the sun's gold catching its crown
-            r.part("lozenge", 0, 0.38, 0, 0.36, 0.42, 0.36, _mix_rgb(CORE_HEART, GOLD_LIGHT, 0.6), glow=True)
     r.part("sphere", 0, heart_y + bob, 0, 1.5 * swell, 1.9 * swell, 1.5 * swell,
            _dim(CORE_TEAL, 0.45 + 0.2 * breath), tex="ward_net", glow=True)  # its halo  # fmt: skip
     for i in range(6):  # stone shards orbiting it, a teal vein lit in each
@@ -931,13 +898,12 @@ def energy_core(r, t, height=1.2, quenched=False, shielded=False, tethers=(), ya
         with r.at(math.cos(a) * 1.1, y, -math.sin(a) * 1.1, ry=a + t, rz=0.4 * i):
             r.part("lozenge", 0, 0, 0, 0.16, 0.36, 0.16, MASONRY_DARK, tex="rough_stone")
             r.part("cube", 0.07, 0, 0, 0.02, 0.24, 0.03, CORE_TEAL, glow=True)
-    for i in range(4):  # motes rising off it: teal-white and, in the sun, gold
+    for i in range(4):  # motes rising off it, teal-white
         u = (t * 0.3 + i / 4) % 1.0
         a = i * 1.7 + t * 0.4
-        rgb = GOLD_LIGHT if sunlit and i % 2 else CORE_HEART
-        r.part("cube", math.cos(a) * 0.5, heart_y - 0.6 + u * 2.2, math.sin(a) * 0.5, 0.05, 0.05, 0.05, rgb,
-               glow=True)  # fmt: skip
-    ring = (t * 0.4) % 1.0  # a ring of teal pulsing out over the floor, the gold pool's counterpoint
+        r.part("cube", math.cos(a) * 0.5, heart_y - 0.6 + u * 2.2, math.sin(a) * 0.5, 0.05, 0.05, 0.05,
+               CORE_HEART, glow=True)  # fmt: skip
+    ring = (t * 0.4) % 1.0  # a ring of teal pulsing out over the floor
     d = 2.0 + 3.0 * ring
     r.part(
         "quad", 0, 0.08, 0, d, 1, d, _mix_rgb(CORE_HEART, _dim(CORE_TEAL, 0.5), ring), tex="ripple", glow=True
