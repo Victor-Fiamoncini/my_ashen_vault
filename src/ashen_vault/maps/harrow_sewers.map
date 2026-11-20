@@ -63,12 +63,12 @@ v = floor tex=flagstone h=-7.6 ceil=-2.5 ceil_tex=sewer_vault side=sewer_brick d
 
 [grid]
 ################################################
-################################################
+###################################A############
 ###################.ÍF.Á......Á..F..############
 ###################=================############
 ###################Â===========L====#FbbbÑbbbbF#
 ###################Æ.H............ÇF#bqqbbbqqqb#
-##########...........HH...Å........A#bqqbbbqqqb#
+##########...........HH...Å.........#bqqbbbqqqb#
 ##########F########Æ.......F.....Ç.Q#bbbbbbbÈbb#
 ##########.#############.############bbbbNbbbbb#
 ##########.#############X############ÌbPbbbbPbÌ#
@@ -109,7 +109,7 @@ v = floor tex=flagstone h=-7.6 ceil=-2.5 ceil_tex=sewer_vault side=sewer_brick d
 
 [entities]
 // The four ladders up to the town's grates, each under the grate it climbs to.
-A = exit map=harrowmere at=35,7,90 label=Climb_up_to_the_north_road model=sewer_ladder yaw=180
+A = exit map=harrowmere at=35,2,90 label=Climb_up_to_the_north_road model=sewer_ladder yaw=90
 B = exit map=harrowmere at=2,14,0 label=Climb_up_to_the_west_lane model=sewer_ladder
 C = exit map=harrowmere at=4,37,0 label=Climb_up_to_the_harbour model=sewer_ladder yaw=-90
 D = exit map=harrowmere at=39,39,-90 label=Climb_up_to_the_quay model=sewer_ladder

@@ -68,12 +68,12 @@ c = floor tex=rough_stone h=0 ceil=3.4 ceil_tex=cliff_rock side=cliff_rock dark=
 
 [grid]
 ®RRRRRRRRRRR¯RRRRRRRRRRRRR¯RRRRRRRRRRRRR¯RRRRR°AAAAAAAAAAAAAA
-R;;;;;;;;;;;;;;;;;;;;)(;;,,,,ÌßNßÿ,,AAAAAAAAAARAAAAAAAAAAAAAA
+R;;;;;;;;;;;;;;;;;;;;)(;;,,,,ÌßNßÿ,!AAAAAAAAAARAAAAAAAAAAAAAA
 R;Ú;;;;í;ìí;ìí;ìí;;CCË;Ë;,,,,,ÞsÞù,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;;ÉCCCCCCCCCCCCCCCèC;;,,,,,,,,s,,,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;;êDaYnnOðnOñnOnnnC===9876,Þù,s,ù,ùAAAAAAAAAARAAAAAAAAAAAAAA
 R;;CaannIQQIQQIQQInn===4321,,,,s,,,,AAAAAAAAAARAAAAAAAAAAAAAA
-R;;CîEÓnnnnÊnnn`nn:ï¬=="321,,,,sX,,!AAAAAAAAAARAAAAAAAAAAAAAA
+R;;CîEÓnnnnÊnnn`nn:ï¬=="321,,,,sX,,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;;CaannIQQIQQIQQInn===4321sssss.qqq..AAAAAAAARAAAAAAAAAAAAAA
 R;;ëDaYenOònOónOnnnC===9876sÞ.....à.á.AAAAAAAARAAAAAAAAAAAAAA
 R;;CCCCCCCCCCCCCCCCéC==,,,qs|...ÆHHHH¡...á.à..RAAAAAAAAAAAAAA
@@ -294,10 +294,10 @@ U = torch radius=5 on=w
 F = fungus radius=4 on=y
 z = mushrooms on=y
 // Four grates down into the Harrow Sewers, tucked away in the town's corners, each over its own
-// district below: under the cliffs at the north road's east end, in the west lane below the cathedral
+// district below: in the north road's corner beside its gate, in the west lane below the cathedral
 // terrace, at the harbour lane's west corner and on the quay. The sewers join up beneath, so each is
 // a short way back to the others.
-! = exit map=harrow_sewers at=34,6,180 label=Descend_into_the_sewers model=sewer_grate
+! = exit map=harrow_sewers at=35,2,90 label=Descend_into_the_sewers model=sewer_grate
 ? = exit map=harrow_sewers at=2,14,0 label=Descend_into_the_sewers model=sewer_grate
 { = exit map=harrow_sewers at=3,36,-90 label=Descend_into_the_sewers model=sewer_grate
 } = exit map=harrow_sewers at=39,39,-90 label=Descend_into_the_sewers model=sewer_grate
