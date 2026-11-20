@@ -1,5 +1,5 @@
 """Models for Old Harrowmere, the sunken first city under the sewers: its Stone Golems, Sunken Sextons
-and the Keystone, the rubble the Keystone hurls, and the city's dressing (the shaft of light from the
+and the Keystone, the boulder the Keystone hurls, and the city's dressing (the shaft of light from the
 crack overhead, the drowned towers of its skyline and the breach in the cistern wall that leads down).
 Original low-poly models assembled from primitives; like everything in `models`, they face +X."""
 
@@ -451,10 +451,13 @@ ARM_SLUMP = 0.4  # how its arms swing, and its elbows bend, as it slumps forward
 ELBOW_SLUMP = 1.4
 
 
+HURL_HOLD = (3.25, -1.0)  # (arm swing, elbow) holding the boulder up over its head, elbows bent
+
+
 def keystone_pose(e):
     """(lean, left arm, left elbow, right arm, right elbow, stamp, hurl, charge) for its moves: the lean
     forward of its body, each arm's swing (radians from hanging, forward) and elbow bend, how high it
-    lifts its foot to stamp (0..1), how far it has wound back a block to throw (0..1, -1 once let go),
+    lifts its foot to stamp (0..1), how far it has heaved up a boulder to throw (0..1, -1 once let go),
     and how hard its chest core draws in the mortar-light (0..1). Every blow travels down over its
     type's `impact`, heavily, rather than snapping."""
     k = _ease(_windup_k(e))
@@ -478,16 +481,24 @@ def keystone_pose(e):
         if not hitting:
             return -0.3 * k, -0.9 * k, 0.2, -0.9 * k, 0.2, 0.0, 0.0, k
         return -0.3 + 0.75 * snap, -0.9, 0.2, -0.9, 0.2, 0.0, 0.0, 1.0
-    if kind == "slam":  # both slabs overhead, then down
-        up = -2.9 * k if not hitting else -2.9 + 3.7 * snap
-        return 0.1 + 0.35 * snap, up, 0.3, up, 0.3, 0.0, 0.0, 0.0
-    if kind == "sweep":  # arms flung out before it to scythe all round
-        return 0.05, 1.3, 0.1, 1.3, 0.1, 0.0, 0.0, 0.0
+    if kind == "pillar_crush":  # both fists raised high together, rearing back, then hammered down before it
+        if not hitting:
+            return -0.3 * k, -3.1 * k, 0.15 * k, -3.1 * k, 0.15 * k, 0.0, 0.0, 0.5 * k
+        down = -3.1 + 4.1 * snap
+        return -0.3 + 0.85 * snap, down, 0.15, down, 0.15, 0.0, 0.0, 0.5
+    if kind == "fault_line":  # the foot lifted high, arms flung out fore and aft for balance, then stamped
+        if not hitting:
+            return 0.15 * k, 0.8 * k, 0.4, -1.1 * k, 0.4, k, 0.0, 0.6 * k
+        return 0.15 + 0.25 * snap, 0.8 - 0.4 * snap, 0.4, -1.1 + 0.6 * snap, 0.4, 1.0 - snap, 0.0, 0.6
     if kind == "quake":  # the foot rises high
         return -0.1 * k, 0.3 - 0.6 * k, 0.6, -0.6 * k, 0.6, (k if not hitting else 1.0 - snap), 0.0, 0.0
-    if kind == "hurl":  # the right arm winds back with a block, then lets it fly
-        back = -2.4 * k if not hitting else -2.4 + 3.6 * snap
-        return 0.1, 0.3, 0.4, back, 0.5, 0.0, (k if not hitting else -1.0), 0.0
+    if kind == "hurl":  # a boulder heaved up off the floor in both arms, up before it and over its head
+        if not hitting:
+            up, bend = HURL_HOLD[0] * k, HURL_HOLD[1] * k
+            return -0.3 * k, up, bend, up, bend, 0.0, max(k, 0.05), 0.0
+        up, bend = HURL_HOLD[0] - 0.8 * snap, HURL_HOLD[1] * (1 - 0.5 * snap)  # then flung forward
+        held_ = 1.0 if e.state_t < e.type.impact else -1.0  # it lets go as its blow lands
+        return -0.3 + 0.6 * snap, up, bend, up, bend, 0.0, held_, 0.0
     if e.state == "hurt":
         return -0.2, 0.5, 0.5, 0.4, 0.5, 0.0, 0.0, 0.0
     sway = math.sin(e.anim_t * 1.6) * 0.08
@@ -530,10 +541,11 @@ def keystone(r, e, t):
     in a cage of stone ribs, its light running out through cracks in the boulder plates of its shell.
     On its hump stand the stubs of the columns it once bore up. At half HP the shell sloughs off: the
     plates fall away, the dark stone under them is laced with veins of light, the core blazes, its eyes
-    flare and motes of light lift off it. It slams and sweeps and brings a slab down before it; then
-    it stamps (the foot rises high), hurls blocks of masonry, rakes a beam of the light along the floor
-    from its heart, rains shards of its shell down round you and drives its fists down so rings of
-    light run out from it. Slain, it sinks to its knees and slumps forward on its fists, and the light
+    flare and motes of light lift off it. It brings a slab down before it, hammers both fists down
+    together, stamps a fault of light along the floor and heaves a boulder up overhead in both arms to
+    lob at you; then it stamps (the foot rises high), rakes a beam of the light along the floor from
+    its heart, rains shards of its shell down round you and drives its fists down so rings of light
+    run out from it. Slain, it sinks to its knees and slumps forward on its fists, and the light
     in it goes out."""
     dead = e.state == "dead"
     lit = not dead
@@ -605,8 +617,9 @@ def keystone(r, e, t):
                     _golem_arm(r, side, a, elbow, stone, dark, vein, lit, wide=1.15)
                     with r.at(0, 0, 0, rz=a), r.at(0, -0.66, 0, rz=elbow):
                         _knuckle_guard(r, side, lit, split, 1.15)
-                        if hurl > 0 and side == 1:  # the block it is about to throw
-                            r.part("cube", 0.1, -1.5, 0, 0.32, 0.26, 0.26, (150, 132, 104))
+                        if hurl > 0 and side == 1:  # the boulder it is about to throw, between its fists
+                            with r.at(0.5, -1.45, -sz, s=BOULDER_HELD):
+                                boulder(r, t)
                         if raining:  # shards of its shell torn loose over its fists, glowing
                             for i in range(3):
                                 u = (t * 1.6 + i / 3) % 1.0
@@ -614,15 +627,47 @@ def keystone(r, e, t):
                                        0.06, 0.14, 0.06, CORE_TEAL, glow=True, ry=t * 4 + i)  # fmt: skip
 
 
-def rubble_chunk(r, rgb, t):
-    """A block of masonry the Keystone hurls, tumbling, grit trailing off it."""
-    r.part("cube", 0, 0, 0, 0.62, 0.5, 0.52, rgb, rx=t * 3, rz=t * 2)
-    r.part("cube", 0.12, 0.1, 0.08, 0.3, 0.24, 0.3, _dim(rgb, 0.8), rx=t * 3)
-    for i in range(3):
-        a = t * 6 + i * 2.1
-        r.part(
-            "cube", -0.3 - 0.12 * i, math.sin(a) * 0.12, math.cos(a) * 0.12, 0.06, 0.06, 0.06, _dim(rgb, 0.7)
-        )
+BOULDER_STONE = (150, 132, 104)  # masonry torn from the old city: its warm sandstone
+BOULDER_HELD = 0.42  # the boulder's size in the Keystone's grip, in its unscaled body's units
+
+
+def boulder(r, t, spin=0.0):
+    """The boulder the Keystone heaves up and lobs (a `hazards.Eruption` of style "boulder" in flight),
+    some 2 m of masonry: a squared block with a cornice still on it, lumps of rubble mortared to it and
+    a cracked seam of the mortar-light, grit trailing off it as it tumbles (`spin`)."""
+    with r.at(0, 0, 0, rx=spin * 2.2, rz=spin * 1.6):
+        r.part("cube", 0, 0, 0, 1.7, 1.4, 1.5, BOULDER_STONE, tex="rough_stone")
+        r.part("cube", 0.1, 0.72, 0, 1.85, 0.22, 1.6, _dim(BOULDER_STONE, 0.85), tex="rough_stone")  # cornice
+        for x, y, z, w in ((0.7, -0.3, 0.6, 0.7), (-0.75, 0.2, -0.5, 0.8), (0.2, -0.65, -0.6, 0.6)):
+            r.part("cube", x, y, z, w, w * 0.8, w * 0.9, _dim(BOULDER_STONE, 0.75), ry=x + z, rz=y)
+        r.part("cube", 0.86, 0, 0.1, 0.04, 1.0, 0.08, CORE_TEAL, rx=0.4, glow=True)  # a seam of light
+        r.part("cube", -0.3, -0.71, 0.2, 0.9, 0.04, 0.08, _dim(CORE_TEAL, 0.8), ry=0.6, glow=True)
+    for i in range(4):  # grit trailing off it
+        a = t * 6 + i * 1.6
+        r.part("cube", -0.9 - 0.25 * i, math.sin(a) * 0.3, math.cos(a) * 0.3, 0.12, 0.12, 0.12,
+               _dim(BOULDER_STONE, 0.7))  # fmt: skip
+
+
+def boulder_mark(r, glow, flame, t, radius=1.0):
+    """Where the Keystone's boulder will come down (an `Eruption` of style "boulder"): its shadow
+    darkening on the floor and a ring of amber cracks closing in as it falls, then a burst of dust and
+    broken stone where it lands, `radius` across."""
+    if glow > 0:
+        r.part("cyl", 0, 0.02, 0, radius * (0.4 + 0.6 * glow), 0.02, radius * (0.4 + 0.6 * glow),
+               _dim(MORTAR, 0.6))  # fmt: skip  # its shadow
+        ring = radius * (1.7 - 0.7 * glow)  # closing in as it falls
+        for i in range(10):
+            a = i * math.tau / 10 + t * 0.3
+            r.part("cube", math.cos(a) * ring, 0.04, math.sin(a) * ring, 0.55 * radius, 0.03, 0.08,
+                   _mix_rgb(_dim(EYE, 0.4), EYE, glow), ry=-a + math.pi / 2, glow=True)  # fmt: skip
+    if flame > 0:
+        h = 2.4 * flame
+        r.part("cyl", 0, h / 2, 0, radius * 1.4, h, radius * 1.4, _dim(MASONRY, 0.9))  # the dust thrown up
+        for i in range(8):  # the boulder's pieces, flung out
+            a = i * math.tau / 8 + 0.3
+            d = radius * (0.5 + 0.6 * flame)
+            r.part("cube", math.cos(a) * d, 0.3 + h * 0.4 * (1 - 0.5 * (i % 2)), math.sin(a) * d,
+                   0.4, 0.32, 0.36, _dim(BOULDER_STONE, 0.8 + 0.05 * (i % 3)), rx=t * 4 + i, ry=a)  # fmt: skip
 
 
 def core_burst(r, glow, flame, t, radius=1.0):

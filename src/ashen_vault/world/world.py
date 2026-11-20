@@ -6,13 +6,15 @@ from dataclasses import dataclass, field
 
 from ashen_vault import map_path
 from ashen_vault.ai.enemy import (
-    ASH_RISE,
-    ASH_RISE_AGAIN,
+    ASH_SPREAD_BURST,
+    ASH_SPREAD_GATHER,
     ASHFALL_RADIUS,
     BURROW_RADIUS,
     EXHALE_CONE,
     EXHALE_REACH,
     MOVES,
+    PILLAR_RADIUS,
+    PILLAR_REACH,
     QUAKE_RADIUS,
     QUAKE_SAFE,
     SLAB_REACH,
@@ -21,6 +23,7 @@ from ashen_vault.ai.enemy import (
     STATUE_BURST,
     TOLL_RADIUS,
     Enemy,
+    ash_rise,
 )
 from ashen_vault.ai.enemy_types import EnemyTypes
 from ashen_vault.ai.spawns import spawn_enemies
@@ -468,6 +471,7 @@ ERUPTION_SOURCES = {
     "moon": "The moonlight",
     "filth": "The filth",
     "core": "The mortar-light",
+    "boulder": "The hurled boulder",
 }
 SQUEAL_STAGGER = 1.2  # seconds Mother Gnawl's squeal leaves you stumbling
 BURROW_ROT = (("rot", 25),)  # rot the filth Mother Gnawl bursts up through builds in you
@@ -476,7 +480,6 @@ BURST_SPOUTS = 6
 ENGULF_GLOOM = 2.5  # seconds the dark of the Pall's insides stays on your eyes after it lets you go
 ENGULF_DARK = 0.85  # how dark it gets, as on a `dark=` tile
 LANCE_SPEED = 10.0  # m/s a lance of moon-frost flies
-RUBBLE_SPEED = 9.0  # m/s a block of masonry the Keystone hurls flies
 # The Keystone's mortar-light (World.slab_smash, core_beam, shard_rain, core_nova), all bursts of
 # `Eruption` style "core".
 SHARD_HIGH = 9.5  # metres over the floor the shards are torn loose, its fists raised overhead
@@ -488,6 +491,23 @@ SHARD_RINGS = ((2.6, 4), (5.2, 6))  # (radius, shards) of each ring of the rain 
 SHARD_STAGGER = 0.1  # seconds between one shard and the next, the last no later than SHARD_SPAN
 SHARD_SPAN = 1.0
 NOVA_RINGS = ((3.5, 8), (6.5, 12), (9.5, 16))  # (radius, bursts) of the rings of light round it
+PILLAR_WARN = 0.2  # its fists raised high are the warning: where they land glows only a moment
+FAULT_STEP = 1.3  # metres between the bursts of a fault of light split along the floor
+FAULT_PAST = 3.0  # metres the fault runs on past where you stand
+FAULT_RADIUS = 1.1
+FAULT_WARN = 0.45  # seconds the whole fault glows before its first burst, at its feet
+FAULT_RUN = 0.07  # seconds between one burst and the next, running out along it toward you
+# Its boulder (World.hurl): heaved up overhead in both arms, then lobbed at where you stand. Its shadow
+# glows on the floor while it flies; where it lands it crushes whoever is under it and bursts into
+# shards of the light flung out round it.
+BOULDER_HIGH = 9.6  # metres over the floor it is let go from, flung up and forward from over its head
+BOULDER_AHEAD = 3.0  # and metres before it
+BOULDER_FLIGHT = 1.3  # seconds in the air
+BOULDER_ARC = 1.2  # metres its flight bows up: a low, heavy lob that stays in sight as it comes
+BOULDER_RADIUS = 1.8
+BOULDER_SHARDS = 8
+BOULDER_SCATTER = 3.2  # metres round where it lands that its shards come down
+BOULDER_SHARD_FLIGHT = 0.6  # seconds a shard flies before it bursts
 # A boss fed by the energy core (`EnemyType.surge`) once the core is quenched: it starts the fight
 # with only this share of its HP.
 QUENCHED_HP = 0.85
@@ -1430,8 +1450,6 @@ class World:
             if enemy.type.shot == "arrow"
             else LANCE_SPEED
             if enemy.type.shot == "lance"
-            else RUBBLE_SPEED
-            if enemy.type.shot == "rubble"
             else 6
         )
         dx, dy, dz = shots.toward(
@@ -1439,7 +1457,7 @@ class World:
         )
         lead = enemy.radius / speed  # leaves from the edge of its body
         damage = enemy.type.damage
-        if kind in ("web", "cinders", "spadeful", "fireball", "bile", "frost_lance", "hurl"):
+        if kind in ("web", "cinders", "spadeful", "fireball", "bile", "frost_lance"):
             damage = rround(damage * MOVES[kind][2])
         self.projectiles.append(
             Projectile(
@@ -1692,6 +1710,90 @@ class World:
         )
         self.game.sfx("quake", 1.2)
         self.game.message("The Keystone drives its fists into the ground, and its light runs out from it!")
+
+    def pillar_crush(self, enemy):
+        """The Keystone hammers both fists down before it like falling pillars: a wide burst of light
+        PILLAR_REACH ahead along the way it faces, its fists raised high the only warning. Up close,
+        step round its flank (it turns slowly) or back out of reach while they are raised."""
+        c, sn = math.cos(enemy.yaw), math.sin(enemy.yaw)
+        x, z = enemy.x + c * PILLAR_REACH, enemy.z + sn * PILLAR_REACH
+        damage = rround(enemy.type.damage * MOVES["pillar_crush"][2])
+        self._core_burst(x, z, 0.0, damage, radius=PILLAR_RADIUS, warn=PILLAR_WARN)
+        self.shockwaves.append(Shockwave(x, z, self.enemy_y(enemy), PILLAR_RADIUS + 1.5))
+        self.shockwaves.append(Shockwave(x, z, self.enemy_y(enemy), PILLAR_RADIUS, style="core"))
+        self.game.sfx("quake", 1.3)
+        self.game.sfx("crack", 0.7)
+
+    def fault_line(self, enemy):
+        """The Keystone stamps, and the floor splits toward you: a fault of the mortar-light glows all
+        along a line from its feet to FAULT_PAST beyond you at once, then bursts up along it, running
+        out from its feet. Step sideways off the line while it glows."""
+        player = self.player
+        dx, dz = player.x - enemy.x, player.z - enemy.z
+        d = math.hypot(dx, dz) or 1.0
+        ux, uz = dx / d, dz / d
+        damage = rround(enemy.type.damage * MOVES["fault_line"][2])
+        s, n = enemy.radius + 0.6, 0
+        while s <= d + FAULT_PAST:
+            x, z = enemy.x + ux * s, enemy.z + uz * s
+            if not self._core_burst(x, z, 0.0, damage, radius=FAULT_RADIUS, warn=FAULT_WARN + n * FAULT_RUN):
+                break
+            s += FAULT_STEP
+            n += 1
+        self.shockwaves.append(Shockwave(enemy.x, enemy.z, self.enemy_y(enemy), enemy.radius + 1.5))
+        self.game.sfx("quake", 1.0)
+        self.game.sfx("crack", 0.9)
+
+    def hurl(self, enemy):
+        """The Keystone lets fly the boulder it heaved up overhead: lobbed on an arc to where you stand
+        now, its shadow glowing on the floor there while it flies (BOULDER_FLIGHT). Get out from under
+        it; where it lands it bursts into shards (`_boulder_lands`)."""
+        player = self.player
+        tile = self.map.tile_at(player.x, player.z)
+        if tile.solid or not tile.walkable:
+            return None
+        c, sn = math.cos(enemy.yaw), math.sin(enemy.yaw)
+        hands = (
+            enemy.x + c * BOULDER_AHEAD,
+            self.enemy_y(enemy) + BOULDER_HIGH,
+            enemy.z + sn * BOULDER_AHEAD,
+        )
+        f = Eruption(
+            player.x,
+            player.z,
+            tile.floor,
+            damage=rround(enemy.type.damage * MOVES["hurl"][2]),
+            origin=hands,
+            style="boulder",
+            radius=BOULDER_RADIUS,
+            warn=BOULDER_FLIGHT,
+            arc=BOULDER_ARC,
+        )
+        self.eruptions.append(f)
+        self.game.sfx("lob", 1.0)
+        self.game.sfx("swoosh", 0.8)
+        return f
+
+    def _boulder_lands(self, f):
+        """A hurled boulder comes down: it crushes whoever stands under it (a raised shield toward its
+        thrower takes what it can), and bursts into BOULDER_SHARDS shards of the light flung out round
+        it, each bursting up where it lands BOULDER_SCATTER off."""
+        f.spent = True  # its blow is dealt here, not as a burst of fire
+        player = self.player
+        self.shockwaves.append(Shockwave(f.x, f.z, f.floor, f.radius + 1.2))
+        self.sfx_near("boulder", f.x, f.z, *ERUPTION_SOUND)
+        level = -REACH_BELOW <= player.y - f.floor <= FIRE_ABOVE
+        if player.alive and level and math.hypot(player.x - f.x, player.z - f.z) <= f.radius:
+            ox, _, oz = f.origin
+            dmg = max(rround(foe_harm(f.damage) - player.inventory.defense * 0.3), 1)
+            if self.strike_player(dmg, ERUPTION_SOURCES["boulder"], ox, oz) > 0:
+                self.game.message("The boulder crushes you!")
+        turn = random.random() * math.tau
+        for i in range(BOULDER_SHARDS):
+            a = turn + i * math.tau / BOULDER_SHARDS
+            x, z = f.x + math.cos(a) * BOULDER_SCATTER, f.z + math.sin(a) * BOULDER_SCATTER
+            self._core_burst(x, z, 0.0, rround(f.damage * 0.5), warn=BOULDER_SHARD_FLIGHT,
+                             origin=(f.x, f.floor + 1.0, f.z))  # fmt: skip
 
     def moonfall(self, enemy):
         """Second phase: the moon rains down round you, a shaft where you stand and then rings of them
@@ -1965,7 +2067,10 @@ class World:
         player = self.player
         self.gloom_t = max(self.gloom_t - dt, 0.0)
         for f in self.eruptions:
-            if f.update(dt):
+            burst = f.update(dt)
+            if burst and f.style == "boulder":
+                self._boulder_lands(f)
+            elif burst:
                 sound = {"hands": "quake", "moon": "motes", "filth": "splash", "core": "motes"}.get(
                     f.style, "eruption"
                 )
@@ -2061,14 +2166,16 @@ class World:
         arena = next((a for a in self.arenas if a.flag == enemy.type.dead_flag and a.tiles), None)
         if arena is None:
             near = math.hypot(self.player.x - enemy.x, self.player.z - enemy.z) <= enemy.type.sight
-            return ASH_RISE if near and self.can_see(enemy.x, enemy.z, self.player.x, self.player.z) else None
+            seen = near and self.can_see(enemy.x, enemy.z, self.player.x, self.player.z)
+            return ash_rise(enemy.type) if seen else None
         if not self.player.alive or not self._player_inside(arena):
             return None
-        return ASH_RISE_AGAIN if arena.fogged(self.flags) else ASH_RISE
+        return ash_rise(enemy.type, again=arena.fogged(self.flags))
 
     def _rising(self, e, began, before, dt):
         """A boss's entrance as it plays: embers flare and ash streams in while one of ash forms; a
-        statue bursts its stone skin part way through tearing free."""
+        statue bursts its stone skin part way through tearing free. A giant of ash (`ash_spread`) bursts
+        into a far wider, denser cloud and draws it all in from across the spread it lay in."""
         base, height = self.body_span(e)
         k = e.rise_progress
         if e.type.rise == "ash":
@@ -2076,8 +2183,16 @@ class World:
                 self.game.sfx("rise")
                 name = e.type.called
                 self.game.message(f"{name} rises from the ashes!")
-                self.ash.emit(e.x, base, e.z, e.radius * 1.6, 50, band=0.2, ember_chance=0.7)
-            self.ash.gather(e.x, base, e.z, e.radius, height, k, 90, dt)
+                if e.type.ash_spread:
+                    spread = e.radius * e.type.ash_spread
+                    self.ash.emit(e.x, base, e.z, spread, ASH_SPREAD_BURST, band=0.3, ember_chance=0.7)
+                else:
+                    self.ash.emit(e.x, base, e.z, e.radius * 1.6, 50, band=0.2, ember_chance=0.7)
+            if e.type.ash_spread:
+                ring = (0.6, e.type.ash_spread - 0.6)  # from all across the spread, not past it
+                self.ash.gather(e.x, base, e.z, e.radius, height, k, ASH_SPREAD_GATHER, dt, ring=ring)
+            else:
+                self.ash.gather(e.x, base, e.z, e.radius, height, k, 90, dt)
         elif before < STATUE_BURST <= k:
             self.game.sfx("crack")
             self.ash.emit(e.x, base + height * 0.5, e.z, e.radius, 60, band=height * 0.4, ember_chance=0.15)

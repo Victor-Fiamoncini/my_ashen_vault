@@ -668,11 +668,12 @@ def test_a_boss_of_ash_waits_as_a_heap_untouchable_until_it_rises():
         assert boss.state == "ashes"
         world.visible = True
         boss.update(0.05, world)
-        assert boss.state == "rising" and boss.rise_time == ASH_RISE
-        tick(boss, world, ASH_RISE / 2)
+        seconds = boss.type.rise_secs or ASH_RISE  # a giant takes longer to form
+        assert boss.state == "rising" and boss.rise_time == seconds
+        tick(boss, world, seconds / 2)
         assert 0.3 < boss.rise_progress < 0.7
         assert not boss.take_hit(10_000) and boss.hp == boss.type.hp  # not whole yet
-        tick(boss, world, ASH_RISE / 2 + 0.1)
+        tick(boss, world, seconds / 2 + 0.1)
         assert boss.state not in ("ashes", "rising") and boss.rise_progress == 1.0 and not boss.unseen
 
 
@@ -1029,24 +1030,82 @@ def test_a_sexton_rings_its_bell_only_with_sleepers_near_and_you_kept_off():
     assert world.tolls == 1
 
 
-def test_the_keystone_quakes_and_hurls_only_in_its_second_phase():
+class KeystoneWorld(BellWorld):
+    def __init__(self, px, pz):
+        super().__init__(px, pz)
+        self.calls = []
+
+    def __getattr__(self, name):
+        if name in ("slab_smash", "pillar_crush", "fault_line", "hurl"):
+            return lambda _enemy: self.calls.append(name)
+        raise AttributeError(name)
+
+
+def test_the_keystone_quakes_only_in_its_second_phase_and_hurls_from_the_first():
     keystone = _awake("keystone")
-    assert "quake" not in keystone.cooldowns and "hurl" not in keystone.cooldowns
-    world = BellWorld(10.0, 0)
-    keystone.hp = keystone.type.hp // 2 - 1
-    keystone.update(0.05, world)
-    assert keystone.phase2 and {"quake", "hurl"} <= set(keystone.cooldowns)
+    assert "quake" not in keystone.cooldowns and "hurl" in keystone.cooldowns
+    world = KeystoneWorld(10.0, 0)
     keystone.cooldowns = dict.fromkeys(keystone.cooldowns, 99.0)
     keystone.cooldowns["hurl"] = 0.0
     assert keystone._pick_move(world, 10.0) == "hurl"
     keystone._switch("chase")
     keystone._begin_windup("hurl")
-    tick(keystone, world, 3.0)  # a slow, heavy throw
-    assert world.fired == ["hurl"]
+    tick(keystone, world, 3.0)
+    assert world.calls == []  # a long, heavy heave up overhead: the boulder is still in its arms
+    tick(keystone, world, 1.0)
+    assert world.calls == ["hurl"] and world.fired == []  # lobbed by the world, not shot straight
+    keystone.hp = keystone.type.hp // 2 - 1
+    keystone._switch("chase")
+    keystone.update(0.05, world)
+    assert keystone.phase2 and "quake" in keystone.cooldowns
     keystone._switch("chase")
     keystone._begin_windup("quake")
-    tick(keystone, world, 2.0)
+    tick(keystone, world, 2.5)
     assert world.quakes == 1
+
+
+def test_the_keystone_never_throws_a_plain_blow():
+    """It fights only with its own moves: no slam, no sweep, and with none of them ready it closes in
+    rather than swinging."""
+    t = EnemyTypes.get("keystone")
+    assert not t.blow and not {"slam", "sweep"} & {*t.moves, *t.phase_moves}
+    assert set(t.moves) == {"slab_smash", "pillar_crush", "fault_line", "hurl"}
+    keystone = _awake("keystone")
+    keystone.cooldowns = dict.fromkeys(keystone.cooldowns, 99.0)
+    world = KeystoneWorld(t.reach - 0.5, 0)
+    keystone.face(world.player_x, 0)
+    tick(keystone, world, 3.0)
+    assert keystone.state == "chase" and world.strikes == 0 and world.calls == []
+    keystone.cooldowns["pillar_crush"] = 0.0
+    tick(keystone, world, 4.0)  # always its move up close: no coin toss for a plain blow
+    assert world.calls == ["pillar_crush"] and world.strikes == 0
+
+
+def test_the_keystones_moves_are_picked_from_their_own_ranges():
+    from ashen_vault.ai.enemy import FAULT_RANGE, HURL_RANGE, PILLAR_RANGE
+
+    for move, near, far in (
+        ("pillar_crush", 1.0, PILLAR_RANGE + 0.5),
+        ("fault_line", FAULT_RANGE[0] + 1, FAULT_RANGE[0] - 1),
+        ("hurl", HURL_RANGE[0] + 1, HURL_RANGE[0] - 1),
+    ):
+        keystone = _awake("keystone")
+        keystone.cooldowns = dict.fromkeys(keystone.cooldowns, 99.0)
+        keystone.cooldowns[move] = 0.0
+        assert keystone._pick_move(KeystoneWorld(near, 0), near) == move
+        keystone.cooldowns[move] = 0.0
+        assert keystone._pick_move(KeystoneWorld(far, 0), far) is None, move
+
+
+def test_the_keystone_rises_slowly_out_of_a_wide_spread_of_ash():
+    from ashen_vault.ai.enemy import ASH_RISE, ASH_RISE_AGAIN, ash_rise
+
+    t = EnemyTypes.get("keystone")
+    assert t.ash_spread >= 2.0 and ash_rise(t) > ASH_RISE
+    assert ash_rise(t, again=True) < ash_rise(t) and ash_rise(t, again=True) > ASH_RISE_AGAIN
+    warden = EnemyTypes.get("ashen_warden")
+    assert warden.ash_spread is None and ash_rise(warden) == ASH_RISE  # the others rise as they did
+    assert ash_rise(warden, again=True) == ASH_RISE_AGAIN
 
 
 def test_a_golem_stands_as_a_statue_until_you_come_close_or_strike_it():

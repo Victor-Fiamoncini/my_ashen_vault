@@ -55,12 +55,12 @@ MOVES = {
     "moonbeam": (0.9, 7.0, 0.9),
     "moonfall": (1.2, 11.0, 0.8),
     # Old Harrowmere's: a sexton's toll, its staff raised so its mortar-light wakes whatever sleeps in
-    # stone round it; the
-    # Keystone's (second phase) quake, a stamp whose ring of shock runs out along the floor (it passes
-    # under whoever stands in close), and a block of masonry hurled from afar.
+    # stone round it; the Keystone's (second phase) quake, a stamp whose ring of shock runs out along
+    # the floor (it passes under whoever stands in close), and a boulder of masonry heaved up overhead
+    # in both arms and lobbed on an arc to where you stood, bursting into shards where it lands.
     "toll": (0.9, 14.0, 0.0),
     "quake": (1.3, 9.0, 1.1),
-    "hurl": (1.0, 6.0, 0.9),
+    "hurl": (1.8, 13.0, 1.1),
     # The Keystone's mortar-light: a slab of a forearm brought down overhead in a great burst of it
     # before it (and the shards it scatters), and (second phase) a beam of it raked along the floor from
     # its heart, shards of its shell rained down round you, or its fists driven down at its feet so
@@ -69,6 +69,10 @@ MOVES = {
     "core_beam": (1.0, 7.0, 0.8),
     "shard_rain": (1.4, 11.0, 0.8),
     "core_nova": (1.5, 12.0, 1.0),
+    # And the Keystone's own up close: both fists raised high and hammered down before it like falling
+    # pillars; and a stamp that splits the floor, a fault of the light running out along it toward you.
+    "pillar_crush": (1.3, 4.5, 1.3),
+    "fault_line": (1.1, 8.0, 0.9),
 }
 COMBO_SWINGS = 3
 COMBO_GAP = 0.45  # seconds between the swings of a combo (scaled by a type's `tempo`: `Enemy.combo_gap`)
@@ -123,6 +127,10 @@ QUAKE_RANGE = 9.0  # the Keystone stamps only while you are this close
 QUAKE_SAFE = 1.2  # metres beyond its body the ring has not yet risen: stand in close and it passes
 QUAKE_RADIUS = 8.0  # metres the ring of shock runs out
 HURL_RANGE = (5.0, 16.0)
+PILLAR_REACH = 2.9  # metres before the Keystone its fists come down (just past its body)
+PILLAR_RADIUS = 2.0  # the burst where they land: step round it, or back out of it, as they rise
+PILLAR_RANGE = 4.2  # it hammers its fists down only with you this close
+FAULT_RANGE = (3.0, 12.0)  # distances it splits the floor toward you from
 SQUEAL_RADIUS = 4.5  # metres her squeal staggers you, from any side
 BURROW_RANGE = (4.0, 9.0)  # distances she burrows after you from
 BURROW_TIME = 1.2  # seconds she tunnels under the muck, out of reach
@@ -147,6 +155,10 @@ FLASH_TIME = 0.15  # seconds a body glows red after any direct blow, staggered o
 # lair, then builds itself from the feet up out of the burning ash; a statue cracks and tears free.
 ASH_RISE = 3.0  # seconds, the first time you meet it
 ASH_RISE_AGAIN = 1.5  # seconds, when you come back through its fog
+# A giant of ash (`EnemyType.ash_spread`) lies spread wide over the floor of its lair, and forms out of
+# all of it: a burst of this many flakes over the spread as it begins, then this many a second drawn in.
+ASH_SPREAD_BURST = 160
+ASH_SPREAD_GATHER = 260
 STATUE_RISE = 2.2
 STATUE_BURST = 0.55  # share of a statue's rise at which its stone skin bursts off
 
@@ -218,12 +230,14 @@ MOVE_SPECS = {
     "core_nova": MoveSpec(hi=CORE_NOVA_RANGE, lands="core_nova"),
     "toll": MoveSpec(lo=TOLL_RANGE[0], hi=TOLL_RANGE[1], sight=True, allow="can_toll", lands="toll"),
     "quake": MoveSpec(hi=QUAKE_RANGE, lands="quake"),
-    "hurl": MoveSpec(lo=HURL_RANGE[0], hi=HURL_RANGE[1], sight=True, fires=True),
+    "hurl": MoveSpec(lo=HURL_RANGE[0], hi=HURL_RANGE[1], sight=True, lands="hurl"),
     "knell": MoveSpec(hi=KNELL_RANGE),
     # Never picked here: the brood or the rage at half HP (`_should_turn`), the lash in `_chase`.
     "summon": MoveSpec(picked=False),
     "kindle": MoveSpec(picked=False, lands="boss_rage"),
     "tail_lash": MoveSpec(picked=False, lands="tail_lash"),
+    "pillar_crush": MoveSpec(hi=PILLAR_RANGE, lands="pillar_crush"),
+    "fault_line": MoveSpec(lo=FAULT_RANGE[0], hi=FAULT_RANGE[1], sight=True, lands="fault_line"),
 }
 
 
@@ -247,12 +261,21 @@ ATTACK_TIMES = {
     "moonfall": 0.6,
     "toll": 0.8,
     "quake": 0.5,
-    "hurl": 0.35,
+    "hurl": 0.5,
     "slab_smash": 0.5,
     "core_beam": 0.6,
     "shard_rain": 0.6,
     "core_nova": 0.7,
+    "pillar_crush": 0.6,
+    "fault_line": 0.6,
 }
+
+
+def ash_rise(type_, again=False):
+    """Seconds a boss of ash takes to form: its type's own `rise_secs` (a giant takes longer) or
+    ASH_RISE; back through its fog, the same share of that as ASH_RISE_AGAIN is of ASH_RISE."""
+    full = type_.rise_secs or ASH_RISE
+    return full * ASH_RISE_AGAIN / ASH_RISE if again else full
 
 
 def _wrap(a):
@@ -269,7 +292,8 @@ class Enemy:
     Mother Gnawl, tail_lash(enemy), squeal(enemy) and burrow_burst(enemy); for the Sodden Pall,
     engulf(enemy), shed(enemy) and can_shed(enemy); for Vesperholm's blinkers, blink(enemy); for the
     Duchess, moonbeam(enemy) and moonfall(enemy); for the Keystone, quake(enemy), slab_smash(enemy),
-    core_beam(enemy), shard_rain(enemy) and core_nova(enemy). Optional, for twin bosses: rouse_twin(enemy), twin_fallen(enemy)
+    pillar_crush(enemy), fault_line(enemy), hurl(enemy), core_beam(enemy), shard_rain(enemy) and
+    core_nova(enemy). Optional, for twin bosses: rouse_twin(enemy), twin_fallen(enemy)
     and twin_busy(enemy); for bosses that rise from ash, rise_time(enemy) (seconds, or None while it
     should stay a heap; without it the heap rises when it notices you); level_with(enemy), False while
     you are out of its reach above or below (riding a lift past it), so it does not swing at you.
@@ -378,7 +402,7 @@ class Enemy:
             return
         if self.state == "ashes":
             ask = getattr(world, "rise_time", None)
-            seconds = ask(self) if ask else (ASH_RISE if self._notices(world, dist) else None)
+            seconds = ask(self) if ask else (ash_rise(self.type) if self._notices(world, dist) else None)
             if seconds:
                 self.face(world.player_x, world.player_z)  # the heap has no front: it forms facing you
                 self.begin_rise(seconds)
@@ -651,9 +675,10 @@ class Enemy:
         # Riding a lift past it, you are out of its reach above or below: it waits rather than swing.
         level = getattr(world, "level_with", None)
         level = level is None or level(self)
-        if t.bite_reach and dist <= t.bite_reach and level:
+        if t.blow and t.bite_reach and dist <= t.bite_reach and level:
             return self._begin_windup("bite")
-        in_range = dist <= t.reach and (level or t.ranged)
+        # One that fights only with its moves (no plain `blow`) closes in until one of them is ready.
+        in_range = t.blow and dist <= t.reach and (level or t.ranged)
         if t.ranged and in_range:
             in_range = world.can_see(self.x, self.z, world.player_x, world.player_z)
         # A slow turner must come round to face you before it can swing.
@@ -700,7 +725,7 @@ class Enemy:
         if not options:
             return None
         # Up close a special is only sometimes chosen, so the plain blow stays in the mix.
-        if all(MOVE_SPECS[m].close for m in options) and self._rng.random() < 0.5:
+        if self.type.blow and all(MOVE_SPECS[m].close for m in options) and self._rng.random() < 0.5:
             for m in options:
                 self.cooldowns[m] = 1.0
             return None

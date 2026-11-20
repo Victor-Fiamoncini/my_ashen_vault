@@ -39,7 +39,7 @@ class EnemyType:
     # Color of the projectiles a ranged enemy fires.
     shot_rgb: tuple = (255, 120, 40)
     # What its shots look like when they are not plain bolts of light: "arrow", "thorn", "lance" (a
-    # lance of moon-frost, which numbs the legs of whoever it strikes), "rubble" (a hurled block of masonry).
+    # lance of moon-frost, which numbs the legs of whoever it strikes).
     shot: str | None = None
     # Turning speed in rad/s; None turns instantly. Slow turners can be outflanked.
     turn_rate: float | None = None
@@ -51,7 +51,7 @@ class EnemyType:
     # "slam", "eruption", "hook", "breath", "dive", "exhale", "ashfall", "spadeful", "grasp",
     # "dust_devil", "knell", "fireball", "bile", "engulf", "shed", "tail_lash", "squeal",
     # "frost_lance", "blink", "moonbeam", "moonfall", "toll", "quake", "hurl", "slab_smash",
-    # "core_beam", "shard_rain", "core_nova".
+    # "pillar_crush", "fault_line", "core_beam", "shard_rain", "core_nova".
     moves: tuple = ()
     # Enemy type a boss calls to its side once, when it drops to half HP.
     brood: str | None = None
@@ -78,6 +78,13 @@ class EnemyType:
     # A boss's entrance: "ash" waits as a smouldering heap in its lair and rises out of the burning
     # ash when you step in (see enemy.ASH_RISE). A `perch` statue cracks and tears free instead.
     rise: str | None = None
+    # Seconds a boss of ash takes to form (`enemy.ash_rise`), when not the usual `enemy.ASH_RISE`.
+    rise_secs: float | None = None
+    # A giant of ash: its ash lies spread this many body radii round its heap, and it forms out of all
+    # of it, the spread shrinking in under it (`enemy.ASH_SPREAD_BURST`, `ASH_SPREAD_GATHER`).
+    ash_spread: float | None = None
+    # False for a boss that never throws a plain blow, only its special moves (the Keystone).
+    blow: bool = True
     # What a blow on it sounds like: the `hit_<material>` sound (audio/synth.py, MATERIALS).
     material: str = "flesh"
     # Ailments its blows and shots build in you when they get through: (kind, buildup) pairs, the
@@ -918,12 +925,15 @@ class EnemyTypes:
                 # The giant the first city was raised on, the greatest of the golems: the mortar-light
                 # that animates them all is bared in its chest, and it bore the city up on its back
                 # until the city sank and it lay down under the rubble. It rises out of the ruin when
-                # you step into its court. It is slow, every swing heaved through before it lands
-                # (`tempo`, `impact`): it slams its fists, sweeps them all round and brings a slab of a
-                # forearm down before it in a great burst of light. At half HP its shell sloughs off
-                # and its heart blazes (the plaza's core floods it with light again, unless you have
-                # quenched it: `surge`): it stamps the ground so a ring of shock runs out (step in
-                # under it, or stand well off), hurls masonry at you from afar, rakes a beam of light
+                # you step into its court, forming out of ash spread wide over its floor. It is slow,
+                # every swing heaved through before it lands (`tempo`, `impact`), and it throws no
+                # plain blow: it brings a slab of a forearm down before it in a great burst of light,
+                # hammers both fists down before it like falling pillars (step round or back), stamps
+                # a fault of light running along the floor at you (step aside), and heaves a boulder
+                # up overhead to lob it at where you stand (move off its shadow; it bursts into shards).
+                # At half HP its shell sloughs off and its heart blazes (the plaza's core floods it
+                # with light again, unless you have quenched it: `surge`): it stamps the ground so a
+                # ring of shock runs out (step in under it, or stand well off), rakes a beam of light
                 # along the floor from its heart (step aside), rains shards of its shell down round
                 # you, and drives its fists into the ground so rings of light run out from it.
                 hp=380,
@@ -941,20 +951,20 @@ class EnemyTypes:
                 boss=True,
                 dead_flag="keystone_dead",
                 rise="ash",
+                rise_secs=4.5,
+                ash_spread=2.5,
+                blow=False,
                 epitaph="The Keystone sinks to its knees, and the old city settles one last time upon it.",
                 poise=24,
                 turn_rate=1.4,
                 back_mult=1.5,
                 brittle=True,
-                moves=("slam", "sweep", "slab_smash"),
-                phase_moves=("quake", "hurl", "core_beam", "shard_rain", "core_nova"),
+                moves=("slab_smash", "pillar_crush", "fault_line", "hurl"),
+                phase_moves=("quake", "core_beam", "shard_rain", "core_nova"),
                 tempo=1.4,
                 impact=0.45,
                 rage="The Keystone's shell sloughs away, and the heart that kept the city standing blazes open!",
                 surge=0.15,
-                shot="rubble",
-                shot_rgb=(150, 132, 104),
-                mouth=5.0,
             ),
             # --- Vesperholm, the Moonbound City ----------------------------------------------------
             EnemyType(

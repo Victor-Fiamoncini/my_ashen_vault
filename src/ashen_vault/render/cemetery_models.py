@@ -400,6 +400,45 @@ def ash_heap(r, t, k=0.0, scale=1.0):
             )
 
 
+def ash_spread(r, t, k=0.0, radius=4.0):
+    """The ash a giant of ash (`EnemyType.ash_spread`) lies spread in, wide over the floor round its
+    heap out to `radius` metres: low drifts of pale ash, charred stones and bones in it, and many ember
+    cracks breathing across it. As it rises (`k`) the spread is drawn in toward its feet and thins
+    away, its embers flaring as they go."""
+    sink = 1.0 - min(k / 0.85, 1.0)
+    if sink <= 0.0:
+        return
+    breathe = 0.5 + 0.5 * math.sin(t * 1.7)
+    reach = radius * (0.3 + 0.7 * sink)  # drawn in under it
+    lift = 0.02 + 0.03 * sink
+    r.part("cyl", 0, lift / 2, 0, reach * 2, lift, reach * 2, _dim(HEAP_ASH, 0.82))  # the bed of ash
+    for i in range(9):  # drifts heaped round it, lower toward the edge
+        a = i * 0.698 + 0.4
+        d = reach * (0.45 + 0.35 * (i % 3) / 2)
+        w = 0.5 + 0.25 * (i % 3)
+        r.part("sphere", math.cos(a) * d, 0, math.sin(a) * d, w * 2.2 * sink + 0.3, 0.5 * sink, w * 1.6 * sink + 0.2,
+               _dim(HEAP_ASH, 0.85 + 0.05 * (i % 3)), ry=a)  # fmt: skip
+    for i in range(5):  # charred stones and bones lying in it
+        a = i * 1.26 + 1.0
+        d = reach * (0.5 + 0.1 * i)
+        rgb = BONE_ASH if i % 2 else (70, 64, 58)
+        r.part("cube", math.cos(a) * d, 0.08 * sink, math.sin(a) * d, 0.5, 0.12, 0.16, _dim(rgb, 0.5 + 0.5 * sink),
+               ry=a * 2, rz=0.2)  # fmt: skip
+    for i in range(18):  # ember cracks across it, flaring as it rises
+        a = i * 2.4 + 0.2
+        d = reach * (0.25 + 0.7 * ((i * 7) % 18) / 18)
+        pulse = breathe if i % 2 else 1 - breathe
+        heat = _mix_rgb(COLD, EMBER, min(0.3 + 0.7 * pulse + 1.5 * k, 1.0))
+        r.part("cube", math.cos(a) * d, lift + 0.02, math.sin(a) * d, 0.5 + 0.3 * (i % 3), 0.03, 0.06, heat,
+               ry=a + 0.6 * (i % 2), glow=True)  # fmt: skip
+    for i in range(8):  # sparks lifting off it
+        rise = (t * 0.5 + i / 8) % 1
+        a = i * 0.785 + t * 0.2
+        d = reach * (0.3 + 0.08 * i)
+        r.part("cube", math.cos(a) * d, rise * 1.8, math.sin(a) * d, 0.05, 0.05, 0.05, EMBER, rx=t * 3 + i,
+               glow=True)  # fmt: skip
+
+
 REMNANT_SCALE = 0.42  # the heap of your own ashes, a small one beside a boss's
 
 

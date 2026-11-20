@@ -424,6 +424,18 @@ def sounds():
         "lob": gen(
             0.6, lambda t, p: (math.sin(t * TAU * (70 + p * 60)) * 0.6 + lowpass(0.1) * 1.2) * env(p, 0.05)
         ),
+        # A hurled boulder crashing down: a deep, heavy crunch, then a rattle of stone scattering.
+        "boulder": gen(
+            1.0,
+            lambda t, p: (
+                (
+                    math.sin(t * TAU * (48 - p * 20)) * 0.9 * (1 - p) ** 2
+                    + lowpass(0.06) * 2.2 * math.exp(-t * 6)
+                    + noise() * (0.5 if (t * 23) % 1 < 0.25 else 0.08) * (1 - p) ** 1.5
+                )
+                * env(p, 0.005)
+            ),
+        ),
         # A gargoyle's breath: a long roar that swells and fades.
         "breath": gen(1.2, lambda t, p: (lowpass(0.18) * 2.2 + noise() * 0.2) * math.sin(p * math.pi) ** 0.7),
         # A boss forming out of the burning ash of its heap.

@@ -215,7 +215,17 @@ class Eruption:
     DAMAGE = 18
 
     def __init__(
-        self, x, z, floor=0.0, delay=0.0, damage=DAMAGE, origin=None, style="fire", radius=None, warn=None
+        self,
+        x,
+        z,
+        floor=0.0,
+        delay=0.0,
+        damage=DAMAGE,
+        origin=None,
+        style="fire",
+        radius=None,
+        warn=None,
+        arc=6.0,
     ):
         self.x = x
         self.z = z
@@ -225,6 +235,7 @@ class Eruption:
         self.spent = False  # has it wounded someone yet
         # (x, y, z) a lobbed magma bomb flies from: it arcs down while the circle glows.
         self.origin = origin
+        self.arc = arc  # metres its flight bows up over the straight line down to where it lands
         # "fire", or "hands": the Sexton's grasping ash, which hurts and holds you where you stand;
         # "moon", "filth", or "core": the Keystone's mortar-light, teal, bursting up through the floor.
         self.style = style
@@ -258,12 +269,13 @@ class Eruption:
         """0..1 brightness of the warning circle; it brightens as the burst nears."""
         return min(max(self.t / self.warn, 0.0), 1.0) if self.state == "warn" else 0.0
 
-    def bomb(self, arc=6.0):
+    def bomb(self, arc=None):
         """Where a lobbed bomb is in its flight, (x, y, z), or None when it is not in the air: it
         leaves `origin` as the circle starts to glow and lands as the flame bursts."""
         if self.origin is None or self.state != "warn":
             return None
         k = self.t / self.warn
+        arc = self.arc if arc is None else arc
         ox, oy, oz = self.origin
         y = oy + (self.floor - oy) * k + arc * 4 * k * (1 - k)
         return ox + (self.x - ox) * k, y, oz + (self.z - oz) * k
