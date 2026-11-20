@@ -149,6 +149,7 @@ LAVA_LIGHT = (1.0, 0.45, 0.15)
 LAVA_LIGHT_RADIUS = 6.0
 LAVA_LIGHT_SPACING = 3  # tiles between the lights a lava field casts
 MODEL_LIGHT_GRID = 0.5  # metres: models are lit from the nearest point of a grid this fine
+LIGHT_CELL = 4.0  # metres: lights are filed by the squares this big they reach, so a point weighs only those
 
 
 def _sub(a, b):
@@ -202,10 +203,17 @@ def _next_cell(lay, i, j, di, dj):
             return i, j
 
 
+def _cell(x, z):
+    return math.floor(x / LIGHT_CELL), math.floor(z / LIGHT_CELL)
+
+
 class MeshBuilder:
     def __init__(self, map_, lights=()):
         self.map = map_
-        self.lights = list(lights)
+        self.lights = []
+        self._light_cells = defaultdict(list)  # each LIGHT_CELL square's lights, in the order added
+        for light in lights:
+            self._file_light(light)
         self.ambient = map_.meta.get("ambient", [0.2, 0.2, 0.2])
         self.batches = defaultdict(Batch)
         self.roofs = map_.meta.get("roofs") == "true"
@@ -282,9 +290,20 @@ class MeshBuilder:
         darkness of the tile it faces."""
         keep = 1.0 - self.map.tile_at(x + nx * 0.05, z + nz * 0.05).dark
         rgb = [c * keep for c in self.ambient]
-        for l in self.lights:
+        for l in self._light_cells.get(_cell(x, z), ()):
             _shine(l, rgb, x, y, z, nx, ny, nz)
         return rgb
+
+    def _file_light(self, light):
+        """Adds `light` to the lights and to every LIGHT_CELL square its radius could reach."""
+        self.lights.append(light)
+        (i0, j0), (i1, j1) = (
+            _cell(light.x - light.radius, light.z - light.radius),
+            _cell(light.x + light.radius, light.z + light.radius),
+        )
+        for i in range(i0, i1 + 1):
+            for j in range(j0, j1 + 1):
+                self._light_cells[i, j].append(light)
 
     def model_light_at(self, x, y, z):
         """Light falling on a model at (x, y, z), looked up on a coarse grid and remembered: models
@@ -299,7 +318,7 @@ class MeshBuilder:
     def add_light(self, light):
         """Adds a light after the build (a brazier kindled) by brightening only the vertices it
         reaches. Returns the textures whose batches changed and need uploading again."""
-        self.lights.append(light)
+        self._file_light(light)
         self._model_light.clear()
         changed = set()
         r2 = light.radius * light.radius

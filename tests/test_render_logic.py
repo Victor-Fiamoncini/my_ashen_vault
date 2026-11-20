@@ -1,5 +1,6 @@
 """Headless checks for the raylib-free parts of the renderer."""
 
+import functools
 import math
 import random
 
@@ -11,9 +12,12 @@ from ashen_vault.render.mesh_builder import MeshBuilder
 from ashen_vault.ui import tinyfont
 from ashen_vault.world.map_loader import MapLoader
 
+# Generating every texture takes seconds; the tests only read them, so they share one set.
+_all_textures = functools.cache(texture_gen.all_textures)
+
 
 def test_textures_are_rgba_64():
-    tex = texture_gen.all_textures()
+    tex = _all_textures()
     for name, data in tex.items():
         assert len(data) == 64 * 64 * 4, name
     assert tex["iron_bars"][3] == 255  # bar pixel at (0, 0)
@@ -92,6 +96,25 @@ def test_fungus_glows_teal_by_default():
     teal = [l for l in lights if l.color == [0.3, 0.85, 0.65]]
     assert len(teal) == len(fungus)
     assert all(l.y < 1.6 + 1.2 for l in teal)
+
+
+def test_light_at_weighs_every_light_that_reaches_a_point():
+    """Lights are filed by the squares they reach; a point lit from its square's lights alone takes
+    the same light as one lit by every light on the map, a kindled one too."""
+    from ashen_vault.render import mesh_builder
+
+    m = MapLoader.load_file(map_path("cinderhold"))
+    b = MeshBuilder(m, lights=MeshBuilder.lights_for(m))
+    b.add_light(mesh_builder.Light(31.0, 1.5, 17.0, 9.0, [1.0, 0.6, 0.3]))
+    rng = random.Random(7)
+    for _ in range(400):
+        x, y, z = rng.uniform(-4, 140), rng.uniform(0, 6), rng.uniform(-4, 140)
+        n = (rng.uniform(-1, 1), rng.uniform(-1, 1), rng.uniform(-1, 1))
+        keep = 1.0 - m.tile_at(x + n[0] * 0.05, z + n[2] * 0.05).dark
+        every = [c * keep for c in b.ambient]
+        for light in b.lights:
+            mesh_builder._shine(light, every, x, y, z, *n)
+        assert b.light_at(x, y, z, *n) == every
 
 
 class _RecordingGpu:
@@ -575,9 +598,8 @@ def test_keep_props_lift_lever_and_fire_draw():
 
 
 def test_ossuary_texture_is_built():
-    from ashen_vault.render import texture_gen
 
-    tex = texture_gen.all_textures()
+    tex = _all_textures()
     assert "ossuary" in tex and len(tex["ossuary"]) == len(tex["stone_brick"])
 
 
@@ -1022,9 +1044,8 @@ def test_a_shrine_is_a_lit_torch_that_lights_its_ground():
 
 def test_every_map_texture_is_generated():
     import ashen_vault
-    from ashen_vault.render import texture_gen
 
-    names = set(texture_gen.all_textures())
+    names = set(_all_textures())
     for map_name in (
         "ashen_cemetery",
         "harrowmere",
@@ -1824,6 +1845,19 @@ def test_sword_trails_span_each_blade():
         assert models.WEAPON_LEN[id_] >= spec.get("base", 0.13) + spec["length"], id_
 
 
+def test_each_greatsword_has_a_hilt_of_its_own():
+    """The greatswords share a length but never a look: no two pair the same guard, pommel and lugs."""
+    from ashen_vault.player.items import Items
+    from ashen_vault.render import models
+
+    great = [i for i in models.SWORDS if Items.get(i).category == "greatsword"]
+    hilts = {
+        (models.SWORDS[i].get("guard"), models.SWORDS[i].get("pommel"), models.SWORDS[i].get("lugs"))
+        for i in great
+    }
+    assert len(great) >= 3 and len(hilts) == len(great)
+
+
 def test_wrists_bend_only_so_far_through_every_swing():
     """A swing turns the forearm with the hand: the wrist never breaks far off the forearm's line,
     and the forearm still rises from below the hand."""
@@ -2373,7 +2407,7 @@ def test_the_katana_cut_sweeps_the_whole_view_and_its_thrust_keeps_the_arm_bent(
 
 
 def test_the_terracotta_tiles_and_the_stone_and_timber_wall_are_generated():
-    tex = texture_gen.all_textures()
+    tex = _all_textures()
     for name in ("clay_tile", "stone_timber"):
         assert name in tex and len(tex[name]) == 64 * 64 * 4, name
     clay = tex["clay_tile"]

@@ -719,7 +719,7 @@ def _icon_claymore(cx, cy, t, a, ready):
 
 
 def _icon_zweihander(cx, cy, t, a, ready):
-    """The longest blade, a red-wrapped ricasso above the guard and parrying hooks above that."""
+    """The longest blade, a blued guard, a red-wrapped ricasso above it and parrying horns above that."""
     g = -3
     _sword(
         cx,
@@ -733,15 +733,15 @@ def _icon_zweihander(cx, cy, t, a, ready):
         steel=(190, 192, 202),
         guard="bar",
         guard_w=4,
-        guard_rgb=(150, 136, 104),
-        wrap=(60, 50, 44),
+        guard_rgb=(110, 118, 140),
+        wrap=(40, 34, 32),
         pommel="stopper",
-        pommel_rgb=(150, 136, 104),
+        pommel_rgb=(110, 118, 140),
         start=-8,
     )
     _line(cx, cy, _diag(g, 0), _diag(g, 2), 2.5, color(160, 44, 40, a))
     hx, hy = _diag(g, 3)
-    _line(cx, cy, (hx - 2, hy - 2), (hx + 2, hy + 2), 1, color(150, 136, 104, a))
+    _line(cx, cy, (hx - 2, hy - 2), (hx + 2, hy + 2), 1, color(170, 174, 188, a))
 
 
 def _icon_vesper_moonbrand(cx, cy, t, a, ready):
@@ -1009,8 +1009,8 @@ def _icon_bearded_axe(cx, cy, t, a, ready):
 
 
 def _icon_flamberge(cx, cy, t, a, ready):
-    """A long blade rippling like a flame, a dark guard with parrying hooks and a red wrap; a heat
-    shimmer climbs its waves."""
+    """A long blade rippling like a flame, a blackened guard with gilt flame lugs and an oxblood wrap;
+    a heat shimmer climbs its waves."""
     g = -3
     root, tip = (g, -g), _diag(g, 10)
     pts = []
@@ -1025,8 +1025,9 @@ def _icon_flamberge(cx, cy, t, a, ready):
     gc = color(70, 66, 72, a)
     _line(cx, cy, (g - 3, -g - 3), (g + 3, -g + 3), 2, gc)  # the guard
     hx, hy = _diag(g, 2)
-    _dot(cx, cy, hx - 2, hy, gc)
-    _dot(cx, cy, hx, hy + 2, gc)  # parrying hooks
+    gilt = color(196, 158, 78, a)
+    _dot(cx, cy, hx - 2, hy, gilt)
+    _dot(cx, cy, hx, hy + 2, gilt)  # flame lugs
     _dot(cx, cy, g - 6, -g + 5, gc, 2, 2)  # pommel
     k = (t * 0.8) % 1
     x, y = _along(pts, k)

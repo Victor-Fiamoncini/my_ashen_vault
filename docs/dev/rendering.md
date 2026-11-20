@@ -33,8 +33,10 @@ Models, the prop bake, the first-person view, villagers, fonts and sound.
   their edge or face on +Z, straight blades their edges on +-Z and katanas theirs on -Z;
   `models.weapon` turns each a quarter (`models.edge_turn`) so the edge leads along +X, the way swings
   travel and the hand's knuckles face (`test_edges_and_heads_lead_their_blows`; the jungle's Great Iron
-  Hammer is in `HEADED`). The jungle's Flamberge is a `SWORDS` entry with `waves`, its blade a run of
-  straight segments stepped from side to side (`models._wavy_blade`). An old save holding an item since
+  Hammer is in `HEADED`). Each greatsword has a hilt of its own (`test_each_greatsword_has_a_hilt_of_its_own`):
+  the Zweihander a `rings` guard (S-curled tips, side rings), `horns` lugs and a `pear` pommel; the
+  jungle's Flamberge a `flame` guard, `flames` lugs, a `fig` pommel and `waves`, its blade thin slices
+  shifted onto a ripple with its edges laid along the ripple's slope (`models._wavy_blade`). An old save holding an item since
   taken out of the game loads with its replacement (`Items.RENAMED`, `Inventory.from_h`). A full cut's follow-through carries the arm out of the view before it comes home. Keys and relic sigils draw from
   `KEY_STYLES` / `SIGILS` (each key its own shape in `KEY_SHAPES`), in Belongings and on the ground (`models.pickup`). Enemy anatomy has helpers too: `skull`,
   `ribcage`, `hand`, `sack_hood` and `_bar` (a box between two points).

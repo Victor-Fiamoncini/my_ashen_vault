@@ -1,6 +1,7 @@
 """Original low-poly models assembled from primitives. All face +X."""
 
 import functools
+import itertools
 import math
 from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass
@@ -5805,70 +5806,44 @@ def blade_parts(
     guard="straight",
     guard_w=0.32,
     guard_rgb=BRASS,
+    trim_rgb=None,
     grip=0.22,
     grip_rgb=LEATHER,
     wrap=None,
+    ferrule=False,
     pommel="disc",
     pommel_rgb=BRASS,
     ricasso=0.0,
     ricasso_rgb=LEATHER,
+    lugs=None,
     glow=False,
     waves=0,
 ):
     """A straight sword with its grip at the origin and its blade up +Y (the blade's flat faces +-X):
-    pommel, grip (with `wrap` bands), a crossguard in one of a few `guard` styles, an optional
-    leather-wrapped `ricasso`, then a lozenge-section blade that narrows to a point, a fuller down
-    both faces and bright bevelled edges. Shared by the player's swords and the foes' (`sword_parts`).
+    pommel, grip (with `wrap` bands and, with `ferrule`, a collar halfway down it), a crossguard, an
+    optional `ricasso` (the unsharpened base of a big blade) with parrying `lugs` at its top, then a
+    lozenge-section blade that narrows to a point, a fuller down both faces and bright bevelled edges.
+    Shared by the player's swords and the foes' (`sword_parts`).
 
-    guard: "straight", "droop" (quillons bent toward the hand), "quatrefoil" (drooping, with
-    trefoil knobs), "flared" (bent up toward the blade) or "hooks" (flared, with parrying hooks above
-    the ricasso). pommel: "disc", "wheel" or "stopper". `waves` > 0 ripples the blade like a flame
-    (`_wavy_blade`), that many crests up each edge."""
+    guard: see `_guard`. pommel: see `_pommel`. lugs: see `_lugs`. `trim_rgb` (the guard's colour by
+    default) picks out the quillons' tips, the side rings, the ferrule and the lugs' flames. `waves` > 0
+    ripples the blade like a flame (`_wavy_blade`), that many crests up each edge."""
     edge = edge or _bright(steel)
     fuller = fuller or _dim(steel, 0.62)
+    trim = trim_rgb or guard_rgb
     # Grip and pommel.
     r.part("cube", 0, 0.1 - grip / 2, 0, 0.055, grip, 0.055, grip_rgb)
     if wrap:
         for i in range(max(int(grip / 0.065), 1)):
             r.part("cube", 0, 0.1 - grip + 0.035 + i * 0.065, 0, 0.062, 0.02, 0.062, wrap)
-    py = 0.1 - grip - 0.035
-    if pommel == "wheel":
-        r.part("cyl", 0, py - 0.01, 0, 0.12, 0.045, 0.12, pommel_rgb, rz=math.pi / 2)
-        r.part("cyl", 0, py - 0.01, 0, 0.05, 0.055, 0.05, _bright(pommel_rgb), rz=math.pi / 2)
-    elif pommel == "stopper":
-        r.part("sphere", 0, py, 0, 0.085, 0.08, 0.085, pommel_rgb)
-        r.part("cone", 0, py - 0.065, 0, 0.06, 0.06, 0.06, pommel_rgb, rz=math.pi)
-    else:
-        r.part("sphere", 0, py, 0, 0.09, 0.075, 0.08, pommel_rgb)
-    # Crossguard: a block and two quillons.
-    gy = 0.115
-    r.part("cube", 0, gy, 0, 0.07, 0.055, 0.09, guard_rgb)
-    half = guard_w / 2
-    bend = {"droop": 0.35, "quatrefoil": 0.3, "flared": -0.28, "hooks": -0.2}.get(guard, 0.0)
-    for side in (1, -1):
-        with r.at(0, gy, side * 0.04, rx=side * bend):
-            r.part("lozenge", 0, 0, side * half / 2, 0.05, half, 0.045, guard_rgb, rx=math.pi / 2)
-            if guard == "quatrefoil":
-                r.part("sphere", 0, 0, side * (half + 0.02), 0.07, 0.07, 0.06, guard_rgb)
-            else:
-                r.part(
-                    "wedge", 0, 0, side * (half + 0.02), 0.05, 0.05, 0.045, guard_rgb, rx=side * math.pi / 2
-                )
-    if ricasso:  # the unsharpened base of a big blade, wrapped so a second hand can choke up on it
+    if ferrule:  # a two-hander's grip swells to a collar between the hands
+        r.part("cyl", 0, 0.1 - grip / 2, 0, 0.078, 0.035, 0.078, trim)
+    _pommel(r, pommel, 0.1 - grip - 0.035, pommel_rgb, trim)
+    _guard(r, guard, guard_w, guard_rgb, trim)
+    if ricasso:
         r.part("cube", 0, base + ricasso / 2, 0, thick * 1.7, ricasso, width * 0.9, ricasso_rgb)
-        if guard == "hooks":  # parrying hooks at the top of the ricasso
-            for side in (1, -1):
-                r.part(
-                    "wedge",
-                    0,
-                    base + ricasso,
-                    side * width * 0.75,
-                    0.04,
-                    0.14,
-                    0.05,
-                    guard_rgb,
-                    rx=side * 1.0,
-                )
+        if lugs:
+            _lugs(r, lugs, base + ricasso, width, guard_rgb, trim)
     if waves:
         _wavy_blade(r, base + ricasso, length - ricasso, width, thick, steel, edge, fuller, waves)
         return
@@ -5893,27 +5868,132 @@ def blade_parts(
     r.part("cube", 0, base + ricasso + 0.03 + fl / 2, 0, thick * 1.12, fl, width * 0.2, fuller, glow=glow)
 
 
-WAVE_STEPS = 4  # segments to each crest of a flame-bladed sword's ripple
+def _pommel(r, style, y, rgb, trim):
+    """A sword's pommel hung below the grip at height `y`: "disc", "wheel", "stopper" (a ball drawn
+    to a point), "pear" (a big teardrop with a button) or "fig" (a tall bulb on a collar, a finial
+    under it)."""
+    if style == "wheel":
+        r.part("cyl", 0, y - 0.01, 0, 0.12, 0.045, 0.12, rgb, rz=math.pi / 2)
+        r.part("cyl", 0, y - 0.01, 0, 0.05, 0.055, 0.05, _bright(rgb), rz=math.pi / 2)
+    elif style == "stopper":
+        r.part("sphere", 0, y, 0, 0.085, 0.08, 0.085, rgb)
+        r.part("cone", 0, y - 0.065, 0, 0.06, 0.06, 0.06, rgb, rz=math.pi)
+    elif style == "pear":
+        r.part("sphere", 0, y - 0.03, 0, 0.11, 0.14, 0.11, rgb)
+        r.part("cone", 0, y + 0.03, 0, 0.08, 0.06, 0.08, rgb)
+        r.part("sphere", 0, y - 0.11, 0, 0.045, 0.04, 0.045, trim)
+    elif style == "fig":
+        r.part("cyl", 0, y + 0.025, 0, 0.075, 0.025, 0.075, trim)
+        r.part("sphere", 0, y - 0.03, 0, 0.085, 0.11, 0.085, rgb)
+        r.part("cone", 0, y - 0.1, 0, 0.04, 0.05, 0.04, trim, rz=math.pi)
+    else:
+        r.part("sphere", 0, y, 0, 0.09, 0.075, 0.08, rgb)
 
 
-def _wavy_blade(r, y0, length, width, thick, steel, edge, fuller, waves):
-    """A flame-bladed sword's blade from `y0` up: a run of short, straight lozenge segments, each
-    stepped sideways so the blade snakes from side to side in `waves` crests, its bright edges and
-    fuller rippling with it, narrowing toward a straight `blade` point."""
-    point = length * 0.16
+# How far each guard style bends its quillons toward the hand (negative: toward the blade).
+GUARD_BEND = {"droop": 0.35, "quatrefoil": 0.3, "flared": -0.28, "flame": -0.3}
+GUARD_Y = 0.115  # the crossguard's height above the grip's origin
+
+
+def _guard(r, style, guard_w, rgb, trim):
+    """A crossguard `guard_w` across, a block and two quillons: "straight", "droop" (bent toward the
+    hand), "quatrefoil" (drooping, with trefoil knobs), "flared" (bent up toward the blade), "flame"
+    (flared, the tips curling back down in `trim`) or "rings" (straight, the tips curled one up and one
+    down, with a ring hung on each side of the grip)."""
+    gy = GUARD_Y
+    r.part("cube", 0, gy, 0, 0.07, 0.055, 0.09, rgb)
+    half = guard_w / 2
+    for side in (1, -1):
+        with r.at(0, gy, side * 0.04, rx=side * GUARD_BEND.get(style, 0.0)):
+            r.part("lozenge", 0, 0, side * half / 2, 0.05, half, 0.045, rgb, rx=math.pi / 2)
+            if style == "quatrefoil":
+                r.part("sphere", 0, 0, side * (half + 0.02), 0.07, 0.07, 0.06, rgb)
+            elif style in ("rings", "flame"):
+                # "rings" curls its tips into an S (rx turns +-Z toward the hand by side * rx);
+                # "flame" curls both back down, toward the hand.
+                with r.at(0, 0, side * half, rx=-1.1 if style == "rings" else side * 1.2):
+                    r.part("lozenge", 0, 0, side * 0.045, 0.042, 0.09, 0.038, rgb, rx=math.pi / 2)
+                    r.part("sphere", 0, 0, side * 0.095, 0.05, 0.05, 0.05, trim)
+            else:
+                r.part("wedge", 0, 0, side * (half + 0.02), 0.05, 0.05, 0.045, rgb, rx=side * math.pi / 2)
+        if style == "rings":
+            _hoop(r, gy - 0.045, side * 0.1, 0.06, 0.026, trim)
+
+
+def _hoop(r, y, z, radius, thick, rgb, n=8):
+    """A ring of `n` bars in the blade's plane (Y-Z), centred on (0, y, z)."""
+    span = 2 * radius * math.tan(math.pi / n) * 1.15
+    for i in range(n):
+        a = i * math.tau / n
+        r.part(
+            "cube",
+            0,
+            y + radius * math.cos(a),
+            z + radius * math.sin(a),
+            thick,
+            span,
+            thick,
+            rgb,
+            rx=a + math.pi / 2,
+        )
+
+
+def _lugs(r, style, y, width, rgb, trim):
+    """Parrying lugs at the top of a ricasso (height `y`), one each side: "hooks" (a short wedge),
+    "horns" (a curved horn sweeping out and down toward the guard) or "flames" (three tongues of
+    `trim` licking up and out)."""
+    for side in (1, -1):
+        if style == "hooks":
+            r.part("wedge", 0, y, side * width * 0.75, 0.04, 0.14, 0.05, rgb, rx=side * 1.0)
+        elif style == "horns":
+            pts = [(0, y, 0.42), (0, y - 0.015, 0.95), (0, y - 0.075, 1.2), (0, y - 0.14, 1.1)]
+            pts = [(x, py, side * width * k) for x, py, k in pts]
+            for a, b in itertools.pairwise(pts):
+                _bar(r, a, b, 0.036, rgb)
+            r.part("sphere", *pts[-1], 0.045, 0.045, 0.045, trim)
+        elif style == "flames":
+            for drop, lean, length in ((0.0, 0.55, 0.13), (0.045, 0.95, 0.1), (0.09, 1.3, 0.07)):
+                by, bz = y - drop, side * width * 0.42
+                r.part(
+                    "cone",
+                    0,
+                    by + math.cos(lean) * length / 2,
+                    bz + side * math.sin(lean) * length / 2,
+                    0.04,
+                    length,
+                    0.03,
+                    trim,
+                    rx=side * lean,
+                )
+
+
+WAVE_STEPS = 4  # segments to each half-wave of a flame-bladed sword's ripple
+
+
+def _wavy_blade(r, y0, length, width, thick, steel, edge, ridge, waves):
+    """A flame-bladed sword's blade from `y0` up, snaking from side to side in `waves` full ripples that
+    ease as it narrows toward a straight `blade` point: a stack of thin slices, each shifted onto the
+    ripple, with its bright edges and central `ridge` as bars laid along the ripple's slope, so its
+    outline runs smooth."""
+    point = length * 0.14
     body = length - point
     n = waves * 2 * WAVE_STEPS
     seg = body / n
-    amp = width * 0.2
+    amp = width * 0.3
+
+    def snake(p):
+        return amp * (1 - 0.35 * p) * math.sin(p * waves * math.tau)
+
     for k in range(n):
-        z = amp * math.sin((k + 0.5) / (2 * WAVE_STEPS) * math.tau)
-        y = y0 + (k + 0.5) * seg
-        w = width * (1 - 0.22 * k / n)
-        r.part("cube", 0, y, z, thick, seg * 1.05, w * 0.82, steel)
-        for side in (1, -1):
-            r.part("cube", 0, y, z + side * w * 0.45, thick * 0.4, seg * 1.05, w * 0.1, edge)
-        if k < n - WAVE_STEPS:
-            r.part("cube", 0, y, z, thick * 1.12, seg * 1.05, w * 0.18, fuller)
+        z0, z1 = snake(k / n), snake((k + 1) / n)
+        w = width * (1 - 0.2 * (k + 0.5) / n)
+        y, z = y0 + (k + 0.5) * seg, (z0 + z1) / 2
+        r.part("cube", 0, y, z, thick, seg * 1.02, w * 0.86, steel)
+        span = math.hypot(seg, z1 - z0) * 1.06
+        with r.at(0, y, z, rx=math.atan2(z1 - z0, seg)):
+            r.part("cube", 0, 0, 0, thick * 1.2, span, w * 0.1, ridge)
+            for side in (1, -1):
+                r.part("cube", 0, 0, side * w * 0.45, thick * 0.5, span, w * 0.12, edge)
     r.part("blade", 0, y0 + body + point / 2, 0, thick, point, width * 0.78, steel)
 
 
@@ -5970,40 +6050,46 @@ SWORDS = {
         "pommel_rgb": (120, 110, 90),
         "ricasso": 0.12,
     },
-    "zweihander": {
+    "zweihander": {  # a Landsknecht's two-hander: broad, blued, ringed and horned
         "length": 2.0,
-        "width": 0.17,
+        "width": 0.19,
         "thick": 0.042,
         "base": 0.12,
-        "steel": (185, 186, 196),
-        "guard": "hooks",
-        "guard_w": 0.6,
-        "guard_rgb": (120, 110, 90),
-        "grip": 0.42,
-        "grip_rgb": (30, 26, 24),
-        "wrap": (150, 40, 36),
-        "pommel": "stopper",
-        "pommel_rgb": (120, 110, 90),
-        "ricasso": 0.26,
+        "steel": (188, 190, 200),
+        "fuller": (128, 130, 142),
+        "guard": "rings",
+        "guard_w": 0.66,
+        "guard_rgb": (82, 88, 108),
+        "trim_rgb": (164, 168, 182),
+        "grip": 0.46,
+        "grip_rgb": (28, 24, 22),
+        "ferrule": True,
+        "pommel": "pear",
+        "pommel_rgb": (82, 88, 108),
+        "ricasso": 0.3,
+        "ricasso_rgb": (126, 34, 30),
+        "lugs": "horns",
     },
-    "flamberge": {
+    "flamberge": {  # a flame-bladed sword: blackened and gilt, its ricasso bare and etched
         "length": 1.78,
-        "width": 0.14,
+        "width": 0.15,
         "thick": 0.036,
         "base": 0.12,
         "steel": (178, 180, 192),
-        "edge": (232, 232, 240),
-        "fuller": (110, 110, 122),
-        "guard": "hooks",
-        "guard_w": 0.56,
-        "guard_rgb": (62, 58, 64),
+        "edge": (236, 236, 244),
+        "fuller": (214, 214, 224),
+        "guard": "flame",
+        "guard_w": 0.5,
+        "guard_rgb": (52, 48, 54),
+        "trim_rgb": (196, 158, 78),
         "grip": 0.42,
-        "grip_rgb": (34, 28, 26),
-        "wrap": (110, 30, 30),
-        "pommel": "stopper",
-        "pommel_rgb": (62, 58, 64),
-        "ricasso": 0.22,
-        "ricasso_rgb": (70, 46, 34),
+        "grip_rgb": (86, 26, 24),
+        "wrap": (176, 140, 70),
+        "pommel": "fig",
+        "pommel_rgb": (52, 48, 54),
+        "ricasso": 0.2,
+        "ricasso_rgb": (120, 120, 132),
+        "lugs": "flames",
         "waves": 5,
     },
 }
@@ -6019,6 +6105,12 @@ def sword(r, item_id):
         r.part("cube", 0, base + 0.1, 0, 0.034, 0.06, w * 0.35, SWORD_RUST)
     elif item_id == "ashblade":  # an ember that never quite went out, near the point
         r.part("cube", 0, base + spec["length"] * 0.8, 0, 0.036, 0.05, 0.02, EMBER, glow=True)
+    elif item_id == "flamberge":  # a gilt flame etched on both faces of the bare ricasso
+        y, gilt, x = base + spec["ricasso"] * 0.45, spec["trim_rgb"], spec["thick"] * 0.86
+        for side in (1, -1):  # a tall tongue between two that lean out from its foot
+            r.part("cube", side * x, y + 0.01, 0, 0.004, 0.11, 0.012, gilt)
+            for tilt in (1, -1):
+                r.part("cube", side * x, y - 0.012, tilt * 0.018, 0.004, 0.065, 0.01, gilt, rx=-tilt * 0.45)
 
 
 # blade, edge (hamon), grip wrap, cord, segments, grip length
