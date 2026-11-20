@@ -891,6 +891,7 @@ def _draw_energy_core(view, rig, p, t):
         shielded=world.core_shielded(p) and not quenched,
         tethers=tethers,
         yaw=p.yaw,
+        scale=float(p.props.get("scale", "1")),
     )
 
 

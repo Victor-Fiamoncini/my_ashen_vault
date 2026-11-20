@@ -1,10 +1,12 @@
 """The energy core (the mortar-light) of Old Harrowmere, driven headless: it mends the golems it
 sustains while it burns, a blunt blow quenches it once its ward is down, and quenched, its golems crack
-easier. Each test swaps the map's own core, beside the fountain, for one with the props it needs."""
+easier. Each test swaps the map's own core, at the heart of the fountain's pool, for one with the props
+it needs."""
 
 import math
 
 from ashen_vault.player.items import Items
+from ashen_vault.player.player import Player
 from ashen_vault.render import mesh_builder, rig, sunken_models
 from ashen_vault.world import world as world_mod
 from ashen_vault.world.tile_map import EntitySpec, TileMap
@@ -12,20 +14,23 @@ from ashen_vault.world.world import CORE_QUENCHED_MULT, CORE_REGEN, Prop, World
 from test_old_harrowmere_world import sunken
 from test_verdant_world import foe
 
-CORE_AT = (21, 27)
+CORE_AT = (21, 28)
 
 
 def _core(world, **props):
+    """A core in place of the map's own, as big as it (`scale=`) unless `props` say otherwise."""
+    (own,) = [q for q in world.props if q.kind == "energy_core"]
     world.props = [q for q in world.props if q.kind != "energy_core"]
     x, z = TileMap.center(*CORE_AT)
-    p = Prop("energy_core", x, z, world.map[CORE_AT].floor, *CORE_AT, {"height": "1.2", **props}, "core")
+    props = {"height": "1.2", "scale": own.props["scale"], **props}
+    p = Prop("energy_core", x, z, world.map[CORE_AT].floor, *CORE_AT, props, "core")
     world.props.append(p)
     return p
 
 
 def _facing_core(flags=(), **props):
-    """You stand a tile south of the core, facing it."""
-    game, world = sunken(at=(CORE_AT[0], CORE_AT[1] + 1), flags=flags)
+    """You stand on the pool's rim south of the core, facing it."""
+    game, world = sunken(at=(CORE_AT[0], CORE_AT[1] + 2), flags=flags)
     game.player.yaw = -math.pi / 2
     return game, world, _core(world, **props)
 
@@ -105,6 +110,39 @@ def test_the_core_blocks_its_tile_hums_and_is_drawn_live():
     world.player.place(p.x + 1.5, p.z, 0.0, world.map)
     world._update_core(world_mod.CORE_HUM[2] + 0.1)
     assert "core_hum" in game.sounds
+
+
+def test_a_scaled_core_fills_its_pool_and_is_struck_from_the_rim():
+    game, world, p = _facing_core()
+    (own,) = [s for s in world.map.entities if s.kind == "energy_core"]
+    assert (own.tx, own.tz) == CORE_AT and float(own.props["scale"]) > 1.5
+    assert world_mod.core_ring(p) == 1
+    pool = {(CORE_AT[0] + dx, CORE_AT[1] + dz) for dx in (-1, 0, 1) for dz in (-1, 0, 1)}
+    assert world_mod.core_footprint(p) == pool
+    assert all(world.blocked_tile(*t) for t in pool)  # its body fills the pool: you cannot wade in
+    assert not world.blocked_tile(CORE_AT[0], CORE_AT[1] + 2)  # the rim stays clear
+    world.core_shielded = lambda p=None: False
+    world.player.place(p.x, p.z + TileMap.TILE * 1.5 + Player.RADIUS, game.player.yaw, world.map)
+    assert world.strike_core(1.0, None) == "quenched"  # pressed to the rim, even a fist reaches it
+
+
+def test_a_core_at_its_own_size_fills_only_its_tile_and_the_rim_is_out_of_reach():
+    game, world, p = _facing_core(scale="1")
+    assert world_mod.core_ring(p) == 0 and world_mod.core_footprint(p) == {CORE_AT}
+    assert world.strike_core(2.0, None) is None  # 4 m off: the blow falls short
+    world.player.place(p.x, p.z + TileMap.TILE, game.player.yaw, world.map)
+    assert world.strike_core(2.0, None) == "quenched"
+
+
+def test_a_scaled_core_draws_the_same_model_bigger_and_lights_from_its_heart():
+    small, big = _Count(), _Count()
+    sunken_models.energy_core(rig.Rig(small), 1.0, tethers=[(5.0, 0.0, 3.0)])
+    sunken_models.energy_core(rig.Rig(big), 1.0, tethers=[(5.0, 0.0, 3.0)], scale=1.7)
+    assert small.parts == big.parts and small.glows == big.glows
+    m = sunken()[1].map
+    (spec,) = [s for s in m.entities if s.kind == "energy_core"]
+    light = mesh_builder.MeshBuilder.light_for(m, spec)
+    assert light.radius > 9.0 and light.y - m[CORE_AT].floor > float(mesh_builder.LIGHT_Y["energy_core"])
 
 
 def test_the_core_lights_the_plaza_teal_until_it_is_quenched():

@@ -462,10 +462,10 @@ def test_a_rift_lance_runs_through_every_foe_in_its_path():
 def test_bellward_staggers_every_foe_about_you_and_spares_those_further():
     from ashen_vault.player.spells import Spells
 
-    _game, world = sunken(at=(20, 28))
-    close = foe(world, "stone_golem", (21, 28))
-    behind = foe(world, "sunken_sexton", (19, 29))
-    far = foe(world, "sunken_sexton", (26, 28))
+    _game, world = sunken(at=(16, 32))
+    close = foe(world, "stone_golem", (17, 32))
+    behind = foe(world, "sunken_sexton", (15, 33))
+    far = foe(world, "sunken_sexton", (22, 32))
     for e in (close, behind, far):
         e.state = "chase"
     struck = world.bell_toll(2, Spells.BELL_RADIUS)
@@ -510,8 +510,8 @@ def test_a_harpy_cannot_fly_into_a_cliff_higher_than_it_flies():
 def test_a_harpy_is_out_of_a_blades_reach_on_the_wing_and_stoops_to_strike():
     from ashen_vault.ai.enemy import MOVES
 
-    game, world = sunken(at=(20, 28))
-    harpy = foe(world, "harpy", (20, 28))
+    game, world = sunken(at=(16, 32))
+    harpy = foe(world, "harpy", (16, 32))
     world._ground(harpy)
     game.player.x, game.player.z = harpy.x - 1.0, harpy.z
     assert not world.melee_targets(2.5, cone=-1)  # over your head
@@ -560,10 +560,10 @@ def _swoop(world, harpy, target, dt=0.05):
 
 
 def test_a_harpy_lands_after_its_first_swoop_and_fights_on_foot_within_reach():
-    game, world = sunken(at=(20, 28))
-    harpy = foe(world, "harpy", (24, 28))
+    game, world = sunken(at=(16, 32))
+    harpy = foe(world, "harpy", (20, 32))
     world._ground(harpy)
-    game.player.x, game.player.z = TileMap.center(20, 28)
+    game.player.x, game.player.z = TileMap.center(16, 32)
     assert harpy.aloft and not harpy.landed
     _swoop(world, harpy, (game.player.x + 1.5, game.player.z))
     assert harpy.landed and not harpy.aloft and "dive" not in harpy.cooldowns  # it never swoops again
@@ -709,8 +709,11 @@ def test_the_third_road_runs_out_to_the_cores_shield_ward_and_teal_home():
     states = _ward_states(m, start)
     (shield,) = [s for s in _spec(m, "ward_crystal") if "shield" in s.props]
     (core,) = _spec(m, "energy_core")
-    assert (core.tx, core.tz) == (21, 27) and core.props["seal"] == terrain.FED_SET
-    assert m[core.tx, core.tz].liquid  # in the fountain's pool
+    assert (core.tx, core.tz) == (21, 28) and core.props["seal"] == terrain.FED_SET
+    pool = {(core.tx + dx, core.tz + dz) for dx in (-1, 0, 1) for dz in (-1, 0, 1)}
+    assert all(m[t].liquid for t in pool)  # at the heart of the fountain's pool...
+    (shaft,) = _spec(m, "sun_shaft")
+    assert (shaft.tx, shaft.tz) in pool  # ...under the rift
     (quay_crystal,) = [s for s in _spec(m, "ward_crystal") if s.tx >= 45]
     quay = {(quay_crystal.tx + dx, quay_crystal.tz + dz) for dx, dz in AROUND}
     assert _least(states, quay) == 1

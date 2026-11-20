@@ -48,8 +48,13 @@ How `.map` files work and what can stand on a tile.
   `test_the_under_cells_lie_down_the_gaolers_stair_and_the_wardens_lever_opens_them`. East of the roads,
   on its quay (x 45-47), the Mortar Sisters' Workshop: their ward-stone carving benches, golems and a
   sexton, a lore hint and a reward chest; `test_the_mortar_sisters_workshop_stands_east_of_the_roads`.
-  The `energy_core` (the mortar-light, `seal=c`) stands in the fountain's pool at 21,27, under the
-  rift, teal `light`s (`color=0.45,1.25,1.0`) round it.
+  The `energy_core` (the mortar-light, `seal=c`) stands at the heart of the fountain's pool at 21,28,
+  under the rift (the `sun_shaft` beside it at 21,27), teal `light`s (`color=0.45,1.25,1.0`) round it.
+  Its `scale=1.7` draws it all bigger; past its own size its body fills the tiles round its own
+  (`world.core_footprint`, here the whole pool, so you cannot wade in beside it) and a blow reaches it
+  from their edge (`World.strike_core`). Its own light is raised to its heart with `y=` and widened with
+  `light_radius=` (its `radius=` is the reach it sustains golems within);
+  `test_a_scaled_core_fills_its_pool_and_is_struck_from_the_rim`.
   `sunken_tower height=` landmarks rise out of the chasm. Bell-Harpies (`harpy`, flyers) wheel over
   the plaza and the terrace and out over the chasm. Paved in `ochre_flag`, walled in
   `cavern_rock` and `sunken_brick`; the map is drawn by a script's layout, one legend letter per height;
