@@ -1229,6 +1229,7 @@ def test_town_props_draw_and_roofs_cover_their_buildings():
         town_models.hay_wagon(r, seed)
         town_models.cargo(r, seed)
         town_models.fence(r, seed)
+        town_models.fence(r, seed, ((1, 0), (0, 1)))
         town_models.boat(r, 0.5, seed)
     town_models.hearth(r, 0.5)
     town_models.lamp_post(r, 0.5)

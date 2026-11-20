@@ -29,13 +29,19 @@ def chunk_centre(cx, cz):
 
 class PropBaker:
     """A recording GPU: every part drawn through a `Rig` on it lands, transformed and lit, in the batch
-    of the current `group` and its texture (`batches[(group, tex)]`)."""
+    of the current `group` and its texture (`batches[(group, tex)]`).
 
-    def __init__(self, tris):
+    A prop is lit with the one light `model_light` sets, unless it is `spread` (a roof, a street arch,
+    a tower: big enough for the light to change across it) and a `light_at(x, y, z)` is given: then
+    each of its parts takes the light at its own centre."""
+
+    def __init__(self, tris, light_at=None):
         self.tris = tris
         self.batches = {}
         self.group = None
+        self.spread = False
         self._light = (1.0, 1.0, 1.0)
+        self._light_at = light_at
 
     def model_light(self, rgb):
         self._light = tuple(c + MODEL_LIGHT_FLOOR for c in rgb)
@@ -48,7 +54,12 @@ class PropBaker:
         batch = self.batches.get((self.group, tex))
         if batch is None:
             batch = self.batches[(self.group, tex)] = Batch()
-        light = (GLOW_LIGHT,) * 3 if glow else self._light
+        if glow:
+            light = (GLOW_LIGHT,) * 3
+        elif self.spread and self._light_at is not None:
+            light = tuple(c + MODEL_LIGHT_FLOOR for c in self._light_at(m[3], m[7], m[11]))
+        else:
+            light = self._light
         tint = [max(0, min(255, int(c))) / 255 * BAKE_SCALE for c in rgb]
         l0, l1, l2 = light
         m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11 = m[:12]

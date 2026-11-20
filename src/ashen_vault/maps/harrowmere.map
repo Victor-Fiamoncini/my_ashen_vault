@@ -6,7 +6,7 @@ fog_range = 8 40
 model_range = 36
 sky = dusk
 torch = 4 0.55 0.5 0.45
-start = 2 29 0
+start = 2 31 0
 default = ,
 edge_top = -0.5
 open_sea = true
@@ -113,11 +113,11 @@ Rq»Liq·..-|_T___|/ssssssPPPsssssÛs]||||||00033RwwVVVwwVAAAAAA
 RqZiiä----|___T_|/sssSssssssssssss]33333300033RwõVAVwwVAAAAAA
 Rq»iÏq....|||_|||Pssssssssssssssss]]]]]]]2Ĉ2h]RwwVAVwUVAAAAAA
 Rqqqqq..../X////X/sXsssssssssssXssssssss15555]RvvVAVwwVAAAAAA
-Rü¿á..à...sssssssăssssssssssssssssăsssssĉ5555ĊvvvVAVwwVVVVVAA
-R¥,,ÂHHHHHX./à//X/sssssssssssssssssàs¶às155551vvöVAVwwVVyx¢KA
-R,ø,Å%¼¼LHÆ/Ãā#æ##ā#sss/..........ÄHæHH¡.5555§RVVVAVwwVVyyVAA
-R,,,HiiÒiH./#Liii%i#sss/..Õ.Ô.Ö..DH%iiLH......RAAAAVwõVVFyVAA
-R.,àH&imiä./#iiiili#ássX..........Hiid¾H..RRRRRAAAAVwwyyyyVAA
+R¥.á..à...sssssssăssssssssssssssssăsssssĉ5555ĊvvvVAVwwVVVVVAA
+R,,,ÂHHHHHX./à//X/sssssssssssssssssàs¶às155551vvöVAVwwVVyx¢KA
+Rü,,Å%¼¼LHÆ/Ãā#æ##ā#sss/..........ÄHæHH¡.5555§RVVVAVwwVVyyVAA
+R,¿,HiiÒiH./#Liii%i#sss/..Õ.Ô.Ö..DH%iiLH......RAAAAVwõVVFyVAA
+Rø,àH&imiä./#iiiili#ássX..........Hiid¾H..RRRRRAAAAVwwyyyyVAA
 R...H>iĎHHµ/#iÒiiii#Dss/....Ù....áH%ii¾H..RRRRRAAAAVUwyzyyVAA
 RRR.H%½H.Ï./#$iiÒiÏ#sss/..........H+Òi$H,.RRRRRAAAAVVVVVVVVAA
 RRR,«HH¤.../#ii<iiÏ#sĂsP..ÐÏ......HHHHH¤,,RRRRRAAAAAAAAAAAAAA

@@ -229,3 +229,28 @@ def test_kindling_a_fire_bakes_the_props_round_it_again():
 def _offset(chunk, p):
     cx, cz = prop_bake.chunk_centre(*chunk)
     return cx - p.x, cz - p.z
+
+
+def test_a_spread_prop_lights_each_part_where_it_stands():
+    """A roof or a street arch is too big for one light: each part takes the light at its centre."""
+    lamp_x = 4.0
+
+    def light_at(x, y, z):
+        near = max(0.0, 1.0 - abs(x - lamp_x) / 4.0)
+        return [0.2 + near] * 3
+
+    def lights(spread):
+        baker = prop_bake.PropBaker(_tris, light_at)
+        baker.group = "g"
+        baker.spread = spread
+        baker.model_light((0.3, 0.3, 0.3))
+        rig = Rig(baker)
+        rig.part("cube", 0, 0, 0, 1, 1, 1, (200, 200, 200))  # four metres from the lamp
+        rig.part("cube", 4, 0, 0, 1, 1, 1, (200, 200, 200))  # right under it
+        batch = baker.batches[("g", "white")]
+        return max(batch.light[: 36 * 3]), max(batch.light[36 * 3 :])
+
+    far, near = lights(spread=True)
+    assert near > far * 2
+    far, near = lights(spread=False)  # a small prop keeps the one light it was given
+    assert near == pytest.approx(far)

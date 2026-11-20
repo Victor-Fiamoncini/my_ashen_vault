@@ -97,6 +97,7 @@ LIGHT_COLOR = {
     "bonfire": "1.0,0.55,0.25",
     "hearth": "1.0,0.6,0.3",
     "lamp_post": "1.0,0.78,0.45",
+    "street_arch": "1.0,0.78,0.45",  # the lantern under its crown, as a lamp post's
     "grand_stair": "0.9,0.76,0.58",
     "window": "0.55,0.62,0.8",
     "barred_window": "1.0,0.5,0.2",
@@ -112,6 +113,7 @@ LIGHT_RADIUS = {
     "save_statue": "6",
     "hearth": "6",
     "lamp_post": "7",
+    "street_arch": "5",
     "grand_stair": "7",
     "window": "8",
     "barred_window": "5",
@@ -138,6 +140,8 @@ DIRS = ((1, 0), (-1, 0), (0, 1), (0, -1))
 # On a map with `[meta] roofs = true`, how far a roof stands over its ceiling at the least: the slab
 # a doorway's lintel is cut from.
 ROOF_SLAB = 0.6
+# Metres a doorway's lintel laps into the thin walls either side of it, over the seam between them.
+LINTEL_LAP = 0.06
 T = TileMap.TILE
 # Floors that shine by themselves: drawn at full brightness, and they light what is around them.
 GLOWING_FLOORS = ("lava",)
@@ -406,7 +410,10 @@ class MeshBuilder:
                 if roof is not None:
                     top = max(top, roof)
                 tex = jambs[0].wall_tex if jambs else tile.wall_tex
-                self._wall(tex, tx, tz, dx, dz, tile.ceil, top, face_out=True)
+                # Lapped into the thin jambs: their faces are cut into rows at other heights, and
+                # where the two only met edge to edge the snapped vertices opened a crack up each side.
+                lap = LINTEL_LAP if jambs else 0.0
+                self._wall(tex, tx, tz, dx, dz, tile.ceil, top, face_out=True, widen=lap)
 
     def _build_roof(self, tx, tz, tile, roof):
         """A ceilinged tile's outside, seen from the walls and stairs above it: its roof, and the
@@ -564,17 +571,19 @@ class MeshBuilder:
                 uvs = [(p[0] / T, p[2] / T) for p in pts]
                 self._quad(tex, pts, uvs, (0.0, float(up), 0.0), shade, glow=glow)
 
-    def _wall(self, tex, tx, tz, dx, dz, y0, y1, face_out=False):
-        """Vertical face on the edge of tile (tx, tz) toward (dx, dz). Faces into the tile unless face_out."""
+    def _wall(self, tex, tx, tz, dx, dz, y0, y1, face_out=False, widen=0.0):
+        """Vertical face on the edge of tile (tx, tz) toward (dx, dz). Faces into the tile unless face_out;
+        `widen` runs it on that far past the tile's corners at both ends."""
         cx = (tx + 0.5) * T
         cz = (tz + 0.5) * T
         ex = cx + dx * T / 2
         ez = cz + dz * T / 2
         # Edge endpoints run perpendicular to the direction.
-        ax = ex - abs(dz) * T / 2
-        az = ez - abs(dx) * T / 2
-        bx = ex + abs(dz) * T / 2
-        bz = ez + abs(dx) * T / 2
+        half = T / 2 + widen
+        ax = ex - abs(dz) * half
+        az = ez - abs(dx) * half
+        bx = ex + abs(dz) * half
+        bz = ez + abs(dx) * half
         normal = (float(dx), 0.0, float(dz)) if face_out else (float(-dx), 0.0, float(-dz))
         shade = 0.9 if dx == 0 else 0.78
         cols = rround(T / SEG)

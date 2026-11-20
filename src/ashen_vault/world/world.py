@@ -45,6 +45,7 @@ from ashen_vault.util import rround
 from ashen_vault.world import (
     collision,
     elements,
+    fences,
     hints,
     loot,
     ramparts,
@@ -634,6 +635,7 @@ class World:
             if s.kind == "bridge"
         }
         self._piles = {(TileMap.tile_coord(c.x), TileMap.tile_coord(c.z)) for c in self.terrain.chutes}
+        self._fences = {(e.tx, e.tz) for e in self.map.entities if e.kind == "fence"}
         # Thorn floors grow spiked plants; each one's spikes rise (0..1) when stepped in.
         self._thorns = {(tx, tz): 0.0 for tx, tz, tile in self.map.each_tile() if tile.hurt}
         self.arenas = []
@@ -679,7 +681,7 @@ class World:
         if tris is None:
             return
         self._unload_baked(chunks)
-        baker = prop_bake.PropBaker(tris)
+        baker = prop_bake.PropBaker(tris, self._bake_light)
         rig = Rig(baker)
         self._baking = True
         try:
@@ -688,6 +690,7 @@ class World:
                 if p.kind not in STATIC_PROPS or (chunks is not None and chunk not in chunks):
                     continue
                 baker.group = (chunk, p.kind in LANDMARKS)
+                baker.spread = p.kind in LANDMARKS  # big enough for the light to change across it
                 self._model_light(baker, p.x, p.y + 1.0, p.z)
                 with rig.entity(p.x, p.y, p.z, p.yaw):
                     self._draw_prop(rig, p)
@@ -695,6 +698,10 @@ class World:
             self._baking = False
         for ((chunk, landmark), tex), batch in baker.batches.items():
             self._baked.append((self.game.gpu.upload_batch(batch), tex, chunk, landmark))
+
+    def _bake_light(self, x, y, z):
+        """The light a part of a big baked prop takes at its own centre, as `_model_light` gives it."""
+        return [min(c, 1.6) for c in self.builder.model_light_at(x, y, z)]
 
     def _lit_key(self, tx, tz):
         return f"lit:{self.name}:{tx},{tz}"
@@ -3822,8 +3829,8 @@ class World:
             town_models.shelf(rig, seed)
         elif k == "hearth":
             town_models.hearth(rig, t + p.tx)
-        elif k == "fence":
-            town_models.fence(rig, seed)
+        elif k == "fence":  # its hurdles run on into the fences and walls beside it
+            town_models.fence(rig, seed, fences.fence_arms(self.map, p.tx, p.tz, self._fences))
         elif k == "lamp_post":
             town_models.lamp_post(rig, t + p.tx)
         elif k == "boat":

@@ -1396,12 +1396,24 @@ def town_statue(r, seed):
     r.part("cube", 0.8, 0.43, -0.25, 0.08, 0.06, 0.24, (180, 170, 120))  # a sheaf of wheat
 
 
-def fence(r, seed):
-    """A wattle hurdle running across the tile along Z: stout stakes driven in a row, withies woven in
-    and out between them, and a split capping rail along the top."""
+FENCE_ALONG_Z = ((0, 1), (0, -1))
+
+
+def fence(r, seed, arms=FENCE_ALONG_Z):
+    """A wattle hurdle: stout stakes driven in a row, withies woven in and out between them, and a
+    split capping rail along the top. `arms` are the sides of the tile it runs out to, as (dx, dz)
+    steps (`world.fences.fence_arms`): from a stake at the tile's middle, one half-hurdle to each."""
+    for dx, dz in arms:
+        with r.at(0, 0, 0, ry=math.atan2(dx, dz)):  # turns local +Z onto (dx, dz)
+            _half_hurdle(r, seed + dx * 3 + dz)
+    r.part("cube", 0, 0.58, 0, 0.13, 1.16, 0.13, DARK_WOOD)  # the stake at its middle
+
+
+def _half_hurdle(r, seed):
+    """Half a wattle hurdle, from the tile's middle out to its edge along +Z."""
     withy = (128, 100, 66)
-    stakes = (-0.9, -0.45, 0.0, 0.45, 0.9)
-    for z in stakes:
+    stakes = (0.0, 0.45, 0.9)
+    for z in stakes[1:]:
         r.part("cube", 0, 0.55, z, 0.1, 1.1, 0.1, DARK_WOOD)
     for row in range(6):  # each withy passes before one stake and behind the next
         y = 0.22 + row * 0.13
@@ -1410,7 +1422,7 @@ def fence(r, seed):
             z = (stakes[i] + stakes[i + 1]) / 2
             r.part("cube", side, y, z, 0.05, 0.1, 0.47, _dim(withy, 0.86 + 0.07 * ((seed + row + i) % 3)),
                    rx=0.06 * side / 0.035)  # fmt: skip
-    r.part("cube", 0, 1.06, 0, 0.12, 0.07, 2.0, _dim(WOOD, 0.85), rx=0.015 * (seed % 3))
+    r.part("cube", 0, 1.06, 0.5, 0.12, 0.07, 1.0, _dim(WOOD, 0.85), rx=0.015 * (seed % 3))
 
 
 def lamp_post(r, t):

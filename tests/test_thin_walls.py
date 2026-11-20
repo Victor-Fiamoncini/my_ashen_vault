@@ -4,7 +4,7 @@ import os
 import pytest
 
 from ashen_vault import MAP_DIR
-from ashen_vault.render.mesh_builder import MeshBuilder
+from ashen_vault.render.mesh_builder import LINTEL_LAP, MeshBuilder
 from ashen_vault.world import collision, thin_walls
 from ashen_vault.world.map_loader import MapLoader
 
@@ -152,8 +152,13 @@ def test_the_mesh_draws_the_slab_not_the_tile_edge(house):
 
 def test_the_lintel_over_the_door_rises_with_the_walls(house):
     tris = list(_triangles(MeshBuilder(house).build()))
-    lintel = [t for t in tris if all(p[2] == pytest.approx(12.0) and 8.0 <= p[0] <= 10.0 for p in t)]
+    lap = LINTEL_LAP
+    near = (8.0 - lap - 1e-6, 10.0 + lap + 1e-6)
+    lintel = [t for t in tris if all(p[2] == pytest.approx(12.0) and near[0] <= p[0] <= near[1] for p in t)]
     assert max(p[1] for t in lintel for p in t) == pytest.approx(4.0)
+    # It laps into the thin jambs either side, so no crack opens up the seams between them.
+    xs = [p[0] for t in lintel for p in t]
+    assert min(xs) == pytest.approx(8.0 - lap) and max(xs) == pytest.approx(10.0 + lap)
 
 
 def test_a_point_on_the_far_edge_of_a_tile_still_finds_its_cell(house):
