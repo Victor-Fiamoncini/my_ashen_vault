@@ -6,7 +6,7 @@ Original low-poly models assembled from primitives; like everything in `models`,
 import math
 
 from ashen_vault.ai.enemy import BURROW_TIME, BURST_TIME
-from ashen_vault.render.models import (
+from ashen_vault.render.parts import (
     PASSAGE_DARK,
     _bar,
     _dim,
@@ -20,7 +20,6 @@ from ashen_vault.render.models import (
 )
 
 RAT_FUR = (76, 74, 76)  # dark, sooty grey
-RAT_DARK = (46, 44, 46)
 RAT_PINK = (168, 128, 118)  # legs and tail, bare and pale
 RAT_CLAW = (70, 56, 48)
 RAT_EAR = (130, 84, 74)  # naked, the light showing red through
@@ -39,7 +38,6 @@ SLUDGE_SCUM = (118, 116, 56)
 SLUDGE_EYE = (220, 214, 150)
 
 DROWNED_SKIN = (124, 138, 112)  # bloated, grey-green
-DROWNED_DARK = (84, 96, 76)
 DROWNED_RAG = (62, 66, 54)
 DROWNED_HAIR = (36, 40, 30)
 WEED = (52, 74, 40)

@@ -24,7 +24,11 @@ Behaviour flags, special moves, bosses and the rules every enemy model must keep
   `split_count` of another type (the Sludge Slime's gobbets, `World.split`): the pieces don't split again,
   and as no map places them a shrine rest never brings them back;
   bosses set `dead_flag` and drop a relic (the Butcher, a mini-boss, sets `butcher_dead` but has no
-  relic: his cleaver is an entity `item=`). Any type picks special attacks from `moves` (see `MOVES` in
+  relic: his cleaver is an entity `item=`). A new special move needs an entry in `MOVES` (windup,
+  cooldown, damage) and one in `MOVE_SPECS` (a `MoveSpec`: the range it is picked from, whether it needs
+  you in sight, whether it is an up-close move, a World predicate that must allow it, and the World
+  method its blow calls or whether it fires a shot); its place in `MOVE_SPECS` is its place in the
+  random pick, so add it at the end to keep seeded fights as they were. Any type picks special attacks from `moves` (see `MOVES` in
   `ai/enemy.py`: `sweep`, `web`, `pounce`, `cinders`, `combo`, `slam`, `eruption`, `hook`, `breath`
   (a line of `Eruption`s raking toward you and past), `dive` (a swoop through where you stood), and the
   Ashen Sexton's own, all of ash: `exhale` (a cone of grave dust breathed `EXHALE_REACH` ahead, a `Gout`
@@ -106,9 +110,9 @@ Behaviour flags, special moves, bosses and the rules every enemy model must keep
   more from Pyre and keep burning. Enemies carry lingering harm in `Enemy.status` (`poison` from Venom
   Dart, `burn` from Pyre), one bite a second (`status_tick`) that never staggers.
 - An enemy type's `height` is the top of its body as it dies: the ash dissolve crumbles that span.
-  Any direct blow lights a foe red for `FLASH_TIME` (`Enemy.flashing`, `world.HIT_RED`), stagger or
-  not; a model that recolours itself when hit keys on `e.flashing` (`models.hit_tint`, its strength in
-  `HIT_TINT`), its glowing parts turn `models.HIT_GLOW`, and its reeling pose keys on `state == "hurt"`. A type's `material`
+  Any direct blow lights a foe red for `FLASH_TIME` (`Enemy.flashing`, `world_view.HIT_RED`), stagger or
+  not; a model that recolours itself when hit keys on `e.flashing` (`parts.hit_tint`, its strength in
+  `HIT_TINT`), its glowing parts turn `parts.HIT_GLOW`, and its reeling pose keys on `state == "hurt"`. A type's `material`
   (`enemy_types.MATERIALS`: flesh, bone, iron, stone, wood, ash, spirit (Vesperholm's moonlit dead, a
   glassy chime)) picks the `hit_<material>` sound a blow
   on it makes (`Enemy.hit_sound`; an iron-chest mimic rings as iron), pitched at random within
@@ -126,14 +130,14 @@ Behaviour flags, special moves, bosses and the rules every enemy model must keep
   or a floor rising above it. Swings only reach it when it comes down within `SWING_HEIGHT`
   (`World._within_swing`); spells and shots use its real height. Over your head and too close to swoop,
   it backs off to `DIVE_RANGE`. Place flyers on solid tiles: their height is reckoned from there.
-  Every model has a death pose (eased by `models.death_fall`); `tests/test_render_logic.py` checks
+  Every model has a death pose (eased by `parts.death_fall`); `tests/test_render_logic.py` checks
   that each one collapses, stays above the floor and fits its `height`, so update both together.
   Its `tall` is the top of the standing body: a spell bolt flying higher misses it (`world/shots.py`).
   Bosses must stay boss-sized in detail (at least 50 parts, 30 for armed and armoured regulars; the
   sewers' rats are the exception, kept to a few bold shapes on purpose: Mother Gnawl 25, the Cistern Rat 15) and
   look different in their second phase (`test_bosses_have_boss_level_detail`,
   `test_phase_two_changes_how_each_boss_looks`), and every glow goes out in death.
-- Foes that wield a weapon chop overhead (`models.chop_angle`) and hold it in a fist (`models.held`,
+- Foes that wield a weapon chop overhead (`parts.chop_angle`) and hold it in a fist (`parts.held`,
   `sword_parts`): give the arm an elbow (`elbow_bend`) and point the weapon with
   `aim_wrist(blade_direction, shoulder + elbow)` rather than a fixed angle, so it never folds back along
   the arm. `tests/test_render_logic.py` checks the wrist stays within 150 degrees of the forearm's line.

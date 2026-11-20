@@ -8,6 +8,7 @@ sea's batch from the cells and `World` draws it, and the strip, with `fog_range`
 import math
 from itertools import pairwise
 
+from ashen_vault.util import rround
 from ashen_vault.world.tile_map import TileMap
 
 T = TileMap.TILE
@@ -71,7 +72,7 @@ def far_cells(map_):
         reach = math.ceil((out + SIDE) / size) * size
         x0, x1 = -reach, math.ceil((width + reach) / size) * size
         for j in range(rows):
-            for i in range(round((x1 - x0) / size)):
+            for i in range(rround((x1 - x0) / size)):
                 cells.append((x0 + i * size, z + j * size, x0 + (i + 1) * size, z + (j + 1) * size))
         z += rows * size
         size = min(size * 2, LAST_CELL)

@@ -3,6 +3,7 @@
 import math
 
 from ashen_vault.render import models, rig
+from ashen_vault.render.parts import _dim
 from ashen_vault.world import villagers
 from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.world import World
@@ -56,7 +57,7 @@ def test_the_smith_s_hammer_and_billet_meet_on_the_anvil():
     hs = villagers.BUILDS[look.build][0]
     t = (villagers.SMITH_LAND + 0.05) * villagers.SMITH_BEAT  # just after the first blow lands
     parts = _draw(look, t)
-    face = next(c for _, rgb, c in parts if rgb == models._dim(models.TOOL_IRON, 1.25))
+    face = next(c for _, rgb, c in parts if rgb == _dim(models.TOOL_IRON, 1.25))
     rivet = max(i for i, (_, rgb, _) in enumerate(parts) if rgb == (60, 58, 62))
     billet = parts[rivet + 1][2]
     top, at = models.ANVIL_TOP * hs, models.ANVIL_AT * hs

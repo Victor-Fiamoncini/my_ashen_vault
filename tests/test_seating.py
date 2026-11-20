@@ -52,7 +52,7 @@ def test_every_chest_backs_onto_its_wall_and_can_still_be_opened(name):
 
 
 def test_props_wholly_behind_the_eye_are_not_drawn():
-    from ashen_vault.world.world import BEHIND_MARGIN, behind_view
+    from ashen_vault.render.world_view import BEHIND_MARGIN, behind_view
 
     assert behind_view(0.0, -(BEHIND_MARGIN + 0.1), 0.0, 1.0)
     assert not behind_view(0.0, -(BEHIND_MARGIN - 0.1), 0.0, 1.0)  # a wide model reaching past you

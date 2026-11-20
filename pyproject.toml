@@ -66,7 +66,7 @@ source = ["ashen_vault"]
 branch = true
 
 [tool.coverage.report]
-fail_under = 33      # current level; raise it as world.py, dialogue.py etc. gain tests
+fail_under = 80      # just under the current level; raise it as coverage grows
 show_missing = true
 skip_covered = true
 exclude_also = ["if __name__ == .__main__.:"]

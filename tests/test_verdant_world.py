@@ -114,11 +114,11 @@ def test_a_cold_brazier_is_kindled_by_pyre_and_stays_lit():
     game, world = jungle((15, 31), yaw=math.pi)
     brazier = prop(world, "brazier")
     assert not world.is_lit(brazier)
-    before = len(world.builder.lights)
+    before = len(world.view.builder.lights)
     assert world._interactable(brazier)  # you can look at the cold ashes
     world.pyre(magic=4, gauge=1.0)
     assert world.is_lit(brazier) and f"lit:verdant_hollow:{brazier.tx},{brazier.tz}" in game.flags
-    assert len(world.builder.lights) == before + 1  # its light is baked into the cave now
+    assert len(world.view.builder.lights) == before + 1  # its light is baked into the cave now
     assert not world.kindle(brazier)  # already burning
     assert not world._interactable(brazier)
     # On the next visit it is still alight.
@@ -335,8 +335,8 @@ def test_kindling_brightens_the_baked_mesh_as_a_full_rebake_would():
     game, world = jungle((15, 31), yaw=math.pi)
     world.kindle(prop(world, "brazier"))
     _, fresh = jungle((15, 31), flags=game.flags)
-    for tex, batch in fresh.builder.batches.items():
-        assert world.builder.batches[tex].colors == pytest.approx(batch.colors, abs=1e-6), tex
+    for tex, batch in fresh.view.builder.batches.items():
+        assert world.view.builder.batches[tex].colors == pytest.approx(batch.colors, abs=1e-6), tex
 
 
 def test_the_dead_cannot_be_poisoned():

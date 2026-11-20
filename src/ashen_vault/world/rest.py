@@ -13,7 +13,6 @@ BAYER = (
     (15, 7, 13, 5),
 )
 
-CELL = 4  # pixels per fog cell at 320x240
 COLS = 80
 ROWS = 60
 

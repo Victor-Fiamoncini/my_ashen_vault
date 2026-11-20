@@ -21,7 +21,7 @@ from ashen_vault.render.forge_models import (
     _dim_rgb,
     _slit,
 )
-from ashen_vault.render.models import EMBER, RUST, _bar, _flame
+from ashen_vault.render.parts import EMBER, RUST, _bar, _flame
 from ashen_vault.render.town_models import cart_wheel
 
 BRICK = (86, 60, 52)

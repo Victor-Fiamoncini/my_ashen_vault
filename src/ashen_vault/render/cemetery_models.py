@@ -7,7 +7,7 @@ like everything in `models`, they face +X."""
 import math
 
 from ashen_vault.ai.enemy import KNELL_GAP
-from ashen_vault.render.models import (
+from ashen_vault.render.parts import (
     BLADE_LANDED,
     BLADE_REST,
     CHOP_LANDED,
@@ -173,7 +173,7 @@ OWN_POSES = ("exhale", "ashfall", "dust_devil", "spadeful", "grasp", "knell")
 
 def sexton_arms(e, t):
     """(spade arm, free arm, spade direction, elbow, twist, crouch) for the Sexton's moves, in the
-    terms of `models._warden_arms` (which gives its plain chop). Exhale: it rears up, both arms
+    terms of `parts._warden_arms` (which gives its plain chop). Exhale: it rears up, both arms
     thrown wide, then hunches forward as the dust pours out. Ashfall: the free hand reaches back over
     its shoulder for an urn and dashes it down in front. Dust devil: the spade raised overhead and
     whirled round, then swept low. Spadeful: the spade dips low and scoops back, then flings up and
@@ -262,7 +262,6 @@ def grave_spade(r, lit, t):
 
 HUSK = (98, 95, 94)
 HUSK_CRUST = (150, 146, 140)  # pale ash caked on its shoulders and crown
-HUSK_CHAR = (54, 50, 50)  # charred grey where the ash has burned through
 HUSK_SEAM = (170, 70, 30)  # the last heat smouldering in its cracks
 RAG = (82, 74, 62)
 

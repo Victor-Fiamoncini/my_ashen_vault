@@ -9,6 +9,7 @@ from ashen_vault.util import rround
 from ashen_vault.world import sea
 from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.vault import Vault
+from ashen_vault.world.world import KINDLING
 
 
 @dataclass
@@ -133,8 +134,6 @@ WALL_LIGHTS = (
     *("torch", "shelf_fungus", "hearth", "window", "barred_window", "great_window", "rose_window"),
     "moon_window",
 )
-# Fires that can stand cold (`unlit`) until something kindles them.
-KINDLING = ("brazier", "bonfire")
 QUENCHABLE = ("energy_core",)  # lights that go out for good: `lights_for`'s `lit` says whether they burn
 DIRS = ((1, 0), (-1, 0), (0, 1), (0, -1))
 # On a map with `[meta] roofs = true`, how far a roof stands over its ceiling at the least: the slab
@@ -309,6 +308,7 @@ class MeshBuilder:
         """Light falling on a model at (x, y, z), looked up on a coarse grid and remembered: models
         are lit every frame, and the baked lights only change when a fire is kindled."""
         g = MODEL_LIGHT_GRID
+        # built-in round, not rround: the key picks the grid point sampled, and rround would move it at quarter metres
         key = (round(x / g), round(y / g), round(z / g))
         rgb = self._model_light.get(key)
         if rgb is None:

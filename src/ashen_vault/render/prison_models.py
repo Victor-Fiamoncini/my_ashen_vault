@@ -5,7 +5,7 @@ like everything in `models`, they face +X (a wall prop's wall is at -X)."""
 
 import math
 
-from ashen_vault.render.models import (
+from ashen_vault.render.parts import (
     BONE,
     DARK_IRON,
     IRON,

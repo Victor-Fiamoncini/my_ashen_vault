@@ -8,6 +8,7 @@ import pytest
 from ashen_vault.ai.enemy import Enemy
 from ashen_vault.ai.enemy_types import EnemyTypes
 from ashen_vault.player.player import Player
+from ashen_vault.render.world_view import WorldView
 from ashen_vault.world.hazards import Eruption
 from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.world import LIFT_LOCKED, World, stair_footprint
@@ -44,6 +45,9 @@ class FakeGame:
 
     def blocked(self, _block):
         pass
+
+    def world_view(self, world):
+        return WorldView(world, self.gpu)
 
 
 def prison(flags=(), at=(15, 21)):
@@ -433,7 +437,7 @@ def test_a_house_door_still_will_not_shut_on_you_in_its_doorway():
 
 
 def test_a_struck_foe_glows_red():
-    from ashen_vault.world.world import HIT_RED
+    from ashen_vault.render.world_view import HIT_RED
 
     _, world = prison()
     lights = []
@@ -442,7 +446,7 @@ def test_a_struck_foe_glows_red():
         def model_light(self, rgb):
             lights.append(tuple(rgb))
 
-    world._model_light(Gpu(), 0, 1, 0, flash=True, tint=(0.45, 1.1, 0.3))
+    world.view._model_light(Gpu(), 0, 1, 0, flash=True, tint=(0.45, 1.1, 0.3))
     assert lights == [HIT_RED]
     red, green, blue = HIT_RED
     assert red > max(green, blue) * 1.5  # red leads, without drowning the body's own look

@@ -7,7 +7,7 @@ import random
 import pytest
 
 from ashen_vault import map_path, screen
-from ashen_vault.render import models, rig, texture_gen
+from ashen_vault.render import models, parts, rig, texture_gen, weapon_models
 from ashen_vault.render.mesh_builder import MeshBuilder
 from ashen_vault.ui import tinyfont
 from ashen_vault.world.map_loader import MapLoader
@@ -218,16 +218,15 @@ def _extent(type_id, state, state_t):
 
 
 def test_death_fall_eases_from_alive_to_settled():
-    from ashen_vault.render import models
 
     e, _ = _extent("loom_mother", "idle", 5.0)
-    assert models.death_fall(e) == 0.0
+    assert parts.death_fall(e) == 0.0
     e.state, e.state_t = "dead", 0.0
-    assert models.death_fall(e) == 0.0
+    assert parts.death_fall(e) == 0.0
     e.state_t = 0.3
-    assert 0.0 < models.death_fall(e) < 1.0
+    assert 0.0 < parts.death_fall(e) < 1.0
     e.state_t = 5.0
-    assert models.death_fall(e) == 1.0
+    assert parts.death_fall(e) == 1.0
 
 
 def test_every_enemy_collapses_into_a_death_pose():
@@ -575,8 +574,8 @@ def test_keep_props_lift_lever_and_fire_draw():
     models.lift(r, 0.5, False, 60.0)  # a very tall shaft caps its chain links
     models.lift(r, 0.5, True, 6.0, "cage", ((1, 0),))
     models.lift(r, 0.5, False, 2.0, "cage", ())  # a low shaft squats the cage
-    models.realm_crest(r, (200, 180, 140))
-    models.realm_crest(r, (200, 180, 140), cy=1.0, scale=2.0)
+    parts.realm_crest(r, (200, 180, 140))
+    parts.realm_crest(r, (200, 180, 140), cy=1.0, scale=2.0)
     models.banner(r, 0.5, 2)
     models.banner(r, 0.5, 3, burnt=True)
     models.pillar(r, 3, 4.9)
@@ -824,11 +823,9 @@ def _off_forearm(wrist):
 def test_aim_wrist_points_the_weapon_and_takes_the_short_way():
     import math
 
-    from ashen_vault.render import models
-
     for direction in (-math.pi / 2, 0.0, 1.0, math.pi / 2):
         for arm in (-2.0, 0.0, 1.5, 3.4):
-            w = models.aim_wrist(direction, arm)
+            w = parts.aim_wrist(direction, arm)
             assert -math.pi <= w <= math.pi
             assert math.cos(arm + w) == pytest.approx(math.cos(direction))
             assert math.sin(arm + w) == pytest.approx(math.sin(direction))
@@ -841,17 +838,16 @@ def test_armed_foes_hold_weapons_out_from_the_fist_through_a_chop():
 
     from ashen_vault.ai.enemy import Enemy
     from ashen_vault.ai.enemy_types import EnemyTypes
-    from ashen_vault.render import models
 
     e = Enemy(EnemyTypes.get("bone_walker"), 0, 0, rng=random.Random(0))
     for state in ("idle", "chase", "windup", "attack", "recover", "hurt"):
         for t in (0.0, 0.05, 0.1, 0.2, 0.5, 2.0):
             e.state, e.state_t = state, t
-            assert _off_forearm(models.wrist_angle(e)) <= 150, (state, t)
+            assert _off_forearm(parts.wrist_angle(e)) <= 150, (state, t)
     e.state, e.state_t = "windup", 5.0
-    raised = models.chop_angle(e)
+    raised = parts.chop_angle(e)
     e.state, e.state_t = "attack", 5.0
-    assert raised > models.chop_angle(e) > 0  # down from overhead, landing in front
+    assert raised > parts.chop_angle(e) > 0  # down from overhead, landing in front
 
 
 def test_the_wardens_blade_never_folds_back_in_any_move():
@@ -859,7 +855,6 @@ def test_the_wardens_blade_never_folds_back_in_any_move():
 
     from ashen_vault.ai.enemy import COMBO_GAP, Enemy
     from ashen_vault.ai.enemy_types import EnemyTypes
-    from ashen_vault.render import models
 
     type_ = EnemyTypes.get("ashen_warden")
     for move in (None, *type_.moves, *type_.phase_moves, "kindle"):
@@ -867,8 +862,8 @@ def test_the_wardens_blade_never_folds_back_in_any_move():
             for t in (0.0, 0.1, 0.3, COMBO_GAP * 1.2, COMBO_GAP * 2.5):
                 e = Enemy(type_, 0, 0, rng=random.Random(0))
                 e.state, e.state_t, e.attack_kind = state, t, move
-                hit, _, blade, elbow, *_ = models._warden_arms(e, 1.3)
-                wrist = models.aim_wrist(blade, hit + elbow)
+                hit, _, blade, elbow, *_ = parts._warden_arms(e, 1.3)
+                wrist = parts.aim_wrist(blade, hit + elbow)
                 assert _off_forearm(wrist) <= 150, (move, state, t)
 
 
@@ -877,7 +872,7 @@ def test_the_sextons_spade_never_folds_back_in_any_move():
 
     from ashen_vault.ai.enemy import KNELL_GAP, Enemy
     from ashen_vault.ai.enemy_types import EnemyTypes
-    from ashen_vault.render import cemetery_models, models
+    from ashen_vault.render import cemetery_models
 
     type_ = EnemyTypes.get("sexton")
     for move in (None, *type_.moves, *type_.phase_moves):
@@ -886,7 +881,7 @@ def test_the_sextons_spade_never_folds_back_in_any_move():
                 e = Enemy(type_, 0, 0, rng=random.Random(0))
                 e.state, e.state_t, e.attack_kind = state, t, move
                 hit, _, blade, elbow, *_ = cemetery_models.sexton_arms(e, 1.3)
-                assert _off_forearm(models.aim_wrist(blade, hit + elbow)) <= 150, (move, state, t)
+                assert _off_forearm(parts.aim_wrist(blade, hit + elbow)) <= 150, (move, state, t)
 
 
 def test_the_sunken_sextons_staff_never_folds_back_and_it_raises_it_head_up_to_toll():
@@ -1378,7 +1373,7 @@ def test_a_raised_shield_shows_the_hand_gripping_it():
 
     for id_ in models.SHIELD_GRIPS:
         alone = Colours()
-        models.shield(rig.Rig(alone), id_)
+        weapon_models.shield(rig.Rig(alone), id_)
         p = Player(inventory=Inventory(right=None, left=id_))
         p.guarding = True
         gpu = Colours()
@@ -1399,11 +1394,11 @@ def test_edges_and_heads_lead_their_blows():
     from ashen_vault.render import models
 
     rest = (0.9, -0.33, 0.27, 0.25, 0.7, -0.55)
-    edged = [i for i in Items.ALL if Items.get(i).kind == "weapon" and models.edge_turn(i)]
-    assert set(models.HEADED) | set(models.SWORDS) | set(models.KATANAS) <= set(edged)
+    edged = [i for i in Items.ALL if Items.get(i).kind == "weapon" and weapon_models.edge_turn(i)]
+    assert set(weapon_models.HEADED) | set(weapon_models.SWORDS) | set(weapon_models.KATANAS) <= set(edged)
     for id_ in edged:
         item = Items.get(id_)
-        reach = models.WEAPON_LEN.get(id_, 1.0)
+        reach = weapon_models.WEAPON_LEN.get(id_, 1.0)
         for kind in (weapons.LIGHT, weapons.HEAVY):
             a = weapons.moveset(item)[kind]
             if a.motion in ("thrust", "stab"):
@@ -1690,7 +1685,7 @@ def test_a_burnt_banner_is_darker_and_more_ragged_than_a_clean_one():
     clean, burnt = Colours(), Colours()
     models.banner(rig.Rig(clean), 0.5, 2)
     models.banner(rig.Rig(burnt), 0.5, 2, burnt=True)
-    violet = models.REALM_VIOLET[0]
+    violet = parts.REALM_VIOLET[0]
     assert violet in clean.parts and violet not in burnt.parts  # the realm flies violet
     assert models.CHAR in burnt.parts and models.CHAR not in clean.parts
     assert burnt.glows > 0 == clean.glows  # a tip or two still smoulders
@@ -1839,20 +1834,22 @@ def test_each_hand_rides_on_its_forearm():
 
 def test_sword_trails_span_each_blade():
     """The smear of a cut reaches the point of the (now longer) blade."""
-    from ashen_vault.render import models
 
-    for id_, spec in models.SWORDS.items():
-        assert models.WEAPON_LEN[id_] >= spec.get("base", 0.13) + spec["length"], id_
+    for id_, spec in weapon_models.SWORDS.items():
+        assert weapon_models.WEAPON_LEN[id_] >= spec.get("base", 0.13) + spec["length"], id_
 
 
 def test_each_greatsword_has_a_hilt_of_its_own():
     """The greatswords share a length but never a look: no two pair the same guard, pommel and lugs."""
     from ashen_vault.player.items import Items
-    from ashen_vault.render import models
 
-    great = [i for i in models.SWORDS if Items.get(i).category == "greatsword"]
+    great = [i for i in weapon_models.SWORDS if Items.get(i).category == "greatsword"]
     hilts = {
-        (models.SWORDS[i].get("guard"), models.SWORDS[i].get("pommel"), models.SWORDS[i].get("lugs"))
+        (
+            weapon_models.SWORDS[i].get("guard"),
+            weapon_models.SWORDS[i].get("pommel"),
+            weapon_models.SWORDS[i].get("lugs"),
+        )
         for i in great
     }
     assert len(great) >= 3 and len(hilts) == len(great)
@@ -1931,7 +1928,7 @@ def test_a_thorn_shot_and_a_flying_flame_draw_a_steady_number_of_glowing_parts()
         return models.thorn_shot(r, (150, 210, 70), t)
 
     def flame(r, t):
-        return models.fireball(r, (255, 140, 50), t, trail=(-1.0, 0.0, 0.0))
+        return parts.fireball(r, (255, 140, 50), t, trail=(-1.0, 0.0, 0.0))
 
     for draw in (thorn, flame):
         sizes = {len(count(draw, t / 7)) for t in range(20)}
@@ -2033,8 +2030,8 @@ def test_a_fake_wall_shimmers_sears_crumbles_and_is_gone():
 
 
 def test_a_fake_wall_takes_the_texture_of_the_walls_beside_it():
+    from ashen_vault.render.world_view import secret_wall_tex
     from ashen_vault.world.map_loader import MapLoader
-    from ashen_vault.world.world import secret_wall_tex
 
     m = MapLoader(
         "[meta]\nname = S\nstart = 1 1 0\n\n[legend]\n# = wall tex=ash_brick\n% = wall tex=ash_rock\n"
@@ -2279,7 +2276,7 @@ def test_vesperholms_foes_moves_each_strike_their_own_pose_and_the_glaive_never_
 
     from ashen_vault.ai.enemy import COMBO_GAP, Enemy
     from ashen_vault.ai.enemy_types import EnemyTypes
-    from ashen_vault.render import models, moon_models
+    from ashen_vault.render import moon_models
 
     type_ = EnemyTypes.get("moon_duchess")
     poses = {}
@@ -2289,7 +2286,7 @@ def test_vesperholms_foes_moves_each_strike_their_own_pose_and_the_glaive_never_
                 e = Enemy(type_, 0, 0, rng=random.Random(0))
                 e.state, e.state_t, e.attack_kind = state, t, move
                 hit, _, blade, elbow, *_ = moon_models.duchess_arms(e, 1.3)
-                assert _off_forearm(models.aim_wrist(blade, hit + elbow)) <= 150, (move, state, t)
+                assert _off_forearm(parts.aim_wrist(blade, hit + elbow)) <= 150, (move, state, t)
         e = Enemy(type_, 0, 0, rng=random.Random(0))
         e.state, e.state_t, e.attack_kind = "windup", 5.0, move
         poses[move] = tuple(round(v, 2) for v in moon_models.duchess_arms(e, 0.0))

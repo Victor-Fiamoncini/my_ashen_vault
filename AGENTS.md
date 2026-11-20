@@ -67,7 +67,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | Path | Contents |
 | --- | --- |
 | `src/ashen_vault/world/`, `player/`, `ai/`, `save/` | Pure game logic. **No raylib imports here**; covered by `tests/` |
-| `src/ashen_vault/render/` | Shaders, procedural textures, mesh builder, models, the prop bake; each area's own models in a module of their own (`cemetery_models`, `town_models`, `forge_models`, `fortress_props`, `sewer_models`, `moon_models`, `sunken_models`) |
+| `src/ashen_vault/render/` | Shaders, procedural textures, mesh builder, models, the prop bake; the shared model pieces in `parts`, the weapons in `weapon_models`, a World's meshes and drawing in `world_view`, each area's own models in a module of their own (`cemetery_models`, `town_models`, `forge_models`, `fortress_props`, `sewer_models`, `moon_models`, `sunken_models`) |
 | `src/ashen_vault/ui/` | HUD, menus, dialogue boxes, fonts (`hud.py` draws them all) |
 | `src/ashen_vault/audio/synth.py` | Synthesized sound effects |
 | `src/ashen_vault/game.py` | Scenes and the main loop |
@@ -98,8 +98,10 @@ Read the one that covers what you are changing before you start:
 - Python 3.11+ syntax; ruff settings in `pyproject.toml` (line length 110, double quotes).
 - Use `util.rround` (round half away from zero) instead of built-in `round` in game math. The code was
   ported from Ruby and its numbers depend on that rounding.
-- Keep new logic in the raylib-free packages and add tests for it. `world/world.py` is pure: drive it
-  headless as `tests/test_prison_world.py` does (a `FakeGame` with a no-op GPU).
+- Keep new logic in the raylib-free packages and add tests for it. `world/world.py` is pure and imports
+  nothing from `render/`: its GPU side and all its drawing live in `render/world_view.py` (`World.view`,
+  which the game hands it through `game.world_view`). Drive it headless as `tests/test_prison_world.py`
+  does (a `FakeGame` with a no-op GPU).
 - Map grids are whitespace-sensitive: never reformat a `.map` file. Each grid character is one 2 m
   tile.
 - Internal resolution is 320x240 (`screen.py`); UI coordinates are in that space. Derive HUD positions

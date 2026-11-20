@@ -6,7 +6,7 @@ Original low-poly models assembled from primitives; like everything in `models`,
 import math
 
 from ashen_vault.ai.enemy import STATUE_BURST
-from ashen_vault.render.models import (
+from ashen_vault.render.parts import (
     BLADE_REST,
     ELBOW_REST,
     EMBER,
@@ -47,7 +47,6 @@ SEXTON_SKIN = (170, 168, 146)  # waterlogged, grey-green
 BELL_BRONZE = (150, 116, 60)
 HAFT = (82, 62, 42)
 GOLD_LIGHT = (255, 214, 140)  # the daylight in the rift overhead
-GOLD_MIST = (190, 150, 90)
 CORE_TEAL = (70, 235, 190)  # the mortar-light that animates the giants
 CORE_HEART = (200, 255, 235)  # its white-teal heart
 CORE_DEAD = (112, 118, 114)  # the core's crystal once quenched: grey, cracked, cold
@@ -671,7 +670,7 @@ def core_ring(r, k, radius):
 # --- Old Harrowmere's dressing --------------------------------------------------------------------
 
 
-# --- weapons (grip at the origin, pointing up +Y, like models.weapon) ---------------------------
+# --- weapons (grip at the origin, pointing up +Y, like weapon_models.weapon) ---------------------------
 
 SIGNAL_STONE = (150, 136, 112)  # the brazier-hammer's pale stone haft
 CAGE_IRON = (52, 48, 46)

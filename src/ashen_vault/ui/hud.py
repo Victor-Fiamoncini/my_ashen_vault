@@ -23,7 +23,6 @@ TEXT = color(220, 210, 180)
 DIM = color(140, 130, 110)
 SHADOW = color(0, 0, 0, 200)
 PANEL = color(10, 8, 6, 210)
-BORDER = color(120, 100, 70)
 HIGHLIGHT_RGB = (255, 220, 140)
 HIGHLIGHT = color(*HIGHLIGHT_RGB)
 
@@ -95,10 +94,6 @@ def tiny(s, x, y, col=TEXT):
         pr.draw_rectangle(rx + 1, ry + 1, rw, rh, SHADOW)
     for rx, ry, rw, rh in runs:
         pr.draw_rectangle(rx, ry, rw, rh, col)
-
-
-def tiny_centered(s, cx, y, col=TEXT):
-    tiny(s, cx - tinyfont.width(s) // 2, y, col)
 
 
 def micro_centered(s, cx, y, col=TEXT):

@@ -5,7 +5,7 @@ import itertools
 import math
 
 from ashen_vault.ai.enemy import COMBO_GAP, STATUE_BURST
-from ashen_vault.render.models import (
+from ashen_vault.render.parts import (
     EMBER,
     GOUT_COOL,
     GOUT_HOT,
@@ -588,7 +588,7 @@ def _blend(a, b, k):
 BONE_WHITE = (220, 212, 190)
 
 
-# --- weapons (grip at the origin, pointing up +Y, like models.weapon) ---------------------------
+# --- weapons (grip at the origin, pointing up +Y, like weapon_models.weapon) ---------------------------
 
 
 def stormbrand(r):
@@ -812,7 +812,7 @@ def flame_jet(r, glow, reach, length, t):
     roaring gout runs out `reach` of its `length` metres."""
     r.part("cube", -0.9, 0.5, 0, 0.2, 0.5, 0.6, DARK)  # the wall plate
     r.part("cyl", -0.7, 0.5, 0, 0.2, 0.4, 0.2, BLACK_IRON, rz=math.pi / 2)  # the nozzle
-    mouth = (255, round(60 + 170 * glow), 30) if glow > 0 else (30, 26, 24)
+    mouth = (255, rround(60 + 170 * glow), 30) if glow > 0 else (30, 26, 24)
     r.part("cyl", -0.48, 0.5, 0, 0.14, 0.04, 0.14, mouth, rz=math.pi / 2, glow=glow > 0)
     if reach <= 0:
         if glow > 0:  # sputtering embers as it builds

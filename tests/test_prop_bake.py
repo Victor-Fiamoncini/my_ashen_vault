@@ -72,7 +72,7 @@ def _record(world, p, t):
     gpu = _Recorder()
     rig = Rig(gpu)
     with rig.entity(p.x, p.y, p.z, p.yaw):
-        world._draw_prop(rig, p)
+        world.view._draw_prop(rig, p)
     return gpu.parts
 
 
@@ -190,40 +190,40 @@ def _baking_world(name, flags=()):
 
 def test_static_props_are_baked_by_chunk_and_culled_like_props():
     world, game = _baking_world("harrowmere")
-    assert world._baked
-    chunks = {chunk for _, _, chunk, _ in world._baked}
+    assert world.view._baked
+    chunks = {chunk for _, _, chunk, _ in world.view._baked}
     statics = {prop_bake.chunk_of(p.tx, p.tz) for p in world.props if p.kind in STATIC_PROPS}
     assert chunks == statics
     p = next(p for p in world.props if p.kind == "tree")
     world.player.x, world.player.z = p.x, p.z
     fx, fz = world.player.forward()
-    world._draw_baked(game.gpu, 200.0, 30.0, fx, fz)
+    world.view._draw_baked(game.gpu, 200.0, 30.0, fx, fz)
     drawn = len(game.gpu.drawn)
-    assert 0 < drawn < len(world._baked)  # the far side of the town is left out
+    assert 0 < drawn < len(world.view._baked)  # the far side of the town is left out
     game.gpu.drawn = []
-    world._draw_baked(game.gpu, 200.0, 0.0, fx, fz)
+    world.view._draw_baked(game.gpu, 200.0, 0.0, fx, fz)
     drawn = {id(mesh) for mesh, _ in game.gpu.drawn}
-    for mesh, _, chunk, landmark in world._baked:
+    for mesh, _, chunk, landmark in world.view._baked:
         if id(mesh) in drawn and not landmark:  # with no range, only the chunk you stand in is drawn
             assert chunk == prop_bake.chunk_of(p.tx, p.tz)
-    assert any(landmark for mesh, _, _, landmark in world._baked if id(mesh) in drawn)  # and the skyline
+    assert any(landmark for mesh, _, _, landmark in world.view._baked if id(mesh) in drawn)  # and the skyline
 
 
 def test_a_headless_world_without_primitives_bakes_nothing():
-    assert World(FakeGame(), "harrowmere")._baked == []
+    assert World(FakeGame(), "harrowmere").view._baked == []
 
 
 def test_kindling_a_fire_bakes_the_props_round_it_again():
     world, game = _baking_world("verdant_hollow")
     cold = next(p for p in world.props if p.kind in world_mod.KINDLING and not world.is_lit(p))
-    near = [b for b in world._baked if math.hypot(*_offset(b[2], cold)) < 30]
-    before = {id(b[0]) for b in world._baked}
+    near = [b for b in world.view._baked if math.hypot(*_offset(b[2], cold)) < 30]
+    before = {id(b[0]) for b in world.view._baked}
     uploads = game.gpu.uploads
     assert world.kindle(cold)
     assert near
     assert game.gpu.uploads > uploads
-    assert {id(b[0]) for b in world._baked} != before
-    assert len({(b[1], b[2], b[3]) for b in world._baked}) == len(world._baked)  # none left twice
+    assert {id(b[0]) for b in world.view._baked} != before
+    assert len({(b[1], b[2], b[3]) for b in world.view._baked}) == len(world.view._baked)  # none left twice
 
 
 def _offset(chunk, p):

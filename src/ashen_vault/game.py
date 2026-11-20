@@ -20,6 +20,7 @@ from ashen_vault.render import models
 from ashen_vault.render.gpu import Gpu
 from ashen_vault.render.rig import Rig
 from ashen_vault.render.sky import SkyPass
+from ashen_vault.render.world_view import WorldView
 from ashen_vault.save import slots
 from ashen_vault.save.save_system import SaveSystem
 from ashen_vault.save.settings import Settings
@@ -174,10 +175,32 @@ class Game:
         self._remnant_news = []  # what became of your gold, told when you wake
         self._ending_t = 0.0
         self._dark_k = None  # how dark it looks where you stand (eased, so cave mouths don't pop)
+        # Each scene's update, and whether it takes the frame's dt.
+        self._scene_updates = {
+            "title": (self._update_title, False),
+            "slots": (self._update_slots, False),
+            "play": (self._update_play, True),
+            "dialogue": (self._update_dialogue, False),
+            "menu": (self._update_menu, True),
+            "shop": (self._update_shop, False),
+            "repair": (self._update_repair, False),
+            "shrine": (self._update_shrine, False),
+            "storage": (self._update_storage, False),
+            "pause": (self._update_pause, False),
+            "rest": (self._update_rest, True),
+            "controls": (self._update_controls, False),
+            "options": (self._update_options, False),
+            "dead": (self._update_dead, True),
+            "ending": (self._update_ending, False),
+        }
         if self.opts.get("map"):
             self.new_game(self.opts["map"], at=self.opts.get("at"))
         else:
             self.show_title()
+
+    def world_view(self, world):
+        """The GPU side of a World (`World.view`): its meshes, baked props and drawing."""
+        return WorldView(world, self.gpu)
 
     # --- main loop ----------------------------------------------------------
 
@@ -245,25 +268,13 @@ class Game:
         if self.world:
             target = self.world.dark_here()
             self._dark_k = target if self._dark_k is None else darkness.ease_toward(self._dark_k, target, dt)
-        handler = {
-            "title": lambda: self._update_title(),
-            "slots": lambda: self._update_slots(),
-            "play": lambda: self._update_play(dt),
-            "dialogue": lambda: self._update_dialogue(),
-            "menu": lambda: self._update_menu(dt),
-            "shop": lambda: self._update_shop(),
-            "repair": lambda: self._update_repair(),
-            "shrine": lambda: self._update_shrine(),
-            "storage": lambda: self._update_storage(),
-            "pause": lambda: self._update_pause(),
-            "rest": lambda: self._update_rest(dt),
-            "controls": lambda: self._update_controls(),
-            "options": lambda: self._update_options(),
-            "dead": lambda: self._update_dead(dt),
-            "ending": lambda: self._update_ending(),
-        }.get(self.scene)
+        handler = self._scene_updates.get(self.scene)
         if handler:
-            handler()
+            update, wants_dt = handler
+            if wants_dt:
+                update(dt)
+            else:
+                update()
         self._announce_wear()
         if self.scene in PLAYED_SCENES:
             self.player.play_time += dt
@@ -1844,7 +1855,7 @@ class Game:
         dark = self._dark_k or 0.0
         veil = self.player.veil_t > 0
         self._sky.draw(meta, (cam.x, cam.y, cam.z), fog, fog_range, dark, veil, self._time)
-        self.world.draw(self._rig, gpu, fog_range, dark, veil)
+        self.world.view.draw(self._rig, gpu, fog_range, dark, veil)
         pr.end_mode_3d()
 
         if self.scene not in ("play", "dialogue", "menu", "shop", "rest", "shrine") or not self.player.alive:
@@ -1857,7 +1868,7 @@ class Game:
         rl.rlClearScreenBuffers()
         rl.rlColorMask(True, True, True, True)
         gpu.set_float("isModel", 1.0)
-        gpu.model_light([min(c + 0.15, 1.4) for c in self.world.builder.light_at(p.x, p.eye_y, p.z)])
+        gpu.model_light([min(c + 0.15, 1.4) for c in self.world.view.builder.light_at(p.x, p.eye_y, p.z)])
         bob = math.sin(p.bob_t) * 0.02
         models.weapon_view(self._rig, p, bob, self._time, self._view_blends)
         pr.end_mode_3d()

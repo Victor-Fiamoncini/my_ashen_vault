@@ -11,7 +11,7 @@ ghostliness is the PS1's: pale glowing parts and stippled `mist` that the shader
 
 import math
 
-from ashen_vault.render.models import (
+from ashen_vault.render.parts import (
     BLADE_LANDED,
     BLADE_RAISED,
     BLADE_REST,
@@ -56,7 +56,6 @@ MOON_SILK = (222, 226, 240)
 SILK_SHADE = (168, 176, 204)
 SHROUD = (92, 104, 140)  # a wraith's robe, dusk-blue
 HOUND = (206, 212, 224)
-HOUND_DARK = (146, 154, 172)
 MOONSTONE = (150, 158, 176)
 MOONSTONE_DARK = (108, 116, 136)
 DUCHESS_SKIN = (226, 228, 238)  # porcelain, untouched by any sun
@@ -395,7 +394,7 @@ def veiled_knight(r, e, t):
 
 def duchess_arms(e, t):
     """(glaive arm, free arm, blade direction, elbow, twist, glow) for the Duchess's moves, angles as
-    in `models._warden_arms`. Sweep: the glaive held out flat as she turns all the way round. Combo:
+    in `parts._warden_arms`. Sweep: the glaive held out flat as she turns all the way round. Combo:
     three cuts, alternating. Frost lance: her free hand thrust out, frost in it. Moonbeam: both arms
     raised to the moon. Moonfall: the glaive raised straight up to it. Blink: her arms drawn in to her
     as she fades. Kindle (her rage): arms flung wide."""

@@ -1,5 +1,6 @@
 import math
 import random
+from dataclasses import dataclass
 
 DEATH_TIME = 2.4  # seconds a body takes to burn down to ash
 BOSS_DEATH_TIME = 4.5
@@ -148,6 +149,82 @@ ASH_RISE = 3.0  # seconds, the first time you meet it
 ASH_RISE_AGAIN = 1.5  # seconds, when you come back through its fog
 STATUE_RISE = 2.2
 STATUE_BURST = 0.55  # share of a statue's rise at which its stone skin bursts off
+
+
+@dataclass(frozen=True)
+class MoveSpec:
+    """When a boss may pick a special move, and what its blow does when it lands.
+
+    It is picked only with you between `lo` and `hi` metres away (`lo_reach` / `hi_reach` add its
+    type's reach to them), in its sight if `sight`, and, last of all, if the World's `allow` predicate
+    (a method name, given the enemy) agrees. A `close` move is one of the up-close specials: when
+    nothing else is on offer it is chosen only half the time, so the plain blow stays in the mix.
+    When the blow lands it calls the World's `lands` method with the enemy, or `World.enemy_fire`
+    (enemy, move) for a move that `fires`. Moves with a routine of their own (`_pounce`, `_combo`,
+    `_dive`, `_knell`, `_blink`, `_burrow`) or a conditional blow (`slam`, `hook`, `sweep`) are run
+    in `Enemy._attack`; a move that is never picked (`picked=False`) is begun elsewhere."""
+
+    lo: float = 0.0
+    hi: float = math.inf
+    lo_reach: bool = False
+    hi_reach: bool = False
+    sight: bool = False
+    close: bool = False
+    allow: str | None = None
+    picked: bool = True
+    lands: str | None = None
+    fires: bool = False
+
+    def fits(self, enemy, world, dist, seen):
+        """Whether you stand where the move can be picked (the World's `allow` asked only then)."""
+        reach = enemy.type.reach
+        lo = self.lo + reach if self.lo_reach else self.lo
+        hi = self.hi + reach if self.hi_reach else self.hi
+        if not lo <= dist <= hi or (self.sight and not seen):
+            return False
+        return self.allow is None or getattr(world, self.allow)(enemy)
+
+
+# Every special move, in the order `Enemy._pick_move` weighs them (the order of its random choice).
+MOVE_SPECS = {
+    "sweep": MoveSpec(hi=SWEEP_REACH * 0.8, hi_reach=True, close=True),
+    "web": MoveSpec(lo=1.0, lo_reach=True, hi=12, sight=True, fires=True),
+    "pounce": MoveSpec(lo=4.5, hi=11, sight=True),
+    "cinders": MoveSpec(lo=3.5, hi=14, sight=True, fires=True),
+    "combo": MoveSpec(hi=0.3, hi_reach=True, close=True),
+    "slam": MoveSpec(hi=SLAM_RADIUS * 0.75, close=True),
+    "eruption": MoveSpec(lo=2.5, hi=12, sight=True, lands="eruption"),
+    "hook": MoveSpec(lo=HOOK_RANGE[0], hi=HOOK_RANGE[1], sight=True),
+    "breath": MoveSpec(lo=BREATH_RANGE[0], hi=BREATH_RANGE[1], sight=True, lands="breath"),
+    "dive": MoveSpec(lo=DIVE_RANGE[0], hi=DIVE_RANGE[1], sight=True),
+    "spadeful": MoveSpec(lo=SPADEFUL_RANGE[0], hi=SPADEFUL_RANGE[1], sight=True, fires=True),
+    "grasp": MoveSpec(lo=GRASP_RANGE[0], hi=GRASP_RANGE[1], sight=True, lands="grasp"),
+    "exhale": MoveSpec(hi=EXHALE_REACH * 0.8, sight=True, close=True, lands="exhale"),
+    "ashfall": MoveSpec(hi=ASHFALL_RADIUS * 0.8, close=True, lands="ashfall"),
+    "dust_devil": MoveSpec(lo=DEVIL_RANGE[0], hi=DEVIL_RANGE[1], sight=True, lands="dust_devils"),
+    "fireball": MoveSpec(lo=FIREBALL_RANGE[0], hi=FIREBALL_RANGE[1], sight=True, fires=True),
+    "bile": MoveSpec(lo=BILE_RANGE[0], hi=BILE_RANGE[1], sight=True, fires=True),
+    "engulf": MoveSpec(lo=ENGULF_RANGE[0], hi=ENGULF_RANGE[1], sight=True),
+    "shed": MoveSpec(hi=SHED_RANGE, allow="can_shed", lands="shed"),
+    "burrow": MoveSpec(lo=BURROW_RANGE[0], hi=BURROW_RANGE[1]),
+    "squeal": MoveSpec(hi=SQUEAL_RADIUS * 0.8, close=True, lands="squeal"),
+    "frost_lance": MoveSpec(lo=FROST_LANCE_RANGE[0], hi=FROST_LANCE_RANGE[1], sight=True, fires=True),
+    "blink": MoveSpec(lo=BLINK_RANGE[0], hi=BLINK_RANGE[1], sight=True),
+    "moonbeam": MoveSpec(lo=MOONBEAM_RANGE[0], hi=MOONBEAM_RANGE[1], sight=True, lands="moonbeam"),
+    "moonfall": MoveSpec(hi=MOONFALL_RANGE, lands="moonfall"),
+    "slab_smash": MoveSpec(lo=SLAB_SMASH_RANGE[0], hi=SLAB_SMASH_RANGE[1], lands="slab_smash"),
+    "core_beam": MoveSpec(lo=BREATH_RANGE[0], hi=BREATH_RANGE[1], sight=True, lands="core_beam"),
+    "shard_rain": MoveSpec(hi=SHARD_RAIN_RANGE, sight=True, lands="shard_rain"),
+    "core_nova": MoveSpec(hi=CORE_NOVA_RANGE, lands="core_nova"),
+    "toll": MoveSpec(lo=TOLL_RANGE[0], hi=TOLL_RANGE[1], sight=True, allow="can_toll", lands="toll"),
+    "quake": MoveSpec(hi=QUAKE_RANGE, lands="quake"),
+    "hurl": MoveSpec(lo=HURL_RANGE[0], hi=HURL_RANGE[1], sight=True, fires=True),
+    "knell": MoveSpec(hi=KNELL_RANGE),
+    # Never picked here: the brood or the rage at half HP (`_should_turn`), the lash in `_chase`.
+    "summon": MoveSpec(picked=False),
+    "kindle": MoveSpec(picked=False, lands="boss_rage"),
+    "tail_lash": MoveSpec(picked=False, lands="tail_lash"),
+}
 
 
 # Seconds a move holds its attack pose before recovering (a plain blow: 0.2).
@@ -614,80 +691,16 @@ class Enemy:
         busy = getattr(world, "twin_busy", None)
         if busy and busy(self):
             return None  # its twin is mid-move: it waits its turn
-        reach = self.type.reach
-        options = []
-        if "sweep" in ready and dist <= reach + SWEEP_REACH * 0.8:
-            options.append("sweep")
         seen = world.can_see(self.x, self.z, world.player_x, world.player_z)
-        if "web" in ready and seen and reach + 1.0 <= dist <= 12:
-            options.append("web")
-        if "pounce" in ready and seen and 4.5 <= dist <= 11:
-            options.append("pounce")
-        if "cinders" in ready and seen and 3.5 <= dist <= 14:
-            options.append("cinders")
-        if "combo" in ready and dist <= reach + 0.3:
-            options.append("combo")
-        if "slam" in ready and dist <= SLAM_RADIUS * 0.75:
-            options.append("slam")
-        if "eruption" in ready and seen and 2.5 <= dist <= 12:
-            options.append("eruption")
-        if "hook" in ready and seen and HOOK_RANGE[0] <= dist <= HOOK_RANGE[1]:
-            options.append("hook")
-        if "breath" in ready and seen and BREATH_RANGE[0] <= dist <= BREATH_RANGE[1]:
-            options.append("breath")
-        if "dive" in ready and seen and DIVE_RANGE[0] <= dist <= DIVE_RANGE[1]:
-            options.append("dive")
-        if "spadeful" in ready and seen and SPADEFUL_RANGE[0] <= dist <= SPADEFUL_RANGE[1]:
-            options.append("spadeful")
-        if "grasp" in ready and seen and GRASP_RANGE[0] <= dist <= GRASP_RANGE[1]:
-            options.append("grasp")
-        if "exhale" in ready and seen and dist <= EXHALE_REACH * 0.8:
-            options.append("exhale")
-        if "ashfall" in ready and dist <= ASHFALL_RADIUS * 0.8:
-            options.append("ashfall")
-        if "dust_devil" in ready and seen and DEVIL_RANGE[0] <= dist <= DEVIL_RANGE[1]:
-            options.append("dust_devil")
-        if "fireball" in ready and seen and FIREBALL_RANGE[0] <= dist <= FIREBALL_RANGE[1]:
-            options.append("fireball")
-        if "bile" in ready and seen and BILE_RANGE[0] <= dist <= BILE_RANGE[1]:
-            options.append("bile")
-        if "engulf" in ready and seen and ENGULF_RANGE[0] <= dist <= ENGULF_RANGE[1]:
-            options.append("engulf")
-        if "shed" in ready and dist <= SHED_RANGE and world.can_shed(self):
-            options.append("shed")
-        if "burrow" in ready and BURROW_RANGE[0] <= dist <= BURROW_RANGE[1]:
-            options.append("burrow")
-        if "squeal" in ready and dist <= SQUEAL_RADIUS * 0.8:
-            options.append("squeal")
-        if "frost_lance" in ready and seen and FROST_LANCE_RANGE[0] <= dist <= FROST_LANCE_RANGE[1]:
-            options.append("frost_lance")
-        if "blink" in ready and seen and BLINK_RANGE[0] <= dist <= BLINK_RANGE[1]:
-            options.append("blink")
-        if "moonbeam" in ready and seen and MOONBEAM_RANGE[0] <= dist <= MOONBEAM_RANGE[1]:
-            options.append("moonbeam")
-        if "moonfall" in ready and dist <= MOONFALL_RANGE:
-            options.append("moonfall")
-        if "slab_smash" in ready and SLAB_SMASH_RANGE[0] <= dist <= SLAB_SMASH_RANGE[1]:
-            options.append("slab_smash")
-        if "core_beam" in ready and seen and BREATH_RANGE[0] <= dist <= BREATH_RANGE[1]:
-            options.append("core_beam")
-        if "shard_rain" in ready and seen and dist <= SHARD_RAIN_RANGE:
-            options.append("shard_rain")
-        if "core_nova" in ready and dist <= CORE_NOVA_RANGE:
-            options.append("core_nova")
-        if "toll" in ready and seen and TOLL_RANGE[0] <= dist <= TOLL_RANGE[1] and world.can_toll(self):
-            options.append("toll")
-        if "quake" in ready and dist <= QUAKE_RANGE:
-            options.append("quake")
-        if "hurl" in ready and seen and HURL_RANGE[0] <= dist <= HURL_RANGE[1]:
-            options.append("hurl")
-        if "knell" in ready and dist <= KNELL_RANGE:
-            options.append("knell")
+        options = [
+            m
+            for m, spec in MOVE_SPECS.items()
+            if spec.picked and m in ready and spec.fits(self, world, dist, seen)
+        ]
         if not options:
             return None
         # Up close a special is only sometimes chosen, so the plain blow stays in the mix.
-        close = {"sweep", "combo", "slam", "exhale", "ashfall", "squeal"}
-        if set(options) <= close and self._rng.random() < 0.5:
+        if all(MOVE_SPECS[m].close for m in options) and self._rng.random() < 0.5:
             for m in options:
                 self.cooldowns[m] = 1.0
             return None
@@ -733,56 +746,23 @@ class Enemy:
             return self._burrow(world, dt)
         if not self._struck and self.state_t >= self.type.impact:  # a heavy swing follows through first
             self._struck = True
-            if kind in ("shot", "web", "cinders", "spadeful", "fireball", "bile", "frost_lance", "hurl"):
+            spec = MOVE_SPECS.get(kind)
+            if kind == "shot" or (spec and spec.fires):
                 world.enemy_fire(self, kind)
             elif kind == "summon":
                 world.summon(self, self.type.brood, 2)
-            elif kind == "kindle":
-                world.boss_rage(self)
             elif kind == "slam":
                 world.slam(self)
                 if dist <= SLAM_RADIUS:
                     world.enemy_strike(self, MOVES["slam"][2])
-            elif kind == "eruption":
-                world.eruption(self)
-            elif kind == "breath":
-                world.breath(self)
-            elif kind == "grasp":
-                world.grasp(self)
-            elif kind == "exhale":
-                world.exhale(self)
-            elif kind == "ashfall":
-                world.ashfall(self)
-            elif kind == "dust_devil":
-                world.dust_devils(self)
-            elif kind == "tail_lash":
-                world.tail_lash(self)
-            elif kind == "squeal":
-                world.squeal(self)
-            elif kind == "shed":
-                world.shed(self)
-            elif kind == "moonbeam":
-                world.moonbeam(self)
-            elif kind == "moonfall":
-                world.moonfall(self)
-            elif kind == "toll":
-                world.toll(self)
-            elif kind == "quake":
-                world.quake(self)
-            elif kind == "slab_smash":
-                world.slab_smash(self)
-            elif kind == "core_beam":
-                world.core_beam(self)
-            elif kind == "shard_rain":
-                world.shard_rain(self)
-            elif kind == "core_nova":
-                world.core_nova(self)
             elif kind == "hook":
                 if dist <= HOOK_RANGE[1] + 0.5 and self._facing(world.player_x, world.player_z):
                     world.hook(self, MOVES["hook"][2], HOOK_PULL)
             elif kind == "sweep":
                 if dist <= self.type.reach + SWEEP_REACH:
                     world.enemy_strike(self, MOVES["sweep"][2])
+            elif spec and spec.lands:
+                getattr(world, spec.lands)(self)
             elif dist <= self._strike_reach() + 0.3 and self._facing(world.player_x, world.player_z):
                 world.enemy_strike(self)
         if self.state_t >= ATTACK_TIMES.get(kind, 0.2) + self.type.impact:

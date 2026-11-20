@@ -8,24 +8,20 @@ moored boat, the smith's bellows and grindstone). Pure part lists drawn through 
 import itertools
 import math
 
-from ashen_vault.render.models import (
+from ashen_vault.render.models import garment, gauntlet
+from ashen_vault.render.parts import (
     IRON,
     REALM_VIOLET,
-    SWORDS,
     WHITE,
     _arch_top,
     _bar,
     _dim,
     _flame,
     _pointed_arch,
-    _weapon,
     _wheel,
-    garment,
-    gauntlet,
-    katana,
     realm_crest,
-    shield,
 )
+from ashen_vault.render.weapon_models import SWORDS, _weapon, katana, shield
 from ashen_vault.util import rround
 from ashen_vault.world.tile_map import TileMap
 

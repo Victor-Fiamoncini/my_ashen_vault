@@ -1065,3 +1065,13 @@ def test_an_idle_foe_answers_the_bell():
     assert walker_.state == "chase"
     walker_.alert()
     assert walker_.state == "chase"
+
+
+def test_every_move_has_a_spec_and_every_world_call_a_name():
+    """Each move in MOVES has its MoveSpec (when it is picked, what its blow calls), and nothing more."""
+    from ashen_vault.ai.enemy import MOVE_SPECS, MOVES
+
+    assert set(MOVE_SPECS) == set(MOVES)
+    for move, spec in MOVE_SPECS.items():
+        assert spec.lo <= spec.hi, move
+        assert not (spec.lands and spec.fires), move  # a blow either calls the world or fires a shot

@@ -90,7 +90,7 @@ def test_lava_floors_shine_and_light_their_shores_only():
     gorge = TileMap.center(10, 45)
     assert all(math.hypot(light.x - gorge[0], light.z - gorge[1]) > 3 for light in lava)
     # Lava ignores the dark: its floor is drawn at full brightness however dim its tile.
-    colors = world.builder.batches["lava"].colors
+    colors = world.view.builder.batches["lava"].colors
     assert min(colors) >= 0.99
 
 

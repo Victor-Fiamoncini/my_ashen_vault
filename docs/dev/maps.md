@@ -141,7 +141,7 @@ How `.map` files work and what can stand on a tile.
   the first at you).
   `[meta]` may set `model_range`: metres beyond which small models stop being drawn, short of the fog's
   end, on a map that sees far, and `indoor_range` a shorter one while you stand under a ceiling (the far
-  rooms are walled off). Props wholly behind the eye are never drawn (`world.behind_view`).
+  rooms are walled off). Props wholly behind the eye are never drawn (`world_view.behind_view`).
   A wall standing behind a lower one (a curtain wall behind its cliff, a tower behind its parapet) is
   built where it rises above it (`MeshBuilder._exposed_walls`), so a tall wall can back a low one.
   `[meta] roofs = true` (the Cinderhold uses it) closes a map seen from above: every ceilinged tile
@@ -172,7 +172,7 @@ How `.map` files work and what can stand on a tile.
   fed) states: three turns to the court (never needing the teal road), one to the Mortar Sisters' quay,
   two to the shield ward, three home to the core with its shield down.
   A `waterfall width= [top=] [foot=]` (a landmark) pours from a broken lip down to `foot` over its
-  floor: without `top=` it spills from just under the vault (`World._fall_top`); `foot` below 0 plunges
+  floor: without `top=` it spills from just under the vault (`WorldView._fall_top`); `foot` below 0 plunges
   on without a pool (over the chasm), otherwise it lands in a churned pool with spray and mist. Its
   sheet runs along local X: `yaw=90` turns it to run along z.
   A wall tile may set `dress=rampart` (Harrowmere's great walls): carved bays along its open faces
@@ -214,7 +214,7 @@ How `.map` files work and what can stand on a tile.
   newels with lanterns at its head (it is a light) and urns at its foot. `nave_runner` (`length=`
   tiles toward -X, `ends=head,foot` for its fringes) is laid in stretches, one to a bake chunk.
   `lever model=wood` is the jungle's wooden lever.
-  Every `banner`, in every map, is the realm's violet (`models.REALM_VIOLET`) and carries its crest (`models.realm_crest`: a lone watchtower dark
+  Every `banner`, in every map, is the realm's violet (`parts.REALM_VIOLET`) and carries its crest (`parts.realm_crest`: a lone watchtower dark
   against a sun half sunk below the sea, in a heater shield); the town flies it on `banner_pole`s and
   carves it in `crest_plaque`s, and `through=` draws one crest that shows on both faces of a cloth or
   a block.
@@ -231,7 +231,7 @@ How `.map` files work and what can stand on a tile.
   `chest model=iron` is the Cinderhold's iron chest (`models.chest` style), and `mimic model=iron` hides as
   one (`Enemy.look`); the wooden chests also come `model=worn` (weathered, roped shut), `banded` (dark wood
   strapped in iron) and `coffer` (a small brass-cornered strongbox), every style a key of `models.CHEST_SHELLS`. Opened, every chest is hollow (`models._chest_body`): a bottom and plank walls lined in darker wood, a batten round the inside of its rim and a crumpled cloth on its floor, its bands and ropes running only round the outside (`models._belt`), and battens or straps under its lid (`models._lid_inside`); shut, its body stays one block (`test_an_open_chest_is_hollow_with_a_bottom`). An exit's `model=` draws its way through (`road_gate` for both ends of the north road (each stands out in the open before its wall, never sunk between rock; `style=forge` is a sooty variant), `well`, `gaol_grate` (Harrowmere's barred pit, flush with its plaza; like the `well` it fills its tile, so you take it with interact, and it casts no light, so a `light` stands beside it), `cave_mouth`, `keep_door`, `cemetery_gate`, `sewer_grate`, `sewer_ladder`, `vesper_gate` (Vesperholm's, both ends: shut, its
-  three sockets dark; open, they shine and moonlight pours through), `chapel_door` (the Vigil Chapel's, both ends: oak leaves strapped in silver under a moonstone arch, a moon rosette over it), else a `rope`, hung from a beam just under its tile's ceiling, so it climbs a tall shaft, with the daylit mouth of the well above it there); each is a landmark of some detail (`test_every_way_between_maps_is_built_in_detail`), and one set against a wall shows black passage through it (`models.PASSAGE_DARK`), never the wall, so the way on stays unseen; a cold `light` hangs over the cemetery's gate on both sides, and a warm one before the north road's Cinderhold end, so their stone shows. An `exit` with `boss=<dead_flag>` is a way on to a boss on another map: the compass
+  three sockets dark; open, they shine and moonlight pours through), `chapel_door` (the Vigil Chapel's, both ends: oak leaves strapped in silver under a moonstone arch, a moon rosette over it), else a `rope`, hung from a beam just under its tile's ceiling, so it climbs a tall shaft, with the daylit mouth of the well above it there); each is a landmark of some detail (`test_every_way_between_maps_is_built_in_detail`), and one set against a wall shows black passage through it (`parts.PASSAGE_DARK`), never the wall, so the way on stays unseen; a cold `light` hangs over the cemetery's gate on both sides, and a warm one before the north road's Cinderhold end, so their stone shows. An `exit` with `boss=<dead_flag>` is a way on to a boss on another map: the compass
   points at it while that boss lives (`World.boss_target`). `exit requires=<flag> shut="..."` stays shut
   (saying `shut=`) until that flag is set (`World.exit_open`), and `exit oneway` never leads back: going
   through records the journey on the far side at once, so you wake by its shrines, and sets `left:<map>`
@@ -244,7 +244,7 @@ How `.map` files work and what can stand on a tile.
   Smashed, one is broken at once (`open_t` 1: its loot, its tile and the save), while its pieces fly out
   over `BREAK_TIME` (`Prop.break_t` 0 to 1; 1 for one loaded broken) to lie as its wreck
   (`models._flung`, `_break_dust`); a `secret_wall`
-  takes the texture of the real walls beside it (`world.secret_wall_tex`), a shade duller, with a faint
+  takes the texture of the real walls beside it (`world_view.secret_wall_tex`), a shade duller, with a faint
   shimmer climbing it now and then and pale motes on its faces within `SHIMMER_NEAR`; struck, ember
   cracks sear it to ash and it crumbles top-down into falling ash and embers over about 1.4 s
   (`models.secret_wall`), letting you through at once (`model=vines top=6` matches the jungle's vine walls; `model=web` is a sheet of
@@ -256,7 +256,7 @@ How `.map` files work and what can stand on a tile.
   through freely and you cross with interact: you walk through it slowly (`World.fog_walk`, `FOG_WALK_SPEED`), never jump. Each arena must stay closed behind its one door
   (`tests/test_arena.py`). `door from=n|s|e|w` is barred on that side: it
   only opens from there. `door model=iron` is the Cinderhold's riveted iron door, set in a stone frame
-  that rises to the passage's ceiling (`world.DOOR_FRAME_SKY` under the open sky).
+  that rises to the passage's ceiling (`world_view.DOOR_FRAME_SKY` under the open sky).
   An `npc` may set `reach=` (metres): how far away it can be spoken to, through a cell's bars. After placing props in `abandoned_prison.map`, run `tests/test_world.py`: its reachability test fails if
   anything cuts off a chest, door, lever, exit, altar or the iron maiden, or if a locked lift is
   needed to get anywhere (shortcuts must stay optional). `verdant_hollow.map` has its
