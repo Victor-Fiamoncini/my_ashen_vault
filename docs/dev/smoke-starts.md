@@ -76,7 +76,10 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   (break the gallery's false wall and step in, the hammer lighting the dark), `--at=7,9,90 --flags
   secret_wall:old_harrowmere:4,9` (down its corridor of cells), `--at=7,10,180 --flags
   secret_wall:old_harrowmere:4,9 --script "wait:0.5 interact"` (Aubel through his bars; add
-  `lever:oubliette` to free them all, and `--at=7,12,180` for Ysolde's shop).
+  `lever:oubliette` to free them all, and `--at=7,12,180` for Ysolde's shop). The roads of light:
+  `--at=31,31,-30` (the gold road out from the plaza to the first island), `--at=36,29,-90 --script
+  "wait:0.3 attack"` (strike the first island's crystal: the gold road fades, the pale one wakes);
+  `--flags ward:old_harrowmere` starts with the pale road standing.
 - Vesperholm (`vesperholm`) lies behind the Vesper Gate in Harrowmere's north wall, at the head of the
   cathedral steps; it always stands open: `--map harrowmere --at=22,15,-90` (from the foot of the steps,
   the gate straight ahead up the porch), `--map harrowmere --at=22,2,-90 --script "wait:0.3 interact"`

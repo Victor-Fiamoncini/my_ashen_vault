@@ -192,6 +192,7 @@ WOODEN_LIFT_MAPS = ("verdant_hollow",)  # where the lifts' call plates are the j
 
 # Props that fill their whole tile: nothing walks or flies through them.
 BLOCKING_PROPS = (
+    "ward_crystal",
     "well",
     "save_statue",
     "npc",
@@ -588,6 +589,7 @@ class World:
         self.blocker = self.blocked_tile
         self.terrain = terrain.Terrain(self.map)
         self.vault = vault.Vault.of(self.map)  # the cavern's roof, or None
+        self.terrain.set_wards(self.ward_set, at_once=True)
         for p in self.terrain.platforms:
             if p.lever and f"lever:{p.lever}" in game.flags:
                 p.locked = False
@@ -2703,6 +2705,42 @@ class World:
         self.player.inventory.gold += FROG_GOLD
         return FROG_GOLD
 
+    @property
+    def ward_key(self):
+        """The save flag that holds this map's ward decks on their second set."""
+        return f"ward:{self.name}"
+
+    @property
+    def ward_set(self):
+        """Which set of ward decks stands: "a", or "b" once a crystal has swapped them."""
+        return terrain.WARD_SETS[1] if self.ward_key in self.flags else terrain.WARD_SETS[0]
+
+    def strike_wards(self, reach, cone=0.6):
+        """A swing that reaches a ward crystal swaps the ward decks: the set that stood fades, the other
+        wakes, and the save remembers which. Struck twice in one swing, it still swaps once. Returns
+        whether it rang."""
+        player = self.player
+        fx, fz = player.forward()
+        for p in self.props:
+            if p.kind != "ward_crystal":
+                continue
+            dx, dz = p.x - player.x, p.z - player.z
+            d = math.hypot(dx, dz) or 1e-6
+            if d <= reach + TileMap.TILE / 2 and (cone < 0 or (dx * fx + dz * fz) / d > min(cone, 0.5)):
+                self.toggle_wards()
+                return True
+        return False
+
+    def toggle_wards(self):
+        if self.ward_key in self.flags:
+            self.flags.discard(self.ward_key)
+        else:
+            self.flags.add(self.ward_key)
+        self.terrain.set_wards(self.ward_set)
+        self.game.sfx("bell", 0.9)
+        self.game.sfx("spell", 0.5)
+        self.game.message("The ward-stone rings. One road of light fades; the other wakes.")
+
     def pull_lever(self, p):
         self.open_prop(p)
         self.flags.add(f"lever:{p.props.get('id')}")
@@ -2837,6 +2875,8 @@ class World:
                     models.ledge(rig, pl.creaking, int(pl.x * 3 + pl.z * 7))
                 elif pl.kind == "boards":
                     models.boards(rig, pl.creaking, broken=not pl.afloat)
+                elif pl.kind == "ward":
+                    sunken_models.ward_deck(rig, self._time + pl.x * 0.1, pl.lowered, pl.ward)
                 elif pl.kind == "bridge":
                     hinge = self._bridge_hinge.get((TileMap.tile_coord(pl.x), TileMap.tile_coord(pl.z)), 0.0)
                     with rig.at(0, 0, 0, ry=hinge):
@@ -3333,6 +3373,8 @@ class World:
                 vault.rift_of(p),
                 math.radians(float(p.props.get("rift_yaw", "0"))),
             )
+        elif k == "ward_crystal":
+            sunken_models.ward_crystal(rig, t + p.tx, self.ward_set)
         elif k == "waterfall":
             sunken_models.waterfall(
                 rig,

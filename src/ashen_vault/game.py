@@ -743,6 +743,7 @@ class Game:
         a = p.attack
         for prop in self.world.strike_props(weapon.reach * a.reach, a.cone):
             self._break(prop)
+        self.world.strike_wards(weapon.reach * a.reach, a.cone)
         targets = self._strike(weapon, a)
         if targets:
             p.land_hit(targets[0])

@@ -10,7 +10,7 @@ from ashen_vault.util import rround
 from ashen_vault.world import collision
 from ashen_vault.world.tile_map import TileMap
 
-PLATFORM_KINDS = ("raft", "plank", "ledge", "boards", "lift", "bridge")
+PLATFORM_KINDS = ("raft", "plank", "ledge", "boards", "lift", "bridge", "ward")
 TERRAIN_KINDS = (*PLATFORM_KINDS, "log_chute", "spore_pod")
 HALF = 0.95  # half the side of a platform's square deck, in metres
 GRACE = 0.15  # how far past the deck's edge you still count as standing on it
@@ -27,6 +27,8 @@ FALL_FRAC = 0.15  # share of max HP a fall into the river costs
 FALL_SAFE = 1.8  # metres you can drop without getting hurt
 FALL_PER_M = 15  # HP per metre dropped past FALL_SAFE
 FALL_LETHAL = 8.0  # metres: a drop this far kills you outright
+WARD_FADE = 0.8  # seconds a ward deck takes to wake or fade (it bears weight only once fully woken)
+WARD_SETS = ("a", "b")
 PLUNGE_TIME = 1.2  # seconds you fall into a chasm before the fall kills you
 DROP_TIME_MAX = 6.0  # a lethal drop off an edge lasts until you hit the bottom; no drop is longer
 DROWN_TIME = 1.6  # seconds deep water takes to drag you under for good
@@ -146,6 +148,11 @@ class Platform:
     # (dx, dz) sides that open onto a landing.
     model: str = ""
     doors: tuple = ()
+    # A ward deck (`ward set=a|b`, Old Harrowmere's roads of light): of its two sets only the `active`
+    # one stands; striking a ward crystal swaps them (`Terrain.set_wards`). It fades in and out through
+    # `lowered`, and like a drawbridge bears weight only when it is all the way in.
+    ward: str | None = None
+    active: bool = True
 
     @property
     def afloat(self):
@@ -197,6 +204,8 @@ class Platform:
             event = self._lift(dt, plate)
         elif self.kind == "bridge":
             event = self._lower(dt)
+        elif self.kind == "ward":
+            self._fade(dt)
         else:
             self._rot(dt, loaded)
         self.dx = self.x - ox
@@ -260,6 +269,14 @@ class Platform:
             return None
         self.lowered = min(self.lowered + dt / BRIDGE_DROP, 1.0)
         return "bridge_down" if self.lowered >= 1.0 else None
+
+    def _fade(self, dt):
+        """A ward deck wakes while its set is active and fades while it is not."""
+        step = dt / WARD_FADE
+        if self.active:
+            self.lowered = min(self.lowered + step, 1.0)
+        else:
+            self.lowered = max(self.lowered - step, 0.0)
 
     def _drift(self, dt):
         """Ferries back and forth between its two landings, pausing at each."""
@@ -460,6 +477,11 @@ def build_platforms(map_):
             p.lever = spec.props.get("lever")
             p.locked = p.lever is not None
             p.lowered = 0.0 if p.locked else 1.0
+        elif spec.kind == "ward":
+            p.ward = spec.props.get("set", "a")
+            assert p.ward in WARD_SETS, p.ward
+            p.active = p.ward == WARD_SETS[0]
+            p.lowered = 1.0 if p.active else 0.0
         elif spec.kind == "raft":
             tx, tz = _coords(spec.props.get("to"), spec.tx, spec.tz)
             p.bx, p.bz = TileMap.center(tx, tz)
@@ -541,6 +563,15 @@ class Terrain:
         self.refused = []  # fastened lifts whose far call plate was stepped on this frame
         self.plunge = None  # seconds into a fall down a chasm, which no one lives through
         self._vy = 0.0  # how fast you plunge
+
+    def set_wards(self, active, at_once=False):
+        """Wakes the ward decks of set `active` and fades the others (all at once on loading)."""
+        for p in self.platforms:
+            if p.kind != "ward":
+                continue
+            p.active = p.ward == active
+            if at_once:
+                p.lowered = 1.0 if p.active else 0.0
 
     @property
     def logs(self):

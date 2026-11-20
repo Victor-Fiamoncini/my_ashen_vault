@@ -27,8 +27,9 @@ How `.map` files work and what can stand on a tile.
   Aqueduct (-16), the Colonnade, the Grand Stair down to the Drowned Plaza (-20) under the curtain of
   daylight from a great rift in the vault (`sun_shaft height= width= rift=36,7 rift_yaw=90` over its
   fountain, with warm `light`s at its foot; `waterfall`s pour from fissures under the vault past the
-  plaza and the Bell Tower into the chasm), and the Keystone's Foundation Court (-22) behind two `door boss=keystone_dead` (the front one
-  off the plaza's stair, the rear one out to the lift room; one arena, like Mother Gnawl's nest). The
+  plaza and the Bell Tower into the chasm), and the Keystone's Foundation Court (-22) behind two
+  `door boss=keystone_dead` (the front one at the end of the roads of light, ward decks over the chasm
+  east of the plaza, below; the rear one out to the lift room; one arena, like Mother Gnawl's nest). The
   shortcut: a locked lift from the lift room 22 m up to the dark gallery cut through the rock from the
   landing. A false wall in that gallery opens on the Bell-keepers' Oubliette (h 0, under its own
   `ceil`, lined in `sunken_brick`): a corridor of barred cells (`gate lever=oubliette`) holding Aubel,
@@ -136,6 +137,13 @@ How `.map` files work and what can stand on a tile.
   `test_old_harrowmeres_vault_hangs_clear_of_everything_below_it`. The shaft's `rift=<length>,<width>`
   (metres) and `rift_yaw=` (degrees from +z) widen the crack into a long rift; the shaft's haze then
   hangs as a curtain along it (`sunken_models.sun_shaft`).
+  Ward decks (`ward set=a|b deck=<h>`, a platform kind; Old Harrowmere's roads of light) stand over a
+  chasm one set at a time: striking any `ward_crystal` (a blocking prop, struck like a breakable,
+  `World.strike_wards`) swaps the sets, saved as the `ward:<map>` flag. A deck fades in and out over
+  `terrain.WARD_FADE` and, like a drawbridge, bears weight only when fully in, so swapping the road you
+  stand on drops you. Keep a crystal on every island and on both shores, so either set standing leaves
+  one within reach; `test_the_roads_of_light_take_three_swaps_to_cross_and_never_strand_you` searches
+  the (tile, standing set) states.
   A `waterfall width= [top=] [foot=]` (a landmark) pours from a broken lip down to `foot` over its
   floor: without `top=` it spills from just under the vault (`World._fall_top`); `foot` below 0 plunges
   on without a pool (over the chasm), otherwise it lands in a churned pool with spray and mist. Its

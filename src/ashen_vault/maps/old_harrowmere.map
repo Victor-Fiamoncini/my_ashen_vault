@@ -19,8 +19,9 @@ vault_tex = cavern_rock
 // runs out to the Bell Tower, its stair winding down round the tower's core to the Aqueduct, which
 // carries you west to the Colonnade. From there the Grand Stair goes down to the Drowned Plaza, lit by
 // the curtain of daylight that falls from a great rift in the cavern's vault far overhead, falls of
-// water pouring from the vault's fissures past it into the chasm. Below the plaza
-// the Keystone, the giant the first city was raised on, lies in its Foundation Court; behind it a lift
+// water pouring from the vault's fissures past it into the chasm. Below the plaza, across the masons'
+// two roads of light (only one standing at a time; a ward crystal swaps them), the Keystone, the giant
+// the first city was raised on, lies in its Foundation Court; behind it a lift
 // climbs the old gallery's shaft back up to the landing; a false wall in that gallery hides the
 // Bell-keepers' Oubliette. Stone Golems stand like statues until you come
 // close, and the Sunken Sextons ring their bells to wake them. Over it all hangs the vault of the cavern,
@@ -119,15 +120,15 @@ $ = floor tex=ochre_flag h=-13.5 side=sunken_brick dark=0.12
 ###g######eeeeeeeeeeeeeeeeeeúeeee____________###
 ###J######eeÄeúeeeeeeOeeeeÂeeeÄee_Ô__________###
 ###g######eeeeeeÂeeejjjeeeeeeeeee____________###
-###g######eÇeeeeeeOejNjeOeeeeeeúe____________###
-###g####óòeeeeeeeeeejjjeeeeeeeeee____________###
-###g######ÓeeeeeeeeeeOeeeeeeeeeee____________###
-###g######eeÄeeeeeÉeeeeeeeÁeeeÄee_Õ_______S__###
-###g######eeÂeeeeeeeeeeeeúeeeeÂee____________###
-###g######ÏeeeeeeeeeeeeeÇeeeeeeeÓ____________###
-###g######___________|_______________________###
-###g######___________(_____Ù_________________###
-###g######___________)_______________________###
+###g######eÇeeeeeeOejNjeOeeeeeeúü___ü___ü____###
+###g####óòeeeeeeeeeejjjeeeeeeeeeeýýýeýýýe____###
+###g######ÓeeeeeeeeeeOeeeeeeeeeeÚ___þ___þ____###
+###g######eeÄeeeeeÉeeeeeeeÁeeeÄee_Õ_þ___þ_S__###
+###g######eeÂeeeeeeeeeeeeúeeeeÂee___þ___þ____###
+###g######ÏeeeeeeeeeeeeeÇeeeeeeeÓ__üeýýýeü___###
+###g######__________________________ý________###
+###g######___________(|||||þþþþþþþþþeü_______###
+###g######___________)__ÿ_____Ù______________###
 ###g######{{{{{{{{{{{n{{{{{{{{{{################
 ###gggJg####{{{{{{{{{Ë{{{{{{{{{{################
 #######Ì####{HfffffffffffffffffH################
@@ -195,6 +196,16 @@ Z = sunken_sexton on=d
 Ó = urn on=e
 // Bell-Harpies wheel over the plaza and the terrace, out over the chasm and back.
 ú = harpy on=e
+// The roads of light: the masons' two sets of ward decks over the chasm east of the plaza, only one set
+// standing at a time. Striking any ward crystal swaps them. From the plaza a gold road leads out to the
+// first island; island to island they alternate, and the last pale road runs back west to the ledge
+// before the Keystone's great door. Every island and both shores keep a crystal, so you can always
+// wake the road you need from where you stand.
+ü = ward_crystal on=e
+ÿ = ward_crystal on=|
+ý = ward set=a deck=-20 on=_
+þ = ward set=b deck=-20 on=_
+Ú = hint text="Two roads of light, and only one may stand.|Strike a ward-stone to wake the other road. Never from the road itself." on=e
 û = harpy on=c
 // The Bell-keepers' Oubliette, behind a false wall in the gallery: a corridor of barred cells where the
 // old city's gaolers locked away those who knew too much, and the gaoler's hall at its end, whose lever

@@ -693,6 +693,63 @@ def rift_lance(r, rgb, t):
                _dim(GOLD_LIGHT, 1 - 0.6 * u), glow=True)  # fmt: skip
 
 
+# --- the roads of light --------------------------------------------------------------------------
+
+# The two sets of ward decks and the crystals that swap them: set "a" burns gold like the rift's
+# daylight, set "b" pale blue like the water falling past it.
+WARD_RGB = {"a": (255, 200, 110), "b": (140, 200, 255)}
+WARD_STONE = (110, 100, 90)
+
+
+def ward_deck(r, t, k, ward):
+    """A span of one of the masons' roads of light over the chasm: a slab of translucent light set in a
+    frame of rune-bars, a shimmer running across it. `k` (0..1) is how far it has woken: it grows in
+    from its frame and fades back into it, and only the frame's runes glow while it sleeps."""
+    rgb = WARD_RGB[ward]
+    for side in (-1, 1):  # the frame's rune-bars along its two edges, always faintly there
+        r.part("cube", 0, -0.05, side * 0.9, 1.9, 0.06, 0.08, _dim(rgb, 0.35 + 0.45 * k), glow=True)
+        for i in range(3):
+            r.part(
+                "cube",
+                (i - 1) * 0.6,
+                -0.02,
+                side * 0.9,
+                0.12,
+                0.05,
+                0.12,
+                _dim(rgb, 0.5 + 0.5 * k),
+                glow=True,
+            )
+    if k <= 0.02:
+        return
+    shimmer = 0.85 + 0.15 * math.sin(t * 3.0)
+    r.part("cube", 0, -0.06, 0, 1.9 * k, 0.08, 1.8 * k, _dim(rgb, 0.7 * shimmer), tex="mist", glow=True)
+    r.part("cube", 0, -0.04, 0, 1.6 * k, 0.04, 0.12, _dim(rgb, shimmer), glow=True)  # the road's spine
+    u = (t * 0.5) % 1.0
+    r.part("cube", (u - 0.5) * 1.8 * k, -0.02, 0, 0.1, 0.04, 1.6 * k, (255, 250, 236), glow=True)  # a ripple
+
+
+def ward_crystal(r, t, active):
+    """A ward-stone: a squat pedestal of old masonry carved with the masons' marks, and on it a tall
+    crystal turning slowly, burning the colour of the road that stands (`active`), a ring of motes
+    round it."""
+    rgb = WARD_RGB[active]
+    r.part("cube", 0, 0.35, 0, 0.9, 0.7, 0.9, WARD_STONE)  # the pedestal
+    r.part("cube", 0, 0.74, 0, 1.0, 0.08, 1.0, _dim(WARD_STONE, 1.15))  # its cap
+    for i in range(4):  # the masons' marks on its faces
+        a = i * math.pi / 2
+        r.part("cube", math.cos(a) * 0.46, 0.38, math.sin(a) * 0.46, 0.04, 0.3, 0.04, _dim(rgb, 0.6),
+               glow=True, ry=a)  # fmt: skip
+    pulse = 0.8 + 0.2 * math.sin(t * 2.4)
+    with r.at(0, 1.35, 0, ry=t * 0.6):
+        r.part("lozenge", 0, 0, 0, 0.36, 1.1, 0.36, _dim(rgb, pulse), glow=True)
+        r.part("lozenge", 0, 0, 0, 0.18, 0.8, 0.18, (255, 252, 240), glow=True)  # its white heart
+    for i in range(5):  # motes circling it
+        a = t * 1.2 + i * math.tau / 5
+        r.part("cube", math.cos(a) * 0.5, 1.2 + 0.3 * math.sin(t * 2 + i), math.sin(a) * 0.5, 0.05, 0.05, 0.05,
+               rgb, glow=True)  # fmt: skip
+
+
 WATER_SHEET = (150, 178, 196)
 WATER_DEEP = (84, 112, 132)
 FOAM = (226, 236, 240)
@@ -716,7 +773,9 @@ def waterfall(r, t, top=12.0, width=3.0, foot=0.0):
         u = (t * 0.55 + i / 6) % 1.0
         y = top - drop * u * u
         w = width * (0.6 + 0.35 * ((i * 5) % 3) / 2)
-        r.part("cube", (i % 3 - 1) * width * 0.15, y, 0.12, w, 0.25 + 1.2 * u, 0.12, FOAM, glow=True)
+        r.part(
+            "cube", (i % 3 - 1) * width * 0.15, y, 0.12, w, 0.15 + 0.6 * u, 0.08, _dim(FOAM, 0.8), glow=True
+        )
     for i in range(4):  # threads of white down its face
         x = ((i + 0.5) / 4 - 0.5) * width * 0.8
         r.part("cube", x, mid, 0.19, 0.08, drop * 0.95, 0.04, _dim(FOAM, 0.85 + 0.1 * math.sin(t * 2 + i)))

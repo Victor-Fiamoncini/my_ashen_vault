@@ -63,7 +63,8 @@ def test_old_harrowmere_is_solvable_from_the_breach_down_to_the_keystone():
         assert start in _reachable(m, tile, open_tiles=everything, shortcuts=True), tile
     (lift,) = [p for p in terrain.build_platforms(m) if p.kind == "lift"]
     assert lift.locked and lift.high - lift.low >= 20  # a long ride, from the city's foot to its top
-    assert m[keystone.tx, keystone.tz].floor <= min(m[x, z].floor for x, z in before)  # the deepest
+    ground = [m[x, z].floor for x, z in before if not m[x, z].chasm]  # not the roads of light over it
+    assert m[keystone.tx, keystone.tz].floor <= min(ground)  # the deepest
 
 
 def _beside(tile):
@@ -344,9 +345,9 @@ def _fly(world, e, seconds, dt=0.05):
 
 def test_a_harpy_wings_out_over_the_chasm_at_its_cruising_height():
     _game, world = sunken(at=(20, 28))
-    harpy = foe(world, "harpy", (31, 28))  # on the plaza's east edge
+    harpy = foe(world, "harpy", (31, 27))  # on the plaza's east edge
     world._ground(harpy)
-    floor = world.map[31, 28].floor
+    floor = world.map[31, 27].floor
     assert world.enemy_y(harpy) == floor + harpy.type.fly
     for _ in range(40):  # out east, over the chasm
         world.move_enemy(harpy, 0.1, 0.0)
@@ -396,7 +397,7 @@ def test_a_harpy_is_out_of_a_blades_reach_on_the_wing_and_stoops_to_strike():
 def test_a_slain_harpy_falls_into_the_chasm_or_onto_the_floor_below_it():
     _game, world = sunken(at=(20, 28))
     over_plaza = foe(world, "harpy", (24, 28))
-    over_chasm = foe(world, "harpy", (32, 28))
+    over_chasm = foe(world, "harpy", (32, 27))
     world._ground(over_plaza)
     world._ground(over_chasm)
     for _ in range(25):
@@ -416,3 +417,110 @@ def test_harpies_wheel_over_the_plaza_and_the_terrace():
     for s in harpies:
         tile = m[s.tx, s.tz]
         assert tile.walkable and not tile.chasm  # they reckon their height from solid ground
+
+
+# --- the roads of light ----------------------------------------------------------------------------
+
+AROUND = [(dx, dz) for dx in (-1, 0, 1) for dz in (-1, 0, 1) if dx or dz]
+
+
+def _ward_states(m, start, ward="a"):
+    """Breadth-first over (tile, standing set): from where you stand you walk the ground and the decks
+    of the set that stands; beside a ward crystal, on solid ground (never on a deck), you can swap the
+    sets. Returns {(tile, set): swaps it took to get there}."""
+    decks = {}
+    for s in _spec(m, "ward"):
+        decks.setdefault(s.props["set"], set()).add((s.tx, s.tz))
+    every_deck = set().union(*decks.values())
+    crystals = {(s.tx, s.tz) for s in _spec(m, "ward_crystal")}
+    other = {"a": "b", "b": "a"}
+    doors = [(s.tx, s.tz) for s in _spec(m, "door", boss="keystone_dead")]
+    front = [d for d in doors if m[d[0], d[1] - 1].walkable]
+    cache = {}
+
+    def reach(tile, ward):
+        key = (tile, ward)
+        if key not in cache:
+            cache[key] = _reachable(m, tile, open_tiles=front, avoid=decks[other[ward]])
+        return cache[key]
+
+    seen = {(start, ward): 0}
+    layer = [(start, ward)]
+    swaps = 0
+    while layer:
+        nxt = []
+        for tile, w in layer:
+            for t in reach(tile, w):
+                if (t, w) not in seen:
+                    seen[(t, w)] = swaps
+            for t in reach(tile, w):
+                if t in every_deck or not any((t[0] + dx, t[1] + dz) in crystals for dx, dz in AROUND):
+                    continue
+                if (t, other[w]) not in seen:
+                    seen[(t, other[w])] = swaps + 1
+                    nxt.append((t, other[w]))
+        layer = nxt
+        swaps += 1
+    return seen
+
+
+def test_the_roads_of_light_take_three_swaps_to_cross_and_never_strand_you():
+    """The Keystone's court lies across the chasm, past the masons' two roads of light: the plaza's
+    old stair to its door is gone. Only one road stands at a time, and the way across swaps them three
+    times at the least. Wherever you can get to, with either road standing, a ward crystal is within
+    reach, so a fall or a wrong swap never strands you."""
+    m = _map()
+    (back,) = _spec(m, "exit", map="harrow_sewers")
+    start = (back.tx + 1, back.tz)
+    door = next((s.tx, s.tz) for s in _spec(m, "door", boss="keystone_dead") if m[s.tx, s.tz - 1].walkable)
+    landing = (door[0], door[1] - 1)
+    decks = {(s.tx, s.tz) for s in _spec(m, "ward")}
+    plain = _reachable(m, start, avoid=decks)  # no road at all
+    assert landing not in plain
+    states = _ward_states(m, start)
+    assert (landing, "a") in states or (landing, "b") in states
+    least = min(n for (tile, _w), n in states.items() if tile == landing)
+    assert least >= 3, least
+    crystals = {(s.tx, s.tz) for s in _spec(m, "ward_crystal")}
+    solid = {tile for tile, _w in states if tile not in decks}
+    for tile in solid:  # from any ground you reach, either road standing, a crystal is in reach
+        for w in ("a", "b"):
+            fading = {(s.tx, s.tz) for s in _spec(m, "ward") if s.props["set"] != w}
+            near = _reachable(m, tile, open_tiles=[door], avoid=fading)
+            assert any((x + dx, z + dz) in crystals for x, z in near - decks for dx, dz in AROUND), (tile, w)
+    # Both sets carry weight over the chasm at the plaza's height, so the road meets the islands level.
+    for s in _spec(m, "ward"):
+        assert m[s.tx, s.tz].chasm and float(s.props["deck"]) == m[32, 29].floor
+
+
+def test_striking_a_ward_crystal_swaps_the_roads_and_the_save_remembers():
+    game, world = sunken(at=(36, 29))
+    game.player.yaw = -math.pi / 2  # facing the crystal north of the first island
+    wards = [p for p in world.terrain.platforms if p.kind == "ward"]
+    gold = [p for p in wards if p.ward == "a"]
+    pale = [p for p in wards if p.ward == "b"]
+    assert all(p.afloat for p in gold) and not any(p.afloat for p in pale)
+    assert world.strike_wards(2.0)
+    assert world.ward_key in game.flags and world.ward_set == "b"
+    assert "bell" in game.sounds
+    for _ in range(round(terrain.WARD_FADE / 0.05) + 2):
+        for p in wards:
+            p.update(0.05, loaded=False)
+    assert all(p.afloat for p in pale) and not any(p.afloat for p in gold)
+    # Back on the map later, the pale road still stands.
+    again = World(game, "old_harrowmere")
+    standing = [p for p in again.terrain.platforms if p.kind == "ward" and p.afloat]
+    assert standing and all(p.ward == "b" for p in standing)
+    # A swing that reaches no crystal swaps nothing.
+    game.player.yaw = math.pi / 2
+    assert not world.strike_wards(2.0) and world.ward_set == "b"
+
+
+def test_a_fading_road_drops_you_into_the_chasm():
+    game, world = sunken(at=(34, 29))  # on the gold road
+    t = world.terrain
+    assert t.support(game.player.x, game.player.z) is not None
+    t.set_wards("b")
+    for p in t.platforms:
+        p.update(0.05, loaded=False)
+    assert t.support(game.player.x, game.player.z) is None  # it bears no weight as soon as it fades

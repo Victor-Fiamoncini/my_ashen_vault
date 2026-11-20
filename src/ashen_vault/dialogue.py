@@ -503,7 +503,7 @@ def coldry_lines(flags):
     if "met_coldry" in flags:
         return [
             "The roads remember the masons' craft. They do not remember mercy.",
-            "Two roads, three stones. Walk one, wake the other. That is all the craft there is.",
+            "Two roads, and a ward-stone on every island. Walk one, wake the other. That is all the craft.",
         ]
     flags.add("met_coldry")
     return [
