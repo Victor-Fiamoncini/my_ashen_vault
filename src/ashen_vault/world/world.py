@@ -435,6 +435,10 @@ FALL_DAMAGE = 25
 FALL_DEPTH = 1.5  # metres below the pit's rim before a fall counts
 LAVA_SHARE = 0.35  # share of your max HP a dip in lava burns away
 BREAK_TIME = 0.6  # seconds a smashed container's pieces take to fly out and settle
+RIFT_GOLD = (255, 226, 150)  # a rift lance: daylight from the vault's rift
+BELL_PALE = (236, 222, 170)  # the motes of a Bellward's toll
+BELL_MOTES = 16
+BELL_RING_TIME = 0.45  # seconds the toll's ring takes to reach its edge
 SECRET_FALL_RATE = 0.7  # per second: a struck fake wall sears and crumbles over about 1.4 s
 OPEN_RATE = 0.8  # per second: how fast doors, lids and levers swing
 HOUSE_DOOR_RATE = 1.7  # per second: a house door swings open or shut in about 0.6 s
@@ -2206,6 +2210,59 @@ class World:
             )
         )
 
+    def rift_lance(self, damage):
+        """Rift Lance: a narrow shard of daylight loosed along your view that runs through every foe in
+        its path (a piercing shot, like the Pale Crescent), each only once, until a wall ends it."""
+        player = self.player
+        speed = Spells.RIFT_SPEED
+        dx, dy, dz = shots.aim(player.yaw, player.pitch, speed)
+        lead = 0.5 / speed
+        self.projectiles.append(
+            Projectile(
+                x=player.x + dx * lead,
+                y=player.eye_y - shots.BOLT_DROP + dy * lead,
+                z=player.z + dz * lead,
+                dx=dx,
+                dy=dy,
+                dz=dz,
+                life=Spells.RIFT_LIFE,
+                damage=damage,
+                hostile=False,
+                rgb=RIFT_GOLD,
+                effect="rift",
+                pierce=True,
+                width=Spells.RIFT_WIDTH,
+            )
+        )
+
+    def bell_toll(self, damage, radius):
+        """Bellward: a phantom bell tolls about you. Every foe within `radius` metres takes `damage` and
+        reels from its swing (a full stagger); a ring of pale motes rushes out to show the toll's
+        reach. Returns the foes struck."""
+        player = self.player
+        targets = self.melee_targets(radius, cone=-1)
+        for e in targets:
+            self.game.damage_enemy(e, max(damage, 1), 99.0)
+        y0 = player.y + 1.0
+        for i in range(BELL_MOTES):
+            a = i * math.tau / BELL_MOTES
+            speed = radius / BELL_RING_TIME
+            self.projectiles.append(
+                Projectile(
+                    x=player.x,
+                    y=y0,
+                    z=player.z,
+                    dx=math.cos(a) * speed,
+                    dz=math.sin(a) * speed,
+                    life=BELL_RING_TIME,
+                    damage=0,
+                    hostile=False,
+                    rgb=BELL_PALE,
+                    effect="flare",
+                )
+            )
+        return targets
+
     def pyre(self, magic, gauge):
         """A short gout of fire in front of you: it burns the foes it reaches (plants catch and keep
         burning), kindles cold braziers and burns away webs. Returns how many foes it struck."""
@@ -2848,7 +2905,15 @@ class World:
                         models.gout_puff(rig, size, heat, self._time, seed=i * 1.7)
         for pr_ in self.projectiles:
             gpu.model_light((1.6, 1.4, 1.2))
-            if pr_.effect in ("arrow", "thunder", "thorn", "mote", "lance", "crescent"):  # point first
+            if pr_.effect in (
+                "arrow",
+                "thunder",
+                "thorn",
+                "mote",
+                "lance",
+                "crescent",
+                "rift",
+            ):  # point first
                 heading = -math.atan2(pr_.dz, pr_.dx)
                 climb = math.atan2(pr_.dy, math.hypot(pr_.dx, pr_.dz))
                 with rig.at(pr_.x, pr_.y, pr_.z, ry=heading, rz=climb):
@@ -2862,6 +2927,8 @@ class World:
                         moon_models.frost_lance(rig, pr_.rgb, self._time + id(pr_) % 3)
                     elif pr_.effect == "crescent":
                         moon_models.crescent_wave(rig, pr_.rgb, pr_.width, pr_.life, self._time)
+                    elif pr_.effect == "rift":
+                        sunken_models.rift_lance(rig, pr_.rgb, self._time + id(pr_) % 3)
                     else:
                         forge_models.thunder_spear(rig, self._time)
                 continue

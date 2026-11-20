@@ -110,7 +110,8 @@ Equipment, combat, spells, shops, saves and the story.
 - Secret attacks are listed in `weapons.secret()`; performing one adds a `secret:<category>` flag,
   which reveals its name in Belongings and the shop.
 - Weapon arts (`weapons.ARTS`, keyed by item id: the Ashblade's Ember Spill, Stormbrand's Thunderstroke,
-  Thornlash's Thorn Volley, Slagbreaker's Slag Burst, the Moonless Tachi's Pale Crescent): releasing a heavy with both the ATK gauge and the
+  Thornlash's Thorn Volley, Slagbreaker's Slag Burst, the Moonless Tachi's Pale Crescent, the Torch
+  Greathammer's Brand Sweep, the Ember Stone Sword's Kindle Seam): releasing a heavy with both the ATK gauge and the
   heavy charge full, and the art's `mp`, sets `Player.swing_art` (`art_ready`; a secret outranks it), and
   `Game._release_art` looses it as the blow lands, through the spells' plumbing (`World.flame_cone`, which
   Pyre shares, `fire_bolt`, `volley`, `slag_ring`, `crescent_wave`). An art with a `motion` swings that
@@ -125,6 +126,9 @@ Equipment, combat, spells, shops, saves and the story.
   `elements.brittle_mult`: a `brittle` foe (Old Harrowmere's Stone Golems and the Keystone) takes
   `BRITTLE_STRIKE_MULT` from the blunt categories (`STRIKE_CATEGORIES`: club, hammer, mace, fists) and
   `BRITTLE_EDGE_MULT` from everything else. Spells are untouched.
+- A weapon's `light` (metres) is firelight it sheds while held (the Torch Greathammer, the Ember Stone
+  Sword, both in Old Harrowmere): `Inventory.carried_light` takes the brightest in your hands and
+  `darkness.player_light` keeps it from shrinking in the dark and tints your light toward `FIRE_RGB`.
 - Each weapon has its own small, animated glyph on the HUD mouse (`hud.WEAPON_ICONS`, keyed by item id,
   within `ICON_REACH` of the button's centre); a new weapon needs one, unlike any other
   (`test_weapon_icons_all_look_different_and_fit_their_button`).
@@ -136,12 +140,19 @@ Equipment, combat, spells, shops, saves and the story.
   drawn as a `Gout` of flame plus sparks, Veil of Mist sets `Player.veil_t` (ordinary foes then
   notice you only very close; striking or casting anything else lifts it), Lumen sets `lumen_t`, and Ashen
   Ward sets `ward_t` (`Game.hurt_player` passes every blow through `Spells.warded`; embers circle the view
-  and the vitals box's trim glows). A spell's
+  and the vitals box's trim glows). Rift Lance (`World.rift_lance`) is a narrow piercing shot of daylight
+  (`effect="rift"`, `pierce`, drawn by `sunken_models.rift_lance`) that runs through every foe on its line;
+  Bellward (`World.bell_toll`) tolls a phantom bell that staggers every foe within `Spells.BELL_RADIUS`,
+  a ring of pale flares showing its reach. Both are sold only by Ysolde Vane. A spell's
   `recovery` is how long the magic gauge takes to refill after it (Pyre's is short). A new
   spell also needs a HUD icon (`hud.spell_icon`), colours in `models.SPELL_GLOW` / `SPELL_ORB`, and its
   scroll's parchment, rods and wax in `models.SCROLLS` with a rune in `models.SCROLL_RUNES` (no two alike).
 - Shops are `dialogue.SHOPS`: Brannoc's forged steel and armour, Pell's scrolls and salvage, Tamsin's remedies,
-  and Corvane's blades in the hut on the town's west edge (Corvane won't talk below `CORVANE_LEVEL`).
+  and Corvane's blades in the hut on the town's west edge (Corvane won't talk below `CORVANE_LEVEL`),
+  and Ysolde Vane's two copied spells in Old Harrowmere's Oubliette, sold only once the gaoler's lever
+  (`dialogue.OUBLIETTE_OPEN`) has raised her cell front. Her fellow prisoners there, Aubel the Ringer and
+  Sister Coldry, tell the first city's story (raised on the sleeping Keystone, sunk when its bells fell
+  silent) and how the two roads of light below the plaza work; both change once the Keystone falls.
   Villagers in `dialogue.GIFTS` hand a newcomer something once (`gift:<id>` flag) and then open their shop,
   if they keep one; Brother Marrow, in his cell in the Abandoned Prison, gives his only once you have pulled
   his cell's lever (`dialogue.MARROW_FREED`), and through the bars points you to the chapel and the

@@ -137,6 +137,20 @@ class Look:
 
 
 LOOKS = {
+    # The Bell-keepers' Oubliette, under Old Harrowmere: three who knew too much of the first city.
+    "aubel": Look(
+        cloth=(84, 74, 58), hair=(196, 192, 182), skin=(170, 150, 128), build="stooped", garb="robe",
+        hair_style="bald", beard="long", beard_tip=(226, 222, 214), cloak=(62, 54, 42), tool="lantern",
+        idle="watch",
+    ),
+    "coldry": Look(
+        cloth=(92, 88, 82), hair=(60, 50, 44), skin=(186, 160, 134), garb="robe", hood=True,
+        apron=(120, 112, 98), gloves=(70, 64, 58), idle="pray", trousers=(64, 60, 56),
+    ),
+    "ysolde": Look(
+        cloth=(54, 60, 92), hair=(150, 40, 34), skin=(200, 172, 146), build="slight", garb="robe",
+        hair_style="long", cloak=(150, 116, 60), tool="ledger", idle="count",
+    ),
     "odrin": Look(
         cloth=(70, 60, 90), hair=(200, 200, 200), build="stooped", garb="robe", beard="short",
         cloak=(52, 46, 66), tool="staff", hair_style="long",

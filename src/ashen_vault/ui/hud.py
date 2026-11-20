@@ -1216,6 +1216,33 @@ def spell_icon(id_, cx, cy, t, alpha=255):
                 1.4,
                 color(245, 165, 80, rround(a * glow)),
             )
+    elif id_ == "rift_lance":
+        # A sliver of daylight slanting across the glyph, white at the heart, dust glinting along it.
+        flare = 0.7 + 0.3 * math.sin(t * 7)
+        pr.draw_line_ex(
+            pr.Vector2(cx - 7, cy + 6), pr.Vector2(cx + 7, cy - 6), 3, color(255, 214, 120, rround(a * flare))
+        )
+        pr.draw_line(cx - 6, cy + 5, cx + 6, cy - 5, color(255, 250, 230, a))
+        for i in range(3):
+            k = (t * 0.9 + i / 3) % 1
+            pr.draw_circle(
+                rround(cx - 6 + 12 * k),
+                rround(cy + 5 - 10 * k + 2),
+                0.9,
+                color(255, 230, 160, rround(a * (1 - k))),
+            )
+    elif id_ == "bellward":
+        # A bronze bell swinging, rings of its toll spreading out from it.
+        swing = math.sin(t * 3) * 0.35
+        bell = color(170, 132, 70, a)
+        top = (cx + math.sin(swing) * 1.5, cy - 5)
+        pr.draw_triangle(
+            pr.Vector2(top[0], top[1]), pr.Vector2(cx - 4, cy + 3), pr.Vector2(cx + 4, cy + 3), bell
+        )
+        pr.draw_line(cx - 5, cy + 3, cx + 5, cy + 3, color(210, 176, 100, a))
+        pr.draw_circle(rround(cx + math.sin(swing) * 2), cy + 4, 1.2, color(90, 70, 40, a))  # the clapper
+        k = (t * 0.8) % 1
+        pr.draw_circle_lines(cx, cy, 4 + 5 * k, color(236, 222, 170, rround(a * (1 - k))))
     else:
         pr.draw_circle(cx, cy, 4, color(200, 200, 200, a))
 

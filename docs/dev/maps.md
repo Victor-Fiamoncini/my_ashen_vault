@@ -30,7 +30,12 @@ How `.map` files work and what can stand on a tile.
   plaza and the Bell Tower into the chasm), and the Keystone's Foundation Court (-22) behind two `door boss=keystone_dead` (the front one
   off the plaza's stair, the rear one out to the lift room; one arena, like Mother Gnawl's nest). The
   shortcut: a locked lift from the lift room 22 m up to the dark gallery cut through the rock from the
-  landing. `sunken_tower height=` landmarks rise out of the chasm. Paved in `ochre_flag`, walled in
+  landing. A false wall in that gallery opens on the Bell-keepers' Oubliette (h 0, under its own
+  `ceil`, lined in `sunken_brick`): a corridor of barred cells (`gate lever=oubliette`) holding Aubel,
+  Coldry, Ysolde, a hollow inmate and a mimic, and the gaoler's hall with the lever and the Torch
+  Greathammer. Two more false walls (`top=24`, as the map has no ceilings) open narrow fissures: one in
+  the plaza's west cliff with the Ember Stone Sword, one in the lift room;
+  `test_the_oubliette_hides_behind_a_false_wall_and_its_lever_opens_the_cells`. `sunken_tower height=` landmarks rise out of the chasm. Paved in `ochre_flag`, walled in
   `cavern_rock` and `sunken_brick`; the map is drawn by a script's layout, one legend letter per height;
   `test_old_harrowmere_is_solvable_from_the_breach_down_to_the_keystone`), `vesperholm` (the Moonbound City behind the Vesper Gate in
   Harrowmere's north wall, at the head of the cathedral steps: the town's `exit model=vesper_gate`, always

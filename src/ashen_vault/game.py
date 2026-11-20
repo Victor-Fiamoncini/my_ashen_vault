@@ -990,6 +990,14 @@ class Game:
             p.ward_t = Spells.WARD_DURATION
             self.sfx("ward")
             self.message("Embers wreathe you. Blows land softer.")
+        elif spell.id == "rift_lance":
+            self.sfx("thunder", 0.6, 1.4)
+            self.world.rift_lance(Spells.rift_damage(p.stats.magic, gauge))
+        elif spell.id == "bellward":
+            self.sfx("bell", 1.0, 1.2)
+            struck = self.world.bell_toll(Spells.bell_damage(p.stats.magic, gauge), Spells.BELL_RADIUS)
+            if struck:
+                self.message("The phantom bell tolls. Your foes reel.")
 
     def _cycle_quick(self, step=1):
         item = self.player.cycle_quick(step)

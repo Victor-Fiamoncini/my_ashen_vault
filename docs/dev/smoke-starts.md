@@ -69,7 +69,14 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   "wait:4.6"` sees the whole titan and its torch down the court's clear row, between the pillars;
   `--at=22,39,90 --level 10 --smoke 480 --script "wait:4.5 back:1.5"` catches its first torch smash
   bursting before it. The lift head's empty shaft, `--at=7,38,90 --script "wait:0.3 forward:1.2"`, is a
-  22 m fall you watch to the bottom (about 110 frames).
+  22 m fall you watch to the bottom (about 110 frames). The rift and its falls: `--at=14,29,0 --script "look_up:0.8"`
+  (the curtain of daylight up to the rift), `--at=16,23,0` (a fall past the Grand Stair),
+  `--at=22,24,-90 --script "look_down:0.5"` (one plunging into the chasm). The Oubliette:
+  `--at=3,9,0 --equip right=torch_greathammer --level 9 --smoke 420 --script "attack wait:2.5 forward:1.6"`
+  (break the gallery's false wall and step in, the hammer lighting the dark), `--at=7,9,90 --flags
+  secret_wall:old_harrowmere:4,9` (down its corridor of cells), `--at=7,10,180 --flags
+  secret_wall:old_harrowmere:4,9 --script "wait:0.5 interact"` (Aubel through his bars; add
+  `lever:oubliette` to free them all, and `--at=7,12,180` for Ysolde's shop).
 - Vesperholm (`vesperholm`) lies behind the Vesper Gate in Harrowmere's north wall, at the head of the
   cathedral steps; it always stands open: `--map harrowmere --at=22,15,-90` (from the foot of the steps,
   the gate straight ahead up the porch), `--map harrowmere --at=22,2,-90 --script "wait:0.3 interact"`

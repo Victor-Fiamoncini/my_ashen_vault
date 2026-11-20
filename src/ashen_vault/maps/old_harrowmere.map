@@ -21,7 +21,8 @@ vault_tex = cavern_rock
 // the curtain of daylight that falls from a great rift in the cavern's vault far overhead, falls of
 // water pouring from the vault's fissures past it into the chasm. Below the plaza
 // the Keystone, the giant the first city was raised on, lies in its Foundation Court; behind it a lift
-// climbs the old gallery's shaft back up to the landing. Stone Golems stand like statues until you come
+// climbs the old gallery's shaft back up to the landing; a false wall in that gallery hides the
+// Bell-keepers' Oubliette. Stone Golems stand like statues until you come
 // close, and the Sunken Sextons ring their bells to wake them. Over it all hangs the vault of the cavern,
 // rough rock 24 m up with stalactites hanging from it (`vault`); the shaft falls through a rift in it.
 
@@ -35,6 +36,9 @@ e = floor tex=ochre_flag h=-20 side=sunken_brick dark=0.15
 f = floor tex=ochre_flag h=-22 side=sunken_brick dark=0.12
 g = floor tex=cavern_rock h=0 side=cavern_rock ceil=3.4 ceil_tex=cavern_rock dark=0.55
 h = floor tex=ochre_flag h=-22 side=sunken_brick dark=0.2
+// The Bell-keepers' Oubliette, cut into the rock beside the gallery.
+à = floor tex=ochre_flag h=0 side=sunken_brick ceil=3.4 ceil_tex=sunken_brick dark=0.5
+ö = wall tex=sunken_brick top=24
 i = floor tex=cavern_rock h=-4 side=cavern_rock dark=0.07
 j = water tex=water h=-20.6 side=sunken_brick
 _ = floor tex=cavern_rock h=-40 side=cavern_rock chasm dark=0.6
@@ -96,18 +100,18 @@ $ = floor tex=ochre_flag h=-13.5 side=sunken_brick dark=0.12
 ##aaaaBaaaDa11______________EccccÆcE_________###
 ##aaaaaaaaaa_____P____________22_____________###
 ###g########__________________22_____________###
-###g########LddddddÒ__________22_____________###
-###g########dÀÃddÃdd__________22________Q____###
-###g########FdddZddF__________3345___________###
-###g########dddddddd66666666677778___________###
-###g########ddÃddÃdÈ6666666697777.__Ø________###
-###J########dÀddddÀd________,7777;___________###
-###g########Îddddddd________:7777Y___________###
-###g########__!!____________?$%&*+___________###
-###g######____--_____________________________###
-###g######____<<_____________________________###
-###g######____>>________T____________________###
-###g######____@@_____________________________###
+###gáààààöö#LddddddÒ__________22_____________###
+###ñ#ãâààâä#dÀÃddÃdd__________22________Q____###
+###g#ööààöö#FdddZddF__________3345___________###
+###g#åâààâæ#dddddddd66666666677778___________###
+###g#ööíàöö#ddÃddÃdÈ6666666697777.__Ø________###
+###J#çâààâè#dÀddddÀd________,7777;___________###
+###g#ööàìöö#Îddddddd________:7777Y___________###
+###g#ïààðö##__!!____________?$%&*+___________###
+###g#àéàà#____--_____________________________###
+###g#àààà#____<<_____________________________###
+###g#êààë#____>>________T____________________###
+###g#öööö#____@@_____________________________###
 ###g######____^^______Ö______________________###
 ###g######____~~______________________R______###
 ###g######____ee_____________________________###
@@ -116,7 +120,7 @@ $ = floor tex=ochre_flag h=-13.5 side=sunken_brick dark=0.12
 ###J######eeÄeeeeeeeeOeeeeÂeeeÄee_Ô__________###
 ###g######eeeeeeÂeeejjjeeeeeeeeee____________###
 ###g######eÇeeeeeeOejNjeOeeeeeeee____________###
-###g######eeeeeeeeeejjjeeeeeeeeee____________###
+###g####óòeeeeeeeeeejjjeeeeeeeeee____________###
 ###g######ÓeeeeeeeeeeOeeeeeeeeeee____________###
 ###g######eeÄeeeeeÉeeeeeeeÁeeeÄee_Õ_______S__###
 ###g######eeÂeeeeeeeeeeeeeeeeeÂee____________###
@@ -129,7 +133,7 @@ $ = floor tex=ochre_flag h=-13.5 side=sunken_brick dark=0.12
 #######Ì####{HfffffffffffffffffH################
 ######Khhhhh{fffffffffffffffffff################
 ######hhhhhh{fffÅfffffffffffÅfff################
-######hhhhhhËfffffIfffffffIfffff################
+####õôhhhhhhËfffffIfffffffIfffff################
 ######hhhhhh{fffffffffÊfffffffff################
 ######hhhhhÐ{fffÅfffffffffffÅfff################
 ############{fffffffffIfffffffff################
@@ -189,3 +193,28 @@ Z = sunken_sexton on=d
 Ñ = urn on=c
 Ò = urn on=d
 Ó = urn on=e
+// The Bell-keepers' Oubliette, behind a false wall in the gallery: a corridor of barred cells where the
+// old city's gaolers locked away those who knew too much, and the gaoler's hall at its end, whose lever
+// raises every cell front at once. Aubel the Ringer, Sister Coldry and Ysolde Vane still wait inside.
+ñ = hint text="A cold draught seeps through the rock to the east." on=g
+á = secret_wall on=à
+â = gate lever=oubliette on=à
+ã = npc id=aubel yaw=0 reach=4.4 on=à
+ä = npc id=coldry yaw=180 reach=4.4 on=à
+å = npc id=ysolde yaw=0 reach=4.4 on=à
+æ = hollow_inmate on=à
+ç = mimic item=ember_draught on=à
+è = chest item=grave_lily count=2 gold=150 model=worn on=à
+é = gaoler on=à
+ê = lever id=oubliette on=à
+ë = chest item=torch_greathammer model=iron on=à
+ì = torch radius=7 on=à
+í = hollow_inmate on=à
+ï = shackles on=à
+ð = prisoner_remains on=à
+// A false wall in the plaza's west cliff hides a fissure in the rock, the Ember Stone Sword at its end.
+ò = secret_wall top=24 on=e
+ó = chest item=ember_stone_sword model=iron on=e
+// Another, in the lift room, hides a coffer the Keystone's keepers forgot.
+ô = secret_wall top=24 on=h
+õ = chest item=ember_draught count=2 gold=300 model=banded on=h

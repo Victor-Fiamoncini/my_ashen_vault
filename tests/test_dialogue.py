@@ -323,3 +323,34 @@ def test_marrow_speaks_through_his_bars_then_gives_his_tonics_once_let_out():
     assert g.player.inventory.count("red_tonic") == before + 2 and "gift:marrow" in g.flags
     _speaker, later = talk("marrow", g)
     assert g.player.inventory.count("red_tonic") == before + 2 and "Warden" in later
+
+
+def test_the_oubliettes_prisoners_talk_through_the_bars_and_change_once_freed():
+    g = FakeGame()
+    speaker, before = talk("aubel", g)
+    assert speaker == "Aubel the Ringer" and "lever" in before
+    speaker, _ = talk("ysolde", g)
+    assert speaker == "Ysolde Vane" and g.shop_opened is None  # nothing to sell through the bars
+    g.flags.add(dialogue.OUBLIETTE_OPEN)
+    _, after = talk("aubel", g)
+    assert after != before and "ward-stone" in after
+    talk("ysolde", g)
+    assert g.shop_opened == "ysolde" and "met_ysolde" in g.flags
+    _, first = talk("coldry", g)
+    _, second = talk("coldry", g)
+    assert first != second
+    g.flags.add(dialogue.KEYSTONE_DEAD)
+    for id_ in ("aubel", "coldry"):
+        _, done = talk(id_, g)
+        assert "broken" in done or "still" in done
+
+
+def test_ysolde_sells_the_only_copies_of_her_spells():
+    from ashen_vault.player.items import Items
+
+    stock = dialogue.SHOPS["ysolde"]
+    spells = {Items.get(i).spell for i in stock if Items.get(i).kind == "scroll"}
+    assert spells == {"rift_lance", "bellward"}
+    for shop, items in dialogue.SHOPS.items():
+        if shop != "ysolde":
+            assert not {"scroll_rift_lance", "scroll_bellward"} & set(items)

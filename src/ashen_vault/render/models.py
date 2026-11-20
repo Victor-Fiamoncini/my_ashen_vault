@@ -4653,6 +4653,8 @@ SPELL_ORB = {
     "thunder": (200, 225, 255),
     "motes": (190, 120, 255),
     "ward": (240, 170, 90),
+    "rift_lance": (255, 226, 150),
+    "bellward": (220, 200, 140),
 }
 
 
@@ -5593,6 +5595,8 @@ SPELL_GLOW = {
     "thunder": (190, 220, 255),
     "motes": (190, 120, 255),
     "ward": (245, 165, 80),
+    "rift_lance": (255, 230, 160),
+    "bellward": (225, 205, 145),
 }
 WARD_EMBERS = 9  # motes circling you while an Ashen Ward holds
 WARD_FADE = 2.0  # seconds before it ends that the embers gutter and flicker
@@ -6271,6 +6275,9 @@ SCROLLS = {
     "scroll_thunder": (SOOTED_PARCHMENT, ROD_IRON, (46, 66, 150)),
     "scroll_motes": (SOOTED_PARCHMENT, ROD_IRON, (100, 44, 140)),
     "scroll_ward": (PARCHMENT, ROD_WOOD, (130, 60, 26)),
+    # Ysolde Vane's scrolls, copied in her cell in the Oubliette: grey paper, bronze rods, gold seals.
+    "scroll_rift_lance": (SOOTED_PARCHMENT, ROD_IRON, (196, 160, 70)),
+    "scroll_bellward": (PARCHMENT, ROD_IRON, (150, 116, 60)),
 }
 
 
@@ -6301,6 +6308,9 @@ SCROLL_RUNES = {
     "thunder": [(0.042, 0.014, 0.07, -0.5), (0.0, 0.0, 0.07, 1.1), (-0.042, -0.014, 0.07, -0.5)],
     "motes": [(0.042, 0.0, 0.035, 0.0), (-0.024, -0.036, 0.035, 0.0), (-0.024, 0.036, 0.035, 0.0)],
     "ward": _ring(6, 0.048, 0.052),
+    "rift_lance": [(0.0, 0.0, 0.15, 0.0), (0.05, 0.0, 0.05, math.pi / 2), (-0.05, 0.0, 0.05, math.pi / 2)],
+    "bellward": [(0.03, 0.0, 0.08, math.pi / 2), (0.0, -0.03, 0.07, 0.0), (0.0, 0.03, 0.07, 0.0),
+                 (-0.05, 0.0, 0.02, 0.0)],
 }  # fmt: skip
 
 

@@ -37,6 +37,19 @@ class Spells:
             Spell(
                 id="ward", name="Ashen Ward", cost=6, desc="Wreathe yourself in embers that blunt every blow."
             ),
+            Spell(
+                id="rift_lance",
+                name="Rift Lance",
+                cost=9,
+                desc="Loose a shard of the rift's daylight. It runs through every foe in its path.",
+                recovery=2.8,
+            ),
+            Spell(
+                id="bellward",
+                name="Bellward",
+                cost=7,
+                desc="Toll a phantom bell. Foes close about you reel from their swings.",
+            ),
         ]
     }
     LUMEN_DURATION = 45.0
@@ -50,6 +63,10 @@ class Spells:
     MOTE_SPREAD = 0.35  # radians between them as they leave your hand
     MOTE_SPEED = 6.0
     MOTE_TURN = 3.2  # rad/s a mote can steer toward its mark
+    RIFT_SPEED = 13.0  # a rift lance flies a little faster than a flame bolt...
+    RIFT_WIDTH = 0.35  # ...and cuts this far to either side of its line
+    RIFT_LIFE = 1.6  # seconds before it fades
+    BELL_RADIUS = 4.5  # metres the phantom bell's toll reaches
 
     @classmethod
     def get(cls, id_):
@@ -88,6 +105,16 @@ class Spells:
         return Combat.damage(base=5, strength=magic, gauge=gauge, defense=0)
 
     @staticmethod
+    def rift_damage(magic, gauge):
+        """Each foe the lance runs through: less than a thunder spear, but it never stops at one."""
+        return Combat.damage(base=11, strength=magic * 2, gauge=gauge, defense=0)
+
+    @staticmethod
+    def bell_damage(magic, gauge):
+        """The toll's bruise; the stagger is what it is for."""
+        return Combat.damage(base=3, strength=magic, gauge=gauge, defense=0)
+
+    @staticmethod
     def ward_cut(magic):
         """The share of every blow an Ashen Ward stops: a third at first, more with MAG, at most 60%."""
         return min(0.35 + 0.02 * magic, 0.6)
@@ -108,6 +135,8 @@ class Spells:
             "venom": Spells.venom_damage,
             "pyre": Spells.pyre_damage,
             "thunder": Spells.thunder_damage,
+            "rift_lance": Spells.rift_damage,
+            "bellward": Spells.bell_damage,
         }
         if id_ in damage:
             return damage[id_](magic, 1.0)

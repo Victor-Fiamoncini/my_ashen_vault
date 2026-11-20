@@ -585,6 +585,23 @@ def sun_shaft(r, t, height=14.0, width=2.4, rift=(CRACK_LEN, CRACK_WIDTH), yaw=0
         r.part("cyl", 0, 0.03, 0, width * 0.7, 0.02, max(width * 0.7, span * 0.7), (255, 236, 190), glow=True)
 
 
+def rift_lance(r, rgb, t):
+    """A Rift Lance flying point first (+X): a long sliver of daylight, white at its heart, with a
+    sheath of gold, two thin blades of light flaring off its sides and motes of dust in its wake."""
+    r.part("lozenge", 0.0, 0, 0, 1.3, 0.07, 0.07, rgb, glow=True)  # the sliver
+    r.part("cube", 0.05, 0, 0, 1.1, 0.03, 0.03, (255, 252, 236), glow=True)  # its white heart
+    r.part("cone", 0.8, 0, 0, 0.07, 0.3, 0.07, (255, 246, 220), rz=-math.pi / 2, glow=True)  # the point
+    flare = 0.8 + 0.2 * math.sin(t * 18)
+    for side in (-1, 1):  # blades of light flaring off its sides
+        r.part(
+            "cube", -0.1, 0, side * 0.09, 0.7 * flare, 0.01, 0.05, _dim(rgb, 0.9), glow=True, ry=side * 0.12
+        )
+    for i in range(4):  # dust turning in its wake
+        u = (t * 2.5 + i / 4) % 1.0
+        r.part("cube", -0.7 - 0.7 * u, math.sin(i * 2.1) * 0.1, math.cos(i * 1.4) * 0.1, 0.04, 0.04, 0.04,
+               _dim(GOLD_LIGHT, 1 - 0.6 * u), glow=True)  # fmt: skip
+
+
 WATER_SHEET = (150, 178, 196)
 WATER_DEEP = (84, 112, 132)
 FOAM = (226, 236, 240)

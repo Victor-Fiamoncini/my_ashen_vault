@@ -31,12 +31,15 @@ SHOPS = {
     ],
     "tamsin": ["red_tonic", "blue_moss", "bitter_root", "clotting_salve", "grave_lily", "ember_draught"],
     "corvane": ["katana", "moonless_tachi", "nodachi"],
+    # Ysolde Vane, in the Oubliette under Old Harrowmere: the two spells she copied off the vault's rift.
+    "ysolde": ["scroll_rift_lance", "scroll_bellward", "blue_moss"],
 }
 SHOP_NAMES = {
     "pell": "Pell's Goods",
     "brannoc": "Brannoc's Forge",
     "tamsin": "Tamsin's Remedies",
     "corvane": "Corvane's Blades",
+    "ysolde": "Ysolde's Copies",
 }
 REPAIRERS = {"brannoc"}  # smiths whose shop opens with a "Mend gear" row (`Game` scene "repair")
 CORVANE_LEVEL = 5  # the swordsmith won't speak to anyone greener than this
@@ -64,6 +67,12 @@ def for_npc(id_, game):
         return gift_giver(id_, flags)
     if id_ == "wren":
         return "Wren", wren_lines(flags), None
+    if id_ == "aubel":
+        return "Aubel the Ringer", aubel_lines(flags), None
+    if id_ == "coldry":
+        return "Sister Coldry", coldry_lines(flags), None
+    if id_ == "ysolde":
+        return ysolde(flags)
     if id_ == "enthroned":
         return "The Enthroned", enthroned_lines(relics.held(inv.has)), None
     return "Stranger", ["..."], None
@@ -449,6 +458,90 @@ def marrow(flags):
             "My cell's lever is in the warders' quarters, beyond the locked door. If you find a way in...",
         ],
         None,
+    )
+
+
+# --- the Bell-keepers' Oubliette, under Old Harrowmere --------------------------------------------
+
+OUBLIETTE_OPEN = "lever:oubliette"  # the gaoler's lever, at the end of the Oubliette's hall
+KEYSTONE_DEAD = "keystone_dead"
+
+
+def aubel_lines(flags):
+    """Aubel the Ringer, who rang the old city's third bell: he tells how the first Harrowmere was raised
+    on the sleeping Keystone and sank when its bells fell silent, and, once you have opened his cell,
+    how the two roads of light below the plaza work."""
+    if KEYSTONE_DEAD in flags:
+        return [
+            "The Keystone lies still. I felt it in my teeth, like the last toll of a bell.",
+            "Whatever woke you, Ashen, it rang from up above. Down here there is nothing left to ring.",
+        ]
+    if OUBLIETTE_OPEN in flags:
+        return [
+            "Free legs, after all these years. They still remember the way to the bell.",
+            "Below the plaza the masons left two roads of light over the chasm. Only one stands at a time.",
+            "Strike a ward-stone and the road you walk on fades while the other wakes. Mind your feet.",
+            "Find the order and the Keystone's court is yours. Choose badly and the chasm keeps you.",
+        ]
+    return [
+        "Ah... footsteps that don't drag. You're no sexton. Come to the bars, Ashen.",
+        "I am Aubel. I rang the third bell of the old city, before the city went down into the dark.",
+        "They raised Harrowmere on a sleeping giant. The Keystone, we called him. Our bells kept him dreaming.",
+        "When the bells fell silent the ground shrugged, and the whole city slid into this cavern.",
+        "The gaoler keeps the cell lever at the end of the hall. Pull it, and I'll tell you of the roads.",
+    ]
+
+
+def coldry_lines(flags):
+    """Sister Coldry, the last of the masons who laid the first city and spelled its ward-stones: she
+    chose her chains, and tells why the roads to the Keystone were built to stand one at a time."""
+    if KEYSTONE_DEAD in flags:
+        return [
+            "So the stone is broken. The mortar can rest, and so can I.",
+            "Take nothing from his court you would not carry up the lift. The gallery is long and dark.",
+        ]
+    if "met_coldry" in flags:
+        return [
+            "The roads remember the masons' craft. They do not remember mercy.",
+            "Two roads, three stones. Walk one, wake the other. That is all the craft there is.",
+        ]
+    flags.add("met_coldry")
+    return [
+        "Do not pity the chains. I asked for them.",
+        "I am Coldry, of the Sisters of the Mortar. We laid every stone the first city stood on.",
+        "We cut the ward-stones too, and spelled two roads, so no army could cross to the Keystone in one march.",
+        "When the city sank, the gaolers locked away everyone who knew the way. I am the last of us.",
+        "The sextons still ring for him. Every toll a little louder. He is waking, and he is angry.",
+    ]
+
+
+def ysolde(flags):
+    """Ysolde Vane, a scholar jailed for copying what the daylight writes on the vault round its rift.
+    Through the bars she only talks; once the gaoler's lever has opened her cell she sells her copies."""
+    if OUBLIETTE_OPEN not in flags:
+        return (
+            "Ysolde Vane",
+            [
+                "Careful. The light in here is mine, and I had to steal it.",
+                "Ysolde Vane, scholar of the rift. They jailed me for copying what the daylight writes on the vault.",
+                "Pull the gaoler's lever and I'll sell you what I copied. Two spells, and nobody else alive knows them.",
+            ],
+            None,
+        )
+    if "met_ysolde" in flags:
+        return "Ysolde Vane", ["The rift writes, I copy. Choose."], lambda g: g.open_shop("ysolde")
+
+    def after(g):
+        g.flags.add("met_ysolde")
+        g.open_shop("ysolde")
+
+    return (
+        "Ysolde Vane",
+        [
+            "Free, and nowhere to go but further into the dark. Very well: business.",
+            "A lance of the rift's own daylight, and a bell that nobody rings. Both copied true.",
+        ],
+        after,
     )
 
 

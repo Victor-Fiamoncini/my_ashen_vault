@@ -46,17 +46,57 @@ def test_old_harrowmere_is_solvable_from_the_breach_down_to_the_keystone():
     (front,) = [d for d in doors if m[d[0], d[1] - 1].walkable]  # the one the plaza's stair leads to
     court = _reachable(m, start, open_tiles=[front])
     assert (keystone.tx, keystone.tz) in court
-    for s in m.entities:
-        if s.kind == "chest" and s.props.get("model") != "coffer":
-            assert (s.tx, s.tz) in before, s.props
-    opened = _reachable(m, start, open_tiles=doors, shortcuts=True)
+    # Behind the false walls and the Oubliette's cell fronts (raised by its lever) every chest but the
+    # boss's reward and the lift room's hidden one lies open before the Keystone falls.
+    secrets = [(s.tx, s.tz) for s in _spec(m, "secret_wall")]
+    cells = [(s.tx, s.tz) for s in _spec(m, "gate", lever="oubliette")]
+    explored = _reachable(m, start, open_tiles=secrets + cells)
+    behind_boss = {(s.tx, s.tz) for s in _spec(m, "chest") if (s.tx, s.tz) not in explored}
     (coffer,) = _spec(m, "chest", model="coffer")
+    (lift_room,) = [w for w in secrets if m[w[0], w[1]].floor == m[coffer.tx, coffer.tz].floor]
+    assert behind_boss == {(coffer.tx, coffer.tz), next(t for t in _beside(lift_room) if t in behind_boss)}
+    everything = doors + secrets + cells
+    opened = _reachable(m, start, open_tiles=everything, shortcuts=True)
     assert (coffer.tx, coffer.tz) in opened and (coffer.tx, coffer.tz) not in court  # the boss's reward
+    assert behind_boss <= opened
     for tile in opened:
-        assert start in _reachable(m, tile, open_tiles=doors, shortcuts=True), tile
+        assert start in _reachable(m, tile, open_tiles=everything, shortcuts=True), tile
     (lift,) = [p for p in terrain.build_platforms(m) if p.kind == "lift"]
     assert lift.locked and lift.high - lift.low >= 20  # a long ride, from the city's foot to its top
     assert m[keystone.tx, keystone.tz].floor <= min(m[x, z].floor for x, z in before)  # the deepest
+
+
+def _beside(tile):
+    return [(tile[0] + dx, tile[1] + dz) for dx, dz in BESIDE]
+
+
+def test_the_oubliette_hides_behind_a_false_wall_and_its_lever_opens_the_cells():
+    """The Bell-keepers' Oubliette opens off the dark gallery through a false wall; its gaoler's lever
+    lies in the hall at its end, past no cell front, and raises them all. Its prisoners can be spoken
+    to through the bars from the corridor before then."""
+    m = _map()
+    (back,) = _spec(m, "exit", map="harrow_sewers")
+    start = (back.tx + 1, back.tz)
+    (lever,) = _spec(m, "lever", id="oubliette")
+    gallery = [w for w in _spec(m, "secret_wall") if m[w.tx, w.tz].ceil is not None]
+    assert len(gallery) == 1
+    (wall,) = gallery
+    assert m[wall.tx - 1, wall.tz].walkable and m[wall.tx - 1, wall.tz].floor == m[wall.tx, wall.tz].floor
+    plain = _reachable(m, start)
+    inside = _reachable(m, start, open_tiles=[(wall.tx, wall.tz)])
+    assert (lever.tx, lever.tz) not in plain and (lever.tx, lever.tz) in inside
+    cells = [(s.tx, s.tz) for s in _spec(m, "gate", lever="oubliette")]
+    assert len(cells) == 6 and not set(cells) & inside
+    freed = _reachable(m, start, open_tiles=[(wall.tx, wall.tz), *cells])
+    for npc in _spec(m, "npc"):
+        (front,) = [c for c in cells if c in _beside((npc.tx, npc.tz))]  # each behind its own bars
+        assert front in freed, npc.props["id"]
+        reach = float(npc.props["reach"])
+        assert any(math.hypot(x - npc.tx, z - npc.tz) * 2 <= reach for x, z in inside), npc.props["id"]
+    assert {s.props["id"] for s in _spec(m, "npc")} == {"aubel", "coldry", "ysolde"}
+    (hammer,) = _spec(m, "chest", item="torch_greathammer")
+    (sword,) = _spec(m, "chest", item="ember_stone_sword")
+    assert (hammer.tx, hammer.tz) in inside and (sword.tx, sword.tz) not in plain
 
 
 def test_old_harrowmere_falls_away_in_tiers():
@@ -262,3 +302,35 @@ def test_the_keystones_rings_of_fire_run_out_with_gaps_to_stand_in():
     for radius in rings:  # a gap wider than you between neighbouring bursts
         count = dict(NOVA_RINGS)[radius]
         assert 2 * math.pi * radius / count - 2 * Eruption.RADIUS > 0.6
+
+
+def test_a_rift_lance_runs_through_every_foe_in_its_path():
+    from ashen_vault.player.spells import Spells
+
+    game, world = sunken(at=(14, 28))
+    game.player.yaw = 0.0  # down the plaza, toward +x
+    near = foe(world, "sunken_sexton", (16, 28))
+    far = foe(world, "sunken_sexton", (19, 28))
+    aside = foe(world, "sunken_sexton", (17, 31))
+    world.rift_lance(20)
+    (lance,) = world.projectiles
+    assert lance.pierce and lance.effect == "rift" and lance.width == Spells.RIFT_WIDTH
+    for _ in range(40):
+        world._update_projectiles(0.05)
+    assert near.hp < near.type.hp and far.hp < far.type.hp  # through the first and on into the second
+    assert aside.hp == aside.type.hp
+
+
+def test_bellward_staggers_every_foe_about_you_and_spares_those_further():
+    from ashen_vault.player.spells import Spells
+
+    _game, world = sunken(at=(20, 28))
+    close = foe(world, "stone_golem", (21, 28))
+    behind = foe(world, "sunken_sexton", (19, 29))
+    far = foe(world, "sunken_sexton", (26, 28))
+    for e in (close, behind, far):
+        e.state = "chase"
+    struck = world.bell_toll(2, Spells.BELL_RADIUS)
+    assert set(map(id, struck)) == {id(close), id(behind)}
+    assert close.state == "hurt" and behind.state == "hurt" and far.state == "chase"
+    assert sum(p.effect == "flare" and p.damage == 0 for p in world.projectiles) >= 8  # the toll's ring

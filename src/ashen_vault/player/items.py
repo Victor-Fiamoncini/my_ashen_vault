@@ -622,6 +622,22 @@ class Items:
                 desc="Teaches Ashen Ward: embers circle you and blunt every blow.",
             ),
             Item(
+                id="scroll_rift_lance",
+                name="Scroll of Rift Lance",
+                kind="scroll",
+                price=900,
+                spell="rift_lance",
+                desc="Teaches Rift Lance: a shard of the rift's daylight that runs through every foe in its path.",
+            ),
+            Item(
+                id="scroll_bellward",
+                name="Scroll of Bellward",
+                kind="scroll",
+                price=650,
+                spell="bellward",
+                desc="Teaches Bellward: a phantom bell tolls about you and every foe near you reels.",
+            ),
+            Item(
                 id="cell_key",
                 name="Cell Key",
                 kind="key",
