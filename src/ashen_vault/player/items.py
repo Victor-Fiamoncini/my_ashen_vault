@@ -234,7 +234,7 @@ class Items:
                 level=6,
                 element="fire",
                 light=2.5,
-                desc="A slab of foundation stone ground to an edge. Its seams still hold the city's last fire.",
+                desc="A slab of foundation stone ground to an edge. A coal of the old city's hearths still glows in its seams.",
             ),
             Item(
                 id="flamberge",
@@ -636,6 +636,14 @@ class Items:
                 price=650,
                 spell="bellward",
                 desc="Teaches Bellward: a phantom bell tolls about you and every foe near you reels.",
+            ),
+            Item(
+                id="scroll_mortar_shard",
+                name="Scroll of Mortar Shard",
+                kind="scroll",
+                price=0,
+                spell="mortar_shard",
+                desc="Teaches Mortar Shard: Sister Vell's last rite, the spent light thrown to break stone.",
             ),
             Item(
                 id="cell_key",

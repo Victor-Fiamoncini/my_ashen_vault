@@ -55,6 +55,10 @@ def all_textures():
         "clouds": clouds(),
         "cloud_cap": cloud_cap(),
         "mist": mist(),
+        "sunbeam": sunbeam(),
+        "caustics": caustics(),
+        "ripple": ripple(),
+        "ward_net": ward_net(),
         "ash_skin": ash_skin(),
         "ash_rock": ash_rock(),
         "ash_stone": ash_stone(),
@@ -957,6 +961,69 @@ def mist():
         streak = noise(x, y // 4, 16, 422) * 0.7 + noise(x, y, 8, 423) * 0.3
         density = (y / SIZE) * 1.15 * (0.55 + streak * 0.6)
         return [255, 255, 255, _stipple(x, y, density)]
+
+    return build(px)
+
+
+def sunbeam():
+    """A sheet of light falling through haze: rays running down it (the texture's v), densest along
+    its middle and thinning to nothing at its sides, which spread as it falls (row 0 is its top), and
+    fading out at its very top and foot, so a stack of these sheets reads as a soft-edged beam. A
+    column is either a ray or clear all the way down (the dither runs across, never down, since the
+    sheet is stretched tall), so close up it shows streaks of light, not blocks."""
+
+    def px(x, y):
+        v = (y + 0.5) / SIZE
+        dx = abs((x + 0.5) / SIZE - 0.5)
+        reach = 0.12 + 0.38 * hash_(x, 0, 434)  # how far out a ray this far across reaches, as it falls
+        ray = noise(x, 0, 4, 431) * 0.6 + noise(x, 0, 8, 432) * 0.4
+        lit = dx < 0.5 * (1 - 0.6 * (1 - v) * (dx / 0.5)) and dx < reach + 0.3 * v  # spreads as it falls
+        on = lit and ray + 0.35 * (1 - dx / 0.5) > 0.55 + 0.25 * hash_(x, 1, 435)
+        top, foot = hash_(x, 2, 436) * 0.1, 1 - hash_(x, 3, 437) * 0.14  # each ray ends ragged
+        alpha = 255 if on and top < v < foot else 0
+        return [*tint([255, 252, 240], 0.78 + 0.22 * ray), alpha]
+
+    return build(px)
+
+
+def caustics():
+    """The ripple of light where a beam lands in water: a net of bright wavering lines, cut out
+    against nothing, thinning out toward the edge of a round pool."""
+
+    def px(x, y):
+        n = noise(x, y, 16, 441) * 0.65 + noise(x, y, 8, 442) * 0.35
+        line = abs(n - 0.5)
+        r = math.hypot((x + 0.5) / SIZE - 0.5, (y + 0.5) / SIZE - 0.5) * 2
+        if r > 1.0 or line > 0.045 * (1.1 - r * 0.6):
+            return (0, 0, 0, 0)
+        return (*tint([255, 255, 255], 0.8 + 0.2 * (1 - line / 0.05)), 255)
+
+    return build(px)
+
+
+def ripple():
+    """One thin ring of light on water, its line broken here and there, on nothing."""
+
+    def px(x, y):
+        r = math.hypot((x + 0.5) / SIZE - 0.5, (y + 0.5) / SIZE - 0.5) * 2
+        if abs(r - 0.92) > 0.05 or hash_(rround(math.atan2(y - 32, x - 32) * 6), 0, 451) < 0.15:
+            return (0, 0, 0, 0)
+        return (255, 255, 255, 255)
+
+    return build(px)
+
+
+def ward_net():
+    """A ward's dome of light: a lattice of thin glowing diamonds, with knots where they cross,
+    see-through between its strands."""
+
+    def px(x, y):
+        a, b = (x + y) % 16, (x - y) % 16
+        if a == 0 or b == 0:
+            return (*tint([255, 255, 255], 0.85 + 0.15 * noise(x, y, 8, 461)), 255)
+        if (a in (1, 15) and b in (1, 15)) or hash_(x, y, 462) > 0.985:
+            return (255, 255, 255, 255)
+        return (0, 0, 0, 0)
 
     return build(px)
 

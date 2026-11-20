@@ -79,7 +79,21 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   `lever:oubliette` to free them all, and `--at=7,12,180` for Ysolde's shop). The roads of light:
   `--at=31,31,-30` (the gold road out from the plaza to the first island), `--at=36,29,-90 --script
   "wait:0.3 attack"` (strike the first island's crystal: the gold road fades, the pale one wakes);
-  `--flags ward:old_harrowmere` starts with the pale road standing.
+  `--flags ward:old_harrowmere` starts with the pale road standing, `--flags
+  ward:old_harrowmere:c,ward_fed:old_harrowmere` with the teal road standing (the core's shield down).
+  The third road: `--at=42,29,0` (the pale road east to the Mortar Sisters' quay), `--at=38,18,-90
+  --script "wait:0.3 attack wait:1.2"` (strike the core's shield ward: it feeds and wakes the teal road),
+  `--at=38,18,180 --flags ward:old_harrowmere:c,ward_fed:old_harrowmere` (the teal road home to the
+  plaza), `--at=17,27,0` (the energy core on the fountain's plinth at 21,27, beside the shaft's foot, teal
+  lights round the pool). The Mortar Sisters' Workshop: `--at=46,28,0` (from the quay through its arch:
+  benches, golems, a sexton; its chest at 60,23). The Under-Cells: `--at=3,18,180` (the gaolers' postern
+  across the gallery, barred), `--at=7,17,0 --script "wait:0.3 interact wait:1.5"` (pull the postern's
+  lever in the gaoler's hall), `--at=1,44,90 --script "forward:2.5"` (the stair's foot: sets
+  `visited_undercells`), `--at=1,52,0` (down the flooded cell block), `--at=17,52,0` (the interrogation
+  hall, its gaoler and golem), `--at=32,51,0 --script "wait:0.3 interact wait:1.5"` (the warden's lever:
+  every cell front below rises), `--at=31,56,-90 --script "wait:0.5 interact"` (Brannick, in the cell
+  beside the office), `--at=43,56,90 --script "wait:0.5 interact"` (Sister Vell, at the flooded deep
+  cells' far end).
 - Vesperholm (`vesperholm`) lies behind the Vesper Gate in Harrowmere's north wall, at the head of the
   cathedral steps; it always stands open: `--map harrowmere --at=22,15,-90` (from the foot of the steps,
   the gate straight ahead up the porch), `--map harrowmere --at=22,2,-90 --script "wait:0.3 interact"`

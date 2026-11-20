@@ -49,7 +49,8 @@ class EnemyType:
     # Special attacks mixed in (see enemy.MOVES): "sweep", "web", "pounce", "cinders", "combo",
     # "slam", "eruption", "hook", "breath", "dive", "exhale", "ashfall", "spadeful", "grasp",
     # "dust_devil", "knell", "fireball", "bile", "engulf", "shed", "tail_lash", "squeal",
-    # "frost_lance", "blink", "moonbeam", "moonfall", "toll", "quake", "hurl".
+    # "frost_lance", "blink", "moonbeam", "moonfall", "toll", "quake", "hurl", "slab_smash",
+    # "core_beam", "shard_rain", "core_nova".
     moves: tuple = ()
     # Enemy type a boss calls to its side once, when it drops to half HP.
     brood: str | None = None
@@ -94,6 +95,10 @@ class EnemyType:
     # follows through before it strikes, rather than snapping down at once. The attack pose holds
     # this much longer as well.
     impact: float = 0.0
+    # A boss fed by an energy core (`World.core_quenched`): the share of its HP the core's light
+    # floods back into it as it enters its second phase. Quench the core first and it gets none, and
+    # it starts the fight short of its full HP (`world.QUENCHED_HP`).
+    surge: float = 0.0
 
     @property
     def rooted(self):
@@ -834,9 +839,10 @@ class EnemyTypes:
                 id="stone_golem",
                 material="stone",
                 name="Stone Golem",
-                # Masonry the first city's builders set walking to carry its stone, then left standing
-                # where the water found them: it waits like a statue until you come close (or a
-                # sexton's bell calls it), slow to turn and cracked open down its back.
+                # Rock the first city's builders woke with the mortar-light to carry its stone, then
+                # left standing where the water found them: hunched, its slabs of forearms hanging to
+                # the ground, it waits like a statue until you come close (or a sexton's bell calls
+                # it), slow to turn and cracked open down its back on the light inside.
                 hp=70,
                 speed=0.85,
                 damage=16,
@@ -907,15 +913,17 @@ class EnemyTypes:
                 id="keystone",
                 material="stone",
                 name="The Keystone",
-                # The giant the first city was raised on: a titan of its foundation stone, who bore the
-                # city up and held the torch that lit its streets, and when the city sank lay down under
-                # the rubble. It rises out of the ruin when you step into its court. It is slow, every
-                # swing heaved through before it lands (`tempo`, `impact`): it slams its fists, sweeps
-                # them all round and brings its torch down before it in a great burst of fire. At half HP
-                # its shell bursts on an ember core: it stamps the ground so a ring of shock runs out
-                # (step in under it, or stand well off), hurls masonry at you from afar, drags its torch
-                # along the floor in a line of fire (step aside), shakes it overhead so embers rain down
-                # round you, and drives it into the ground so rings of fire run out from it.
+                # The giant the first city was raised on, the greatest of the golems: the mortar-light
+                # that animates them all is bared in its chest, and it bore the city up on its back
+                # until the city sank and it lay down under the rubble. It rises out of the ruin when
+                # you step into its court. It is slow, every swing heaved through before it lands
+                # (`tempo`, `impact`): it slams its fists, sweeps them all round and brings a slab of a
+                # forearm down before it in a great burst of light. At half HP its shell sloughs off
+                # and its heart blazes (the plaza's core floods it with light again, unless you have
+                # quenched it: `surge`): it stamps the ground so a ring of shock runs out (step in
+                # under it, or stand well off), hurls masonry at you from afar, rakes a beam of light
+                # along the floor from its heart (step aside), rains shards of its shell down round
+                # you, and drives its fists into the ground so rings of light run out from it.
                 hp=380,
                 speed=0.9,
                 damage=22,
@@ -936,11 +944,12 @@ class EnemyTypes:
                 turn_rate=1.4,
                 back_mult=1.5,
                 brittle=True,
-                moves=("slam", "sweep", "torch_smash"),
-                phase_moves=("quake", "hurl", "breath", "cinder_rain", "ember_nova"),
+                moves=("slam", "sweep", "slab_smash"),
+                phase_moves=("quake", "hurl", "core_beam", "shard_rain", "core_nova"),
                 tempo=1.4,
                 impact=0.45,
-                rage="The Keystone's stone shell bursts apart, and the giant burns on like an ember!",
+                rage="The Keystone's shell sloughs away, and the heart that kept the city standing blazes open!",
+                surge=0.15,
                 shot="rubble",
                 shot_rgb=(150, 132, 104),
                 mouth=5.0,

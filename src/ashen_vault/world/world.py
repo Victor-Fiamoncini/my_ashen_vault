@@ -15,11 +15,11 @@ from ashen_vault.ai.enemy import (
     MOVES,
     QUAKE_RADIUS,
     QUAKE_SAFE,
+    SLAB_REACH,
     SLAM_RADIUS,
     SQUEAL_RADIUS,
     STATUE_BURST,
     TOLL_RADIUS,
-    TORCH_REACH,
     Enemy,
 )
 from ashen_vault.ai.enemy_types import EnemyTypes
@@ -193,6 +193,7 @@ WOODEN_LIFT_MAPS = ("verdant_hollow",)  # where the lifts' call plates are the j
 # Props that fill their whole tile: nothing walks or flies through them.
 BLOCKING_PROPS = (
     "ward_crystal",
+    "energy_core",
     "well",
     "save_statue",
     "npc",
@@ -463,6 +464,7 @@ ERUPTION_SOURCES = {
     "hands": "The grasping ash",
     "moon": "The moonlight",
     "filth": "The filth",
+    "core": "The mortar-light",
 }
 SQUEAL_STAGGER = 1.2  # seconds Mother Gnawl's squeal leaves you stumbling
 BURROW_ROT = (("rot", 25),)  # rot the filth Mother Gnawl bursts up through builds in you
@@ -472,17 +474,20 @@ ENGULF_GLOOM = 2.5  # seconds the dark of the Pall's insides stays on your eyes 
 ENGULF_DARK = 0.85  # how dark it gets, as on a `dark=` tile
 LANCE_SPEED = 10.0  # m/s a lance of moon-frost flies
 RUBBLE_SPEED = 9.0  # m/s a block of masonry the Keystone hurls flies
-# The Keystone's torch (World.torch_smash, cinder_rain, ember_nova).
-TORCH_SIDE = 1.6  # metres to the left of its body it bears the torch
-TORCH_HIGH = 9.5  # metres over the floor the basket is, held up overhead
-SMASH_RADIUS = 2.2  # the burst where its basket comes down, and how little warning it gives
+# The Keystone's mortar-light (World.slab_smash, core_beam, shard_rain, core_nova), all bursts of
+# `Eruption` style "core".
+SHARD_HIGH = 9.5  # metres over the floor the shards are torn loose, its fists raised overhead
+SMASH_RADIUS = 2.2  # the burst where its slab comes down, and how little warning it gives
 SMASH_WARN = 0.15
-SMASH_COALS = 6  # coals scattered from it, bursting in a ring this far round where it landed
+SMASH_SHARDS = 6  # shards scattered from it, bursting in a ring this far round where it landed
 SMASH_SCATTER = 3.0
-CINDER_RINGS = ((2.6, 4), (5.2, 6))  # (radius, embers) of each ring of the rain round where you stand
-CINDER_STAGGER = 0.1  # seconds between one ember and the next, the last no later than CINDER_SPAN
-CINDER_SPAN = 1.0
-NOVA_RINGS = ((3.5, 8), (6.5, 12), (9.5, 16))  # (radius, bursts) of the rings of fire round it
+SHARD_RINGS = ((2.6, 4), (5.2, 6))  # (radius, shards) of each ring of the rain round where you stand
+SHARD_STAGGER = 0.1  # seconds between one shard and the next, the last no later than SHARD_SPAN
+SHARD_SPAN = 1.0
+NOVA_RINGS = ((3.5, 8), (6.5, 12), (9.5, 16))  # (radius, bursts) of the rings of light round it
+# A boss fed by the energy core (`EnemyType.surge`) once the core is quenched: it starts the fight
+# with only this share of its HP.
+QUENCHED_HP = 0.85
 NOVA_GAP = 0.45  # seconds between one ring and the next
 LANCE_FAN = 0.22  # radians between the lances of a fan of three
 LANCE_CHILL = 1.2  # seconds moon-frost numbs your legs (`Player.chill_t`: slowed, as by silk)
@@ -504,6 +509,13 @@ HIT_RED = (2.2, 0.6, 0.5)  # the light a foe glows in the moment a blow lands (E
 STATUS_TINT = {"poison": (0.45, 1.1, 0.3), "burn": (1.5, 0.7, 0.25)}
 KINDLE_REACH = 1.2  # a flame bolt passing this close to a cold brazier sets it alight
 SLAG_GOUTS = 8  # tongues of molten flame Slag Burst throws out around you
+# The energy core (the mortar-light): while it burns it mends the golems it sustains; quenched, they
+# crack easier.
+CORE_SUSTAINS = frozenset({"stone_golem"})  # the foes a lit core mends and tethers
+CORE_RADIUS = "16"  # metres it sustains them within, unless the map's `radius=` says otherwise
+CORE_REGEN = 2.0  # HP a second it gives back to each golem it sustains
+CORE_QUENCHED_MULT = 1.25  # what a blow on one of its golems deals once it is quenched
+CORE_HUM = (0.22, 12.0, 2.6)  # its hum: base volume, metres at which it falls silent, seconds apart
 
 
 # Fire and lava sounds fade with distance: (base volume, metres at which they fall silent).
@@ -573,6 +585,8 @@ class World:
         self._glitter = None  # (key, mesh) of the sun's path of glints on it
         self._baked = []  # (mesh, tex, chunk, landmark) of the static props, `prop_bake`
         self._baking = False
+        self._core_mend = {}  # a golem the core is mending -> the fraction of an HP it has given so far
+        self._core_hum = 0.0  # seconds since the core last hummed
         self._bake()
         self.props = []
         self.enemies = []
@@ -616,9 +630,7 @@ class World:
     def _bake(self):
         """Builds the map's mesh with its light baked in, and uploads it (again, after a fire is lit)."""
         self.unload()
-        lights = MeshBuilder.lights_for(
-            self.map, lit=lambda spec: self._lit_key(spec.tx, spec.tz) in self.flags
-        )
+        lights = MeshBuilder.lights_for(self.map, lit=self._light_on)
         self.builder = MeshBuilder(self.map, lights=lights).build()
         self._meshes = [(self.game.gpu.upload_batch(b), tex) for tex, b in self.builder.batches.items()]
         if self.builder.sea.vertex_count:
@@ -670,6 +682,12 @@ class World:
     def _lit_key(self, tx, tz):
         return f"lit:{self.name}:{tx},{tz}"
 
+    def _light_on(self, spec):
+        """Whether a light that can change (a cold fire, the energy core) shines in the baked light."""
+        if spec.kind == "energy_core":
+            return not self.core_quenched()
+        return self._lit_key(spec.tx, spec.tz) in self.flags
+
     def is_lit(self, p):
         """A brazier or bonfire burns unless it stands cold (`unlit`) and nothing has kindled it."""
         return "unlit" not in p.props or self._lit_key(p.tx, p.tz) in self.flags
@@ -720,6 +738,7 @@ class World:
 
     def _spawn_entities(self):
         self.enemies = spawn_enemies(self.map, self.flags)
+        self.starve_bosses()
         for spec in self.map.entities:
             if spec.kind == "hint":  # words, not a thing: `hints` shows them
                 continue
@@ -870,6 +889,7 @@ class World:
             if e.type.boss and e.type.twin and e.type.id not in kept
         ]
         self.enemies = bosses + twins + spawn_enemies(self.map, self.flags, bosses=False)
+        self.starve_bosses()
         self.projectiles = []
         self.gouts = []
         self.eruptions = []
@@ -1200,9 +1220,28 @@ class World:
         return True
 
     def boss_rage(self, enemy):
-        """A boss enters its second phase."""
+        """A boss enters its second phase. One fed by the energy core (`surge`) draws a share of its HP
+        back from it, unless the core has been quenched."""
         self.game.sfx("eruption", 0.9)
         self.game.message(enemy.type.rage)
+        if not enemy.type.surge:
+            return
+        if self.core_quenched():
+            self.game.message("Its heart gutters: the quenched core has no light left to give it.")
+            return
+        enemy.hp = min(enemy.hp + rround(enemy.type.hp * enemy.type.surge), enemy.type.hp)
+        self.game.message("The core's light floods back into it!")
+
+    def starve_bosses(self):
+        """With the core quenched, every boss it fed (`surge`) stands at no more than QUENCHED_HP of
+        its HP. Safe to call again: call it when the core is quenched, too."""
+        if not self.core_quenched():
+            return
+        for e in self.enemies:
+            cap = rround(e.type.hp * QUENCHED_HP)
+            if e.type.surge and e.alive and e.hp > cap:
+                e.hp = cap
+                e.trail_hp = min(e.trail_hp, float(cap))
 
     def slam(self, enemy):
         """The shockwave of a slam: a ring that runs out along the floor."""
@@ -1616,72 +1655,100 @@ class World:
             self.game.hurt_player(max(rround(dmg - player.inventory.defense * 0.3), 1), enemy.name)
             self.game.message("The ground heaves under you!")
 
-    # --- the Keystone's torch ------------------------------------------------------------------
+    # --- the Keystone's mortar-light --------------------------------------------------------
 
-    def _ember(self, x, z, delay, damage, radius=None, warn=None, origin=None):
-        """A burst of the Keystone's fire at (x, z), unless a wall or the chasm is there."""
+    def _core_burst(self, x, z, delay, damage, radius=None, warn=None, origin=None):
+        """A burst of the Keystone's mortar-light at (x, z), unless a wall or the chasm is there."""
         tile = self.map.tile_at(x, z)
         if tile.solid or not tile.walkable or tile.needs_footing:
             return None
-        f = Eruption(x, z, tile.floor, delay=delay, damage=damage, radius=radius, warn=warn, origin=origin)
+        f = Eruption(
+            x,
+            z,
+            tile.floor,
+            delay=delay,
+            damage=damage,
+            radius=radius,
+            warn=warn,
+            origin=origin,
+            style="core",
+        )
         self.eruptions.append(f)
         return f
 
-    def torch_head(self, enemy):
-        """Where the burning basket of the Keystone's torch is while it holds it up overhead."""
-        c, sn = math.cos(enemy.yaw), math.sin(enemy.yaw)
-        return enemy.x + TORCH_SIDE * sn, self.enemy_y(enemy) + TORCH_HIGH, enemy.z - TORCH_SIDE * c
+    def shard_head(self, enemy):
+        """Where the Keystone tears loose the shards it rains down: over its head, its fists raised."""
+        return enemy.x, self.enemy_y(enemy) + SHARD_HIGH, enemy.z
 
-    def torch_smash(self, enemy):
-        """The Keystone brings its torch down before it: a great burst of fire where the basket lands,
-        TORCH_REACH ahead along the way it faces (it stopped turning partway through the windup), with
-        little warning; then the coals it scatters burst in a ring round it. Step aside from the line
-        it swings along while it heaves the torch back overhead."""
+    def slab_smash(self, enemy):
+        """The Keystone brings a slab of a forearm down before it: a great burst of light where it
+        lands, SLAB_REACH ahead along the way it faces (it stopped turning partway through the windup),
+        with little warning; then the shards it scatters burst in a ring round it. Step aside from the
+        line it swings along while it heaves the slab back overhead."""
         c, sn = math.cos(enemy.yaw), math.sin(enemy.yaw)
-        x, z = enemy.x + c * TORCH_REACH, enemy.z + sn * TORCH_REACH
-        damage = rround(enemy.type.damage * MOVES["torch_smash"][2])
-        self._ember(x, z, 0.0, damage, radius=SMASH_RADIUS, warn=SMASH_WARN)
-        for i in range(SMASH_COALS):
-            a = enemy.yaw + (i + 0.5) * math.tau / SMASH_COALS
-            self._ember(x + math.cos(a) * SMASH_SCATTER, z + math.sin(a) * SMASH_SCATTER,
-                        0.15 + 0.05 * i, rround(damage * 0.5))  # fmt: skip
-        self.shockwaves.append(Shockwave(x, z, self.enemy_y(enemy), SMASH_RADIUS + 1.0))
+        x, z = enemy.x + c * SLAB_REACH, enemy.z + sn * SLAB_REACH
+        damage = rround(enemy.type.damage * MOVES["slab_smash"][2])
+        self._core_burst(x, z, 0.0, damage, radius=SMASH_RADIUS, warn=SMASH_WARN)
+        for i in range(SMASH_SHARDS):
+            a = enemy.yaw + (i + 0.5) * math.tau / SMASH_SHARDS
+            self._core_burst(x + math.cos(a) * SMASH_SCATTER, z + math.sin(a) * SMASH_SCATTER,
+                             0.15 + 0.05 * i, rround(damage * 0.5))  # fmt: skip
+        self.shockwaves.append(Shockwave(x, z, self.enemy_y(enemy), SMASH_RADIUS + 1.0, style="core"))
         self.game.sfx("quake", 1.1)
         self.game.sfx("eruption", 0.8)
 
-    def cinder_rain(self, enemy):
-        """Second phase: the Keystone shakes its torch over its head and embers rain down round you,
-        each lobbed out of the basket on an arc: one where you stand, then rings of them farther out
-        (CINDER_RINGS), one after another. Keep moving, and read where they glow."""
+    def core_beam(self, enemy):
+        """Second phase: the Keystone rakes a beam of the mortar-light from its heart along the floor,
+        a line of bursts from its feet toward you and on past you, each a moment after the one before
+        (the gargoyles' breath, in light). Step sideways out of the line."""
         player = self.player
-        damage = rround(enemy.type.damage * MOVES["cinder_rain"][2])
-        origin = self.torch_head(enemy)
-        self._ember(player.x, player.z, 0.0, damage, origin=origin)
+        dx, dz = player.x - enemy.x, player.z - enemy.z
+        d = math.hypot(dx, dz) or 1.0
+        ux, uz = dx / d, dz / d
+        damage = rround(enemy.type.damage * MOVES["core_beam"][2])
+        s, n = enemy.radius + 0.6, 0
+        while s <= d + BREATH_PAST:
+            if not self._core_burst(enemy.x + ux * s, enemy.z + uz * s, n * 0.12, damage):
+                break
+            s += BREATH_STEP
+            n += 1
+        self.game.sfx("breath", 0.9)
+
+    def shard_rain(self, enemy):
+        """Second phase: the Keystone shakes its fists over its head and shards of its shell rain down
+        round you, still lit, each flung out on an arc: one where you stand, then rings of them farther
+        out (SHARD_RINGS), one after another. Keep moving, and read where they glow."""
+        player = self.player
+        damage = rround(enemy.type.damage * MOVES["shard_rain"][2])
+        origin = self.shard_head(enemy)
+        self._core_burst(player.x, player.z, 0.0, damage, origin=origin)
         turn = random.random() * math.tau
         n = 1
-        for radius, count in CINDER_RINGS:
+        for radius, count in SHARD_RINGS:
             for i in range(count):
-                a = turn + (i + 0.5 * (radius > CINDER_RINGS[0][0])) * math.tau / count
+                a = turn + (i + 0.5 * (radius > SHARD_RINGS[0][0])) * math.tau / count
                 x, z = player.x + math.cos(a) * radius, player.z + math.sin(a) * radius
-                self._ember(x, z, min(CINDER_STAGGER * n, CINDER_SPAN), damage, origin=origin)
+                self._core_burst(x, z, min(SHARD_STAGGER * n, SHARD_SPAN), damage, origin=origin)
                 n += 1
         self.game.sfx("eruption", 0.7)
-        self.game.message("Embers rain from the Keystone's torch!")
+        self.game.message("Shards of the Keystone's shell rain down, burning with its light!")
 
-    def ember_nova(self, enemy):
-        """Second phase: the Keystone drives its torch down at its feet, and rings of fire burst out
+    def core_nova(self, enemy):
+        """Second phase: the Keystone drives its fists down at its feet, and rings of light burst out
         round it one after another (NOVA_RINGS), each turned half a gap from the last. Stand in a gap
         of each ring as it comes, or keep beyond the last."""
-        damage = rround(enemy.type.damage * MOVES["ember_nova"][2])
+        damage = rround(enemy.type.damage * MOVES["core_nova"][2])
         for k, (radius, count) in enumerate(NOVA_RINGS):
             for i in range(count):
                 a = enemy.yaw + (i + 0.5 * (k % 2)) * math.tau / count
-                self._ember(
+                self._core_burst(
                     enemy.x + math.cos(a) * radius, enemy.z + math.sin(a) * radius, NOVA_GAP * k, damage
                 )
-        self.shockwaves.append(Shockwave(enemy.x, enemy.z, self.enemy_y(enemy), NOVA_RINGS[-1][0]))
+        self.shockwaves.append(
+            Shockwave(enemy.x, enemy.z, self.enemy_y(enemy), NOVA_RINGS[-1][0], style="core")
+        )
         self.game.sfx("quake", 1.2)
-        self.game.message("The Keystone drives its torch into the ground, and fire runs out from it!")
+        self.game.message("The Keystone drives its fists into the ground, and its light runs out from it!")
 
     def moonfall(self, enemy):
         """Second phase: the moon rains down round you, a shaft where you stand and then rings of them
@@ -1827,6 +1894,7 @@ class World:
             if not e.alive:
                 self._shed_ash(e, dt)
         self.enemies = [e for e in self.enemies if not e.gone]
+        self._update_core(dt)
         self.ash.update(dt)
         for p in self.props:
             if p.break_t < 1.0:
@@ -1856,7 +1924,8 @@ class World:
         self._update_hints()
 
     def _update_hints(self):
-        """A tutorial hint shows the first time you step onto its tile, and never again."""
+        """A tutorial hint shows the first time you step onto its tile, and never again (setting its
+        `sets=` flag too, if it has one)."""
         if not self.player.alive:
             return
         here = (TileMap.tile_coord(self.player.x), TileMap.tile_coord(self.player.z))
@@ -1864,6 +1933,8 @@ class World:
         if hint is None:
             return
         self.flags.add(hint.flag(self.name))
+        if hint.sets:
+            self.flags.add(hint.sets)
         for line in hint.lines:
             self.game.message(line)
 
@@ -1952,7 +2023,9 @@ class World:
         self.gloom_t = max(self.gloom_t - dt, 0.0)
         for f in self.eruptions:
             if f.update(dt):
-                sound = {"hands": "quake", "moon": "motes", "filth": "splash"}.get(f.style, "eruption")
+                sound = {"hands": "quake", "moon": "motes", "filth": "splash", "core": "motes"}.get(
+                    f.style, "eruption"
+                )
                 self.sfx_near(sound, f.x, f.z, *(BOMB_SOUND if f.origin else ERUPTION_SOUND))
             if player.alive and -REACH_BELOW <= player.y - f.floor <= FIRE_ABOVE:  # not from a lift above it
                 dmg = f.hit(player.x, player.z)
@@ -2158,7 +2231,8 @@ class World:
     def _shot_lands(self, pr_, target):
         """One of your shots strikes `target`: its damage, its element's touch and its poison."""
         element = elements.EFFECT_ELEMENT.get(pr_.effect)
-        dmg = max(rround(pr_.damage * elements.mult(target.type, element)), 1)
+        mult = elements.mult(target.type, element) * elements.shot_mult(target.type, pr_.effect)
+        dmg = max(rround(pr_.damage * mult), 1)
         jolt = elements.staggers(target.type, element)
         self.game.damage_enemy(target, dmg, 99.0 if jolt else 1.0)
         if pr_.effect in ("venom", "thorn") and target.alive:
@@ -2707,18 +2781,29 @@ class World:
 
     @property
     def ward_key(self):
-        """The save flag that holds this map's ward decks on their second set."""
+        """The save flag that holds this map's ward decks on their pale set (`:c` added, the teal one)."""
         return f"ward:{self.name}"
 
     @property
+    def ward_fed_key(self):
+        """The save flag set once the core's shield ward has rung: the teal road joins the crystals' turn."""
+        return f"ward_fed:{self.name}"
+
+    @property
+    def ward_fed(self):
+        return self.ward_fed_key in self.flags
+
+    @property
     def ward_set(self):
-        """Which set of ward decks stands: "a", or "b" once a crystal has swapped them."""
+        """Which set of ward decks stands: "a" (gold), "b" (pale) or "c" (teal)."""
+        if f"{self.ward_key}:{terrain.FED_SET}" in self.flags:
+            return terrain.FED_SET
         return terrain.WARD_SETS[1] if self.ward_key in self.flags else terrain.WARD_SETS[0]
 
     def strike_wards(self, reach, cone=0.6):
-        """A swing that reaches a ward crystal swaps the ward decks: the set that stood fades, the other
-        wakes, and the save remembers which. Struck twice in one swing, it still swaps once. Returns
-        whether it rang."""
+        """A swing that reaches a ward crystal turns the ward decks to the next set: the set that stood
+        fades, the next wakes, and the save remembers which. Struck twice in one swing, it still turns
+        once. Returns whether it rang."""
         player = self.player
         fx, fz = player.forward()
         for p in self.props:
@@ -2727,19 +2812,151 @@ class World:
             dx, dz = p.x - player.x, p.z - player.z
             d = math.hypot(dx, dz) or 1e-6
             if d <= reach + TileMap.TILE / 2 and (cone < 0 or (dx * fx + dz * fz) / d > min(cone, 0.5)):
-                self.toggle_wards()
+                self.toggle_wards(shield="shield" in p.props)
                 return True
         return False
 
-    def toggle_wards(self):
-        if self.ward_key in self.flags:
-            self.flags.discard(self.ward_key)
-        else:
+    def set_ward(self, ward):
+        """Stands ward set `ward` and records it in the save."""
+        self.flags.discard(self.ward_key)
+        self.flags.discard(f"{self.ward_key}:{terrain.FED_SET}")
+        if ward == terrain.WARD_SETS[1]:
             self.flags.add(self.ward_key)
-        self.terrain.set_wards(self.ward_set)
+        elif ward == terrain.FED_SET:
+            self.flags.add(f"{self.ward_key}:{terrain.FED_SET}")
+        self.terrain.set_wards(ward)
+
+    def toggle_wards(self, shield=False):
+        """Turns the roads to the next set. The core's shield ward (`shield`), struck the first time,
+        feeds the teal road and wakes it at once; after that it turns like any other crystal."""
+        was = self.ward_set
+        if shield and not self.ward_fed:
+            self.flags.add(self.ward_fed_key)
+            now = terrain.FED_SET
+        else:
+            now = terrain.next_ward(was, self.ward_fed)
+        self.set_ward(now)
         self.game.sfx("bell", 0.9)
         self.game.sfx("spell", 0.5)
-        self.game.message("The ward-stone rings. One road of light fades; the other wakes.")
+        names = terrain.WARD_NAMES
+        if shield and now == terrain.FED_SET and was != now:
+            self.game.message("The shield ward tolls deep in the stone. A teal road wakes toward the plaza.")
+        else:
+            self.game.message(
+                f"The ward-stone rings. The {names[was]} road fades; the {names[now]} road wakes."
+            )
+        if now == terrain.FED_SET:
+            self.game.message("The shield over the mortar-light gutters and falls.")
+        elif was == terrain.FED_SET:
+            self.game.message("The shield over the mortar-light rises again.")
+
+    # --- the energy core (the mortar-light) ---------------------------------------
+
+    @property
+    def core_key(self):
+        """The save flag set once this map's energy core has been quenched."""
+        return f"core_quenched:{self.name}"
+
+    def core_quenched(self):
+        return self.core_key in self.flags
+
+    def core_shielded(self, p=None):
+        """Whether the ward's dome stands over the core: it does while the core has a `seal=` ward set
+        and that set is not the one standing."""
+        p = p or next((q for q in self.props if q.kind == "energy_core"), None)
+        seal = p.props.get("seal") if p is not None else None
+        return seal is not None and self.ward_set != seal
+
+    @staticmethod
+    def core_radius(p):
+        return float(p.props.get("radius", CORE_RADIUS))
+
+    def core_sustained(self, p):
+        """The living golems a lit core is mending: those standing within its radius."""
+        if self.core_quenched():
+            return []
+        radius = self.core_radius(p)
+        return [
+            e
+            for e in self.enemies
+            if e.alive and e.type.id in CORE_SUSTAINS and math.hypot(e.x - p.x, e.z - p.z) <= radius
+        ]
+
+    def core_mult(self, enemy):
+        """What a blow on `enemy` is multiplied by: more once the core that sustained it is quenched
+        (a golem it stood within reach of, where it woke or where it stands now)."""
+        if enemy.type.id not in CORE_SUSTAINS or not self.core_quenched():
+            return 1.0
+        for p in self.props:
+            if p.kind != "energy_core":
+                continue
+            radius = self.core_radius(p)
+            if (
+                min(
+                    math.hypot(enemy.x - p.x, enemy.z - p.z),
+                    math.hypot(enemy.home_x - p.x, enemy.home_z - p.z),
+                )
+                <= radius
+            ):
+                return CORE_QUENCHED_MULT
+        return 1.0
+
+    def _update_core(self, dt):
+        """A lit core mends the golems it sustains, CORE_REGEN HP a second (never past their full HP),
+        and hums."""
+        for p in self.props:
+            if p.kind != "energy_core" or self.core_quenched():
+                continue
+            for e in self.core_sustained(p):
+                if e.perched or e.hp >= e.type.hp:
+                    self._core_mend.pop(e, None)
+                    continue
+                mend = self._core_mend.get(e, 0.0) + CORE_REGEN * dt
+                whole = int(mend)
+                self._core_mend[e] = mend - whole
+                e.hp = min(e.hp + whole, e.type.hp)
+            self._core_hum += dt
+            if self._core_hum >= CORE_HUM[2]:
+                self._core_hum -= CORE_HUM[2]
+                self.sfx_near("core_hum", p.x, p.z, CORE_HUM[0], CORE_HUM[1])
+
+    def strike_core(self, reach, weapon, cone=0.6):
+        """A swing that reaches the energy core: with its ward shield down, a blunt blow cracks the
+        crystal and quenches it for good (the save remembers); the shield or an edge only rings off it.
+        Returns "quenched", "shielded", "edge", or None when no core was in reach (or it is out)."""
+        player = self.player
+        fx, fz = player.forward()
+        for p in self.props:
+            if p.kind != "energy_core" or self.core_quenched():
+                continue
+            dx, dz = p.x - player.x, p.z - player.z
+            d = math.hypot(dx, dz) or 1e-6
+            if d > reach + TileMap.TILE / 2 or (cone >= 0 and (dx * fx + dz * fz) / d <= min(cone, 0.5)):
+                continue
+            if self.core_shielded(p):
+                self.game.sfx("spell", 0.5)
+                self.game.sfx("hit", 0.6)
+                self.game.message("Your blow rebounds from the ward's dome of light.")
+                return "shielded"
+            if not elements.blunt(weapon):
+                self.game.sfx("hit_stone", 0.8)
+                self.game.message("Your edge skates off the crystal. Only a blunt blow would crack it.")
+                return "edge"
+            self.quench_core()
+            return "quenched"
+        return None
+
+    def quench_core(self):
+        """The core cracks and goes dark: its golems are no longer mended, and its light leaves the
+        baked lighting."""
+        self.flags.add(self.core_key)
+        self.starve_bosses()
+        self._core_mend.clear()
+        self.game.sfx("core_quench", 1.0)
+        self.game.sfx("crack", 0.8)
+        self.game.message("The crystal splits with a sound like a bell breaking. The mortar-light goes out.")
+        self._bake()
+        self._bake_props()
 
     def pull_lever(self, p):
         self.open_prop(p)
@@ -2962,13 +3179,18 @@ class World:
                     sewer_models.filth_burst(rig, f.flame, self._time + f.x)
                 elif f.style == "moon":
                     moon_models.moonbeam(rig, f.glow, f.flame, self._time + f.x)
+                elif f.style == "core":
+                    sunken_models.core_burst(rig, f.glow, f.flame, self._time, f.radius)
                 else:
                     models.eruption(rig, f.glow, f.flame, self._time, f.radius)
             bomb = f.bomb()
             if bomb:
                 gpu.model_light((1.6, 1.4, 1.2))
                 with rig.at(*bomb):
-                    forge_models.magma_bomb(rig, self._time)
+                    if f.style == "core":
+                        sunken_models.core_shard(rig, self._time + f.x)
+                    else:
+                        forge_models.magma_bomb(rig, self._time)
         for w in self.shockwaves:
             if w.style in ("ash", "squeal", "blink"):  # lit by the room rather than glowing
                 self._model_light(gpu, w.x, w.floor + 1.0, w.z)
@@ -2981,6 +3203,8 @@ class World:
                     sewer_models.squeal_ring(rig, w.progress, w.radius)
                 elif w.style == "blink":
                     moon_models.blink_mist(rig, w.progress, w.radius)
+                elif w.style == "core":
+                    sunken_models.core_ring(rig, w.progress, w.radius)
                 else:
                     models.shockwave_ring(rig, w.progress, w.radius)
         for d in self.devils:
@@ -3375,6 +3599,25 @@ class World:
             )
         elif k == "ward_crystal":
             sunken_models.ward_crystal(rig, t + p.tx, self.ward_set)
+        elif k == "energy_core":
+            quenched = self.core_quenched()
+            tethers = (
+                []
+                if quenched or self._baking
+                else [(e.x - p.x, self.enemy_y(e) - p.y, e.z - p.z) for e in self.core_sustained(p)]
+            )
+            sunken_models.energy_core(
+                rig,
+                t + p.tx,
+                float(p.props.get("height", "1.2")),
+                quenched=quenched,
+                shielded=self.core_shielded(p) and not quenched,
+                tethers=tethers,
+                yaw=p.yaw,
+                sunlit=any(
+                    q.kind == "sun_shaft" and math.hypot(q.x - p.x, q.z - p.z) < 3 for q in self.props
+                ),
+            )
         elif k == "waterfall":
             sunken_models.waterfall(
                 rig,

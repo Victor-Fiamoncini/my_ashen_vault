@@ -15,6 +15,8 @@ STRIKE_CATEGORIES = frozenset({"club", "hammer", "mace", "fists"})
 
 # Bolt effects and the element each carries.
 EFFECT_ELEMENT = {"flame": "fire", "thunder": "lightning"}
+# Shots that land like a blunt blow on a brittle foe (Sister Vell's Mortar Shard).
+CRACKING_EFFECTS = frozenset({"mortar"})
 
 
 def mult(type_, element):
@@ -36,9 +38,19 @@ def staggers(type_, element):
     return element == "lightning" and type_.conductive and not type_.boss
 
 
+def blunt(weapon):
+    """Whether `weapon` (an Item, or None for bare fists) strikes with a blunt blow that cracks stone."""
+    return (weapon.category if weapon is not None else "fists") in STRIKE_CATEGORIES
+
+
 def brittle_mult(type_, weapon):
     """Damage multiplier for a blow of `weapon` (an Item, or None for bare fists) on `type_`."""
     if not type_.brittle:
         return 1.0
-    category = weapon.category if weapon is not None else "fists"
-    return BRITTLE_STRIKE_MULT if category in STRIKE_CATEGORIES else BRITTLE_EDGE_MULT
+    return BRITTLE_STRIKE_MULT if blunt(weapon) else BRITTLE_EDGE_MULT
+
+
+def shot_mult(type_, effect):
+    """Damage multiplier for one of your shots of `effect` on `type_`: spells leave stone alone, except
+    the ones that crack it."""
+    return BRITTLE_STRIKE_MULT if type_.brittle and effect in CRACKING_EFFECTS else 1.0

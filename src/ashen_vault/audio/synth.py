@@ -389,6 +389,33 @@ def sounds():
                 + math.sin(t * TAU * 990) * 0.1 * max(1 - abs(p - 0.45) * 5, 0.0)
             ),
         ),
+        # The energy core breathing: a soft low hum of two close tones beating, swelling and ebbing.
+        "core_hum": gen(
+            1.8,
+            lambda t, p: (
+                (
+                    math.sin(t * TAU * 73) * 0.4
+                    + math.sin(t * TAU * 74.5) * 0.3
+                    + math.sin(t * TAU * 219) * 0.08
+                )
+                * math.sin(p * math.pi) ** 1.5
+            ),
+        ),
+        # The energy core quenched: a glassy crack, a falling chime like a bell breaking, and the hum
+        # under it sinking away to nothing.
+        "core_quench": gen(
+            2.2,
+            lambda t, p: (
+                noise() * math.exp(-t * 60) * 0.9
+                + (
+                    math.sin(t * TAU * 1240 * (1 - 0.25 * p)) * 0.22
+                    + math.sin(t * TAU * 1870 * (1 - 0.3 * p)) * 0.12
+                )
+                * math.exp(-t * 3.5)
+                + math.sin(t * TAU * (73 - 45 * p)) * 0.45 * (1 - p) ** 2
+                + lowpass(0.04) * 1.2 * math.exp(-t * 2.5)
+            ),
+        ),
         # A flame jet roaring out of its nozzle.
         "jet": gen(
             1.0, lambda t, p: (lowpass(0.35) * 1.8 + noise() * 0.3) * min(p / 0.08, 1.0) * (1 - p) ** 0.6

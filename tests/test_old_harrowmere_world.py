@@ -4,14 +4,14 @@ tiers, the gate from the Pall's cistern, the shortcut lift, the sextons' bells a
 import math
 
 from ashen_vault import map_path
-from ashen_vault.ai.enemy import QUAKE_RADIUS, QUAKE_SAFE, TOLL_RADIUS, TORCH_REACH
+from ashen_vault.ai.enemy import QUAKE_RADIUS, QUAKE_SAFE, SLAB_REACH, TOLL_RADIUS
 from ashen_vault.ai.enemy_types import EnemyTypes
 from ashen_vault.util import rround
 from ashen_vault.world import collision, relics, terrain
 from ashen_vault.world.hazards import Eruption
 from ashen_vault.world.map_loader import MapLoader
 from ashen_vault.world.tile_map import TileMap
-from ashen_vault.world.world import NOVA_RINGS, World
+from ashen_vault.world.world import NOVA_RINGS, QUENCHED_HP, World
 from test_verdant_world import JungleGame, foe
 from test_world import BESIDE, _reachable, _spec
 
@@ -46,10 +46,11 @@ def test_old_harrowmere_is_solvable_from_the_breach_down_to_the_keystone():
     (front,) = [d for d in doors if m[d[0], d[1] - 1].walkable]  # the one the plaza's stair leads to
     court = _reachable(m, start, open_tiles=[front])
     assert (keystone.tx, keystone.tz) in court
-    # Behind the false walls and the Oubliette's cell fronts (raised by its lever) every chest but the
-    # boss's reward and the lift room's hidden one lies open before the Keystone falls.
+    # Behind the false walls and the cell fronts (raised by the levers of the Oubliette, the gaolers'
+    # postern and the Under-Cells) every chest but the boss's reward and the lift room's hidden one lies
+    # open before the Keystone falls.
     secrets = [(s.tx, s.tz) for s in _spec(m, "secret_wall")]
-    cells = [(s.tx, s.tz) for s in _spec(m, "gate", lever="oubliette")]
+    cells = [(s.tx, s.tz) for s in _spec(m, "gate")]
     explored = _reachable(m, start, open_tiles=secrets + cells)
     behind_boss = {(s.tx, s.tz) for s in _spec(m, "chest") if (s.tx, s.tz) not in explored}
     (coffer,) = _spec(m, "chest", model="coffer")
@@ -89,15 +90,101 @@ def test_the_oubliette_hides_behind_a_false_wall_and_its_lever_opens_the_cells()
     cells = [(s.tx, s.tz) for s in _spec(m, "gate", lever="oubliette")]
     assert len(cells) == 6 and not set(cells) & inside
     freed = _reachable(m, start, open_tiles=[(wall.tx, wall.tz), *cells])
-    for npc in _spec(m, "npc"):
+    held = [npc for npc in _spec(m, "npc") if npc.props["id"] in {"aubel", "coldry", "ysolde"}]
+    for npc in held:
         (front,) = [c for c in cells if c in _beside((npc.tx, npc.tz))]  # each behind its own bars
         assert front in freed, npc.props["id"]
         reach = float(npc.props["reach"])
         assert any(math.hypot(x - npc.tx, z - npc.tz) * 2 <= reach for x, z in inside), npc.props["id"]
-    assert {s.props["id"] for s in _spec(m, "npc")} == {"aubel", "coldry", "ysolde"}
+    assert {s.props["id"] for s in _spec(m, "npc")} == {
+        "aubel",
+        "coldry",
+        "ysolde",
+        "brannick",
+        "sister_vell",
+    }
     (hammer,) = _spec(m, "chest", item="torch_greathammer")
     (sword,) = _spec(m, "chest", item="ember_stone_sword")
     assert (hammer.tx, hammer.tz) in inside and (sword.tx, sword.tz) not in plain
+
+
+def test_the_under_cells_lie_down_the_gaolers_stair_and_the_wardens_lever_opens_them():
+    """Below the Oubliette: the gaoler's hall holds a second lever, which raises the bars either side of
+    the gallery (the gaolers' postern) onto their stair. It winds down to the Under-Cells, a tier
+    beneath: the flooded cell block, the interrogation hall, the warden's office and the deep cells,
+    whose fronts the warden's lever raises. Brannick and Sister Vell are held there, each behind their
+    own bars, and can be spoken to from the corridor."""
+    m = _map()
+    start = (4, 3)
+    (wall,) = [w for w in _spec(m, "secret_wall") if m[w.tx, w.tz].ceil is not None]
+    oubliette = [(s.tx, s.tz) for s in _spec(m, "gate", lever="oubliette")]
+    postern = [(s.tx, s.tz) for s in _spec(m, "gate", lever="under_stair")]
+    deep = [(s.tx, s.tz) for s in _spec(m, "gate", lever="undercells")]
+    assert len(postern) == 2 and len(deep) >= 10
+    (stair_lever,) = _spec(m, "lever", id="under_stair")
+    (warden_lever,) = _spec(m, "lever", id="undercells")
+    inside = _reachable(m, start, open_tiles=[(wall.tx, wall.tz)])
+    assert (stair_lever.tx, stair_lever.tz) in inside  # in the gaoler's hall, past no cell front
+    # The postern's gates stand either side of the gallery: the hall on one side, the stair on the other.
+    (cross,) = set(_beside(postern[0])) & set(_beside(postern[1]))
+    assert m[cross].ceil is not None and m[cross].floor == 0 and cross in _reachable(m, start)
+    shut = _reachable(m, start, open_tiles=[(wall.tx, wall.tz), *oubliette])
+    assert (warden_lever.tx, warden_lever.tz) not in shut
+    down = _reachable(m, start, open_tiles=[(wall.tx, wall.tz), *postern])
+    assert (warden_lever.tx, warden_lever.tz) in down
+    assert m[warden_lever.tx, warden_lever.tz].floor <= -6  # a tier below the Oubliette
+    assert all(m[x, z].ceil is not None for x, z in down - inside if m[x, z].walkable)  # all under rock
+    flooded = [t for t in down if m[t].floor_tex == "water" and m[t].walkable]
+    assert len(flooded) >= 20 and all(m[t].slow < 1 for t in flooded)
+    assert {s.kind for s in m.entities if (s.tx, s.tz) in down} >= {"gaoler", "hollow_inmate", "stone_golem"}
+    opened = _reachable(m, start, open_tiles=[(wall.tx, wall.tz), *postern, *deep])
+    for npc_id in ("brannick", "sister_vell"):
+        (npc,) = _spec(m, "npc", id=npc_id)
+        (front,) = [c for c in deep if c in _beside((npc.tx, npc.tz))]
+        assert front in opened and (npc.tx, npc.tz) not in down
+        reach = float(npc.props["reach"])
+        assert any(math.hypot(x - npc.tx, z - npc.tz) * 2 <= reach for x, z in down), npc_id
+    chests = {(s.tx, s.tz) for s in _spec(m, "chest") if s.tz >= 47}
+    assert len(chests) >= 6 and chests <= opened and not chests <= down
+    for tile in opened:
+        assert start in _reachable(m, tile, open_tiles=[(wall.tx, wall.tz), *postern, *deep]), tile
+    # Brannick is held in the cell beside the warden's office; the way to the deep cells runs through it.
+    (brannick,) = _spec(m, "npc", id="brannick")
+    office = _reachable(m, (warden_lever.tx, warden_lever.tz), avoid=deep)
+    assert any(t in office for t in _beside((brannick.tx, brannick.tz + 2)))
+    (vell,) = _spec(m, "npc", id="sister_vell")
+    corridor = (vell.tx, vell.tz - 2)
+    assert m[corridor].floor_tex == "water"  # the water stands high in the deep cells
+
+
+def test_stepping_down_into_the_under_cells_is_remembered():
+    """The foot of the gaolers' stair marks the Under-Cells visited (`visited_undercells`), which their
+    prisoners and the Oubliette's speak of."""
+    m = _map()
+    (mark,) = [s for s in _spec(m, "hint") if s.props.get("sets") == "visited_undercells"]
+    game, world = sunken(at=(mark.tx, mark.tz - 3))
+    world._update_hints()
+    assert "visited_undercells" not in game.flags
+    game.player.place(*TileMap.center(mark.tx, mark.tz), 0.0, world.map)
+    world._update_hints()
+    assert "visited_undercells" in game.flags and game.messages
+
+
+def test_the_mortar_sisters_workshop_stands_east_of_the_roads():
+    """The Mortar Sisters' Workshop, on its quay east of the roads of light: carving benches, a lore
+    hint, golems and a sexton, and a reward chest, reached over the roads (one turn of them)."""
+    m = _map()
+    assert (m.width, m.depth) == (64, 60)
+    (chest,) = _spec(m, "chest", item="tower_shield")
+    assert chest.tx >= 48
+    states = _ward_states(m, (4, 3))
+    assert _least(states, set(_beside((chest.tx, chest.tz)))) == 1
+    shop = [s for s in m.entities if s.tx >= 45 and 18 <= s.tz <= 33]
+    kinds = {s.kind for s in shop}
+    assert {"table", "grindstone", "stone_golem", "sunken_sexton", "hint", "ward_crystal"} <= kinds
+    assert any("Mortar Sisters" in s.props.get("text", "") for s in shop if s.kind == "hint")
+    teal = [s for s in _spec(m, "light") if s.props.get("color") == "0.45,1.25,1.0"]
+    assert len(teal) >= 5
 
 
 def test_old_harrowmere_falls_away_in_tiers():
@@ -196,20 +283,20 @@ def test_the_keystone_hurls_masonry():
     assert math.hypot(shot.dx, shot.dz) > 6  # faster than a plain bolt
 
 
-def test_the_keystone_rakes_fire_with_its_torch_in_its_ember_phase():
-    """Once its shell bursts, the Keystone drags its torch along the floor: a line of fire runs out
-    from its feet toward you and on past you, each burst a moment after the one before."""
+def test_the_keystone_rakes_a_beam_of_light_from_its_heart_in_its_second_phase():
+    """Once its shell sloughs off, the Keystone rakes the mortar-light from its heart along the floor:
+    a line of bursts runs out from its feet toward you and on past you, each a moment after the last."""
     t = EnemyTypes.get("keystone")
-    assert "breath" in t.phase_moves and "breath" not in t.moves
+    assert "core_beam" in t.phase_moves and "core_beam" not in t.moves
     _game, world = sunken(at=(22, 39))
     keystone = foe(world, "keystone", (22, 44))
     world.eruptions = []
-    world.breath(keystone)
+    world.core_beam(keystone)
     fire = world.eruptions
     assert len(fire) >= 3
     assert all(abs(e.x - keystone.x) < 0.5 for e in fire)  # straight at you down the court
     assert all(e.z < keystone.z for e in fire) and min(e.z for e in fire) < world.player.z  # and past you
-    assert all(e.style == "fire" for e in fire)
+    assert all(e.style == "core" for e in fire)
     assert [e.t for e in fire] == sorted((e.t for e in fire), reverse=True)  # each bursting after the last
 
 
@@ -249,47 +336,54 @@ def test_a_foe_cannot_reach_you_riding_a_lift_past_it_above_or_below():
     assert drowned.state in ("windup", "attack", "recover")
 
 
-def test_the_keystone_is_slow_and_bears_its_torch_into_both_phases():
+def test_the_keystone_is_slow_and_smashes_with_its_slabs_in_both_phases():
+    from ashen_vault.ai.enemy import ATTACK_TIMES, MOVES
+
     t = EnemyTypes.get("keystone")
     assert t.tempo > 1 and t.impact > 0  # every swing heaved through, as befits its size
-    assert "torch_smash" in t.moves
-    assert {"cinder_rain", "ember_nova"} <= set(t.phase_moves)
-    assert not {"cinder_rain", "ember_nova"} & set(t.moves)
+    assert "slab_smash" in t.moves
+    assert {"core_beam", "shard_rain", "core_nova"} <= set(t.phase_moves)
+    assert not {"core_beam", "shard_rain", "core_nova"} & set(t.moves)
+    for move in ("slab_smash", "core_beam", "shard_rain", "core_nova"):
+        assert move in MOVES and move in ATTACK_TIMES
+    # The beam is the gargoyles' breath restyled: the same timing and weight.
+    assert MOVES["core_beam"] == MOVES["breath"] and ATTACK_TIMES["core_beam"] == ATTACK_TIMES["breath"]
 
 
-def test_the_keystone_brings_its_torch_down_in_a_great_burst_before_it():
+def test_the_keystone_brings_a_slab_down_in_a_great_burst_before_it():
     _game, world = sunken(at=(22, 39))
     keystone = foe(world, "keystone", (22, 44))
     keystone.yaw = -math.pi / 2  # facing up the court, toward -z
     world.eruptions = []
-    world.torch_smash(keystone)
+    world.slab_smash(keystone)
     big, *coals = world.eruptions
     assert big.radius > 2 * Eruption.RADIUS and big.warn < Eruption.WARN  # wide, and with little warning
-    assert math.hypot(big.x - keystone.x, big.z - (keystone.z - TORCH_REACH)) < 0.01
+    assert all(f.style == "core" for f in world.eruptions)  # the mortar-light, not fire
+    assert math.hypot(big.x - keystone.x, big.z - (keystone.z - SLAB_REACH)) < 0.01
     assert len(coals) >= 4
     assert all(2.0 < math.hypot(c.x - big.x, c.z - big.z) < 4.0 for c in coals)
     assert all(c.t < 0 for c in coals)  # they burst a moment after it
 
 
-def test_the_keystone_rains_embers_round_you_from_its_torch():
+def test_the_keystone_rains_shards_of_its_shell_round_you():
     game, world = sunken(at=(22, 39))
     keystone = foe(world, "keystone", (22, 45))
     world.eruptions = []
-    world.cinder_rain(keystone)
+    world.shard_rain(keystone)
     first, *rest = world.eruptions
     p = game.player
     assert (first.x, first.z) == (p.x, p.z) and first.t == 0  # one where you stand, at once
     assert len(rest) >= 6
     assert all(math.hypot(f.x - p.x, f.z - p.z) < 6.0 for f in rest)
-    assert all(f.origin is not None for f in world.eruptions)  # each lobbed out of its basket
+    assert all(f.origin is not None for f in world.eruptions)  # each flung down from over its head
     assert [f.t for f in world.eruptions] == sorted((f.t for f in world.eruptions), reverse=True)
 
 
-def test_the_keystones_rings_of_fire_run_out_with_gaps_to_stand_in():
+def test_the_keystones_rings_of_light_run_out_with_gaps_to_stand_in():
     _game, world = sunken(at=(22, 39))
     keystone = foe(world, "keystone", (22, 43))
     world.eruptions = []
-    world.ember_nova(keystone)
+    world.core_nova(keystone)
     fire = world.eruptions
     assert fire
     rings = {}
@@ -424,16 +518,17 @@ def test_harpies_wheel_over_the_plaza_and_the_terrace():
 AROUND = [(dx, dz) for dx in (-1, 0, 1) for dz in (-1, 0, 1) if dx or dz]
 
 
-def _ward_states(m, start, ward="a"):
-    """Breadth-first over (tile, standing set): from where you stand you walk the ground and the decks
-    of the set that stands; beside a ward crystal, on solid ground (never on a deck), you can swap the
-    sets. Returns {(tile, set): swaps it took to get there}."""
+def _ward_states(m, start, ward="a", fed=False):
+    """Breadth-first over (tile, standing set, fed): from where you stand you walk the ground and the
+    decks of the set that stands; beside a ward crystal, on solid ground (never on a deck), you can
+    strike it and turn the roads to the next set (gold, pale, and teal once fed). The core's shield ward,
+    struck the first time, feeds the teal road and wakes it at once. Returns {(tile, set, fed): strikes
+    it took to get there}."""
     decks = {}
     for s in _spec(m, "ward"):
         decks.setdefault(s.props["set"], set()).add((s.tx, s.tz))
     every_deck = set().union(*decks.values())
-    crystals = {(s.tx, s.tz) for s in _spec(m, "ward_crystal")}
-    other = {"a": "b", "b": "a"}
+    crystals = {(s.tx, s.tz): "shield" in s.props for s in _spec(m, "ward_crystal")}
     doors = [(s.tx, s.tz) for s in _spec(m, "door", boss="keystone_dead")]
     front = [d for d in doors if m[d[0], d[1] - 1].walkable]
     cache = {}
@@ -441,56 +536,110 @@ def _ward_states(m, start, ward="a"):
     def reach(tile, ward):
         key = (tile, ward)
         if key not in cache:
-            cache[key] = _reachable(m, tile, open_tiles=front, avoid=decks[other[ward]])
+            cache[key] = _reachable(m, tile, open_tiles=front, avoid=every_deck - decks.get(ward, set()))
         return cache[key]
 
-    seen = {(start, ward): 0}
-    layer = [(start, ward)]
-    swaps = 0
+    seen = {(start, ward, fed): 0}
+    layer = [(start, ward, fed)]
+    strikes = 0
     while layer:
         nxt = []
-        for tile, w in layer:
+        for tile, w, f in layer:
             for t in reach(tile, w):
-                if (t, w) not in seen:
-                    seen[(t, w)] = swaps
+                seen.setdefault((t, w, f), strikes)
             for t in reach(tile, w):
-                if t in every_deck or not any((t[0] + dx, t[1] + dz) in crystals for dx, dz in AROUND):
+                if t in every_deck:
                     continue
-                if (t, other[w]) not in seen:
-                    seen[(t, other[w])] = swaps + 1
-                    nxt.append((t, other[w]))
+                for dx, dz in AROUND:
+                    shield = crystals.get((t[0] + dx, t[1] + dz))
+                    if shield is None:
+                        continue
+                    if shield and not f:
+                        state = (t, terrain.FED_SET, True)
+                    else:
+                        state = (t, terrain.next_ward(w, f), f)
+                    if state not in seen:
+                        seen[state] = strikes + 1
+                        nxt.append(state)
         layer = nxt
-        swaps += 1
+        strikes += 1
     return seen
 
 
-def test_the_roads_of_light_take_three_swaps_to_cross_and_never_strand_you():
-    """The Keystone's court lies across the chasm, past the masons' two roads of light: the plaza's
-    old stair to its door is gone. Only one road stands at a time, and the way across swaps them three
-    times at the least. Wherever you can get to, with either road standing, a ward crystal is within
-    reach, so a fall or a wrong swap never strands you."""
+def _least(states, tiles, ward=None):
+    return min(n for (t, w, _f), n in states.items() if t in tiles and (ward is None or w == ward))
+
+
+def _roads():
     m = _map()
     (back,) = _spec(m, "exit", map="harrow_sewers")
-    start = (back.tx + 1, back.tz)
+    return m, (back.tx + 1, back.tz)
+
+
+def test_the_roads_of_light_take_three_turns_to_cross_and_never_strand_you():
+    """The Keystone's court lies across the chasm, past the masons' roads of light: the plaza's old stair
+    to its door is gone. Only one road stands at a time, and the way across turns them three times at the
+    least, never needing the teal road. Wherever you can get to, whichever road stands, a ward crystal is
+    within reach, so a fall or a wrong turn never strands you."""
+    m, start = _roads()
     door = next((s.tx, s.tz) for s in _spec(m, "door", boss="keystone_dead") if m[s.tx, s.tz - 1].walkable)
     landing = (door[0], door[1] - 1)
     decks = {(s.tx, s.tz) for s in _spec(m, "ward")}
     plain = _reachable(m, start, avoid=decks)  # no road at all
     assert landing not in plain
     states = _ward_states(m, start)
-    assert (landing, "a") in states or (landing, "b") in states
-    least = min(n for (tile, _w), n in states.items() if tile == landing)
-    assert least >= 3, least
+    assert _least(states, {landing}) == 3
+    # The boss's path never needs the core's shield ward: unfed, the court is as near.
+    assert min(n for (t, _w, f), n in states.items() if t == landing and not f) == 3
+    assert {w for _t, w, _f in states} == set(terrain.WARD_SETS)  # every road can be made to stand
     crystals = {(s.tx, s.tz) for s in _spec(m, "ward_crystal")}
-    solid = {tile for tile, _w in states if tile not in decks}
-    for tile in solid:  # from any ground you reach, either road standing, a crystal is in reach
-        for w in ("a", "b"):
+    solid = {tile for tile, _w, _f in states if tile not in decks}
+    for tile in solid:  # from any ground you reach, whichever road stands, a crystal is in reach
+        for w in terrain.WARD_SETS:
             fading = {(s.tx, s.tz) for s in _spec(m, "ward") if s.props["set"] != w}
             near = _reachable(m, tile, open_tiles=[door], avoid=fading)
             assert any((x + dx, z + dz) in crystals for x, z in near - decks for dx, dz in AROUND), (tile, w)
-    # Both sets carry weight over the chasm at the plaza's height, so the road meets the islands level.
+    # Every set carries weight over the chasm at the plaza's height, so the road meets the islands level.
     for s in _spec(m, "ward"):
         assert m[s.tx, s.tz].chasm and float(s.props["deck"]) == m[32, 29].floor
+
+
+def test_the_third_road_runs_out_to_the_cores_shield_ward_and_teal_home():
+    """A pale road from the second island reaches the Mortar Sisters' quay (one turn); from the quay a
+    gold road runs out to the core's shield ward (two). Striking it feeds the teal road, which only then
+    joins the crystals' turn, and runs home to the plaza: the shield over the core only falls while it
+    stands, three turns in at the least."""
+    m, start = _roads()
+    states = _ward_states(m, start)
+    (shield,) = [s for s in _spec(m, "ward_crystal") if "shield" in s.props]
+    (core,) = _spec(m, "energy_core")
+    assert (core.tx, core.tz) == (21, 27) and core.props["seal"] == terrain.FED_SET
+    assert m[core.tx, core.tz].liquid  # in the fountain's pool
+    (quay_crystal,) = [s for s in _spec(m, "ward_crystal") if s.tx >= 45]
+    quay = {(quay_crystal.tx + dx, quay_crystal.tz + dz) for dx, dz in AROUND}
+    assert _least(states, quay) == 1
+    island = {(shield.tx + dx, shield.tz + dz) for dx, dz in AROUND}
+    assert _least(states, island) == 2
+    # The teal road never stands before the shield ward has rung.
+    assert all(f for _t, w, f in states if w == terrain.FED_SET)
+    teal = {(s.tx, s.tz) for s in _spec(m, "ward", set=terrain.FED_SET)}
+    assert teal and not teal & {t for t, w, _f in states if w != terrain.FED_SET}
+    # Home on the plaza beside the fountain, with the teal road standing and the shield down.
+    fountain = {(core.tx + dx, core.tz + dz) for dx in range(-2, 3) for dz in range(-2, 3)}
+    fountain = {t for t in fountain if m[t].walkable and not m[t].chasm}
+    assert _least(states, fountain, terrain.FED_SET) == 3
+    # ...and it is the teal road that brings you home: without it the island strands you on it.
+    others = {(s.tx, s.tz) for s in _spec(m, "ward") if s.props["set"] != terrain.FED_SET}
+    assert not fountain & _reachable(m, (shield.tx, shield.tz + 1), avoid=others | teal)
+    assert fountain & _reachable(m, (shield.tx, shield.tz + 1), avoid=others)
+
+
+def test_the_crystals_turn_gold_pale_and_teal_only_once_fed():
+    assert terrain.ward_turn(False) == ("a", "b")
+    assert terrain.ward_turn(True) == ("a", "b", "c")
+    assert [terrain.next_ward(w, False) for w in "ab"] == ["b", "a"]
+    assert [terrain.next_ward(w, True) for w in "abc"] == ["b", "c", "a"]
+    assert terrain.next_ward("c", False) == "a"  # an unfed turn never keeps the teal road
 
 
 def test_striking_a_ward_crystal_swaps_the_roads_and_the_save_remembers():
@@ -514,6 +663,30 @@ def test_striking_a_ward_crystal_swaps_the_roads_and_the_save_remembers():
     # A swing that reaches no crystal swaps nothing.
     game.player.yaw = math.pi / 2
     assert not world.strike_wards(2.0) and world.ward_set == "b"
+    # Unfed, the next strike goes back to gold: the teal road is not yet in the turn.
+    game.player.yaw = -math.pi / 2
+    assert world.strike_wards(2.0) and world.ward_set == "a" and world.ward_key not in game.flags
+
+
+def test_the_shield_ward_feeds_the_teal_road_and_drops_the_cores_shield():
+    game, world = sunken(at=(38, 18))
+    game.player.yaw = -math.pi / 2  # facing the shield ward, north of its island
+    assert world.core_shielded() and not world.ward_fed
+    assert world.strike_wards(2.0)
+    assert world.ward_fed and world.ward_set == "c" and not world.core_shielded()
+    assert world.ward_fed_key in game.flags and f"{world.ward_key}:c" in game.flags
+    assert any("teal" in m for m in game.messages)
+    teal = [p for p in world.terrain.platforms if p.kind == "ward" and p.ward == "c"]
+    assert teal and all(p.active for p in teal)
+    # The save keeps the teal road standing, and the shield down.
+    again = World(game, "old_harrowmere")
+    assert again.ward_set == "c" and not again.core_shielded()
+    assert all(p.afloat for p in again.terrain.platforms if p.kind == "ward" and p.ward == "c")
+    # Fed, every crystal now turns gold, pale, teal: the shield rises with gold and pale.
+    assert world.strike_wards(2.0) and world.ward_set == "a" and world.core_shielded()
+    assert f"{world.ward_key}:c" not in game.flags and world.ward_key not in game.flags
+    assert world.strike_wards(2.0) and world.ward_set == "b" and world.core_shielded()
+    assert world.strike_wards(2.0) and world.ward_set == "c" and not world.core_shielded()
 
 
 def test_a_fading_road_drops_you_into_the_chasm():
@@ -524,3 +697,34 @@ def test_a_fading_road_drops_you_into_the_chasm():
     for p in t.platforms:
         p.update(0.05, loaded=False)
     assert t.support(game.player.x, game.player.z) is None  # it bears no weight as soon as it fades
+
+
+def test_the_lit_core_floods_the_keystone_with_light_as_its_shell_sloughs_off():
+    """While the plaza's core burns the Keystone starts whole, and at half HP the core's light floods
+    a share of its HP back into it."""
+    game, world = sunken(at=(22, 39))
+    assert not world.core_quenched()
+    world._spawn_entities()
+    (keystone,) = [e for e in world.enemies if e.type.id == "keystone"]
+    assert keystone.hp == keystone.type.hp
+    keystone.hp = keystone.type.hp // 2
+    world.boss_rage(keystone)
+    assert keystone.hp == keystone.type.hp // 2 + rround(keystone.type.hp * keystone.type.surge)
+    assert keystone.type.rage in game.messages
+
+
+def test_quenching_the_core_weakens_the_keystone_and_denies_it_its_surge():
+    game, world = sunken(at=(22, 39), flags=("core_quenched:old_harrowmere",))
+    assert world.core_quenched()
+    world._spawn_entities()
+    (keystone,) = [e for e in world.enemies if e.type.id == "keystone"]
+    full = keystone.type.hp
+    assert keystone.hp == rround(full * QUENCHED_HP) and keystone.trail_hp <= keystone.hp
+    world.starve_bosses()  # safe to call again: it never weakens it twice
+    assert keystone.hp == rround(full * QUENCHED_HP)
+    keystone.hp = full // 2
+    world.boss_rage(keystone)
+    assert keystone.hp == full // 2  # no light left to flood back into it
+    assert any("gutters" in m for m in game.messages)
+    # Only a boss the core fed: the golems keep their HP.
+    assert all(e.hp == e.type.hp for e in world.enemies if e.type.id == "stone_golem")

@@ -60,8 +60,10 @@ LIGHT_KINDS = (
     "moon_lamp",
     "moon_window",
     "sump_caps",
+    "energy_core",
 )
 LIGHT_Y = {
+    "energy_core": "2.4",
     "save_statue": "2.4",
     "lamp_post": "2.6",
     "grand_stair": "3.2",
@@ -85,6 +87,7 @@ LIGHT_Y_WALL = {
     "moon_window": "2.2",
 }
 LIGHT_COLOR = {
+    "energy_core": "0.45,1.25,1.0",
     "fungus": "0.3,0.85,0.65",
     "sump_caps": "0.62,0.74,0.3",
     "giant_mushroom": "0.55,0.35,0.85",
@@ -103,6 +106,7 @@ LIGHT_COLOR = {
     "moon_window": "0.58,0.68,0.98",
 }
 LIGHT_RADIUS = {
+    "energy_core": "9",
     "save_statue": "6",
     "hearth": "6",
     "lamp_post": "7",
@@ -127,6 +131,7 @@ WALL_LIGHTS = (
 )
 # Fires that can stand cold (`unlit`) until something kindles them.
 KINDLING = ("brazier", "bonfire")
+QUENCHABLE = ("energy_core",)  # lights that go out for good: `lights_for`'s `lit` says whether they burn
 DIRS = ((1, 0), (-1, 0), (0, 1), (0, -1))
 # On a map with `[meta] roofs = true`, how far a roof stands over its ceiling at the least: the slab
 # a doorway's lintel is cut from.
@@ -217,18 +222,22 @@ class MeshBuilder:
             height = LIGHT_Y_WALL.get(e.kind, "1.9")
         y = map_[e.tx, e.tz].floor + float(e.props.get("rise", "0")) + float(e.props.get("y", height))
         color = [float(c) for c in e.props.get("color", LIGHT_COLOR.get(e.kind, "1.0,0.62,0.32")).split(",")]
-        radius = e.props.get("radius", LIGHT_RADIUS.get(e.kind, "7"))
+        # The energy core's `radius=` is the reach it sustains golems within; its light's is `light_radius=`.
+        key = "light_radius" if e.kind in QUENCHABLE else "radius"
+        radius = e.props.get(key, LIGHT_RADIUS.get(e.kind, "7"))
         return Light(x, y, z, float(radius), color)
 
     @staticmethod
     def lights_for(map_, lit=None):
         """Lights from the map's entities. A cold (`unlit`) brazier or bonfire only counts once
-        `lit(spec)` says it has been kindled."""
+        `lit(spec)` says it has been kindled, and a quenched energy core once `lit(spec)` says it is out."""
         lights = []
         for e in map_.entities:
             if e.kind not in LIGHT_KINDS:
                 continue
             if e.kind in KINDLING and "unlit" in e.props and not (lit and lit(e)):
+                continue
+            if e.kind in QUENCHABLE and lit and not lit(e):  # the energy core, once quenched
                 continue
             lights.append(MeshBuilder.light_for(map_, e))
         vault = Vault.of(map_)

@@ -26,6 +26,9 @@ vault_tex = cavern_rock
 // Bell-keepers' Oubliette. Stone Golems stand like statues until you come
 // close, and the Sunken Sextons ring their bells to wake them. Over it all hangs the vault of the cavern,
 // rough rock 24 m up with stalactites hanging from it (`vault`); the shaft falls through a rift in it.
+// Below the Oubliette the gaolers' stair runs down to the Under-Cells; east of the roads of light the
+// Mortar Sisters' Workshop stands on its quay, and a third, teal road (fed from the mortar-light in the
+// plaza's fountain) runs home from the core's shield ward.
 
 [legend]
 # = wall tex=cavern_rock top=24
@@ -90,56 +93,84 @@ $ = floor tex=ochre_flag h=-13.5 side=sunken_brick dark=0.12
 ( = floor tex=ochre_flag h=-21 side=sunken_brick dark=0.17
 ) = floor tex=ochre_flag h=-21.5 side=sunken_brick dark=0.17
 { = wall tex=sunken_brick top=-10
+// The Under-Cells, the gaolers' lower tier below the Oubliette, down their stair across the gallery.
+ă = floor tex=ochre_flag h=-0.5 side=sunken_brick ceil=2.9 ceil_tex=sunken_brick dark=0.55
+ą = floor tex=ochre_flag h=-1 side=sunken_brick ceil=2.4 ceil_tex=sunken_brick dark=0.55
+ć = floor tex=ochre_flag h=-1.5 side=sunken_brick ceil=1.9 ceil_tex=sunken_brick dark=0.55
+ĉ = floor tex=ochre_flag h=-2 side=sunken_brick ceil=1.4 ceil_tex=sunken_brick dark=0.55
+ċ = floor tex=ochre_flag h=-2.5 side=sunken_brick ceil=0.9 ceil_tex=sunken_brick dark=0.55
+č = floor tex=ochre_flag h=-3 side=sunken_brick ceil=0.4 ceil_tex=sunken_brick dark=0.55
+ď = floor tex=ochre_flag h=-3.5 side=sunken_brick ceil=-0.1 ceil_tex=sunken_brick dark=0.55
+đ = floor tex=ochre_flag h=-4 side=sunken_brick ceil=-0.6 ceil_tex=sunken_brick dark=0.55
+ē = floor tex=ochre_flag h=-4.5 side=sunken_brick ceil=-1.1 ceil_tex=sunken_brick dark=0.55
+ĕ = floor tex=ochre_flag h=-5 side=sunken_brick ceil=-1.6 ceil_tex=sunken_brick dark=0.55
+ė = floor tex=ochre_flag h=-5.5 side=sunken_brick ceil=-2.1 ceil_tex=sunken_brick dark=0.55
+ę = floor tex=ochre_flag h=-6 side=sunken_brick ceil=-2.6 ceil_tex=sunken_brick dark=0.55
+ł = floor tex=ochre_flag h=-6 side=sunken_brick ceil=-2.4 ceil_tex=sunken_brick dark=0.5
+ŵ = floor tex=water h=-6.2 side=sunken_brick ceil=-2.4 ceil_tex=sunken_brick slow=0.7 dark=0.55
+ħ = floor tex=ochre_flag h=-6 side=sunken_brick ceil=0 ceil_tex=sunken_brick dark=0.45
 
 [grid]
-################################################
-################################################
-##aaaaaaaaaaCpqrstuMkvwxyVz0ÑccccccÍ############
-##AaaaaaaaaaCpqrstuiUvwxylz0ccccccXc############
-##aaaaaaaaaa11______________ccccWccc_________###
-##aaaaaaaaaa11______________cXûccccc_________###
-##aaaaBaaaDa11______________EccccÆcE_________###
-##aaaaaaaaaa_____P____________22_____________###
-###g########__________________22_____________###
-###gáààààöö#LddddddÒ__________22_____________###
-###ñ#ãâààâä#dÀÃddÃdd__________22________Q____###
-###g#ööààöö#FdddZddF__________3345___________###
-###g#åâààâæ#dddddddd66666666677778___________###
-###g#ööíàöö#ddÃddÃdÈ6666666697777.__Ø________###
-###J#çâààâè#dÀddddÀd________,7777;___________###
-###g#ööàìöö#Îddddddd________:7777Y___________###
-###g#ïààðö##__!!____________?$%&*+___________###
-###g#àéàà#____--_____________________________###
-###g#àààà#____<<_____________________________###
-###g#êààë#____>>________T____________________###
-###g#öööö#____@@_____________________________###
-###g######____^^______Ö______________________###
-###g######____~~______________________R______###
-###g######____ee_____________________________###
-###g######GeeeeeeeeeeeeeeeeeeeeeG____________###
-###g######eeeeeeeeeeeeeeeeeeúeeee____________###
-###J######eeÄeúeeeeeeOeeeeÂeeeÄee_Ô__________###
-###g######eeeeeeÂeeejjjeeeeeeeeee____________###
-###g######eÇeeeeeeOejNjeOeeeeeeúü___ü___ü____###
-###g####óòeeeeeeeeeejjjeeeeeeeeeeýýýeýýýe____###
-###g######ÓeeeeeeeeeeOeeeeeeeeeeÚ___þ___þ____###
-###g######eeÄeeeeeÉeeeeeeeÁeeeÄee_Õ_þ___þ_S__###
-###g######eeÂeeeeeeeeeeeeúeeeeÂee___þ___þ____###
-###g######ÏeeeeeeeeeeeeeÇeeeeeeeÓ__üeýýýeü___###
-###g######__________________________ý________###
-###g######___________(|||||þþþþþþþþþeü_______###
-###g######___________)__ÿ_____Ù______________###
-###g######{{{{{{{{{{{n{{{{{{{{{{################
-###gggJg####{{{{{{{{{Ë{{{{{{{{{{################
-#######Ì####{HfffffffffffffffffH################
-######Khhhhh{fffffffffffffffffff################
-######hhhhhh{fffÅfffffffffffÅfff################
-####õôhhhhhhËfffffIfffffffIfffff################
-######hhhhhh{fffffffffÊfffffffff################
-######hhhhhÐ{fffÅfffffffffffÅfff################
-############{fffffffffIfffffffff################
-############{HfffffffffffffffffH################
-################################################
+################################################################
+################################################################
+##aaaaaaaaaaCpqrstuMkvwxyVz0ÑccccccÍ############################
+##AaaaaaaaaaCpqrstuiUvwxylz0ccccccXc############################
+##aaaaaaaaaa11______________ccccWccc_________###################
+##aaaaaaaaaa11______________cXûccccc_________###################
+##aaaaBaaaDa11______________EccccÆcE_________###################
+##aaaaaaaaaa_____P____________22_____________###################
+###g########__________________22_____________###################
+###gáààààöö#LddddddÒ__________22_____________###################
+###ñ#ãâààâä#dÀÃddÃdd__________22________Q____###################
+###g#ööààöö#FdddZddF__________3345___________###################
+###g#åâààâæ#dddddddd66666666677778___________###################
+###g#ööíàöö#ddÃddÃdÈ6666666697777.__Ø________###################
+###J#çâààâè#dÀddddÀd________,7777;___________###################
+###g#ööàìöö#Îddddddd________:7777Y___________###################
+###g#ïààðö##__!!____________?$%&*+___________###################
+###g#àéàĄ#____--______________________Ų______###################
+#gĂĆĀàààà#____<<_______________ŶŶŶŶŶŶŹeŻýýýýýeee################
+#ă#g#êààë#____>>________T______Ŷ_____________eee################
+#ą#g#öööö#____@@_______________Ŷ_____________eee################
+#ć#g######____^^______Ö________Ŷ_____________eee################
+#ĉ#g######____~~_______________Ŷ______R______eže#{{{{{{{{{{{{{##
+#ċ#g######____ee_______________Ŷ_____________eee#{ƁeƂeƄeeƂeeƆ{##
+#Ŵ#g######GeeeeeeeeeeeeeeeeeeeeeG____________eee#{eeeeeeeeeee{##
+#ď#g######eeeeeeeeeeeeeeeeeeúeeee____________eƇe#{eƉeeƉeƊeƉee{##
+#đ#J######eeÄeúeeeeeeOeeeeÂeeeÄee_Ô__________eee#{eeeeeeeeeee{##
+#ē#g######eeeeeeÂeeŸjŰjŸeeeeeeeee____________eeeƋƋeeeeeeeeeeƎ{##
+#ĕ#g######eÇeeeeeeOejNjeOeeeeeeúü___ü___ü____eƏeƋƋeeƐeeƑeeeeƓ{##
+#ė#g####óòeeeeeeeeeŸjjjŸeeeeeeeeeýýýeýýýeþþþþeeeƋƋeeeeeeeeeeƔ{##
+#ę#g######ÓeeeeeeeeeeOeeeeeeeeeeÚ___þ___þ____eee#{eƉeeƉeƖeƉee{##
+#ł#g######eeÄeeeeeÉeeeeeeeÁeeeÄee_Õ_þ___þ_S__eƇe#{eeeeeeeeeee{##
+#ł#g######eeÂeeeeeeeeeeeeúeeeeÂee___þ___þ____eee#{ƗeeƘeeeeeeƜ{##
+#ł#g######ÏeeeeeeeeeeeeeÇeeeeeeeÓ__üeýýýeü___eee#{{{{{{{{{{{{{##
+#ł#g######__________________________ý________###################
+#ł#g######___________(|||||þþþþþþþþþeü_______###################
+#Ĉ#g######___________)__ÿ_____Ù______________###################
+#ł#g######{{{{{{{{{{{n{{{{{{{{{{################################
+#ł#gggJg####{{{{{{{{{Ë{{{{{{{{{{################################
+#ł#####Ì####{HfffffffffffffffffH################################
+#ł####Khhhhh{fffffffffffffffffff################################
+#ł####hhhhhh{fffÅfffffffffffÅfff################################
+#Ċ##õôhhhhhhËfffffIfffffffIfffff################################
+#ł####hhhhhh{fffffffffÊfffffffff################################
+#ł####hhhhhÐ{fffÅfffffffffffÅfff################################
+#ł##########{fffffffffIfffffffff################################
+#ł##########{HfffffffffffffffffH################################
+#Ž##############################################################
+#łöööööööööööööööööööööööööööö######ööö#########################
+#łöĒöĔöĖöĘöĚöĜööĮħħħħħħħİħħħöŁłłŃŅööööö#########################
+#łöĞöłöĞöłöĞöĞööħħĲħħħħħħĲħħöłłłłłööööö#########################
+#łŵŵŵŵŵŵŵŵŵŵŵŵŵöħħħħħħħħħħħħłłŇłłŊööööö#########################
+#ŵŵŵŵŵŵŵŵŵŵŵŵŵŵłħħħħħħĴħħħħħöłŌłłłööööö#########################
+#łŵŵŵŵŵŵĬŵŵŵŵŵŵöħĶħħħħħħħħĹħöłöööööööööööööööö##################
+#ööĞöłöĞöĞöłöĞööħħĲħħħħħħĲħħöłöŔöŐöŒöŎöŖöŘöŚöŜ##################
+#ööĠöĢöĤöĦöĨöĪööħħħħħĻħħħħħħöłöĞöĞöĞöĞöĞöĞöĞöĞ##################
+#öööööööööööööööĽħħħħħħħħħħĿöŵŵŵŵŵŵŵŵŵŵŵŵŵŵŵŵŮö#################
+#ööööööööööööööööööööööööööööööĞöĞöĞöĞöĞöĞöĞöĞ##################
+#ööööööööööööööööööööööööööööööŞöŠöŢöŤöŦöŨöŪöŬ##################
+################################################################
 
 [entities]
 A = exit map=harrow_sewers at=41,5,90 label=Climb_back_up_to_the_cistern model=sunken_stair on=a
@@ -232,3 +263,94 @@ Z = sunken_sexton on=d
 // Another, in the lift room, hides a coffer the Keystone's keepers forgot.
 ô = secret_wall top=24 on=h
 õ = chest item=ember_draught count=2 gold=300 model=banded on=h
+// The mortar-light: the energy core on the fountain's plinth, beside the foot of the sun shaft. While
+// it burns it sustains the golems round it; its ward shield stands unless the teal road (set c) does.
+Ű = energy_core height=1.2 radius=10 seal=c on=j
+Ÿ = light y=3 color=0.45,1.25,1.0 radius=9 on=e
+// The third road: from the second island a pale road runs east to the Mortar Sisters' quay; from the
+// quay a gold road runs out to the core's shield ward, alone on its island. Striking it first feeds the
+// teal road (set c), which then joins every crystal's turn (gold, pale, teal) and runs home to the plaza.
+Ų = ward_crystal shield on=e
+Ŷ = ward set=c deck=-20 on=_
+Ź = light y=3 color=0.45,1.25,1.0 radius=8 on=e
+Ż = hint text="The core's shield ward. Its stone hums with the mortar-light.|Strike it, and a teal road wakes toward the plaza." on=e
+// The Mortar Sisters' Workshop, east of the roads: the benches where the sisters cut and spelled the
+// ward-stones, still strewn with half-carved blanks, and the quay the roads of light reach it by.
+ž = ward_crystal on=e
+Ɓ = tool_rack on=e
+Ƃ = table on=e
+Ƅ = grindstone on=e
+Ɔ = chest item=tower_shield gold=320 model=banded on=e
+Ƈ = brazier radius=10 on=e
+Ɖ = rubble on=e
+Ɗ = stone_golem on=e
+Ƌ = hint text="The Mortar Sisters' benches: ward-stones half cut, three marks on each.|Gold, pale, and a teal one, fed from the plaza's heart." on=e
+Ǝ = torch radius=8 on=e
+Ə = urn on=e
+Ɛ = sunken_sexton on=e
+Ƒ = light y=3 color=0.45,1.25,1.0 radius=10 on=e
+Ɠ = anvil on=e
+Ɣ = torch radius=8 on=e
+Ɩ = stone_golem on=e
+Ɨ = crate on=e
+Ƙ = table on=e
+Ɯ = urn on=e
+// The Under-Cells: below the Oubliette the gaolers kept a lower tier. Their lever in the gaoler's hall
+// raises the bars either side of the gallery, the postern across it to their stair. It winds down along
+// the cavern's west wall to the flooded cell block, the interrogation hall, the warden's office (whose
+// lever raises every cell front below) and, past it, the flooded deep cells, where Brannick (by the
+// office) and Sister Vell are held. Stepping onto the stair's foot sets `visited_undercells`.
+Ā = gate lever=under_stair on=à
+Ă = gate lever=under_stair on=g
+Ą = lever id=under_stair on=à
+Ć = hint text="Bars either side of the gallery: the gaolers' postern.|Their stair runs on down, below the Oubliette." on=g
+Ĉ = torch radius=7 on=ł
+Ž = hint text="The gaolers' lower tier. Black water seeps through every joint." sets=visited_undercells on=ł
+Ŵ = torch radius=7 on=č
+Ċ = bones on=ł
+Ğ = gate lever=undercells on=ł
+Ē = chest item=bitter_root count=2 gold=120 model=worn on=ł
+Ĕ = hollow_inmate on=ł
+Ė = shackles on=ł
+Ę = prisoner_remains on=ł
+Ě = prisoner_remains on=ł
+Ĝ = chest item=clotting_salve count=2 gold=160 model=worn on=ł
+Ġ = mimic item=grave_lily on=ł
+Ģ = hollow_inmate on=ł
+Ĥ = prisoner_remains on=ł
+Ħ = chest item=red_tonic count=3 gold=140 on=ł
+Ĩ = bones on=ł
+Ī = hollow_inmate on=ł
+Ĭ = hollow_inmate on=ŵ
+Į = torch radius=8 on=ħ
+İ = meat_hooks on=ħ
+Ĳ = pillar on=ħ
+Ĵ = headsman_block on=ħ
+Ķ = gaoler on=ħ
+Ĺ = table on=ħ
+Ļ = stone_golem on=ħ
+Ľ = chest item=spiked_club model=iron on=ħ
+Ŀ = torch radius=8 on=ħ
+Ł = bookcase on=ł
+Ń = drawers on=ł
+Ņ = chest item=iron_gauntlets gold=200 model=banded on=ł
+Ň = table on=ł
+Ŋ = lever id=undercells on=ł
+Ō = torch radius=7 on=ł
+Ŏ = shackles on=ł
+Ő = chest item=grave_lily count=2 gold=130 on=ł
+Œ = prisoner_remains on=ł
+Ŕ = npc id=brannick yaw=90 reach=4.4 on=ł
+Ŗ = hollow_inmate on=ł
+Ř = bones on=ł
+Ś = prisoner_remains on=ł
+Ŝ = chest item=ember_draught gold=180 model=worn on=ł
+Ş = mimic item=blue_moss on=ł
+Š = prisoner_remains on=ł
+Ţ = chest item=menders_kit gold=150 on=ł
+Ť = shackles on=ł
+Ŧ = hollow_inmate on=ł
+Ũ = bones on=ł
+Ū = npc id=sister_vell yaw=-90 reach=4.4 on=ł
+Ŭ = prisoner_remains on=ł
+Ů = torch radius=7 on=ŵ

@@ -21,8 +21,8 @@ SHAFT_LEAN = 0.12  # radians the sun shaft leans (about z) from the crack down t
 CRACK_LEN = 5.5  # the crack's length (along z) and width (along x), in metres
 CRACK_WIDTH = 2.0
 CRACK_CALM = 3.0  # metres round the crack where the rock flattens out to meet its lip
-CRACK_LIGHT = (1.3, 1.0, 0.55)  # the daylight glowing on the rock round the crack
-CRACK_LIGHT_RADIUS = 12.0
+CRACK_LIGHT = (1.55, 1.2, 0.68)  # the daylight glowing on the rock round the crack
+CRACK_LIGHT_RADIUS = 14.0
 
 
 def _hash(ix, iz, salt=0):
@@ -111,7 +111,7 @@ class Vault:
         """(x, y, z, radius, color) of the daylight on the rock round the crack, or None."""
         if self.crack is None:
             return None
-        radius = max(CRACK_LIGHT_RADIUS, self.crack_len * 0.75)
+        radius = max(CRACK_LIGHT_RADIUS, self.crack_len * 0.85)
         return (self.crack[0], self.height - 2.0, self.crack[1], radius, list(CRACK_LIGHT))
 
 

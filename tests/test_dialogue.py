@@ -354,3 +354,193 @@ def test_ysolde_sells_the_only_copies_of_her_spells():
     for shop, items in dialogue.SHOPS.items():
         if shop != "ysolde":
             assert not {"scroll_rift_lance", "scroll_bellward"} & set(items)
+
+
+# --- the Oubliette and the Under-Cells: the mortar-light, the roads, and the story gifts -------------
+
+FREED = dialogue.OUBLIETTE_OPEN
+QUENCHED = dialogue.CORE_QUENCHED
+DEAD = dialogue.KEYSTONE_DEAD
+BELOW = dialogue.UNDERCELLS
+
+
+def test_aubel_tells_of_the_mortar_light_the_roads_and_brannick():
+    _, bars = talk("aubel", FakeGame())
+    _, bars_below = talk("aubel", FakeGame(flags={BELOW}))
+    assert bars != bars_below and "Under-Cells" in bars_below
+    _, freed = talk("aubel", FakeGame(flags={FREED}))
+    assert "mortar-light" in freed and "ward-stone" in freed and "Coldry" in freed
+    _, below = talk("aubel", FakeGame(flags={FREED, BELOW}))
+    assert "Brannick" in below and "Brannick" not in freed
+    _, quenched = talk("aubel", FakeGame(flags={FREED, QUENCHED}))
+    assert "teal glow has gone" in quenched and "shield" not in quenched
+    _, struck = talk("aubel", FakeGame(flags={FREED, dialogue.WARD_KEY}))
+    assert "heard you at the ward-stones" in struck
+    _, struck_c = talk("aubel", FakeGame(flags={FREED, dialogue.WARD_KEY + ":c"}))
+    assert struck_c == struck
+
+
+def test_aubel_gives_the_keepers_tithe_once_when_the_keystone_falls():
+    g = FakeGame(flags={FREED})
+    talk("aubel", g)
+    assert "gift:aubel" not in g.flags and g.player.inventory.gold == 0
+    g.flags.add(DEAD)
+    _, text = talk("aubel", g)
+    assert "tithe" in text and "gift:aubel" in g.flags
+    assert g.player.inventory.gold == 600 and g.player.inventory.count("red_tonic") == 2
+    assert g.player.inventory.count("menders_kit") == 1
+    assert g.messages[-1] == "Received {600 gold} and {2 Red Tonics} and {Mender's Kit}."
+    _, later = talk("aubel", g)
+    assert later != text and "still" in later and "mortar-light still burns" in later
+    assert g.player.inventory.gold == 600
+    g.flags.add(QUENCHED)
+    _, both = talk("aubel", g)
+    assert "teal light is out" in both
+
+
+def test_coldry_explains_the_third_teal_road_and_the_core_s_shield():
+    g = FakeGame(flags={FREED})
+    _, first = talk("coldry", g)
+    assert "mortar-light" in first and "ward-stones" in first
+    _, second = talk("coldry", g)
+    assert "teal road" in second and "Three roads" in second
+    assert "shield" in second and "drops only while the teal road stands" in second
+    assert "heavy" in second
+    g.flags.add(dialogue.WARD_KEY)
+    _, struck = talk("coldry", g)
+    assert "at my stones" in struck
+    g.flags.add(BELOW)
+    _, below = talk("coldry", g)
+    assert "Vell" in below
+
+
+def test_coldry_gives_mender_s_kits_once_the_core_is_quenched():
+    g = FakeGame(flags={FREED, "met_coldry", QUENCHED})
+    _, text = talk("coldry", g)
+    assert "You broke the core" in text and "gift:coldry" in g.flags
+    assert g.player.inventory.count("menders_kit") == 2
+    _, again = talk("coldry", g)
+    assert g.player.inventory.count("menders_kit") == 2 and "Mender's kits" not in again
+    g.flags.add(DEAD)
+    _, done = talk("coldry", g)
+    assert "broken" in done and "Vell will grieve" in done
+
+
+def test_ysolde_gives_moss_for_the_under_cells_news_and_still_opens_her_shop():
+    g = FakeGame(flags={BELOW})
+    talk("ysolde", g)
+    assert g.shop_opened is None and "gift:ysolde" not in g.flags  # nothing through the bars
+    g.flags.add(FREED)
+    _, text = talk("ysolde", g)
+    assert "Under-Cells" in text and "gift:ysolde" in g.flags and g.shop_opened == "ysolde"
+    assert g.player.inventory.count("blue_moss") == 3 and g.player.inventory.gold == 250
+    g.shop_opened = None
+    _, later = talk("ysolde", g)
+    assert "Under-Cells" not in later and g.shop_opened == "ysolde"
+    assert g.player.inventory.count("blue_moss") == 3
+
+
+def test_ysolde_s_shelves_fill_once_the_mortar_light_is_out():
+    from ashen_vault.player.items import Items
+
+    base = dialogue.shop_stock("ysolde", {FREED})
+    assert base == dialogue.SHOPS["ysolde"]
+    more = dialogue.shop_stock("ysolde", {FREED, QUENCHED})
+    assert set(base) < set(more) and len(more) == len(set(more))
+    assert all(Items.get(i).kind != "scroll" for i in more if i not in base)  # her spells stay her two
+    assert dialogue.shop_stock("pell", {QUENCHED}) == dialogue.SHOPS["pell"]
+    for flag, extras in dialogue.SHOP_EXTRAS.values():
+        assert all(i in Items.ALL for i in extras), flag
+    _, text = talk("ysolde", FakeGame(flags={FREED, "met_ysolde", QUENCHED}))
+    assert "mortar-light out" in text
+
+
+def test_brannick_confesses_points_to_the_key_ring_and_sells_heavy_blunt_gear():
+    from ashen_vault.player.items import Items
+    from ashen_vault.world import elements
+
+    g = FakeGame()
+    speaker, first = talk("brannick", g)
+    assert speaker == "Gaoler Brannick" and g.shop_opened == "brannick" and "met_brannick" in g.flags
+    assert "key ring" in first and "warden's office" in first and "bell-keepers" in first
+    g.shop_opened = None
+    _, second = talk("brannick", g)
+    assert second != first and g.shop_opened == "brannick"
+    assert talk("brannick", g) != talk("brannick", FakeGame(flags={"met_brannick", QUENCHED}))
+    assert "He's down" in talk("brannick", FakeGame(flags={"met_brannick", DEAD}))[1]
+    stock = [Items.get(i) for i in dialogue.SHOPS["brannick"]]
+    weapons = [i for i in stock if i.kind == "weapon"]
+    assert weapons and all(i.category in elements.STRIKE_CATEGORIES for i in weapons)
+    assert any(i.weight in ("heavy", "great") for i in weapons)
+    assert all(i.kind in ("weapon", "consumable", "repair") for i in stock)
+
+
+def test_sister_vell_urges_the_quench_and_gives_mortar_shard_after_it():
+    g = FakeGame()
+    speaker, first = talk("sister_vell", g)
+    assert speaker == "Sister Vell" and "mortar-light" in first and "Quench" in first
+    assert "met_vell" in g.flags
+    _, second = talk("sister_vell", g)
+    assert second != first and "core still burns" in second
+    _, spared = talk("sister_vell", FakeGame(flags={DEAD}))
+    assert "still the mortar-light burns" in spared
+    g.flags.add(QUENCHED)
+    _, thanks = talk("sister_vell", g)
+    assert "It's out" in thanks and "gift:sister_vell" in g.flags
+    assert g.player.inventory.has("scroll_mortar_shard")
+    _, after = talk("sister_vell", g)
+    assert after != thanks and "only stones" in after
+    g.flags.add(DEAD)
+    _, end = talk("sister_vell", g)
+    assert end != after and "sleeps at last" in end
+
+
+def test_story_gifts_name_real_items_and_new_npcs_have_looks():
+    from ashen_vault.player.items import Items
+    from ashen_vault.world import villagers
+
+    for id_, (_flag, items, gold) in dialogue.STORY_GIFTS.items():
+        assert all(i in Items.ALL for i in items) and gold >= 0, id_
+    for id_ in ("brannick", "sister_vell"):
+        assert id_ in villagers.LOOKS
+        assert villagers.look(id_) != villagers.look("coldry")
+
+
+def test_the_mortar_light_is_never_called_fire_by_those_who_know_it():
+    lines = []
+    told = {DEAD, QUENCHED, FREED, BELOW, "met_coldry", "met_ysolde", "met_vell", "met_brannick"}
+    for flags in ({FREED}, {BELOW}, told, {FREED, QUENCHED}, {FREED, DEAD}, set()):
+        for id_ in ("aubel", "coldry", "ysolde", "brannick", "sister_vell"):
+            lines.append(talk(id_, FakeGame(flags=flags))[1])
+    text = " ".join(lines).lower()
+    assert "mortar-light" in text
+    assert "torch" not in text and " fire" not in text and " hand" not in text
+
+
+def test_every_dialogue_line_fits_two_rows_of_the_box():
+    import ast
+    import pathlib
+
+    from ashen_vault.ui import hud
+
+    width = hud.DIALOGUE_W - 2 * hud.PANEL_PAD
+    for n in ast.walk(ast.parse(pathlib.Path(dialogue.__file__).read_text())):
+        if (
+            isinstance(n, ast.Constant)
+            and isinstance(n.value, str)
+            and " " in n.value
+            and "\n" not in n.value
+        ):
+            assert len(hud.wrap(n.value, width)) <= 2, n.value
+
+
+def test_vell_s_mortar_shard_cracks_stone_like_a_hammer():
+    from types import SimpleNamespace
+
+    from ashen_vault.player.spells import Spells
+    from ashen_vault.world import elements
+
+    stone, flesh = SimpleNamespace(brittle=True), SimpleNamespace(brittle=False)
+    assert elements.shot_mult(stone, "mortar") == elements.BRITTLE_STRIKE_MULT
+    assert elements.shot_mult(stone, "flame") == 1.0 and elements.shot_mult(flesh, "mortar") == 1.0
+    assert Spells.power("mortar_shard", 5) == Spells.mortar_damage(5, 1.0) > 0

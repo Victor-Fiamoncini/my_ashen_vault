@@ -33,6 +33,8 @@ SHOPS = {
     "corvane": ["katana", "moonless_tachi", "nodachi"],
     # Ysolde Vane, in the Oubliette under Old Harrowmere: the two spells she copied off the vault's rift.
     "ysolde": ["scroll_rift_lance", "scroll_bellward", "blue_moss"],
+    # Gaoler Brannick, in the Under-Cells below it: the gaolers' stores, heavy things for breaking stone.
+    "brannick": ["mace", "spiked_club", "war_hammer", "red_tonic", "clotting_salve", "menders_kit"],
 }
 SHOP_NAMES = {
     "pell": "Pell's Goods",
@@ -40,9 +42,25 @@ SHOP_NAMES = {
     "tamsin": "Tamsin's Remedies",
     "corvane": "Corvane's Blades",
     "ysolde": "Ysolde's Copies",
+    "brannick": "Brannick's Stores",
+}
+# Stock a shop adds once a save flag is set: shop -> (flag, items). Once the mortar-light is quenched
+# the gaolers' frozen stores open, and Ysolde shelves what she finds there beside her copies.
+SHOP_EXTRAS = {
+    "ysolde": ("core_quenched:old_harrowmere", ["menders_kit", "red_tonic", "clotting_salve", "grave_lily"]),
 }
 REPAIRERS = {"brannoc"}  # smiths whose shop opens with a "Mend gear" row (`Game` scene "repair")
 CORVANE_LEVEL = 5  # the swordsmith won't speak to anyone greener than this
+
+
+def shop_stock(shop_id, flags):
+    """Every item a shop offers with these save flags: its stock, plus any extras it has earned."""
+    stock = list(SHOPS[shop_id])
+    if shop_id in SHOP_EXTRAS:
+        flag, extras = SHOP_EXTRAS[shop_id]
+        if flag in flags:
+            stock += [i for i in extras if i not in stock]
+    return stock
 
 
 def for_npc(id_, game):
@@ -68,11 +86,15 @@ def for_npc(id_, game):
     if id_ == "wren":
         return "Wren", wren_lines(flags), None
     if id_ == "aubel":
-        return "Aubel the Ringer", aubel_lines(flags), None
+        return aubel(flags)
     if id_ == "coldry":
-        return "Sister Coldry", coldry_lines(flags), None
+        return coldry(flags)
     if id_ == "ysolde":
         return ysolde(flags)
+    if id_ == "brannick":
+        return brannick(flags)
+    if id_ == "sister_vell":
+        return sister_vell(flags)
     if id_ == "enthroned":
         return "The Enthroned", enthroned_lines(relics.held(inv.has)), None
     return "Stranger", ["..."], None
@@ -403,14 +425,28 @@ GIFTS = {
 }
 
 
-def _received(items):
+def _received(items, gold=0):
     from ashen_vault.player.items import Items
 
-    parts = []
+    parts = ["{" + f"{gold} gold" + "}"] if gold else []
     for item, n in items.items():
         name = Items.get(item).name
         parts.append(f"{{{n} {name}s}}" if n > 1 else f"{{{name}}}")
     return "Received " + " and ".join(parts) + "."
+
+
+def _hand_over(g, items, gold=0):
+    """Give the player items (and gold): a scroll or gear they already own pays gold instead."""
+    spare = 0
+    for item, n in items.items():
+        kept, paid = loot.claim(g.player.inventory, stash.known_spells(g.player), item, g.player.stash)
+        if kept:
+            g.player.inventory.add(kept, n)
+        spare += paid
+    g.player.inventory.gold += spare + gold
+    g.message(_received(items, gold))
+    if spare:
+        g.message(loot.spare_message(spare))
 
 
 def gift_giver(id_, flags):
@@ -423,16 +459,7 @@ def gift_giver(id_, flags):
 
     def after(g):
         g.flags.add(flag)
-        spare = 0
-        for item, n in items.items():
-            kept, gold = loot.claim(g.player.inventory, stash.known_spells(g.player), item, g.player.stash)
-            if kept:
-                g.player.inventory.add(kept, n)
-            spare += gold
-        g.player.inventory.gold += spare
-        g.message(_received(items))
-        if spare:
-            g.message(loot.spare_message(spare))
+        _hand_over(g, items)
         if shop:
             g.open_shop(shop)
 
@@ -462,65 +489,196 @@ def marrow(flags):
 
 
 # --- the Bell-keepers' Oubliette, under Old Harrowmere --------------------------------------------
+#
+# The first city's stone was laid with the mortar-light: a teal light the Sisters of the Mortar mixed
+# into their mortar. It binds the old city, it woke the Stone Golems, and it is the Keystone's heart; it
+# pools in the energy core on the Drowned Plaza's fountain, and while the core burns the golems mend.
+# Quenching it (CORE_QUENCHED) weakens them all. The Oubliette's three prisoners and the two in the
+# Under-Cells below them talk of it, of the roads of light, and of each other, and each gives something
+# once at a turn of the story (STORY_GIFTS).
 
 OUBLIETTE_OPEN = "lever:oubliette"  # the gaoler's lever, at the end of the Oubliette's hall
 KEYSTONE_DEAD = "keystone_dead"
+CORE_QUENCHED = "core_quenched:old_harrowmere"  # the energy core on the plaza's fountain, put out
+WARD_KEY = "ward:old_harrowmere"  # set (or `WARD_KEY:<set>`) once a ward-stone has changed the roads
+UNDERCELLS = "visited_undercells"  # you have been down in the Under-Cells, below the Oubliette
+
+# What each of them gives at a turn of the story, once: id -> (the flag that earns it, items, gold).
+STORY_GIFTS = {
+    "aubel": (KEYSTONE_DEAD, {"red_tonic": 2, "menders_kit": 1}, 600),
+    "coldry": (CORE_QUENCHED, {"menders_kit": 2}, 0),
+    "ysolde": (UNDERCELLS, {"blue_moss": 3}, 250),
+    "sister_vell": (CORE_QUENCHED, {"scroll_mortar_shard": 1}, 0),
+}
 
 
-def aubel_lines(flags):
-    """Aubel the Ringer, who rang the old city's third bell: he tells how the first Harrowmere was raised
-    on the sleeping Keystone and sank when its bells fell silent, and, once you have opened his cell,
-    how the two roads of light below the plaza work."""
+def gifted_items():
+    """Every item a villager or prisoner gives away, once each (for the find-it-once checks)."""
+    found = [i for _, items, *_ in GIFTS.values() for i in items]
+    return found + [i for _, items, _ in STORY_GIFTS.values() for i in items]
+
+
+def roads_changed(flags):
+    """Whether a ward-stone has changed which road of light stands (the save remembers it)."""
+    return any(f == WARD_KEY or f.startswith(WARD_KEY + ":") for f in flags)
+
+
+def _story_gift(id_, flags):
+    """The after-callable that gives an NPC their story gift if it is due (earned and not yet given), else None."""
+    earned_by, items, gold = STORY_GIFTS[id_]
+    flag = f"gift:{id_}"
+    if earned_by not in flags or flag in flags:
+        return None
+
+    def after(g):
+        g.flags.add(flag)
+        _hand_over(g, items, gold)
+
+    return after
+
+
+def _then(*afters):
+    """One after-callable that runs each of these (skipping None) in turn; None if there are none."""
+    afters = [a for a in afters if a]
+    if not afters:
+        return None
+    return lambda g: [a(g) for a in afters] and None
+
+
+def aubel(flags):
+    """Aubel the Ringer, the last of the nine bell-keepers who rang the old city's bells: he tells how
+    the first Harrowmere was raised on the sleeping Keystone and sank when its bells fell silent, and,
+    once you have opened his cell, how the roads of light below the plaza work and who sold his brothers
+    to the Under-Cells. When the Keystone falls he gives the keepers' tithe."""
+    speaker = "Aubel the Ringer"
+    gift = _story_gift("aubel", flags)
+    if gift:
+        return (
+            speaker,
+            [
+                "The Keystone lies still. I felt it in my teeth, like the last toll of a bell.",
+                "Nine of us kept the bells. Eight went down to the Under-Cells. I kept their tithe for them.",
+                "Hidden in the hollow of my bell-rope, forty winters. Take it up into the daylight. Spend it.",
+            ],
+            gift,
+        )
     if KEYSTONE_DEAD in flags:
-        return [
+        lines = [
             "The Keystone lies still. I felt it in my teeth, like the last toll of a bell.",
             "Whatever woke you, Ashen, it rang from up above. Down here there is nothing left to ring.",
         ]
-    if OUBLIETTE_OPEN in flags:
-        return [
-            "Free legs, after all these years. They still remember the way to the bell.",
-            "Below the plaza the masons left two roads of light over the chasm. Only one stands at a time.",
-            "Strike a ward-stone and the road you walk on fades while the other wakes. Mind your feet.",
-            "Find the order and the Keystone's court is yours. Choose badly and the chasm keeps you.",
+        if CORE_QUENCHED in flags:
+            lines.append(
+                "And the teal light is out of the fountain. Let the old city sleep, with no one to wake it."
+            )
+        else:
+            lines.append("Only the mortar-light still burns in the plaza, with no giant left to hold up.")
+        return speaker, lines, None
+    if OUBLIETTE_OPEN not in flags:
+        lines = [
+            "Ah... footsteps that don't drag. You're no sexton. Come to the bars, Ashen.",
+            "I am Aubel. I rang the third bell of the old city, before the city went down into the dark.",
+            "They raised Harrowmere on a sleeping giant. The Keystone, we called him. Our bells kept him dreaming.",
+            "When the bells fell silent the ground shrugged, and the whole city slid into this cavern.",
         ]
-    return [
-        "Ah... footsteps that don't drag. You're no sexton. Come to the bars, Ashen.",
-        "I am Aubel. I rang the third bell of the old city, before the city went down into the dark.",
-        "They raised Harrowmere on a sleeping giant. The Keystone, we called him. Our bells kept him dreaming.",
-        "When the bells fell silent the ground shrugged, and the whole city slid into this cavern.",
-        "The gaoler keeps the cell lever at the end of the hall. Pull it, and I'll tell you of the roads.",
-    ]
+        if UNDERCELLS in flags:
+            lines.append(
+                "You smell of the Under-Cells. My brothers rang their last down there. Did you see them?"
+            )
+        lines.append(
+            "The gaoler keeps the cell lever at the end of the hall. Pull it, and I'll tell you of the roads."
+        )
+        return speaker, lines, None
+    lines = ["Free legs, after all these years. They still remember the way to the bell."]
+    if UNDERCELLS in flags:
+        lines += [
+            "You've been below, then. You'll have met Brannick. He kept our keys, and he turned them on us.",
+            "Eight keepers he walked down those stairs, to save his own neck. Buy from him if you must.",
+        ]
+    else:
+        lines.append(
+            "There were nine bell-keepers. The gaolers took the other eight to the Under-Cells, below."
+        )
+    if CORE_QUENCHED in flags:
+        lines.append("The teal glow has gone from the plaza. The golems drag like old men now. So will he.")
+    else:
+        lines += [
+            "That teal glow in the plaza's fountain is the mortar-light. It holds up the giants, him too.",
+            "Sister Coldry knows the roads to it better than I do. Ask her how its shield is dropped.",
+        ]
+    if roads_changed(flags):
+        lines.append(
+            "I heard you at the ward-stones, ringing all the way down here. Mind which road you stand on."
+        )
+    else:
+        lines += [
+            "Below the plaza the masons left roads of light over the chasm. Only one stands at a time.",
+            "Strike a ward-stone and the road you walk on fades while the next one wakes. Mind your feet.",
+        ]
+    return speaker, lines, None
 
 
-def coldry_lines(flags):
-    """Sister Coldry, the last of the masons who laid the first city and spelled its ward-stones: she
-    chose her chains, and tells why the roads to the Keystone were built to stand one at a time."""
+def coldry(flags):
+    """Sister Coldry, of the masons who laid the first city and carved its ward-stones with her own
+    chisel: she chose her chains. She tells of the mortar-light, of the third, teal road it raised,
+    and that the core's shield drops only while that road stands; once the core is quenched she gives
+    two mender's kits, plain mortar for plain stone."""
+    speaker = "Sister Coldry"
+    gift = _story_gift("coldry", flags)
     if KEYSTONE_DEAD in flags:
-        return [
-            "So the stone is broken. The mortar can rest, and so can I.",
-            "Take nothing from his court you would not carry up the lift. The gallery is long and dark.",
+        lines = ["So the stone is broken. The mortar can rest, and so can I."]
+        if CORE_QUENCHED in flags:
+            lines.append("And the light went with him. Vell will grieve it. I will not.")
+        else:
+            lines.append(
+                "Only the light still burns in the plaza, with nothing left to hold up. Let it gutter."
+            )
+        lines.append(
+            "Take nothing from his court you would not carry up the lift. The gallery is long and dark."
+        )
+    elif "met_coldry" not in flags:
+        flags.add("met_coldry")
+        lines = [
+            "Do not pity the chains. I asked for them.",
+            "I am Coldry, of the Sisters of the Mortar. We laid every stone the first city stood on.",
+            "Our mortar was never only lime. We mixed a light into it, teal as deep water: the mortar-light.",
+            "It binds the old city still. When the bells fell silent, it stood up in the stone and walked.",
+            "I carved the ward-stones, and spelled the roads, so no army could cross to the Keystone in one march.",
+            "When the city sank, the gaolers locked away everyone who knew the way. I thought myself the last.",
+            "The sextons still ring for him. Every toll a little louder. He is waking, and he is angry.",
         ]
-    if "met_coldry" in flags:
-        return [
-            "The roads remember the masons' craft. They do not remember mercy.",
-            "Two roads, and a ward-stone on every island. Walk one, wake the other. That is all the craft.",
+    elif CORE_QUENCHED in flags:
+        lines = [
+            "You broke the core. I felt it in my knees: every stone in the city settling at once.",
+            "The golems will mend no more, and he wakes weaker. The teal road is only a road now.",
         ]
-    flags.add("met_coldry")
-    return [
-        "Do not pity the chains. I asked for them.",
-        "I am Coldry, of the Sisters of the Mortar. We laid every stone the first city stood on.",
-        "We cut the ward-stones too, and spelled two roads, so no army could cross to the Keystone in one march.",
-        "When the city sank, the gaolers locked away everyone who knew the way. I am the last of us.",
-        "The sextons still ring for him. Every toll a little louder. He is waking, and he is angry.",
-    ]
+    else:
+        lines = [
+            "Three roads, not two. The two my sisters spelled, and a third, teal road the light raised itself.",
+            "Each ward-stone you strike wakes the next road: the first, the second, then the teal. Then round.",
+            "The core on the plaza's fountain wears a shield of its own light. It drops only while the teal road stands.",
+            "So wake the teal road, then strike the core while it stands. Bring something heavy. An edge won't bite.",
+        ]
+        if roads_changed(flags):
+            lines.append("I hear you at my stones. Good. Never strike one from the road you need under you.")
+    if UNDERCELLS in flags and KEYSTONE_DEAD not in flags:
+        lines.append(
+            "Vell lives, down in the Under-Cells? Then I was never the last. She kept the light. I would not."
+        )
+    if gift:
+        lines.append("Take these. Mender's kits: plain mortar, that holds without a light in it.")
+    return speaker, lines, gift
 
 
 def ysolde(flags):
-    """Ysolde Vane, a scholar jailed for copying what the daylight writes on the vault round its rift.
-    Through the bars she only talks; once the gaoler's lever has opened her cell she sells her copies."""
+    """Ysolde Vane, once a copyist of the old city's archive, jailed for copying what the daylight
+    writes on the vault round its rift. Through the bars she only talks; once the gaoler's lever has
+    opened her cell she sells her copies, gives you moss and coin once you have seen the Under-Cells, and
+    shelves the gaolers' thawed stores beside her copies once the mortar-light is out (SHOP_EXTRAS)."""
+    speaker = "Ysolde Vane"
     if OUBLIETTE_OPEN not in flags:
         return (
-            "Ysolde Vane",
+            speaker,
             [
                 "Careful. The light in here is mine, and I had to steal it.",
                 "Ysolde Vane, scholar of the rift. They jailed me for copying what the daylight writes on the vault.",
@@ -528,20 +686,125 @@ def ysolde(flags):
             ],
             None,
         )
-    if "met_ysolde" in flags:
-        return "Ysolde Vane", ["The rift writes, I copy. Choose."], lambda g: g.open_shop("ysolde")
 
-    def after(g):
+    def shop(g):
         g.flags.add("met_ysolde")
         g.open_shop("ysolde")
 
-    return (
-        "Ysolde Vane",
-        [
+    if "met_ysolde" not in flags:
+        lines = [
             "Free, and nowhere to go but further into the dark. Very well: business.",
+            "I copied the archive's ledgers for thirty years. Then I looked up, and copied the vault instead.",
             "A lance of the rift's own daylight, and a bell that nobody rings. Both copied true.",
+        ]
+    else:
+        lines = ["The rift writes, I copy. Choose."]
+    if CORE_QUENCHED in flags:
+        lines.append("With the mortar-light out, the gaolers' stores thawed open. I've shelved what I found.")
+    if KEYSTONE_DEAD in flags:
+        lines.append("The vault has gone quiet. I'll copy its last lines before the dust settles on them.")
+    gift = _story_gift("ysolde", flags)
+    if gift:
+        lines += [
+            "You went down to the Under-Cells? The prisoners there scratched the rift's lines on the walls.",
+            "From memory, and all of them wrong. Still, someone tried. Take these, for carrying the news.",
+        ]
+    return speaker, lines, _then(gift, shop)
+
+
+def brannick(flags):
+    """Gaoler Brannick, in a cell of the Under-Cells he once kept: when the city sank he turned the key
+    on eight bell-keepers to save his own neck. He tells where the deep cells' key ring hangs and sells
+    the gaolers' stores: heavy, blunt things, since the stone down here shrugs off an edge."""
+    speaker = "Gaoler Brannick"
+    opens = lambda g: g.open_shop("brannick")  # noqa: E731
+    if "met_brannick" in flags:
+        if KEYSTONE_DEAD in flags:
+            lines = ["He's down? Then there's nothing left to guard but my own shame. Buy something."]
+        elif CORE_QUENCHED in flags:
+            lines = [
+                "The light's out in the plaza. The golems down here dragged their feet all night. Buy, or go."
+            ]
+        else:
+            lines = [
+                "The ring's in the warden's office, past the interrogation hall. Mind the water.",
+                "Heavy things for the stone. What'll it be?",
+            ]
+        return speaker, lines, opens
+
+    def after(g):
+        g.flags.add("met_brannick")
+        g.open_shop("brannick")
+
+    return (
+        speaker,
+        [
+            "Don't look at me like that. I know what they say of me up there. Aubel's said it to the wall for years.",
+            "Brannick. I kept the keys of these cells. When the city sank, the warden gave me a choice.",
+            "The keepers, or my own neck. I chose my neck, and walked eight bell-keepers down those stairs.",
+            "I hear them ringing in my sleep. Now I'm in a cell of my own, and nobody left to keep the keys.",
+            "The deep cells open on a key ring in the warden's office, past the interrogation hall. Water's high.",
+            "I've the gaolers' stores, too. Heavy things. The stone shrugs off an edge, and down here it's all stone.",
         ],
         after,
+    )
+
+
+def sister_vell(flags):
+    """Sister Vell, the last Sister of the Mortar who kept its light, jailed in the Under-Cells: she
+    tells what the mortar-light is (the teal light that binds the old city and animates its giants)
+    and begs you to quench the core she could never put out herself. Once it is out she gives her
+    order's last rite, Mortar Shard; her lines differ whether the core still burns or not."""
+    speaker = "Sister Vell"
+    gift = _story_gift("sister_vell", flags)
+    if gift:
+        return (
+            speaker,
+            [
+                "It's out. I felt it go, like a breath I had held for a thousand years.",
+                "Thank you. It was a mercy, and one I could never have done myself.",
+                "Take the last rite of our order. It throws what is left of the light, and it breaks stone.",
+            ],
+            gift,
+        )
+    if CORE_QUENCHED in flags:
+        lines = ["The stones are only stones now. Strange, how quiet they are."]
+        if KEYSTONE_DEAD in flags:
+            lines.append("And he sleeps at last. No light, no bells. Only stone, the way we found it.")
+        else:
+            lines.append("He wakes weaker without his heart's light. Break him with something heavy.")
+        return speaker, lines, None
+    if KEYSTONE_DEAD in flags:
+        return (
+            speaker,
+            [
+                "He has fallen, and still the mortar-light burns, with nothing left to hold up.",
+                "Quench it, Ashen, before it finds another giant in the stone to wake.",
+            ],
+            None,
+        )
+    if "met_vell" in flags:
+        return (
+            speaker,
+            [
+                "The core still burns. Every golem you break, it mends. Quench it, Ashen.",
+                "Wake the teal road, then strike the core with something heavy while its shield is down.",
+            ],
+            None,
+        )
+    flags.add("met_vell")
+    return (
+        speaker,
+        [
+            "Hush. Can you hear it? The hum in the stones. That is the mortar-light, and it is all that's left of us.",
+            "I am Vell, last Sister of the Mortar who still keeps the light. We mixed it into the first city's mortar.",
+            "Teal as deep water, it bound every stone. When the bells fell silent, it woke the giants in the stone.",
+            "The golems are only mortar-light walking. The Keystone is the oldest of them, and the light is his heart.",
+            "It pools in the core, on the fountain in the plaza. While it burns, the golems mend all you break.",
+            "Quench it. A heavy blow will do it, once its shield is down. Coldry knows the road that drops it.",
+            "I kept that light a thousand nights. I cannot be the one to put it out. You can.",
+        ],
+        None,
     )
 
 

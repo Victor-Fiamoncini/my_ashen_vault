@@ -28,7 +28,11 @@ FALL_SAFE = 1.8  # metres you can drop without getting hurt
 FALL_PER_M = 15  # HP per metre dropped past FALL_SAFE
 FALL_LETHAL = 8.0  # metres: a drop this far kills you outright
 WARD_FADE = 0.8  # seconds a ward deck takes to wake or fade (it bears weight only once fully woken)
-WARD_SETS = ("a", "b")
+WARD_SETS = ("a", "b", "c")  # the roads of light: gold, pale and teal
+WARD_NAMES = {"a": "gold", "b": "pale", "c": "teal"}
+FED_SET = (
+    "c"  # the teal road, fed from the mortar-light: it joins the crystals' turn once its shield ward rings
+)
 PLUNGE_TIME = 1.2  # seconds you fall into a chasm before the fall kills you
 DROP_TIME_MAX = 6.0  # a lethal drop off an edge lasts until you hit the bottom; no drop is longer
 DROWN_TIME = 1.6  # seconds deep water takes to drag you under for good
@@ -148,9 +152,9 @@ class Platform:
     # (dx, dz) sides that open onto a landing.
     model: str = ""
     doors: tuple = ()
-    # A ward deck (`ward set=a|b`, Old Harrowmere's roads of light): of its two sets only the `active`
-    # one stands; striking a ward crystal swaps them (`Terrain.set_wards`). It fades in and out through
-    # `lowered`, and like a drawbridge bears weight only when it is all the way in.
+    # A ward deck (`ward set=a|b|c`, Old Harrowmere's roads of light): of its sets only the `active`
+    # one stands; striking a ward crystal turns to the next (`Terrain.set_wards`, `next_ward`). It fades
+    # in and out through `lowered`, and like a drawbridge bears weight only when it is all the way in.
     ward: str | None = None
     active: bool = True
 
@@ -858,3 +862,15 @@ class Terrain:
 
 def _always(_tx, _tz):
     return True
+
+
+def ward_turn(fed):
+    """The sets a ward crystal turns through, in order: gold and pale, and teal too once it is `fed`
+    (its shield ward struck)."""
+    return WARD_SETS if fed else tuple(w for w in WARD_SETS if w != FED_SET)
+
+
+def next_ward(current, fed):
+    """The set a ward crystal wakes after `current`: gold, pale, then teal (once fed), then gold again."""
+    turn = ward_turn(fed)
+    return turn[(turn.index(current) + 1) % len(turn)] if current in turn else turn[0]

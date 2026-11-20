@@ -59,12 +59,14 @@ MOVES = {
     "toll": (0.9, 14.0, 0.0),
     "quake": (1.3, 9.0, 1.1),
     "hurl": (1.0, 6.0, 0.9),
-    # The Keystone's torch: brought down overhead in a great burst of fire before it (and the coals
-    # it scatters), and (second phase) shaken over its head to rain embers round you, or driven down
-    # at its feet so rings of fire run out from it.
-    "torch_smash": (1.2, 6.0, 1.2),
-    "cinder_rain": (1.4, 11.0, 0.8),
-    "ember_nova": (1.5, 12.0, 1.0),
+    # The Keystone's mortar-light: a slab of a forearm brought down overhead in a great burst of it
+    # before it (and the shards it scatters), and (second phase) a beam of it raked along the floor from
+    # its heart, shards of its shell rained down round you, or its fists driven down at its feet so
+    # rings of the light run out from it.
+    "slab_smash": (1.2, 6.0, 1.2),
+    "core_beam": (1.0, 7.0, 0.8),
+    "shard_rain": (1.4, 11.0, 0.8),
+    "core_nova": (1.5, 12.0, 1.0),
 }
 COMBO_SWINGS = 3
 COMBO_GAP = 0.45  # seconds between the swings of a combo (scaled by a type's `tempo`: `Enemy.combo_gap`)
@@ -81,10 +83,10 @@ DIVE_TIME = 1.1  # longest a swoop lasts
 DIVE_OVERSHOOT = 3.0  # metres a swoop carries on past where you stood
 DIVE_HIT = 1.1  # a swoop passing this close (beyond its radius) strikes you, once
 BREATH_RANGE = (3.0, 10.0)  # distances a gout of breath is loosed from
-TORCH_REACH = 4.5  # metres before the Keystone its torch comes down
-TORCH_SMASH_RANGE = (2.5, 6.5)  # distances it brings its torch down from
-CINDER_RAIN_RANGE = 16.0  # it rains embers on you from anywhere up to this far
-EMBER_NOVA_RANGE = 9.0  # it drives its torch down only with you this close: its rings would miss you
+SLAB_REACH = 4.5  # metres before the Keystone its slab of a forearm comes down
+SLAB_SMASH_RANGE = (2.5, 6.5)  # distances it brings its slab down from
+SHARD_RAIN_RANGE = 16.0  # it rains shards on you from anywhere up to this far
+CORE_NOVA_RANGE = 9.0  # it drives its fists down only with you this close: its rings would miss you
 DIVE_RANGE = (5.0, 13.0)
 # A flyer (`EnemyType.fly`) holds its cruising height, drops to STRIKE_ALT over a swoop's windup and
 # its swoop, then climbs back; dead, it falls like a stone.
@@ -166,9 +168,10 @@ ATTACK_TIMES = {
     "toll": 0.8,
     "quake": 0.5,
     "hurl": 0.35,
-    "torch_smash": 0.5,
-    "cinder_rain": 0.6,
-    "ember_nova": 0.7,
+    "slab_smash": 0.5,
+    "core_beam": 0.6,
+    "shard_rain": 0.6,
+    "core_nova": 0.7,
 }
 
 
@@ -185,8 +188,8 @@ class Enemy:
     for fire-breathers, breath(enemy); for the Sexton, grasp(enemy) and knell(enemy, wave); for
     Mother Gnawl, tail_lash(enemy), squeal(enemy) and burrow_burst(enemy); for the Sodden Pall,
     engulf(enemy), shed(enemy) and can_shed(enemy); for Vesperholm's blinkers, blink(enemy); for the
-    Duchess, moonbeam(enemy) and moonfall(enemy); for the Keystone, quake(enemy), torch_smash(enemy),
-    cinder_rain(enemy) and ember_nova(enemy). Optional, for twin bosses: rouse_twin(enemy), twin_fallen(enemy)
+    Duchess, moonbeam(enemy) and moonfall(enemy); for the Keystone, quake(enemy), slab_smash(enemy),
+    core_beam(enemy), shard_rain(enemy) and core_nova(enemy). Optional, for twin bosses: rouse_twin(enemy), twin_fallen(enemy)
     and twin_busy(enemy); for bosses that rise from ash, rise_time(enemy) (seconds, or None while it
     should stay a heap; without it the heap rises when it notices you); level_with(enemy), False while
     you are out of its reach above or below (riding a lift past it), so it does not swing at you.
@@ -653,12 +656,14 @@ class Enemy:
             options.append("moonbeam")
         if "moonfall" in ready and dist <= MOONFALL_RANGE:
             options.append("moonfall")
-        if "torch_smash" in ready and TORCH_SMASH_RANGE[0] <= dist <= TORCH_SMASH_RANGE[1]:
-            options.append("torch_smash")
-        if "cinder_rain" in ready and seen and dist <= CINDER_RAIN_RANGE:
-            options.append("cinder_rain")
-        if "ember_nova" in ready and dist <= EMBER_NOVA_RANGE:
-            options.append("ember_nova")
+        if "slab_smash" in ready and SLAB_SMASH_RANGE[0] <= dist <= SLAB_SMASH_RANGE[1]:
+            options.append("slab_smash")
+        if "core_beam" in ready and seen and BREATH_RANGE[0] <= dist <= BREATH_RANGE[1]:
+            options.append("core_beam")
+        if "shard_rain" in ready and seen and dist <= SHARD_RAIN_RANGE:
+            options.append("shard_rain")
+        if "core_nova" in ready and dist <= CORE_NOVA_RANGE:
+            options.append("core_nova")
         if "toll" in ready and seen and TOLL_RANGE[0] <= dist <= TOLL_RANGE[1] and world.can_toll(self):
             options.append("toll")
         if "quake" in ready and dist <= QUAKE_RANGE:
@@ -753,12 +758,14 @@ class Enemy:
                 world.toll(self)
             elif kind == "quake":
                 world.quake(self)
-            elif kind == "torch_smash":
-                world.torch_smash(self)
-            elif kind == "cinder_rain":
-                world.cinder_rain(self)
-            elif kind == "ember_nova":
-                world.ember_nova(self)
+            elif kind == "slab_smash":
+                world.slab_smash(self)
+            elif kind == "core_beam":
+                world.core_beam(self)
+            elif kind == "shard_rain":
+                world.shard_rain(self)
+            elif kind == "core_nova":
+                world.core_nova(self)
             elif kind == "hook":
                 if dist <= HOOK_RANGE[1] + 0.5 and self._facing(world.player_x, world.player_z):
                     world.hook(self, MOVES["hook"][2], HOOK_PULL)

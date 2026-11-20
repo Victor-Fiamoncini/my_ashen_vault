@@ -11,9 +11,9 @@ from ashen_vault.render.models import (
     EMBER,
     HIT_GLOW,
     PASSAGE_DARK,
+    _bar,
     _dim,
     _ease,
-    _flame,
     _mix,
     _spider_move,
     _swing_pose,
@@ -35,8 +35,9 @@ MASONRY_DARK = (98, 84, 68)
 MORTAR = (70, 60, 50)
 MOSS = (74, 92, 50)
 STATUE_MOSS = (88, 100, 64)  # a golem asleep on its plinth: greener, the moss grown over it
-EYE = (255, 176, 80)  # the amber light in a golem's eyes and the Keystone's
-CORE = (255, 132, 40)  # the Keystone's ember core, showing through its split shell
+EYE = (255, 176, 80)  # amber: the light of the old city's lamps
+GOLEM_STONE = (126, 140, 134)  # the golems' faceted rock: dark grey-green
+GOLEM_DARK = (86, 98, 94)
 COLD = (60, 52, 46)  # an eye or a crack gone dark
 ROBE = (58, 62, 54)  # a sexton's sodden robe, dark with the water
 ROBE_DARK = (40, 44, 38)
@@ -45,6 +46,9 @@ BELL_BRONZE = (150, 116, 60)
 HAFT = (82, 62, 42)
 GOLD_LIGHT = (255, 214, 140)  # the shaft of light from the crack overhead
 GOLD_MIST = (190, 150, 90)
+CORE_TEAL = (70, 235, 190)  # the mortar-light that animates the giants
+CORE_HEART = (200, 255, 235)  # its white-teal heart
+CORE_DEAD = (112, 118, 114)  # the core's crystal once quenched: grey, cracked, cold
 TOWER_LIT = (230, 222, 210)  # a pale tint, so a tower's brick texture shows its own warm colour
 
 
@@ -56,87 +60,146 @@ def _windup_k(e):
     return min(e.state_t / max(e.windup_time, 1e-3), 1) if e.state == "windup" else 1.0
 
 
-def _course(r, y, w, d, h, rgb, seed):
-    """One course of blocks across a body: two or three stones laid side by side with a seam of
-    mortar between them, each a little proud or sunk of the next, as uneven as old masonry."""
-    n = 2 if w < 0.8 else 3
-    step = d / n
-    for i in range(n):
-        z = -d / 2 + step * (i + 0.5)
-        jut = 0.02 * ((seed + i * 3) % 3)
-        r.part("cube", jut, y, z, w + jut, h, step - 0.03, _dim(rgb, 0.92 + 0.05 * ((seed + i) % 3)))
-
-
 # --- the Stone Golem ------------------------------------------------------------------------------
+#
+# The golems and the Keystone are one family, built from the same parts: a hunched body of faceted
+# rock, a broad chest tapering to a narrow waist, short thick legs, a small blocky head set low and
+# forward under shoulders that rise above it, and long arms (a boulder shoulder, an upper block and a
+# huge slab of a forearm, widening to the fist) that hang down to near the ground. The mortar-light
+# that animates them glows teal in their eyes and cracks. A golem is drawn at the family's own size
+# (some 2.4 m); the Keystone is the same body scaled up (`KEYSTONE_SCALE`) and dressed with more.
+
+GOLEM_TEX = "white"  # the golems' rock: flat-shaded facets read better than a texture at their size
+GOLEM_HUNCH = 0.42  # how far forward (radians) the body leans from its waist
+GOLEM_WAIST = 0.9  # the waist's height, where the body pivots
+GOLEM_HIP = 0.78  # the hips' height, where the legs hang
+GOLEM_SHOULDER = (0.0, 1.3, 0.82)  # a shoulder's (x, y, +-z) in the leaning body's frame
+GOLEM_HEAD = (0.46, 1.08)  # the head's (x, y) in the leaning body's frame: low and forward
+
+
+def _golem_leg(r, z, swing, knee, stone, dark):
+    """A short thick leg hung from the hips at `z`: a thigh block, a shin bent back by `knee` and a
+    broad slab of a foot."""
+    with r.at(0, GOLEM_HIP, z, rz=swing):
+        r.part("cube", 0, -0.17, 0, 0.5, 0.42, 0.48, stone, tex=GOLEM_TEX, ry=0.08)  # the thigh
+        r.part("cube", 0.2, -0.12, 0, 0.14, 0.3, 0.4, _dim(stone, 1.12), rz=-0.2)  # a facet of it
+        with r.at(0.02, -0.36, 0, rz=knee):
+            r.part("cube", 0, -0.14, 0, 0.44, 0.34, 0.46, _dim(stone, 0.9), tex=GOLEM_TEX)  # shin
+            r.part("cube", 0.1, -0.33, 0, 0.66, 0.16, 0.54, dark, tex=GOLEM_TEX)  # the foot
+            r.part("cube", 0.36, -0.36, 0, 0.16, 0.1, 0.46, _dim(dark, 1.1), rz=0.3)  # its blunt toe
+
+
+def _golem_torso(r, stone, dark, moss, seam, lit):
+    """The leaning body: a broad chest course over a V of rock tapering to the waist, a hump of rock
+    over the shoulders, slabs faceted at odd angles, moss in the seams, and down its back the crack the
+    mortar-light shows through, its weak spot."""
+    pale = _dim(stone, 1.14)
+    r.part("cube", 0, 0.12, 0, 0.48, 0.34, 0.56, dark, tex=GOLEM_TEX)  # the narrow waist
+    # The V: an inverted wedge across the body, from the broad chest down to the waist.
+    r.part("wedge", 0.02, 0.5, 0, 1.5, 0.82, 0.78, stone, tex=GOLEM_TEX, ry=math.pi / 2, rx=math.pi)
+    r.part("cube", 0.05, 0.98, 0, 0.92, 0.42, 1.5, stone, tex=GOLEM_TEX)  # the chest course
+    r.part("cube", -0.2, 1.16, 0, 0.74, 0.42, 1.0, _dim(stone, 0.92), tex=GOLEM_TEX, rz=0.35)  # hump
+    for side in (-1, 1):  # slabs over the breast, each tilted its own way
+        r.part("cube", 0.4, 1.0, side * 0.36, 0.16, 0.42, 0.62, pale, tex=GOLEM_TEX,
+               rx=side * 0.12, rz=-0.18)  # fmt: skip
+        r.part(
+            "cube", 0.3, 0.6, side * 0.26, 0.14, 0.34, 0.4, stone, rx=-side * 0.25, rz=0.15
+        )  # ribs of rock
+    r.part("cube", 0.0, 1.2, 0, 0.7, 0.05, 1.3, MORTAR)  # the seam under the hump
+    for x, y, z, s in ((0.42, 0.78, -0.42, 0.13), (0.4, 1.24, 0.5, 0.15), (-0.2, 1.42, -0.3, 0.14)):
+        r.part("sphere", x, y, z, s * 0.6, s, s * 1.5, moss)  # moss in the seams
+    # Its back has split open down the spine: strike it from behind.
+    r.part("cube", -0.44, 0.9, 0, 0.06, 0.8, 0.2, PASSAGE_DARK, rz=0.2)
+    r.part("cube", -0.46, 0.9, 0, 0.04, 0.6, 0.07, seam, rz=0.2, glow=lit)
+
+
+def _golem_head(r, stone, dark, eye, lit, flare=0.0):
+    """A small blocky head under a jutting brow, two eyes of the mortar-light set deep below it. A
+    `flare` (0..1) throws a halo of light round each eye."""
+    r.part("cube", 0, 0, 0, 0.38, 0.34, 0.4, stone, tex=GOLEM_TEX)
+    r.part("cube", 0.1, 0.16, 0, 0.3, 0.1, 0.46, dark, tex=GOLEM_TEX, rz=-0.15)  # the brow
+    r.part("cube", 0.12, -0.15, 0, 0.26, 0.12, 0.32, _dim(stone, 0.85), rz=0.2)  # a heavy jaw
+    for z in (-0.1, 0.1):
+        r.part("cube", 0.2, 0.05, z, 0.04, 0.06, 0.09, eye if lit else COLD, glow=lit)
+        if flare > 0 and lit:
+            s = 0.12 + 0.12 * flare
+            r.part("sphere", 0.22, 0.05, z, s * 0.5, s, s, _mix_rgb(CORE_TEAL, CORE_HEART, 0.5), glow=True)
+
+
+def _golem_arm(r, side, swing, elbow, stone, dark, vein, lit, wide=1.0):
+    """A long arm at its shoulder: a boulder of a shoulder, an upper block and a great slab of a
+    forearm widening to a blunt fist (`wide` widens the slab), a crack of the mortar-light down it.
+    `swing` turns it from hanging straight down (forward is positive), `elbow` bends the forearm."""
+    with r.at(0, 0, 0, rz=swing):
+        r.part("sphere", 0, 0.06, 0, 0.74, 0.7, 0.7, _dim(stone, 0.95), tex=GOLEM_TEX)  # the shoulder
+        r.part("cube", -0.05, 0.16, side * 0.12, 0.46, 0.3, 0.42, _dim(stone, 1.1), tex=GOLEM_TEX,
+               rx=side * 0.35, rz=0.3)  # fmt: skip
+        r.part("cube", 0, -0.42, 0, 0.4, 0.56, 0.4, stone, tex=GOLEM_TEX, ry=0.2)  # the upper arm
+        r.part("cube", 0, -0.64, 0, 0.34, 0.08, 0.34, MORTAR)  # the elbow's seam
+        with r.at(0, -0.66, 0, rz=elbow):
+            # The slab: a faceted block of rock that widens down to the fist.
+            r.part("frustum", 0.02, -0.5, 0, 0.62 * wide, 1.0, 0.58 * wide, _dim(stone, 0.92),
+                   tex=GOLEM_TEX)  # fmt: skip
+            r.part("cube", 0.2, -0.58, 0, 0.12, 0.78, 0.44 * wide, _dim(stone, 1.12), tex=GOLEM_TEX,
+                   rz=0.12)  # fmt: skip
+            r.part("cube", 0, -0.6, side * 0.27 * wide, 0.46, 0.6, 0.1, _dim(stone, 0.8), rx=side * 0.1)
+            r.part("cube", 0.22, -0.56, 0, 0.03, 0.54, 0.05, vein if lit else PASSAGE_DARK, rz=0.12, glow=lit)
+            r.part("cube", 0.04, -1.12, 0, 0.74 * wide, 0.36, 0.66 * wide, dark, tex=GOLEM_TEX)  # fist
+            for z in (-0.17, 0.17):  # knuckles of rock
+                r.part("cube", 0.34 * wide, -1.1, z * wide, 0.16, 0.24, 0.22, _dim(stone, 1.05), rz=0.2)
 
 
 def stone_golem(r, e, t):
-    """A golem of the old city's masonry: legs of stacked blocks, a body laid in three courses with
-    moss in its seams, a keystone for a head with two slits of amber light, long arms of dressed stone
-    ending in boulder fists, the right arm cracked through and bound with an old iron band. Its back
-    has split open down the middle, the weak spot. Asleep on its plinth it stands as a statue, moss
-    grown over it and its eyes dark; woken, the moss tears off it in clumps. A sweep spins it with its
-    arms out, a slam brings both fists down. Slain, it sinks to its knees and topples forward."""
+    """A golem of the old city's stone, hunched and heavy: a broad chest of faceted, grey-green rock
+    tapering to a narrow waist, short thick legs, and a small blocky head set low and forward under
+    shoulders that rise above it, two eyes of teal mortar-light deep under its brow. Its arms hang
+    almost to the ground: boulder shoulders, and forearms that are great slabs of rock widening to the
+    fist. Its back has split open down the spine on the light inside, the weak spot. Asleep on its
+    plinth it stands as a statue, moss grown over it and its eyes dark; woken, the moss tears off it.
+    A sweep spins it with its arms out, a slam brings both slabs down. Slain, it sinks to its knees
+    and topples forward."""
     k = e.rise_progress
     asleep = 1.0 - _ease(min(max((k - STATUE_BURST) / 0.2 + 0.5, 0.0), 1.0))
     statue = asleep > 0.5
     dead = e.state == "dead"
     lit = not statue and not dead
-    swing = walk_cycle(e, t) * 0.35
+    swing = walk_cycle(e, t) * 0.3
     kneel = death_fall(e, 0.6)
     topple = death_fall(e, 1.5)
     lift, spin, _, _ = _spider_move(e, t, 0.0, 1.0)
-    hit = _swing_pose(e, 0.0, -2.0, 0.9)
+    hit = _swing_pose(e, 0.1, -2.2, 0.8)
     wk = _windup_k(e)
     both = None
     if e.attack_kind == "slam" and e.state in ("windup", "attack"):
-        both = -2.7 * wk if e.state == "windup" else -2.7 + 3.4 * min(e.state_t / 0.15, 1)
+        both = -2.7 * wk if e.state == "windup" else -2.7 + 3.3 * min(e.state_t / 0.15, 1)
     elif e.attack_kind == "sweep" and e.state in ("windup", "attack"):
-        both = -1.5
-    stone = hit_tint((236, 220, 200)) if e.flashing else MASONRY
+        both = -1.4
+    stone = hit_tint((220, 232, 214)) if e.flashing else GOLEM_STONE
+    dark = hit_tint((190, 200, 186)) if e.flashing else GOLEM_DARK
     moss = STATUE_MOSS if statue else MOSS
-    eye = HIT_GLOW if e.flashing else EYE
+    eye = HIT_GLOW if e.flashing else CORE_TEAL
+    vein = HIT_GLOW if e.flashing else _dim(CORE_TEAL, 0.8)
+    rear = 0.3 * wk if both is not None and e.state == "windup" else 0.0  # it rears back to slam
+    hunch = GOLEM_HUNCH - rear + 0.25 * kneel
     with (
-        r.at(0, lift * 0.3 - 0.45 * kneel + 0.85 * topple, 0, ry=spin),
+        r.at(0, lift * 0.3 - 0.4 * kneel + 0.95 * topple, 0, ry=spin),
         r.at(0, 0, 0, rz=-1.15 * topple),
     ):
-        for side, a in ((-0.28, swing), (0.28, -swing)):
-            with r.at(0, 0.78, side, rz=a + 1.5 * kneel):
-                r.part("cube", 0, -0.18, 0, 0.4, 0.38, 0.36, stone)  # thigh block
-                r.part("cube", 0.02, -0.38, 0, 0.36, 0.06, 0.32, MORTAR)  # the joint, a seam of mortar
-                with r.at(0, -0.4, 0):
-                    r.part("cube", 0, -0.16, 0, 0.36, 0.34, 0.34, _dim(stone, 0.92))
-                    r.part("cube", 0.08, -0.34, 0, 0.56, 0.12, 0.42, MASONRY_DARK)  # foot
-        r.part("cube", 0, 0.92, 0, 0.62, 0.26, 0.82, MASONRY_DARK)  # hips
-        for i, (y, w, d) in enumerate(((1.22, 0.78, 1.0), (1.56, 0.84, 1.1), (1.88, 0.8, 1.16))):
-            _course(r, y, w, d, 0.32, stone, i)
-            r.part("cube", 0.0, y + 0.17, 0, w * 0.96, 0.03, d * 0.98, MORTAR)  # the seam above it
-        for y, z, s in ((1.4, -0.42, 0.18), (1.72, 0.38, 0.22), (1.06, 0.2, 0.16), (2.04, -0.3, 0.2)):
-            r.part("sphere", 0.38, y, z, 0.08, s, s * 1.4, moss)  # moss in the seams
-        if statue:  # a blanket of moss grown over its shoulders and head
-            r.part("cube", 0.0, 2.08, 0, 0.86, 0.1, 1.2, moss)
-            r.part("cube", 0.25, 2.3, 0, 0.36, 0.08, 0.5, moss)
-        # Its back has split open down the middle: strike it from behind.
-        r.part("cube", -0.41, 1.5, 0, 0.04, 0.7, 0.18, PASSAGE_DARK)
-        r.part("cube", -0.42, 1.5, 0, 0.03, 0.5, 0.06, EMBER if lit else COLD, glow=lit)
-        with r.at(0.12, 2.24, 0):  # a keystone of a head, wider at its crown, sunk between the shoulders
-            r.part("wedge", 0, 0, 0, 0.42, 0.36, 0.5, stone, rx=math.pi)
-            r.part("cube", 0, 0.2, 0, 0.46, 0.06, 0.56, MASONRY_DARK)  # its crown
-            for z in (-0.1, 0.1):
-                r.part("cube", 0.22, 0.04, z, 0.03, 0.04, 0.1, eye if lit else COLD, glow=lit)
-            r.part("cube", 0.22, -0.1, 0, 0.02, 0.02, 0.2, MORTAR)  # a crack for a mouth
-        for side, z in ((1, 0.6), (-1, -0.6)):
-            a = both if both is not None else (hit if side == 1 else swing * 0.5)
-            with r.at(0, 1.92, z, rz=a - 0.5 * kneel):
-                r.part("cube", 0, -0.08, 0, 0.42, 0.4, 0.42, _dim(stone, 0.96))  # shoulder
-                r.part("cube", 0, -0.42, 0, 0.3, 0.38, 0.3, stone)
-                if side == 1:  # the cracked arm, bound with an old iron band
-                    r.part("cube", 0.155, -0.4, 0, 0.02, 0.3, 0.03, PASSAGE_DARK, rx=0.4)
-                    r.part("cube", 0, -0.5, 0, 0.33, 0.06, 0.33, (74, 64, 58))
-                with r.at(0, -0.62, 0, rz=0.2):
-                    r.part("cube", 0, -0.2, 0, 0.28, 0.38, 0.28, _dim(stone, 0.9))
-                    r.part("sphere", 0.04, -0.48, 0, 0.5, 0.44, 0.5, MASONRY_DARK)  # fist
-                    r.part("sphere", 0.2, -0.46, 0.08, 0.16, 0.14, 0.16, stone)  # a knuckle-stone
+        for side, a in ((-0.38, swing), (0.38, -swing)):
+            _golem_leg(r, side, a + 1.5 * kneel, -0.3 * abs(a) - 1.4 * kneel, stone, dark)
+        r.part("cube", 0, GOLEM_HIP + 0.04, 0, 0.6, 0.28, 0.92, dark, tex=GOLEM_TEX)  # the hips
+        with r.at(0, GOLEM_WAIST, 0, rz=-hunch):
+            _golem_torso(r, stone, dark, moss, CORE_TEAL if lit else COLD, lit)
+            if statue:  # a blanket of moss grown over its hump and head
+                r.part("cube", -0.1, 1.48, 0, 0.8, 0.1, 1.4, moss, rz=0.35)
+                r.part("cube", GOLEM_HEAD[0], GOLEM_HEAD[1] + 0.2, 0, 0.36, 0.08, 0.44, moss)
+            with r.at(*GOLEM_HEAD, 0, rz=hunch - 0.1):  # the head looks ahead, whatever the body does
+                _golem_head(r, stone, dark, eye, lit)
+            sx, sy, sz = GOLEM_SHOULDER
+            for side in (1, -1):
+                a = both if both is not None else (hit if side == 1 else 0.1 - swing * 0.5)
+                with r.at(sx, sy, side * sz, rz=hunch):  # the arms hang from the world's vertical
+                    _golem_arm(r, side, a - 1.0 * kneel, 0.2 - 0.9 * kneel, stone, dark, vein, lit)
 
 
 # --- the Sunken Sexton ----------------------------------------------------------------------------
@@ -316,231 +379,198 @@ def harpy(r, e, t):
 
 # --- the Keystone ---------------------------------------------------------------------------------
 
-CHAR = (64, 50, 44)  # the Keystone's stone once its shell has burst: charred, the fire showing through
-TORCH_STONE = (164, 146, 118)  # the column it bears for a torch, pale with the years
-IRON = (58, 54, 52)
-COALS = (255, 96, 30)
-TORCH_REST = 0.1  # how far the torch leans forward from upright while it is borne aloft
+KEYSTONE_SCALE = 2.4  # the Keystone is a Stone Golem's body this many times over: some 6.5 m
+KEYSTONE_BARE = (58, 66, 62)  # the stone under its shell, once the shell has sloughed off: dark and wet
+COLUMN_STONE = (150, 140, 120)  # the broken columns it wears, pale with the years
+SHELL_PLATES = (  # (x, y, z, size) of the boulder plates over its body, in the leaning body's frame
+    (0.1, 1.42, -0.55, 0.36),
+    (0.1, 1.42, 0.55, 0.36),
+    (-0.38, 1.1, 0.0, 0.42),
+    (0.28, 0.42, -0.42, 0.24),
+    (0.28, 0.42, 0.42, 0.24),
+    (-0.3, 0.55, 0.0, 0.3),
+)
+# Cracks the mortar-light shows through, (y, z, tilt) on its front: the first few while its shell
+# holds, every one of them once it sloughs off.
+VEINS = (
+    (0.62, -0.3, 0.4),
+    (1.1, 0.5, -0.5),
+    (0.4, 0.2, -0.2),
+    (1.3, -0.55, 0.3),
+    (0.8, 0.62, 0.6),
+    (0.25, -0.15, 0.5),
+    (1.18, 0.1, -0.7),
+    (0.55, 0.45, 0.2),
+    (0.95, -0.66, -0.4),
+    (0.2, 0.32, 0.7),
+)
+SHELL_VEINS = 4
+CORE_Y = 0.62  # the chest core's height in the leaning body's frame, under its head
+ARM_SLUMP = 0.4  # how its arms swing, and its elbows bend, as it slumps forward on its fists
+ELBOW_SLUMP = 1.4
 
 
 def keystone_pose(e):
-    """(lean, left arm, left elbow, right arm, stamp, hurl, torch) for its moves: the lean forward of its
-    body, the left (torch) arm's swing and elbow bend and the right arm's swing (radians from hanging,
-    forward), how high it lifts its foot to stamp (0..1), how far it has wound back a block to throw
-    (0..1, -1 once let go), and how far the torch tips forward from upright (radians: back for the
-    windup of a rake, forward and down to drag its fire along the floor). Every blow travels down over
-    its type's `impact`, heavily, rather than snapping."""
+    """(lean, left arm, left elbow, right arm, right elbow, stamp, hurl, charge) for its moves: the lean
+    forward of its body, each arm's swing (radians from hanging, forward) and elbow bend, how high it
+    lifts its foot to stamp (0..1), how far it has wound back a block to throw (0..1, -1 once let go),
+    and how hard its chest core draws in the mortar-light (0..1). Every blow travels down over its
+    type's `impact`, heavily, rather than snapping."""
     k = _ease(_windup_k(e))
     hitting = e.state == "attack"
     snap = _ease(min(e.state_t / max(0.15, e.type.impact), 1.0)) if hitting else 0.0
     kind = e.attack_kind if e.state in ("windup", "attack") else None
-    if kind == "torch_smash":  # the torch heaved back overhead, then brought down before it
+    if kind == "slab_smash":  # the right slab heaved back overhead, then brought down before it
         if not hitting:
-            return -0.15 * k, -3.0 * k, 0.4, -0.6 * k, 0.0, 0.0, TORCH_REST - 0.9 * k
-        return -0.15 + 0.6 * snap, -3.0 + 4.0 * snap, 0.4 - 0.3 * snap, -0.6, 0.0, 0.0, -0.8 + 2.4 * snap
-    if kind == "cinder_rain":  # the torch thrust up overhead and shaken, harder as the embers fly
+            return -0.2 * k, 0.1, 0.3, -3.0 * k, 0.5 * k, 0.0, 0.0, 0.3 * k
+        return -0.2 + 0.65 * snap, 0.1, 0.3, -3.0 + 3.9 * snap, 0.5 - 0.4 * snap, 0.0, 0.0, 0.3
+    if kind == "shard_rain":  # both slabs thrust up overhead and shaken, shards torn off its shell
         shake = math.sin(e.anim_t * 14) * (0.12 * k if not hitting else 0.3)
-        return -0.1 * k, -3.0 * k + shake, 0.15, -0.4 * k, 0.0, 0.0, shake * 1.5
-    if kind == "ember_nova":  # the torch lifted high in both fists, then driven down at its feet
+        charge = k if not hitting else 1.0
+        return -0.15 * k, -2.9 * k + shake, 0.4 * k, -2.9 * k - shake, 0.4 * k, 0.0, 0.0, charge
+    if kind == "core_nova":  # both fists lifted high, then driven down at its feet
         if not hitting:
-            return -0.12 * k, -2.7 * k, 0.3, -2.5 * k, 0.0, 0.0, 0.0
-        return -0.12 + 0.55 * snap, -2.7 + 3.3 * snap, 0.3 + 0.5 * snap, -2.5 + 3.0 * snap, 0.0, 0.0, 0.0
-    if kind == "slam":  # both fists overhead, the torch with them, then down
+            return -0.12 * k, -2.7 * k, 0.3, -2.5 * k, 0.3, 0.0, 0.0, k
+        up = 0.3 + 0.5 * snap
+        return -0.12 + 0.55 * snap, -2.7 + 3.3 * snap, up, -2.5 + 3.0 * snap, up, 0.0, 0.0, 1.0
+    if kind == "core_beam":  # it rears, arms flung back to bare its heart, then bows to rake the floor
+        if not hitting:
+            return -0.3 * k, -0.9 * k, 0.2, -0.9 * k, 0.2, 0.0, 0.0, k
+        return -0.3 + 0.75 * snap, -0.9, 0.2, -0.9, 0.2, 0.0, 0.0, 1.0
+    if kind == "slam":  # both slabs overhead, then down
         up = -2.9 * k if not hitting else -2.9 + 3.7 * snap
-        return 0.1 + 0.35 * snap, up, 0.3, up, 0.0, 0.0, -0.4 * k if not hitting else -0.4 + 2.0 * snap
-    if kind == "sweep":  # arms flung out to scythe all round
-        return 0.05, -1.5, 0.2, -1.5, 0.0, 0.0, 1.5
-    if kind == "quake":  # the foot rises high, the torch held up out of the way
-        return -0.1 * k, 0.3 - 0.6 * k, 1.2, -0.6 * k, (k if not hitting else 1.0 - snap), 0.0, -0.2 * k
-    if kind == "hurl":  # the right arm winds back with a block; the torch stays aloft
-        back = 2.4 * k if not hitting else 2.4 - 4.6 * snap
-        return 0.1, 0.5, 0.9, back, 0.0, (k if not hitting else -1.0), TORCH_REST
-    if kind == "breath":  # the torch swung back low behind it, then dragged forward along the floor
-        if not hitting:
-            return 0.15 - 0.2 * k, 0.5 - 1.6 * k, 0.9 - 0.7 * k, 0.4 * k, 0.0, 0.0, TORCH_REST - 2.3 * k
-        return -0.05 + 0.45 * snap, -1.1 + 2.3 * snap, 0.2, 0.4, 0.0, 0.0, -2.2 + 4.4 * snap
-    sway = math.sin(e.anim_t * 1.6) * 0.08
+        return 0.1 + 0.35 * snap, up, 0.3, up, 0.3, 0.0, 0.0, 0.0
+    if kind == "sweep":  # arms flung out before it to scythe all round
+        return 0.05, 1.3, 0.1, 1.3, 0.1, 0.0, 0.0, 0.0
+    if kind == "quake":  # the foot rises high
+        return -0.1 * k, 0.3 - 0.6 * k, 0.6, -0.6 * k, 0.6, (k if not hitting else 1.0 - snap), 0.0, 0.0
+    if kind == "hurl":  # the right arm winds back with a block, then lets it fly
+        back = -2.4 * k if not hitting else -2.4 + 3.6 * snap
+        return 0.1, 0.3, 0.4, back, 0.5, 0.0, (k if not hitting else -1.0), 0.0
     if e.state == "hurt":
-        return -0.2, 0.7, 0.6, 0.5, 0.0, 0.0, -0.3
-    return 0.15, 0.5 + sway * 0.5, 0.9, -sway, 0.0, 0.0, TORCH_REST
+        return -0.2, 0.5, 0.5, 0.4, 0.5, 0.0, 0.0, 0.0
+    sway = math.sin(e.anim_t * 1.6) * 0.08
+    return sway * 0.5, 0.1 + sway * 0.5, 0.25, 0.1 - sway, 0.25, 0.0, 0.0, 0.0
 
 
-def _keystone_torch(r, t, lit, blaze, phase2, spray=0.0):
-    """The torch it bears: a fluted column of the old city's sandstone bound in iron, an iron basket of
-    coals at its head, burning (a roaring blaze in its ember phase), cold and dark once it is slain.
-    Shaken (`spray`, 0..1), embers fly up out of the basket in a fountain."""
-    r.part("cyl", 0, 0.7, 0, 0.36, 3.4, 0.36, TORCH_STONE, tex="rough_stone")  # the column's shaft
-    for i in range(4):  # its fluting
-        a = i * math.pi / 2 + 0.4
-        r.part("cube", math.cos(a) * 0.17, 0.7, math.sin(a) * 0.17, 0.05, 3.2, 0.05, _dim(TORCH_STONE, 0.72))
-    r.part("cube", 0, -1.05, 0, 0.5, 0.12, 0.5, _dim(TORCH_STONE, 0.82))  # its broken base
-    for y in (-0.55, 0.55, 1.6):  # iron bands round it
-        r.part("cyl", 0, y, 0, 0.42, 0.1, 0.42, IRON)
-    r.part("cube", 0, 2.45, 0, 0.78, 0.22, 0.78, _dim(TORCH_STONE, 0.9))  # the capital
-    for i in range(6):  # the fire-basket: iron bars rising round the coals, splayed out
-        a = i * math.pi / 3
-        r.part("cube", math.cos(a) * 0.38, 2.85, math.sin(a) * 0.38, 0.06, 0.62, 0.06, IRON,
-               rx=math.sin(a) * 0.3, rz=-math.cos(a) * 0.3)  # fmt: skip
-    r.part("cyl", 0, 3.12, 0, 0.98, 0.08, 0.98, IRON)  # its rim
-    r.part("sphere", 0, 2.75, 0, 0.66, 0.36, 0.66, COALS if lit else COLD, glow=lit)  # the coals
-    if not lit:
-        return
-    _flame(r, 0, 3.3, 0, 0.6 * blaze, t)
-    if spray > 0:  # shaken: a fountain of embers flung up out of the basket
-        for i in range(8):
-            u = (t * 1.6 + i / 8) % 1.0
-            a = i * 2.4 + t
-            d = 0.3 + 1.6 * u
-            r.part("cube", math.cos(a) * d, 3.2 + 3.0 * u - 2.2 * u * u, math.sin(a) * d, 0.16 * spray,
-                   0.16 * spray, 0.16 * spray, (255, rround(220 - 120 * u), 60), glow=True)  # fmt: skip
-    if phase2:  # a roaring blaze: a second flame, and sparks whirled up off it
-        _flame(r, 0.1, 4.2, 0.05, 0.4 * blaze, t + 1.3)
-        for i in range(5):
-            u = (t * 0.7 + i / 5) % 1.0
-            a = t * 2 + i * 1.3
-            r.part("cube", math.cos(a) * 0.4 * u, 3.4 + u * 2.4, math.sin(a) * 0.4 * u, 0.07, 0.07, 0.07,
-                   _dim(EMBER, 1.0 - 0.6 * u), glow=True)  # fmt: skip
+def _knuckle_guard(r, side, lit, split, wide):
+    """The broken column stubs it has driven over its knuckles, a fluted drum across each fist."""
+    for y, z in ((-0.98, 0.0), (-1.22, side * 0.06)):
+        r.part("cyl", 0.42 * wide, y, z, 0.24, 0.66 * wide, 0.24, COLUMN_STONE, tex=GOLEM_TEX,
+               rx=math.pi / 2)  # fmt: skip
+    r.part("cube", 0.42 * wide, -1.1, 0, 0.27, 0.06, 0.7 * wide, _dim(COLUMN_STONE, 0.7))  # their seam
+
+
+def _keystone_core(r, t, lit, split, charge, flashing):
+    """Its heart: a core of the mortar-light bared in the middle of its chest, in a cage of stone
+    ribs. It glows while it lives, blazes once its shell has sloughed off, and swells as it draws in
+    the light for a move (`charge`)."""
+    pulse = 0.5 + 0.5 * math.sin(t * (3.0 if not split else 5.0))
+    glow = 0.3 + 0.4 * pulse + 0.3 * charge if not split else 0.6 + 0.4 * pulse
+    core = HIT_GLOW if flashing else _mix_rgb(CORE_TEAL, CORE_HEART, glow * 0.6) if lit else COLD
+    heart = HIT_GLOW if flashing else CORE_HEART if lit else COLD
+    s = 1.2 + 0.25 * charge + (0.2 if split else 0.0)
+    r.part("sphere", 0.46, CORE_Y, 0, 0.26 * s, 0.32 * s, 0.36 * s, core, glow=lit)
+    r.part("lozenge", 0.58, CORE_Y, 0, 0.12 * s, 0.26 * s, 0.12 * s, heart, glow=lit, ry=t * 0.8)
+    if split and lit:  # blazing: a halo of light round it
+        r.part("sphere", 0.5, CORE_Y, 0, 0.42 * s, 0.52 * s, 0.56 * s, _dim(CORE_TEAL, 0.55), glow=True)
+    for y in (-0.2, 0.0, 0.2):  # the cage of stone ribs over it, open down the middle
+        for side in (-1, 1):
+            r.part("cube", 0.6, CORE_Y + y, side * 0.2, 0.08, 0.08, 0.28, _dim(GOLEM_STONE, 1.1), tex=GOLEM_TEX,
+                   ry=side * 0.6)  # fmt: skip
+    r.part("cube", 0.56, CORE_Y + 0.34, 0, 0.12, 0.1, 0.6, GOLEM_DARK, tex=GOLEM_TEX)  # its collar of rock
 
 
 def keystone(r, e, t):
-    """A titan of the old city's foundation stone, standing upright: squat piers of legs, a broad body of
-    dressed courses under rough boulder plates, moss and roots in its seams, a heavy brow over two
-    slits of amber light and a beard of moss and hanging roots; on its head a crown of broken column
-    stubs, the last of the city it bore. In its left fist it bears a torch, a fluted column with an
-    iron basket of burning coals at its head. At half HP its shell bursts: the boulder plates fall away,
-    the stone under them is charred, an ember core glows through every seam, its eyes and mouth blaze,
-    embers lift off its shoulders and the torch roars up. It slams and sweeps; then it stamps (the foot
-    rises high), hurls blocks of masonry and drags its torch along the floor in a line of fire. Slain,
-    it sinks to its knees and slumps forward on its fists, the torch going out."""
+    """The Stone Golems' giant, some 6.5 m of the same hunched body: a chest of faceted grey-green rock
+    over a narrow waist, short thick legs, a small head set low and forward under its shoulders, and
+    arms that hang to the ground, each forearm a slab of rock with broken columns driven over its
+    knuckles. In the middle of its chest the mortar-light that animates them all is bared: a teal core
+    in a cage of stone ribs, its light running out through cracks in the boulder plates of its shell.
+    On its hump stand the stubs of the columns it once bore up. At half HP the shell sloughs off: the
+    plates fall away, the dark stone under them is laced with veins of light, the core blazes, its eyes
+    flare and motes of light lift off it. It slams and sweeps and brings a slab down before it; then
+    it stamps (the foot rises high), hurls blocks of masonry, rakes a beam of the light along the floor
+    from its heart, rains shards of its shell down round you and drives its fists down so rings of
+    light run out from it. Slain, it sinks to its knees and slumps forward on its fists, and the light
+    in it goes out."""
     dead = e.state == "dead"
     lit = not dead
     split = e.phase2 and lit
     kneel = death_fall(e, 0.9)
     slump = death_fall(e, 2.0)
-    lean, left, left_elbow, right, stamp, hurl, torch = keystone_pose(e)
-    raining = e.attack_kind == "cinder_rain" and e.state in ("windup", "attack")
-    spray = (_windup_k(e) if e.state == "windup" else 1.0) if raining and lit else 0.0
+    lean, left, left_elbow, right, right_elbow, stamp, hurl, charge = keystone_pose(e)
+    acting = e.state in ("windup", "attack")
+    raining = e.attack_kind == "shard_rain" and acting and lit
+    beaming = e.attack_kind == "core_beam" and e.state == "attack" and lit
     swing = walk_cycle(e, t) * 0.25
     lift, spin, _, _ = _spider_move(e, t, 0.0, 1.0)
-    pulse = 0.5 + 0.5 * math.sin(t * 3.0)
     flashing = e.flashing
-    base = CHAR if e.phase2 else MASONRY
-    stone = hit_tint((236, 220, 200)) if flashing else base
-    dark = _dim(stone, 0.72)
-    eye = HIT_GLOW if flashing else (255, 236, 170) if split else EYE
-    core = HIT_GLOW if flashing else _mix_rgb(CORE, (255, 210, 120), 0.5 * pulse) if split else COLD
-    vein = 0.05 if not split else 0.11
-    sink = -0.8 * kneel  # down onto its knees, the shins laid flat behind it
-    with r.at(0, lift * 0.3 + sink, 0, ry=spin):
-        for i, side in enumerate((-0.85, 0.85)):  # squat piers of legs
-            raise_ = 1.0 * stamp if i == 1 else 0.0
+    base = KEYSTONE_BARE if e.phase2 else GOLEM_STONE
+    stone = hit_tint((220, 232, 214)) if flashing else base
+    dark = hit_tint((190, 200, 186)) if flashing else _dim(base, 0.75)
+    eye = HIT_GLOW if flashing else CORE_HEART if split else CORE_TEAL
+    vein = HIT_GLOW if flashing else _mix_rgb(CORE_TEAL, CORE_HEART, 0.4) if split else _dim(CORE_TEAL, 0.8)
+    veins = VEINS if e.phase2 else VEINS[:SHELL_VEINS]
+    vein_w = 0.07 if split else 0.04
+    moss = MOSS if not e.phase2 else _dim(MOSS, 0.5)
+    hunch = GOLEM_HUNCH + lean + 0.3 * slump
+    with r.at(0, lift * 0.3, 0, ry=spin, s=KEYSTONE_SCALE), r.at(0, -0.4 * kneel, 0):
+        for i, z in enumerate((-0.38, 0.38)):  # short thick legs; the right one stamps
+            raise_ = stamp if i == 1 else 0.0
             a = (swing if i else -swing) * (1 - kneel)
-            with r.at(0, 2.45 + raise_, side, rz=a + (0.5 * stamp if i == 1 else 0.0)):
-                r.part("cube", 0, -0.6, 0, 1.0, 1.2, 0.96, stone)  # the thigh
-                r.part("cube", 0.02, -1.18, 0, 0.94, 0.08, 0.9, MORTAR)
-                r.part("cube", 0.52, -0.6, 0, 0.1, 0.4, 0.04, core, glow=split)  # a seam down it
-                with r.at(0, -1.2, 0, rz=-1.5 * kneel - (0.6 * stamp if i == 1 else 0.0)):
-                    r.part("cube", 0, -0.55, 0, 0.9, 1.1, 0.9, dark)  # the shin
-                    if not e.phase2:
-                        r.part("sphere", 0.42, -0.3, 0, 0.3, 0.4, 0.56, MASONRY_DARK, tex="rough_stone")
-                    r.part(
-                        "cube",
-                        0.25 * (1 - kneel),
-                        -1.15,
-                        0,
-                        1.4 - 0.9 * kneel,
-                        0.2,
-                        1.1,
-                        MASONRY_DARK,
-                        tex="rough_stone",
-                    )  # a foot, its toes curled under as it kneels
-        with r.at(0, 2.5, 0, rz=-lean - 0.55 * slump):
-            r.part("cube", 0, 0.15, 0, 1.4, 0.6, 2.0, MASONRY_DARK)  # hips
-            for i, (y, w, d) in enumerate(
-                ((0.7, 1.5, 2.2), (1.25, 1.7, 2.6), (1.8, 1.9, 2.9), (2.3, 1.9, 3.0))
-            ):
-                _course(r, y, w, d, 0.52, stone, i)
-                r.part("cube", 0, y + 0.27, 0, w * 0.96, 0.04, d * 0.98, MORTAR)
-            # Boulder plates over its body; in the ember phase most have burst off, two still clinging.
-            plates = ((0.95, 1.65, -0.6, 0.5), (0.95, 1.65, 0.6, 0.5), (0.85, 0.85, 0.0, 0.46),
-                      (0.7, 2.25, -1.2, 0.44), (0.7, 2.25, 1.2, 0.44), (-0.8, 1.6, 0.0, 0.6))  # fmt: skip
-            for i, (x, y, z, s) in enumerate(plates):
+            with r.at(0, 0.38 * raise_, 0):
+                _golem_leg(r, z, a + 0.5 * raise_ + 1.5 * kneel, -0.6 * raise_ - 1.4 * kneel, stone, dark)
+        r.part("cube", 0, GOLEM_HIP + 0.04, 0, 0.6, 0.28, 0.92, dark, tex=GOLEM_TEX)  # the hips
+        with r.at(0, GOLEM_WAIST, 0, rz=-hunch):
+            _golem_torso(r, stone, dark, moss, vein if lit else COLD, lit)
+            _keystone_core(r, t, lit, split, charge, flashing)
+            for i, (x, y, z, s) in enumerate(SHELL_PLATES):  # its shell: most of it sloughed off at last
                 if e.phase2 and i not in (1, 5):
                     continue
-                r.part(
-                    "sphere",
-                    x,
-                    y,
-                    z,
-                    s * 0.6,
-                    s,
-                    s * 1.2,
-                    _dim(stone, 0.9 + 0.05 * (i % 3)),
-                    tex="rough_stone",
-                )
-            for y, z, s in ((0.9, -0.95, 0.3), (1.5, 1.05, 0.36), (2.05, -0.45, 0.28), (0.6, 0.6, 0.24)):
-                r.part("sphere", 0.8, y, z, 0.1, s, s * 1.5, MOSS if not e.phase2 else _dim(MOSS, 0.5))
-            for z in (-0.7, 0.35, 1.0):  # roots hanging out of its seams
-                r.part("cube", 0.9, 1.1, z, 0.04, 0.8, 0.04, (90, 70, 48), rx=0.15 * z)
-            # The cracks in its shell: dark seams, splitting open on its ember core in the ember phase.
-            cracks = ((1.0, -0.4, 0.5), (1.55, 0.25, -0.6), (2.0, -0.9, 0.3), (0.7, 0.85, -0.2),
-                      (2.35, 0.7, 0.4), (1.3, -1.05, -0.3))  # fmt: skip
-            for y, z, a in cracks:
-                r.part("cube", 0.97, y, z, 0.03, 0.5, vein, core, rx=a, glow=split)
-            if split:
-                r.part("sphere", 0.7, 1.5, 0, 0.32, 0.9, 1.1, core, glow=True)  # the core through its chest
-                for z in (-0.6, 0.0, 0.6):
-                    r.part("cube", -0.97, 1.4, z, 0.04, 1.6, 0.1, core, glow=True)  # down its back
-                for i in range(6):  # embers lifting off its shoulders
+                r.part("cube", x, y, z, s * 1.1, s, s * 1.3, _dim(GOLEM_STONE, 0.9 + 0.06 * (i % 3)),
+                       tex=GOLEM_TEX, rx=0.3 * (i % 3 - 1), ry=0.25 * (i % 2), rz=0.35 - 0.2 * i)  # fmt: skip
+            for y, z, a in veins:  # the cracks the light shows through
+                r.part("cube", 0.56, y, z, 0.03, 0.42, vein_w, vein if lit else COLD, rx=a, glow=lit)
+            if split:  # down its back too, and motes of light lifting off its shoulders
+                for z in (-0.4, 0.0, 0.4):
+                    r.part("cube", -0.5, 0.9, z, 0.03, 0.7, 0.06, vein, rz=0.2, glow=True)
+                for i in range(6):
                     u = (t * 0.45 + i / 6) % 1.0
                     side = 1 if i % 2 else -1
-                    r.part("cube", -0.1 + 0.3 * math.sin(t + i), 2.6 + u * 2.2, side * (0.9 + 0.3 * u), 0.08,
-                           0.08, 0.08, _dim(EMBER, 1.0 - 0.7 * u), glow=True)  # fmt: skip
-            with r.at(0.55, 2.85, 0, rz=0.15):  # the head: a keystone, wider at its crown
-                r.part("wedge", 0, 0, 0, 0.95, 0.85, 1.1, stone, rx=math.pi)
-                r.part("cube", 0.2, 0.3, 0, 0.72, 0.18, 1.24, MASONRY_DARK, tex="rough_stone")  # a heavy brow
-                for z in (-0.25, 0.25):
-                    r.part("cube", 0.48, 0.14, z, 0.04, 0.07, 0.22, eye if lit else COLD, glow=lit)
-                r.part("cube", 0.47, -0.16, 0, 0.03, 0.05, 0.5, core if split else PASSAGE_DARK, glow=split)
-                for i in range(5):  # a beard of moss and hanging roots
-                    z = (i - 2) * 0.2
-                    length = 0.5 + 0.25 * ((i * 3) % 4) / 3
-                    r.part("cube", 0.38, -0.4 - length / 2, z, 0.12, length, 0.14,
-                           _dim(MOSS if i % 2 else (84, 66, 46), 0.6 if e.phase2 else 1.0))  # fmt: skip
-                r.part("cube", -0.05, 0.48, 0, 0.9, 0.12, 1.15, MASONRY_DARK)  # the crown's ring of stone
-                for x, z, h in ((0.25, -0.4, 0.6), (0.25, 0.4, 0.45), (-0.3, -0.35, 0.4), (-0.3, 0.3, 0.7)):
-                    r.part(
-                        "cyl", x, 0.54 + h / 2, z, 0.26, h, 0.26, (156, 140, 116) if not e.phase2 else CHAR
-                    )
-                    if split:
-                        r.part(
-                            "cube", x, 0.56 + h, z, 0.18, 0.04, 0.18, core, glow=True
-                        )  # embers in its crown
-            # Arms: long, boulder fists; the right free, the left bearing the torch.
-            for side, swing_a, elbow in ((1, right, 0.25), (-1, left, left_elbow)):
-                with r.at(0.1, 2.15, side * 1.6, rz=swing_a - 0.4 * slump):
-                    r.part("sphere", 0, 0.05, 0, 1.0, 0.9, 0.9, dark)  # the shoulder
-                    if not e.phase2 or side == 1:  # a boulder of a pauldron
-                        r.part("sphere", -0.05, 0.35, side * 0.15, 0.7, 0.5, 0.8, stone, tex="rough_stone")
-                    r.part("cube", 0, -0.7, 0, 0.66, 1.2, 0.66, stone)
-                    r.part("cube", 0, -1.32, 0, 0.68, 0.06, 0.68, MORTAR)
-                    r.part("cube", 0.34, -0.7, 0, 0.04, 0.6, vein, core, glow=split)
-                    with r.at(0, -1.4, 0, rz=elbow + 0.9 * slump):
-                        r.part("cube", 0, -0.6, 0, 0.6, 1.1, 0.6, _dim(stone, 0.9))
-                        r.part("sphere", 0.05, -1.35, 0, 0.98, 0.84, 0.98, MASONRY_DARK)  # fist
-                        for z in (-0.24, 0.24):
-                            r.part("sphere", 0.4, -1.3, z, 0.28, 0.26, 0.28, stone)  # knuckle-stones
+                    r.part("cube", -0.1 + 0.12 * math.sin(t + i), 1.5 + u * 0.9, side * (0.4 + 0.15 * u),
+                           0.04, 0.04, 0.04, _dim(CORE_TEAL, 1.0 - 0.6 * u), glow=True)  # fmt: skip
+            for z in (-0.5, 0.2, 0.62):  # roots hanging out of its seams
+                r.part("cube", 0.5, 0.5, z, 0.02, 0.36, 0.02, (90, 70, 48), rx=0.2 * z)
+            for x, z, h in ((-0.3, -0.3, 0.32), (-0.2, 0.34, 0.24), (-0.5, 0.05, 0.4)):
+                # The broken columns it bore the city on, still standing on its hump.
+                with r.at(x, 1.46, z, rz=hunch * 0.8):
+                    r.part("cyl", 0, h / 2, 0, 0.16, h, 0.16, COLUMN_STONE if not e.phase2 else _dim(stone, 1.2),
+                           tex="rough_stone")  # fmt: skip
+                    r.part("cube", 0, h + 0.01, 0, 0.13, 0.03, 0.12, _dim(COLUMN_STONE, 0.75), ry=x * 3)
+            with r.at(*GOLEM_HEAD, 0, rz=hunch - 0.1):  # the head looks ahead, whatever the body does
+                _golem_head(r, stone, dark, eye, lit, flare=1.0 if split else 0.0)
+                for i in range(3):  # a beard of moss and roots
+                    r.part("cube", 0.14, -0.28 - 0.04 * (i % 2), (i - 1) * 0.1, 0.06, 0.2 + 0.06 * (i % 2),
+                           0.06, _dim(moss if i % 2 else (84, 66, 46), 1.0))  # fmt: skip
+            if beaming:  # the beam it rakes along the floor, out of its heart
+                with r.at(0.6, CORE_Y, 0, rz=-1.0 + hunch):
+                    r.part("cube", 1.4, 0, 0, 2.8, 0.1, 0.1, CORE_HEART, glow=True)
+                    r.part("cube", 1.4, 0, 0, 2.8, 0.22, 0.22, _dim(CORE_TEAL, 0.8), glow=True)
+            sx, sy, sz = GOLEM_SHOULDER
+            for side, a, elbow in ((1, right, right_elbow), (-1, left, left_elbow)):
+                a, elbow = a + ARM_SLUMP * slump, elbow + ELBOW_SLUMP * slump  # down onto its fists
+                with r.at(sx, sy, side * sz, rz=GOLEM_HUNCH):
+                    _golem_arm(r, side, a, elbow, stone, dark, vein, lit, wide=1.15)
+                    with r.at(0, 0, 0, rz=a), r.at(0, -0.66, 0, rz=elbow):
+                        _knuckle_guard(r, side, lit, split, 1.15)
                         if hurl > 0 and side == 1:  # the block it is about to throw
-                            r.part("cube", 0.1, -1.9, 0, 0.8, 0.66, 0.66, (150, 132, 104))
-                        if side == -1:  # the torch, held upright whatever its arm does
-                            fall = 0.8 * slump
-                            with r.at(
-                                0.05,
-                                -1.35,
-                                0,
-                                rz=-(torch + fall) - (swing_a - 0.4 * slump) - (elbow + 0.9 * slump),
-                            ):
-                                _keystone_torch(r, t, lit, 2.4 if split else 1.0, e.phase2, spray)
+                            r.part("cube", 0.1, -1.5, 0, 0.32, 0.26, 0.26, (150, 132, 104))
+                        if raining:  # shards of its shell torn loose over its fists, glowing
+                            for i in range(3):
+                                u = (t * 1.6 + i / 3) % 1.0
+                                r.part("lozenge", 0.2 * math.sin(t * 3 + i), -1.5 - 0.6 * u, 0.15 * (i - 1),
+                                       0.06, 0.14, 0.06, CORE_TEAL, glow=True, ry=t * 4 + i)  # fmt: skip
 
 
 def rubble_chunk(r, rgb, t):
@@ -552,6 +582,48 @@ def rubble_chunk(r, rgb, t):
         r.part(
             "cube", -0.3 - 0.12 * i, math.sin(a) * 0.12, math.cos(a) * 0.12, 0.06, 0.06, 0.06, _dim(rgb, 0.7)
         )
+
+
+def core_burst(r, glow, flame, t, radius=1.0):
+    """The mortar-light bursting up through the floor (a `hazards.Eruption` of style "core", the
+    Keystone's): a ring of teal cracks spreading where it will strike, then a column of hard light with
+    shards of stone flung up in it, as wide as the burst's `radius`."""
+    k = radius
+    if glow > 0:
+        for i in range(6):
+            a = i * math.pi / 3 + t * 0.4
+            r.part("cube", math.cos(a) * 0.7 * k, 0.03, math.sin(a) * 0.7 * k, 0.5 * k, 0.03, 0.06,
+                   _mix_rgb(_dim(CORE_TEAL, 0.5), CORE_TEAL, glow), ry=-a + math.pi / 2, glow=True)  # fmt: skip
+        r.part("cyl", 0, 0.02, 0, 0.7 * glow * k, 0.02, 0.7 * glow * k, CORE_TEAL, glow=True)
+    if flame > 0:
+        h = 3.0 * flame * (1 + 0.4 * (k - 1))
+        r.part("cyl", 0, h / 2, 0, 1.1 * k, h, 1.1 * k, _dim(CORE_TEAL, 0.75), glow=True)
+        r.part("cyl", 0, h * 0.55, 0, 0.45 * k, h * 1.1, 0.45 * k, CORE_HEART, glow=True)
+        for i in range(4):  # shards flung up in it
+            a = i * math.pi / 2 + t * 2
+            r.part("lozenge", math.cos(a) * 0.6 * k, h * (0.3 + 0.15 * i), math.sin(a) * 0.6 * k,
+                   0.1, 0.24, 0.1, GOLEM_STONE, ry=a)  # fmt: skip
+
+
+def core_shard(r, t):
+    """A shard of the Keystone's shell flung out on an arc, the light still in it."""
+    r.part("lozenge", 0, 0, 0, 0.26, 0.6, 0.26, GOLEM_STONE, rx=t * 5, rz=t * 3)
+    r.part("lozenge", 0, 0, 0, 0.14, 0.7, 0.14, CORE_TEAL, rx=t * 5, rz=t * 3, glow=True)
+    for i in range(2):
+        r.part(
+            "cube", -0.15 - 0.15 * i, 0.08 * i, 0, 0.06, 0.06, 0.06, _dim(CORE_TEAL, 0.8 - 0.3 * i), glow=True
+        )
+
+
+def core_ring(r, k, radius):
+    """A ring of the mortar-light running out across the floor from where the Keystone struck."""
+    d = radius * k
+    size = 0.3 * (1 - k) + 0.08
+    for i in range(16):
+        a = i * math.pi / 8
+        rgb = CORE_TEAL if i % 2 else GOLEM_STONE
+        r.part("cube", math.cos(a) * d, 0.1 + 0.2 * (1 - k), math.sin(a) * d, size, size, size, rgb,
+               ry=a, glow=i % 2 == 1)  # fmt: skip
 
 
 # --- Old Harrowmere's dressing --------------------------------------------------------------------
@@ -631,49 +703,96 @@ def ember_stone_sword(r):
     r.part("sphere", 0, -0.17, 0, 0.04, 0.04, 0.04, COAL, glow=True)
 
 
+def _sheet(r, x, y, z, w, h, rgb, tex="sunbeam", ry=0.0):
+    """A thin upright sheet of light seen from both sides: `w` across (local x, then turned by `ry`),
+    `h` tall, centred on (x, y, z). The texture's top row is at its top."""
+    for turn in (0.0, math.pi):
+        r.part("quad", x, y, z, w, 1, h, rgb, tex=tex, rx=math.pi / 2, ry=ry + turn, glow=True)
+
+
+SUN_WHITE = (255, 246, 222)  # the heart of the beam
+
+
 def sun_shaft(r, t, height=14.0, width=2.4, rift=(CRACK_LEN, CRACK_WIDTH), yaw=0.0):
-    """The light that falls from a crack in the cavern's roof far overhead: a tall, slanting curtain of
-    sunlit haze, threads of brighter light running down through it, brightest where it lands in a pool
-    on the floor, motes of dust turning in it. At its top, the crack itself: a jagged sliver of daylight
-    set in the vault's hole (`world/vault.py`), a rim of gold round it. `rift` (length, width) and `yaw`
-    (radians) widen the crack into a great rift: the curtain then runs the length of it."""
+    """The light that falls from a crack in the cavern's roof far overhead: a tall, slanting beam of
+    sunlit haze built of stacked sheets of light, rays running down them, each sheet thinning to
+    nothing at its sides so the beam's edges are soft and spread as it falls. Its heart is whiter and
+    narrower than its veil. Threads of brighter light run down through it, motes of dust turn and
+    glint in it, and where it lands it pools on the floor: a glow netted with wavering caustics and
+    rings of light rippling out. At its top, the crack itself: a jagged
+    sliver of daylight set in the vault's hole (`world/vault.py`), a rim of gold round it. `rift`
+    (length, width) and `yaw` (radians) widen the crack into a great rift: the beam then runs the
+    length of it."""
     length, crack_w = rift
-    span = max(width * 0.85, length * 0.4)  # how far the curtain of haze runs along the rift
+    span = max(width * 0.85, length * 0.4)  # how far the beam runs along the rift
     with r.at(-height * math.sin(SHAFT_LEAN), height * math.cos(SHAFT_LEAN), 0, ry=yaw):  # the crack
-        r.part("cube", 0, 0.6, 0, crack_w * 1.2, 0.1, length * 1.1, (255, 246, 220), glow=True)
+        r.part("cube", 0, 0.6, 0, crack_w * 1.2, 0.1, length * 1.1, (255, 248, 228), glow=True)
         n = max(5, rround(length / 1.4))
         for i in range(n):  # the sliver, jagged: wider and narrower along its length
             z = (i / (n - 1) - 0.5) * length * 0.85
             w = crack_w * (0.45 + 0.25 * ((i * 3) % 4) / 3)
-            r.part("cube", 0.1 * (i % 2), 0.3, z, w, 0.12, length * 1.2 / n, (255, 240, 200), glow=True,
+            r.part("cube", 0.1 * (i % 2), 0.3, z, w, 0.12, length * 1.2 / n, (255, 244, 210), glow=True,
                    ry=0.25 * (i % 3 - 1))  # fmt: skip
         for side in (-1, 1):  # its rim of gold, where the daylight catches the rock's broken lip
-            r.part("cube", side * crack_w * 0.45, -0.1, 0, 0.2 + crack_w * 0.03, 0.3, length * 0.9,
-                   _dim(GOLD_LIGHT, 0.85), tex="mist", glow=True, ry=side * 0.06)  # fmt: skip
+            r.part("cube", side * crack_w * 0.45, -0.1, 0, 0.3 + crack_w * 0.04, 0.4, length * 0.95,
+                   GOLD_LIGHT, tex="mist", glow=True, ry=side * 0.06)  # fmt: skip
     with r.at(0, 0, 0, ry=yaw), r.at(0, 0, 0, rz=SHAFT_LEAN):  # it falls a little aslant
-        for i in range(3):  # the haze, in thin layers, widening and fading as it falls
-            k = i / 2
-            w = width * (0.35 + 0.35 * k)
-            r.part("cube", 0, height * (0.82 - 0.3 * i), 0, w, height * 0.36, span * (0.7 + 0.3 * k),
-                   _dim(GOLD_LIGHT, 0.8 - 0.15 * i), tex="mist", glow=True, ry=0.1 * i)  # fmt: skip
+        mid = height * 0.5
+        for i in range(4):  # the veil: sheets along the rift, one behind another through its depth
+            o = (i - 1.5) / 1.5
+            glow = (0.78 + 0.22 * (1 - abs(o))) * (0.9 + 0.1 * math.sin(t * 0.6 + i * 1.9))
+            _sheet(r, o * width * 0.32, mid, 0, span * (1.12 - 0.1 * abs(o)), height,
+                   _dim(GOLD_LIGHT, glow), ry=math.pi / 2)  # fmt: skip
+        across = max(3, rround(span / 3))
+        for i in range(across):  # and sheets across it, so it holds its body seen down its length
+            z = ((i + 0.5) / across - 0.5) * span * 0.9
+            _sheet(r, 0, mid, z, width * 1.1, height, _dim(GOLD_LIGHT, 0.7 + 0.08 * math.sin(t * 0.5 + i)))
+        for o in (-0.12, 0.12):  # its heart: narrower, whiter
+            _sheet(r, o * width, mid, 0, span * 0.78, height * 0.98, _dim(SUN_WHITE, 0.95), ry=math.pi / 2)
         threads = max(5, rround(span / 1.5))
         for i in range(threads):  # threads of brighter light down through it
             a = i * 1.3 + 0.4
             x = math.cos(a) * width * 0.25
             z = (i / max(threads - 1, 1) - 0.5) * span * 0.9
-            shimmer = 0.85 + 0.15 * math.sin(t * 0.8 + i * 1.7)
-            r.part("cube", x, height * 0.5, z, 0.06, height, 0.06, _dim(GOLD_LIGHT, shimmer), glow=True)
-        motes = 10 + rround(span)
-        for k in range(motes):  # motes of dust turning in it
-            u = (t * 0.05 + k / motes) % 1.0
+            shimmer = 0.8 + 0.2 * math.sin(t * 0.8 + i * 1.7)
+            r.part("cube", x, mid, z, 0.05, height, 0.05, _dim(SUN_WHITE, shimmer), glow=True)
+        motes = 16 + rround(span * 1.4)
+        for k in range(motes):  # motes of dust turning in it, glinting as they catch the light
+            u = (t * 0.04 + k / motes) % 1.0
             a = t * 0.3 + k * 2.4
             z = (((k * 7) % motes) / motes - 0.5) * span * 0.9
-            r.part("cube", math.cos(a) * width * 0.3, 0.3 + u * height * 0.8, z + math.sin(a) * 0.4,
-                   0.04, 0.04, 0.04, GOLD_LIGHT, glow=True)  # fmt: skip
+            glint = 0.5 + 0.5 * math.sin(t * 2.3 + k * 1.37)
+            size = 0.04 + 0.04 * glint
+            rgb = _mix_rgb(GOLD_LIGHT, (255, 255, 248), glint)
+            r.part("cube", math.cos(a) * width * 0.32, 0.3 + (1 - u) * height * 0.7, z + math.sin(a) * 0.4,
+                   size, size, size, rgb, glow=True, ry=a)  # fmt: skip
     with r.at(0, 0, 0, ry=yaw):  # the pool it lands in, drawn out along the rift
-        r.part("cyl", 0, 0.02, 0, width * 1.2, 0.02, max(width * 1.2, span), _dim(GOLD_LIGHT, 0.8),
-               tex="mist", glow=True)  # fmt: skip
-        r.part("cyl", 0, 0.03, 0, width * 0.7, 0.02, max(width * 0.7, span * 0.7), (255, 236, 190), glow=True)
+        pool_w, pool_l = width * 1.5, max(width * 1.5, span * 1.05)
+        r.part("cyl", 0, 0.02, 0, pool_w, 0.02, pool_l, _dim(GOLD_LIGHT, 0.55), tex="mist", glow=True)
+        r.part(
+            "cyl",
+            0,
+            0.03,
+            0,
+            width * 0.8,
+            0.02,
+            max(width * 0.8, span * 0.75),
+            _dim(GOLD_LIGHT, 0.72),
+            tex="mist",
+            glow=True,
+        )
+        for i, spin in enumerate((0.12, -0.08)):  # caustics wavering over it, two nets drifting apart
+            with r.at(0.15 * math.sin(t * 0.4 + i), 0.05 + 0.01 * i, 0, ry=t * spin + i):
+                s = 1.0 + 0.04 * math.sin(t * 1.1 + i * 2)
+                r.part("quad", 0, 0, 0, pool_w * 1.3 * s, 1, pool_l * 1.05 * s,
+                       _dim(_mix_rgb(SUN_WHITE, GOLD_LIGHT, 0.5), 0.75 - 0.1 * i), tex="caustics", glow=True)  # fmt: skip
+        rings = 3
+        for i in range(rings):  # rings of light rippling out from where it falls
+            u = (t * 0.35 + i / rings) % 1.0
+            z = (i - 1) * span * 0.28
+            d = width * (0.4 + 1.5 * u)
+            r.part("quad", 0, 0.07, z, d, 1, d, _mix_rgb(SUN_WHITE, _dim(GOLD_LIGHT, 0.6), u), tex="ripple",
+                   glow=True)  # fmt: skip
 
 
 def rift_lance(r, rgb, t):
@@ -695,9 +814,10 @@ def rift_lance(r, rgb, t):
 
 # --- the roads of light --------------------------------------------------------------------------
 
-# The two sets of ward decks and the crystals that swap them: set "a" burns gold like the rift's
-# daylight, set "b" pale blue like the water falling past it.
-WARD_RGB = {"a": (255, 200, 110), "b": (140, 200, 255)}
+# The three sets of ward decks and the crystals that turn them: set "a" burns gold like the rift's
+# daylight, set "b" pale blue like the water falling past it, set "c" teal like the mortar-light that
+# feeds it.
+WARD_RGB = {"a": (255, 200, 110), "b": (140, 200, 255), "c": CORE_TEAL}
 WARD_STONE = (110, 100, 90)
 
 
@@ -748,6 +868,91 @@ def ward_crystal(r, t, active):
         a = t * 1.2 + i * math.tau / 5
         r.part("cube", math.cos(a) * 0.5, 1.2 + 0.3 * math.sin(t * 2 + i), math.sin(a) * 0.5, 0.05, 0.05, 0.05,
                rgb, glow=True)  # fmt: skip
+
+
+# --- the energy core (the mortar-light) -------------------------------------------------------
+
+
+def energy_core(r, t, height=1.2, quenched=False, shielded=False, tethers=(), yaw=0.0, sunlit=False):
+    """The energy core: the mortar-light that animates the giants. A carved plinth `height` tall of
+    stacked masonry, the masons' marks cut in its faces glowing teal, four stone claws rising from its
+    cap to cradle a great faceted crystal heart (about 1.2 m) floating over it, turning slowly and
+    breathing light, stone shards orbiting it. Thin teal tethers run from it to every golem it
+    sustains (`tethers`: their offsets in world axes; `yaw` is the prop's heading, undone for them),
+    beads of light running out along them. While its ward stands (`shielded`) a lattice dome of light
+    covers it. `sunlit`: the sun shaft falls on it, gilding the crystal's crown. Quenched, the crystal
+    lies split in its cradle, grey and cold, the marks dark, the shards fallen."""
+    breath = 0.5 + 0.5 * math.sin(t * 1.6)
+    lit = not quenched
+    mark = COLD if quenched else _dim(CORE_TEAL, 0.6 + 0.4 * breath)
+    r.part("cube", 0, 0.12, 0, 1.9, 0.24, 1.9, MASONRY_DARK, tex="rough_stone")  # its footing
+    r.part("cube", 0, 0.24 + height * 0.22, 0, 1.5, height * 0.44, 1.5, MASONRY, tex="rough_stone")
+    r.part("cube", 0, 0.24 + height * 0.47, 0, 1.62, 0.08, 1.62, MASONRY_DARK, tex="rough_stone")
+    r.part("cube", 0, 0.24 + height * 0.74, 0, 1.3, height * 0.46, 1.3, MASONRY, tex="rough_stone")
+    top = 0.24 + height
+    r.part("cube", 0, top - 0.05, 0, 1.55, 0.12, 1.55, _dim(MASONRY, 1.1), tex="rough_stone")  # its cap
+    for i in range(4):  # the masons' marks on each face: a stroke under a chevron, a bar above
+        a = i * math.pi / 2
+        with r.at(math.cos(a) * 0.76, 0.24 + height * 0.22, -math.sin(a) * 0.76, ry=a):
+            r.part("cube", 0, 0, 0, 0.03, height * 0.3, 0.05, mark, glow=lit)
+            for side in (-1, 1):
+                r.part("cube", 0, height * 0.14, side * 0.07, 0.03, 0.04, 0.18, mark, glow=lit, rx=side * 0.7)
+        with r.at(math.cos(a) * 0.66, 0.24 + height * 0.74, -math.sin(a) * 0.66, ry=a):
+            r.part("cube", 0, 0, 0, 0.03, 0.05, 0.4, mark, glow=lit)
+    for i in range(4):  # the stone claws rising off the cap's corners to cradle the heart
+        a = math.pi / 4 + i * math.pi / 2
+        with r.at(math.cos(a) * 0.62, top, -math.sin(a) * 0.62, ry=a):
+            r.part("cube", 0, 0.25, 0, 0.18, 0.55, 0.18, MASONRY_DARK, tex="rough_stone", rz=0.35)
+            r.part("cube", -0.17, 0.62, 0, 0.13, 0.35, 0.13, MASONRY, tex="rough_stone", rz=0.9)
+    heart_y = top + 1.05
+    if quenched:
+        for side in (-1, 1):  # the heart, split in two and fallen into its cradle
+            r.part("lozenge", side * 0.18, top + 0.45, 0.05 * side, 0.4, 0.95, 0.4, CORE_DEAD,
+                   rz=side * 0.5, ry=0.3)  # fmt: skip
+        r.part("cube", 0, top + 0.12, 0, 0.5, 0.03, 0.04, COLD, ry=0.7)  # a crack across the cap
+        for i in range(5):  # the shards it held up, fallen
+            a = i * 1.3
+            r.part("lozenge", math.cos(a) * 1.05, 0.08, math.sin(a) * 1.05, 0.14, 0.32, 0.14, MASONRY_DARK,
+                   tex="rough_stone", rz=1.4, ry=a)  # fmt: skip
+        return
+    bob = 0.08 * math.sin(t * 0.9)
+    swell = 1.0 + 0.05 * breath
+    with r.at(0, heart_y + bob, 0, ry=t * 0.45, s=swell):  # the heart: a faceted crystal, breathing
+        r.part("lozenge", 0, 0, 0, 0.62, 1.25, 0.62, _dim(CORE_TEAL, 0.75 + 0.3 * breath), glow=True)
+        r.part("lozenge", 0, 0, 0, 0.5, 1.05, 0.5, _dim(CORE_TEAL, 0.95), glow=True, ry=math.pi / 4)
+        r.part("lozenge", 0, 0, 0, 0.3, 0.85, 0.3, CORE_HEART, glow=True)  # its white heart
+        if sunlit:  # the sun's gold catching its crown
+            r.part("lozenge", 0, 0.38, 0, 0.36, 0.42, 0.36, _mix_rgb(CORE_HEART, GOLD_LIGHT, 0.6), glow=True)
+    r.part("sphere", 0, heart_y + bob, 0, 1.5 * swell, 1.9 * swell, 1.5 * swell,
+           _dim(CORE_TEAL, 0.45 + 0.2 * breath), tex="ward_net", glow=True)  # its halo  # fmt: skip
+    for i in range(6):  # stone shards orbiting it, a teal vein lit in each
+        a = t * 0.5 + i * math.tau / 6
+        y = heart_y + 0.35 * math.sin(t * 0.7 + i * 1.9)
+        with r.at(math.cos(a) * 1.1, y, -math.sin(a) * 1.1, ry=a + t, rz=0.4 * i):
+            r.part("lozenge", 0, 0, 0, 0.16, 0.36, 0.16, MASONRY_DARK, tex="rough_stone")
+            r.part("cube", 0.07, 0, 0, 0.02, 0.24, 0.03, CORE_TEAL, glow=True)
+    for i in range(4):  # motes rising off it: teal-white and, in the sun, gold
+        u = (t * 0.3 + i / 4) % 1.0
+        a = i * 1.7 + t * 0.4
+        rgb = GOLD_LIGHT if sunlit and i % 2 else CORE_HEART
+        r.part("cube", math.cos(a) * 0.5, heart_y - 0.6 + u * 2.2, math.sin(a) * 0.5, 0.05, 0.05, 0.05, rgb,
+               glow=True)  # fmt: skip
+    ring = (t * 0.4) % 1.0  # a ring of teal pulsing out over the floor, the gold pool's counterpoint
+    d = 2.0 + 3.0 * ring
+    r.part(
+        "quad", 0, 0.08, 0, d, 1, d, _mix_rgb(CORE_HEART, _dim(CORE_TEAL, 0.5), ring), tex="ripple", glow=True
+    )
+    with r.at(0, 0, 0, ry=yaw):  # the tethers, in world axes
+        for i, (dx, dy, dz) in enumerate(tethers):
+            a, b = (0.0, heart_y, 0.0), (dx, dy + 1.8, dz)
+            _bar(r, a, b, 0.035, _dim(CORE_TEAL, 0.7 + 0.3 * breath), glow=True)
+            u = (t * 0.7 + i * 0.37) % 1.0  # a bead of light running out along it
+            r.part("cube", a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u,
+                   0.1, 0.1, 0.1, CORE_HEART, glow=True)  # fmt: skip
+    if shielded:  # the ward's dome of light over it
+        r.part("sphere", 0, 0.4, 0, 3.4, (top + 2.2) * 2, 3.4, _dim(CORE_TEAL, 0.55 + 0.15 * breath),
+               tex="ward_net", glow=True, ry=t * 0.15)  # fmt: skip
+        r.part("cyl", 0, 0.04, 0, 3.5, 0.06, 3.5, _dim(CORE_TEAL, 0.8), tex="ripple", glow=True)
 
 
 WATER_SHEET = (150, 178, 196)
@@ -905,14 +1110,23 @@ def sunken_stair(r, t):
 
 def _keystone_arch(r, style, t, lit):
     """A keystone of the old city's sandstone set over the lintel, carved with a giant's shoulders
-    bearing up a slab; an amber light burns in the cracks round it while the Keystone lives."""
+    bearing up a slab; the teal mortar-light burns in the cracks round it while the Keystone lives."""
     for face in (-1, 1):
         with r.at(face * 0.25, 3.45, 0):
             r.part("wedge", 0, 0, 0, 0.12, 0.5, 0.6, MASONRY, tex="rough_stone", rx=math.pi)
             r.part("cube", 0, 0.32, 0, 0.12, 0.12, 1.2, MASONRY_DARK)  # the slab it bears up
             for z in (-0.38, 0.38):
                 r.part(
-                    "cube", face * 0.02, -0.1, z, 0.04, 0.26, 0.04, EYE if lit else COLD, glow=lit, rx=0.3 * z
+                    "cube",
+                    face * 0.02,
+                    -0.1,
+                    z,
+                    0.04,
+                    0.26,
+                    0.04,
+                    CORE_TEAL if lit else COLD,
+                    glow=lit,
+                    rx=0.3 * z,
                 )
 
 

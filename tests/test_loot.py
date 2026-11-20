@@ -32,7 +32,7 @@ def test_map_props_override_the_roll():
 
 def _free_sources():
     """Every item the world hands out for free, once each: chest, altar, mimic and boss `item=`
-    entries in the maps, and the villagers' gifts."""
+    entries in the maps, and the villagers' and prisoners' gifts."""
     import pathlib
     import re
 
@@ -42,8 +42,7 @@ def _free_sources():
     found = []
     for path in sorted(maps.glob("*.map")):
         found += re.findall(r"\bitem=([a-z_]+)", path.read_text(encoding="latin-1"))
-    for _, items, *_ in dialogue.GIFTS.values():
-        found += list(items)
+    found += dialogue.gifted_items()
     return found
 
 

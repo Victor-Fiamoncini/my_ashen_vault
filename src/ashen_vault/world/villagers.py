@@ -151,6 +151,18 @@ LOOKS = {
         cloth=(54, 60, 92), hair=(150, 40, 34), skin=(200, 172, 146), build="slight", garb="robe",
         hair_style="long", cloak=(150, 116, 60), tool="ledger", idle="count",
     ),
+    # Below them, in the Under-Cells: the gaoler who turned the key on the bell-keepers, gone to seed in
+    # his old leathers, and the last Sister of the Mortar who kept its light, in a sea-grey robe.
+    "brannick": Look(
+        cloth=(74, 62, 50), hair=(128, 122, 114), skin=(178, 146, 118), build="stooped", hair_style="bald",
+        beard="short", apron=(58, 46, 36), belt=(40, 32, 26), trousers=(56, 50, 44), boots=(42, 34, 28),
+        gloves=(66, 52, 40), sleeves="rolled", tool="hammer", idle="sway",
+    ),
+    "sister_vell": Look(
+        cloth=(68, 90, 86), hair=(176, 176, 168), skin=(190, 168, 150), build="slight", garb="robe",
+        hair_style="long", hood=True, cloak=(48, 64, 62), apron=(108, 110, 102), gloves=(64, 70, 68),
+        tool="staff", idle="pray",
+    ),
     "odrin": Look(
         cloth=(70, 60, 90), hair=(200, 200, 200), build="stooped", garb="robe", beard="short",
         cloak=(52, 46, 66), tool="staff", hair_style="long",

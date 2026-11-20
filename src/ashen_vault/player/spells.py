@@ -50,6 +50,12 @@ class Spells:
                 cost=7,
                 desc="Toll a phantom bell. Foes close about you reel from their swings.",
             ),
+            Spell(
+                id="mortar_shard",
+                name="Mortar Shard",
+                cost=7,
+                desc="Hurl a shard of spent mortar-light. It cracks stone like a hammer.",
+            ),
         ]
     }
     LUMEN_DURATION = 45.0
@@ -67,6 +73,7 @@ class Spells:
     RIFT_WIDTH = 0.35  # ...and cuts this far to either side of its line
     RIFT_LIFE = 1.6  # seconds before it fades
     BELL_RADIUS = 4.5  # metres the phantom bell's toll reaches
+    MORTAR_RGB = (150, 196, 182)  # a mortar shard: the grey-teal of the quenched light
 
     @classmethod
     def get(cls, id_):
@@ -115,6 +122,12 @@ class Spells:
         return Combat.damage(base=3, strength=magic, gauge=gauge, defense=0)
 
     @staticmethod
+    def mortar_damage(magic, gauge):
+        """A mortar shard's blow: a little under a flame bolt, but stone takes it like a hammer's
+        (`elements.shot_mult`)."""
+        return Combat.damage(base=9, strength=magic * 2, gauge=gauge, defense=0)
+
+    @staticmethod
     def ward_cut(magic):
         """The share of every blow an Ashen Ward stops: a third at first, more with MAG, at most 60%."""
         return min(0.35 + 0.02 * magic, 0.6)
@@ -137,6 +150,7 @@ class Spells:
             "thunder": Spells.thunder_damage,
             "rift_lance": Spells.rift_damage,
             "bellward": Spells.bell_damage,
+            "mortar_shard": Spells.mortar_damage,
         }
         if id_ in damage:
             return damage[id_](magic, 1.0)

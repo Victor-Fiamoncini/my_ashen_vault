@@ -225,7 +225,8 @@ class Eruption:
         self.spent = False  # has it wounded someone yet
         # (x, y, z) a lobbed magma bomb flies from: it arcs down while the circle glows.
         self.origin = origin
-        # "fire", or "hands": the Sexton's grasping ash, which hurts and holds you where you stand.
+        # "fire", or "hands": the Sexton's grasping ash, which hurts and holds you where you stand;
+        # "moon", "filth", or "core": the Keystone's mortar-light, teal, bursting up through the floor.
         self.style = style
         self.radius = (
             self.RADIUS if radius is None else radius

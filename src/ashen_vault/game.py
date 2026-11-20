@@ -744,6 +744,7 @@ class Game:
         for prop in self.world.strike_props(weapon.reach * a.reach, a.cone):
             self._break(prop)
         self.world.strike_wards(weapon.reach * a.reach, a.cone)
+        self.world.strike_core(weapon.reach * a.reach, weapon, a.cone)
         targets = self._strike(weapon, a)
         if targets:
             p.land_hit(targets[0])
@@ -900,6 +901,7 @@ class Game:
             self.message("The wall was an illusion! It crumbles into ash.")
 
     def damage_enemy(self, enemy, dmg, poise_mult=1.0, stagger=True):
+        dmg = rround(dmg * self.world.core_mult(enemy))  # a golem cut off from its quenched core
         if not enemy.take_hit(dmg, poise_mult, stagger=stagger):
             return
         self.sfx("enemy_die")
@@ -999,6 +1001,11 @@ class Game:
             struck = self.world.bell_toll(Spells.bell_damage(p.stats.magic, gauge), Spells.BELL_RADIUS)
             if struck:
                 self.message("The phantom bell tolls. Your foes reel.")
+        elif spell.id == "mortar_shard":
+            self.sfx("crack", 0.7, 0.8)
+            self.world.fire_bolt(
+                Spells.mortar_damage(p.stats.magic, gauge), effect="mortar", rgb=Spells.MORTAR_RGB
+            )
 
     def _cycle_quick(self, step=1):
         item = self.player.cycle_quick(step)
@@ -1452,7 +1459,7 @@ class Game:
         p = self.player
         out = [MEND_ROW] if self._shop_id in dialogue_data.REPAIRERS else []
         known = stash.known_spells(p)
-        for id_ in dialogue_data.SHOPS[self._shop_id]:
+        for id_ in dialogue_data.shop_stock(self._shop_id, self.flags):
             item = Items.get(id_)
             if item.kind == "scroll" and (item.spell in known or stash.owns(p, id_)):
                 continue

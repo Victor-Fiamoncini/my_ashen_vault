@@ -2538,7 +2538,8 @@ LOOM_GLOW = (150, 235, 140)
 @dataclass(frozen=True)
 class DoorStyle:
     """How one boss's great door looks: the leaves' wood and texture, the iron, the arch's stone and
-    texture, and what burns on its jambs (`lamp`: "ember", "silk", "candle" or "gargoyle")."""
+    texture, and what burns on its jambs (`lamp`: "ember", "silk", "candle", "gargoyle", "lantern",
+    "tallow", "moon" or "core")."""
 
     wood: tuple
     wood_tex: str
@@ -2580,9 +2581,9 @@ BOSS_DOORS = {
         (176, 190, 220), "moon_glass", (170, 176, 190), (150, 158, 176), "moonstone", "moon"
     ),
     # The Keystone: sun-bleached old timber in an arch of the drowned city's sandstone, a carved
-    # keystone over it, braziers of embers on the jambs.
+    # keystone over it, braziers on the jambs burning with the teal mortar-light that animates it.
     "keystone_dead": DoorStyle(
-        (120, 104, 82), "wood_plank", (78, 66, 56), (138, 120, 96), "sunken_brick", "ember"
+        (120, 104, 82), "wood_plank", (78, 66, 56), (138, 120, 96), "sunken_brick", "core"
     ),
 }
 DEFAULT_DOOR = "boss_dead"
@@ -2648,6 +2649,12 @@ def _door_lamp(r, style, face, t, lit):
         u = (t * 0.5) % 1.0  # a curl of its smoke, rising and thinning
         r.part("cube", 0.02 * math.sin(t * 2), 0.28 + 0.35 * u, 0, 0.04 * (1 - u) + 0.01, 0.06,
                0.04 * (1 - u) + 0.01, (60, 56, 52))  # fmt: skip
+    elif style.lamp == "core":  # a brazier of the mortar-light: a cold teal flame over a lozenge of it
+        teal = sunken_models.CORE_TEAL
+        r.part("cyl", 0, 0.1, 0, 0.16, 0.05, 0.16, style.iron)  # the brazier's bowl
+        r.part("lozenge", 0, 0.2, 0, 0.08, 0.14, 0.08, sunken_models.CORE_HEART, glow=True, ry=t)
+        flicker = 1 + 0.12 * math.sin(t * 7 + face)
+        r.part("cone", 0, 0.28, 0, 0.13, 0.2 * flicker, 0.13, teal, glow=True)
     elif style.lamp == "candle":  # a stub of tallow, guttering
         r.part("cyl", 0, 0.14, 0, 0.06, 0.14, 0.06, (214, 204, 180))
         _flame(r, 0, 0.24, 0, 0.05, t)
@@ -4656,6 +4663,7 @@ SPELL_ORB = {
     "ward": (240, 170, 90),
     "rift_lance": (255, 226, 150),
     "bellward": (220, 200, 140),
+    "mortar_shard": (150, 210, 190),
 }
 
 
@@ -5598,6 +5606,7 @@ SPELL_GLOW = {
     "ward": (245, 165, 80),
     "rift_lance": (255, 230, 160),
     "bellward": (225, 205, 145),
+    "mortar_shard": (140, 214, 192),
 }
 WARD_EMBERS = 9  # motes circling you while an Ashen Ward holds
 WARD_FADE = 2.0  # seconds before it ends that the embers gutter and flicker
@@ -6279,6 +6288,8 @@ SCROLLS = {
     # Ysolde Vane's scrolls, copied in her cell in the Oubliette: grey paper, bronze rods, gold seals.
     "scroll_rift_lance": (SOOTED_PARCHMENT, ROD_IRON, (196, 160, 70)),
     "scroll_bellward": (PARCHMENT, ROD_IRON, (150, 116, 60)),
+    # Sister Vell's last rite, written on mason's grey paper and sealed in the grey-teal of spent light.
+    "scroll_mortar_shard": (SOOTED_PARCHMENT, ROD_WOOD, (92, 128, 118)),
 }
 
 
@@ -6312,6 +6323,9 @@ SCROLL_RUNES = {
     "rift_lance": [(0.0, 0.0, 0.15, 0.0), (0.05, 0.0, 0.05, math.pi / 2), (-0.05, 0.0, 0.05, math.pi / 2)],
     "bellward": [(0.03, 0.0, 0.08, math.pi / 2), (0.0, -0.03, 0.07, 0.0), (0.0, 0.03, 0.07, 0.0),
                  (-0.05, 0.0, 0.02, 0.0)],
+    # A mason's mark: a square stone split by one crack.
+    "mortar_shard": [(0.04, 0.0, 0.08, math.pi / 2), (-0.04, 0.0, 0.08, math.pi / 2), (0.0, 0.04, 0.08, 0.0),
+                     (0.0, -0.04, 0.08, 0.0), (0.0, 0.0, 0.07, 0.7)],
 }  # fmt: skip
 
 

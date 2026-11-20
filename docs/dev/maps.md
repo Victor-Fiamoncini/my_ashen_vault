@@ -36,7 +36,19 @@ How `.map` files work and what can stand on a tile.
   Coldry, Ysolde, a hollow inmate and a mimic, and the gaoler's hall with the lever and the Torch
   Greathammer. Two more false walls (`top=24`, as the map has no ceilings) open narrow fissures: one in
   the plaza's west cliff with the Ember Stone Sword, one in the lift room;
-  `test_the_oubliette_hides_behind_a_false_wall_and_its_lever_opens_the_cells`.
+  `test_the_oubliette_hides_behind_a_false_wall_and_its_lever_opens_the_cells`. A second lever in the
+  gaoler's hall (`lever id=under_stair`) raises the bars either side of the gallery, the gaolers'
+  postern (`gate lever=under_stair` at 4,18 and 2,18), onto the Under-Stair: it winds down the cavern's
+  west wall (0.5 m a tile, its own `ceil` all the way) to the Under-Cells (h -6, rows 47-58 below the
+  court): the flooded cell block (a `water`-textured floor with `slow=`), the interrogation hall (a taller
+  `ceil`; a gaoler and a golem), the warden's office, whose lever (`lever id=undercells`) raises every
+  cell front below, and past it the flooded deep cells, where Brannick and Sister Vell are held. A hint at
+  the stair's foot sets `visited_undercells` (a `hint` may add `sets=<flag>`);
+  `test_the_under_cells_lie_down_the_gaolers_stair_and_the_wardens_lever_opens_them`. East of the roads,
+  on its quay (x 45-47), the Mortar Sisters' Workshop: their ward-stone carving benches, golems and a
+  sexton, a lore hint and a reward chest; `test_the_mortar_sisters_workshop_stands_east_of_the_roads`.
+  The `energy_core` (the mortar-light, `seal=c`) stands in the fountain's pool at 21,27, beside the
+  shaft's foot, teal `light`s (`color=0.45,1.25,1.0`) round it.
   `sunken_tower height=` landmarks rise out of the chasm. Bell-Harpies (`harpy`, flyers) wheel over
   the plaza and the terrace and out over the chasm. Paved in `ochre_flag`, walled in
   `cavern_rock` and `sunken_brick`; the map is drawn by a script's layout, one legend letter per height;
@@ -137,13 +149,20 @@ How `.map` files work and what can stand on a tile.
   `test_old_harrowmeres_vault_hangs_clear_of_everything_below_it`. The shaft's `rift=<length>,<width>`
   (metres) and `rift_yaw=` (degrees from +z) widen the crack into a long rift; the shaft's haze then
   hangs as a curtain along it (`sunken_models.sun_shaft`).
-  Ward decks (`ward set=a|b deck=<h>`, a platform kind; Old Harrowmere's roads of light) stand over a
-  chasm one set at a time: striking any `ward_crystal` (a blocking prop, struck like a breakable,
-  `World.strike_wards`) swaps the sets, saved as the `ward:<map>` flag. A deck fades in and out over
-  `terrain.WARD_FADE` and, like a drawbridge, bears weight only when fully in, so swapping the road you
-  stand on drops you. Keep a crystal on every island and on both shores, so either set standing leaves
-  one within reach; `test_the_roads_of_light_take_three_swaps_to_cross_and_never_strand_you` searches
-  the (tile, standing set) states.
+  Ward decks (`ward set=a|b|c deck=<h>`, a platform kind; Old Harrowmere's roads of light: gold, pale
+  and teal) stand over a chasm one set at a time: striking any `ward_crystal` (a blocking prop, struck
+  like a breakable, `World.strike_wards`) turns them to the next set (`terrain.next_ward`), saved as the
+  `ward:<map>` flag (pale) or `ward:<map>:c` (teal). The teal set is fed from the energy core: until a
+  `ward_crystal shield` (the core's shield ward) has rung (`ward_fed:<map>`) the crystals only turn gold
+  and pale; that first strike wakes the teal road at once, and from then on every crystal turns gold,
+  pale, teal. A core with `seal=c` keeps its shield up unless the teal road stands
+  (`World.core_shielded`). A deck fades in and out over `terrain.WARD_FADE` and, like a drawbridge,
+  bears weight only when fully in, so turning the road you stand on drops you. Keep a crystal on every
+  island and on both shores, so any set standing leaves one within reach;
+  `test_the_roads_of_light_take_three_turns_to_cross_and_never_strand_you` and
+  `test_the_third_road_runs_out_to_the_cores_shield_ward_and_teal_home` search the (tile, standing set,
+  fed) states: three turns to the court (never needing the teal road), one to the Mortar Sisters' quay,
+  two to the shield ward, three home to the core with its shield down.
   A `waterfall width= [top=] [foot=]` (a landmark) pours from a broken lip down to `foot` over its
   floor: without `top=` it spills from just under the vault (`World._fall_top`); `foot` below 0 plunges
   on without a pool (over the chasm), otherwise it lands in a churned pool with spray and mist. Its

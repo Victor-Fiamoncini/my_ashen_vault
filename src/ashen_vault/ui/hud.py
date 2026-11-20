@@ -1243,6 +1243,15 @@ def spell_icon(id_, cx, cy, t, alpha=255):
         pr.draw_circle(rround(cx + math.sin(swing) * 2), cy + 4, 1.2, color(90, 70, 40, a))  # the clapper
         k = (t * 0.8) % 1
         pr.draw_circle_lines(cx, cy, 4 + 5 * k, color(236, 222, 170, rround(a * (1 - k))))
+    elif id_ == "mortar_shard":
+        # A dressed stone, cracked through, a grey-teal glow breathing in the crack.
+        pr.draw_rectangle(cx - 5, cy - 5, 10, 10, color(120, 116, 108, a))
+        pr.draw_rectangle_lines(cx - 5, cy - 5, 10, 10, color(70, 68, 64, a))
+        glow = 0.55 + 0.45 * math.sin(t * 3)
+        crack = color(150, 214, 192, rround(a * glow))
+        pr.draw_line(cx - 2, cy - 5, cx + 1, cy - 1, crack)
+        pr.draw_line(cx + 1, cy - 1, cx - 1, cy + 2, crack)
+        pr.draw_line(cx - 1, cy + 2, cx + 2, cy + 5, crack)
     else:
         pr.draw_circle(cx, cy, 4, color(200, 200, 200, a))
 
