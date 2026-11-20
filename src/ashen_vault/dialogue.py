@@ -296,11 +296,43 @@ def west_gate_lines(flags):
     return lines
 
 
+def vesper_gate_lines(flags):
+    """Corporal Wynn, on the porch of the Vesper Gate: the cold road beyond it, and how many of the three
+    sigils this side of the wall you have won back."""
+    if "duchess_dead" in flags:
+        return [
+            "No frost on the gate's sill tonight. First time in all my watches I've not had to chip it off.",
+            "Whatever you did in Vesperholm, the moon sits lower over the wall. I'd swear to it.",
+        ]
+    lines = [
+        "The Vesper Gate. Nobody in the watch remembers it shut, and nobody remembers who opened it.",
+        "The road past it runs cold all the way to Vesperholm. The moon hangs over that city and never sets.",
+    ]
+    won = sum(relics.RELICS[i].taken_flag in flags for i in relics.FIRST_THREE)
+    if won == len(relics.FIRST_THREE):
+        lines += [
+            "Three sockets in its lintel, and you've won back all three sigils this side of the wall.",
+            "Then the fourth's the one beyond. Mind the frost on that road. It takes your legs first.",
+        ]
+    elif won:
+        lines += [
+            "You've a sigil or two on you, by the look of you. There are three to win this side of the wall.",
+            "The fourth lies past this gate. I'd bring the others home before you go after it.",
+        ]
+    else:
+        lines += [
+            "Three sockets in its lintel, one for each sigil this side of the wall. The fourth lies beyond it.",
+            "Win the three first. The cold over there has stopped better than you, and it never sleeps.",
+        ]
+    return lines
+
+
 WATCH = {  # the town watch at its gates: (name, lines)
     "aldous": ("Sergeant Aldous", north_gate_lines),
     "tobin": ("Tobin", north_gate_second_lines),
     "reyna": ("Reyna", east_gap_lines),
     "fenn": ("Old Fenn", west_gate_lines),
+    "wynn": ("Corporal Wynn", vesper_gate_lines),
 }
 
 

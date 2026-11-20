@@ -854,3 +854,22 @@ def test_shallow_water_beside_the_sea_still_casts_you_back():
     _hits, events = run(h, body, 0.05)
     assert events == ["fell"] and not h.plunging and body.stats.hp > 0
     assert (body.x, body.z) == TileMap.center(3, 2)
+
+
+def test_drown_marks_water_you_drown_in_and_keys_its_words():
+    """`deep` (the open sea) drowns you as "sea"; `drown=<key>` drowns you in water that is no open
+    sea, and names its words; bare `drown` is the sea's; plain water still casts you back."""
+    m = MapLoader(SEA.replace("r = water h=-0.8\n", "r = water h=-0.8 drown=canal\n"), name="sea").parse()
+    assert m[1, 3].drown == "sea" and m[1, 3].deep
+    assert m[3, 1].drown == "canal" and not m[3, 1].deep
+    assert MapLoader(SEA, name="sea").parse()[3, 1].drown is None
+    bare = MapLoader(SEA.replace("r = water h=-0.8\n", "r = water h=-0.8 drown\n"), name="sea").parse()
+    assert bare[3, 1].drown == "sea" and not bare[3, 1].deep
+    h = terrain.Terrain(m)
+    body = Body(3, 2)
+    run(h, body, 0.1)
+    body.x, body.z = TileMap.center(3, 1)  # into the canal
+    _hits, events = run(h, body, 0.05)
+    assert events == ["drown"] and h.plunging and h.fell_into == "sea" and h.drowned_in == "canal"
+    _hits, events = run(h, body, terrain.DROWN_TIME + 0.2)
+    assert events.count("fell_dead") == 1 and body.stats.hp == 0

@@ -1685,8 +1685,8 @@ def test_a_burnt_banner_is_darker_and_more_ragged_than_a_clean_one():
     clean, burnt = Colours(), Colours()
     models.banner(rig.Rig(clean), 0.5, 2)
     models.banner(rig.Rig(burnt), 0.5, 2, burnt=True)
-    violet = parts.REALM_VIOLET[0]
-    assert violet in clean.parts and violet not in burnt.parts  # the realm flies violet
+    crimson = parts.REALM_CRIMSON[0]
+    assert crimson in clean.parts and crimson not in burnt.parts  # the realm flies the city's red
     assert models.CHAR in burnt.parts and models.CHAR not in clean.parts
     assert burnt.glows > 0 == clean.glows  # a tip or two still smoulders
     assert len(burnt.parts) <= len(clean.parts) + 30  # it sways, so it stays lean

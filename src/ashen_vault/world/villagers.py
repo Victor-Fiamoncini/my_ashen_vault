@@ -215,6 +215,12 @@ LOOKS = {
         hat_rgb=(104, 106, 112), tool="spear", idle="watch", beard="long", beard_tip=(210, 208, 200),
         tabard=(104, 32, 30), shield=(118, 36, 34),
     ),
+    # Wynn keeps the Vesper Gate, where the cold comes through: a heavy wool cloak over the tabard.
+    "wynn": Look(
+        cloth=(88, 90, 98), hair=(122, 82, 52), skin=(196, 156, 120), build="tall", hat="helm",
+        hat_rgb=(118, 120, 128), tool="halberd", idle="watch", beard="short", tabard=(114, 36, 34),
+        cloak=(70, 74, 86), shield=(118, 36, 34), trousers=(58, 54, 52), gloves=(68, 58, 48),
+    ),
     "tamsin": Look(
         cloth=(84, 110, 66), hair=(60, 40, 30), build="slight", hair_style="bun", apron=(170, 160, 130),
         tool="ladle", idle="stir",

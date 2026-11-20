@@ -33,11 +33,11 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   (Corvane; below `--level 5` they stay silent), `--map harrowmere --at=31,4,-90` (the north road's gate),
   `--map harrowmere --at=22,30,-60` (the Bell Square), `--map harrowmere --at=28,37,-90` (the market's fountain
   and benches), `--map harrowmere --at=31,6,180` (the cathedral's great stair, west door and rose window),
-  `--map harrowmere --at=8,25,-90 --script "look_up:0.1"` (a house's face, its balcony and the cathedral's
+  `--map harrowmere --at=6,25,-90 --script "look_up:0.1"` (a house's face, its balcony and the cathedral's
   towers behind), `--map harrowmere --at=14,33,-90 --script "forward:3"` (walk to a thin wall's slab:
   you stop at z=62.9), `--map harrowmere --at=17,6,180` (the cathedral's nave;
   `--at=6,6,180 --script "wait:0.2 interact"` speaks to the Enthroned), `--map harrowmere --at=7,18,180 --script
-  "wait:0.2 interact"` (Brannoc's gift and forge), `--map harrowmere --at=10,18,-90 --script "look_up:0.3"` (the anvil sign by his forge),
+  "wait:0.2 interact"` (Brannoc's gift and forge), `--map harrowmere --at=10,18,-90 --script "look_up:0.3"` (the anvil sign by his forge; `--at 13,18,180` faces its door between two windows), `--map harrowmere --at 24,1,90 --script "wait:0.2 interact"` (Corporal Wynn of the watch, on the Vesper Gate's porch; `--at=22,7,-90` looks up the porch at the gate between its lamps),
   `--map harrowmere --at=10,33,180 --script "wait:0.2 interact wait:1"` (open Pell's door; `interact` again shuts it), `--map harrowmere --at=38,17,-90` (the Gaol Ward's plaza, the gaol's grate and Hollis beside it;
   `--at=38,14,-90 --script "wait:0.3 interact wait:1.5"` descends the grate into the prison), `--map harrowmere
   --at=28,22,-90` (the north road's stair up to the Gaol Ward, under its crenellated arch), `--map harrowmere

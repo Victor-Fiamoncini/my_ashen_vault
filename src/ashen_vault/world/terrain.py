@@ -544,10 +544,11 @@ def _coords(value, tx, tz):
 class Terrain:
     """What the land does to the player each frame.
     `body` needs x, z, y, RADIUS and stats; damage goes through the `hurt(dmg, source)` callback.
-    After a fall, `fell_into` says whether it was the "river", the "ravine" or the "sea".
+    After a fall, `fell_into` says whether it was the "river", the "ravine" or the "sea" (any water
+    you drown in: `drowned_in` names which, the tile's `drown` key, for the World's words).
     Nothing invisible bars the edges: the player walks where `open_to` allows, water casts you back
-    ashore, but a chasm is a plunge (`plunging`) that ends in death, and so is `deep` water: you
-    drown in it (the plunge again, sinking slowly)."""
+    ashore, but a chasm is a plunge (`plunging`) that ends in death, and so is water that `drown`s
+    (the `deep` sea, or the legend's `drown=`): you drown in it (the plunge again, sinking slowly)."""
 
     def __init__(self, map_, platforms=None):
         self.map = map_
@@ -561,6 +562,7 @@ class Terrain:
         self.safe = None  # last solid ground the player stood on: (x, z)
         self.under = None  # the platform the player stands on
         self.fell_into = None
+        self.drowned_in = None  # the `drown` key of the deep water you went into ("sea", "canal"...)
         self.landed = 0  # metres of the last hard landing
         self.sounds = []  # (name, volume) to play this frame; the World plays and clears them
         self.unlocked = []  # locked lifts whose first ride ended this frame
@@ -724,7 +726,7 @@ class Terrain:
         self.under = self.support(body.x, body.z)
         if tile.needs_footing and self.under is None:
             if tile.liquid:
-                return self._drown(body) if tile.deep else self._fall(body, hurt, "river")
+                return self._drown(body, tile) if tile.drown else self._fall(body, hurt, "river")
             ground = body.y if self._ground is None else self._ground
             if ground - tile.floor > FALL_SAFE:
                 return self._plunge(body)
@@ -808,10 +810,12 @@ class Terrain:
         self.sounds.append(("swoosh", 0.9))
         return "plunge"
 
-    def _drown(self, body):
+    def _drown(self, body, tile):
         """You went off the quay into deep water: there is no shore to be cast back to. Like a plunge,
-        nothing you do saves you; you only sink (`_plunging`)."""
+        nothing you do saves you; you only sink (`_plunging`). `drowned_in` keeps the water's `drown`
+        key, so the World can say what took you."""
         self.fell_into = "sea"
+        self.drowned_in = tile.drown
         self.plunge = 0.0
         self._vy = 0.0
         self.under = None

@@ -22,6 +22,10 @@ class Tile:
     liquid: bool = False
     # Deep water (the open sea off the town's quays): no one is cast back ashore from it; you drown.
     deep: bool = False
+    # Water you drown in (None: it casts you back ashore), and the key of its words
+    # (`world.DROWN_MESSAGES`): "sea" for the sea, or the legend's `drown=` (the town's canal, the
+    # drowned city's fountain), which drowns you without being the open sea that `deep` draws.
+    drown: str | None = None
     pit: bool = False  # falling in hurts and sends you back to solid ground
     # Hazards: HP lost per tick while standing here, a current (m/s along x, z) that pushes
     # bodies, a walk-speed multiplier (sucking mud), and a sheer chasm (a ravine) that only a

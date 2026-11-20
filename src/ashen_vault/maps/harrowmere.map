@@ -76,10 +76,10 @@ k = floor tex=flagstone h=0 ceil=3.4 ceil_tex=wood_plank side=rough_stone
 7 = wall tex=rough_stone top=1.0 cap=flagstone
 6 = wall tex=rough_stone top=0.5 cap=flagstone
 p = floor tex=wood_plank h=0.1 side=wood_plank
-// The open sea off the quays and the pier is deep: whoever goes in drowns. The canal (r) runs
-// shallow between its banks and only casts you back ashore.
+// The open sea off the quays and the pier is deep: whoever goes in drowns. The canal (r) running up
+// from it drowns you too (`drown=canal`), though it is no part of the open sea that `deep` draws.
 ~ = water tex=water h=-0.8 side=rough_stone deep
-r = water tex=water h=-0.8 side=rough_stone
+r = water tex=water h=-0.8 side=rough_stone drown=canal
 V = wall tex=vine_wall top=5.5 cap=canopy
 w = floor tex=jungle_floor h=0 ceil=4.2 ceil_tex=canopy side=vine_wall dark=0.2
 y = floor tex=jungle_floor h=0 ceil=3.8 ceil_tex=canopy side=vine_wall dark=0.4
@@ -89,42 +89,42 @@ c = floor tex=rough_stone h=0 ceil=3.4 ceil_tex=cliff_rock side=cliff_rock dark=
 [grid]
 ®RRRRRRRRRRR¯RRRRRRRRRRRRR¯RRRRRRRRRRRRR¯RRRRR°AAAAAAAAAAAAAA
 R;;;;;;;;;;;;;;;;;;;;)(;;,,,,ÌßNßÿ,!AAAAAAAAAARAAAAAAAAAAAAAA
-R;;;;;;í;ìí;ìí;ìí;;CCË;Ë;,,,,,ÞsÞù,,AAAAAAAAAARAAAAAAAAAAAAAA
+R;;;;;;;íììíììíììí;CCË;čđ,,,,,ÞsÞù,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;;ÉCCCCCCCCCCCCCCCèC;;,,,,,,,,s,,,,AAAAAAAAAARAAAAAAAAAAAAAA
-R;;êDaYnnOðnOñnOnnnC===9876,Þù,s,ù,ùAAAAAAAAAARAAAAAAAAAAAAAA
+R;;êDaYnnOOðOOñOOnnC===9876,Þù,s,ù,ùAAAAAAAAAARAAAAAAAAAAAAAA
 R;;CaannIQQIQQIQQInn===4321,,,,s,,,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;;CîEÓnnnnÊnnn`nn:ï¬=="321,,,,sX,,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;;CaannIQQIQQIQQInn===4321sssss.,,,..AAAAAAAARAAAAAAAAAAAAAA
-R;;ëDaYenOònOónOnnnC===9876sČ.P.....Ü.AAAAAAAARAAAAAAAAAAAAAA
+R;;ëDaYenOOòOOóOOnnC===9876sČ.P.....Ü.AAAAAAAARAAAAAAAAAAAAAA
 R;;CCCCCCCCCCCCCCCCéC==[]]]111]]]]]]]]3L3ß3L33RAAAAAAAAAAAAAA
-R;;;;;;í;ìí;ìí;ìí;;CC'400002Ć23Þ3333333333333ÏRAAAAAAAAAAAAAA
+R;;;;;;;íììíììíììí;CC'400002Ć23Þ3333333333333ÏRAAAAAAAAAAAAAA
 R;;;;;;;;;;;;;;;;;;;;33ą000000X333X3333333X33ÎRAAAAAAAAAAAAAA
 ±;;;;;;;;;;;;;;;;;;;;2200000003333333333333333²AAAAAAAAAAAAAA
 R[[[[[[[[[[[[[[[[[[[[11]]]]00033333333Wċg33333RAAAAAAAAAAAAAA
 R?.............,,,..sss/..]000ù333333333333333RAAAAAAAAAAAAAA
 R..ÀHHHHH¡...|||||||sss/ù.]0003333X3333333X333RAAAAAAAAAAAAAA
-R..Hû¸ãkÏHþ..|GTGGGPsĂsP..]000X33333Õ333Õ33333RAAAAAAAAAAAAAA
-R..H×kkkºH...|GGGTG|sss/ù.]0Ą0]]]]]||||||00033RAAAAAAAAAAAAAA
-R..Hôkbkk¹Ç..|||_|||sss/..P2ć2P...]JJJJJ|00033RAAAAAAAAAAAAAA
-R..HÍkúkkHÈ.......sssssssss111ssss]JTJJJ|000X3RAAAAAAAAAAAAAA
-±..H*k¸ýÎHá.......sXsssss¦sssssXss]JJJTJ|00033²AAAAAAAAAAAAAA
+R..Hû¸ãkÏHĒ..|GTGGGPsĂsP..]000X33333Õ333Õ33333RAAAAAAAAAAAAAA
+R..H×kkkºHþ..|GGGTG|sss/ù.]0Ą0]]]]]||||||00033RAAAAAAAAAAAAAA
+R..Hôkbkk¹...|||_|||sss/..P2ć2P...]JJJJJ|00033RAAAAAAAAAAAAAA
+R..HÍkúkkH........sssssssss111ssss]JTJJJ|000X3RAAAAAAAAAAAAAA
+±..H*k¸ýÎHĒ.......sXsssss¦sssssXss]JJJTJ|00033²AAAAAAAAAAAAAA
 R..ÑHHHHHH........ssssssssssssssss]JJJJJo00033RAAAAAAAAAAAAAA
-R...,,T,â.........ssssssssssssssss]JTJJJ|00033RVVVVVVVVAAAAAA
+R...,,â,T.........ssssssssssssssss]JTJJJ|00033RVVVVVVVVAAAAAA
 R..à.,,,...,,,,,,.ssssssPPPsssssss]JJJTJ|000X3RwUwvvwwVAAAAAA
 RÁqqqq,..-|||||||/ÞsssssPBPsMsssÞs]JJJJJ|00033RwwwvvwwVAAAAAA
 Rq»Liq·..-|GTGGG|/ssssssPPPsssssÛs]||||||00033RwwVVVwwVAAAAAA
 RqZiiä----|GGGTG|/sssSssssssssssss]33333300033RwõVAVwwVAAAAAA
 Rq»iÏq....|||_|||Pssssssssssssssss]]]]]]]2Ĉ2h]RwwVAVwUVAAAAAA
 Rqqqqq..../X////X/sXsssssssssssXssssssss15555]RvvVAVwwVAAAAAA
-R¥.á..à...sssssssăssssssssssssssssăsssssĉ5555ĊvvvVAVwwVVVVVAA
-R,,,ÂHHHHHX./à//X/ssssssssssssssssàss¶às155551vvöVAVwwVVyx¢KA
-Rü,,Å%¼¼LH./Ãā#æ##ā#sss/..........ÄHæHH¡.5555§RVVVAVwwVVyyVAA
-R,¿,HiiÒiH./#Liii%i#sss/..Õ.Ô.Ö..DH%iiLH......RAAAAVwõVVFyVAA
-R,,àH&imiä./#iiiili#ássX..........Hiid¾H..RRRRRAAAAVwwyyyyVAA
-R...H>iĎHHµ/#iÒiiii#Dss/....Ù....áH%ii¾H..RRRRRAAAAVUwyzyyVAA
-RRR.H%½H.Ï./#$iiÒiÏ#sss/..........H+Òi$H,.RRRRRAAAAVVVVVVVVAA
-RRR,«HH¤.../#ii<iiÏ#sĂsP..ÐÏ......HHHHH¤,,RRRRRAAAAAAAAAAAAAA
-RRR{,,,,,,rr########ss¨........ÏÎ.....,,,}RRRRRAAAAAAAAAAAAAA
+R¥.à.ē..ē.sssssssăssssssssssssssssăsssssĉ5555ĊvvvVAVwwVVVVVAA
+R,,,ÂHHHHHX.//Ĕ///Ĕsssssssssssssssĕss¶ĕs155551vvöVAVwwVVyx¢KA
+Rü,,Å%¼¼LH.//Ãā#æ#ā#sss/.........ÄHHæHH¡.5555§RVVVAVwwVVyyVAA
+R,¿,HiiÒiH.//#Lii%i#sss/..Õ.Ô.Ö.ĕH%iiiLH......RAAAAVwõVVFyVAA
+R,,ēH&imiä.//#iiili#ĔssX.........Hiiid¾H..RRRRRAAAAVwwyyyyVAA
+R...H>iĎHHµ//#iÒiii#Dss/....Ù....H%iii¾H..RRRRRAAAAVUwyzyyVAA
+RRR.H%½H.Ï.//#$iÒiÏ#Ĕss/........ĕH+iÒi$H,.RRRRRAAAAVVVVVVVVAA
+RRR,«HH¤...//#i<iiÏ#sĂsP..ÐÏ.....HHHHHH¤,,RRRRRAAAAAAAAAAAAAA
+RRR{,,,,,,rr.#######ss¨........ÏÎ.....,,,}RRRRRAAAAAAAAAAAAAA
 RRR,,,,,ø,ppÎ...Ā...ss.................,,øRRRRRAAAAAAAAAAAAAA
 RRR,,,,,,Xrr........ss..Ý.....X.........,.RRRRRAAAAAAAAAAAAAA
 ±RR.......÷rÝ...ÏÐ.ÞssÞÝ..Û...............RRRR²AAAAAAAAAAAAAA
@@ -151,11 +151,13 @@ Z = npc id=corvane yaw=0
 b = npc id=brannoc
 // Captain Garrick, on the corner where the Gaol Ward's stair comes down to the east lane.
 h = npc id=garrick yaw=90
-// The town watch at its gates: two at the north road's, one by the cemetery's and one at the gap in
-// the east wall where the green trail leaves.
+// The town watch at its gates: two at the north road's, one by the cemetery's, one on the porch of the
+// Vesper Gate, looking down the cathedral steps, and one at the gap in the east wall where the green
+// trail leaves.
 Ì = npc id=aldous yaw=90
 ÿ = npc id=tobin yaw=90
 ¥ = npc id=fenn yaw=0
+đ = npc id=wynn yaw=135 on=;
 § = npc id=reyna yaw=-90
 d = npc id=tamsin yaw=-90
 e = npc id=ilse yaw=-90
@@ -166,7 +168,8 @@ B = silent_bell on=P
 S = save_statue
 X = lamp_post
 // The cathedral: its roof, the spire over the crossing, twin towers at the west front and two
-// turrets at the apse, flying buttresses, stained glass within and without, the great door (three
+// turrets at the apse, flying buttresses, stained glass within and without (in pairs, one pair to
+// each bay between the pillars and the buttresses outside them), the great door (three
 // tiles wide) with the great rose in the gable over it and another rose above the throne, pillars,
 // pews facing the throne, a crimson runner down the nave, candles and banners. Its floor is marble
 // lozenges in bordered panels. Its roofs stay dark slate, so the hilltop stands out over the town's clay.
@@ -187,7 +190,10 @@ X = lamp_post
 ñ = light y=4 color=0.35,0.45,1.0 radius=6 on=n
 ò = light y=4 color=1.0,0.78,0.3 radius=6 on=n
 ó = light y=4 color=0.35,0.9,0.5 radius=6 on=n
+// The lamps either side of the Vesper Gate, their lanterns hung in toward it: the west one's arm
+// reaches east, the east one's (č) west.
 Ë = lamp_post
+č = lamp_post yaw=180
 // The great stair up to the door from the north road: four tiles of fine steps between raking
 // balustrades on the cheek walls, lanterns on the newels at its head (it casts their light), urns at
 // its foot. The plainer flight down the terrace's south side: halfway down, the Gaol Ward's west end
@@ -221,7 +227,7 @@ Y = candles
 Ó = light y=6 color=0.62,0.66,0.82 radius=9
 D = banner
 // The houses' roofs of weathered clay tile, each on its building's north-west corner, and each house
-// built its own way: Brannoc's forge under a long gable, a pentice over the anvil at its door;
+// built its own way: Brannoc's forge under a long gable, its door between two windows;
 // Corvane's low timbered hut under a single gable; Pell's house an L of two crossing gables; Wren's
 // timbering jettied out over its ashlar ground floor toward the harbour, dormers in its roof; and
 // Tamsin's stone hall under a hipped roof.
@@ -229,21 +235,25 @@ D = banner
 Á = roof span=5,5 ridge=x top=4.4 pitch=2.6 eave=0.5 tex=clay_tile wall=timber on=q
 Â = roof span=6,5 ridge=x top=5.6 pitch=3.8 eave=0.45 tex=clay_tile wall=ashlar on=H
 Å = roof span=4,6 ridge=z top=5.6 pitch=3.6 eave=0.45 tex=clay_tile wall=ashlar on=H
-Ã = roof span=8,7 ridge=x top=5.6 pitch=4.4 eave=0.45 tex=clay_tile wall=timber on=#
-Ä = roof span=6,6 ridge=x top=5.6 pitch=3.6 eave=0.45 hip=true tex=clay_tile wall=ashlar on=H
+Ã = roof span=7,7 ridge=x top=5.6 pitch=4.4 eave=0.45 tex=clay_tile wall=timber on=#
+Ä = roof span=7,6 ridge=x top=5.6 pitch=3.6 eave=0.45 hip=true tex=clay_tile wall=ashlar on=H
 Ñ = chimney height=8 on=H
 Ď = chimney height=7.5 on=^
-Ç = pentice len=3 height=2.5 roof_tex=clay_tile
-È = anvil
 Ā = jetty len=7 rise=3 height=2.4
 ā = dormer y=5.6 yaw=-90 on=#
 // Round turrets corbelled out from the houses' corners under witch-hat cones of clay tile.
 ¡ = roof_turret shift=0.8,-0.8 roof_tex=clay_tile on=H
 ¤ = roof_turret shift=0.8,0.8 roof_tex=clay_tile on=H
 « = roof_turret shift=-0.8,0.8 roof_tex=clay_tile on=H
-// The houses' faces: shuttered windows, balconies and arched front doors.
+// The houses' faces: shuttered windows, balconies and arched front doors. Each house's windows are
+// set either side of its door, or of the middle of a wall without one, and share one look (`seed=`
+// sets their paint, grille and shutters): Brannoc's (Ē), Pell's (ē), Wren's (Ĕ) and Tamsin's (ĕ);
+// Corvane's hut keeps one plain window in the middle of its north and south walls (à).
 à = shutters
-á = shutters
+Ē = shutters seed=8
+ē = shutters seed=0
+Ĕ = shutters seed=6
+ĕ = shutters seed=11
 â = balcony roof_tex=clay_tile
 ä = door_arch yaw=0 on=i
 æ = door_arch yaw=-90 on=i
@@ -273,7 +283,7 @@ D = banner
 ³ = wall_tower shift=-0.8,0.8 radius=2.2 height=9 on=R
 ´ = wall_tower shift=0.8,0.8 radius=2.2 height=9 on=R
 // The shops' signs, each hung from an iron bracket by its door and painted with what it sells:
-// Brannoc's anvil by the forge, Pell's scroll, Tamsin's flask and Corvane's crossed blades.
+// Brannoc's anvil by the forge's door, Pell's scroll, Tamsin's flask and Corvane's crossed blades.
 þ = shop_sign emblem=anvil
 µ = shop_sign emblem=scroll
 ¶ = shop_sign emblem=flask on=s

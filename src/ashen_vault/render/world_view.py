@@ -547,7 +547,8 @@ class WorldView:
                     town_models.crest_plaque(rig, seed)
                 elif k == "shutters":  # an oak frame in a half-timbered wall, dressed stone in any other
                     wall = world.map.wall_behind(p.tx, p.tz, p.yaw)
-                    town_models.shutters(rig, seed, timber=wall is not None and wall.wall_tex == "timber")
+                    look = int(p.props.get("seed", seed))  # `seed=`: the windows of one house alike
+                    town_models.shutters(rig, look, timber=wall is not None and wall.wall_tex == "timber")
                 elif k == "jetty":
                     town_models.jetty(
                         rig, seed, int(p.props.get("len", "3")), float(p.props.get("height", "2.4"))

@@ -385,7 +385,7 @@ DARK_IRON = (58, 56, 60)
 FLAME = (255, 170, 60)
 FLAME_CORE = (255, 235, 150)
 
-REALM_VIOLET = ((84, 40, 116), (62, 34, 92))  # the realm's banners, everywhere
+REALM_CRIMSON = ((150, 50, 44), (118, 36, 34))  # the realm's banners, everywhere: the city's red
 
 
 def _flame(r, x, y, z, size, t):

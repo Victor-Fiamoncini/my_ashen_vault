@@ -91,8 +91,9 @@ def test_no_prop_that_changes_state_is_baked():
 
 def test_every_static_kind_is_placed_somewhere():
     placed = {p.kind for name in MAPS for p in World(FakeGame(), name).props}
-    # Kept for the maps to come, though none climbs one now (Pell's led to a loft door into nothing).
-    unplaced = {"outside_stair"}
+    # Kept for the maps to come, though no map places one now: an outside stair (Pell's led to a loft
+    # door into nothing) and a pentice (Brannoc's forge front now has a window either side of its door).
+    unplaced = {"outside_stair", "pentice"}
     assert placed >= STATIC_PROPS - unplaced
     assert not placed & unplaced  # once a map places one, drop it from `unplaced`
 

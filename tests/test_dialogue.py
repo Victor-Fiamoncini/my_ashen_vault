@@ -62,7 +62,7 @@ def test_nobody_in_town_takes_the_ashen_for_a_sailor():
     from ashen_vault import dialogue
 
     for npc in ("odrin", "garrick", "ilse", "wren", "enthroned", "brannoc", "tamsin", "hollis", "pell",
-                "aldous", "tobin", "fenn", "reyna"):  # fmt: skip
+                "aldous", "tobin", "fenn", "reyna", "wynn"):  # fmt: skip
         _, text = talk(npc, FakeGame())
         assert "off the boat" not in text and "the tide brings" not in text, npc
     assert "fourth" in " ".join(dialogue.ENTHRONED_LINES[3])
@@ -310,6 +310,11 @@ def test_the_watch_talks_of_the_road_its_gate_keeps():
     assert "cave" in talk("reyna", FakeGame())[1]
     assert talk("reyna", FakeGame()) != talk("reyna", FakeGame(flags={"spider_dead"}))
     assert "cemetery" in talk("fenn", FakeGame())[1]
+    gate = talk("wynn", FakeGame())[1]
+    assert "Vesper Gate" in gate and "Vesperholm" in gate and "cold" in gate
+    three = FakeGame(flags={"sigil_taken", "verdant_sigil_taken", "iron_sigil_taken"})
+    assert gate != talk("wynn", FakeGame(flags={"sigil_taken"}))[1] != talk("wynn", three)[1] != gate
+    assert talk("wynn", three) != talk("wynn", FakeGame(flags={"duchess_dead"}))
 
 
 def test_marrow_speaks_through_his_bars_then_gives_his_tonics_once_let_out():

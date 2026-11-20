@@ -11,7 +11,7 @@ import math
 from ashen_vault.render.models import garment, gauntlet
 from ashen_vault.render.parts import (
     IRON,
-    REALM_VIOLET,
+    REALM_CRIMSON,
     WHITE,
     _arch_top,
     _bar,
@@ -38,7 +38,7 @@ STAINED = ((178, 34, 44), (44, 70, 190), (226, 172, 48), (44, 140, 78), (120, 56
 LEAD = (28, 26, 30)
 GILT = (214, 176, 84)
 SANDSTONE = (186, 160, 120)
-REALM_CLOTH = REALM_VIOLET
+REALM_CLOTH = REALM_CRIMSON
 HAY = (200, 168, 88)
 SACK = (160, 136, 98)
 
@@ -470,11 +470,12 @@ def banner_pole(r, t, seed):
     cloth = REALM_CLOTH[seed % len(REALM_CLOTH)]
     sway = math.sin(t * 0.9 + seed) * 0.05
     with r.at(0.1, 6.95, 0, rz=sway):
-        r.part("cube", 0, -1.2, 0, 0.03, 2.4, 1.2, cloth)
+        r.part("cube", 0, -1.8, 0, 0.03, 3.6, 1.2, cloth)
         for i, z in enumerate((-0.45, -0.15, 0.15, 0.45)):  # swallow tails
-            r.part("cube", 0, -2.5 - (i % 2) * 0.12, z, 0.03, 0.25 + (i % 2) * 0.2, 0.3, cloth)
+            r.part("cube", 0, -3.7 - (i % 2) * 0.12, z, 0.03, 0.25 + (i % 2) * 0.2, 0.3, cloth)
         r.part("cube", 0.01, -0.06, 0, 0.03, 0.08, 1.22, GILT)  # a gold hem along the top
-        realm_crest(r, GILT, cy=-1.1, scale=1.4, through=0.05)  # on both faces
+        r.part("cube", 0.01, -3.52, 0, 0.03, 0.06, 1.22, GILT)  # and a thinner one above the tails
+        realm_crest(r, GILT, cy=-1.72, scale=1.55, through=0.05)  # on both faces
 
 
 def crest_plaque(r, seed):
@@ -2124,8 +2125,8 @@ def street_arch(r, seed, width=3, style="crenel"):
     tile with the street running along local X beneath it: two piers on the tiles either side of the
     street (inside the walls or houses there), a segmental arch of dressed voussoirs with a keystone,
     a solid spandrel wall over it, a string course, and on top a crenellated parapet (`style=crenel`)
-    or a little tiled gable (`style=gable`). The realm's crest is carved in a panel on both faces, and
-    a lantern hangs on a chain under the crown. Nothing stands in the street: you walk under it."""
+    or a little tiled gable (`style=gable`). A plain sunk panel of ashlar sits over the crown on both
+    faces (its shade varied by `seed`), and a lantern hangs on a chain under the crown. Nothing stands in the street: you walk under it."""
     half = width * T / 2 + 0.3  # the piers' inner faces, just outside the street
     pier = (width + 1) * T / 2  # the piers' middles, on the tiles flanking the street
     stone = GATE_STONE
@@ -2177,12 +2178,11 @@ def street_arch(r, seed, width=3, style="crenel"):
             r.part("cube", 0, ARCH_WALL + 0.95, z, d + 0.04, 0.6, 0.62, _dim(stone, 0.96 + 0.06 * (i % 2)),
                    tex="ashlar")  # fmt: skip
             r.part("cube", 0, ARCH_WALL + 1.27, z, d + 0.12, 0.06, 0.7, _dim(stone, 1.1))  # its coping
-    # The crest in a sunk panel over the crown, on both faces.
+    # A plain sunk panel over the crown, on both faces.
     crown = ARCH_SPRING + ARCH_RISE
     cy = (crown + 0.5 + ARCH_WALL) / 2
-    r.part("cube", 0, cy, 0, d + 0.06, ARCH_WALL - crown - 0.55, 1.1, _dim(stone, 0.8), tex="ashlar")
-    with r.at(0, cy, 0):
-        realm_crest(r, GILT if seed % 2 else _dim(GILT, 0.85), cy=0.0, scale=0.9, through=d + 0.1)
+    r.part("cube", 0, cy, 0, d + 0.06, ARCH_WALL - crown - 0.55, 1.1, _dim(stone, 0.78 + 0.04 * (seed % 2)),
+           tex="ashlar")  # fmt: skip
     # The lantern, on a short chain from the crown's underside.
     for k in range(3):
         r.part("cube", 0, crown - 0.12 - k * 0.12, 0, 0.03, 0.12, 0.05 if k % 2 else 0.02, IRON)

@@ -1,14 +1,18 @@
 """The gold you drop when you die: left in a heap of your ashes where you last stood on solid ground,
 gathered up again on your next life, and lost for good if you die again before you reach it."""
 
+import glob
 import math
+import os
 
+from ashen_vault import MAP_DIR
 from ashen_vault.player import remnant
 from ashen_vault.player.player import Player
 from ashen_vault.save.save_system import SaveSystem
 from ashen_vault.world import terrain
+from ashen_vault.world.map_loader import MapLoader
 from ashen_vault.world.tile_map import TileMap
-from ashen_vault.world.world import World
+from ashen_vault.world.world import DROWN_DEATHS, DROWN_MESSAGES, World
 from test_verdant_world import JungleGame
 
 
@@ -135,11 +139,23 @@ def test_walking_off_the_quay_into_the_sea_drowns_you_and_leaves_your_ashes_asho
     assert world.death_spot() == TileMap.center(5, 40)  # the heap lies on the quay, not in the sea
 
 
-def test_off_the_pier_is_the_sea_too_but_the_canal_only_casts_you_back():
+def test_off_the_pier_is_the_sea_too_and_the_canal_drowns_you_as_well():
     game, world = _harbour()
     _step_off(world, game, (20, 45), (19, 45), terrain.DROWN_TIME + 0.2)
     assert not game.player.alive
     game, world = _harbour()
-    assert not world.map[10, 39].deep and world.map[10, 39].liquid
-    _step_off(world, game, (9, 39), (10, 39), 0.3)
-    assert game.player.alive and (game.player.x, game.player.z) == TileMap.center(9, 39)
+    canal = world.map[10, 39]
+    assert canal.liquid and canal.drown == "canal" and not canal.deep  # it drowns, but is no open sea
+    _step_off(world, game, (9, 39), (10, 39), terrain.DROWN_TIME + 0.2)
+    assert not game.player.alive
+    assert DROWN_MESSAGES["canal"] in game.messages and DROWN_DEATHS["canal"] in game.messages
+    assert world.death_spot() == TileMap.center(9, 39)  # the heap lies on the bank, not in the canal
+
+
+def test_every_water_you_drown_in_has_words_for_it():
+    """Each map's `drown=` key names its words going in and at the end, so no drowning goes unsaid."""
+    keys = set()
+    for path in glob.glob(os.path.join(MAP_DIR, "*.map")):
+        keys |= {t.drown for _tx, _tz, t in MapLoader.load_file(path).each_tile() if t.drown}
+    assert {"sea", "canal"} <= keys
+    assert keys <= DROWN_MESSAGES.keys() and DROWN_MESSAGES.keys() == DROWN_DEATHS.keys()

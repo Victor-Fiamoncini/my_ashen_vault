@@ -12,7 +12,7 @@ from ashen_vault.player.spells import Spells
 from ashen_vault.ui import smallfont
 from ashen_vault.util import highlight_runs, plain
 from ashen_vault.world import rest
-from ashen_vault.world.world import FALL_MESSAGES, HAZARD_MESSAGES
+from ashen_vault.world.world import DROWN_DEATHS, DROWN_MESSAGES, FALL_MESSAGES, HAZARD_MESSAGES
 
 SRC = pathlib.Path(__file__).resolve().parent.parent / "src" / "ashen_vault"
 
@@ -71,6 +71,7 @@ def _game_texts():
     texts += [t.epitaph for t in EnemyTypes.ALL.values() if t.epitaph]
     texts += [s.name for s in Spells.ALL.values()]
     texts += list(FALL_MESSAGES.values()) + list(HAZARD_MESSAGES.values())
+    texts += list(DROWN_MESSAGES.values()) + list(DROWN_DEATHS.values())
     for path in SRC.rglob("*.py"):
         for f, body in re.findall(r'message\((f?)"([^"]*)"', path.read_text(encoding="utf-8")):
             if f:  # drop the {placeholders}; the names that fill them are listed above

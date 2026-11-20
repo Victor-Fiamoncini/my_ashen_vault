@@ -195,6 +195,7 @@ class MapLoader:
                 ceil=ceil,
                 liquid=True,
                 deep="deep" in p,
+                drown=(p["drown"] or "sea") if "drown" in p else ("sea" if "deep" in p else None),
                 floor_tex=p.get("tex", "water"),
                 wall_tex=p.get("side", "stone_brick"),
                 ceil_tex=p.get("ceil_tex", "rough_stone"),

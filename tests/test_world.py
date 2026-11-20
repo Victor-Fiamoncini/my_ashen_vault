@@ -306,6 +306,7 @@ def test_harrowmere_every_villager_shop_and_road_is_reachable_from_the_cemetery_
         "tobin",
         "fenn",
         "reyna",
+        "wynn",
     } <= ids
     (throne,) = _spec(m, "npc", id="enthroned")
     (bell,) = _spec(m, "silent_bell")
@@ -315,16 +316,17 @@ def test_harrowmere_every_villager_shop_and_road_is_reachable_from_the_cemetery_
 
 
 def test_every_harrowmere_gate_has_a_watchman_beside_it():
-    """The north road's gate, the cemetery's gate and the gap in the east wall each have one of the
-    town watch standing by them."""
+    """The north road's gate, the cemetery's gate, the Vesper Gate and the gap in the east wall each
+    have one of the town watch standing by them."""
     from ashen_vault import dialogue
 
     m = MapLoader.load_file(os.path.join(MAP_DIR, "harrowmere.map"))
     watch = [(s.tx, s.tz) for s in _spec(m, "npc") if s.props.get("id") in dialogue.WATCH]
     (north,) = _spec(m, "exit", model="road_gate")
     (cemetery,) = _spec(m, "cemetery_gate")
+    (vesper,) = _spec(m, "exit", model="vesper_gate")
     gap = next((46, z) for z in range(m.depth) if m[46, z].walkable)  # the east wall runs down x=46
-    for gx, gz in ((north.tx, north.tz), (cemetery.tx, cemetery.tz), gap):
+    for gx, gz in ((north.tx, north.tz), (cemetery.tx, cemetery.tz), (vesper.tx, vesper.tz), gap):
         assert any(abs(gx - x) + abs(gz - z) <= 3 for x, z in watch), (gx, gz)
 
 

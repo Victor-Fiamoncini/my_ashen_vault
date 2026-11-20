@@ -152,8 +152,15 @@ FALL_MESSAGES = {
 }
 FALL_DEATH = "You fall to your death."
 DROP_MESSAGE = "You step off into empty air, and fall!"  # an edge over a lethal drop
-DROWN_DEATH = "The sea drags you under."
-DROWN_MESSAGE = "You plunge into the sea, and it will not let you go."
+# Going into deep water, and dying in it, keyed by the water's `drown=` (the legend's; "sea" if unset).
+DROWN_MESSAGES = {
+    "sea": "You plunge into the sea, and it will not let you go.",
+    "canal": "You slip into the canal, and its black water drags you down.",
+}
+DROWN_DEATHS = {
+    "sea": "The sea drags you under.",
+    "canal": "The canal closes over you.",
+}
 HAZARD_MESSAGES = {
     "landed": "You land hard.",
     "logs_first": "A rotten rope snaps above, and the woodpile starts to roll!",
@@ -1788,13 +1795,13 @@ class World:
             self.game.message(FALL_MESSAGES[self.terrain.fell_into])
         elif event == "fell_dead" and self.terrain.plunging and self.terrain.fell_into == "sea":
             self.game.sfx("hurt")
-            self.game.message(DROWN_DEATH)
+            self.game.message(DROWN_DEATHS[self.terrain.drowned_in])
         elif event == "fell_dead":
             self.game.sfx("hurt")
             self.game.sfx("crack", 0.8)
             self.game.message(FALL_DEATH)
         elif event == "drown":
-            self.game.message(DROWN_MESSAGE)
+            self.game.message(DROWN_MESSAGES[self.terrain.drowned_in])
         elif event == "plunge" and self.terrain.fell_into == "drop":
             self.game.sfx("swoosh", 0.6)
             self.game.message(DROP_MESSAGE)
