@@ -318,7 +318,6 @@ HARPY_WING = (104, 94, 86)
 HARPY_FEATHER = (84, 76, 70)
 HARPY_HAIR = (30, 26, 26)
 TALON = (40, 36, 30)
-MASK_GLOW = (230, 220, 180)  # the pale light behind the slits of its bell-shard mask
 
 
 def harpy_pose(e, t):
@@ -367,7 +366,7 @@ def _harpy_wing(r, side, beat, lift, rgb, feather):
 
 def harpy(r, e, t):
     """A Bell-Harpy: a gaunt grey body with arms grown into great ragged wings, long black hair, and
-    for a face a curved shard of a broken bronze bell, a pale light behind its eye slits. Bird legs end
+    for a face a curved shard of a broken bronze bell, the city's teal mortar-light behind its eye slits. Bird legs end
     in hooked talons. It hangs in the air on easy beats; to stoop it hauls its wings high and tips
     forward, then sweeps them back and thrusts its talons out. Slain, it crumples in a heap of wing."""
     fall = death_fall(e, 0.7)
@@ -379,7 +378,7 @@ def harpy(r, e, t):
     wing = hit_tint((200, 190, 184)) if e.flashing else HARPY_WING
     feather = hit_tint((170, 160, 156)) if e.flashing else HARPY_FEATHER
     glow = not dead
-    eye = MASK_GLOW if glow else COLD
+    eye = (HIT_GLOW if e.flashing else CORE_TEAL) if glow else COLD
     # It hangs from its shoulders in flight; slain, it pitches onto its face, wings spread flat.
     landed = getattr(e, "landed", False) and not dead
     with r.at(-0.3 * fall, 0.75 - 0.5 * fall, 0, rz=-pitch * (1 - fall) - 1.45 * fall):
@@ -411,10 +410,11 @@ def harpy(r, e, t):
                     r.part("cube", 0, 0, 0, 0.05, 0.22, 0.2, BELL_BRONZE)
                     r.part("cube", 0.01, 0.1, 0, 0.05, 0.03, 0.22, _dim(BELL_BRONZE, 0.75))  # its lip
                     r.part("cube", 0.03, -0.1, 0.04, 0.03, 0.06, 0.04, _dim(BELL_BRONZE, 0.85))  # broken edge
-                    for side in (-1, 1):
-                        r.part(
-                            "cube", 0.03, 0.03, side * 0.05, 0.02, 0.025, 0.05, eye, glow=glow
-                        )  # eye slits
+                    for side in (-1, 1):  # eye slits, a small flare of the mortar-light at each
+                        r.part("cube", 0.03, 0.03, side * 0.05, 0.02, 0.025, 0.05, eye, glow=glow)
+                        if glow:
+                            r.part("sphere", 0.04, 0.03, side * 0.05, 0.02, 0.03, 0.04,
+                                   _mix_rgb(CORE_TEAL, CORE_HEART, 0.5), glow=True)  # fmt: skip
                     r.part("cube", 0.03, -0.06, 0, 0.02, 0.02, 0.07, (40, 30, 24))  # the mouth slot
 
 
