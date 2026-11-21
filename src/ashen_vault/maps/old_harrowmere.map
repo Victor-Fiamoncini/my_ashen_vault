@@ -31,7 +31,7 @@ vault_tex = cavern_rock
 // plaza's fountain) runs home from the core's shield ward.
 
 [legend]
-# = wall tex=cavern_rock top=24
+# = wall tex=cavern_rock top=24 dress=cracks
 a = floor tex=ochre_flag h=0 side=sunken_brick dark=0.1
 b = floor tex=cavern_rock h=-0.5 side=cavern_rock dark=0.07
 c = floor tex=ochre_flag h=-8 side=sunken_brick dark=0.07
@@ -42,7 +42,7 @@ g = floor tex=cavern_rock h=0 side=cavern_rock ceil=3.4 ceil_tex=cavern_rock dar
 h = floor tex=ochre_flag h=-22 side=sunken_brick dark=0.2
 // The Bell-keepers' Oubliette, cut into the rock beside the gallery.
 à = floor tex=ochre_flag h=0 side=sunken_brick ceil=3.4 ceil_tex=sunken_brick dark=0.5
-ö = wall tex=sunken_brick top=24
+ö = wall tex=sunken_brick top=24 dress=cracks
 i = floor tex=cavern_rock h=-4 side=cavern_rock dark=0.07
 j = water tex=water h=-20.6 side=sunken_brick
 _ = floor tex=cavern_rock h=-40 side=cavern_rock chasm dark=0.6
@@ -69,7 +69,7 @@ z = floor tex=cavern_rock h=-7.5 side=cavern_rock dark=0.07
 4 = floor tex=ochre_flag h=-8.5 side=sunken_brick dark=0.12
 5 = floor tex=ochre_flag h=-9 side=sunken_brick dark=0.12
 6 = floor tex=ochre_flag h=-16 side=sunken_brick dark=0.12
-7 = wall tex=sunken_brick top=-2
+7 = wall tex=sunken_brick top=-2 dress=cracks
 8 = floor tex=ochre_flag h=-9.5 side=sunken_brick dark=0.12
 9 = floor tex=ochre_flag h=-15.5 side=sunken_brick dark=0.12
 . = floor tex=ochre_flag h=-10 side=sunken_brick dark=0.12
@@ -92,7 +92,7 @@ $ = floor tex=ochre_flag h=-13.5 side=sunken_brick dark=0.12
 | = floor tex=ochre_flag h=-20.5 side=sunken_brick dark=0.17
 ( = floor tex=ochre_flag h=-21 side=sunken_brick dark=0.17
 ) = floor tex=ochre_flag h=-21.5 side=sunken_brick dark=0.17
-{ = wall tex=sunken_brick top=-10
+{ = wall tex=sunken_brick top=-10 dress=cracks
 // The Under-Cells, the gaolers' lower tier below the Oubliette, down their stair across the gallery.
 ă = floor tex=ochre_flag h=-0.5 side=sunken_brick ceil=2.9 ceil_tex=sunken_brick dark=0.55
 ą = floor tex=ochre_flag h=-1 side=sunken_brick ceil=2.4 ceil_tex=sunken_brick dark=0.55
