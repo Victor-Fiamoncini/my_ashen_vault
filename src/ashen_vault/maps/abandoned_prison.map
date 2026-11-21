@@ -156,7 +156,8 @@ d = prisoner_remains
 s = gate lever=marrow_cell on=.
 Ñ = npc id=marrow yaw=-90 reach=3.6 on=-
 Á = lever id=marrow_cell
-// The chapel of the old gods, where the prisoners were made to kneel; the Warden's Key lies on its altar.
+// The chapel of the old gods, where the prisoners were made to kneel to Lyra the Embracer's idols;
+// the Warden's Key lies on its altar.
 Ü = pew
 Ö = old_idol on=[
 K = altar item=warden_key model=idol on=[

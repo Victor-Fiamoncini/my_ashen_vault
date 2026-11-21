@@ -180,7 +180,10 @@ Equipment, combat, spells, shops, saves and the story.
   of Vesperholm, wed the moon on the fourth, the Argent Sigil, so her city would never see a dawn or a
   death: the moon stopped over it, and it keeps whatever it shines on as it is, her people as pale shades
   and her brother as stone on his throne. With the fourth bent to the moon, the other three fell to
-  keepers who went bad (the Warden, the Loom Mother, the gargoyles). From inside the stone the king rang
+  keepers who went bad (the Warden, the Loom Mother, the gargoyles). Older than the realm is Lyra the
+  Embracer, the faceless old god of six hands held out palms up: the first city raised her colossi
+  (broken now in Old Harrowmere's halls) and the prison's chapel still made its inmates kneel to her
+  idols. She is lore only, named by Brother Marrow and a hint on the Drowned Plaza. From inside the stone the king rang
   the bell himself, once, to wake the Ashen: the dead, whom the moon cannot keep. Odrin names all four
   at the first meeting: the fourth lies with the Duchess beyond the Vesper Gate at the head of the
   cathedral steps, which stands open (nobody remembers it shut, nor who opened it), so the whole realm is
