@@ -2317,10 +2317,14 @@ DOOR_FRAME_LIGHT = (88, 80, 80)
 def door(r, open_t, axis, tex="door_wood", style="wood", frame=4.0):
     """Door slab spanning the tile; axis 'x' means it blocks movement along X. `style` "iron" is the
     Cinderhold's: a riveted iron leaf banded and studded, with a ring on each face, sliding up into a
-    frame of dark stone (jambs and a lintel `frame` metres up, the passage's ceiling) that stays put."""
+    frame of dark stone (jambs and a lintel `frame` metres up, the passage's ceiling) that stays put;
+    "stone" is Old Harrowmere's carved slab (`sunken_models.stone_door`), sinking into the floor."""
     lift = open_t * 2.4
     ry = 0 if axis == "x" else math.pi / 2
     with r.at(0, 0, 0, ry=ry):
+        if style == "stone":
+            sunken_models.stone_door(r, open_t, frame)
+            return
         if style != "iron":
             r.part("cube", 0, 1.25 + lift, 0, 0.18, 2.5, 2.0, WHITE, tex=tex)
             return

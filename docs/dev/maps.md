@@ -31,7 +31,7 @@ How `.map` files work and what can stand on a tile.
   `door boss=keystone_dead` (the front one at the end of the roads of light, ward decks over the chasm
   east of the plaza, below; the rear one out to the lift room; one arena, like Mother Gnawl's nest). The
   shortcut: a locked lift from the lift room 22 m up to the dark gallery cut through the rock from the
-  landing, behind a plain `door` in the landing's south wall at 3,8 (unlocked, two-way;
+  landing, behind a plain stone `door model=stone` in the landing's south wall at 3,8 (unlocked, two-way;
   `test_a_plain_door_leads_from_the_landing_down_into_the_old_gallery`). A false wall in that gallery opens on the Bell-keepers' Oubliette (h 0, under its own
   `ceil`, lined in `sunken_brick`): a corridor of barred cells (`gate lever=oubliette`) holding Aubel,
   Coldry, Ysolde, a hollow inmate and a mimic, and the gaoler's hall with the lever and the Torch
@@ -267,7 +267,10 @@ How `.map` files work and what can stand on a tile.
   through freely and you cross with interact: you walk through it slowly (`World.fog_walk`, `FOG_WALK_SPEED`), never jump. Each arena must stay closed behind its one door
   (`tests/test_arena.py`). `door from=n|s|e|w` is barred on that side: it
   only opens from there. `door model=iron` is the Cinderhold's riveted iron door, set in a stone frame
-  that rises to the passage's ceiling (`world_view.DOOR_FRAME_SKY` under the open sky).
+  that rises to the passage's ceiling (`world_view.DOOR_FRAME_SKY` under the open sky); `door model=stone`
+  is Old Harrowmere's (`sunken_models.stone_door`): a carved sandstone slab with a small teal glyph on
+  each face, set in a frame of `sunken_brick` with a lintel and keystone, that sinks into the floor as it
+  opens. Both open, shut and block exactly as the plain wooden door does.
   An `npc` may set `reach=` (metres): how far away it can be spoken to, through a cell's bars. After placing props in `abandoned_prison.map`, run `tests/test_world.py`: its reachability test fails if
   anything cuts off a chest, door, lever, exit, altar or the iron maiden, or if a locked lift is
   needed to get anywhere (shortcuts must stay optional). `verdant_hollow.map` has its
