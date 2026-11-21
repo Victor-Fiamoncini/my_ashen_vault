@@ -2419,14 +2419,34 @@ DEFAULT_DOOR = "boss_dead"
 BOSS_DOOR_TOP = 3.3  # the top of a boss door's lintel: the fog left in its place stands this tall
 
 
-def boss_door(r, open_t, axis, t, lit=True, boss=None):
+@dataclass(frozen=True)
+class GreatGate:
+    """Where a great gate (`door boss=... great=<side>`, GREAT_GATES) stands: `front` (+1 or -1) the
+    side of its local x its facade faces, `porch` the metres the opening runs on past its tile before
+    that facade, and `rise` the height of the walls either side (None: no masonry over the arch)."""
+
+    front: int
+    porch: float = 0.0
+    rise: float | None = None
+
+
+GREAT_DOOR_TOP = 6.4  # a great gate's opening: twice a boss door's, the fog filling it as tall
+
+
+def boss_door(r, open_t, axis, t, lit=True, boss=None, great=None, leaves=True):
     """The great double door before a boss's lair, spanning its tile, dressed for the boss behind it
     (BOSS_DOORS, by its `dead_flag`): two banded leaves between plain stone jambs under a flat lintel,
     a lamp (or a beast) on each jamb that burns while the boss lives, and one motif of its boss. The
-    leaves swing apart (inward) as `open_t` runs to 1. Axis 'x' means it blocks movement along X."""
+    leaves swing apart (inward) as `open_t` runs to 1. Axis 'x' means it blocks movement along X.
+    `great` (a GreatGate) draws the boss's great gate instead, if it has one (GREAT_GATES); without
+    its `leaves` it is only the masonry the fog stands in."""
     key = boss if boss in BOSS_DOORS else DEFAULT_DOOR
     style = BOSS_DOORS[key]
     swing = _ease(min(open_t, 1.0)) * 1.45
+    if great is not None and key in GREAT_GATES:
+        with r.at(0, 0, 0, ry=0 if axis == "x" else math.pi / 2):
+            GREAT_GATES[key](r, style, swing if leaves else None, t, lit, great)
+        return
     with r.at(0, 0, 0, ry=0 if axis == "x" else math.pi / 2):
         _door_frame(r, style, t, lit)
         DOOR_ARCHES[key](r, style, t, lit)
@@ -2670,6 +2690,11 @@ DOOR_LEAVES = {
     "matron_dead": _matron_leaf,
     "duchess_dead": _duchess_leaf,
     "keystone_dead": lambda *a: sunken_models._keystone_leaf(*a),
+}
+# The bosses whose door can be a great gate (`door ... great=<side>`):
+# (r, style, swing or None, t, lit, great).
+GREAT_GATES = {
+    "keystone_dead": lambda *a: sunken_models.great_keystone_gate(*a),
 }
 FOG_RISE = 0.3  # how many times a second a billow of the fog gate climbs from the floor to its top
 

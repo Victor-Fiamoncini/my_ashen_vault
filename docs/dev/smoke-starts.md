@@ -71,7 +71,10 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   terrace), `--at=31,9,90` (the bridge to the Bell Tower), `--at=24,12,180` (the Aqueduct), `--at=15,12,180`
   (the Colonnade), `--at=15,24,40` (the Drowned Plaza under the rift), `--at=7,38,90` (the lift
   head at the gallery's end, fastened until ridden from below). Boss: `--at=22,39,90 --level 10 --script
-  "wait:4.5"` (the Keystone rising in its court; its doors at 21,38 and 12,42); `--at=30,43,180 --level 10 --script
+  "wait:4.5"` (the Keystone rising in its court; its doors at 21,38 and 12,42); `--at 21,31,90 --script
+  "look_up:0.25"` (its great gate across the chasm, from the plaza), `--at 21,37,90 --flags keystone_dead
+  --smoke 60 --script "wait:0.2 interact wait:0.4 back:0.4"` (the gate opening), `--at 30,46,200 --flags
+  keystone_dead --script "look_up:0.15"` (the court's colossal pillars up to the vault); `--at=30,43,180 --level 10 --script
   "wait:4.6"` sees the whole titan and its torch down the court's clear row, between the pillars;
   `--at=22,39,90 --level 10 --smoke 480 --script "wait:4.5 back:1.5"` catches its first torch smash
   bursting before it; `--at=22,39,90 --level 10 --smoke 150 --script "wait:2"` its wide spread of ash

@@ -147,9 +147,9 @@ $ = floor tex=ochre_flag h=-13.5 side=sunken_brick dark=0.12
 #ł#g######ÏeeeeeeeeeeeeeÇeeeeeeeÓ__üeýýýeü___eee#{{{{{{{{{{{{{##
 #ł#g######__________________________ý________###################
 #ł#g######___________(|||||þþþþþþþþþeü_______###################
-#Ĉ#g######___________)__ÿ_____Ù______________###################
+#Ĉ#g######___________ȁ__ÿ_____Ù______________###################
 #ł#g######{{{{{{{{{{{n{{{{{{{{{{################################
-#ł#gggJg####{{{{{{{{{Ë{{{{{{{{{{################################
+#ł#gggJg####{{{{{{{{{Ȁ{{{{{{{{{{################################
 #ł#####Ì####{HfffffffffffffffffH################################
 #ł####Khhhhh{fffffffffffffffffff################################
 #ł####hhhhhh{fffÅfffffffffffÅfff################################
@@ -210,13 +210,17 @@ Z = sunken_sexton on=d
 Â = stone_golem on=e
 Ã = pillar on=d
 Ä = pillar on=e
-Å = pillar on=f
+Å = pillar model=colossal on=f
 Æ = rubble on=c
 Ç = rubble on=e
 È = bones on=d
 É = bones on=e
 Ê = keystone on=f
 Ë = door boss=keystone_dead on=n
+// The Keystone's front door: its great gate, twice as tall, its facade turned north over the chasm.
+Ȁ = door boss=keystone_dead great=n on=n
+// Lamps of the court lighting its great gate's facade from the causeway before it.
+ȁ = light y=5 color=0.75,0.52,0.34 radius=9 on=)
 // The landing's south wall: a plain door down into the dark old gallery.
 Ď = door on=g
 Ì = lift top=0 locked on=o
