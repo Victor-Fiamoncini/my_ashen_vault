@@ -3,6 +3,7 @@ import math
 import pytest
 
 from ashen_vault.player.stats import Stats
+from ashen_vault.util import rround
 from ashen_vault.world import collision, terrain
 from ashen_vault.world.map_loader import MapLoader
 from ashen_vault.world.tile_map import TileMap
@@ -685,6 +686,79 @@ def test_a_drawbridge_never_rots_under_you():
     for _ in range(400):
         bridge.update(0.05, loaded=True)
     assert bridge.afloat and bridge.sink == 0.0
+
+
+GREAT_BRIDGE = """[meta]
+name = Great Bridge
+start = 2 1 0
+
+[legend]
+# = wall
+. = floor h=0
+_ = floor h=-18 chasm
+
+[grid]
+#####
+#...#
+#bbb#
+#bbb#
+#bbb#
+#...#
+#####
+
+[entities]
+b = bridge lever=gap rise=18 deck=0 on=_
+"""
+
+
+def test_a_stone_bridge_lies_sunk_in_its_chasm_until_its_lever_raises_it():
+    """A `rise=` bridge rests on the chasm's floor, far below its deck, and bears no weight; let loose
+    it grinds up over BRIDGE_RISE seconds, slow to settle, and only bears you once it is all the way up."""
+    m = MapLoader(GREAT_BRIDGE).parse()
+    spans = [p for p in terrain.build_platforms(m) if p.kind == "bridge"]
+    assert len(spans) == 9 and all(p.rise == 18 and p.locked for p in spans)
+    first = spans[0]
+    assert first.risen_y == pytest.approx(-18) and not first.afloat
+    for _ in range(100):  # held by its lever, it stays down
+        first.update(0.05, loaded=False)
+    assert first.lowered == 0.0
+    first.locked = False
+    heights, events = [], []
+    for _ in range(rround(terrain.BRIDGE_RISE / 0.1) + 2):
+        events.append(first.update(0.1, loaded=False))
+        heights.append(first.risen_y)
+    assert events.count("bridge_down") == 1
+    assert heights == sorted(heights) and heights[-1] == pytest.approx(0.0)
+    assert heights[len(heights) // 2] > -18 / 2  # quick out of the deep, slow to settle
+    assert first.afloat and first.floats_on(1, 2)
+
+
+def test_a_stone_bridge_settles_with_one_boom_for_all_its_spans():
+    m = MapLoader(GREAT_BRIDGE).parse()
+    h = terrain.Terrain(m)
+    for p in h.platforms:
+        p.locked = False
+    body = Body(2, 1)
+    booms = 0
+    for _ in range(rround(terrain.BRIDGE_RISE * 60) + 5):
+        h.update(1 / 60, body, lambda *_: None)
+        booms += [name for name, _ in h.sounds].count("stone_land")
+    assert booms == 1 and all(p.afloat for p in h.platforms)
+
+
+def test_a_stone_bridge_is_built_of_arches_between_piers_with_a_parapet_down_each_side():
+    """Three abreast and three long: its outer tiles carry the parapet, piers stand at its ends and
+    every BRIDGE_ARCH_TILES rows between, and each tile knows where along its arch it lies."""
+    m = MapLoader(GREAT_BRIDGE).parse()
+    spans = terrain.bridge_spans(terrain.build_platforms(m))
+    assert set(spans) == {(x, z) for x in (1, 2, 3) for z in (2, 3, 4)}
+    assert spans[1, 3].sides == (-1,) and spans[3, 3].sides == (1,) and spans[2, 3].sides == ()
+    assert spans[2, 2].piers == (-1,) and spans[2, 2].ends == (-1,) and spans[2, 2].u == (0.0, 0.5)
+    assert spans[2, 3].piers == (1,) and spans[2, 3].u == (0.5, 1.0)  # the first arch's far pier
+    assert spans[2, 4].piers == (-1, 1) and spans[2, 4].ends == (1,)  # a short arch to the far bank
+    assert all(s.depth == 18 for s in spans.values())
+    drawbridge = terrain.build_platforms(MapLoader(BRIDGE).parse())
+    assert terrain.bridge_spans(drawbridge) == {}  # a drawbridge swings on its hinge instead
 
 
 def test_a_lift_opens_only_toward_its_landings():

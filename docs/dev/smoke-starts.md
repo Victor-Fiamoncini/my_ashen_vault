@@ -122,9 +122,15 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
 - Vesperholm (`vesperholm`) lies behind the Vesper Gate in Harrowmere's north wall, at the head of the
   cathedral steps; it always stands open: `--map harrowmere --at=22,15,-90` (from the foot of the steps,
   the gate straight ahead up the porch), `--map harrowmere --at=22,2,-90 --script "wait:0.3 interact"`
-  (goes through, even on a fresh save). Areas: `--map vesperholm` (the Gate Court, its `start`, the shrine at 16,50), `--at=21,43,-90
+  (goes through, even on a fresh save). Areas: `--map vesperholm` (the Glimmering Cave's hall, its
+  `start`, the Vesper Gate behind you), `--at=8,93,-90 --smoke 75 --script "forward:0.75 wait:0.45"` (a
+  Glassmite in the geode gallery unfolds), `--at 24,83,0` (the moon-pool grotto), `--at=16,60,-80` (the
+  overlook's parapet: the city, the cathedral and the moon), `--at=21,72,-90` (the overlook at the cave's
+  mouth, the shrine at 17,71, the grand stair down into the Gate Court), `--at 21,67,90 --script
+  "look_up:0.15"` (the cave's mouth from the stair), `--at=21,54,-90` (the Gate Court), `--at=21,43,-90
   --script "look_up:0.5"` (the moon and the stars over Lantern Square, from beside its moon pool),
-  `--at=21,33,-90` (the Landing, the raised drawbridge across the gorge), `--at=4,35,-90` (the west street
+  `--at=19,32,-70 --script "forward:0.25 look_down:0.7"` (the great bridge sunk on the gorge floor),
+  `--at=21,34,-90 --flags lever:vesper_bridge` (the great bridge raised, across to the castle's postern), `--at=4,35,-90` (the west street
   and the Glass Bridge), `--at=21,26,-90 --script "look_up:0.25"` (the cathedral's front from the bailey),
   `--at=21,17,-90` (the nave). A fight: `--at=25,42,-90 --level 6 --equip primary=katana,secondary=buckler
   --script "wait:2.2"` (a Lantern Wraith's lances), `--at=17,21,180 --script "wait:0.9 attack"` (a Veiled

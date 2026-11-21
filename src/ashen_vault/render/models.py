@@ -122,6 +122,7 @@ def enemy(r, e):
         "moonhound": moon_models.moonhound,
         "veiled_knight": moon_models.veiled_knight,
         "moon_duchess": moon_models.moon_duchess,
+        "glassmite": moon_models.glassmite,
         "stone_golem": sunken_models.stone_golem,
         "sunken_sexton": sunken_models.sunken_sexton,
         "keystone": sunken_models.keystone,

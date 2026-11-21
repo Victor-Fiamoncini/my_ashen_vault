@@ -16,6 +16,7 @@ _BY_TEX = {
         "ochre_flag",
         "sunken_brick",
         "cavern_rock",
+        "crystal_rock",
     ),
     "wood": ("wood_plank", "timber", "bark"),
     "soft": (

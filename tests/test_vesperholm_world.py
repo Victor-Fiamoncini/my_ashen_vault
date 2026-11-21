@@ -11,10 +11,17 @@ from ashen_vault.ai.enemy import BLINK_RANGE, MOVES, Enemy
 from ashen_vault.ai.enemy_types import EnemyTypes
 from ashen_vault.player import ailments
 from ashen_vault.util import rround
-from ashen_vault.world import relics
+from ashen_vault.world import relics, terrain
 from ashen_vault.world.tile_map import TileMap
-from ashen_vault.world.world import BLINK_BEHIND, LANCE_CHILL, MOON_FROST, MOONFALL_RINGS, World
-from test_verdant_world import JungleGame, foe
+from ashen_vault.world.world import (
+    BLINK_BEHIND,
+    BRIDGE_RISING,
+    LANCE_CHILL,
+    MOON_FROST,
+    MOONFALL_RINGS,
+    World,
+)
+from test_verdant_world import JungleGame, foe, prop
 
 BAILEY = (20, 22)  # the middle of the castle's open bailey
 NORTH, EAST = -math.pi / 2, 0.0
@@ -84,8 +91,8 @@ def test_a_blink_never_lands_in_a_wall_or_the_gorge():
     assert world.blink(knight)
     tile = world.map.tile_at(knight.x, knight.z)
     assert tile.walkable and not tile.solid
-    _game, world = city(at=(21, 29), yaw=EAST)  # out on the causeway, the gorge either side
-    knight = foe(world, "veiled_knight", (21, 27))
+    _game, world = city(at=(21, 32), yaw=-NORTH)  # on the Landing's brink, the gorge at your back
+    knight = foe(world, "veiled_knight", (21, 35))
     assert world.blink(knight)
     tile = world.map.tile_at(knight.x, knight.z)
     assert not tile.chasm and tile.floor == 0
@@ -211,7 +218,7 @@ def test_the_gate_in_town_is_always_open_even_on_a_fresh_save():
 
 
 def test_the_way_home_from_vesperholm_is_always_open():
-    _game, world = city(at=(21, 54))
+    _game, world = city(at=(21, 100))  # the cave's hall, where the gate lets you in
     (home,) = [p for p in world.props if p.kind == "exit"]
     assert home.props["map"] == "harrowmere" and world.exit_open(home)
     assert world.map.meta["sky"] == "moonlit"
@@ -289,7 +296,7 @@ def test_the_duchess_fights_faster_than_any_other_boss_until_her_rage():
 
 def test_vesperholm_outmatches_the_areas_before_it():
     """The last area: each of its foes hits harder than the same kind of foe anywhere before."""
-    vesper = ("pale_sentinel", "lantern_wraith", "moonhound", "veiled_knight", "moon_duchess")
+    vesper = ("pale_sentinel", "lantern_wraith", "moonhound", "veiled_knight", "glassmite", "moon_duchess")
     earlier = [t for t in EnemyTypes.ALL.values() if t.id not in vesper]
     assert EnemyTypes.get("moon_duchess").hp > max(t.hp for t in earlier if t.boss)
     assert EnemyTypes.get("moon_duchess").damage > max(t.damage for t in earlier if t.boss)
@@ -299,3 +306,34 @@ def test_vesperholm_outmatches_the_areas_before_it():
     assert all(
         any(kind == "frost" for kind, _ in EnemyTypes.get(i).inflicts) for i in vesper if i != "moonhound"
     )
+
+
+# --- the great bridge and the Glimmering Cave -----------------------------------------------------
+
+
+def test_the_bailey_lever_raises_the_great_bridge_out_of_the_gorge_for_good():
+    """One pull of the lever and all twelve spans of the stone bridge grind up out of the gorge
+    together, to one long rumble, and it stays up on every visit after."""
+    game, world = city(at=(21, 26))
+    spans = [p for p in world.terrain.platforms if p.kind == "bridge"]
+    assert len(spans) == 12 and all(p.locked and not p.afloat and p.risen_y < -17 for p in spans)
+    world.pull_lever(prop(world, "lever", id="vesper_bridge"))
+    assert game.sounds.count("stone_rise") == 1 and "chain" not in game.sounds
+    assert BRIDGE_RISING in game.messages
+    for _ in range(round(terrain.BRIDGE_RISE * 60) + 10):
+        world.update_terrain(1 / 60)
+    assert all(p.afloat and p.risen_y == pytest.approx(0.0) for p in spans)
+    _, again = city(flags=game.flags)
+    assert all(p.afloat for p in again.terrain.platforms if p.kind == "bridge")
+
+
+def test_glassmites_lie_folded_in_the_cave_among_real_crystals():
+    """Every Glassmite waits under the cave's roof with a cluster of moon-crystal close by, so folded
+    down it is one more cluster among them."""
+    _game, world = city(keep_foes=True)
+    mites = [e for e in world.enemies if e.type.id == "glassmite"]
+    crystals = [p for p in world.props if p.kind == "moon_crystal"]
+    assert len(mites) == 3
+    for e in mites:
+        assert world.map.tile_at(e.x, e.z).ceil is not None  # in the cave
+        assert min(math.hypot(c.x - e.x, c.z - e.z) for c in crystals) < 3 * TileMap.TILE
