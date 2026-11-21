@@ -38,15 +38,16 @@ _BY_TEX = {
 TEX_SURFACE = {tex: surface for surface, texes in _BY_TEX.items() for tex in texes}
 
 # Platforms underfoot: rafts, planks, rotten boards, drawbridges and lift decks are timber; a
-# crumbling ledge is stone; the prison's jail cage is iron.
+# crumbling ledge is stone; the prison's jail cage is iron, Old Harrowmere's rune lift stone.
 PLATFORM_SURFACE = {"ledge": "stone"}
+LIFT_SURFACE = {"cage": "metal", "rune": "stone"}
 
 
 def surface(tile, platform=None):
     """The surface you tread on: the platform carrying you, else the floor of your tile."""
     if platform is not None:
-        if platform.kind == "lift" and getattr(platform, "model", "") == "cage":
-            return "metal"
+        if platform.kind == "lift" and getattr(platform, "model", "") in LIFT_SURFACE:
+            return LIFT_SURFACE[platform.model]
         return PLATFORM_SURFACE.get(platform.kind, "wood")
     return TEX_SURFACE.get(getattr(tile, "floor_tex", None), DEFAULT)
 

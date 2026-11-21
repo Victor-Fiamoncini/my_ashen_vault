@@ -70,7 +70,10 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   "look_up:0.9"` (the rift of daylight in the vault), `--at=15,3,0` (the Cliff Stair, a sexton and a golem on it), `--at=32,3,180` (the
   terrace), `--at=31,9,90` (the bridge to the Bell Tower), `--at=24,12,180` (the Aqueduct), `--at=15,12,180`
   (the Colonnade), `--at=15,24,40` (the Drowned Plaza under the rift), `--at=7,38,90` (the lift
-  head at the gallery's end, fastened until ridden from below). Boss: `--at=22,39,90 --level 10 --script
+  head at the gallery's end, fastened until ridden from below); the rune lift from the lift room below:
+  `--at=7,42,-90` (resting cold, its near call plate lit), `--at=7,42,-90 --smoke 220 --script "forward:1.85 wait:0.3
+  back:0.12 look_down:1.4 wait:8"` (riding up, its glyphs ablaze), `--smoke 900` with the same script (freed at the
+  top, its glyphs dim). Boss: `--at=22,39,90 --level 10 --script
   "wait:4.5"` (the Keystone rising in its court; its doors at 21,38 and 12,42); `--at=30,43,180 --level 10 --script
   "wait:4.6"` sees the whole titan and its torch down the court's clear row, between the pillars;
   `--at=22,39,90 --level 10 --smoke 480 --script "wait:4.5 back:1.5"` catches its first torch smash

@@ -1,7 +1,7 @@
 """Models for Old Harrowmere, the sunken first city under the sewers: its Stone Golems, Sunken Sextons
 and the Keystone, the boulder the Keystone hurls, and the city's dressing (the shaft of light from the
-crack overhead, the drowned towers of its skyline and the breach in the cistern wall that leads down).
-Original low-poly models assembled from primitives; like everything in `models`, they face +X."""
+crack overhead, the drowned towers of its skyline, the breach in the cistern wall that leads down and
+its rune lift). Original low-poly models assembled from primitives; like everything in `models`, they face +X."""
 
 import math
 
@@ -30,6 +30,7 @@ from ashen_vault.render.parts import (
     wrist_angle,
 )
 from ashen_vault.util import rround
+from ashen_vault.world.terrain import CALL_PLATE_R, PLATE_SINK
 from ashen_vault.world.vault import CRACK_LEN, CRACK_WIDTH, SHAFT_LEAN
 
 MASONRY = (138, 120, 96)  # the old city's warm, worn sandstone
@@ -1213,3 +1214,109 @@ def stone_door(r, open_t, frame):
             for dz in (-0.06, 0.06):  # two strokes rising from it like a bearer's arms
                 r.part("cube", gx, 1.33, dz, 0.01, 0.12, 0.025, glyph, glow=True, rx=dz * 9)
             r.part("cube", gx, 1.2, 0, 0.01, 0.025, 0.14, glyph, glow=True)  # the ground it stands on
+
+
+# --- the rune lift (Old Harrowmere's lift, `lift model=rune`) -----------------------------------
+#
+# The masons raised their lift with the same mortar-light that walks their golems: no chains and no
+# pulley, only a carved stone deck with a glyph circle let into it, a ring of glyphs turning under its
+# keel and another hovering over it as a crown, tied to the deck's corners by threads of light. Its
+# plates are rune plates: discs of stone whose glyphs flare as they sink under your weight.
+
+RUNE_IDLE = 0.45  # how brightly the glyphs burn while the lift rests
+RUNE_CROWN = 2.5  # the crown ring's height over the deck, lowered under a low ceiling
+RUNE_KEEL = 0.36  # how far under the deck's top the keel ring turns
+RUNE_SEGMENTS = 10  # glyph segments round each ring
+RUNE_STONE = (236, 224, 204)  # a pale tint, so the city's flagstone and brick textures show their own colour
+
+
+def rune_glow(moving, locked, pressed=0.0):
+    """How brightly (0..1) a rune lift's glyphs burn: cold (0) while it is still fastened and at rest,
+    dim while it waits, full while it rides; stepping on a plate (`pressed`, 0..1) wakes it too."""
+    rest = 0.0 if locked else RUNE_IDLE
+    return max(1.0 if moving else rest, min(max(pressed, 0.0), 1.0))
+
+
+def _rune_rgb(k, heart=False):
+    """The glyphs' colour at glow `k`: COLD stone at 0, the teal mortar-light (or its heart) at 1."""
+    return _mix_rgb(COLD, CORE_HEART if heart else CORE_TEAL, k)
+
+
+def _glyph_ring(r, y, radius, turn, k, thick=0.05):
+    """A ring of glyph segments, every other one notched with a rune, turned `turn` radians."""
+    rgb, lit = _rune_rgb(k), k > 0
+    seg = radius * math.tau / RUNE_SEGMENTS * 0.8
+    for i in range(RUNE_SEGMENTS):
+        a = turn + i * math.tau / RUNE_SEGMENTS
+        x, z = math.cos(a) * radius, math.sin(a) * radius
+        r.part("cube", x, y, z, thick, thick, seg, rgb, glow=lit, ry=-a)
+        if i % 2 == 0:  # a rune hung off the ring
+            r.part("cube", x, y - thick * 1.6, z, thick * 0.7, thick * 2.4, thick * 0.7, rgb, glow=lit, ry=-a)
+
+
+def rune_lift(r, t, moving, chain_h, pressed=0.0, locked=False):
+    """Old Harrowmere's lift: a deck of carved sandstone with a glyph circle let into it, a ring of
+    glyphs turning under it and a crown of glyphs hovering over it, tied to its corner stones by
+    threads of light. The glyphs lie cold while it is fastened, wake dim, and blaze as it rides. In the
+    middle is its rune plate, sunk `pressed` metres (and flaring) while someone stands on it."""
+    k = rune_glow(moving, locked)
+    pulse = 0.9 + 0.1 * math.sin(t * 6) if moving else 1.0
+    rgb, lit = _rune_rgb(k * pulse), k > 0
+    r.part("cube", 0, -0.12, 0, 1.92, 0.22, 1.92, RUNE_STONE, tex="ochre_flag")  # the deck
+    r.part("cube", 0, -0.32, 0, 1.6, 0.2, 1.6, _dim(RUNE_STONE, 0.8), tex="sunken_brick")  # its carved keel
+    for sx, sz in ((1, 0), (-1, 0), (0, 1), (0, -1)):  # the kerb round its edge, cut with runes
+        r.part(
+            "cube", sx * 0.9, 0.0, sz * 0.9, 0.12 if sx else 1.92, 0.06, 0.12 if sz else 1.92, MASONRY_DARK
+        )
+        for u in (-0.45, 0.45):
+            r.part("cube", sx * 0.9 or u, 0.035, sz * 0.9 or u, 0.05, 0.02, 0.05, rgb, glow=lit, ry=0.785)
+    for i in range(16):  # the glyph circle let into the deck
+        a = i * math.tau / 16
+        r.part("cube", math.cos(a) * 0.74, 0.0, math.sin(a) * 0.74, 0.035, 0.012, 0.25, rgb, glow=lit, ry=-a)
+    crown = max(min(RUNE_CROWN, chain_h - 0.5), 1.9)
+    for cx, cz in ((0.84, 0.84), (0.84, -0.84), (-0.84, 0.84), (-0.84, -0.84)):  # the corner stones
+        r.part("cube", cx, 0.1, cz, 0.18, 0.2, 0.18, RUNE_STONE, tex="sunken_brick")
+        r.part("cube", cx, 0.22, cz, 0.08, 0.06, 0.08, rgb, glow=lit, ry=0.785)  # a glyph-stone on each
+        if lit:  # a thread of light up to the crown
+            r.part("cube", cx, (0.25 + crown) / 2, cz, 0.018, crown - 0.25, 0.018,
+                   _dim(rgb, 0.6), glow=True)  # fmt: skip
+    _glyph_ring(r, crown, 0.8, t * 0.35, k * pulse)  # the crown
+    _glyph_ring(r, -RUNE_KEEL, 0.9, -t * 0.5, k * pulse, thick=0.06)  # the keel ring
+    _rune_plate(r, k, min(pressed / PLATE_SINK, 1.0) if pressed > 0 else 0.0, pressed)
+
+
+def _rune_plate(r, k, press, sink):
+    """The deck's rune plate: a disc of dressed stone in a dark collar, a four-armed rune cut in it that
+    flares as the plate sinks under your weight."""
+    glow = max(k, press)
+    rgb, heart, lit = _rune_rgb(glow), _rune_rgb(glow, heart=True), glow > 0
+    y = 0.035 - sink
+    r.part("cyl", 0, 0.02, 0, 1.12, 0.05, 1.12, MASONRY_DARK)  # the collar it sinks into
+    r.part("cyl", 0, y, 0, 0.98, 0.05, 0.98, RUNE_STONE, tex="ochre_flag")
+    for i in range(4):  # the rune's arms
+        a = i * math.pi / 2 + math.pi / 4
+        r.part(
+            "cube", math.cos(a) * 0.22, y + 0.03, math.sin(a) * 0.22, 0.05, 0.012, 0.24, rgb, glow=lit, ry=-a
+        )
+    r.part("cyl", 0, y + 0.03, 0, 0.16, 0.014, 0.16, heart, glow=lit)  # its eye
+
+
+def rune_call_plate(r, sink=0.0, cold=False):
+    """A landing's rune plate, set flush in the floor just out from the shaft: a disc of stone in a
+    collar ringed with glyphs, that sinks `sink` metres under your weight and flares as it goes. On
+    the far landing of a lift still fastened (`cold`) its glyphs lie dark."""
+    k = 0.0 if cold else (1.0 if sink > 0 else RUNE_IDLE)
+    if cold and sink > 0:
+        k = 0.15  # a flicker, and no more: it will not come
+    rgb, lit = _rune_rgb(k), k > 0
+    r.part("cyl", 0, 0.012, 0, CALL_PLATE_R * 2 + 0.16, 0.025, CALL_PLATE_R * 2 + 0.16, MASONRY_DARK)
+    for i in range(8):  # the glyphs round its collar
+        a = i * math.tau / 8
+        x, z = math.cos(a) * (CALL_PLATE_R + 0.02), math.sin(a) * (CALL_PLATE_R + 0.02)
+        r.part("cube", x, 0.027, z, 0.03, 0.01, 0.1 if i % 2 else 0.06, rgb, glow=lit, ry=-a)
+    y = 0.01 - min(sink, PLATE_SINK)
+    r.part(
+        "cyl", 0, y, 0, CALL_PLATE_R * 2 - 0.06, 0.03, CALL_PLATE_R * 2 - 0.06, RUNE_STONE, tex="ochre_flag"
+    )
+    r.part("cube", 0, y + 0.017, 0, 0.3, 0.008, 0.04, rgb, glow=lit)  # the rune cut in the disc
+    r.part("cube", 0, y + 0.017, 0, 0.04, 0.008, 0.3, rgb, glow=lit)

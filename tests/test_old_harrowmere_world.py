@@ -989,3 +989,22 @@ def test_a_body_shoved_against_the_cliff_stairs_wall_never_sinks_into_the_rock()
     for _ in range(30):
         world._push_player_out_of_bodies()
         assert _clear(world, player.x, player.z, 0.4, player.y)
+
+
+def test_the_shortcut_lift_is_the_masons_rune_lift_and_wakes_on_its_first_ride():
+    """The lift behind the Keystone's court is a chainless stone deck borne on glyphs (`model=rune`),
+    fastened from the gallery's end until it is first ridden up from the lift room; that ride frees it
+    and says so in its own words."""
+    game, world = sunken(at=(7, 40))
+    (lift,) = [p for p in world.terrain.platforms if p.kind == "lift"]
+    assert lift.model == "rune" and lift.locked and lift.at == "low"
+    assert lift.fastened_at("high") and not lift.fastened_at("low")
+    game.player.x, game.player.z = lift.x, lift.z  # onto its rune plate
+    game.player.y = world.player_floor()
+    for _ in range(round((terrain.LIFT_DELAY + (lift.high - lift.low) / lift.speed + 1.0) / 0.05)):
+        world.update_terrain(0.05)
+        game.player.y = world.player_floor()
+    assert lift.at == "high" and not lift.locked and not lift.fastened_at("high")
+    assert "lift:old_harrowmere:7,39" in game.flags
+    assert any("glyphs wake" in m for m in game.messages)
+    assert not any("chain" in m for m in game.messages)

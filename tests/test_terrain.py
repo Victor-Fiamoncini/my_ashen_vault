@@ -605,6 +605,16 @@ def test_a_locked_lift_refuses_its_call_levers_until_its_first_ride():
     assert lift.summon("low") == "lift_start"
 
 
+def test_a_fastened_lift_is_fastened_only_at_its_far_landing_until_freed():
+    _m, h = shaft("locked")
+    (lift,) = h.platforms
+    assert lift.fastened_at("high") and not lift.fastened_at("low")  # it rests at the low end
+    lift.locked = False
+    assert not lift.fastened_at("high") and not lift.fastened_at("low")
+    _m, h = shaft("locked start=top")
+    assert h.platforms[0].fastened_at("low") and not h.platforms[0].fastened_at("high")
+
+
 def test_a_lift_can_start_at_the_top():
     _m, h = shaft("start=top speed=3")
     (lift,) = h.platforms

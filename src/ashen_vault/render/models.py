@@ -2801,12 +2801,16 @@ def _lever(r, k, wall):
         r.part("cube", 0.0, 0.33, 0, 0.03, 0.03, 0.06, DARK_IRON)  # the collar it turns in
 
 
-def lift(r, t, moving, chain_h, model="", doors=(), pressed=0.0):
+def lift(r, t, moving, chain_h, model="", doors=(), pressed=0.0, locked=False):
     """A chain lift. `model="cage"` is the prison's jail cage: an iron-barred box hung from a single
     heavy chain, open only on the `doors` sides (dx, dz) that face a landing. Otherwise an oak deck
     in an iron frame, hung from four chains. Both run up to a pulley beam under the shaft's ceiling;
     riding, the chains shiver. In the middle of either floor is the pressure plate that sends it,
-    sunk `pressed` metres while someone stands on it."""
+    sunk `pressed` metres while someone stands on it. `model="rune"` is Old Harrowmere's chainless
+    stone deck borne on glyph rings (`sunken_models.rune_lift`), cold while it is `locked`."""
+    if model == "rune":
+        sunken_models.rune_lift(r, t, moving, chain_h, pressed, locked)
+        return
     shiver = math.sin(t * 30) * 0.01 if moving else 0.0
     _lift_plate(r, pressed)
     if model == "cage":

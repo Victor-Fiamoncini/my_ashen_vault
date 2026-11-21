@@ -1582,6 +1582,57 @@ def test_a_lift_shows_its_pressure_plates_sinking():
         assert all(-0.05 < y < 0.08 for _, y in up.parts)  # flush with the floor
 
 
+def test_the_rune_lift_sleeps_cold_wakes_dim_and_blazes_as_it_rides():
+    from ashen_vault.render import models, sunken_models
+    from ashen_vault.world.terrain import PLATE_SINK
+
+    assert sunken_models.rune_glow(False, True) == 0.0  # fastened and at rest: cold
+    assert 0.0 < sunken_models.rune_glow(False, False) < sunken_models.rune_glow(True, False) == 1.0
+    assert sunken_models.rune_glow(True, True) == 1.0  # its first ride wakes it
+    assert sunken_models.rune_glow(False, True, pressed=1.0) == 1.0  # and so does a foot on a plate
+
+    def glow(*args, **kw):
+        gpu = _GlowGpu()
+        models.lift(rig.Rig(gpu), 0.5, *args, **kw)
+        return gpu
+
+    cold, idle, riding = (
+        glow(False, 6.0, "rune", locked=True),
+        glow(False, 6.0, "rune"),
+        glow(True, 6.0, "rune"),
+    )
+    assert cold.glows == 0 and 0 < idle.glows <= riding.glows
+    assert len(riding.parts) < 90  # a modest count of parts
+    assert not {tex for _, _, tex in idle.looks} & {"wood_plank", "iron_plate"}  # no oak, no iron
+    teal = [rgb for _, rgb, _ in idle.looks if rgb[1] > rgb[0] + 40]
+    assert teal and max(r[1] for r in teal) < max(r[1] for _, r, _ in riding.looks)  # brighter riding
+    up, down = _RecordingGpu(), _RecordingGpu()
+    models.lift(rig.Rig(up), 0.0, False, 6.0, "rune")
+    models.lift(rig.Rig(down), 0.0, False, 6.0, "rune", pressed=PLATE_SINK)
+    moved = [y for (_, y), (_, y2) in zip(up.parts, down.parts, strict=True) if y != y2]
+    assert moved and all(0 < y < 0.1 for y in moved)  # only the rune plate on the deck sinks
+    tall, low = _BoxGpu(), _BoxGpu()  # the crown hovers over the deck, lowered under a low ceiling
+    models.lift(rig.Rig(tall), 0.0, True, 6.0, "rune")
+    models.lift(rig.Rig(low), 0.0, True, 2.4, "rune")
+    assert max(y for _, y, _ in tall.corners) > max(y for _, y, _ in low.corners) > 1.8
+
+
+def test_a_rune_call_plate_sinks_in_its_collar_and_flares_unless_its_lift_is_fastened():
+    from ashen_vault.render import sunken_models
+    from ashen_vault.world.terrain import PLATE_SINK
+
+    up, down = _GlowGpu(), _GlowGpu()
+    sunken_models.rune_call_plate(rig.Rig(up))
+    sunken_models.rune_call_plate(rig.Rig(down), PLATE_SINK)
+    moved = [y for (_, y), (_, y2) in zip(up.parts, down.parts, strict=True) if y != y2]
+    assert 0 < len(moved) < len(up.parts)  # the disc sinks in its collar
+    assert all(-0.05 < y < 0.08 for _, y in up.parts)  # flush with the floor
+    assert up.glows and max(rgb[1] for _, rgb, _ in down.looks) > max(rgb[1] for _, rgb, _ in up.looks)
+    cold = _GlowGpu()
+    sunken_models.rune_call_plate(rig.Rig(cold), cold=True)
+    assert cold.glows == 0  # dark while its lift is fastened from the other end
+
+
 class _BoxGpu:
     """Records every corner of every part (x, y, z) and how many parts glow."""
 
