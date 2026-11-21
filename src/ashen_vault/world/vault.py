@@ -23,6 +23,8 @@ CRACK_WIDTH = 2.0
 CRACK_CALM = 3.0  # metres round the crack where the rock flattens out to meet its lip
 CRACK_LIGHT = (1.55, 1.2, 0.68)  # the daylight glowing on the rock round the crack
 CRACK_LIGHT_RADIUS = 14.0
+COLUMN_RADIUS = 1.3  # metres round a colossal pillar's axis its spreading head meets the rock over
+COLUMN_EMBED = 0.4  # how far into the rock that head is sunk
 
 
 def _hash(ix, iz, salt=0):
@@ -99,6 +101,25 @@ class Vault:
             past = (self._crack_reach(x, z) - 1.0) * min(self.crack_len, self.crack_width) / 2
             drop *= min(max(past / CRACK_CALM, 0.0), 1.0)
         return self.height - drop
+
+    def rise_over(self, x, z, radius):
+        """The highest the vault's underside reaches over a disc of `radius` round (x, z), sampled
+        every half metre: a column standing there up to this height meets the rock all round its top,
+        its head hidden in the lumps (or a stalactite) rather than stopping short of them."""
+        steps = max(math.ceil(radius / 0.5), 1)
+        best = -math.inf
+        for i in range(-steps, steps + 1):
+            for j in range(-steps, steps + 1):
+                dx, dz = i * radius / steps, j * radius / steps
+                if dx * dx + dz * dz <= radius * radius + 1e-9:
+                    best = max(best, self.height_at(x + dx, z + dz))
+        return best
+
+    def column_height(self, floor, x, z, radius=COLUMN_RADIUS):
+        """How tall a column standing on `floor` at (x, z) rises to meet the vault (`pillar
+        model=colossal`): up to the highest of the rock over its head's `radius`, and COLUMN_EMBED
+        into it, so no sliver of light shows between its head and the rock."""
+        return self.rise_over(x, z, radius) + COLUMN_EMBED - floor
 
     def covers(self, tile):
         """Whether the vault spans the tile: all but the walls already reaching it and the tiles

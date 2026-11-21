@@ -212,7 +212,8 @@ How `.map` files work and what can stand on a tile.
   or above a passage's roof (`bastion base=`, `gatehouse`), and no two Cinderhold towers share a shape
   (`test_cinderhold_skyline_has_no_two_towers_alike_and_stands_out_of_reach`).
 - Props that fill their tile are listed in `world/world.py` (`BLOCKING_PROPS`, `BREAKABLE_PROPS`;
-  the prison adds `pillar`, `sarcophagus`, `headsman_block` and `old_idol`, Old Harrowmere `lyra_statue`, the jungle `bonfire`, `giant_mushroom` and
+  the prison adds `pillar` (`pillar model=colossal`, the Keystone's court: a column of drums rising
+  from the floor into a cavern's `vault`, `Vault.column_height`, its head sunk in the rock), `sarcophagus`, `headsman_block` and `old_idol`, Old Harrowmere `lyra_statue`, the jungle `bonfire`, `giant_mushroom` and
   `totem`, the town `pew`, `bed`, `cupboard`, `fence`, `lamp_post`, `banner_pole`, `fountain`, `bench`,
   `hand_cart`, `hay_wagon`, `cargo`, `town_statue`, `flying_buttress`, `tree`, `forge_bellows`, `grindstone`, `armor_stand`, `katana_stand`, `bookcase` and `drawers`, the Cinderhold `forge_statue` and `ore_cart`, the cemetery `gravestone`, `cemetery_gate`, `mourning_statue` and `grave_railing`, Vesperholm's `moon_lamp` (a light), `veiled_statue` and `silver_tree`; `test_harrowmere_trees_cut_off_no_part_of_the_town`
   keeps the trees out of the only way anywhere). Decor that blocks nothing:
@@ -276,7 +277,15 @@ How `.map` files work and what can stand on a tile.
   the `dead_flag`; a new boss door needs an entry in each): the arena behind it seals once you are inside with its boss awake, opens when
   the boss dies, and after you die in there becomes a fog gate (`models.fog_gate`) the boss walks
   through freely and you cross with interact: you walk through it slowly (`World.fog_walk`, `FOG_WALK_SPEED`), never jump. Each arena must stay closed behind its one door
-  (`tests/test_arena.py`). `door from=n|s|e|w` is barred on that side: it
+  (`tests/test_arena.py`). `door boss=<dead_flag> great=n|s|e|w` makes it the boss's great gate
+  (`models.GREAT_GATES`, only the Keystone's has one: `sunken_models.great_keystone_gate`), its facade
+  turned to the side named, the way you come to it (`world/great_gate.py`): twice a boss door's height
+  (`models.GREAT_DOOR_TOP`, and the fog as tall), its masonry built up to the walls either side of its
+  tile (`wall_rise`), and, if the opening runs on between walls (`porch`, Old Harrowmere's notch in the
+  court's wall), a ceiling over that porch and the facade at its mouth: buttresses rising from below,
+  a stone giant before each bearing up its capital, a round arch, a tympanum carved round the teal core,
+  a pediment over the walls' top. It takes its light from out before its facade. Only its look changes:
+  it fills its one tile, blocks, seals, opens and fogs as any boss door (`tests/test_great_gate.py`). `door from=n|s|e|w` is barred on that side: it
   only opens from there. `door model=iron` is the Cinderhold's riveted iron door, set in a stone frame
   that rises to the passage's ceiling (`world_view.DOOR_FRAME_SKY` under the open sky); `door model=stone`
   is Old Harrowmere's (`sunken_models.stone_door`): a carved sandstone slab with a small teal glyph on

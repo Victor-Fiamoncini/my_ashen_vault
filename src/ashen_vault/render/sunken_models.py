@@ -1400,3 +1400,239 @@ def rune_call_plate(r, sink=0.0, cold=False):
     )
     r.part("cube", 0, y + 0.017, 0, 0.3, 0.008, 0.04, rgb, glow=lit)  # the rune cut in the disc
     r.part("cube", 0, y + 0.017, 0, 0.04, 0.008, 0.3, rgb, glow=lit)
+
+
+# --- the Keystone's great gate ---------------------------------------------------------------------
+
+GATE_TOP = 6.4  # the opening's height under its lintel (`models.GREAT_DOOR_TOP`, which the fog fills)
+GATE_LINTEL = 0.8  # the lintel's depth over the opening
+GATE_STONE = (230, 224, 214)  # a pale tint, so the sunken brick shows its own warm colour, as walls do
+GATE_LEAF = (150, 136, 112)  # the leaves' great slabs of old sandstone, a shade greyer than the arch
+GATE_IRON = (64, 58, 52)
+GATE_PIER = 1.1  # the width (across) of each buttress flanking the facade
+GATE_REACH = 2.3  # how far its foot and capital stand out from the facade, the giant before it between
+GATE_ARCH_SPRING = GATE_TOP + GATE_LINTEL  # where the facade's arch springs from the buttresses
+GATE_ARCH_R = 1.0  # its inner radius: the porch's half-width
+GATE_ARCH_DEEP = 0.85  # how far its voussoirs run, inner curve to outer
+GATE_VOUSSOIRS = 7
+GATE_CROWN = 1.8  # the height of the pediment set over the facade, above the walls either side
+
+
+def great_keystone_gate(r, style, swing, t, lit, great):
+    """The Keystone's great gate, twice a boss door's height: two leaves of carved sandstone slabs
+    (a seam of the mortar-light down their meeting edges) between deep jambs, its lintel's masonry
+    built up to the walls either side (`great.rise`), and out past its porch (`great.porch`) a facade
+    on the side it faces (`great.front`): two buttresses rising from below, each crowned with a
+    kneeling stone giant bearing up the arch on its raised hands, a round arch of voussoirs over the
+    porch and in the tympanum under it a carved keystone with the teal core burning in its heart,
+    cracks of the light running out from it, braziers of the light on the buttresses, a pediment over
+    it all. On the arena's side, plain pilasters and a lintel band. The teal burns while the Keystone
+    lives. `swing` is how far the leaves have swung inward; None leaves them out (the fog's frame)."""
+    f = great.front
+    lintel_top = GATE_TOP + GATE_LINTEL
+    top = max(great.rise or lintel_top, lintel_top)
+    face = 1.0 + great.porch  # the facade's plane
+    teal = CORE_TEAL if lit else COLD
+    _gate_masonry(r, f, lintel_top, top, face)
+    _gate_inner(r, f, teal, lit)
+    with r.at(f * face, 0, 0):
+        _gate_facade(r, f, t, teal, lit, top)
+    if swing is not None:
+        for side in (-1, 1):
+            with r.at(0, 0, side * 0.88, ry=side * swing * f), r.at(0, 0, -side * 0.44):
+                _gate_leaf(r, side, teal, lit)
+
+
+def _gate_masonry(r, f, lintel_top, top, face):
+    """The jambs and lintel in the gate's own tile, the masonry over it up to the walls, and the porch's
+    ceiling out to the facade, so no sky shows round the arch."""
+    for side in (-1, 1):
+        r.part("cube", 0, GATE_TOP / 2, side * 1.0, 1.0, GATE_TOP, 0.24, GATE_STONE, tex="sunken_brick")
+        r.part("cube", 0, 0.3, side * 0.98, 1.2, 0.6, 0.34, MASONRY_DARK, tex="rough_stone")  # plinth
+    r.part("cube", 0, GATE_TOP + GATE_LINTEL / 2, 0, 1.4, GATE_LINTEL, 2.1, MASONRY, tex="rough_stone")
+    y = lintel_top
+    while y < top - 1e-3:  # in 2 m courses, so the brick repeats as the walls' does
+        seg = min(2.0, top - y)
+        r.part("cube", 0, y + seg / 2, 0, 2.0, seg, 2.0, GATE_STONE, tex="sunken_brick")
+        y += seg
+    if face > 1.0:  # the porch's ceiling, a slab spanning it at the lintel's top
+        depth = face - 1.0
+        r.part("cube", f * (1.0 + depth / 2), lintel_top - 0.25, 0, depth, 0.5, 2.0, MASONRY_DARK,
+               tex="rough_stone")  # fmt: skip
+
+
+def _gate_inner(r, f, teal, lit):
+    """On the arena's side: two flat pilasters, a lintel band across them, a small keystone, lit."""
+    x = -f * 1.06
+    for side in (-1, 1):
+        r.part("cube", x, 3.8, side * 1.3, 0.14, 7.6, 0.6, MASONRY, tex="rough_stone")
+    r.part("cube", x, GATE_TOP + 0.45, 0, 0.16, 0.9, 3.2, MASONRY_DARK, tex="rough_stone")
+    r.part("wedge", x - f * 0.06, GATE_TOP + 0.5, 0, 0.16, 0.7, 0.6, MASONRY, tex="rough_stone", rx=math.pi)
+    r.part("lozenge", x - f * 0.12, GATE_TOP + 0.45, 0, 0.06, 0.3, 0.2, teal, glow=lit)
+
+
+def _gate_facade(r, f, t, teal, lit, top):
+    """The facade, its plane at local x 0 and standing out toward +x * f: a buttress either side of
+    the porch, a giant standing before each bearing up its capital, braziers in the porch's mouth."""
+    pier_z = 1.0 + GATE_PIER / 2
+    for side in (-1, 1):
+        z = side * pier_z
+        # the buttress: a broad foot rising out of the dark below, the shaft, a capital jutting over the giant
+        r.part("cube", f * GATE_REACH / 2, -9.0, z, GATE_REACH, 18.0, GATE_PIER + 0.3, MASONRY_DARK,
+               tex="rough_stone")  # fmt: skip
+        r.part("cube", f * 0.55, GATE_ARCH_SPRING / 2, z, 1.1, GATE_ARCH_SPRING, GATE_PIER, GATE_STONE,
+               tex="sunken_brick")  # fmt: skip
+        r.part("cube", f * GATE_REACH / 2, GATE_ARCH_SPRING - 0.3, z, GATE_REACH, 0.6, GATE_PIER + 0.2,
+               MASONRY, tex="rough_stone")  # fmt: skip
+        with r.at(f * 1.65, 0, z):
+            _gate_atlas(r, f, side, teal, lit)
+        with r.at(f * 0.25, 3.4, side * 0.86):  # a brazier of the mortar-light in the porch's mouth
+            r.part("cube", 0, -0.22, side * 0.08, 0.08, 0.08, 0.2, GATE_IRON)  # its bracket
+            r.part("cone", 0, 0, 0, 0.3, 0.2, 0.3, GATE_IRON, rx=math.pi)
+            if lit:
+                flick = 1 + 0.12 * math.sin(t * 7 + side)
+                r.part("cone", 0, 0.22, 0, 0.2, 0.42 * flick, 0.2, CORE_TEAL, glow=True)
+    _gate_arch(r, f, teal, lit, top)
+
+
+def _gate_atlas(r, f, side, teal, lit):
+    """A giant of the old city's stone standing before the buttress, its head bowed under the capital
+    and both hands raised flat against it, bearing it up; the mortar-light in its eyes and chest."""
+    stone, dark = COLUMN_STONE, _dim(COLUMN_STONE, 0.78)
+    for leg in (-1, 1):
+        r.part("cube", 0, 1.3, leg * 0.34, 0.6, 2.6, 0.5, dark)
+        r.part("cube", 0.12 * f, 0.15, leg * 0.34, 0.85, 0.3, 0.6, dark)  # its feet
+    r.part("cube", 0, 2.8, 0, 0.75, 0.6, 1.1, stone)  # the hips
+    r.part("cube", 0, 3.7, 0, 0.8, 1.3, 1.2, stone)  # the belly
+    r.part("cube", 0, 4.6, 0, 0.9, 0.8, 1.6, stone)  # the chest, broad at the shoulders
+    r.part("lozenge", f * 0.52, 4.2, 0, 0.08, 0.36, 0.24, teal, glow=lit)  # its core
+    r.part("cube", f * 0.2, 5.15, 0, 0.55, 0.55, 0.5, stone)  # the head, bowed under the load
+    for dz in (-0.13, 0.13):
+        r.part("cube", f * 0.48, 5.12, dz, 0.03, 0.05, 0.09, teal, glow=lit)  # its eyes
+    for arm in (-1, 1):  # the arms, up from the shoulders to the capital, palms flat under it
+        r.part("cube", 0, 5.55, arm * 0.68, 0.4, 1.7, 0.4, stone, rx=arm * 0.22)
+        r.part("cube", 0.05 * f, 6.5, arm * 0.82, 0.55, 0.2, 0.5, dark)  # the hands
+
+
+def _gate_arch(r, f, teal, lit, top):
+    """The tympanum and the round arch over the porch, the carved keystone, the masonry up to the
+    walls' top and the pediment crowning it."""
+    spring = GATE_ARCH_SPRING
+    # the tympanum: the facade's wall over the porch, from the arch's spring to the top
+    r.part("cube", f * 0.2, (spring + top) / 2, 0, 0.4, top - spring, 2.0, GATE_STONE, tex="sunken_brick")
+    # its carving: a ring of dark stone round the teal core, the cracks of the light running from it
+    core_y = spring + 0.5
+    r.part("cyl", f * 0.42, core_y, 0, 0.9, 0.1, 0.9, MASONRY_DARK, rz=math.pi / 2)
+    r.part("lozenge", f * 0.5, core_y, 0, 0.16, 0.5, 0.34, teal, glow=lit)
+    r.part("lozenge", f * 0.54, core_y, 0, 0.1, 0.24, 0.16, CORE_HEART if lit else COLD, glow=lit)
+    for a in (0.5, 1.2, 1.95, 2.65):
+        r.part("cube", f * 0.45, core_y + 0.55 * math.sin(a), 0.55 * math.cos(a), 0.03, 0.04, 0.42, teal,
+               rx=math.pi / 2 - a, glow=lit)  # fmt: skip
+    # the voussoirs, alternating light and dark, round from spring to spring
+    radius = GATE_ARCH_R + GATE_ARCH_DEEP / 2
+    span = math.pi / GATE_VOUSSOIRS
+    for i in range(GATE_VOUSSOIRS):
+        a = span * (i + 0.5)
+        if i == GATE_VOUSSOIRS // 2:
+            continue  # the keystone's place
+        rgb = MASONRY if i % 2 else MASONRY_DARK
+        r.part("cube", f * 0.55, spring + radius * math.sin(a), radius * math.cos(a), 0.7, GATE_ARCH_DEEP,
+               2 * radius * math.sin(span / 2) + 0.04, rgb, tex="rough_stone", rx=math.pi / 2 - a)  # fmt: skip
+    # the keystone: a great carved block standing proud of the arch, the giant's slab borne on it
+    key_y = spring + radius + 0.15
+    r.part("cube", f * 0.7, key_y, 0, 1.0, GATE_ARCH_DEEP + 0.5, 0.75, MASONRY, tex="rough_stone")
+    r.part("cube", f * 1.2, key_y + 0.12, 0, 0.06, 0.5, 0.36, MASONRY_DARK)  # its carved face
+    r.part("lozenge", f * 1.24, key_y + 0.12, 0, 0.06, 0.32, 0.2, teal, glow=lit)
+    # a frieze across the tympanum: carved panels between dark bands
+    frieze = (key_y + 0.9 + top - 0.4) / 2
+    if top - 0.4 - (key_y + 0.9) > 1.0:
+        r.part("cube", f * 0.45, frieze, 0, 0.1, 1.0, 2.0, MASONRY_DARK, tex="rough_stone")
+        for z in (-0.6, 0.0, 0.6):
+            r.part("cube", f * 0.52, frieze, z, 0.08, 0.7, 0.44, MASONRY, tex="rough_stone")
+    # a cornice at the walls' top, and the pediment over it
+    r.part("cube", f * 0.5, top - 0.2, 0, 1.0, 0.4, 2 * (1.0 + GATE_PIER) + 0.4, MASONRY, tex="rough_stone")
+    width = 2 * (1.0 + GATE_PIER)
+    r.part("wedge", f * 0.4, top + GATE_CROWN / 2, 0, width, GATE_CROWN, 0.8, GATE_STONE, tex="sunken_brick",
+           ry=math.pi / 2)  # fmt: skip
+    r.part("cube", f * 0.6, top + 0.5, 0, 0.5, 0.6, 0.6, MASONRY_DARK, rx=math.pi / 4)  # its boss
+    r.part("cube", f * 0.86, top + 0.5, 0, 0.04, 0.2, 0.2, teal, rx=math.pi / 4, glow=lit)
+
+
+def _gate_leaf(r, side, teal, lit):
+    """One leaf, its middle at the origin (the meeting edge toward -side): slabs of old sandstone
+    stacked in courses, carved bands across both faces, a giant's shoulder in relief bearing up the
+    top band, a seam of the light down its meeting edge and an iron ring to haul it by."""
+    height = GATE_TOP - 0.1
+    for i in range(3):  # three great slabs, one over the next
+        r.part("cube", 0, height / 6 * (2 * i + 1), 0, 0.3, height / 3 - 0.04, 0.86, GATE_LEAF,
+               tex="sunken_brick")  # fmt: skip
+    for face in (-1, 1):
+        x = face * 0.16
+        for y in (0.4, height / 3, 2 * height / 3, height - 0.3):  # carved bands across it
+            r.part("cube", x, y, 0, 0.04, 0.22, 0.86, MASONRY_DARK)
+        relief = _dim(GATE_LEAF, 1.12)  # a giant carved in relief, its arm raised to the top band
+        r.part("cube", x, height * 0.55, side * 0.08, 0.06, 1.6, 0.3, relief)
+        r.part("sphere", x, height * 0.55 + 0.9, side * 0.12, 0.1, 0.36, 0.44, relief)  # its shoulder
+        r.part("cube", x, height * 0.45, -side * 0.42, 0.04, 1.4, 0.03, teal, glow=lit)  # the seam
+        r.part(
+            "cube", x, height * 0.45, -side * 0.4, 0.05, 0.3, 0.3, teal, rx=math.pi / 4, glow=lit
+        )  # the core
+        r.part("cube", face * 0.2, 2.0, -side * 0.24, 0.06, 0.26, 0.26, GATE_IRON, rx=math.pi / 4)  # the ring
+
+
+# --- the colossal pillars of the Keystone's court ------------------------------------------------
+
+COLUMN_DRUM = 3.2  # metres of each drum the shaft is stacked of
+COLUMN_R = 0.8  # the shaft's radius: it all but fills its tile
+COLUMN_BAND_EVERY = 4  # a broad band of darker stone clasps every this many drums
+COLUMN_FLUTES = 8
+COLUMN_PALE = (196, 182, 156)  # its drums: pale, so they still read high up in the cavern's gloom
+
+
+def colossal_pillar(r, seed, height):
+    """A column of the old city's sandstone rising `height` from the floor into the cavern's vault
+    (`pillar model=colossal`): a stepped plinth, a shaft of drums with mortar seams between them and
+    every few a broad band clasping it, flutes running up it, cracks in it, one or two of its seams
+    leaking the teal mortar-light, and a spreading head sunk into the rock."""
+    r.part("cube", 0, 0.3, 0, 2.0, 0.6, 2.0, MASONRY_DARK, tex="rough_stone")  # the plinth, its steps
+    r.part("cube", 0, 0.8, 0, 1.8, 0.4, 1.8, COLUMN_PALE, tex="rough_stone", ry=0.02 * (seed % 5))
+    r.part("cyl", 0, 1.15, 0, 2 * COLUMN_R + 0.2, 0.3, 2 * COLUMN_R + 0.2, MASONRY_DARK, tex="rough_stone")
+    head = height - 2.4  # where the shaft ends under its spreading head
+    base = 1.3
+    drums = max(int((head - base) / COLUMN_DRUM + 0.5), 1)
+    drum = (head - base) / drums
+    lit_seams = {(seed * 7 + 3) % drums, (seed * 5 + drums // 2) % drums}
+    for i in range(drums):
+        y = base + drum * i
+        shade = 1.0 - 0.06 * ((seed + i * 3) % 3)
+        r.part("cyl", 0, y + drum / 2, 0, 2 * COLUMN_R, drum - 0.08, 2 * COLUMN_R, _dim(COLUMN_PALE, shade),
+               tex="ashlar", ry=i * 0.7)  # fmt: skip
+        if i == 0:
+            continue
+        if i % COLUMN_BAND_EVERY == 0:  # a broad band of darker stone
+            r.part("cyl", 0, y, 0, 2 * COLUMN_R + 0.24, 0.5, 2 * COLUMN_R + 0.24, MASONRY_DARK,
+                   tex="rough_stone")  # fmt: skip
+        elif i in lit_seams:  # the mortar-light leaking from a seam
+            r.part("cyl", 0, y, 0, 2 * COLUMN_R + 0.03, 0.06, 2 * COLUMN_R + 0.03, CORE_TEAL, glow=True)
+        else:
+            r.part("cyl", 0, y, 0, 2 * COLUMN_R + 0.02, 0.08, 2 * COLUMN_R + 0.02, MORTAR)
+    for k in range(COLUMN_FLUTES):  # the flutes, in three runs between the bands
+        a = (k + 0.5) * 2 * math.pi / COLUMN_FLUTES
+        x, z = math.cos(a) * (COLUMN_R - 0.02), math.sin(a) * (COLUMN_R - 0.02)
+        for lo, hi in ((base, base + (head - base) * 0.33), (base + (head - base) * 0.36, head - 0.3)):
+            r.part("cube", x, (lo + hi) / 2, z, 0.1, hi - lo, 0.14, _dim(COLUMN_PALE, 0.62), ry=-a)
+    for c in range(3):  # cracks across its drums, the lowest glowing faintly
+        a = seed * 1.7 + c * 2.1
+        y = base + 2.0 + (head - base) * (0.12 + 0.3 * c) + (seed % 3)
+        x, z = math.cos(a) * (COLUMN_R + 0.01), math.sin(a) * (COLUMN_R + 0.01)
+        r.part("cube", x, y, z, 0.04, 1.6 + c * 0.6, 0.05, CORE_TEAL if c == 0 else COLD, ry=-a,
+               rx=0.4 * (1 if c % 2 else -1), glow=c == 0)  # fmt: skip
+    # the head: a capital spreading wide, then a block of it sunk up into the rock of the vault
+    r.part(
+        "cyl", 0, head + 0.25, 0, 2 * COLUMN_R + 0.3, 0.5, 2 * COLUMN_R + 0.3, MASONRY_DARK, tex="rough_stone"
+    )
+    r.part("frustum", 0, head + 1.0, 0, 2 * COLUMN_R + 1.4, 1.0, 2 * COLUMN_R + 1.4, COLUMN_PALE, tex="rough_stone",
+           rx=math.pi)  # fmt: skip
+    r.part("cube", 0, height - 0.45, 0, 2.6, 0.9, 2.6, MASONRY_DARK, tex="rough_stone", ry=0.1 * (seed % 4))
+    a = seed * 1.3  # a chunk fallen onto its plinth
+    r.part("cube", math.cos(a) * 0.8, 1.1, math.sin(a) * 0.8, 0.24, 0.2, 0.22, MASONRY, ry=a)

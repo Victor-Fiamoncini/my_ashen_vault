@@ -18,7 +18,7 @@ from ashen_vault.render import (
 from ashen_vault.render.mesh_builder import Batch, MeshBuilder
 from ashen_vault.render.rig import Rig
 from ashen_vault.util import rround
-from ashen_vault.world import fences, sea, sky, terrain, vault, villagers
+from ashen_vault.world import fences, great_gate, sea, sky, terrain, vault, villagers
 from ashen_vault.world.ash import death_phases, rise_phases
 from ashen_vault.world.hazards import CrumbleFloor, FlameJet, MagmaVent, SpikeTrap
 from ashen_vault.world.tile_map import TileMap
@@ -131,7 +131,8 @@ class WorldView:
                 if p.kind not in STATIC_PROPS or (chunks is not None and chunk not in chunks):
                     continue
                 baker.group = (chunk, p.kind in LANDMARKS)
-                baker.spread = p.kind in LANDMARKS  # big enough for the light to change across it
+                # big enough for the light to change across it (a colossal pillar, from floor to vault)
+                baker.spread = p.kind in LANDMARKS or p.props.get("model") == "colossal"
                 self._model_light(baker, p.x, p.y + 1.0, p.z)
                 with rig.entity(p.x, p.y, p.z, p.yaw):
                     self._draw_prop(rig, p)
@@ -698,6 +699,16 @@ class WorldView:
                 )
 
 
+def _draw_pillar(view, rig, p):
+    seed = p.tx * 3 + p.tz
+    cavern = getattr(view.builder, "vault", None)
+    if p.props.get("model") == "colossal" and cavern is not None:  # up to the cavern's vault
+        floor = view.world.map[p.tx, p.tz].floor
+        sunken_models.colossal_pillar(rig, seed, cavern.column_height(floor, p.x, p.z))
+    else:
+        models.pillar(rig, seed, view._ceil_h(p))
+
+
 def _draw_torch(view, rig, p, t):
     if p.wall:
         models.sconce(rig, t + p.tx)
@@ -716,19 +727,38 @@ def _draw_door(view, rig, p, t):
     world = view.world
     if p.props.get("boss"):
         a = world.arena_at_door(p)
+        great = _great_gate(view, rig, p)
         if a and a.fogged(world.flags):
             tile = world.map[p.tx, p.tz]
-            height = models.BOSS_DOOR_TOP
+            height = models.BOSS_DOOR_TOP if great is None else models.GREAT_DOOR_TOP
             if tile.ceil is not None:
                 height = min(height, tile.ceil - tile.floor)
+            if great is not None:  # its masonry stays round the fog
+                models.boss_door(
+                    rig, 0.0, p.axis, t, lit=True, boss=p.props["boss"], great=great, leaves=False
+                )
             models.fog_gate(rig, t, p.axis, a.sealed, height)
         else:
             lit = not (a and a.cleared(world.flags))
-            models.boss_door(rig, p.open_t, p.axis, t, lit=lit, boss=p.props.get("boss"))
+            models.boss_door(rig, p.open_t, p.axis, t, lit=lit, boss=p.props.get("boss"), great=great)
     else:
         tile = world.map[p.tx, p.tz]
         frame = (tile.ceil - tile.floor) if tile.ceil is not None else DOOR_FRAME_SKY
         models.door(rig, p.open_t, p.axis, style=p.props.get("model", "wood"), frame=frame)
+
+
+def _great_gate(view, rig, p):
+    """Where a `door ... great=<side>` stands, as `models.GreatGate`: its facade turned to that side.
+    It takes the light out before its facade, where it is seen from, not the dark of its doorway."""
+    step = great_gate.outward(p.props, p.axis)
+    if step is None:
+        return None
+    world = view.world
+    porch = TileMap.TILE * great_gate.porch(world.map, p.tx, p.tz, step)
+    reach = TileMap.TILE + porch
+    view._model_light(rig.gpu, p.x + step[0] * reach, p.y + 4.0, p.z + step[1] * reach)
+    front = step[0] if p.axis == "x" else -step[1]  # a door's frame turns local +x onto world -z
+    return models.GreatGate(front, porch, great_gate.wall_rise(world.map, p.tx, p.tz, p.axis))
 
 
 def _draw_winch(view, rig, p, t):
@@ -937,7 +967,7 @@ PROP_DRAWERS = {
     "door": _draw_door,
     "gate": lambda view, rig, p, t: models.door(rig, p.open_t, p.axis, tex="iron_bars"),
     "lever": lambda view, rig, p, t: models.lever(rig, p.open_t, p.wall, wood=p.props.get("model") == "wood"),
-    "pillar": lambda view, rig, p, t: models.pillar(rig, p.tx * 3 + p.tz, view._ceil_h(p)),
+    "pillar": lambda view, rig, p, t: _draw_pillar(view, rig, p),
     "sarcophagus": lambda view, rig, p, t: models.sarcophagus(rig, p.tx * 5 + p.tz),
     "prisoner_remains": lambda view, rig, p, t: prison_models.prisoner_remains(rig, p.tx * 5 + p.tz * 3),
     "old_idol": lambda view, rig, p, t: prison_models.old_idol(rig, p.tx * 7 + p.tz),
