@@ -2084,6 +2084,24 @@ def test_town_and_fortress_statues_and_carts_are_detailed():
             assert min(y for _, y in gpu.parts) > -0.1, fn.__name__
 
 
+def test_lyras_colossi_tower_over_the_hall_each_broken_its_own_way_with_nothing_behind():
+    from ashen_vault.render import bounds, prison_models
+
+    looks = set()
+    for seed in range(12):
+        gpu = _RecordingGpu()
+        prison_models.lyra_ruin(rig.Rig(gpu), seed)
+        assert len(gpu.parts) >= 60, seed
+        looks.add(len(gpu.parts))
+        (lo_x, lo_y, _), (_, hi_y, _) = bounds.measure(lambda r, s=seed: prison_models.lyra_ruin(r, s))
+        assert 7.0 <= hi_y <= 10.0, (seed, hi_y)  # a colossus, not a chapel idol
+        assert lo_y > -0.2, seed
+        assert lo_x > -1.2, seed  # nothing lies behind her: her back may be to a drop or a wall
+    assert len(looks) >= 4  # arms and heads break differently from statue to statue
+    statues = [e for e in MapLoader.load_file(map_path("old_harrowmere")).entities if e.kind == "lyra_statue"]
+    assert 3 <= len(statues) <= 5
+
+
 def test_a_fake_wall_shimmers_sears_crumbles_and_is_gone():
     from ashen_vault.render import models
 

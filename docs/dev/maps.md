@@ -48,6 +48,10 @@ How `.map` files work and what can stand on a tile.
   `test_the_under_cells_lie_down_the_gaolers_stair_and_the_wardens_lever_opens_them`. East of the roads,
   on its quay (x 45-47), the Mortar Sisters' Workshop: their ward-stone carving benches, golems and a
   sexton, a lore hint and a reward chest; `test_the_mortar_sisters_workshop_stands_east_of_the_roads`.
+  Broken colossi of Lyra the Embracer (`lyra_statue`, `prison_models.lyra_ruin`: the prison's `old_idol`
+  some 8 m tall, arms snapped, some lying at her sides, her head gone or toppled on some) stand on the
+  plaza's north and south rims facing the fountain, at the back of the workshop and at the court's east
+  end; each fills its tile, and nothing of her lies behind her, so her back can be to a drop or a wall.
   The `energy_core` (the mortar-light, `seal=c`) stands at the heart of the fountain's pool at 21,28,
   under the rift (the `sun_shaft` beside it at 21,27), teal `light`s (`color=0.45,1.25,1.0`) round it.
   Its `scale=1.7` draws it all bigger; past its own size its body fills the tiles round its own
@@ -201,7 +205,7 @@ How `.map` files work and what can stand on a tile.
   or above a passage's roof (`bastion base=`, `gatehouse`), and no two Cinderhold towers share a shape
   (`test_cinderhold_skyline_has_no_two_towers_alike_and_stands_out_of_reach`).
 - Props that fill their tile are listed in `world/world.py` (`BLOCKING_PROPS`, `BREAKABLE_PROPS`;
-  the prison adds `pillar`, `sarcophagus`, `headsman_block` and `old_idol`, the jungle `bonfire`, `giant_mushroom` and
+  the prison adds `pillar`, `sarcophagus`, `headsman_block` and `old_idol`, Old Harrowmere `lyra_statue`, the jungle `bonfire`, `giant_mushroom` and
   `totem`, the town `pew`, `bed`, `cupboard`, `fence`, `lamp_post`, `banner_pole`, `fountain`, `bench`,
   `hand_cart`, `hay_wagon`, `cargo`, `town_statue`, `flying_buttress`, `tree`, `forge_bellows`, `grindstone`, `armor_stand`, `katana_stand`, `bookcase` and `drawers`, the Cinderhold `forge_statue` and `ore_cart`, the cemetery `gravestone`, `cemetery_gate`, `mourning_statue` and `grave_railing`, Vesperholm's `moon_lamp` (a light), `veiled_statue` and `silver_tree`; `test_harrowmere_trees_cut_off_no_part_of_the_town`
   keeps the trees out of the only way anywhere). Decor that blocks nothing:

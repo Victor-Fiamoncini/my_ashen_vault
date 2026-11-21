@@ -21,6 +21,7 @@ from ashen_vault.render.parts import (
     skull,
     walk_cycle,
 )
+from ashen_vault.render.rig import scale
 
 INMATE_SKIN = (150, 136, 118)  # grey, sunless skin stretched over bone
 INMATE_RAGS = (92, 80, 62)  # what is left of a prison smock
@@ -163,10 +164,11 @@ def prisoner_remains(r, seed):
 
 
 def old_idol(r, seed):
-    """One of the old gods the prison's chapel made its inmates kneel to: a squat, faceless figure of
-    dark stone on a stepped plinth, its smooth blank head bowed a little toward whoever kneels before
-    it, six long arms reaching out from its shoulders with their palms turned up, a bowl in its lap
-    still black with old offerings, and its plinth carved with a ring of eyes all closed."""
+    """An idol of Lyra the Embracer, the old god the prison's chapel made its inmates kneel to: a squat,
+    faceless figure of dark stone on a stepped plinth, its smooth blank head bowed a little toward
+    whoever kneels before it, six long arms reaching out from its shoulders with their palms turned up,
+    a bowl in its lap still black with old offerings, and its plinth carved with a ring of eyes all
+    closed."""
     stone, dark = IDOL_STONE, IDOL_DARK
     r.part("cube", 0, 0.2, 0, 1.5, 0.4, 1.5, WHITE, tex="rough_stone")  # the stepped plinth
     r.part("cube", 0, 0.55, 0, 1.2, 0.3, 1.2, WHITE, tex="stone_brick")
@@ -221,3 +223,144 @@ def altar_idol(r):
                 r.part("cube", wr[0] + 0.05, wr[1] + 0.02, wr[2], 0.18, 0.04, 0.14, _dim(stone, 1.05))
         for z in (-0.2, 0.0, 0.2):  # closed eyes carved down its robe
             r.part("cube", 0.33, 0.7 + abs(z), z, 0.02, 0.03, 0.1, dark)
+
+
+LYRA_STONE = (156, 142, 120)  # the first city's sandstone, greyed by the cavern's damp
+LYRA_DARK = (104, 92, 76)
+LYRA_CRACK = (38, 32, 26)
+LYRA_MOSS = (78, 96, 54)
+LYRA_SCALE = 2.4  # how many times a chapel idol's girth she has
+LYRA_STRETCH = 1.35  # and how much taller again she stands, for her tile's sake
+LYRA_PLINTH = 1.76  # the height of her two-stepped plinth, in metres
+LYRA_ARMS = (1.6, 1.4, 1.2)  # the shoulder height of each pair of arms, as on `old_idol`
+
+
+def _lyra_roll(seed, i):
+    """A fixed roll in 0..1 for the i-th choice made about the statue at `seed`."""
+    h = (seed * 374761393 + i * 668265263) & 0xFFFFFFFF
+    h = (h ^ (h >> 13)) * 1274126177 & 0xFFFFFFFF
+    return (h ^ (h >> 16)) / 4294967296
+
+
+def _fracture(r, x, y, z, size, rgb, roll):
+    """The raw, broken face where stone snapped off at (x, y, z): two blocks set askew."""
+    r.part("cube", x, y, z, size, size * 0.8, size, rgb, rx=roll * 2.1, ry=roll * 3.7, rz=roll * 1.3)
+    r.part("cube", x, y, z, size * 0.7, size, size * 0.7, _dim(rgb, 0.85), rx=roll * 4.3, rz=roll * 2.9)
+
+
+def _lyra_arm(k, side):
+    """Shoulder, elbow and wrist of one of her six arms, in the figure's frame (as `old_idol` holds them)."""
+    y = LYRA_ARMS[k]
+    sh = (0.1, y, side * 0.3)
+    el = (0.4 + 0.05 * k, y - 0.1, side * (0.62 + 0.08 * k))
+    wr = (0.72 + 0.04 * k, y + 0.05 - 0.05 * k, side * (0.75 + 0.1 * k))
+    return sh, el, wr
+
+
+def _lyra_fallen_arm(r, seed, i, side, pieces, stone, dark):
+    """A lost arm lying on the floor at her side, snapped where it broke: `pieces` are its lengths in the
+    figure's units, the last ending in an upturned palm."""
+    s = LYRA_SCALE
+    th = 0.12 * s
+    x = 0.1 + _lyra_roll(seed, 40 + i) * 1.1
+    z = side * (1.45 + _lyra_roll(seed, 50 + i) * 0.45)
+    with r.at(x, 0, z, ry=(_lyra_roll(seed, 60 + i) - 0.5) * 2.4, rz=0.05):
+        px, bend = 0.0, 0.0
+        for n, length in enumerate(pieces):
+            end = (px + math.cos(bend) * length * s, th / 2, math.sin(bend) * length * s * 0.6)
+            _bar(r, (px, th / 2, 0), end, th, stone)
+            px = end[0]
+            bend = 0.6 * side
+            if n == 0:
+                _fracture(r, 0, th / 2, 0, th * 1.1, dark, _lyra_roll(seed, 70 + i))  # where it snapped
+        r.part("cube", px + 0.1 * s, th * 0.3, 0, 0.2 * s, 0.05 * s, 0.16 * s, _dim(stone, 1.05))  # its palm
+
+
+def lyra_ruin(r, seed):
+    """A colossus of Lyra the Embracer, the faceless old god the prison chapel's idols were carved after,
+    raised by the first city and broken when it sank: the same squat, robed figure on a stepped plinth
+    ringed with closed eyes, but some eight metres tall, deep cracks running through her, moss in her lap.
+    Each one broke its own way (`seed`): of her six arms reaching out palms up, most are snapped at the
+    elbow or the shoulder, and some of what broke off lies on the floor at her sides; her blank, bowed
+    head still stands on some, is gone from others, and on some lies toppled in front of her. Nothing
+    lies behind her, so she can stand with her back to a drop or a wall."""
+    stone, dark = LYRA_STONE, LYRA_DARK
+    s = LYRA_SCALE
+    # The plinth: a broad, chipped lower step and an upper one carved with a ring of closed eyes.
+    r.part("cube", 0, 0.4, 0, 2.3, 0.8, 2.3, WHITE, tex="rough_stone")
+    r.part("cube", 0, 1.25, 0, 2.0, 0.9, 2.0, (236, 226, 210), tex="sunken_brick")
+    r.part("cube", 0, 1.73, 0, 2.06, 0.06, 2.06, dark)  # its worn coping
+    for face in range(4):
+        with r.at(0, 1.25, 0, ry=face * math.pi / 2):
+            for i in range(5):
+                if _lyra_roll(seed, 100 + face * 5 + i) < 0.18:  # an eye chipped away
+                    _fracture(r, 1.0, 0.05, -0.72 + i * 0.36, 0.18, dark, _lyra_roll(seed, 120 + i))
+                    continue
+                r.part("cube", 1.01, 0, -0.72 + i * 0.36, 0.03, 0.06, 0.2, LYRA_CRACK)  # the shut eye
+                r.part("cube", 1.015, 0.05, -0.72 + i * 0.36, 0.03, 0.04, 0.24, _dim(stone, 1.12))  # its lid
+    corner = 1 if _lyra_roll(seed, 1) < 0.5 else -1  # a corner of the lower step broken off
+    _fracture(r, 0.95, 0.65, corner * 0.95, 0.5, _dim(stone, 0.8), _lyra_roll(seed, 2))
+    r.part("cube", 1.35, 0.17, corner * 1.5, 0.45, 0.34, 0.4, WHITE, tex="rough_stone", ry=0.6)
+    r.part("cube", 0.35, 0.82, corner * -0.3, 0.04, 0.05, 1.5, LYRA_CRACK, ry=0.4)  # a crack across a step
+    r.part("cube", 0.6, 1.77, corner * 0.5, 0.7, 0.05, 0.6, LYRA_MOSS)  # moss on the coping
+
+    head = _lyra_roll(seed, 3)  # < 0.45 standing, < 0.75 gone, else toppled before her
+    lean = (_lyra_roll(seed, 4) - 0.5) * 0.08
+    fallen = []
+    with r.at(0, LYRA_PLINTH, 0, ry=(seed % 3 - 1) * 0.06, rx=lean, s=s):  # the figure, in idol units
+        r.apply(scale(1, LYRA_STRETCH, 1))
+        r.part("cube", -0.05, 0.3, 0, 0.8, 0.6, 0.8, stone)  # crossed legs
+        r.part("cone", -0.05, 0.95, 0, 0.75, 1.0, 0.8, stone)  # the robed body
+        r.part("cube", 0.1, 1.45, 0, 0.5, 0.5, 0.7, stone)  # the shoulders
+        with r.at(0.25, 0.65, 0, rz=0.12 * corner):  # the bowl in her lap, cracked and full of moss
+            r.part("cyl", 0, 0, 0, 0.45, 0.14, 0.45, dark)
+            r.part("cyl", 0, 0.05, 0, 0.36, 0.06, 0.36, LYRA_MOSS)
+            r.part("cube", 0.18, 0.02, 0, 0.12, 0.16, 0.02, LYRA_CRACK, ry=0.3)
+        if head < 0.45:  # the blank head, bowed
+            with r.at(0.18, 1.95, 0, rz=-0.25):
+                r.part("sphere", 0, 0, 0, 0.4, 0.5, 0.4, stone)
+                r.part("cube", 0.12, -0.05, 0, 0.12, 0.3, 0.26, _dim(stone, 1.06))  # a smooth, faceless face
+                r.part("cone", -0.04, 0.32, 0, 0.3, 0.3, 0.3, dark)  # a peaked crown
+                r.part("cube", 0.15, 0.1, 0.08, 0.02, 0.36, 0.02, LYRA_CRACK, rx=0.4)  # a crack over the face
+        else:  # snapped at the neck
+            r.part("cyl", 0.12, 1.76, 0, 0.26, 0.14, 0.26, stone)
+            _fracture(r, 0.12, 1.84, 0, 0.24, dark, head)
+        for j, (k, side) in enumerate((k, side) for k in range(3) for side in (-1, 1)):
+            sh, el, wr = _lyra_arm(k, side)
+            roll = _lyra_roll(seed, 10 + j)
+            if roll < 0.22:  # still whole, reaching out with its palm up
+                _bar(r, sh, el, 0.13, stone)
+                _bar(r, el, wr, 0.11, stone)
+                r.part("cube", wr[0] + 0.06, wr[1] + 0.02, wr[2], 0.2, 0.05, 0.16, _dim(stone, 1.05))
+                continue
+            if roll < 0.6:  # snapped below the elbow
+                cut = 0.2 + 0.25 * _lyra_roll(seed, 20 + j)
+                bp = tuple(_mix(a, b, cut) for a, b in zip(el, wr, strict=True))
+                _bar(r, sh, el, 0.13, stone)
+                _bar(r, el, bp, 0.11, stone)
+                lost = (math.dist(bp, wr),)
+            else:  # snapped off at the shoulder
+                cut = 0.3 + 0.3 * _lyra_roll(seed, 20 + j)
+                bp = tuple(_mix(a, b, cut) for a, b in zip(sh, el, strict=True))
+                _bar(r, sh, bp, 0.13, stone)
+                lost = (math.dist(bp, el), math.dist(el, wr))
+            _fracture(r, *bp, 0.14, dark, roll)
+            fallen.append((side, lost))
+        r.part("cube", 0.3, 1.3, 0, 0.04, 0.5, 0.06, LYRA_CRACK)  # a crack down her breast
+        r.part("cube", 0.27, 0.9, 0.12, 0.04, 0.7, 0.05, LYRA_CRACK, rx=0.5)  # running on down her robe
+        r.part("cube", 0.0, 1.71, -0.2 * corner, 0.4, 0.03, 0.4, LYRA_MOSS)  # moss on a shoulder
+    # What broke off: the first lost arms lie whole at her sides, the rest shattered into chunks.
+    for i, (side, lost) in enumerate(fallen[:3]):
+        _lyra_fallen_arm(r, seed, i, side, lost, stone, dark)
+    for i in range(len(fallen) - 3):
+        a = _lyra_roll(seed, 80 + i) * 2.6 - 1.3
+        size = 0.3 + 0.2 * _lyra_roll(seed, 90 + i)
+        r.part("cube", 1.2 + math.cos(a) * 0.5, size / 2, math.sin(a) * 1.6, size, size * 0.8, size * 1.2,
+               _dim(stone, 0.9), ry=a * 2, rx=0.3)  # fmt: skip
+    if head >= 0.75:  # her head, toppled and lying on its side before her
+        side = 1 if _lyra_roll(seed, 5) < 0.5 else -1
+        with r.at(1.6, 0.48 * s * 0.85, side * 1.1, rx=side * 1.45, ry=0.5 * side, s=s):
+            r.part("sphere", 0, 0, 0, 0.4, 0.5, 0.4, stone)
+            r.part("cube", 0.12, -0.05, 0, 0.12, 0.3, 0.26, _dim(stone, 1.06))
+            r.part("cone", -0.04, 0.32, 0, 0.3, 0.3, 0.3, dark)
+            _fracture(r, 0, -0.22, 0, 0.2, dark, head)

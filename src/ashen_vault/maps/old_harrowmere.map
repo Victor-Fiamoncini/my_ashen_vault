@@ -135,16 +135,16 @@ $ = floor tex=ochre_flag h=-13.5 side=sunken_brick dark=0.12
 #ć#g######____^^______Ö________Ŷ_____________eee################
 #ĉ#g######____~~_______________Ŷ______R______eže#{{{{{{{{{{{{{##
 #ċ#g######____ee_______________Ŷ_____________eee#{ƁeƂeƄeeƂeeƆ{##
-#Ŵ#g######GeeeeeeeeeeeeeeeeeeeeeG____________eee#{eeeeeeeeeee{##
-#ď#g######eeeeeeeeeeeeeeeeeeúeeee____________eƇe#{eƉeeƉeƊeƉee{##
+#Ŵ#g######GeeeeeeeeeeȦeeeeeeeeeeG____________eee#{eeeeeeeeeee{##
+#ď#g######eeeeeeeeeeeȮeeeeeeúeeee____________eƇe#{eƉeeƉeƊeƉee{##
 #đ#J######eeÄeúeeeeeeOeeeeÂeeeÄee_Ô__________eee#{eeeeeeeeeee{##
 #ē#g######eeeeeeÂeeŸjNjŸeeeeeeeee____________eeeƋƋeeeeeeeeeeƎ{##
-#ĕ#g######eÇeeeeeeOejŰjeOeeeeeeúü___ü___ü____eƏeƋƋeeƐeeƑeeeeƓ{##
+#ĕ#g######eÇeeeeeeOejŰjeOeeeeeeúü___ü___ü____eƏeƋƋeeƐeeƑeeȪeƓ{##
 #ė#g####óòeeeeeeeeeŸjjjŸeeeeeeeeeýýýeýýýeþþþþeeeƋƋeeeeeeeeeeƔ{##
 #ę#g######ÓeeeeeeeeeeOeeeeeeeeeeÚ___þ___þ____eee#{eƉeeƉeƖeƉee{##
 #ł#g######eeÄeeeeeÉeeeeeeeÁeeeÄee_Õ_þ___þ_S__eƇe#{eeeeeeeeeee{##
-#ł#g######eeÂeeeeeeeeeeeeúeeeeÂee___þ___þ____eee#{ƗeeƘeeeeeeƜ{##
-#ł#g######ÏeeeeeeeeeeeeeÇeeeeeeeÓ__üeýýýeü___eee#{{{{{{{{{{{{{##
+#ł#g######eeÂeeeeeeeeȮeeeúeeeeÂee___þ___þ____eee#{ƗeeƘeeeeeeƜ{##
+#ł#g######ÏeeeeeeeeeeȨeeÇeeeeeeeÓ__üeýýýeü___eee#{{{{{{{{{{{{{##
 #ł#g######__________________________ý________###################
 #ł#g######___________(|||||þþþþþþþþþeü_______###################
 #Ĉ#g######___________)__ÿ_____Ù______________###################
@@ -153,7 +153,7 @@ $ = floor tex=ochre_flag h=-13.5 side=sunken_brick dark=0.12
 #ł#####Ì####{HfffffffffffffffffH################################
 #ł####Khhhhh{fffffffffffffffffff################################
 #ł####hhhhhh{fffÅfffffffffffÅfff################################
-#Ċ##õôhhhhhhËfffffIfffffffIfffff################################
+#Ċ##õôhhhhhhËfffffIfffffffIffffȬ################################
 #ł####hhhhhh{fffffffffÊfffffffff################################
 #ł####hhÜhhÐ{fffÅfffffffffffÅfff################################
 #ł######Û###{fffffffffIfffffffff################################
@@ -359,3 +359,11 @@ Z = sunken_sexton on=d
 Ū = npc id=sister_vell yaw=-90 reach=4.4 on=ł
 Ŭ = prisoner_remains on=ł
 Ů = torch radius=7 on=ŵ
+// Colossi of Lyra the Embracer, the faceless old god of six hands, raised by the first city before
+// its bells and broken when it sank: two on the plaza's rim facing the fountain, one at the back of the
+// Mortar Sisters' Workshop and one at the east end of the Foundation Court.
+Ȧ = lyra_statue yaw=90 on=e
+Ȩ = lyra_statue yaw=-90 on=e
+Ȫ = lyra_statue yaw=180 on=e
+Ȭ = lyra_statue yaw=180 on=f
+Ȯ = hint text="A broken colossus of Lyra the Embracer, old god of six hands.|The first city knelt to her before it ever rang a bell." on=e

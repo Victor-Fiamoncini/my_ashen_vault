@@ -237,6 +237,7 @@ BLOCKING_PROPS = (
     "veiled_statue",
     "silver_tree",
     "old_idol",
+    "lyra_statue",
 )
 # Ways to another map that fill their tile, so you take them by facing them and interacting: the well
 # and the gaol's grate in Harrowmere's plaza.
@@ -370,7 +371,7 @@ STATIC_PROPS = frozenset(
             "moon_roof",
             "moon_portal",
         ),
-        *("prisoner_remains", "old_idol", "sunken_tower"),
+        *("prisoner_remains", "old_idol", "sunken_tower", "lyra_statue"),
         "ash_mound",
         "spire",
     }
@@ -381,7 +382,7 @@ RISE = {"rose_window": "6", "crest_plaque": "3", "shutters": "1.7", "balcony": "
 FACING_PROPS = (
     *("chest", "altar", "table", "bed", "cupboard", "gargoyle_statue", "forge_hearth"),
     *("bench", "hand_cart", "hay_wagon", "mourning_statue", "forge_bellows", "town_statue", "forge_statue"),
-    *("ore_cart", "armor_stand", "katana_stand", "bookcase", "drawers", "old_idol"),
+    *("ore_cart", "armor_stand", "katana_stand", "bookcase", "drawers", "old_idol", "lyra_statue"),
 )
 # Ways through a wall that its rampart bays keep clear of (`World._dress_ramparts`).
 RAMPART_GATES = ("exit", "cemetery_gate", "door", "gate", "door_arch", "moon_portal", "cathedral_portal")

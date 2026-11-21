@@ -936,6 +936,7 @@ PROP_DRAWERS = {
     "sarcophagus": lambda view, rig, p, t: models.sarcophagus(rig, p.tx * 5 + p.tz),
     "prisoner_remains": lambda view, rig, p, t: prison_models.prisoner_remains(rig, p.tx * 5 + p.tz * 3),
     "old_idol": lambda view, rig, p, t: prison_models.old_idol(rig, p.tx * 7 + p.tz),
+    "lyra_statue": lambda view, rig, p, t: prison_models.lyra_ruin(rig, p.tx * 7 + p.tz),
     "cage": lambda view, rig, p, t: models.cage(rig, t, p.tx * 3 + p.tz, view._ceil_h(p)),
     "cobweb": lambda view, rig, p, t: models.cobweb(rig, p.tx * 7 + p.tz),
     "skull_niche": lambda view, rig, p, t: models.skull_niche(rig, t + p.tx, p.tx + p.tz),

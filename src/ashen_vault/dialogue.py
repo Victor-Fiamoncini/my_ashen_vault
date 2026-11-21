@@ -512,7 +512,7 @@ def marrow(flags):
         [
             "...A light. Not a gaoler's. You are one of the Ashen, then. Come closer. These bars won't bite.",
             "I am Marrow. I was a brother of this prison's chapel, until I would not make them kneel.",
-            "The wardens gave the prisoners to the old gods: no names, no faces, only hands held out.",
+            "The wardens gave the prisoners to Lyra the Embracer, the old god: no face, only hands held out.",
             "The Warden's Key lies on their altar, past the end of this corridor. Their chapel keeps it now.",
             "My cell's lever is in the warders' quarters, beyond the locked door. If you find a way in...",
         ],
