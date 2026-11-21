@@ -218,7 +218,7 @@ Z = sunken_sexton on=d
 Ê = keystone on=f
 Ë = door boss=keystone_dead on=n
 // The landing's south wall: a plain door down into the dark old gallery.
-Ď = door on=g
+Ď = door model=stone on=g
 Ì = lift top=0 locked on=o
 Í = chest item=red_tonic count=2 gold=90 model=worn on=c
 Î = chest item=menders_kit gold=110 model=banded on=d

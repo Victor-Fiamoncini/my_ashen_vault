@@ -105,6 +105,7 @@ def test_a_plain_door_leads_from_the_landing_down_into_the_old_gallery():
     door = _gallery_door(m)
     (spec,) = [s for s in _spec(m, "door") if (s.tx, s.tz) == door]
     assert not {"key", "from", "boss"} & spec.props.keys()
+    assert spec.props.get("model") == "stone"  # the sunken city's carved slab, not a wooden door
     landing, gallery = (door[0], door[1] - 1), (door[0], door[1] + 1)
     assert m[landing].walkable and m[landing].ceil is None  # under the open cavern
     assert m[gallery].walkable and m[gallery].ceil is not None  # cut through the rock

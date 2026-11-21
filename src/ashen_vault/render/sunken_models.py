@@ -1172,3 +1172,44 @@ def _keystone_leaf(r, style, side, face, t, lit):
     """Leaves of old, sun-bleached timber, the water line still dark across them."""
     r.part("cube", face * 0.085, 0.9, 0, 0.02, 0.08, 0.92, (60, 54, 44))  # the water line
     r.part("cube", face * 0.1, 1.5, -side * 0.25, 0.03, 0.16, 0.16, style.iron, rx=math.pi / 4)  # the ring
+
+
+SLAB = (156, 140, 116)  # a stone door's pale, water-worn sandstone
+SLAB_SHADOW = (112, 98, 80)  # its carved-back panels
+
+
+def stone_door(r, open_t, frame):
+    """Old Harrowmere's plain door (`door model=stone`): one carved sandstone slab, a raised border
+    and two sunk panels on each face round a medallion where a small teal glyph of the mortar-light
+    still glows, sinking into the floor as it opens, in a heavy frame of the city's brick (jambs on
+    plinths, a lintel and a keystone, its masonry filling up to `frame`, the passage's ceiling)."""
+    frame = max(frame, 3.1)
+    for z in (-0.9, 0.9):  # the jambs and their plinths
+        r.part("cube", 0, frame / 2, z, 0.56, frame, 0.3, MASONRY, tex="sunken_brick")
+        r.part("cube", 0, 0.22, z, 0.64, 0.44, 0.36, MASONRY_DARK, tex="rough_stone")
+        r.part("cube", 0, 2.62, z, 0.62, 0.12, 0.36, MASONRY_DARK)  # the impost under the lintel
+    r.part("cube", 0, 2.86, 0, 0.62, 0.36, 2.1, MASONRY, tex="rough_stone")  # the lintel
+    r.part("wedge", 0, 2.96, 0, 0.68, 0.5, 0.44, MASONRY_DARK, tex="rough_stone", rx=math.pi)  # keystone
+    if frame > 3.04:
+        r.part("cube", 0, (3.04 + frame) / 2, 0, 0.5, frame - 3.04, 1.6, MASONRY, tex="sunken_brick")
+    r.part("cube", 0, 0.02, 0, 0.66, 0.04, 1.6, MASONRY_DARK)  # the worn threshold
+    with r.at(0, -open_t * 2.66, 0):  # the slab sinks into the floor
+        r.part("cube", 0, 1.3, 0, 0.2, 2.6, 1.52, SLAB, tex="rough_stone")
+        for side in (-1, 1):
+            x = side * 0.1
+            for y, h in ((0.1, 0.2), (2.52, 0.16), (1.3, 0.12)):  # the plinth band, the head, the waist
+                r.part("cube", x, y, 0, 0.04, h, 1.52, SLAB, tex="rough_stone")
+            for z in (-0.68, 0.68):  # the border stiles
+                r.part("cube", x, 1.3, z, 0.04, 2.6, 0.16, SLAB, tex="rough_stone")
+            for y in (0.72, 1.92):  # the two sunk panels, a fillet carved round each
+                r.part("cube", x - side * 0.008, y, 0, 0.02, 0.88, 1.1, SLAB_SHADOW, tex="rough_stone")
+                r.part("cube", x, y, 0, 0.028, 0.06, 0.96, MASONRY_DARK)
+            # the medallion on the waist, and the glyph glowing in its sunk face
+            r.part("cyl", x + side * 0.02, 1.3, 0, 0.44, 0.04, 0.44, SLAB, rz=math.pi / 2)
+            r.part("cyl", x + side * 0.042, 1.3, 0, 0.34, 0.01, 0.34, MORTAR, rz=math.pi / 2)
+            gx = x + side * 0.05
+            glyph = _dim(CORE_TEAL, 0.75)
+            r.part("cube", gx, 1.3, 0, 0.01, 0.24, 0.03, glyph, glow=True)  # the stem
+            for dz in (-0.06, 0.06):  # two strokes rising from it like a bearer's arms
+                r.part("cube", gx, 1.33, dz, 0.01, 0.12, 0.025, glyph, glow=True, rx=dz * 9)
+            r.part("cube", gx, 1.2, 0, 0.01, 0.025, 0.14, glyph, glow=True)  # the ground it stands on
