@@ -271,6 +271,7 @@ def test_dead_glowing_enemies_go_dark():
         "moonhound",
         "veiled_knight",
         "moon_duchess",
+        "glassmite",
         "harpy",
     ):
         _, alive = _extent(type_id, "idle", 0.5)
@@ -541,6 +542,7 @@ def test_bosses_have_boss_level_detail():
         "pale_sentinel",
         "lantern_wraith",
         "veiled_knight",
+        "glassmite",
         "hollow_inmate",
         "stone_golem",
         "sunken_sexton",

@@ -253,6 +253,13 @@ class WorldView:
         for pl in world.terrain.platforms:
             if math.hypot(pl.x - player.x, pl.z - player.z) > far:
                 continue
+            if pl.kind == "bridge" and pl.rise:  # a stone bridge, sunk in its chasm or rising out of it
+                y = pl.risen_y
+                self._model_light(gpu, pl.x, y + 0.5, pl.z)
+                span = world._bridge_spans[TileMap.tile_coord(pl.x), TileMap.tile_coord(pl.z)]
+                with rig.at(pl.x, y, pl.z):
+                    moon_models.great_bridge(rig, span, world._time, moving=not pl.locked and not pl.afloat)
+                continue
             self._model_light(gpu, pl.x, pl.deck + 0.5, pl.z)
             shake = math.sin(world._time * 40) * 0.03 * pl.creaking
             with rig.at(pl.x, pl.deck - pl.sink + shake, pl.z):
@@ -898,6 +905,13 @@ def _draw_moon_roof(view, rig, p, t):
     )
 
 
+def _draw_hanging_crystal(view, rig, p, t):  # hung upside down from its tile's ceiling
+    tile = view.world.map[p.tx, p.tz]
+    drop = (tile.ceil if tile.ceil is not None else tile.floor + 4.0) - tile.floor
+    with rig.at(0, drop, 0, rx=math.pi):
+        moon_models.crystal_cluster(rig, p.tx * 5 + p.tz * 11, float(p.props.get("size", "0.7")))
+
+
 def _draw_moon_portal(view, rig, p, t):  # `rose=` sets the height of the great rose over it
     moon_models.moon_portal(
         rig,
@@ -1050,6 +1064,13 @@ PROP_DRAWERS = {
     "veiled_statue": lambda view, rig, p, t: moon_models.veiled_statue(rig, p.tx * 7 + p.tz * 3),
     "silver_tree": lambda view, rig, p, t: moon_models.silver_tree(rig, p.tx * 7 + p.tz * 3),
     "moon_window": _draw_moon_window,
+    "moon_crystal": lambda view, rig, p, t: moon_models.moon_crystal(
+        rig, p.tx * 7 + p.tz * 3, float(p.props.get("size", "1"))
+    ),
+    "hanging_crystal": _draw_hanging_crystal,
+    "crystal_arch": lambda view, rig, p, t: moon_models.crystal_arch(
+        rig, p.tx * 7 + p.tz * 3, float(p.props.get("height", "12"))
+    ),
     "moon_spire": lambda view, rig, p, t: moon_models.moon_spire(
         rig, p.tx * 7 + p.tz * 3, float(p.props.get("height", "14"))
     ),

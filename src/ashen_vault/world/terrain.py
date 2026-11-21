@@ -59,6 +59,7 @@ SPORE_LINGER = 1.2  # seconds the spores keep you sluggish after you leave the c
 SPORE_TICK = 0.8  # seconds between choking coughs
 SPORE_DAMAGE = 3
 BRIDGE_DROP = 1.4  # seconds a drawbridge takes to swing down once its lever is pulled
+BRIDGE_RISE = 7.0  # seconds a stone bridge takes to grind up out of its chasm (`bridge rise=`)
 LIFT_SPEED = 2.2  # m/s a lift climbs or sinks at
 LIFT_DELAY = 0.7  # seconds you stand on a lift's plate before it sets off
 PLATE_R = 0.55  # metres from the deck's centre that count as standing on its pressure plate
@@ -148,6 +149,9 @@ class Platform:
     # A drawbridge stands raised (0) until its lever is pulled, then swings down (to 1). It only
     # bears weight once it is all the way down. Other platforms are always "down".
     lowered: float = 1.0
+    # A stone bridge (`bridge rise=`) lies sunk `rise` metres below its deck until its lever raises it
+    # out of the chasm; it swings on no hinge. 0 for a drawbridge.
+    rise: float = 0.0
     # How a lift is drawn: "" for an open deck, "cage" for a barred jail cage, whose `doors` are the
     # (dx, dz) sides that open onto a landing.
     model: str = ""
@@ -272,11 +276,19 @@ class Platform:
         will not bring it?"""
         return self.kind == "lift" and self.locked and end != self.start
 
+    @property
+    def risen_y(self):
+        """Where a stone bridge's deck stands as it rises: eased out of the deep and settling gently."""
+        k = min(max(self.lowered, 0.0), 1.0)
+        k = 1 - (1 - k) ** 3
+        return self.deck - (1 - k) * self.rise
+
     def _lower(self, dt):
-        """A drawbridge whose lever has been pulled swings down; "bridge_down" when it lands."""
+        """A drawbridge whose lever has been pulled swings down, a stone bridge rises; "bridge_down"
+        when it lands."""
         if self.locked or self.lowered >= 1.0:
             return None
-        self.lowered = min(self.lowered + dt / BRIDGE_DROP, 1.0)
+        self.lowered = min(self.lowered + dt / (BRIDGE_RISE if self.rise else BRIDGE_DROP), 1.0)
         return "bridge_down" if self.lowered >= 1.0 else None
 
     def _fade(self, dt):
@@ -484,6 +496,7 @@ def build_platforms(map_):
             p.calls = call_plates(map_, p)
         elif spec.kind == "bridge":
             p.lever = spec.props.get("lever")
+            p.rise = float(spec.props.get("rise", "0"))
             p.locked = p.lever is not None
             p.lowered = 0.0 if p.locked else 1.0
         elif spec.kind == "ward":
@@ -497,6 +510,52 @@ def build_platforms(map_):
             p.speed = float(spec.props.get("speed", "1.0"))
             p.t = float(spec.props.get("phase", "0"))
         out.append(p)
+    return out
+
+
+@dataclass(frozen=True)
+class BridgeSpan:
+    """How one tile of a stone bridge (`bridge rise=`) is built: the `sides` (-1, +1 along x) that carry
+    its parapet, the ends (-1, +1 along z) a pier stands on (`piers`) and that end the whole span
+    (`ends`), how far along its arch it lies (`u`, 0 and 1 at the piers) and how far its piers plunge
+    (`depth`, its deck to the chasm floor)."""
+
+    sides: tuple
+    piers: tuple
+    ends: tuple
+    u: tuple
+    depth: float
+
+
+BRIDGE_ARCH_TILES = 2  # tiles each arch of a stone bridge spans, pier to pier
+
+
+def bridge_spans(platforms):
+    """The `BridgeSpan` of every stone bridge tile, keyed by tile. A bridge's tiles (those sharing its
+    lever) run north and south across their chasm, as many abreast as it is wide; its arches spring
+    from a pier every BRIDGE_ARCH_TILES tiles from its first row (the least z) on."""
+    groups = {}
+    for p in platforms:
+        if p.kind == "bridge" and p.rise:
+            groups.setdefault(p.lever, []).append(p)
+    out = {}
+    for spans in groups.values():
+        tiles = {(TileMap.tile_coord(p.x), TileMap.tile_coord(p.z)): p for p in spans}
+        x0, x1 = min(t[0] for t in tiles), max(t[0] for t in tiles)
+        z0, z1 = min(t[1] for t in tiles), max(t[1] for t in tiles)
+        n = z1 - z0 + 1
+        for (tx, tz), p in tiles.items():
+            i = tz - z0
+            first = i - i % BRIDGE_ARCH_TILES
+            length = min(BRIDGE_ARCH_TILES, n - first)
+            j = i - first
+            out[tx, tz] = BridgeSpan(
+                sides=tuple(s for s, edge in ((-1, x0), (1, x1)) if tx == edge),
+                piers=tuple(e for e, at in ((-1, 0), (1, length - 1)) if j == at),
+                ends=tuple(e for e, at in ((-1, 0), (1, n - 1)) if i == at),
+                u=(j / length, (j + 1) / length),
+                depth=p.deck - p.bottom,
+            )
     return out
 
 
@@ -678,6 +737,7 @@ class Terrain:
         self.unlocked = []
         self.refused = []
         under = None if self.plunging else self.support(body.x, body.z)
+        settled = set()  # levers whose stone bridge settled this frame: one boom for all its spans
         for p in self.platforms:
             was_afloat, was_loaded = p.afloat, p.load_t > 0
             if p.kind == "lift":
@@ -690,7 +750,11 @@ class Terrain:
                 self._press_calls(p, body)
                 continue
             if p.update(dt, loaded=p is under) == "bridge_down":
-                self._hear(p.x, p.z, body, "clunk", 1.0)
+                if not p.rise:
+                    self._hear(p.x, p.z, body, "clunk", 1.0)
+                elif p.lever not in settled:
+                    settled.add(p.lever)
+                    self.sounds.append(("stone_land", 1.0))
             if p.kind not in ROT:
                 continue
             if was_afloat and not p.afloat:

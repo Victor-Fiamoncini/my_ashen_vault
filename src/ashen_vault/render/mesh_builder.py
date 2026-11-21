@@ -60,6 +60,7 @@ LIGHT_KINDS = (
     "save_statue",
     "moon_lamp",
     "moon_window",
+    "moon_crystal",
     "sump_caps",
     "energy_core",
     "street_arch",
@@ -71,6 +72,7 @@ LIGHT_Y = {
     "grand_stair": "3.2",
     "street_arch": "3.4",
     "moon_lamp": "2.95",
+    "moon_crystal": "1.4",
     "light": "2.0",
     "candles": "0.6",
     "fungus": "0.7",
@@ -107,6 +109,7 @@ LIGHT_COLOR = {
     "crucible": "1.0,0.5,0.2",
     "rose_window": "0.95,0.55,0.62",
     "moon_lamp": "0.62,0.74,1.0",
+    "moon_crystal": "0.72,0.62,1.0",
     "moon_window": "0.58,0.68,0.98",
 }
 LIGHT_RADIUS = {
@@ -127,6 +130,7 @@ LIGHT_RADIUS = {
     "bonfire": "9",
     "rose_window": "10",
     "moon_lamp": "8",
+    "moon_crystal": "6",
     "moon_window": "8",
 }
 # Lights hung on a wall when one stands beside them: they shine from against it.

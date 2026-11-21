@@ -1158,7 +1158,7 @@ def _vesperholm():
 def test_the_vesper_gate_joins_town_and_vesperholm_both_ways():
     """The Vesper Gate stands open in Harrowmere's north wall at the head of the cathedral steps: from
     the gate a straight walk south leads down the porch and the steps to the street. You come through it
-    into Vesperholm's Gate Court, just before the gate home, and that one leads back out just south of
+    into Vesperholm's Glimmering Cave, just before the gate home, and that one leads back out just south of
     the town's gate. Neither is ever shut."""
     town, city = MapLoader.load_file(map_path("harrowmere")), _vesperholm()
     (gate,) = _spec(town, "exit", map="vesperholm")
@@ -1184,9 +1184,10 @@ def test_the_vesper_gate_joins_town_and_vesperholm_both_ways():
 
 
 def test_vesperholm_is_solvable():
-    """From the Gate Court every street, chest and the lever can be reached with only the false wall
-    opened, over the Glass Bridge; the Duchess waits behind her great door. The drawbridge is a
-    shortcut: both its ends are reachable before it comes down. Nowhere you can get to strands you."""
+    """From the Vesper Gate, up through the Glimmering Cave, every street, chest and the lever can be
+    reached with only the false wall opened, over the Glass Bridge; the Duchess waits behind her great
+    door. The great bridge is a shortcut, three tiles abreast across the gorge: both its ends are
+    reachable before it rises. Nowhere you can get to strands you."""
     m = _vesperholm()
     assert m.meta["name"] == "Vesperholm" and m.meta["sky"] == "moonlit"
     start = tuple(int(v) for v in m.meta["start"][:2])
@@ -1203,11 +1204,15 @@ def test_vesperholm_is_solvable():
         if s.kind == "chest":
             assert (s.tx, s.tz) in before
     (shrine,) = _spec(m, "save_statue")
-    assert abs(shrine.tx - start[0]) + abs(shrine.tz - start[1]) <= 10  # a shrine by the way in
-    (bridge,) = _spec(m, "bridge")
-    assert bridge.props["hinge"] == "n"
-    assert {(bridge.tx, bridge.tz - 1), (bridge.tx, bridge.tz + 1)} <= before
-    (lever,) = _spec(m, "lever", id=bridge.props["lever"])
+    (mouth,) = _spec(m, "crystal_arch")
+    assert abs(shrine.tx - mouth.tx) + abs(shrine.tz - mouth.tz) <= 5  # a shrine where the cave comes out
+    bridges = _spec(m, "bridge")
+    assert len(bridges) == 12 and {b.props["lever"] for b in bridges} == {"vesper_bridge"}
+    assert all(float(b.props["rise"]) == 18 for b in bridges)  # sunk on the gorge floor
+    north, south = min(b.tz for b in bridges) - 1, max(b.tz for b in bridges) + 1
+    assert {(b.tx, south) for b in bridges} <= before  # the Landing's side
+    assert {(b.tx, north) for b in bridges} <= opened  # the castle's postern, three wide
+    (lever,) = _spec(m, "lever", id="vesper_bridge")
     assert (lever.tx, lever.tz) in before
     glass = {(tx, tz) for tz in range(m.depth) for tx in range(m.width) if m[tx, tz].floor_tex == "moon_glass"
              and m[tx, tz].ceil is None}  # fmt: skip
@@ -1217,6 +1222,36 @@ def test_vesperholm_is_solvable():
     assert (lever.tx, lever.tz) in full
     for tile in full:
         assert start in _reachable(m, tile, open_tiles=doors, shortcuts=True), tile
+
+
+def test_the_vesper_gate_opens_into_a_crystal_cave_that_climbs_to_an_overlook():
+    """Through the Vesper Gate you come into the Glimmering Cave, under its roof of crystal rock; it
+    climbs half a metre at a time, never a step too tall, past Glassmites folded among its crystals,
+    to its mouth onto the overlook, 6 m over the court under the open moon. The shrine is there, and a
+    grand stair goes down from it into the court."""
+    m = _vesperholm()
+    start = tuple(int(v) for v in m.meta["start"][:2])
+    assert m[start].ceil is not None and m[start].floor_tex == "crystal_rock"
+    (mouth,) = _spec(m, "crystal_arch")
+    (shrine,) = _spec(m, "save_statue")
+    overlook = m[mouth.tx, mouth.tz]
+    assert overlook.ceil is None and overlook.floor == 6 and m[shrine.tx, shrine.tz].floor == 6
+    assert m[mouth.tx, mouth.tz + 1].ceil is not None  # the cave's last tile, behind the arch
+    reach = _reachable(m, start)
+    assert (mouth.tx, mouth.tz) in reach
+    cave = {t for t in reach if m[t].floor_tex == "crystal_rock"}
+    for tx, tz in cave:
+        for dx, dz in BESIDE:
+            nb = (tx + dx, tz + dz)
+            if nb in reach:
+                assert abs(m[nb].floor - m[tx, tz].floor) <= 0.5 + 1e-6, ((tx, tz), nb)
+    assert any(m[t].ceil is None for t in cave)  # the moon-pool grotto, open to the sky
+    mites = _spec(m, "glassmite")
+    assert len(mites) == 3 and all(m[s.tx, s.tz].ceil is not None for s in mites)
+    (stair,) = _spec(m, "grand_stair")
+    assert int(stair.props["run"]) * float(stair.props["rise"]) == pytest.approx(6.0)
+    foot = (stair.tx, stair.tz - int(stair.props["run"]))
+    assert m[foot].floor == 0 and foot in reach  # down into the court
 
 
 def test_vesperholms_cathedral_front_is_a_great_gate_under_victorian_roofs():
@@ -1251,5 +1286,5 @@ def test_vesperholms_gorge_is_a_sheer_drop_under_the_open_moon():
     assert b > g > r and r > 0.3  # moonlight: bright, pale and cold
     _near, far = m.meta["fog_range"]
     assert far >= 80
-    start = tuple(int(v) for v in m.meta["start"][:2])
-    assert m[start].ceil is None
+    (shrine,) = _spec(m, "save_statue")
+    assert m[shrine.tx, shrine.tz].ceil is None  # the overlook, the city spread out under the moon

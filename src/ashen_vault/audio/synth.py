@@ -316,6 +316,32 @@ def sounds():
             0.35,
             lambda t, p: (math.sin(t * TAU * (95 - p * 40)) * 0.7 + lowpass(0.1) * 0.8) * env(p, 0.01),
         ),
+        # A great stone bridge grinding up out of its chasm: a long low rumble, stone dragging on stone
+        # in uneven surges, and grit pattering down off it.
+        "stone_rise": gen(
+            6.5,
+            lambda t, p: (
+                (
+                    lowpass(0.03) * 2.4 * (0.75 + 0.25 * math.sin(t * TAU * 0.9))
+                    + math.sin(t * TAU * (38 + 4 * math.sin(t * TAU * 0.5))) * 0.35
+                    + noise() * (0.25 if (t * 13) % 1 < 0.12 else 0.03)
+                )
+                * min(p / 0.06, 1.0)
+                * (1 - p) ** 0.4
+            ),
+        ),
+        # The stone bridge settling home in its seat: a deep boom and a shiver of grit.
+        "stone_land": gen(
+            1.4,
+            lambda t, p: (
+                (
+                    math.sin(t * TAU * (42 - p * 18)) * 0.9 * (1 - p) ** 2
+                    + lowpass(0.05) * 2.0 * math.exp(-t * 3)
+                    + noise() * 0.2 * math.exp(-t * 5)
+                )
+                * env(p, 0.004)
+            ),
+        ),
         # A soft cough of spores from a bursting pod.
         "puff": gen(0.5, lambda t, p: lowpass(0.08 + (1 - p) * 0.1) * 1.6 * env(p, 0.15)),
         # Pyre: a rushing whoosh as the gout leaves your hand, a low roar under it and fire crackling.

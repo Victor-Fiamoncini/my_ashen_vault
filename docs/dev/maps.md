@@ -65,17 +65,25 @@ How `.map` files work and what can stand on a tile.
   `test_old_harrowmere_is_solvable_from_the_breach_down_to_the_keystone`), `vesperholm` (the Moonbound City behind the Vesper Gate in
   Harrowmere's north wall, at the head of the cathedral steps: the town's `exit model=vesper_gate`, always
   open, ends a straight walk north up the steps and the porch past lamps and banner poles, and leads to
-  its `start` in the Gate Court, before the gate home (never shut either), which brings you back just south
-  of it. Under the `moonlit` sky (a vast, bright full
+  its `start` in the hall of the Glimmering Cave, before the gate home (never shut either), which brings you
+  back just south of it. The cave (`crystal_rock`, lit by `moon_crystal` clusters standing on its floors and
+  `hanging_crystal`s hung from its roof, three Glassmites folded among them) climbs half a metre a tile,
+  never a step too tall, from the gate's hall at 0 m through the tall geode gallery at 2 m, along a ledge
+  over a crystal chasm (a Lantern Wraith throws across it from the gallery), up through the moon-pool
+  grotto open to the sky (two Moonhounds, a coffer in the side grotto east of it) to its mouth (a
+  `crystal_arch`, the cliff's face built up over the way out) onto the overlook, 6 m over the court
+  under the open moon, where the shrine stands and the whole city spreads out north to the cathedral;
+  a `grand_stair` 12 tiles long goes down from it into the Gate Court;
+  `test_the_vesper_gate_opens_into_a_crystal_cave_that_climbs_to_an_overlook`. Under the `moonlit` sky (a vast, bright full
   moon in the north, wisps of cloud across it, the sun buried in a bank of cloud in the south), a pale
-  blue-silver ambient and a fog reaching 84 m: the Gate Court and its shrine, Lantern Square and its
+  blue-silver ambient and a fog reaching 84 m: the Gate Court, Lantern Square and its
   shallow moon pool, the Landing on the gorge's edge, Lamplighters' Row and a hidden court behind a false
   wall; the gorge (an 18 m `chasm`) between the lower town and the castle, crossed by the Glass Bridge
   (`moon_glass`) at the west street's head into the castle's postern; the bailey, the west chapel and
   the Duchess's garden; the Cathedral of the Long Night, its nave, and behind its great door
   (`door boss=duchess_dead`) the choir floored in moon-glass where Duchess Ilvane waits. Shortcut: the
-  castle's drawbridge over the gorge (`bridge hinge=n`), let down by its lever in the bailey, back to the
-  Landing. Walled in `moonstone`, paved in `moon_paving`, roofed in `silver_slate`;
+  great bridge over the gorge, three tiles abreast and four long (`bridge rise=18`, one entity a tile),
+  sunk on the gorge floor until its lever in the bailey raises it, back to the Landing. Walled in `moonstone`, paved in `moon_paving`, roofed in `silver_slate`;
   `test_vesperholm_is_solvable`), `vigil_chapel` (the Vigil Chapel, a small map of its own behind
   Old Harrowmere's lift room: the door in the lift room's south wall at 8,45, `exit model=chapel_door
   requires=keystone_dead`, stays shut until the Keystone falls, and leads to its `start` in the low
@@ -151,7 +159,11 @@ How `.map` files work and what can stand on a tile.
   underfoot, its glyphs cold until a `locked` one is freed (which it announces in its own words,
   `world.LIFT_FREED`); it rings as stone underfoot),
   `bridge lever=id hinge=n|s|e|w deck=` (a drawbridge standing raised on its hinge side until its
-  lever lets it down, for good), `log_chute to=tx,tz every= speed= logs=` (a log rack that only
+  lever lets it down, for good; with `rise=<metres>` instead it is a span of a stone bridge sunk that far
+  below its deck, which its lever raises out of the chasm over `terrain.BRIDGE_RISE` seconds, to one
+  `stone_rise` rumble and one `stone_land` boom for all its spans: give every tile of it the same lever,
+  and lay it out north to south, as many abreast as it is wide; `terrain.bridge_spans` works out each
+  tile's parapet, piers and place along its arches, and `moon_models.great_bridge` draws it), `log_chute to=tx,tz every= speed= logs=` (a log rack that only
   releases while someone climbs its slope) and `spore_pod every=`.
   Hazard entities: `spikes`, `pendulum`, `crumble`, `flame_jet dir=n|s|e|w len= every= phase=` (a
   nozzle on the wall behind its tile firing `len` tiles along `dir`) and `magma_vent radius= every=
@@ -215,7 +227,7 @@ How `.map` files work and what can stand on a tile.
   the prison adds `pillar` (`pillar model=colossal`, the Keystone's court: a column of drums rising
   from the floor into a cavern's `vault`, `Vault.column_height`, its head sunk in the rock), `sarcophagus`, `headsman_block` and `old_idol`, Old Harrowmere `lyra_statue`, the jungle `bonfire`, `giant_mushroom` and
   `totem`, the town `pew`, `bed`, `cupboard`, `fence`, `lamp_post`, `banner_pole`, `fountain`, `bench`,
-  `hand_cart`, `hay_wagon`, `cargo`, `town_statue`, `flying_buttress`, `tree`, `forge_bellows`, `grindstone`, `armor_stand`, `katana_stand`, `bookcase` and `drawers`, the Cinderhold `forge_statue` and `ore_cart`, the cemetery `gravestone`, `cemetery_gate`, `mourning_statue` and `grave_railing`, Vesperholm's `moon_lamp` (a light), `veiled_statue` and `silver_tree`; `test_harrowmere_trees_cut_off_no_part_of_the_town`
+  `hand_cart`, `hay_wagon`, `cargo`, `town_statue`, `flying_buttress`, `tree`, `forge_bellows`, `grindstone`, `armor_stand`, `katana_stand`, `bookcase` and `drawers`, the Cinderhold `forge_statue` and `ore_cart`, the cemetery `gravestone`, `cemetery_gate`, `mourning_statue` and `grave_railing`, Vesperholm's `moon_lamp` (a light), `veiled_statue`, `silver_tree` and `moon_crystal` (`size=`; a light, and it blocks), and `hanging_crystal` (hung from its tile's ceiling) and `crystal_arch` (`height=`, a cave mouth's face built up over its tile's -X edge); `test_harrowmere_trees_cut_off_no_part_of_the_town`
   keeps the trees out of the only way anywhere). Decor that blocks nothing:
   `boat` rides on water, `ash_mound` and `bones` lie on the floor, `crypt_front` is built out of a wall, `shelf`, `hearth` and `window` hang on a wall (the last two are lights), `cage`, `roots` and `meat_hooks` hang from the ceiling, `prisoner_remains` slump in their chains against a wall, `grate` sits in the
   floor, `mushrooms` dot it (the sewers grow their own: pale `inkcaps`, and `sump_caps` on rotten timber, a
@@ -300,7 +312,7 @@ How `.map` files work and what can stand on a tile.
   `cinderhold.map` has one too (`test_cinderhold_is_solvable`, lava counted as impassable), and so does
   `cinder_keep.map` (`test_cinder_keep_is_solvable`; `test_cinder_keep_roof_is_walled_in` keeps every wall
   round the rooftop at least 6 m above it), `vesperholm.map` (`test_vesperholm_is_solvable`: every
-  chest and the lever over the Glass Bridge, the Duchess only through her door, the drawbridge a
+  chest and the lever over the Glass Bridge, the Duchess only through her door, the great bridge a
   shortcut between two places you can already reach), and `ashen_cemetery.map` (`test_ashen_cemetery_is_solvable_in_order`:
   the sword before any foe, the scroll before the silk, the gate only behind the Sexton, and no way
   back from town). Their tiles are lowercase letters, digits and punctuation and

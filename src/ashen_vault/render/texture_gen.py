@@ -76,6 +76,7 @@ def all_textures():
         "sunken_brick": sunken_brick(),
         "ochre_flag": ochre_flag(),
         "cavern_rock": cavern_rock(),
+        "crystal_rock": crystal_rock(),
         "white": solid(255, 255, 255),
     }
 
@@ -1239,6 +1240,24 @@ def ochre_flag():
         if crack and hash_(cx, cy, 615) > 0.6:
             return tint([78, 66, 52], 0.9)
         return tint([128, 108, 82], 0.72 + hash_(cx, cy, 616) * 0.24 + (n - 0.5) * 0.3)
+
+    return build(px)
+
+
+def crystal_rock():
+    """The rock of the Glimmering Cave under the Vesper Gate: cold blue-grey stone in broken folds,
+    flecked with glinting facets of violet moon-crystal and seamed with veins of it."""
+
+    def px(x, y):
+        n = fbm(x, y, 631)
+        fold = math.sin((y + noise(x, y, 16, 632) * 12) * 0.4)
+        if fold > 0.92:
+            return tint([20, 20, 34], 0.9 + n * 0.2)  # a cleft
+        if hash_(x // 3, y // 3, 633) > 0.965:
+            return tint([196, 182, 255], 0.75 + hash_(x, y, 634) * 0.3)  # a glinting facet
+        if abs(noise(x, y, 24, 635) - 0.5) < 0.02:
+            return tint([128, 112, 214], 0.8 + n * 0.3)  # a vein of crystal
+        return tint([74, 78, 102], 0.6 + n * 0.4 + max(fold, 0) * 0.12)
 
     return build(px)
 

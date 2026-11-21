@@ -7,7 +7,7 @@ model_range = 46
 indoor_range = 26
 sky = moonlit
 torch = 6 0.62 0.68 0.82
-start = 21 54 -90
+start = 21 100 -90
 default = ,
 entity_floor = auto
 edge_top = 9
@@ -18,12 +18,14 @@ edge_tex = moonstone
 // Ilvane, who wed the moon on the fourth sigil so the night would never end and nothing in her city
 // would die. The moon stopped over it, vast, full and pale, and has hung in the north
 // over her cathedral ever since; everything under it is drowned in its light, and every soul in the
-// city has thinned to a moonlit shade of itself. You come through the gate into the Gate Court and its
-// shrine; north of it Lantern Square and its moon pool, the Landing on the gorge's edge, with the
-// castle's raised drawbridge across the gorge, and Lamplighters' Row east. The way over is the Glass
+// city has thinned to a moonlit shade of itself. You come through the gate into the Glimmering Cave,
+// where the moon-crystal grows and the Glassmites feed on it, and climb it to its mouth on the
+// overlook, the shrine and the whole city below you; down the grand stair into the Gate Court, and
+// north of it Lantern Square and its moon pool, the Landing on the gorge's edge, the great
+// bridge sunk in the gorge below it, and Lamplighters' Row east. The way over is the Glass
 // Bridge at the west street's head, into the castle's postern; its bailey, the west chapel and the
 // Duchess's pale garden; and at its heart the Cathedral of the Long Night, the nave and, behind its
-// great door, the choir where the Duchess waits. The drawbridge's lever, in the bailey, is the short
+// great door, the choir where the Duchess waits. The great bridge's lever, in the bailey, is the short
 // way back to the shrine.
 
 [legend]
@@ -43,6 +45,57 @@ p = floor tex=moon_paving h=0 ceil=4.5 ceil_tex=moonstone side=moonstone
 a = floor tex=moon_paving h=0 ceil=4.2 ceil_tex=silver_slate side=moonstone dark=0.3
 n = floor tex=moon_paving h=0 ceil=12 ceil_tex=silver_slate side=moonstone dark=0.2
 c = floor tex=moon_glass h=0 ceil=13 ceil_tex=silver_slate side=moonstone dark=0.15
+
+// The overlook over the city at the Glimmering Cave's mouth, 6 m up, its parapet on the court, and
+// the grand stair cut down through it into the court; the wings either side of it are paved.
+o = floor tex=moon_paving h=6 side=moonstone
+q = wall tex=moonstone top=7 cap=silver_slate
+// The stair's tiles, half a metre apart from the court's 0 m up to the overlook, and its cheek walls.
+α = floor tex=moon_paving h=0.5 side=moonstone
+β = floor tex=moon_paving h=1 side=moonstone
+γ = floor tex=moon_paving h=1.5 side=moonstone
+δ = floor tex=moon_paving h=2 side=moonstone
+ε = floor tex=moon_paving h=2.5 side=moonstone
+ζ = floor tex=moon_paving h=3 side=moonstone
+η = floor tex=moon_paving h=3.5 side=moonstone
+θ = floor tex=moon_paving h=4 side=moonstone
+ι = floor tex=moon_paving h=4.5 side=moonstone
+κ = floor tex=moon_paving h=5 side=moonstone
+λ = floor tex=moon_paving h=5.5 side=moonstone
+Α = wall tex=moonstone top=0.5 cap=moon_paving
+Β = wall tex=moonstone top=1 cap=moon_paving
+Γ = wall tex=moonstone top=1.5 cap=moon_paving
+Δ = wall tex=moonstone top=2 cap=moon_paving
+Ε = wall tex=moonstone top=2.5 cap=moon_paving
+Ζ = wall tex=moonstone top=3 cap=moon_paving
+Η = wall tex=moonstone top=3.5 cap=moon_paving
+Θ = wall tex=moonstone top=4 cap=moon_paving
+Ι = wall tex=moonstone top=4.5 cap=moon_paving
+Κ = wall tex=moonstone top=5 cap=moon_paving
+Λ = wall tex=moonstone top=5.5 cap=moon_paving
+Μ = wall tex=moonstone top=6 cap=moon_paving
+// The Glimmering Cave between the Vesper Gate and the overlook: its rock, and its floors climbing
+// half a metre at a time from the gate's hall at 0 m to the mouth at 6 m, each under its own roof.
+x = wall tex=crystal_rock top=14 cap=crystal_rock
+0 = floor tex=crystal_rock h=0 ceil=5 ceil_tex=crystal_rock side=crystal_rock dark=0.35
+1 = floor tex=crystal_rock h=0.5 ceil=5.5 ceil_tex=crystal_rock side=crystal_rock dark=0.35
+2 = floor tex=crystal_rock h=1 ceil=6 ceil_tex=crystal_rock side=crystal_rock dark=0.35
+3 = floor tex=crystal_rock h=1.5 ceil=6.5 ceil_tex=crystal_rock side=crystal_rock dark=0.35
+4 = floor tex=crystal_rock h=2 ceil=7 ceil_tex=crystal_rock side=crystal_rock dark=0.35
+5 = floor tex=crystal_rock h=2.5 ceil=7.5 ceil_tex=crystal_rock side=crystal_rock dark=0.35
+6 = floor tex=crystal_rock h=3 ceil=8 ceil_tex=crystal_rock side=crystal_rock dark=0.35
+7 = floor tex=crystal_rock h=3.5 ceil=8.5 ceil_tex=crystal_rock side=crystal_rock dark=0.35
+8 = floor tex=crystal_rock h=4 ceil=9 ceil_tex=crystal_rock side=crystal_rock dark=0.35
+9 = floor tex=crystal_rock h=4.5 ceil=9.5 ceil_tex=crystal_rock side=crystal_rock dark=0.35
+i = floor tex=crystal_rock h=5 ceil=10 ceil_tex=crystal_rock side=crystal_rock dark=0.35
+j = floor tex=crystal_rock h=5.5 ceil=10.5 ceil_tex=crystal_rock side=crystal_rock dark=0.35
+k = floor tex=crystal_rock h=6 ceil=11 ceil_tex=crystal_rock side=crystal_rock dark=0.35
+// The geode gallery, tall; the crystal chasm the ledge runs along; the moon-pool grotto, open to the
+// sky, and its pool.
+l = floor tex=crystal_rock h=2 ceil=11 ceil_tex=crystal_rock side=crystal_rock dark=0.3
+z = floor tex=crystal_rock h=-12 ceil=9 ceil_tex=crystal_rock side=crystal_rock chasm dark=0.4
+u = floor tex=crystal_rock h=4.5 side=crystal_rock
+w = water tex=water h=3.9 side=crystal_rock
 
 [grid]
 ###########Ø####################Ø###########
@@ -72,11 +125,11 @@ c = floor tex=moon_glass h=0 ceil=13 ceil_tex=silver_slate side=moonstone dark=0
 ###,,,,,ä,,,,,,,,,,,,,,,,,,M,,,,,,ä,,,,,,###
 ###,,,,,,,,,,,,,,,,,,,,,,,,,,M,,,,,,,,,,,###
 ###,,V,,,,Ó,,,,,,,,,G,,,,,,,,,,,Ó,,,,,,,O###
-#Õ##pp#####Õ#########p#########Õ##########Õ#
-#___gg_______________,_____________________#
-#___gg_______________,_____________________#
-#___gg_______________,_____________________#
-#___gg_______________F_____________________#
+#Õ##pp#####Õ########ppp########Õ##########Õ#
+#___gg______________FFF____________________#
+#___gg______________FFF____________________#
+#___gg______________FFF____________________#
+#___gg______________FFF____________________#
 #hhÔ,,ÔÀhhhhhhhhhÔ,,,,,,,ÔÎhhhhhhhhhh,,,,hh#
 #hh,,,Shhhhhhhhhh,,Ä,,,Ä,,hhhhhhhhhhh,,,Ihh#
 #hh,,,,hhhhhhhhhh,,,,,,,,,hhhhhhhhhhL,,,,hh#
@@ -95,27 +148,84 @@ c = floor tex=moon_glass h=0 ceil=13 ceil_tex=silver_slate side=moonstone dark=0
 #hhC,,,,,,,,,,hhhhh,,,,,hhhhhhhhhhhhhhhhhhh#
 #hhhhhh,,,,,,,,,,,,,,,,,,,,,,Íhhhhhhhhhhhhh#
 #hÃhhhhhhhhhhhQQQQQQQQQQQQQQQhhhhhhhhhhhhhh#
-#hhhhhhhhhhhhh,,B,,,,,,,,,,,,hhhhhhhhhhhhhh#
+#hhhhhhhhhhhhh,,,,,,,,,,,,,,,hhhhhhhhhhhhhh#
 #hhhhhhhhhhhhh,,,,,,,,,,,,,,,hhhhhhhhhhhhhh#
 #hhhhhhhhhhhhhÄ,,,,,,,,,,,,,Ähhhhhhhhhhhhhh#
 #hhhhhhhhhhhhh,,,,,,,,,,,,,,,hhhhhhhhhhhhhh#
 #hhhhhhhhhhhhh,,,,,,,,,,,,,,,hhhhhhhhhhhhhh#
-#hhhhhhhhhhhhh,,,,,,,A,,,,,,,hhhhhhhhhhhhhh#
-############################################
+#hhhhhhhhhhhhh,,,,,,,,,,,,,,,hhhhhhhhhhhhhh#
+#hhhhhhhhhhhhh,,,,,,,,,,,,,,,hhhhhhhhhhhhhh#
+#hhhhhhhhhhhhh,,,,,,,,,,,,,,,hhhhhhhhhhhhhh#
+#xxxxxxxxxxxxxqqqqqΑ,,,Αqqqqqxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxooooÄΒαααΒÄooooxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxoÆoooΓβββΓoooÆoxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxoooooΔγγγΔoooooxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxoooooΕδδδΕoooooxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxoooooΖεεεΖoooooxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxoooooΗζζζΗoooooxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxoooooΘηηηΘoooooxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxoooooΙθθθΙoooooxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxoooooΚιιιΚoooooxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxoooooΛκκκΛoooooxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxoooooΜλZλΜoooooxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxoÅoooooooooooÅoxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxoooBoooPÛooooooxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxÄooooooXooooooÄxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxxxxxxxxkxxxxxxxxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxxxxxxxxkxxxxxxxxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxxxxxxxxkkkHkkkxxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxxxxxxxxxxxxxxkxxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxxxxxxxxxxxxxxjxxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxxxxxxxxxxxxxxixxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxxxxxxxxxxxuuuuuÛuuuYxxxxxxxxx#
+#xxxxxxxxxxxxxxxxxxxxxxuYuuuuMuuuuuxx9999Yx#
+#xxxxxxxxxxxxxxxxxxxxxxuuuuuwwwuuuu99999U9x#
+#xxxxxxxxxxxxxxxxxxxxxxuuuuuwwwuuuu999T999x#
+#xxxxxxxxxxxxxxxxxxxxxxuuuuuuuuuMuux9ŷ999xx#
+#xxxxxxxxx6666666666678uuŷuuuuuuuuxxxxxxxxx#
+#xxxxxxxxx5zzzzzzzzzzzxxxxxxxxxxxxxxxxxxxxx#
+#xxxxxxxxx4zzzzzzzzzzzxxxxxxxxxxxxxxxxxxxxx#
+#xxxxxlllllzzzzzzzzzzzxxxxxxxxxxxxxxxxxxxxx#
+#xxxxlYllllzzzzzzzzzzzxxxxxxxxxxxxxxxxxxxxx#
+#xxxxlllllHlllllLlxxxxxxxxxxxxxxxxxxxxxxxxx#
+#xxxxlllTlllYlllllxxxxxxxxxxxxxxxxxxxxxxxxx#
+#xxxxlllllllllHlllxxxxxxxxxxxxxxxxxxxxxxxxx#
+#xxxxlHllŷllllllll4322xxxxxxxxxxxxxxxxxxxxx#
+#xxxxllllllllTllllxxx1xxxxxxxxxxxxxxxxxxxxx#
+#xxxxllYlllllllYllxxx0xxxxxxxxxxxxxxxxxxxxx#
+#xxxxxlllllllllllxx00000xxxxxxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxxxxxY0000H0xxxxxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxxxxx00H0000xxxxxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxxxxx0000000xxxxxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxxxxx000000ŷxxxxxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxxxxx0Ò000Ò0xxxxxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxxxxx000A000xxxxxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx#
 ############################################
 
 [entities]
-// The Vesper Gate home to Harrowmere, in the Gate Court's south wall, and the court's shrine.
+// The Glimmering Cave: the moon-crystal it is lit by, standing and hung from its roof; the Glassmites
+// folded among the crystals; a coffer in the side grotto; the cave's mouth onto the overlook; and on
+// the overlook, the shrine, the view and the grand stair down into the court.
+Y = moon_crystal size=1.2
+ŷ = moon_crystal size=0.7
+H = hanging_crystal
+T = glassmite
+U = chest item=ember_draught count=2 gold=80 model=coffer
+X = crystal_arch yaw=-90 height=8
+P = hint text="Below lies Vesperholm, the Moonbound City.|The moon over it has not moved since the night the Duchess wed it."
+Z = grand_stair run=12 rise=0.5 steps=5 width=3 yaw=-90 on=λ
+// The Vesper Gate home to Harrowmere, at the cave's far end, and the shrine on the overlook.
 A = exit map=harrowmere at=22,2,90 label=Return_to_Harrowmere model=vesper_gate yaw=-90
 B = save_statue
 Q = hint text="The moon here never sets, and it keeps all it shines on.|Nothing in this city has died. Nothing in it lives."
-R = hint text="Across the gorge the castle's drawbridge stands raised.|Its lever must lie on the far side."
+R = hint text="Far below, a bridge of stone lies sunk in the gorge.|Whatever raises it lies on the far side."
 // Duchess Ilvane in the choir of her cathedral, behind its great door.
 D = moon_duchess
 E = door boss=duchess_dead on=n
-// The castle's drawbridge over the gorge, let down by the lever in the bailey: the short way back to
-// the shrine.
-F = bridge lever=vesper_bridge hinge=n deck=0 on=_
+// The great bridge over the gorge, three abreast and four long, sunk 18 m down on the gorge floor until
+// the lever in the bailey raises it out of the deep: the short way back to the shrine.
+F = bridge lever=vesper_bridge rise=18 deck=0 on=_
 G = lever id=vesper_bridge
 // A false wall behind the square's east houses, into a hidden court.
 W = secret_wall on=,

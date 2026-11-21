@@ -581,6 +581,19 @@ def test_bone_crawler_lies_still_until_you_come_close():
     assert c.state in ("chase", "windup")
 
 
+def test_a_glassmite_stays_folded_until_you_come_close_then_springs():
+    t = EnemyTypes.get("glassmite")
+    assert t.lurk and t.brittle and t.material == "stone" and t.moves == ("pounce",)
+    assert any(kind == "frost" for kind, _ in t.inflicts)
+    mite = Enemy(t, 0.0, 0.0, rng=random.Random(1))
+    world = FakeWorld(6.0, 0.0)
+    tick(mite, world, 2.0)
+    assert mite.state == "idle" and (mite.x, mite.z) == (0.0, 0.0)  # a cluster among the crystals
+    world.player_x = 3.0
+    tick(mite, world, 0.2)
+    assert mite.state in ("chase", "windup")
+
+
 def test_warden_flings_embers_or_leaps_from_mid_range():
     seen = set()
     for seed in range(12):

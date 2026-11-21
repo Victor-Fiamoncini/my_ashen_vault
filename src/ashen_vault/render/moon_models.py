@@ -1584,3 +1584,204 @@ def moon_altar(r, taken, t):
         a = i * 1.3 + t * 0.8
         r.part("cube", 0.15 + math.cos(a) * 0.18, 1.4 + u * 2.4, math.sin(a) * 0.22, 0.04, 0.04, 0.04,
                _dim(FROST, 1 - u), glow=True)  # fmt: skip
+
+
+# --- the great bridge over the gorge --------------------------------------------------------------
+
+BRIDGE_DECK = 1.1  # metres of masonry under a great bridge's paving, down to its arches' crowns
+BRIDGE_ARCH = 2.2  # metres from an arch's crown down to where it springs from its piers
+BRIDGE_PIER = 0.9  # metres a pier stands along the span
+BRIDGE_SLICES = 4  # strips of spandrel walling each tile's arch is built of, along the span
+
+
+def great_bridge(r, span, t, moving=False):
+    """One tile of the great bridge of moonstone that rises out of Vesperholm's gorge: its deck paved in
+    moon-paving, a balustraded parapet on its outer side (`span.sides`, -1 or +1 along local X), the
+    walling under it curving down into round arches between its piers, each arch's keystone inlaid with a
+    silver crescent; a pier stands on each of the tile's ends along local Z that `span.piers` names
+    (-1, +1), plunging `span.depth` metres down to the gorge floor, a newel with a lantern of moon-glass
+    on its parapet over the span's ends. Its deck is at y=0; `span.u` is (start, end) of the tile along
+    its arch, 0 and 1 at the piers. `moving` shakes grit off its underside as it rises."""
+    stone, dark = _dim(MOONSTONE, 1.1), MOONSTONE_DARK
+    h = T / 2
+    r.part("cube", 0, -0.06, 0, T, 0.12, T, FACADE, tex="moon_paving")  # the paving
+    r.part("cube", 0, -0.12 - BRIDGE_DECK / 2, 0, T, BRIDGE_DECK, T, stone, tex="moonstone")
+    u0, u1 = span.u
+    step = T / BRIDGE_SLICES
+    for i in range(BRIDGE_SLICES):  # the spandrels, deeper toward the piers where the arch springs
+        u = u0 + (u1 - u0) * (i + 0.5) / BRIDGE_SLICES
+        drop = BRIDGE_ARCH * (1 - math.sqrt(max(0.0, 1 - (2 * u - 1) ** 2)))
+        if drop < 0.05:
+            continue
+        z = -h + step * (i + 0.5)
+        y = -0.12 - BRIDGE_DECK - drop / 2
+        r.part("cube", 0, y, z, T, drop, step + 0.01, _dim(stone, 0.92), tex="moonstone")
+    if u0 <= 0.5 <= u1:  # the keystone over the arch's crown, a crescent inlaid in silver on each face
+        z = -h + T * (0.5 - u0) / max(u1 - u0, 1e-6)
+        for side in (-1, 1):
+            x = side * (h + 0.04)
+            r.part("cube", x, -0.12 - BRIDGE_DECK - 0.1, z, 0.12, 0.7, 0.5, dark, tex="moonstone")
+            for k in range(5):
+                a = math.pi * (0.15 + 0.7 * k / 4)
+                r.part("cube", x + side * 0.07, -0.12 - BRIDGE_DECK + 0.02 - math.sin(a) * 0.22,
+                       z + math.cos(a) * 0.18, 0.03, 0.07, 0.07, SILVER, glow=True)  # fmt: skip
+    for x in (-h + 0.06, h - 0.06):  # string courses under the parapet, along both faces
+        r.part("cube", x, -0.16, 0, 0.18, 0.1, T, dark, tex="moonstone")
+    for side in span.sides:  # the balustrade
+        x = side * (h - 0.16)
+        r.part("cube", x, 0.08, 0, 0.32, 0.16, T, dark, tex="moonstone")  # its plinth
+        for k in range(4):
+            z = -h + T * (k + 0.5) / 4
+            r.part("cyl", x, 0.48, z, 0.16, 0.64, 0.16, stone, tex="moonstone")  # a baluster
+            r.part("sphere", x, 0.42, z, 0.22, 0.2, 0.22, stone, tex="moonstone")  # its belly
+        r.part("cube", x, 0.86, 0, 0.36, 0.12, T, stone, tex="moonstone")  # the handrail
+        r.part("cube", x, 0.94, 0, 0.2, 0.04, T, SILVER)  # silvered along its top
+    for end in span.piers:
+        z = end * (h - BRIDGE_PIER / 2)
+        top = -0.12 - BRIDGE_DECK - BRIDGE_ARCH
+        tall = span.depth + top
+        r.part("cube", 0, top - tall / 2, z, T + 0.2, tall, BRIDGE_PIER, stone, tex="moonstone")
+        for x in (-1, 1):  # cutwater buttresses down its faces
+            r.part("cube", x * (h + 0.22), top - tall / 2, z, 0.44, tall, 0.5, dark, tex="moonstone")
+            r.part("cone", x * (h + 0.22), top + 0.4, z, 0.44, 0.8, 0.5, dark, tex="moonstone")
+        r.part("cube", 0, top + 0.1, z, T + 0.36, 0.2, BRIDGE_PIER + 0.2, dark, tex="moonstone")  # impost
+        if end in span.ends:  # a newel over the span's end, a moon-glass lantern on it
+            for side in span.sides:
+                x = side * (h - 0.16)
+                r.part("cube", x, 0.7, z, 0.46, 1.4, 0.46, dark, tex="moonstone")
+                r.part("cube", x, 1.44, z, 0.56, 0.1, 0.56, stone, tex="moonstone")
+                r.part("cube", x, 1.7, z, 0.24, 0.36, 0.24, LAMP_GLASS, tex="moon_glass", glow=True)
+                r.part("cone", x, 2.0, z, 0.34, 0.24, 0.34, IRON)
+    if moving:  # grit and chips of stone pouring off it as it grinds up
+        for k in range(6):
+            u = (t * 0.8 + k * 0.37) % 1.0
+            x = ((k * 53) % 9 / 9 - 0.5) * T
+            z = ((k * 29) % 7 / 7 - 0.5) * T
+            r.part("cube", x, -1.4 - 9 * u * u, z, 0.12, 0.12, 0.12, dark, rx=u * 5, ry=k)
+            r.part("cube", x * 0.8, -1.6 - 4 * u, z * 0.8, 0.5, 0.3, 0.5, _dim(MOONSTONE, 0.9 - 0.4 * u),
+                   tex="mist")  # fmt: skip
+
+
+# --- the Glimmering Cave under the Vesper Gate ----------------------------------------------------
+
+CRYSTAL = (170, 160, 240)  # moon-crystal: violet in the dark, lit from within
+CRYSTAL_PALE = (220, 226, 255)
+CRYSTAL_DEEP = (92, 82, 168)
+CRYSTAL_ROCK = (250, 252, 255)  # tints the crystal_rock texture it grows out of
+CRYSTAL_ROCK_DARK = (196, 200, 228)
+
+
+def _tint(a, b, k):
+    """The colour `k` (0..1) of the way from `a` to `b`."""
+    return tuple(int(x + (y - x) * k) for x, y in zip(a, b, strict=True))
+
+
+def _prism(r, x, y, z, w, h, rgb, tilt=(0.0, 0.0), lit=True):
+    """A six-sided crystal standing from (x, y, z): a column `h` tall, `w` across, leaning by `tilt`
+    (rx, rz), under a point of paler, brighter crystal."""
+    with r.at(x, y, z, rx=tilt[0], rz=tilt[1]):
+        r.part("cyl", 0, h * 0.4, 0, w, h * 0.8, w, rgb, glow=lit)
+        r.part("cone", 0, h * 0.9, 0, w, h * 0.2, w, _tint(rgb, CRYSTAL_PALE, 0.5) if lit else rgb, glow=lit)
+
+
+def crystal_cluster(r, seed, size=1.0, lit=True):
+    """A cluster of moon-crystal grown out of a lump of cave rock: a tall prism at its heart and a ring
+    of lesser ones leaning out round it, violet deepening to their roots, their points pale."""
+    r.part("sphere", 0, 0.05, 0, 1.0 * size, 0.4 * size, 0.9 * size, CRYSTAL_ROCK, tex="crystal_rock")
+    _prism(r, 0, 0.0, 0, 0.32 * size, 2.0 * size, CRYSTAL, lit=lit)
+    n = 5 + seed % 3
+    for i in range(n):
+        a = i * 2 * math.pi / n + seed * 0.7
+        lean = 0.35 + 0.15 * ((seed + i) % 3)
+        out = 0.3 * size
+        h = (0.7 + 0.25 * ((seed * 3 + i) % 4)) * size
+        rgb = (CRYSTAL, CRYSTAL_DEEP, _tint(CRYSTAL, CRYSTAL_PALE, 0.3))[(seed + i) % 3]
+        _prism(r, math.cos(a) * out, 0.0, math.sin(a) * out, 0.18 * size, h, rgb,
+               tilt=(math.sin(a) * lean, -math.cos(a) * lean), lit=lit)  # fmt: skip
+
+
+def moon_crystal(r, seed, size=1.0):
+    """A cluster of moon-crystal in the Glimmering Cave, the light it gives the cave's only light."""
+    crystal_cluster(r, seed, size)
+
+
+def crystal_arch(r, seed, height=12.0):
+    """The cave's mouth onto the overlook, seen from outside: a ragged front of crystal rock standing on
+    the -X edge of its tile from the cave's ceiling up to the cliff's top, crystals jutting from its
+    brow and down its sides like teeth, catching the moon."""
+    top = 5.0  # the opening's crown, just under the mouth's ceiling
+    r.part("cube", -0.9, (top + height) / 2, 0, 0.5, height - top, 2.6, CRYSTAL_ROCK, tex="crystal_rock")
+    for k in range(5):  # the ragged brow over the opening
+        z = -0.9 + k * 0.45
+        drop = 0.3 + 0.25 * ((seed + k * 3) % 3)
+        r.part(
+            "sphere", -0.7, top - drop * 0.3, z, 0.5, drop + 0.3, 0.5, CRYSTAL_ROCK_DARK, tex="crystal_rock"
+        )
+    for z in (-1, 1):  # boulders heaped either side of the way in, against the cliff
+        r.part("sphere", -0.6, 0.5, z * 1.3, 0.9, 1.1, 0.7, CRYSTAL_ROCK, tex="crystal_rock")
+        r.part("sphere", -0.75, 2.8, z * 1.3, 0.6, 1.8, 0.6, CRYSTAL_ROCK_DARK, tex="crystal_rock")
+    for k, (y, z, h, rz) in enumerate(((top + 0.2, -0.6, 1.1, 2.6), (top + 0.1, 0.5, 0.9, 3.4),
+                                       (top + 1.4, 0.0, 1.4, 2.2), (2.0, -1.1, 1.0, 1.9), (3.1, 1.1, 0.8, -1.9),
+                                       (top + 2.6, -0.9, 0.7, 1.6))):  # fmt: skip
+        _prism(r, -0.62, y, z, 0.2 + 0.05 * (k % 2), h, (CRYSTAL, CRYSTAL_DEEP)[k % 2], tilt=(0.0, rz))
+
+
+def glassmite(r, e, t):
+    """The Glassmite: a crawler of the crystal caves on six jointed legs, its segmented shell grown over
+    with moon-crystal. Folded down and still, it is only one more cluster among the crystals (its legs
+    tucked under, its head drawn in). Woken, it rises and skitters, its mandibles working; through its
+    windup it crouches and the crystals on its back burn brighter, then it springs. Slain, its legs fold
+    and its crystals go dark and fall from it."""
+    seed = int(abs(e.home_x * 3 + e.home_z * 7))
+    fall = death_fall(e, 0.5)
+    lit = e.alive
+    if e.state == "idle":  # folded among the crystals: a cluster like any other, a little lower
+        with r.at(0, -0.15, 0):
+            crystal_cluster(r, seed, 0.6)
+        return
+    shell = hit_tint((236, 232, 255)) if e.flashing else (78, 82, 110)
+    shade = _dim(shell, 0.7)
+    running = e.state == "chase"
+    gait = math.sin(t * 15) * 0.5 if running else 0.0
+    crouch = charge = leap = 0.0
+    if e.state == "windup":
+        charge = _ease(min(e.state_t / max(e.windup_time, 1e-3), 1.0))
+        crouch = -0.16 * charge
+    elif e.state == "attack":
+        leap = 1.0
+        charge = 1.0
+    y0 = (0.42 + crouch + 0.1 * leap) * (1 - fall) + 0.34 * fall
+    glow = _tint(CRYSTAL, CRYSTAL_PALE, charge) if lit else GLOW_COLD
+    with r.at(0, y0, 0, rz=0.15 * leap - 0.1 * crouch * 3):
+        for i, (x, w) in enumerate(((0.3, 0.42), (0.0, 0.56), (-0.32, 0.5), (-0.6, 0.34))):  # the segments
+            r.part("sphere", x, 0.02 + 0.03 * (i == 1), 0, 0.36, 0.3 - 0.03 * i, w, shell if i % 2 else shade)
+            r.part("cube", x - 0.14, 0.12, 0, 0.04, 0.1, w * 0.9, _dim(shell, 0.55))  # the joint between
+        for k in range(6):  # crystals grown up out of its back
+            x = 0.12 - k * 0.15
+            z = (((seed + k) % 3) - 1) * 0.12
+            h = 0.3 + 0.12 * ((seed + k * 2) % 3)
+            if fall > 0.3 and k % 2:  # slain, its crystals break off and lie beside it
+                with r.at(x, -0.1 - 0.1 * fall, z + (0.45 if k % 4 == 1 else -0.45)):
+                    _prism(r, 0, 0, 0, 0.1, h, glow, tilt=(1.4, 0.3), lit=lit)
+                continue
+            _prism(r, x, 0.1, z, 0.1, h, glow, tilt=(z * 2.2, 0.2 - 0.06 * k), lit=lit)
+        for side in (-1, 1):  # six legs, two joints each, splaying out and down
+            for j, x in enumerate((0.24, -0.04, -0.34)):
+                phase = (j + (side > 0)) % 2 * math.pi
+                swing = math.sin(t * 15 + phase) * 0.35 * (gait != 0) * (1 - fall)
+                spread = 0.6 + 0.5 * leap - 0.4 * fall
+                with r.at(x, 0.0, side * 0.22, ry=swing + side * (j - 1) * 0.3, rx=-side * spread):
+                    r.part("cube", 0, 0, side * 0.2, 0.06, 0.06, 0.4, shell)  # the upper leg
+                    with r.at(0, 0, side * 0.4, rx=side * (1.6 - 0.6 * leap + 0.8 * fall)):
+                        r.part("cube", 0, 0, side * 0.2, 0.05, 0.05, 0.42, shade)  # the lower leg
+                        r.part(
+                            "cone", 0, 0, side * 0.44, 0.06, 0.1, 0.06, CRYSTAL_DEEP, rx=side * math.pi / 2
+                        )
+        with r.at(0.52, 0.0, 0, rz=-0.15 + 0.3 * charge):  # the head, low and wedge-shaped
+            r.part("sphere", 0.06, 0, 0, 0.3, 0.2, 0.32, shade)
+            for side in (-1, 1):
+                r.part("cube", 0.16, 0.06, side * 0.08, 0.04, 0.04, 0.04, glow, glow=lit)  # its eyes
+                bite = 0.25 + 0.3 * math.sin(t * 12) * (e.state != "idle") * (1 - fall) + 0.3 * charge
+                with r.at(0.18, -0.05, side * 0.09, ry=-side * bite):  # its mandibles, working
+                    r.part("cube", 0.12, 0, 0, 0.24, 0.04, 0.05, _dim(shell, 1.3))
+                    r.part("cone", 0.25, 0, side * -0.02, 0.05, 0.08, 0.05, CRYSTAL_PALE, rz=-math.pi / 2)

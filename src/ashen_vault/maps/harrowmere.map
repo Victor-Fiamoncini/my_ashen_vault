@@ -355,7 +355,7 @@ z = mushrooms on=y
 // The Vesper Gate in the north wall, at the head of the cathedral steps: pale stone, standing open on
 // Vesperholm. Nobody in town remembers it shut, or why it was opened. Lamps flank it and banners line
 // the porch on the way up, so it reads from the foot of the steps.
-( = exit map=vesperholm at=21,54,-90 label=Pass_the_Vesper_Gate model=vesper_gate yaw=90 on=;
+( = exit map=vesperholm at=21,100,-90 label=Pass_the_Vesper_Gate model=vesper_gate yaw=90 on=;
 // A cold light beside it, so its pale stone shows at the top of the porch.
 ) = light y=4.5 color=0.62,0.7,0.92 radius=7 on=;
 // The north road, out through the wall to the Cinderhold.

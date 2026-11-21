@@ -1072,6 +1072,31 @@ class EnemyTypes:
                 inflicts=(("rot", 25), ("frost", 25)),
             ),
             EnemyType(
+                id="glassmite",
+                material="stone",
+                name="Glassmite",
+                # A crawler of the caves under the Vesper Gate, its back grown over with the moon-crystal
+                # it feeds on. Folded down it is one more cluster among the crystals; walk too close and
+                # it unfolds on six legs and springs. Blunt weapons shatter its shell; edges skate off.
+                hp=55,
+                speed=2.6,
+                damage=14,
+                reach=1.5,
+                sight=3.6,
+                windup=0.5,
+                recover=0.9,
+                exp=40,
+                gold=range(8, 20),
+                radius=0.55,
+                height=0.9,
+                tall=1.2,
+                poise=8,
+                lurk=True,
+                brittle=True,
+                moves=("pounce",),
+                inflicts=(("frost", 25),),
+            ),
+            EnemyType(
                 id="moon_duchess",
                 material="spirit",
                 name="Duchess Ilvane",

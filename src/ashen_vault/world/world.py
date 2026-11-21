@@ -239,6 +239,7 @@ BLOCKING_PROPS = (
     "moon_lamp",
     "veiled_statue",
     "silver_tree",
+    "moon_crystal",
     "old_idol",
     "lyra_statue",
 )
@@ -374,6 +375,9 @@ STATIC_PROPS = frozenset(
             "moon_spire",
             "moon_roof",
             "moon_portal",
+            "moon_crystal",
+            "hanging_crystal",
+            "crystal_arch",
         ),
         *("prisoner_remains", "old_idol", "sunken_tower", "lyra_statue"),
         "wall_crack",
@@ -534,6 +538,7 @@ MAIDEN_CYCLE = 3.0  # seconds the iron maiden's door stays in motion after use
 FROG_CROAK = 1.2  # seconds the stone frog's throat swells after a pat
 FROG_GOLD = 33  # coins the frog coughs up the first time it is patted
 # Turns that put a drawbridge model's hinge (its local -X edge) on the named side of its tile.
+BRIDGE_RISING = "Deep in the gorge, stone grinds against stone."
 BRIDGE_YAW = {"w": 0.0, "e": math.pi, "n": -math.pi / 2, "s": math.pi / 2}
 FOG_WALK_SPEED = 1.6  # m/s: you push through a boss's fog at a slow, steady walk (World.cross_fog)
 KINDLING = ("brazier", "bonfire")  # the fires a flame can set alight (`unlit` ones stand cold)
@@ -620,6 +625,9 @@ class World:
             for s in self.map.entities
             if s.kind == "bridge"
         }
+        self._bridge_spans = terrain.bridge_spans(
+            self.terrain.platforms
+        )  # how each stone bridge tile is built
         self._piles = {(TileMap.tile_coord(c.x), TileMap.tile_coord(c.z)) for c in self.terrain.chutes}
         self._fences = {(e.tx, e.tz) for e in self.map.entities if e.kind == "fence"}
         # Thorn floors grow spiked plants; each one's spikes rise (0..1) when stepped in.
@@ -3039,10 +3047,17 @@ class World:
         for g in self.props:
             if g.kind == "gate" and g.props.get("lever") == p.props.get("id"):
                 g.open_t = 0.01
+        rising = False
         for bridge in self.terrain.platforms:
             if bridge.lever and bridge.lever == p.props.get("id"):
                 bridge.locked = False
-                self.game.sfx("chain", 0.8)
+                if bridge.rise:
+                    rising = True
+                else:
+                    self.game.sfx("chain", 0.8)
+        if rising:  # a stone bridge grinds up out of its chasm: one long rumble for all its spans
+            self.game.sfx("stone_rise", 1.0)
+            self.game.message(BRIDGE_RISING)
 
     # --- rampart dressing ------------------------------------------------------
 
