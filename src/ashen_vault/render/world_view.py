@@ -1022,6 +1022,13 @@ PROP_DRAWERS = {
     "sunken_tower": lambda view, rig, p, t: sunken_models.sunken_tower(
         rig, p.tx * 7 + p.tz * 3, float(p.props.get("height", "18"))
     ),
+    "wall_crack": lambda view, rig, p, t: sunken_models.wall_crack(
+        rig,
+        int(p.props["seed"]),
+        float(p.props["height"]),
+        float(p.props.get("reach", "2")),
+        p.props.get("seep") == "true",
+    ),
     "sun_shaft": _draw_sun_shaft,
     "ward_crystal": lambda view, rig, p, t: sunken_models.ward_crystal(rig, t + p.tx, view.world.ward_set),
     "energy_core": _draw_energy_core,

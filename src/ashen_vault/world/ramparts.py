@@ -50,7 +50,7 @@ def _faces(map_, clear):
     taken = {(e.tx, e.tz) for e in map_.entities}
     out = {}
     for tx, tz, tile in map_.each_tile():
-        if tile.dress != DRESS or not tile.solid or (tx, tz) in taken:
+        if DRESS not in (tile.dress or "").split(",") or not tile.solid or (tx, tz) in taken:
             continue
         for dx, dz in FACES:
             ox, oz = tx + dx, tz + dz

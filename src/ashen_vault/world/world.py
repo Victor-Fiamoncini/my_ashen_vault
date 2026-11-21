@@ -42,6 +42,7 @@ from ashen_vault.world import (
     terrain,
     vault,
     villagers,
+    wall_cracks,
 )
 from ashen_vault.world.arena import Arena, flood
 from ashen_vault.world.ash import AshCloud
@@ -343,6 +344,7 @@ LANDMARKS = (
     "sunken_tower",
     "sun_shaft",
     "waterfall",
+    "wall_crack",
 )
 # Props that never move, open, break or flicker: they are baked once into world-space batches
 # (`render/prop_bake.py`) instead of being drawn part by part every frame. A prop drawn with the time
@@ -371,6 +373,7 @@ STATIC_PROPS = frozenset(
             "moon_portal",
         ),
         *("prisoner_remains", "old_idol", "sunken_tower"),
+        "wall_crack",
         "ash_mound",
         "spire",
     }
@@ -385,6 +388,8 @@ FACING_PROPS = (
 )
 # Ways through a wall that its rampart bays keep clear of (`World._dress_ramparts`).
 RAMPART_GATES = ("exit", "cemetery_gate", "door", "gate", "door_arch", "moon_portal", "cathedral_portal")
+# What the cracks down a cavern's walls keep two tiles clear of (`World._dress_cracks`), besides gates.
+CRACK_CLEAR = ("lift", "secret_wall", "waterfall")
 # Harrowmere's buildings, furniture and street dressing (`render/town_models.py`).
 TOWN_PROPS = (
     "rampart_bay",
@@ -731,6 +736,7 @@ class World:
                 if spec.kind in SPILLING_PROPS and prop.open_t > 0:
                     self._spill(prop)  # a potion left lying in an earlier visit is still there
         self._dress_ramparts()
+        self._dress_cracks()
         self._respill_slain_loot()
         if (
             "boss_dead" in self.flags
@@ -3056,6 +3062,40 @@ class World:
                     props={"kind": bay.kind, "height": f"{bay.height:g}"},
                     key=None,
                     yaw=bay.yaw,
+                )
+            )
+
+    def _dress_cracks(self):
+        """Great cracks down the cavern's tall walls (`world/wall_cracks.py`), kept clear of doors,
+        gates, lifts, falls and of anything hung on the wall."""
+        clear = set()
+        for e in self.map.entities:
+            if e.kind in RAMPART_GATES or e.kind in CRACK_CLEAR:
+                reach = 2
+            elif e.kind in WALL_PROPS:
+                reach = 1
+            else:
+                continue
+            clear.update(
+                (e.tx + i, e.tz + j) for i in range(-reach, reach + 1) for j in range(-reach, reach + 1)
+            )
+        for c in wall_cracks.cracks(self.map, frozenset(clear)):
+            self.props.append(
+                Prop(
+                    kind="wall_crack",
+                    x=c.x,
+                    z=c.z,
+                    y=c.y,
+                    tx=c.tx,
+                    tz=c.tz,
+                    props={
+                        "height": f"{c.height:g}",
+                        "reach": f"{c.reach:g}",
+                        "seed": str(c.seed),
+                        "seep": "true" if c.seep else "false",
+                    },
+                    key=None,
+                    yaw=c.yaw,
                 )
             )
 

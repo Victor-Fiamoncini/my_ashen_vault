@@ -4,6 +4,7 @@ crack overhead, the drowned towers of its skyline and the breach in the cistern 
 Original low-poly models assembled from primitives; like everything in `models`, they face +X."""
 
 import math
+import random
 
 from ashen_vault.ai.enemy import STATUE_BURST
 from ashen_vault.render.parts import (
@@ -1052,6 +1053,85 @@ def sunken_tower(r, seed, height=18.0):
         h = 0.6 + ((seed + i * 3) % 4) * 0.5
         r.part("cube", math.cos(a) * top * 0.4, y + h / 2, math.sin(a) * top * 0.4, 0.7, h, 0.7, TOWER_LIT,
                tex="sunken_brick", ry=a)  # fmt: skip
+
+
+CRACK_CORE = (22, 18, 16)  # the black of a fissure's depth
+CRACK_LIP = (52, 44, 38)  # the shadowed stone either side of it
+CRACK_SEEP = _dim(CORE_TEAL, 0.2)  # the mortar-light seeping faintly up its depth, in a few
+CRACK_OUT = (0.06, 0.1, 0.13)  # how far off the wall its lip, core and seep lie: so no depth fight shows
+
+
+def _crack_path(rng, y, z, height, reach, step, lean, wobble):
+    """[(y, z)] of a fissure climbing from (y, z) to `height`, jagged by `wobble`, kept within `reach`."""
+    pts = [(y, z)]
+    while y < height - 1e-6:
+        a = lean + rng.uniform(-wobble, wobble)  # from straight up, toward +z
+        d = min(step * rng.uniform(0.6, 1.3), (height - y) / max(math.cos(a), 0.3))
+        y, z = y + d * math.cos(a), max(-reach, min(reach, z + d * math.sin(a)))
+        pts.append((min(y, height), z))
+    return pts
+
+
+def _crack_seg(r, a, b, width, out, rgb, glow=False):
+    """One straight stretch of fissure from face point `a` to `b` ((y, z) each), a quad lying on the
+    wall (`wall_crack` draws in a frame turned so a quad's face looks out of it)."""
+    (y0, z0), (y1, z1) = a, b
+    dy, dz = y1 - y0, z1 - z0
+    length = math.hypot(dy, dz)
+    if length < 1e-3:
+        return
+    # the frame's local x runs down the wall and local z along it; its local y is out of the wall
+    r.part("quad", -(y0 + y1) / 2, out, (z0 + z1) / 2, length + width, 1, width, rgb,
+           ry=math.atan2(-dz, -dy), glow=glow)  # fmt: skip
+
+
+def wall_crack(r, seed, height, reach=2.0, seep=False):
+    """A great crack split down a cavern wall, its foot at the origin and the wall's face the local
+    YZ plane (+X out of it): a long jagged fissure climbing `height` metres, wandering no farther than
+    `reach` to either side, widest in its middle and closing to a hair at its ends, with offshoots
+    forking off it and a few of those forking again. Each stretch is a black core over a wider lip of
+    shadowed stone, laid a hair off the wall. In a few (`seep`), the mortar-light that runs in the old
+    city's stone seeps faintly teal through the middle of the trunk; most are dark."""
+    rng = random.Random(seed)  # the same crack is always split the same way
+    lip_out, core_out, seep_out = CRACK_OUT
+    big = min(1.0, height / 20)
+    width = 0.2 + 0.16 * big  # at its widest
+    step = 1.0 + 0.8 * big
+    trunk = _crack_path(rng, 0.0, rng.uniform(-0.3, 0.3) * reach, height, reach * 0.8, step,
+                        rng.uniform(-0.15, 0.15), 0.55)  # fmt: skip
+    with r.at(rz=-math.pi / 2):
+        n = len(trunk) - 1
+        for i in range(n):
+            k = (i + 0.5) / n
+            w = width * (0.25 + 0.75 * math.sin(math.pi * k) ** 0.6)  # closing toward both ends
+            _crack_seg(r, trunk[i], trunk[i + 1], w * 2.2, lip_out, CRACK_LIP)
+            _crack_seg(r, trunk[i], trunk[i + 1], w, core_out, CRACK_CORE)
+            if seep and 0.2 < k < 0.8:  # a thread of light deep in the dark
+                _crack_seg(r, trunk[i], trunk[i + 1], w * 0.35, seep_out, CRACK_SEEP, glow=True)
+        for i in range(1, n - 1):  # the offshoots, forking off the trunk now and then
+            if rng.random() > 0.42:
+                continue
+            k = i / n
+            side = rng.choice((-1, 1))
+            y, z = trunk[i]
+            rise = rng.uniform(1.5, 4.5) * (0.6 + big)
+            if rng.random() < 0.35 and y > rise:  # a few run down from the trunk instead
+                shoot = [(-py, pz) for py, pz in _crack_path(
+                    rng, -y, z, -y + rise, reach, step * 0.6, side * rng.uniform(0.6, 1.1), 0.4)]  # fmt: skip
+            else:
+                shoot = _crack_path(rng, y, z, min(height, y + rise), reach, step * 0.6,
+                                    side * rng.uniform(0.6, 1.1), 0.4)  # fmt: skip
+            bw = width * 0.45 * (0.4 + 0.6 * math.sin(math.pi * k))
+            for j in range(len(shoot) - 1):
+                w = bw * (1 - j / len(shoot))
+                _crack_seg(r, shoot[j], shoot[j + 1], w * 2, lip_out, CRACK_LIP)
+                _crack_seg(r, shoot[j], shoot[j + 1], w, core_out, CRACK_CORE)
+                if j == 0 and len(shoot) > 2 and rng.random() < 0.5:  # a hairline forking off it again
+                    y2, z2 = shoot[1]
+                    hair = _crack_path(rng, y2, z2, min(height, y2 + rng.uniform(0.8, 2.0)), reach, step * 0.4,
+                                       -side * rng.uniform(0.3, 0.8), 0.3)  # fmt: skip
+                    for m in range(len(hair) - 1):
+                        _crack_seg(r, hair[m], hair[m + 1], w * 0.5, core_out, CRACK_CORE)
 
 
 BREACH_HALF = 0.82  # half the width of the passage through the hole in the wall
