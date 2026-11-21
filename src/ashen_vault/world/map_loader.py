@@ -200,6 +200,10 @@ class MapLoader:
                 wall_tex=p.get("side", "stone_brick"),
                 ceil_tex=p.get("ceil_tex", "rough_stone"),
             )
+        afflict = None
+        if "afflict" in p:
+            kind, rate = p["afflict"].split(":")
+            afflict = (kind, float(rate))
         flow = None
         if "flow" in p:
             fx, fz = (float(v) for v in p["flow"].split(","))
@@ -218,6 +222,7 @@ class MapLoader:
             flow=flow,
             slow=float(p.get("slow", "1")),
             chasm="chasm" in p,
+            afflict=afflict,
         )
 
     def _parse_entities(self, lines):

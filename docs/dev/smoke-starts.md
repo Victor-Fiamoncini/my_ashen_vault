@@ -6,7 +6,7 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   another prop is opened first.
 - The `smoke:` line includes the player's height (`y=`), handy for checking lifts.
 - Ailment borders: `--map abandoned_prison --at 15,21,180 --smoke 60 --afflict
-  bleed,corrosion,poison,rot,frost` shows them all combined; bleed's and corrosion's last only
+  bleed,corrosion,poison,toxic,rot,frost` shows them all combined; bleed's and corrosion's last only
   `ailments.FLARE_TIME` (2.5 s), so keep `--smoke` under 150 frames for those.
 - The Abandoned Prison (`abandoned_prison`): `--map abandoned_prison` (its `start`, in the gaol's shaft
   at the foot of the ladder; `--at=15,32,90 --script "back:0.3 look_up:0.5"` looks up the shaft at the grate;
@@ -44,6 +44,12 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   --at=12,11,60` (from the cathedral's terrace over the clay roofs), `--map harrowmere --at=30,39,180` (the
   harbour, Tamsin's hipped roof behind), `--map harrowmere --at=43,29,0` (the east lane up to the gap, Garrick
   on its corner),
+  `--map cinderhold` (its `start`: the Sallow Fen's foot, the north road behind you), `--map cinderhold
+  --at=30,104,-90` (the causeway north from the watch-post shrine), `--map cinderhold --at=10,88,-90 --script
+  "wait:0.3 interact"` (smother the west beacon; the others stand at 49,91 and 46,75),
+  `--map cinderhold --at=39,78,0 --level 8` (the Mire Tyrant on the north island), `--map cinderhold
+  --at=30,72,-90 --flags lever:fen_beacons --script forward:3` (through the open fen gate onto the ash road),
+  `--map cinderhold --at=31,74,90 --script interact` (the drawbridge lever),
   `--map cinderhold --at=29,52,-90 --script "look_up:0.15"` (the long bridge and the fortress's skyline), `--map cinderhold --at=28,30,180`
   (the postern ledge and its flame jets), `--map cinderhold --at=18,17,180` (the foundry),
   `--map cinderhold --at=5,24,0` (the smelter pits), `--map cinderhold --at=47,3,180 --script interact`

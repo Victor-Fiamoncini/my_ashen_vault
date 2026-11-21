@@ -47,6 +47,7 @@ SHOP_NAMES = {
 # Stock a shop adds once a save flag is set: shop -> (flag, items). Once the mortar-light is quenched
 # the gaolers' frozen stores open, and Ysolde shelves what she finds there beside her copies.
 SHOP_EXTRAS = {
+    "tamsin": ("visited_sallow_fen", ["fenbane"]),
     "ysolde": ("core_quenched:old_harrowmere", ["menders_kit", "red_tonic", "clotting_salve", "grave_lily"]),
 }
 REPAIRERS = {"brannoc"}  # smiths whose shop opens with a "Mend gear" row (`Game` scene "repair")

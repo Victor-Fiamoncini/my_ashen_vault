@@ -656,17 +656,21 @@ class Game:
         self._update_world(dt)
 
     def _update_ailments(self, dt):
-        """Ailment meters drain, and poison bites (it can kill: see player/ailments.py)."""
+        """Ailment meters drain, and poison and toxic bite (they can kill: see player/ailments.py)."""
         p = self.player
         if not p.alive:
             return
-        was = p.ailments.poisoned
+        was_poisoned, was_toxic = p.ailments.poisoned, p.ailments.toxic
         lost = p.ailments.update(dt, p.stats.max_hp)
         if lost:
             p.stats.hurt(lost)
             self.sfx("hiss", 0.35)
-        if was and not p.ailments.poisoned and p.alive:
+        if not p.alive:
+            return
+        if was_poisoned and not p.ailments.poisoned:
             self.message("The poison runs its course.")
+        if was_toxic and not p.ailments.toxic:
+            self.message("The toxin ebbs from your blood.")
 
     def _axis(self, pos, neg):
         return (1 if self._input.down(pos) else 0) - (1 if self._input.down(neg) else 0)
@@ -1121,6 +1125,7 @@ class Game:
             "frog_idol": "[E] Pat the stone frog",
             "silent_bell": "[E] Touch the Silent Bell",
             "brazier": "[E] Look at the cold brazier",
+            "fen_beacon": "[E] Smother the beacon",
             "bonfire": "[E] Look at the cold ashes",
             "altar": f"[E] Take the {Items.get(p.props.get('item', 'warden_key')).name}",
         }.get(p.kind)
@@ -1154,6 +1159,8 @@ class Game:
                 self.message("Somewhere chains rattle, and iron grinds against stone.")
         elif k in ("brazier", "bonfire"):
             self.message("Cold ashes. It wants a flame.")
+        elif k == "fen_beacon":
+            self.world.douse(prop)
         elif k == "save_statue":
             self._open_shrine()
         elif k == "remnant":

@@ -226,7 +226,7 @@ trademarks of FromSoftware, Inc. (*Dark Souls* is published by Bandai Namco Ente
   the right one Secondary. Two-handed weapons fill both. The best gear needs a higher level.
 - **Gear that weighs and wears**: a heavy load slows you and costs more stamina; weapons dull, shields
   crack and armor splits until the smith mends them. Body armor and gauntlets change the arms you see.
-- **Ailments**: poison, bleeding, rot, corrosion and moon-frost build up with each blow from the foes
+- **Ailments**: poison, toxin, bleeding, rot, corrosion and moon-frost build up with each blow from the foes
   that carry them, and each one that takes hold marks the edges of the view. The herbalist sells their
   remedies.
 - **Spells taught by scrolls**: Flame Bolt, Mend, Lumen, Ashen Ward, Venom Dart, Veil of Mist, Pyre,

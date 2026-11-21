@@ -558,6 +558,14 @@ class Items:
                 desc="A warm red cordial. Thaws moon-frost and its buildup from the blood.",
             ),
             Item(
+                id="fenbane",
+                name="Fenbane Tincture",
+                kind="consumable",
+                price=70,
+                cures=("toxic", "poison"),
+                desc="A bitter violet tincture steeped from fen reeds. Purges toxin and poison from the blood.",
+            ),
+            Item(
                 id="menders_kit",
                 name="Mender's Kit",
                 kind="repair",

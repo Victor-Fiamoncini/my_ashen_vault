@@ -778,7 +778,7 @@ def test_cinderhold_loads_with_its_bridge_fortress_and_the_way_up_to_its_keep():
         assert foe in kinds
     for hazard in ("flame_jet", "magma_vent"):
         assert hazard in kinds
-    assert kinds.count("save_statue") == 2
+    assert kinds.count("save_statue") == 3  # the fen's watch-post, the wayside and the gatehouse
     assert {"spire", "anvil"} <= set(kinds)
     assert any(t.lava for _, _, t in m.each_tile())
     # The long bridge: a deck at least twenty tiles long running north over the lava gorge.
@@ -790,8 +790,10 @@ def test_cinderhold_loads_with_its_bridge_fortress_and_the_way_up_to_its_keep():
     # The tower stair ends high above everything, at the door into the keep.
     (door,) = _spec(m, "exit", map="cinder_keep")
     assert m[door.tx, door.tz].floor >= 11 and door.props["boss"] == "gargoyles_dead"
-    # Every chest in the fortress is iron, and so is the mimic hiding among them.
-    assert {s.props.get("model") for s in _spec(m, "chest") + _spec(m, "mimic")} == {"iron"}
+    # Every chest in the fortress is iron, and so is the mimic hiding among them; the fen's are worn.
+    (fen_gate,) = _spec(m, "gate", lever="fen_beacons")
+    fort = [s for s in _spec(m, "chest") + _spec(m, "mimic") if s.tz < fen_gate.tz]
+    assert {s.props.get("model") for s in fort} == {"iron"}
     # The new loot is in its chests.
     items = {s.props.get("item") for s in _spec(m, "chest")}
     assert {"scroll_thunder", "scroll_motes", "stormbrand", "slagbreaker", "forge_key"} <= items
@@ -815,18 +817,25 @@ def test_cinderhold_skyline_has_no_two_towers_alike_and_stands_out_of_reach():
 
 def test_cinderhold_is_solvable():
     """Every chest, lever and the door up into the keep can be reached with only the honest doors and
-    the false wall opened: the forge key's chest without its door. The main gate and the smelter lift are
-    shortcuts, each joining two places you can already reach. Nowhere strands you."""
+    the false wall opened, and the fen gate once its beacons are out: the forge key's chest without its
+    door. The main gate, the smelter lift and the fen's drawbridge are shortcuts, each joining two places
+    you can already reach. Nowhere strands you."""
     m = _cinder()
     lava = _lava(m)
     start = tuple(int(v) for v in m.meta["start"][:2])
     reach = _reachable(m, start, avoid=lava)
+    (fen_gate,) = _spec(m, "gate", lever="fen_beacons")
+    beacons = _spec(m, "fen_beacon", gate="fen_beacons")
+    assert len(beacons) == 3
+    for b in beacons:  # solid: you smother it from beside it, before the gate opens
+        assert {(b.tx + dx, b.tz + dz) for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1))} & reach, b
+    assert (fen_gate.tx, fen_gate.tz - 1) not in reach
     (key_chest,) = [s for s in _spec(m, "chest") if s.props.get("item") == "forge_key"]
     (key_door,) = _spec(m, "door", key="forge_key")
     (postern,) = [s for s in _spec(m, "door") if not s.props.get("key") and not s.props.get("boss")]
     secrets = [(s.tx, s.tz) for s in _spec(m, "secret_wall")]
     bosses = [(s.tx, s.tz) for s in _spec(m, "door") if s.props.get("boss")]  # the roof's great door
-    honest = [(postern.tx, postern.tz), *secrets, *bosses]
+    honest = [(postern.tx, postern.tz), (fen_gate.tx, fen_gate.tz), *secrets, *bosses]
     before_key = _reachable(m, start, open_tiles=honest, avoid=lava)
     assert (key_chest.tx, key_chest.tz) in before_key
     (keep,) = _spec(m, "exit", map="cinder_keep")
@@ -840,9 +849,10 @@ def test_cinderhold_is_solvable():
             around = {(s.tx + dx, s.tz + dz) for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1))}
             assert around & opened, (s.kind, s.tx, s.tz)
     (store,) = [s for s in _spec(m, "chest") if s.props.get("item") == "stormbrand"]
-    assert (store.tx, store.tz) not in _reachable(m, start, open_tiles=[(postern.tx, postern.tz)], avoid=lava)
+    gates = [(postern.tx, postern.tz), (fen_gate.tx, fen_gate.tz)]
+    assert (store.tx, store.tz) not in _reachable(m, start, open_tiles=gates, avoid=lava)
     # The main gate joins the bridge to the gatehouse; the lift joins the pits to the guardroom.
-    (gate,) = _spec(m, "gate")
+    (gate,) = _spec(m, "gate", lever="hold_gate")
     assert {(gate.tx, gate.tz - 1), (gate.tx, gate.tz + 1)} <= opened
     for p in terrain.build_platforms(m):
         if not p.locked:
@@ -917,7 +927,7 @@ def test_cinderhold_gate_shortcut_cuts_the_way_back_to_the_bridge():
     gate, once raised, opens straight onto it."""
     m = _cinder()
     shrine = min(_spec(m, "save_statue"), key=lambda s: s.tz)
-    (gate,) = _spec(m, "gate")
+    (gate,) = _spec(m, "gate", lever="hold_gate")
     (postern,) = [s for s in _spec(m, "door") if not s.props.get("key") and not s.props.get("boss")]
     here = (shrine.tx - 1, shrine.tz)
     bridge = (gate.tx, gate.tz + 2)

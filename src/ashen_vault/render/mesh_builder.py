@@ -64,8 +64,10 @@ LIGHT_KINDS = (
     "sump_caps",
     "energy_core",
     "street_arch",
+    "fen_beacon",
 )
 LIGHT_Y = {
+    "fen_beacon": "3.1",
     "energy_core": "2.4",
     "save_statue": "2.4",
     "lamp_post": "2.6",
@@ -92,6 +94,7 @@ LIGHT_Y_WALL = {
     "moon_window": "2.2",
 }
 LIGHT_COLOR = {
+    "fen_beacon": "0.8,0.35,1.1",
     "energy_core": "0.45,1.25,1.0",
     "fungus": "0.3,0.85,0.65",
     "sump_caps": "0.62,0.74,0.3",
@@ -113,6 +116,7 @@ LIGHT_COLOR = {
     "moon_window": "0.58,0.68,0.98",
 }
 LIGHT_RADIUS = {
+    "fen_beacon": "10",
     "energy_core": "9",
     "save_statue": "6",
     "hearth": "6",
@@ -138,7 +142,10 @@ WALL_LIGHTS = (
     *("torch", "shelf_fungus", "hearth", "window", "barred_window", "great_window", "rose_window"),
     "moon_window",
 )
-QUENCHABLE = ("energy_core",)  # lights that go out for good: `lights_for`'s `lit` says whether they burn
+QUENCHABLE = (
+    "energy_core",
+    "fen_beacon",
+)  # lights that go out for good: `lights_for`'s `lit` says whether they burn
 DIRS = ((1, 0), (-1, 0), (0, 1), (0, -1))
 # On a map with `[meta] roofs = true`, how far a roof stands over its ceiling at the least: the slab
 # a doorway's lintel is cut from.

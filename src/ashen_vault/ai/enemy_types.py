@@ -51,7 +51,7 @@ class EnemyType:
     # "slam", "eruption", "hook", "breath", "dive", "exhale", "ashfall", "spadeful", "grasp",
     # "dust_devil", "knell", "fireball", "bile", "engulf", "shed", "tail_lash", "squeal",
     # "frost_lance", "blink", "moonbeam", "moonfall", "toll", "quake", "hurl", "slab_smash",
-    # "pillar_crush", "fault_line", "core_beam", "shard_rain", "core_nova".
+    # "pillar_crush", "fault_line", "core_beam", "shard_rain", "core_nova", "spew".
     moves: tuple = ()
     # Enemy type a boss calls to its side once, when it drops to half HP.
     brood: str | None = None
@@ -1095,6 +1095,85 @@ class EnemyTypes:
                 brittle=True,
                 moves=("pounce",),
                 inflicts=(("frost", 25),),
+            ),
+            # --- the Sallow Fen, below the Cinderhold -------------------------------------------------
+            EnemyType(
+                id="fen_lurk",
+                material="flesh",
+                name="Fen Lurk",
+                # The marsh-folk the fortress's runoff poisoned: bent double under cloaks of rotten reed,
+                # skin gone the colour of the mire. They squat sunk to the shoulders in the violet water,
+                # one more hummock among the reeds, until you wade close; then they rise and spring with
+                # hooked spears of bone, the hooks dripping with the fen.
+                hp=48,
+                speed=3.0,
+                damage=15,
+                reach=1.9,
+                sight=4.2,
+                windup=0.55,
+                recover=0.8,
+                exp=38,
+                gold=range(6, 18),
+                radius=0.45,
+                height=1.0,
+                tall=1.5,
+                poise=6,
+                lurk=True,
+                moves=("pounce",),
+                inflicts=(("toxic", 22),),
+            ),
+            EnemyType(
+                id="bilegut",
+                material="flesh",
+                name="Bilegut",
+                # A slug as long as a cart, swollen with the mire it drinks, crawling the fen's banks. It
+                # rears and spits violet bile in a fan, or lobs a single gobbet from afar; up close it
+                # only flails its head about. Fire bursts its skin.
+                hp=85,
+                speed=0.9,
+                damage=11,
+                reach=1.6,
+                sight=11,
+                windup=0.8,
+                recover=1.1,
+                exp=45,
+                gold=range(5, 16),
+                radius=0.7,
+                height=0.6,
+                tall=1.3,
+                poise=10,
+                ranged=True,
+                flammable=True,
+                moves=("spew",),
+                shot_rgb=(190, 90, 240),
+                inflicts=(("toxic", 30),),
+            ),
+            EnemyType(
+                id="mire_tyrant",
+                material="bone",
+                name="Mire Tyrant",
+                # A crab-shelled brute the size of a hut that has wallowed in the fen since before the
+                # fortress was raised, its shell grown over with reeds and the bones of what it ate. It
+                # keeps to the island of the northern beacon and has no fear of anything; one claw is a
+                # hammer, the other a shear, and it crashes them down or scythes them round. It falls
+                # only once.
+                hp=480,
+                speed=1.2,
+                damage=19,
+                reach=2.6,
+                sight=9,
+                windup=0.95,
+                recover=1.2,
+                exp=420,
+                gold=range(140, 180),
+                radius=1.25,
+                height=1.6,
+                tall=2.6,
+                poise=40,
+                once=True,
+                brittle=True,
+                moves=("slam", "sweep"),
+                inflicts=(("toxic", 35),),
             ),
             EnemyType(
                 id="moon_duchess",

@@ -5,6 +5,7 @@ import math
 
 from ashen_vault.render import (
     cemetery_models,
+    fen_models,
     forge_models,
     fortress_props,
     models,
@@ -1064,6 +1065,13 @@ PROP_DRAWERS = {
     "veiled_statue": lambda view, rig, p, t: moon_models.veiled_statue(rig, p.tx * 7 + p.tz * 3),
     "silver_tree": lambda view, rig, p, t: moon_models.silver_tree(rig, p.tx * 7 + p.tz * 3),
     "moon_window": _draw_moon_window,
+    "fen_beacon": lambda view, rig, p, t: fen_models.fen_beacon(
+        rig, t + p.tx, lit=not view.world.is_doused(p)
+    ),
+    "dead_cypress": lambda view, rig, p, t: fen_models.dead_cypress(rig, p.tx * 7 + p.tz * 3),
+    "fen_reeds": lambda view, rig, p, t: fen_models.fen_reeds(rig, p.tx * 7 + p.tz * 3),
+    "sunken_hut": lambda view, rig, p, t: fen_models.sunken_hut(rig, p.tx * 7 + p.tz * 3),
+    "stilt_posts": lambda view, rig, p, t: fen_models.stilt_posts(rig, p.tx * 7 + p.tz * 3),
     "moon_crystal": lambda view, rig, p, t: moon_models.moon_crystal(
         rig, p.tx * 7 + p.tz * 3, float(p.props.get("size", "1"))
     ),
