@@ -273,6 +273,9 @@ def test_dead_glowing_enemies_go_dark():
         "moon_duchess",
         "glassmite",
         "harpy",
+        "fen_lurk",
+        "bilegut",
+        "mire_tyrant",
     ):
         _, alive = _extent(type_id, "idle", 0.5)
         _, dead = _extent(type_id, "dead", 3.0)
@@ -547,6 +550,9 @@ def test_bosses_have_boss_level_detail():
         "stone_golem",
         "sunken_sexton",
         "harpy",
+        "fen_lurk",
+        "bilegut",
+        "mire_tyrant",
     )
     for foe in foes:
         assert _drawn(foe)[1] >= 30, foe

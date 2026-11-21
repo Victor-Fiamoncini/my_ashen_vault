@@ -77,6 +77,8 @@ def all_textures():
         "ochre_flag": ochre_flag(),
         "cavern_rock": cavern_rock(),
         "crystal_rock": crystal_rock(),
+        "sallow_mire": sallow_mire(),
+        "fen_mud": fen_mud(),
         "white": solid(255, 255, 255),
     }
 
@@ -1258,6 +1260,39 @@ def crystal_rock():
         if abs(noise(x, y, 24, 635) - 0.5) < 0.02:
             return tint([128, 112, 214], 0.8 + n * 0.3)  # a vein of crystal
         return tint([74, 78, 102], 0.6 + n * 0.4 + max(fold, 0) * 0.12)
+
+    return build(px)
+
+
+def sallow_mire():
+    """The Sallow Fen's fouled water: murky violet, an oily sheen swirling over it, rafts of pale
+    lilac scum and sodden reed-litter floating on it."""
+
+    def px(x, y):
+        n = fbm(x, y, 641)
+        swirl = math.sin(x * 0.22 + noise(x, y, 8, 642) * 5) * math.sin(y * 0.17 + noise(x, y, 12, 643) * 3)
+        if noise(x, y, 4, 644) > 0.76:
+            return tint([150, 120, 170], 0.75 + n * 0.3)  # a raft of scum
+        if hash_(x // 2, y // 5, 645) > 0.985:
+            return tint([86, 92, 52], 0.8 + n * 0.2)  # a floating reed
+        if swirl > 0.55:
+            return tint([118, 70, 150], 0.8 + n * 0.25)  # the oily sheen
+        return tint([56, 30, 74], 0.75 + swirl * 0.12 + n * 0.3)
+
+    return build(px)
+
+
+def fen_mud():
+    """The fen's banks: dark peaty mud stained violet where the mire seeps up through it, with
+    trodden reed stalks pressed into it."""
+
+    def px(x, y):
+        n = fbm(x, y, 651)
+        if noise(x, y, 6, 652) > 0.72:
+            return tint([74, 48, 84], 0.65 + n * 0.35)  # a violet seep
+        if abs(noise(x, y, 10, 653) - 0.5) < 0.015:
+            return tint([110, 104, 64], 0.7 + n * 0.3)  # a pressed reed
+        return tint([58, 46, 40], 0.6 + n * 0.45)
 
     return build(px)
 

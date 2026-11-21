@@ -472,6 +472,11 @@ def item_icon(id_, cx, cy, t, alpha=255):
         pr.draw_rectangle(cx - 1, cy - 4, 2, 2, color(120, 90, 60, a))
         pr.draw_rectangle(cx - 2, cy - 2, 4, 5, color(190, 60, 30, a))
         pr.draw_rectangle(cx - 1, cy, 2, 2, color(255, 170, 80, rround(a * glow)))
+    elif id_ == "fenbane":  # a slim violet vial, a sprig of reed tucked in its cork
+        pr.draw_rectangle(cx - 1, cy - 4, 2, 2, color(120, 90, 60, a))
+        pr.draw_rectangle(cx - 2, cy - 2, 4, 6, color(120, 60, 160, a))
+        pr.draw_rectangle(cx - 1, cy + 1, 2, 2, color(200, 150, 240, a))
+        _line(cx, cy, (1, -4), (3, -7), 1, color(120, 170, 70, a))
     else:
         pr.draw_circle(cx, cy, 2, color(200, 200, 200, a))
 
@@ -1541,6 +1546,39 @@ def _poison_overlay(k):
             pr.draw_pixel(x - 1, y - 1, color(220, 255, 170, a))
 
 
+TOXIC_BLOBS = 14
+
+
+def _toxic_overlay(k):
+    """A thick violet ooze: heavy, slow blobs welling up from the bottom corners and the sides, the
+    edges throbbing darker with each bite of the toxin."""
+    t = pr.get_time()
+    throb = 0.5 + 0.5 * math.sin(t * math.tau)  # a pulse a second, like its bites
+    depth = rround(14 * k * (0.6 + 0.4 * throb))
+    dark = color(60, 10, 80, rround(150 * k))
+    clear = color(60, 10, 80, 0)
+    pr.draw_rectangle_gradient_v(0, H - depth, W, depth, clear, dark)
+    pr.draw_rectangle_gradient_h(0, 0, depth, H, dark, clear)
+    pr.draw_rectangle_gradient_h(W - depth, 0, depth, H, clear, dark)
+    rs = _scatter(TOXIC_BLOBS * 2, 11)
+    for i in range(TOXIC_BLOBS):
+        u = (t * (0.18 + 0.12 * rs[i]) + rs[TOXIC_BLOBS + i]) % 1.0
+        rise = rround(4 + 26 * u)
+        r = 2 + rround(3 * u)
+        if i % 2 == 0:  # up from the bottom
+            x, y = rround(6 + rs[i] * (W - 12)), H - rise
+        else:  # in from a side
+            side = rs[TOXIC_BLOBS + i] < 0.5
+            x = rise if side else W - rise
+            y = rround(H * 0.4 + rs[i] * H * 0.55)
+        a = rround(200 * k * (1 - u * 0.5))
+        if u > 0.9:  # it pops
+            pr.draw_circle_lines(x, y, r + 2, color(210, 150, 240, a))
+        else:
+            pr.draw_circle(x, y, r, color(130, 50, 170, a))
+            pr.draw_circle(x - 1, y - 1, 1, color(225, 180, 250, a))
+
+
 BLEED_DRIPS = 11
 
 
@@ -1643,6 +1681,7 @@ def _web_overlay(k):
 
 BORDER_MOTIFS = {
     "poison": _poison_overlay,
+    "toxic": _toxic_overlay,
     "bleed": _bleed_overlay,
     "rot": _rot_overlay,
     "corrosion": _corrosion_overlay,

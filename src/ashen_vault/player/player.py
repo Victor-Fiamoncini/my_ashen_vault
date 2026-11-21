@@ -296,6 +296,8 @@ class Player:
             refill = (guard.REFILL if self.guarding else 1.0) * self.burden.refill
             if self.ailments.poisoned:
                 refill *= ailments.POISON_REFILL
+            if self.ailments.toxic:
+                refill *= ailments.TOXIC_REFILL
             if self.ailments.frostbitten:
                 refill *= ailments.FROST_REFILL
             self.stamina.update(dt, refill)

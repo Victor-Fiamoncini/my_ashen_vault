@@ -9,6 +9,7 @@ from ashen_vault.player.items import Items
 from ashen_vault.render import (
     bounds,
     cemetery_models,
+    fen_models,
     forge_models,
     moon_models,
     prison_models,
@@ -123,6 +124,9 @@ def enemy(r, e):
         "veiled_knight": moon_models.veiled_knight,
         "moon_duchess": moon_models.moon_duchess,
         "glassmite": moon_models.glassmite,
+        "fen_lurk": fen_models.fen_lurk,
+        "bilegut": fen_models.bilegut,
+        "mire_tyrant": fen_models.mire_tyrant,
         "stone_golem": sunken_models.stone_golem,
         "sunken_sexton": sunken_models.sunken_sexton,
         "keystone": sunken_models.keystone,
@@ -5354,6 +5358,13 @@ def item(r, id_, t):
         r.part("sphere", 0, -0.12, 0, 0.22, 0.22, 0.22, (255, 150, 60), glow=True)  # the ember in it
         r.part("cyl", 0, 0.16, 0, 0.14, 0.2, 0.14, (180, 56, 30))  # its neck
         r.part("cyl", 0, 0.3, 0, 0.16, 0.1, 0.16, (120, 90, 60))  # the cork
+    elif id_ == "fenbane":
+        r.part("cyl", 0, -0.14, 0, 0.3, 0.5, 0.3, (110, 55, 150))  # the slim vial
+        r.part("cyl", 0, -0.14, 0, 0.18, 0.36, 0.18, (190, 130, 235), glow=True)  # the tincture
+        r.part("cyl", 0, 0.16, 0, 0.12, 0.14, 0.12, (110, 55, 150))  # its neck
+        r.part("cyl", 0, 0.27, 0, 0.15, 0.1, 0.15, (120, 90, 60))  # the cork
+        r.part("cyl", 0.06, 0.42, 0, 0.03, 0.3, 0.03, (120, 170, 70), rz=-0.4)  # a sprig of reed
+        r.part("sphere", 0.14, 0.56, 0, 0.08, 0.04, 0.05, (140, 190, 80), rz=-0.4)
     elif id_ == "grave_lily":
         r.part("cyl", 0, -0.2, 0, 0.05, 0.6, 0.05, (80, 120, 70))
         for k in range(5):

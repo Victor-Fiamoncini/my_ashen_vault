@@ -73,6 +73,8 @@ MOVES = {
     # pillars; and a stamp that splits the floor, a fault of the light running out along it toward you.
     "pillar_crush": (1.3, 4.5, 1.3),
     "fault_line": (1.1, 8.0, 0.9),
+    # The Bilegut's own: it rears and spews three gobbets of the fen's violet bile in a narrow fan.
+    "spew": (0.8, 5.5, 0.6),
 }
 COMBO_SWINGS = 3
 COMBO_GAP = 0.45  # seconds between the swings of a combo (scaled by a type's `tempo`: `Enemy.combo_gap`)
@@ -106,6 +108,7 @@ SPADEFUL_RANGE = (3.5, 11.0)
 GRASP_RANGE = (2.5, 10.0)
 FIREBALL_RANGE = (2.5, 10.0)
 BILE_RANGE = (3.0, 11.0)
+SPEW_RANGE = (2.5, 9.0)
 ENGULF_RANGE = (3.5, 10.0)  # distances the Pall lurches at you from
 ENGULF_SPEED = 8.0  # m/s along its lurch
 ENGULF_TIME = 1.4  # longest a lurch lasts
@@ -238,6 +241,7 @@ MOVE_SPECS = {
     "tail_lash": MoveSpec(picked=False, lands="tail_lash"),
     "pillar_crush": MoveSpec(hi=PILLAR_RANGE, lands="pillar_crush"),
     "fault_line": MoveSpec(lo=FAULT_RANGE[0], hi=FAULT_RANGE[1], sight=True, lands="fault_line"),
+    "spew": MoveSpec(lo=SPEW_RANGE[0], hi=SPEW_RANGE[1], sight=True, fires=True),
 }
 
 

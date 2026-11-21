@@ -957,3 +957,50 @@ def test_drown_marks_water_you_drown_in_and_keys_its_words():
     assert events == ["drown"] and h.plunging and h.fell_into == "sea" and h.drowned_in == "canal"
     _hits, events = run(h, body, terrain.DROWN_TIME + 0.2)
     assert events.count("fell_dead") == 1 and body.stats.hp == 0
+
+
+MIRE = """[meta]
+name = Mire
+start = 1 1 0
+
+[legend]
+# = wall
+. = floor h=0
+m = floor h=-0.2 slow=0.55 afflict=toxic:8
+
+[grid]
+#######
+#.mmm.#
+#.mmm.#
+#######
+
+[entities]
+K = plank on=m
+"""
+
+
+@pytest.fixture
+def mire():
+    m = MapLoader(MIRE.replace("#.mmm.#\n#######", "#.mKm.#\n#######"), name="mire").parse()
+    return m, terrain.Terrain(m)
+
+
+def test_a_fouled_mire_builds_its_ailment_while_you_wade_it(mire):
+    m, h = mire
+    assert m[2, 1].afflict == ("toxic", 8.0) and m[2, 1].slow == 0.55
+    assert not m[2, 1].hazardous, "foes wade it and you may stand in it"
+    body = Body(2, 1)
+    built = []
+    for _ in range(round(terrain.MIRE_TICK * 4 / 0.05)):
+        h.update(0.05, body, lambda *_: None)
+        built += h.afflicts
+    assert built == [("toxic", 8.0 * terrain.MIRE_TICK)] * 4
+
+
+def test_dry_ground_and_a_plank_over_the_mire_build_nothing(mire):
+    _, h = mire
+    for tx, tz in ((1, 1), (3, 2)):
+        body = Body(tx, tz)
+        for _ in range(20):
+            h.update(0.05, body, lambda *_: None)
+            assert h.afflicts == []

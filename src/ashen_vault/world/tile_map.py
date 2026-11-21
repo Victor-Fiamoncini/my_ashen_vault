@@ -34,6 +34,10 @@ class Tile:
     flow: tuple[float, float] | None = None
     slow: float = 1.0
     chasm: bool = False
+    # A fouled mire (the Sallow Fen): wading it builds this ailment, (kind, meter points a second),
+    # while nothing holds you up out of it (a raised causeway, a stilt-walk). It doesn't count as a
+    # hazard: foes wade it too, and you can stand in it.
+    afflict: tuple[str, float] | None = None
     # How much of the map's ambient light this tile loses (0 = none, 1 = pitch black): caves and
     # hollows where only torches, glowing fungus and your own light show the way.
     dark: float = 0.0

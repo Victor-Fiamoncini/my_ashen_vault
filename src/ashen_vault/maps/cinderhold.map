@@ -7,7 +7,7 @@ sky = ember
 model_range = 46
 indoor_range = 26
 torch = 7 0.9 0.7 0.5
-start = 30 68 -90
+start = 30 111 -90
 default = ,
 edge_top = 16
 edge_tex = black_brick
@@ -69,6 +69,14 @@ z = floor tex=flagstone h=9.5 side=black_brick
 4 = floor tex=slag h=-2.2 ceil=3 ceil_tex=black_brick side=black_brick dark=0.4 roof_tex=slate
 5 = floor tex=slag h=-2.75 ceil=3 ceil_tex=black_brick side=black_brick dark=0.5 roof_tex=slate
 6 = floor tex=slag h=-3.3 ceil=3 ceil_tex=black_brick side=black_brick dark=0.6 roof_tex=slate
+// The Sallow Fen below the cliffs, fouled violet by the fortress's runoff: wading its mire works a toxin
+// into you (deeper, faster), its banks and islands are sucking mud, and its sink-holes drown.
+- = floor tex=sallow_mire h=-0.3 side=fen_mud slow=0.6 afflict=toxic:7
+* = floor tex=sallow_mire h=-0.5 side=fen_mud slow=0.45 afflict=toxic:11
+7 = floor tex=fen_mud h=0 side=fen_mud slow=0.85
+? = floor tex=fen_mud h=0 side=fen_mud slow=0.85 dark=0.25
+& = floor tex=flagstone h=0 side=fen_mud
+% = water tex=sallow_mire h=-0.6 side=fen_mud drown=mire
 
 [grid]
 KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK
@@ -140,12 +148,74 @@ AAAAAAAAAAAAAAAAAA,Ï,,Û,,,C,,,,àAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAA,,ÚAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAA,,,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAÚä,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAA,,,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAðAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAA----------------*77777777777777777----------------AAAAA
+AAAA--------------****7ò7777777777777ò7----*******-----AAAAA
+AAAA-------------*****77777í77777777777---**ò7777**-----AAAA
+AAAAA---ó-------******77Û77777777777777ì-**7777777**----AAAA
+AAAAA----------*******777777777ö7777777-***777ï7777**---AAAA
+AAAAA----------*****ó*%%%%%%%%ø%%%%%%%%***777777777**?-AAAAA
+AAAA-----------***********----&---------**777777777*ò?--AAAA
+AAAAA777--------*******?*-----&----------**î777777**???AAAAA
+AAAA-7ù7---------****????-----&-----------***777***???--AAAA
+AAAA-777-----------*??ò??-----&-----------**********??--AAAA
+AAAA-----------------????-----&----ì-----************--AAAAA
+AAAA--------------þ---?-------&---------ó************--AAAAA
+AAAAA---****í-----------------&----------************--AAAAA
+AAAAA--***77**---------------õ&-----------**********ì---AAAA
+AAAAA-**ò7777**-ì-------------&-----------********------AAAA
+AAAA--*7777777*---------------&--ó----------****--------AAAA
+AAAA-**777ï777**--------------&------------þ---*****---AAAAA
+AAAAA-*7777777*---------------&---------------**7û7**--AAAAA
+AAAA--*777777**--ó------ì-----&--------------**77777**--AAAA
+AAAAA--**777**----------------&------ì-------*7777777*--AAAA
+AAAA--********----------------&õ------------**777ï777**AAAAA
+AAAA-ó********ì---777---------&--------------*7777777*--AAAA
+AAAAA**********---7ô7---------&--------------*í777777*--AAAA
+AAAA***********---777---------&------777------**777ò*---AAAA
+AAAA********þ**------------ó--&------7ô7-------*****---AAAAA
+AAAA***********---------------&-----*777---------------AAAAA
+AAAA****ì*****---------------õ&--*******----ì---------ó-AAAA
+AAAAA*******-????-------------&**********---------------AAAA
+AAAAA-------?ò????-------ì----þ*********??--------------AAAA
+AAAA--------???ò??------------&********?????------------AAAA
+AAAA---------????ò--í---------&********??ò??-----------AAAAA
+AAAA---------?????------------&********???ò?--------777-AAAA
+AAAA----------------------&&&&&&&&&*****-?----------7ú7-AAAA
+AAAA-------ó--------------&T&&&&&&&***--------------777-AAAA
+AAAAA---------------------&&&&&&&Ñ&*---------ó---------AAAAA
+AAAAAA--------------------&&Ý&&&&&&--------------------AAAAA
+AAAAA---------------------&&&&&&&&&--------------------AAAAA
+AAAAA---------------------&&&&&&&&T-------------------AAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAA,ý,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAA,ý,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAA,ý,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAA,Ð,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 
 [entities]
-// The road down to Harrowmere and the wayside shrine.
+// The Sallow Fen: the north road from Harrowmere comes down into it. Three beacons of the fortress's violet
+// fire burn on its islands, and the fen gate up to the ash road stays shut until all three are smothered.
+// A drawbridge across the sink-holes, let down from the gate's side, makes the causeway a way straight
+// through. Fen Lurks squat in the mire, Bileguts crawl its banks, and the Mire Tyrant keeps the north island.
+ý = hint text="The mire is fouled violet. Wading it works a toxin into your blood.|Three beacons burn on the fen. Smother them, and the gate north opens." sets=visited_sallow_fen
+ï = fen_beacon gate=fen_beacons
+ð = gate lever=fen_beacons on=,
+ö = lever id=fen_causeway model=wood
+ø = bridge lever=fen_causeway hinge=n deck=0 on=%
+ì = fen_lurk
+í = bilegut
+î = mire_tyrant item=fenbane
+ù = chest item=fenbane count=2 gold=40 model=worn
+ú = chest item=blue_moss count=2 gold=90 model=worn
+û = chest item=menders_kit count=2 gold=120 model=worn
+ò = dead_cypress
+ó = fen_reeds
+ô = sunken_hut yaw=90
+õ = stilt_posts
+þ = light y=0.6 color=0.75,0.35,1.0 radius=6
+// The wayside shrine up the ash road.
 Ð = exit map=harrowmere at=31,2,90 label=Return_to_Harrowmere model=road_gate yaw=90
 ä = light y=4.5 color=0.9,0.62,0.42 radius=7
 Ñ = save_statue

@@ -23,6 +23,7 @@ LEDGE_GONE = 4.0  # seconds before the ledge's spot firms up again
 BOARDS_CREAK = 0.45  # rotten floorboards give way almost at once, and for good
 DROP_TIME = 0.35  # seconds a broken platform takes to fall away
 THORN_TICK = 0.6  # seconds between thorn pricks
+MIRE_TICK = 0.5  # seconds between the buildups a fouled mire (`Tile.afflict`) works into you
 FALL_FRAC = 0.15  # share of max HP a fall into the river costs
 FALL_SAFE = 1.8  # metres you can drop without getting hurt
 FALL_PER_M = 15  # HP per metre dropped past FALL_SAFE
@@ -620,6 +621,8 @@ class Terrain:
         self.chutes = build_chutes(map_)
         self.pods = build_pods(map_)
         self._thorn_t = 0.0
+        self._mire_t = 0.0
+        self.afflicts = []  # (kind, amount) a fouled mire worked into you this frame
         self._spore_t = 0.0
         self._ground = None  # height stood at last frame, for hard landings
         self._last = None  # (x, z) last frame, to tell a fall from a teleport
@@ -736,6 +739,7 @@ class Terrain:
         self.sounds = []
         self.unlocked = []
         self.refused = []
+        self.afflicts = []
         under = None if self.plunging else self.support(body.x, body.z)
         settled = set()  # levers whose stone bridge settled this frame: one boom for all its spans
         for p in self.platforms:
@@ -813,6 +817,14 @@ class Terrain:
                 hurt(tile.hurt, "Thorns")
         else:
             self._thorn_t = 0.0
+        if tile.afflict and self.under is None:
+            self._mire_t -= dt
+            if self._mire_t <= 0:
+                self._mire_t = MIRE_TICK
+                kind, rate = tile.afflict
+                self.afflicts.append((kind, rate * MIRE_TICK))
+        else:
+            self._mire_t = 0.0
         if self.under is None and tile.walkable and not tile.hazardous:
             # The middle of the tile, so a fall never puts you back on the brink.
             safe = TileMap.center(TileMap.tile_coord(body.x), TileMap.tile_coord(body.z))

@@ -23,6 +23,7 @@ ROOF = (10, 6)  # on the keep's roof, in sight of both perches
 ANTECHAMBER = (22, 5)  # before the great door, far from the perches
 BRIDGE = (29, 48)
 FOUNDRY = (11, 18)  # beside the golem's crossing
+FEN_GATE_Z = 70  # the fen gate: the Sallow Fen lies south of it, the fortress's road north
 
 
 def hold(at, yaw=0.0, flags=(), game=None, keep_enemies=False, map_name="cinderhold"):
@@ -475,7 +476,7 @@ def test_the_fortress_mimic_wears_the_iron_chest_disguise():
     _game, world = hold(BRIDGE, keep_enemies=True)
     (mimic,) = [e for e in world.enemies if e.type.id == "mimic"]
     assert mimic.look == "iron"
-    chests = [p for p in world.props if p.kind == "chest"]
+    chests = [p for p in world.props if p.kind == "chest" and p.tz < FEN_GATE_Z]  # the fen's are worn wood
     assert chests and all(p.props.get("model") == "iron" for p in chests)
 
 
@@ -508,3 +509,94 @@ def test_blunt_weapons_crack_brittle_stone_and_edges_skate_off():
     assert elements.brittle_mult(golem, None) == elements.BRITTLE_STRIKE_MULT  # bare fists
     assert elements.brittle_mult(EnemyTypes.get("sewer_rat"), mace) == 1.0  # flesh does not care
     assert EnemyTypes.get("keystone").brittle and not EnemyTypes.get("sunken_sexton").brittle
+
+
+# --- the Sallow Fen -----------------------------------------------------------------------------------
+
+FEN_START = (30, 111)
+DEEP_MIRE = (8, 93)
+
+
+def beacons(world):
+    return [p for p in world.props if p.kind == "fen_beacon"]
+
+
+def fen_gate(world):
+    return next(p for p in world.props if p.kind == "gate" and p.props.get("lever") == "fen_beacons")
+
+
+def test_wading_the_fen_works_toxic_into_you_until_it_takes_hold():
+    game, world = hold(DEEP_MIRE)
+    tile = world.map[DEEP_MIRE]
+    assert tile.afflict[0] == "toxic" and tile.slow < 1
+    for _ in range(600):  # 30 s
+        world.update_terrain(0.05)
+        game.player.ailments.update(0.05, game.player.stats.max_hp)
+        if game.player.ailments.toxic:
+            break
+    assert game.player.ailments.toxic
+    assert "toxic" in game.sounds and any("toxin" in m for m in game.messages)
+
+
+def test_the_road_and_the_causeway_work_no_toxin_into_you():
+    for at in (FEN_START, (30, 90)):
+        game, world = hold(at)
+        for _ in range(100):
+            world.update_terrain(0.05)
+        assert game.player.ailments.meters["toxic"] == 0, at
+
+
+def test_the_fen_gate_opens_only_once_every_beacon_is_smothered():
+    game, world = hold(FEN_START)
+    lit = beacons(world)
+    assert len(lit) == 3 and all(not world.is_doused(b) for b in lit)
+    gate = fen_gate(world)
+    for i, b in enumerate(lit):
+        assert world._interactable(b)
+        assert gate.open_t == 0, "still shut"
+        assert world.douse(b)
+        assert not world.douse(b), "already out"
+        assert not world._interactable(b)
+        assert game.messages[-1] == (
+            "The last beacon dies. Far off, a gate grinds open."
+            if i == 2
+            else f"The beacon's violet fire gutters and dies. ({i + 1} of 3)"
+        )
+    assert gate.open_t > 0 and "lever:fen_beacons" in game.flags
+    assert game.sounds.count("douse") == 3
+
+
+def test_smothered_beacons_stay_dark_and_the_gate_stays_open_on_a_later_visit():
+    game, world = hold(FEN_START)
+    for b in beacons(world):
+        world.douse(b)
+    _, again = hold(FEN_START, game=JungleGame(game.flags))
+    assert all(again.is_doused(b) for b in beacons(again))
+    assert again._opened(fen_gate(again))
+    assert all(not again._light_on(e) for e in again.map.entities if e.kind == "fen_beacon")
+
+
+def test_the_fen_lever_lets_the_drawbridge_down_across_the_sink_holes():
+    _game, world = hold((30, 75))
+    (bridge,) = [p for p in world.terrain.platforms if p.lever == "fen_causeway"]
+    assert bridge.locked and world.map[30, 76].drown == "mire"
+    world.pull_lever(
+        next(p for p in world.props if p.kind == "lever" and p.props.get("id") == "fen_causeway")
+    )
+    assert not bridge.locked
+
+
+def test_tamsin_stocks_fenbane_once_you_have_seen_the_fen():
+    from ashen_vault import dialogue
+
+    assert "fenbane" not in dialogue.shop_stock("tamsin", set())
+    assert "fenbane" in dialogue.shop_stock("tamsin", {"visited_sallow_fen"})
+
+
+def test_the_mire_tyrant_keeps_the_north_beacon_and_falls_only_once():
+    _, world = hold(FEN_START, keep_enemies=True)
+    (tyrant,) = [e for e in world.enemies if e.type.id == "mire_tyrant"]
+    north = max(beacons(world), key=lambda b: -b.tz)
+    assert math.hypot(tyrant.x - north.x, tyrant.z - north.z) < 5 * TileMap.TILE
+    assert tyrant.type.once and not tyrant.type.boss and tyrant.loot == "fenbane"
+    assert {e.type.id for e in world.enemies} >= {"fen_lurk", "bilegut"}

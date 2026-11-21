@@ -57,6 +57,58 @@ def test_poison_can_kill():
     assert not p.alive
 
 
+def test_toxic_lingers_bites_harder_than_poison_and_wears_off_sooner():
+    a, b = Ailments(), Ailments()
+    assert a.build("toxic", FULL) and b.build("poison", FULL)
+    assert a.toxic and a.building() == ["toxic"]
+    assert not a.build("toxic", FULL), "no further buildup while it lingers"
+    assert ailments.TOXIC_TIME < POISON_TIME
+    assert run(a, 5) > run(b, 5) * 2, "toxic bites much harder"
+    lost = run(a, ailments.TOXIC_TIME, max_hp=100)
+    assert lost == ailments.toxic_bite(100) * round((ailments.TOXIC_TIME - 5) / ailments.TICK)
+    assert not a.toxic
+
+
+def test_toxic_and_poison_take_hold_together_and_stack():
+    a = Ailments()
+    a.build("poison", FULL)
+    a.build("toxic", FULL)
+    assert a.building() == ["poison", "toxic"]
+    assert run(a, 1) == ailments.poison_bite(100) + ailments.toxic_bite(100)
+    a.clear("toxic")
+    assert a.poisoned and not a.toxic
+
+
+def test_toxic_halts_the_stamina_refill():
+    p = Player()
+    p.stamina.spend(0.8)
+    before = p.stamina.value
+    p.afflict("toxic", FULL)
+    for _ in range(40):
+        p.update_timers(0.05)
+    assert p.stamina.value == pytest.approx(before)
+
+
+def test_fenbane_purges_toxic_and_poison():
+    p = Player()
+    p.afflict("toxic", FULL)
+    p.afflict("poison", FULL)
+    for kind in Items.get("fenbane").cures:
+        p.cure(kind)
+    assert p.ailments.building() == []
+
+
+def test_toxic_survives_a_save_and_old_saves_load_without_it(tmp_path):
+    p = Player()
+    p.afflict("toxic", FULL)
+    s = SaveSystem(str(tmp_path / "save.json"))
+    s.save("cinderhold", p, set())
+    _, loaded, _ = s.load()
+    assert loaded.ailments.toxic_t == pytest.approx(ailments.TOXIC_TIME)
+    old = Ailments.from_h({"meters": {"poison": 10}, "poison_t": 3})
+    assert not old.toxic and old.meters["toxic"] == 0
+
+
 def test_poison_slows_the_stamina_refill():
     clean, sick = Player(), Player()
     for p in (clean, sick):
@@ -108,6 +160,7 @@ def test_cures_clear_their_ailment():
         ("ember_draught", "frost"),
     ):
         assert Items.get(id_).cures == (kind,)
+    assert set(Items.get("fenbane").cures) == {"toxic", "poison"}
 
 
 def test_ailments_survive_a_save(tmp_path):
@@ -218,7 +271,7 @@ def test_a_meter_still_building_shows_no_border():
     assert a.borders() == {}
 
 
-@pytest.mark.parametrize("kind", ["poison", "rot", "frost"])
+@pytest.mark.parametrize("kind", ["poison", "toxic", "rot", "frost"])
 def test_a_lingering_ailment_shows_at_the_edges_while_it_lasts(kind):
     a = Ailments()
     a.build(kind, FULL)

@@ -160,10 +160,12 @@ DROP_MESSAGE = "You step off into empty air, and fall!"  # an edge over a lethal
 DROWN_MESSAGES = {
     "sea": "You plunge into the sea, and it will not let you go.",
     "canal": "You slip into the canal, and its black water drags you down.",
+    "mire": "You step into a sink-hole, and the mire sucks you under.",
 }
 DROWN_DEATHS = {
     "sea": "The sea drags you under.",
     "canal": "The canal closes over you.",
+    "mire": "The mire closes over you.",
 }
 HAZARD_MESSAGES = {
     "landed": "You land hard.",
@@ -187,6 +189,8 @@ LEGACY_LIFT_LEVERS = {
 # Props that fill their whole tile: nothing walks or flies through them.
 BLOCKING_PROPS = (
     "ward_crystal",
+    "fen_beacon",
+    "dead_cypress",
     "energy_core",
     "well",
     "save_statue",
@@ -378,6 +382,10 @@ STATIC_PROPS = frozenset(
             "moon_crystal",
             "hanging_crystal",
             "crystal_arch",
+            "dead_cypress",
+            "fen_reeds",
+            "sunken_hut",
+            "stilt_posts",
         ),
         *("prisoner_remains", "old_idol", "sunken_tower", "lyra_statue"),
         "wall_crack",
@@ -541,6 +549,9 @@ FROG_GOLD = 33  # coins the frog coughs up the first time it is patted
 BRIDGE_RISING = "Deep in the gorge, stone grinds against stone."
 BRIDGE_YAW = {"w": 0.0, "e": math.pi, "n": -math.pi / 2, "s": math.pi / 2}
 FOG_WALK_SPEED = 1.6  # m/s: you push through a boss's fog at a slow, steady walk (World.cross_fog)
+# The Sallow Fen's beacons: smother every one sharing a `gate=` and the gates of that lever open.
+BEACON_OUT = "The beacon's violet fire gutters and dies. ({n} of {of})"
+BEACONS_ALL_OUT = "The last beacon dies. Far off, a gate grinds open."
 KINDLING = ("brazier", "bonfire")  # the fires a flame can set alight (`unlit` ones stand cold)
 KINDLE_REACH = 1.2  # a flame bolt passing this close to a cold brazier sets it alight
 SLAG_GOUTS = 8  # tongues of molten flame Slag Burst throws out around you
@@ -651,11 +662,43 @@ class World:
         """Whether a light that can change (a cold fire, the energy core) shines in the baked light."""
         if spec.kind == "energy_core":
             return not self.core_quenched()
+        if spec.kind == "fen_beacon":
+            return not self.is_doused(spec)
         return self._lit_key(spec.tx, spec.tz) in self.flags
 
     def is_lit(self, p):
         """A brazier or bonfire burns unless it stands cold (`unlit`) and nothing has kindled it."""
         return "unlit" not in p.props or self._lit_key(p.tx, p.tz) in self.flags
+
+    def _doused_key(self, tx, tz):
+        return f"doused:{self.name}:{tx},{tz}"
+
+    def is_doused(self, p):
+        """Whether a fen beacon (a prop or its entity) has been smothered."""
+        return self._doused_key(p.tx, p.tz) in self.flags
+
+    def douse(self, p):
+        """Smothers a fen beacon for good. Once every beacon sharing its `gate=` is out, that lever's
+        gates open (`lever:<gate>`, as a pulled lever's would). Returns False if it was already out."""
+        if p.kind != "fen_beacon" or self.is_doused(p):
+            return False
+        self.flags.add(self._doused_key(p.tx, p.tz))
+        self.game.sfx("hiss", 1.0)
+        self.game.sfx("douse", 0.9)
+        gate = p.props.get("gate")
+        kin = [q for q in self.props if q.kind == "fen_beacon" and q.props.get("gate") == gate]
+        out = sum(self.is_doused(q) for q in kin)
+        if gate and out == len(kin):
+            self.flags.add(f"lever:{gate}")
+            for g in self.props:
+                if g.kind == "gate" and g.props.get("lever") == gate:
+                    g.open_t = 0.01
+            self.game.message(BEACONS_ALL_OUT)
+        else:
+            self.game.message(BEACON_OUT.format(n=out, of=len(kin)))
+        self.view.bake()
+        self.view.bake_props()
+        return True
 
     def kindle(self, p):
         """Sets a cold brazier or bonfire alight for good. Returns False if it already burns."""
@@ -1183,6 +1226,9 @@ class World:
         if kind == "poison":
             self.game.sfx("hiss", 0.9)
             self.game.message("You are {poisoned}!")
+        elif kind == "toxic":
+            self.game.sfx("toxic")
+            self.game.message("A {toxin} floods your blood!")
         elif kind == "bleed":
             self.game.sfx("bleed")
             self.game.message("Your wounds {burst open}!")
@@ -1442,6 +1488,12 @@ class World:
                 self._fire_one(enemy, kind, spread)
             self.game.sfx("hiss", 0.9)
             return
+        if kind == "spew":
+            # A Bilegut's spew: three gobbets of violet bile in a narrow fan. Step wide of it.
+            for spread in (-0.2, 0.0, 0.2):
+                self._fire_one(enemy, kind, spread)
+            self.game.sfx("hiss", 0.8)
+            return
         if kind == "frost_lance":
             # A fan of three lances of moon-frost: each that strikes numbs your legs. Step out of the
             # fan, or between two of its lances.
@@ -1477,7 +1529,7 @@ class World:
         )
         lead = enemy.radius / speed  # leaves from the edge of its body
         damage = enemy.type.damage
-        if kind in ("web", "cinders", "spadeful", "fireball", "bile", "frost_lance"):
+        if kind in ("web", "cinders", "spadeful", "fireball", "bile", "frost_lance", "spew"):
             damage = rround(damage * MOVES[kind][2])
         self.projectiles.append(
             Projectile(
@@ -1906,6 +1958,8 @@ class World:
     def update_terrain(self, dt):
         """River, ravine, platforms, currents, thorns, logs and spores acting on the player."""
         event = self.terrain.update(dt, self.player, self.game.hurt_player, blocked=self.blocker)
+        for kind, amount in self.terrain.afflicts:
+            self.afflict_player(kind, amount)
         for name, volume in self.terrain.sounds:
             self.game.sfx(name, volume)
         for lift in self.terrain.unlocked:
@@ -2647,6 +2701,8 @@ class World:
                 return True
         if p.kind in ("chest", "lever", "door", "altar"):
             return p.open_t == 0
+        if p.kind == "fen_beacon":
+            return not self.is_doused(p)
         if p.kind == "house_door":
             return p.open_t == p.goal  # not while it swings
         return p.kind in KINDLING and not self.is_lit(p)  # a cold fire: you can look at its ashes

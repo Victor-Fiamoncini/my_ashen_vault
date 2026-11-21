@@ -56,7 +56,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   only sets the level for equipment requirements: HP and stats stay at level 1. `--flags a,b` starts
   with those save flags set before the map loads (a boss's dead flag, a taken sigil), as a save would
   hold them: `--flags sigil_taken,verdant_sigil_taken,iron_sigil_taken` opens the Vesper Gate.
-  `--afflict poison,rot` starts with those ailments taking hold (bleed and frost hurt, corrosion wears
+  `--afflict poison,toxic` starts with those ailments taking hold (bleed and frost hurt, corrosion wears
   your gear), to check their screen borders.
 - Combat rolls are random, so HP can vary between runs; positions, scenes, flags and items do not.
 - On Wayland, `GLFW: Error: 65548` warnings are harmless.

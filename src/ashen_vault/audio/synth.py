@@ -372,6 +372,29 @@ def sounds():
                 * env(p, 0.08)
             ),
         ),
+        # A fen beacon smothered: a wet heavy thump of sodden reed, then the fire choking out in a sigh.
+        "douse": gen(
+            1.1,
+            lambda t, p: (
+                (
+                    math.sin(t * TAU * (55 - 25 * p)) * 0.6 * max(1 - p * 6, 0.0)
+                    + noise() * 0.4 * math.sin(p * math.pi) * (1 - p) ** 2
+                )
+                * env(p, 0.01)
+            ),
+        ),
+        # Toxin taking hold: a thick wet bubbling under a low, sickly wavering drone.
+        "toxic": gen(
+            0.9,
+            lambda t, p: (
+                (
+                    math.sin(t * TAU * (70 + 20 * math.sin(t * 5))) * 0.35
+                    + noise() * 0.3 * max(math.sin(t * 38), 0.0) ** 3
+                    + math.sin(t * TAU * 140 * (1 + 0.5 * math.sin(t * 23))) * 0.12
+                )
+                * env(p, 0.06)
+            ),
+        ),
         # Venom sizzling, or mist breathed out (Veil of Mist).
         "hiss": gen(0.6, lambda t, p: noise() * 0.5 * math.sin(p * math.pi) * (0.6 + 0.4 * math.sin(t * 60))),
         # A crack of thunder: a sharp snap, then a rolling rumble (Thunder Spear).
