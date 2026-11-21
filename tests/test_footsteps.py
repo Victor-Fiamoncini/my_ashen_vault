@@ -50,4 +50,5 @@ def test_the_floor_sets_the_sound_and_a_platform_overrides_it():
     assert footsteps.sound(water, SimpleNamespace(kind="raft", model="")) == "step_wood"
     assert footsteps.sound(water, SimpleNamespace(kind="ledge", model="")) == "step_stone"
     assert footsteps.sound(water, SimpleNamespace(kind="lift", model="cage")) == "step_metal"
+    assert footsteps.sound(water, SimpleNamespace(kind="lift", model="rune")) == "step_stone"
     assert footsteps.sound(water, SimpleNamespace(kind="lift", model="")) == "step_wood"

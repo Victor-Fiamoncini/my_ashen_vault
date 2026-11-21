@@ -172,6 +172,8 @@ HAZARD_MESSAGES = {
     "lift_unlocked": "The lift's chain grinds free. It will answer from either end now.",
 }
 LIFT_LOCKED = "It won't budge. The lift is fastened from the other end."
+# A lift with no chain says it otherwise when its first ride frees it (by `Platform.model`).
+LIFT_FREED = {"rune": "The lift's glyphs wake to the teal light. It will answer from either end now."}
 # Lifts that a lever unchained in older saves (before they were freed by riding them).
 LEGACY_LIFT_LEVERS = {
     ("abandoned_prison", 12, 26): "crypt_winch",
@@ -1911,7 +1913,9 @@ class World:
             self.game.sfx("swoosh", 0.6)
             self.game.message(DROP_MESSAGE)
         else:
-            if event in HAZARD_MESSAGES:
+            if event == "lift_unlocked" and self.terrain.unlocked[0].model in LIFT_FREED:
+                self.game.message(LIFT_FREED[self.terrain.unlocked[0].model])
+            elif event in HAZARD_MESSAGES:
                 self.game.message(HAZARD_MESSAGES[event])
             if event and event.startswith("logs_"):
                 self.game.sfx("heavy", 0.8)

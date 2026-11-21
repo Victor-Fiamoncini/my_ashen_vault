@@ -267,6 +267,11 @@ class Platform:
     def plate_sink(self):
         return PLATE_SINK if self.pressed else 0.0
 
+    def fastened_at(self, end):
+        """Is the `end` landing ("low"/"high") the far side of a lift still fastened, whose call plate
+        will not bring it?"""
+        return self.kind == "lift" and self.locked and end != self.start
+
     def _lower(self, dt):
         """A drawbridge whose lever has been pulled swings down; "bridge_down" when it lands."""
         if self.locked or self.lowered >= 1.0:

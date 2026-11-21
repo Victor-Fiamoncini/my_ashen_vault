@@ -258,7 +258,9 @@ class WorldView:
                 if pl.kind == "lift":
                     tile = world.map[TileMap.tile_coord(pl.x), TileMap.tile_coord(pl.z)]
                     chain_h = (tile.ceil or pl.high + 3.0) - pl.deck
-                    models.lift(rig, world._time, pl.moving, chain_h, pl.model, pl.doors, pl.plate_sink)
+                    models.lift(
+                        rig, world._time, pl.moving, chain_h, pl.model, pl.doors, pl.plate_sink, pl.locked
+                    )
                 elif pl.kind == "raft":
                     models.raft(rig, world._time)
                 elif pl.kind == "ledge":
@@ -275,7 +277,10 @@ class WorldView:
                     models.plank(rig, pl.creaking)
             for c in pl.calls:
                 with rig.entity(c.x, c.floor, c.z, math.atan2(c.z - pl.z, c.x - pl.x)):
-                    models.call_plate(rig, c.sink, wood=world.name in WOODEN_LIFT_MAPS)
+                    if pl.model == "rune":
+                        sunken_models.rune_call_plate(rig, c.sink, cold=pl.fastened_at(c.end))
+                    else:
+                        models.call_plate(rig, c.sink, wood=world.name in WOODEN_LIFT_MAPS)
         for chute in world.terrain.chutes:
             y = world.map.floor_at(chute.x, chute.z)
             self._model_light(gpu, chute.x, y + 0.8, chute.z)

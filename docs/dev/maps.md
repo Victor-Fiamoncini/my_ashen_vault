@@ -131,7 +131,7 @@ How `.map` files work and what can stand on a tile.
   there, and standing in one shrinks your own light and pulls the fog in (`world/darkness.py`);
   Lumen pushes both back.
   Terrain entities: `raft to=tx,tz speed= phase=`, `plank`, `ledge deck=`, `boards deck=` (rotten
-  floorboards that break for good), `lift top= [start=top] [locked] [speed=] [model=cage]` (a chain lift:
+  floorboards that break for good), `lift top= [start=top] [locked] [speed=] [model=cage|rune]` (a chain lift:
   its tile is a `chasm` shaft whose floor is the bottom stop and whose `ceil` clears `top`. It works
   like Dark Souls': stepping onto the pressure plate in the middle of its deck (`terrain.PLATE_R`)
   sends it to the other end (step off the plate and on again to go back), and stepping onto the call
@@ -141,7 +141,10 @@ How `.map` files work and what can stand on a tile.
   its first ride frees it for good (`lift:<map>:<tx>,<tz>` flag; that plate then calls it too). Lifts
   have no levers. Floors a lift
   joins sit far apart (the prison's Undercroft at -10 m, its Gallery at 12 m), so a ride feels like one. `model=cage`
-  draws the prison's barred jail cage, open on the sides that face a landing (`terrain.lift_doors`)),
+  draws the prison's barred jail cage, open on the sides that face a landing (`terrain.lift_doors`); `model=rune`
+  Old Harrowmere's chainless stone deck borne on rings of teal glyphs, its plates rune plates that flare
+  underfoot, its glyphs cold until a `locked` one is freed (which it announces in its own words,
+  `world.LIFT_FREED`); it rings as stone underfoot),
   `bridge lever=id hinge=n|s|e|w deck=` (a drawbridge standing raised on its hinge side until its
   lever lets it down, for good), `log_chute to=tx,tz every= speed= logs=` (a log rack that only
   releases while someone climbs its slope) and `spore_pod every=`.
