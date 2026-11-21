@@ -50,7 +50,7 @@ How `.map` files work and what can stand on a tile.
   sexton, a lore hint and a reward chest; `test_the_mortar_sisters_workshop_stands_east_of_the_roads`.
   Broken colossi of Lyra the Embracer (`lyra_statue`, `prison_models.lyra_ruin`: the prison's `old_idol`
   some 8 m tall, arms snapped, some lying at her sides, her head gone or toppled on some) stand on the
-  plaza's north and south rims facing the fountain, at the back of the workshop and at the court's east
+  plaza's north rim facing the fountain, two on its south rim flanking the view of the Keystone's great gate, at the back of the workshop and at the court's east
   end; each fills its tile, and nothing of her lies behind her, so her back can be to a drop or a wall.
   The `energy_core` (the mortar-light, `seal=c`) stands at the heart of the fountain's pool at 21,28,
   under the rift (the `sun_shaft` beside it at 21,27), teal `light`s (`color=0.45,1.25,1.0`) round it.
