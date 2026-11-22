@@ -1335,13 +1335,14 @@ def herran_brick():
         within = xx % 12
         header = within >= 8
         if dy == 5 or within in (0, 8):
-            return tint([186, 176, 160], 0.78 + noise(x, y, 4, 701) * 0.2)  # the mortar
+            return tint([24, 22, 22], 0.8 + noise(x, y, 4, 701) * 0.3)  # the sooted mortar
         n = fbm(x, y, 702)
         if row % 5 == 2:  # the cream band
-            return tint([214, 196, 158], 0.8 + hash_(unit, row, 703) * 0.14 + (n - 0.5) * 0.2)
-        base = [128, 52, 40] if header else [156, 66, 48]
-        k = 0.78 + hash_(unit * 2 + header, row, 704) * 0.2 + (n - 0.5) * 0.24
-        return tint(base, k + (0.06 if dy == 0 else 0))
+            return tint([112, 100, 82], 0.7 + hash_(unit, row, 703) * 0.14 + (n - 0.5) * 0.2)
+        base = [84, 32, 26] if header else [102, 40, 30]
+        soot = 0.55 + 0.45 * noise(x, y, 12, 705)  # soot streaks darken the face
+        k = (0.66 + hash_(unit * 2 + header, row, 704) * 0.2 + (n - 0.5) * 0.24) * soot
+        return tint(base, k + (0.05 if dy == 0 else 0))
 
     return build(px)
 
@@ -1378,11 +1379,11 @@ def herran_slate():
         # A rounded tail: the bottom of each scale is an arc.
         edge = 7 - rround(((ox - 3.5) / 4.0) ** 2 * 3)
         if dy > edge:
-            return tint([28, 26, 36], 0.9 + n * 0.2)  # shadow under the tail
+            return tint([10, 10, 16], 0.9 + n * 0.2)  # shadow under the tail
         if dy == edge:
-            return tint([150, 140, 170], 0.85 + n * 0.2)  # the sunlit rim
+            return tint([70, 74, 100], 0.85 + n * 0.2)  # the lamplit rim
         k = 0.72 + hash_((x + (4 if row % 2 else 0)) // 8, row, 722) * 0.22 + (n - 0.5) * 0.24
-        return tint([66, 62, 84], k + (dy / 8) * 0.1)
+        return tint([34, 36, 52], k + (dy / 8) * 0.1)
 
     return build(px)
 
@@ -1394,19 +1395,19 @@ def encaustic_tile():
     def px(x, y):
         tx, ty = x % 16, y % 16
         if tx == 0 or ty == 0:
-            return tint([70, 60, 52], 0.9 + noise(x, y, 4, 731) * 0.1)  # the grout
+            return tint([16, 14, 14], 0.9 + noise(x, y, 4, 731) * 0.1)  # the grout
         cx, cy = abs(tx - 8), abs(ty - 8)
         n = fbm(x, y, 732)
         quarter = ((x // 16) + (y // 16)) % 2
         if cx + cy <= 4 or ((cx <= 1 or cy <= 1) and cx + cy <= 6):  # the star
-            c = [214, 196, 160]
+            c = [128, 108, 70]
         elif max(cx, cy) >= 6:  # the border
-            c = [42, 44, 58] if quarter else [150, 66, 44]
+            c = [22, 24, 34] if quarter else [86, 28, 26]
         else:
-            c = [150, 66, 44] if quarter else [42, 44, 58]
-        k = 0.82 + (n - 0.5) * 0.26
+            c = [86, 28, 26] if quarter else [22, 24, 34]
+        k = 0.7 + (n - 0.5) * 0.26
         if noise(x, y, 8, 733) > 0.72:
-            k *= 0.82  # worn
+            k *= 0.7  # worn
         return tint(c, k)
 
     return build(px)
@@ -1434,12 +1435,12 @@ def lab_tile():
 
     def px(x, y):
         if x % 8 == 0 or y % 8 == 0:
-            return tint([120, 120, 108], 0.85 + noise(x, y, 4, 751) * 0.15)
+            return tint([22, 24, 20], 0.85 + noise(x, y, 4, 751) * 0.15)
         n = fbm(x, y, 752)
-        c = tint([214, 214, 198], 0.86 + hash_(x // 8, y // 8, 753) * 0.1 + (n - 0.5) * 0.12)
+        c = tint([104, 112, 96], 0.7 + hash_(x // 8, y // 8, 753) * 0.1 + (n - 0.5) * 0.12)
         stain = noise(x, y, 16, 754)
         if stain > 0.66:
-            c = tint([118, 150, 92] if noise(x, y, 32, 755) > 0.5 else [132, 104, 70], 0.9 + stain * 0.1)
+            c = tint([50, 74, 40] if noise(x, y, 32, 755) > 0.5 else [70, 52, 34], 0.9 + stain * 0.1)
         if hash_(x, y, 756) > 0.97:
             c = tint(c, 0.8)  # the crazing
         return c
