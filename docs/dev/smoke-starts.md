@@ -95,9 +95,9 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   `--at=22,24,-90 --script "look_down:0.5"` (one plunging into the chasm). The Oubliette:
   `--at=3,9,0 --equip right=torch_greathammer --level 9 --smoke 420 --script "attack wait:2.5 forward:1.6"`
   (break the gallery's false wall and step in, the hammer lighting the dark), `--at=7,9,90 --flags
-  secret_wall:old_harrowmere:4,9` (down its corridor of cells), `--at=7,10,180 --flags
+  secret_wall:old_harrowmere:4,9` (down its corridor of cells), `--at=7,11,180 --flags
   secret_wall:old_harrowmere:4,9 --script "wait:0.5 interact"` (Aubel through his bars; add
-  `lever:oubliette` to free them all, and `--at=7,12,180` for Ysolde's shop). The roads of light:
+  `lever:oubliette` to free them all, and `--at=7,13,180` for Ysolde's shop). The roads of light:
   `--at=31,31,-30` (the gold road out from the plaza to the first island), `--at=36,29,-90 --script
   "wait:0.3 attack"` (strike the first island's crystal: the gold road fades, the pale one wakes);
   `--flags ward:old_harrowmere` starts with the pale road standing, `--flags

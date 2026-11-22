@@ -35,7 +35,9 @@ How `.map` files work and what can stand on a tile.
   `test_a_plain_door_leads_from_the_landing_down_into_the_old_gallery`). A false wall in that gallery opens on the Bell-keepers' Oubliette (h 0, under its own
   `ceil`, lined in `sunken_brick`): a corridor of barred cells (`gate lever=oubliette`) holding Aubel,
   Coldry, Ysolde, a hollow inmate and a mimic, and the gaoler's hall with the lever and the Torch
-  Greathammer. Two more false walls (`top=24`, as the map has no ceilings) open narrow fissures: one in
+  Greathammer. Every cell is walled off from the corridor but for its bars, so its prisoner is only
+  spoken to through them until the lever (the test checks no prisoner's tile can be walked to before
+  it). Two more false walls (`top=24`, as the map has no ceilings) open narrow fissures: one in
   the plaza's west cliff with the Ember Stone Sword, one in the lift room;
   `test_the_oubliette_hides_behind_a_false_wall_and_its_lever_opens_the_cells`. A second lever in the
   gaoler's hall (`lever id=under_stair`) raises the bars either side of the gallery, the gaolers'

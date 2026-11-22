@@ -146,6 +146,10 @@ def test_the_oubliette_hides_behind_a_false_wall_and_its_lever_opens_the_cells()
     assert len(cells) == 6 and not set(cells) & inside
     freed = _reachable(m, start, open_tiles=[door, (wall.tx, wall.tz), *cells])
     held = [npc for npc in _spec(m, "npc") if npc.props["id"] in {"aubel", "coldry", "ysolde"}]
+    # Locked in until the lever: walking where they stand, no way into any cell but through its bars.
+    spots = [(npc.tx, npc.tz) for npc in held]
+    walled = _reachable(m, start, open_tiles=[door, (wall.tx, wall.tz), *spots])
+    assert not set(spots) & walled
     for npc in held:
         (front,) = [c for c in cells if c in _beside((npc.tx, npc.tz))]  # each behind its own bars
         assert front in freed, npc.props["id"]
