@@ -59,7 +59,7 @@ def test_the_castle_floats_on_a_sea_of_cloud_you_fall_through_to_your_death():
     """All round the castle, and under its bridges, lies the sea of cloud: a chasm far below with
     words of its own for the fall. Every edge of the map is cloud, and no rim wall stands round it."""
     m = _castle()
-    assert m.meta["sky"] == "aloft" and m.meta["name"] == "Herran's Castle"
+    assert m.meta["sky"] == "storm" and m.meta["name"] == "Herran's Castle"
     edges = [(tx, 0) for tx in range(m.width)] + [(tx, m.depth - 1) for tx in range(m.width)]
     edges += [(0, tz) for tz in range(m.depth)] + [(m.width - 1, tz) for tz in range(m.depth)]
     for tx, tz in edges:
@@ -311,7 +311,7 @@ def test_herrans_spire_climbs_to_his_observatory_and_he_waits_only_behind_his_do
     Herran waits out in his observatory, open to the sky, only through his great door. It stands 11 m
     up, and nowhere you can reach strands you."""
     m = _spire()
-    assert m.meta["name"] == "Herran's Spire" and m.meta["sky"] == "aloft"
+    assert m.meta["name"] == "Herran's Spire" and m.meta["sky"] == "storm"
     start = _start(m)
     (door,) = _spec(m, "door", boss="herran_dead")
     (herran,) = _spec(m, "herran")

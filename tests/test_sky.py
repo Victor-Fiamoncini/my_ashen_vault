@@ -24,11 +24,17 @@ def test_each_outdoor_map_names_a_sky_and_the_keep_has_none():
         "verdant_hollow": sky.SKIES["jungle"],
         "cinderhold": sky.SKIES["ember"],
         "vesperholm": sky.SKIES["moonlit"],
-        "herrans_castle": sky.SKIES["aloft"],
-        "herran_spire": sky.SKIES["aloft"],
+        "herrans_castle": sky.SKIES["storm"],
+        "herran_spire": sky.SKIES["storm"],
     }
     assert sky.get(_meta("abandoned_prison")) is None
     assert sky.get({"sky": "no_such_sky"}) is None
+
+
+def test_the_storm_is_dark_over_the_clouds():
+    s = sky.SKIES["storm"]
+    assert max(s.zenith) < 0.1 and s.cloud_sea is not None and s.far_moon is None and s.stars == 0
+    assert max(s.cloud_sea) < 0.45
 
 
 def test_the_dome_meets_the_fog_at_the_horizon_and_the_zenith_overhead():

@@ -243,6 +243,24 @@ SKIES = {
             wisps=0.6,
         ),
     ),
+    # Herran's Castle in the storm: a near-black slate night over a sea of dark cloud, the sun a dim
+    # glow buried in a heavy bank, no stars and no moon.
+    "storm": Sky(
+        zenith=(0.04, 0.04, 0.07),
+        sun=(0.5, 0.5, 0.55),
+        sun_at=SUN_AT,
+        sun_size=2.4,
+        halo=(0.2, 0.2, 0.25),
+        halo_size=24.0,
+        clouds=(0.26, 0.26, 0.31),
+        cloud_under=(0.1, 0.1, 0.14),
+        drift=0.01,
+        cap=True,
+        mist=(0.2, 0.2, 0.25),
+        veiled=(0.3, 0.3, 0.34),
+        cloud_sea=(0.3, 0.3, 0.36),
+        cloud_sea_under=(0.12, 0.12, 0.17),
+    ),
 }
 
 
