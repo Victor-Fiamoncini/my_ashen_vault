@@ -27,6 +27,17 @@ def chunk_centre(cx, cz):
     return (cx + 0.5) * CHUNK * TILE, (cz + 0.5) * CHUNK * TILE
 
 
+def batch_bounds(batch):
+    """The centre (x, z) of a baked batch's footprint and the metres from it to its farthest corner: a
+    prop is baked into the chunk of its own tile, but a long one (a grand stair, a bridge) reaches far
+    beyond it, so a batch is culled by what it really covers, not by its chunk's square."""
+    xs, zs = batch.verts[0::3], batch.verts[2::3]
+    if not xs:
+        return 0.0, 0.0, 0.0
+    x0, x1, z0, z1 = min(xs), max(xs), min(zs), max(zs)
+    return (x0 + x1) / 2, (z0 + z1) / 2, math.hypot(x1 - x0, z1 - z0) / 2
+
+
 class PropBaker:
     """A recording GPU: every part drawn through a `Rig` on it lands, transformed and lit, in the batch
     of the current `group` and its texture (`batches[(group, tex)]`).

@@ -2398,7 +2398,28 @@ def test_vesperholms_dressing_draws_and_stands_still():
     assert {"moon_lamp", "veiled_statue", "silver_tree"} <= set(BLOCKING_PROPS)
     assert "moon_window" in WALL_PROPS and {"moon_spire", "moon_roof", "moon_portal"} <= set(LANDMARKS)
     assert not {"moon_roof", "moon_portal"} & set(BLOCKING_PROPS)  # the cathedral's doorway stays open
-    assert {"moon_lamp", "moon_window"} <= set(mesh_builder.LIGHT_KINDS)  # they cast moonlight
+    assert {"moon_lamp", "moon_window"} <= set(mesh_builder.LIGHT_KINDS)  # they light the streets
+    warm = [float(c) for c in mesh_builder.LIGHT_COLOR["moon_lamp"].split(",")]
+    assert warm[0] > warm[1] > warm[2]  # the lamps burn orange under the cold moon
+
+
+def test_vesperholms_grand_stair_is_its_own_moonstone_flight_with_lamps_down_it():
+    """The stair from the overlook into the Gate Court is Vesperholm's own, not Harrowmere's: its
+    treads climb from each tile's floor to the floor of the tile above as `grand_stair`'s do, never
+    below a tile's floor; over its cheek walls stand railings, and the city's lamps on piers down it."""
+    from ashen_vault.render import bounds, mesh_builder, moon_models
+    from ashen_vault.world.world import BLOCKING_PROPS, LANDMARKS, STATIC_PROPS
+
+    run, rise = 12, 0.5
+    (x0, y0, z0), (x1, y1, z1) = bounds.measure(lambda r: moon_models.moon_stair(r, run, 3, rise, 5))
+    assert y0 >= -(run - 1) * rise - 1e-6  # never below the foot tile's floor
+    assert x0 == pytest.approx(-1, abs=0.1) and x1 == pytest.approx(run * 2 - 1, abs=0.1)
+    assert z1 - z0 > 9 and y1 > rise + 3  # its cheeks either side, the lamps over the head of the flight
+    gpu = _GlowGpu()
+    moon_models.moon_stair(rig.Rig(gpu), run, 3, rise, 5)
+    assert gpu.glows >= 2 * 2 * 3  # a pair of lamps at the head and two pairs down the flight, each lit
+    assert "moon_stair" in STATIC_PROPS and "moon_stair" in LANDMARKS and "moon_stair" not in BLOCKING_PROPS
+    assert "moon_stair" in mesh_builder.LIGHT_KINDS
 
 
 def test_vesperholms_cathedral_has_a_great_gate_a_rose_and_a_grand_victorian_roof():

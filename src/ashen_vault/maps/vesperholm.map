@@ -173,11 +173,11 @@ w = water tex=water h=3.9 side=crystal_rock
 #xxxxxxxxxxxxxqqqqqΑ,,,Αqqqqqxxxxxxxxxxxxxx#
 #xxxxxxxxxxxxxooooÄΒαααΒÄooooxxxxxxxxxxxxxx#
 #xxxxxxxxxxxxxoÆoooΓβββΓoooÆoxxxxxxxxxxxxxx#
-#xxxxxxxxxxxxxoooooΔγγγΔoooooxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxoooooΔγłγΔoooooxxxxxxxxxxxxxx#
 #xxxxxxxxxxxxxoooooΕδδδΕoooooxxxxxxxxxxxxxx#
 #xxxxxxxxxxxxxoooooΖεεεΖoooooxxxxxxxxxxxxxx#
 #xxxxxxxxxxxxxoooooΗζζζΗoooooxxxxxxxxxxxxxx#
-#xxxxxxxxxxxxxoooooΘηηηΘoooooxxxxxxxxxxxxxx#
+#xxxxxxxxxxxxxoooooΘηŁηΘoooooxxxxxxxxxxxxxx#
 #xxxxxxxxxxxxxoooooΙθθθΙoooooxxxxxxxxxxxxxx#
 #xxxxxxxxxxxxxoooooΚιιιΚoooooxxxxxxxxxxxxxx#
 #xxxxxxxxxxxxxoooooΛκκκΛoooooxxxxxxxxxxxxxx#
@@ -228,7 +228,10 @@ T = glassmite
 U = chest item=ember_draught count=2 gold=80 model=coffer
 X = crystal_arch yaw=-90 height=8
 P = hint text="Below lies Vesperholm, the Moonbound City.|The moon over it has not moved since the night the Duchess wed it."
-Z = grand_stair run=12 rise=0.5 steps=5 width=3 yaw=-90 on=λ
+Z = moon_stair run=12 rise=0.5 steps=5 width=3 yaw=-90 on=λ
+// The lamps on the piers down the flight, burning warm as the city's.
+Ł = light y=4.3 color=1.6,0.8,0.25 radius=8 on=η
+ł = light y=4.3 color=1.6,0.8,0.25 radius=8 on=γ
 // The Vesper Gate home to Harrowmere, at the cave's far end, and the shrine on the overlook.
 A = exit map=harrowmere at=22,2,90 label=Return_to_Harrowmere model=vesper_gate yaw=-90
 B = save_statue
@@ -263,7 +266,8 @@ J = chest item=grave_lily gold=160 model=coffer
 K = chest item=menders_kit gold=140 model=banded
 N = chest item=clotting_salve count=2 gold=110
 O = chest item=bitter_root count=2 gold=100 model=coffer
-// Moonlight: the city's lamps, windows of moon-glass, and cold lights in the cathedral.
+// Light: the city's lamps burning warm under the moon, windows of moon-glass, and cold lights in the
+// cathedral.
 Ä = moon_lamp
 Ó = moon_lamp
 Ô = moon_lamp

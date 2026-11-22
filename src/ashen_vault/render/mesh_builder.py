@@ -51,6 +51,7 @@ LIGHT_KINDS = (
     "hearth",
     "lamp_post",
     "grand_stair",
+    "moon_stair",
     "window",
     "barred_window",
     "great_window",
@@ -74,6 +75,7 @@ LIGHT_Y = {
     "grand_stair": "3.2",
     "street_arch": "3.4",
     "moon_lamp": "2.95",
+    "moon_stair": "4.2",
     "moon_crystal": "1.4",
     "light": "2.0",
     "candles": "0.6",
@@ -111,7 +113,8 @@ LIGHT_COLOR = {
     "forge_hearth": "1.0,0.55,0.22",
     "crucible": "1.0,0.5,0.2",
     "rose_window": "0.95,0.55,0.62",
-    "moon_lamp": "0.62,0.74,1.0",
+    "moon_lamp": "1.6,0.8,0.25",  # the city's lamps burn warm under the cold moon
+    "moon_stair": "1.6,0.8,0.25",  # the lamps at the head of the grand stair
     "moon_crystal": "0.72,0.62,1.0",
     "moon_window": "0.58,0.68,0.98",
 }
@@ -134,6 +137,7 @@ LIGHT_RADIUS = {
     "bonfire": "9",
     "rose_window": "10",
     "moon_lamp": "8",
+    "moon_stair": "8",
     "moon_crystal": "6",
     "moon_window": "8",
 }

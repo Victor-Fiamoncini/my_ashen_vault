@@ -5,6 +5,7 @@ import math
 import pytest
 
 from ashen_vault.render import prop_bake
+from ashen_vault.render.mesh_builder import Batch
 from ashen_vault.render.rig import Rig
 from ashen_vault.world import world as world_mod
 from ashen_vault.world.world import STATIC_PROPS, World
@@ -195,7 +196,7 @@ def _baking_world(name, flags=()):
 def test_static_props_are_baked_by_chunk_and_culled_like_props():
     world, game = _baking_world("harrowmere")
     assert world.view._baked
-    chunks = {chunk for _, _, chunk, _ in world.view._baked}
+    chunks = {chunk for _, _, chunk, _, _ in world.view._baked}
     statics = {prop_bake.chunk_of(p.tx, p.tz) for p in world.props if p.kind in STATIC_PROPS}
     assert chunks == statics
     p = next(p for p in world.props if p.kind == "tree")
@@ -207,10 +208,12 @@ def test_static_props_are_baked_by_chunk_and_culled_like_props():
     game.gpu.drawn = []
     world.view._draw_baked(game.gpu, 200.0, 0.0, fx, fz)
     drawn = {id(mesh) for mesh, _ in game.gpu.drawn}
-    for mesh, _, chunk, landmark in world.view._baked:
-        if id(mesh) in drawn and not landmark:  # with no range, only the chunk you stand in is drawn
-            assert chunk == prop_bake.chunk_of(p.tx, p.tz)
-    assert any(landmark for mesh, _, _, landmark in world.view._baked if id(mesh) in drawn)  # and the skyline
+    for mesh, _, _, landmark, (cx, cz, reach) in world.view._baked:
+        if id(mesh) in drawn and not landmark:  # with no range, only what covers the ground you stand on
+            assert math.hypot(cx - p.x, cz - p.z) <= reach
+    assert any(
+        landmark for mesh, _, _, landmark, _ in world.view._baked if id(mesh) in drawn
+    )  # and the skyline
 
 
 def test_a_headless_world_without_primitives_bakes_nothing():
@@ -258,3 +261,27 @@ def test_a_spread_prop_lights_each_part_where_it_stands():
     assert near > far * 2
     far, near = lights(spread=False)  # a small prop keeps the one light it was given
     assert near == pytest.approx(far)
+
+
+def test_a_batch_is_bounded_by_the_ground_it_covers():
+    batch = Batch()
+    batch.verts.extend((0.0, 0.0, 0.0, 6.0, 9.0, 8.0, 3.0, -2.0, 4.0))
+    cx, cz, reach = prop_bake.batch_bounds(batch)
+    assert (cx, cz, reach) == (3.0, 4.0, 5.0)
+    assert prop_bake.batch_bounds(Batch()) == (0.0, 0.0, 0.0)
+
+
+def test_a_long_prop_stays_drawn_from_the_far_end_of_it():
+    """Vesperholm's grand stair is baked into the chunk of its top tile, 24 m up the flight: standing at
+    its foot looking out over the court, its top is far behind you, but the steps under your feet are
+    its own and must still be drawn."""
+    world, game = _baking_world("vesperholm")
+    stair = next(p for p in world.props if p.kind == "moon_stair")
+    entries = [e for e in world.view._baked if e[2] == prop_bake.chunk_of(stair.tx, stair.tz) and e[3]]
+    world.player.x, world.player.z = stair.x, stair.z - 22.0  # at the foot, the top behind you
+    world.player.yaw = -math.pi / 2
+    fx, fz = world.player.forward()
+    assert fz < -0.99
+    world.view._draw_baked(game.gpu, 200.0, 46.0, fx, fz)
+    drawn = {id(mesh) for mesh, _ in game.gpu.drawn}
+    assert any(id(e[0]) in drawn for e in entries)

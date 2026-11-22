@@ -1014,6 +1014,79 @@ def moon_lamp(r, seed):
         r.part("sphere", 0, 0.74, 0, 0.06, 0.06, 0.06, SILVER)
 
 
+def moon_stair(r, run=12, width=3, rise=0.5, steps=5):
+    """Vesperholm's grand stair, from the prop's tile (the top) down along +X over `run` tiles, each a
+    stair tile `rise` below the last and cut into `steps` steps, so its top step meets the floor above
+    it; `width` tiles across. Pale moonstone treads with silver nosings, a silver crescent inlaid in the
+    top step of every fourth tile; on the cheek walls either side a raking coping rimed with frost and
+    a slender railing of blacked iron under a silver handrail, crescents on its posts; the city's own
+    gas lamps on moonstone piers at the head of the flight and every four tiles down it, and a veiled
+    handmaid raising her crescent either side of its foot. A tile's floor is its lowest step, so
+    everything sits on or above it."""
+    d = T / steps
+    across = width * T
+    pale = _dim(MOONSTONE, 1.18)
+    for i in range(run):
+        floor = -i * rise
+        for k in range(steps):
+            x0 = i * T - T / 2 + k * d
+            h = rise * (steps - k) / steps
+            rgb = _dim(pale, 0.92 + 0.08 * ((i * steps + k) % 2))
+            r.part("cube", x0 + d / 2, floor + h / 2, 0, d, h, across, rgb, tex="moonstone")
+            r.part("cube", x0 + 0.03, floor + h - 0.015, 0, 0.07, 0.04, across + 0.02, SILVER)  # its nosing
+        if i % 4 == 0 and 0 < i < run - 1:  # a crescent inlaid in the landing step
+            with r.at(i * T - T / 2 + d / 2, floor + rise + 0.005, 0, rz=-math.pi / 2):
+                _crescent(r, 0, 0, 0, 0.5, 9, 0.12, SILVER)
+    slope = rise / T
+    x_top, x_foot = -T / 2, run * T - T / 2
+    length = (x_foot - x_top) / math.cos(math.atan(slope))
+    tilt = -math.atan(slope)
+    mid = (x_top + x_foot) / 2
+
+    def line(x):  # the height of the cheek walls' tops where they step down, at x
+        return rise - (x - T / 2) * slope
+
+    def floor_at(x):  # the floor of the stair tile under x
+        return -min(run - 1, max(0, int((x + T / 2) // T))) * rise
+
+    piers = [(i * T if i else x_top + 0.6, "lamp") for i in range(0, run - 1, 4)]
+    piers.append((x_foot - 0.7, "handmaid"))
+    for side in (-1, 1):
+        zc = side * (across / 2 + T / 2)  # the middle of the cheek wall
+        zb = side * (across / 2 + 0.3)  # the railing, along its inner edge
+        r.part("cube", mid, line(mid) - 0.1, zc, length, 0.7, T + 0.04, MOONSTONE_DARK, tex="moonstone",
+               rz=tilt)  # fmt: skip
+        r.part("cube", mid, line(mid) + 0.28, zc, length, 0.1, T + 0.16, pale, tex="moonstone", rz=tilt)
+        r.part("cube", mid, line(mid) + 0.34, zc - side * 0.72, length, 0.03, 0.16, FROST, rz=tilt)  # rime
+        r.part("cube", mid, line(mid) + 0.39, zb, length, 0.08, 0.16, IRON, rz=tilt)  # the rail's foot
+        r.part("cube", mid, line(mid) + 0.62, zb, length, 0.04, 0.06, IRON, rz=tilt)
+        r.part("cube", mid, line(mid) + 1.36, zb, length, 0.09, 0.14, SILVER, rz=tilt)  # the handrail
+        n = int((x_foot - x_top) / 0.6)
+        for j in range(1, n):  # the railing's posts, upright under the raking rails
+            x = x_top + j * (x_foot - x_top) / n
+            if any(abs(x - px) < 0.75 for px, _ in piers):
+                continue
+            b = line(x) + 0.4
+            r.part("cube", x, b + 0.47, zb, 0.045, 0.94, 0.045, IRON)
+            if j % 3 == 0:  # a crescent on every third, between the rails
+                _crescent(r, x, b + 0.62, zb, 0.13, 5, 0.04, SILVER_DARK)
+                r.part("sphere", x, b + 1.02, zb, 0.07, 0.07, 0.07, SILVER)
+        for x, what in piers:
+            base = floor_at(x)
+            top = line(x) + 0.5
+            r.part("cube", x, (base + top) / 2, zc, 0.9, top - base, 0.9, MOONSTONE_DARK, tex="moonstone")
+            r.part("cube", x, top + 0.05, zc, 1.04, 0.1, 1.04, pale, tex="moonstone")  # its cap
+            r.part("cube", x, base + 0.12, zc, 1.0, 0.24, 1.0, _dim(MOONSTONE_DARK, 0.85), tex="moonstone")
+            _crescent(
+                r, x - 0.46, (base + top) / 2 + 0.1, zc, 0.18, 7, 0.06, SILVER
+            )  # a crescent on its face
+            with r.at(x, top + 0.1, zc):
+                if what == "lamp":
+                    moon_lamp(r, int(x) + side)
+                else:  # facing down the flight into the court
+                    veiled_statue(r, 1 + side)
+
+
 def veiled_statue(r, seed):
     """A statue of one of the Duchess's handmaids on a moonstone plinth: a tall veiled woman in a long
     robe, both hands raising a crescent to the sky; frost has gathered in the folds."""

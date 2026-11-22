@@ -82,7 +82,7 @@ class WorldView:
         self._meshes = []
         self._sea = None  # the open sea's mesh (`world/sea.py`), drawn with its own thin fog
         self._glitter = None  # (key, mesh) of the sun's path of glints on it
-        self._baked = []  # (mesh, tex, chunk, landmark) of the static props, `prop_bake`
+        self._baked = []  # (mesh, tex, chunk, landmark, (cx, cz, reach)) of the static props, `prop_bake`
         self._baking = False
         self.builder = None
 
@@ -140,7 +140,8 @@ class WorldView:
         finally:
             self._baking = False
         for ((chunk, landmark), tex), batch in baker.batches.items():
-            self._baked.append((self.gpu.upload_batch(batch), tex, chunk, landmark))
+            bounds = prop_bake.batch_bounds(batch)
+            self._baked.append((self.gpu.upload_batch(batch), tex, chunk, landmark, bounds))
 
     def add_light(self, p, spec):
         """Bakes the light of a fire just kindled (`spec`, the entity of prop `p`) into the map's mesh,
@@ -481,12 +482,10 @@ class WorldView:
             rig.part("cube", f.x, f.y, f.z, s, s, s, f.rgb, rx=f.spin, ry=f.spin * 0.7, glow=f.ember)
 
     def _draw_baked(self, gpu, sight, far, fx, fz):
-        """The baked static props, chunk by chunk, culled like single props by range and heading."""
-        world = self.world
-        player = world.player
-        reach = prop_bake.CHUNK_REACH
-        for mesh, tex, chunk, landmark in self._baked:
-            cx, cz = prop_bake.chunk_centre(*chunk)
+        """The baked static props, chunk by chunk, culled like single props by range and heading, each
+        batch by the ground it really covers (a long stair reaches far out of its chunk)."""
+        player = self.world.player
+        for mesh, tex, _chunk, landmark, (cx, cz, reach) in self._baked:
             dx, dz = cx - player.x, cz - player.z
             if math.hypot(dx, dz) - reach > (sight if landmark else far):
                 continue
@@ -1069,6 +1068,13 @@ PROP_DRAWERS = {
     "inkcaps": lambda view, rig, p, t: sewer_models.inkcaps(rig, p.tx * 7 + p.tz * 3),
     "sump_caps": lambda view, rig, p, t: sewer_models.sump_caps(rig, p.tx * 7 + p.tz * 3),
     "moon_lamp": lambda view, rig, p, t: moon_models.moon_lamp(rig, p.tx * 7 + p.tz * 3),
+    "moon_stair": lambda view, rig, p, t: moon_models.moon_stair(  # down along its yaw from its top tile
+        rig,
+        int(p.props.get("run", "12")),
+        int(p.props.get("width", "3")),
+        float(p.props.get("rise", "0.5")),
+        int(p.props.get("steps", "5")),
+    ),
     "veiled_statue": lambda view, rig, p, t: moon_models.veiled_statue(rig, p.tx * 7 + p.tz * 3),
     "silver_tree": lambda view, rig, p, t: moon_models.silver_tree(rig, p.tx * 7 + p.tz * 3),
     "moon_window": _draw_moon_window,

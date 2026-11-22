@@ -75,7 +75,8 @@ How `.map` files work and what can stand on a tile.
   grotto open to the sky (two Moonhounds, a coffer in the side grotto east of it) to its mouth (a
   `crystal_arch`, the cliff's face built up over the way out) onto the overlook, 6 m over the court
   under the open moon, where the shrine stands and the whole city spreads out north to the cathedral;
-  a `grand_stair` 12 tiles long goes down from it into the Gate Court;
+  a `moon_stair` 12 tiles long (the city's own grand stair, its pier lamps lit by orange `light`s on
+  its 4th and 8th tiles) goes down from it into the Gate Court;
   `test_the_vesper_gate_opens_into_a_crystal_cave_that_climbs_to_an_overlook`. Under the `moonlit` sky (a vast, bright full
   moon in the north, wisps of cloud across it, the sun buried in a bank of cloud in the south), a pale
   blue-silver ambient and a fog reaching 84 m: the Gate Court, Lantern Square and its
@@ -259,7 +260,9 @@ How `.map` files work and what can stand on a tile.
   the way it goes down): on the top tile, fine steps drawn over stair tiles that each sit `rise` below
   the last, a tile's floor its lowest step, so the top step meets the floor above. `grand_stair` adds
   raking balustrades on cheek walls either side (wall tiles whose `top=` is that tile's top step),
-  newels with lanterns at its head (it is a light) and urns at its foot. `nave_runner` (`length=`
+  newels with lanterns at its head (it is a light) and urns at its foot. Vesperholm's `moon_stair` takes
+  the same `run=`, `rise=`, `steps=` and `width=` on the same footprint, in moonstone and silver (see
+  `rendering.md`). `nave_runner` (`length=`
   tiles toward -X, `ends=head,foot` for its fringes) is laid in stretches, one to a bake chunk.
   `lever model=wood` is the jungle's wooden lever.
   Every `banner`, in every map, is the realm's crimson, the city's red (`parts.REALM_CRIMSON`) and carries its crest (`parts.realm_crest`: a lone watchtower dark

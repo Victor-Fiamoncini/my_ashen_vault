@@ -1270,7 +1270,7 @@ def test_the_vesper_gate_opens_into_a_crystal_cave_that_climbs_to_an_overlook():
     assert any(m[t].ceil is None for t in cave)  # the moon-pool grotto, open to the sky
     mites = _spec(m, "glassmite")
     assert len(mites) == 3 and all(m[s.tx, s.tz].ceil is not None for s in mites)
-    (stair,) = _spec(m, "grand_stair")
+    (stair,) = _spec(m, "moon_stair")  # its own, not Harrowmere's
     assert int(stair.props["run"]) * float(stair.props["rise"]) == pytest.approx(6.0)
     foot = (stair.tx, stair.tz - int(stair.props["run"]))
     assert m[foot].floor == 0 and foot in reach  # down into the court
