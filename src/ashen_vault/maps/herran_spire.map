@@ -54,6 +54,7 @@ y = floor tex=encaustic_tile h=10.5 ceil=14.5 ceil_tex=herran_ashlar side=herran
 z = floor tex=encaustic_tile h=11 ceil=15 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.45
 // Herran's study, 11 m up, and the floor under his door.
 u = floor tex=encaustic_tile h=11 ceil=15.5 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.3
+// P is used only as the floor under the boss door (a near-copy of u, its ceiling 15 not 15.5).
 P = floor tex=encaustic_tile h=11 ceil=15 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.3
 // The observatory's floor, open to the sky, ringed by its parapet over the clouds.
 O = floor tex=herran_ashlar h=11 side=herran_ashlar

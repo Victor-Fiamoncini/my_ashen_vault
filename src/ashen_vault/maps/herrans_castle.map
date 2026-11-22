@@ -139,6 +139,7 @@ F = chest item=sun_tincture count=2 gold=160 model=coffer
 G = chest item=bitter_root count=2 gold=110
 // The door to the Spire's passage, and the way in at its end.
 H = door key=spire_key
+// The yaw turns the door model to face its passage.
 J = exit map=herran_spire at=5,25,-90 label=Climb_the_Spire model=spire_door yaw=0 boss=herran_dead
 // Gaslight on the quay and in the Belvedere, and the gas jets along the Ring.
 M = gas_lamp

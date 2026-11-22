@@ -3,6 +3,8 @@ Vesperholm, the sea of cloud round the castle, and the way through it to the foo
 
 import math
 
+import pytest
+
 from ashen_vault import map_path
 from ashen_vault.world import terrain
 from ashen_vault.world.map_loader import MapLoader
@@ -163,7 +165,7 @@ def test_the_castle_is_small_and_dark():
     before = _reachable(m, _start(m), open_tiles=doors)
     secrets = [(s.tx, s.tz) for s in _spec(m, "secret_wall")]
     after = _reachable(m, _start(m), open_tiles=[*doors, *secrets])
-    for t in after - set(secrets):
+    for t in after - set(secrets):  # the false wall has no ceiling of its own
         tile = m[t]
         if tile.ceil is None:
             continue
@@ -171,6 +173,18 @@ def test_the_castle_is_small_and_dark():
             assert tile.dark >= 0.6, t
         else:
             assert tile.dark <= 0.35, t
+
+
+def test_a_save_from_before_the_castle_was_rebuilt_wakes_beside_its_shrine():
+    from ashen_vault.world.world import SHRINE_REACH, beside_shrine
+
+    m = _castle()
+    (shrine,) = _spec(m, "save_statue")
+    sx, sz = TileMap.center(shrine.tx, shrine.tz)
+    x, z, yaw = beside_shrine(m, *TileMap.center(27, 81), 0.0)  # the old Vesperholm landing
+    assert math.hypot(x - sx, z - sz) <= SHRINE_REACH
+    assert m.tile_at(x, z).walkable
+    assert yaw == pytest.approx(math.atan2(sz - z, sx - x))
 
 
 def test_the_secret_lab_is_one_room():
