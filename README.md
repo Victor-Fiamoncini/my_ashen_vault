@@ -269,8 +269,8 @@ trademarks of FromSoftware, Inc. (*Dark Souls* is published by Bandai Namco Ente
     moonlit streets drowned in the light of a moon that never sets, a glass bridge over a gorge,
     and a castle where the dead keep watch as pale shades;
   - and above them all, up a stair of light from Lyra's altar, Herran's Castle: Victorian towers of red
-    brick and gilt iron over a sea of cloud, skybridges between them, many-armed drakes on the wing,
-    gowned drake magi, hidden laboratories of elixirs and grafts, and the spire where Herran waits.
+    brick and gilt iron over a sea of cloud, a walk of iron grating between them, many-armed drakes on the wing,
+    gowned drake magi, a secret laboratory of elixirs and grafts, and the spire where Herran waits.
 - **Shortcuts and secrets**: barred doors, fastened lifts and drawbridges fold each area back onto its
   shrine; some walls aren't walls and some chests aren't chests.
 - **Dark places**: caves swallow your light until you burn Lumen or kindle the cold braziers, which

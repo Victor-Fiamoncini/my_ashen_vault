@@ -196,7 +196,7 @@ Equipment, combat, spells, shops, saves and the story.
   (`herrans_castle`, then `herran_spire`), up the stair of light that rises off the bridge beside Lyra's
   altar in Vesperholm once the Argent Sigil is lifted from her hands. He wanted his mother's many hands:
   he grafted the arms of men onto his drakes, then onto himself, until he went mad (his journal, in the
-  hidden laboratories, tells it). He drops the Auric Sigil. Odrin no longer ends the game: shown all five
+  secret laboratory, tells it). He drops the Auric Sigil. Odrin no longer ends the game: shown all five
   (`relics.ENDING_RELICS`) he sets `dialogue.BELL_UNSEALED` and you keep them, and ringing the Silent
   Bell with all five in hand (`dialogue.bell`) plays the ending. The Enthroned stirs a stage further for
   each you carry (`dialogue.ENTHRONED_LINES`, six stages), and at five confesses he rang the bell. What

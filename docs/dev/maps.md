@@ -102,25 +102,24 @@ How `.map` files work and what can stand on a tile.
   `moon_window`s, and up a half-metre step the chancel floored in `moon_glass`, where the Vesper
   Moonbrand stands planted in its altar (`altar model=moon yaw=90 said="..."`: `said=` gives the lines
   shown when you take its offering, one per `|`), veiled statues and candles about it;
-  `tests/test_vigil_chapel_world.py`), `herrans_castle` (Herran's Castle, over a sea of cloud between the
-  sun and Vesperholm's moon, under the `aloft` sky: up the stair of light (`exit model=sky_stair
-  requires=argent_sigil_taken hidden`, at 35,18 on the bridge beside Lyra's altar: `hidden` keeps an exit
-  undrawn and out of reach while it is shut) you arrive on the Cloud Quay, its `start` and shrine, a
-  broken stretch of balustrade open on the clouds; the gatehouse between its octagonal towers, the
-  Lower Court (gas lamps, the dry `drake_fountain`), the Open Laboratory west of it (the Spire Key) and
-  the Glasshouse Aviary east (a `glasshouse` vault of gilt iron and broken glass over it), the Great Stair
-  up to the Belvedere Terrace at 6 m, the Clock Tower's hall and the stair inside its wall to 10 m, the
-  High Bridge of `iron_grating` to the Belvedere, its long gallery down to a `locked` cage lift to the
-  court (the shortcut), the North Bridge to the Spire Plaza and, behind `door key=spire_key`, the spire's
-  door (`exit model=spire_door`). Three hidden laboratories lie behind `secret_wall`s (north of the open
-  lab, south of the aviary, behind the clock tower's top room), with Herran's Graft Draught, Sun Tincture
-  and Bonesaw and his journal's pages as `hint`s. Its sea of cloud is a `chasm` with `fall=cloud` (the
-  words for the plunge, `world.PLUNGE_MESSAGES`) and `void` (no floor drawn, so the sky's `cloud_sea`
-  layer shows far below), under `edge_top = -40` so no rim wall stands round it. Walled in `herran_brick`,
-  capped in `herran_slate`, paved in `herran_ashlar` and `encaustic_tile`, its labs in `lab_tile`;
-  `herran_tower` landmarks (`style=round|octagon|clock|belvedere|needle`) make its skyline;
-  `tests/test_herrans_castle_world.py`), `herran_spire` (Herran's Spire, behind the castle's spire door:
-  the base hall, a stair to the drake hatchery at 6 m, a stair on to Herran's study at 11 m and its
+  `tests/test_vigil_chapel_world.py`), `herrans_castle` (Herran's Castle, 32x42, over a sea of cloud under the `storm` sky: a stormy night,
+  gas lamps for light: up the stair of light (`exit model=sky_stair requires=argent_sigil_taken hidden`,
+  at 35,18 on the bridge beside Lyra's altar: `hidden` keeps an exit undrawn and out of reach while it is
+  shut) you arrive on the Cloud Quay, its `start` and shrine, a broken stretch of balustrade open on the
+  clouds, and go north through the gatehouse corridor into the Ring, a roofed passage of sooted brick
+  round a central void that falls to the clouds, its arches open on the drop. Four towers stand on it:
+  the Laboratory (NW, the Spire Key, and in its back wall the one `secret_wall` onto the secret lab, with
+  Herran's Graft Draught, Sun Tincture and Bonesaw and a page of his journal as a `hint`), the Clock Tower
+  (SW, a spiral stair inside its wall up to 10 m), the Aviary (SE, drakes and a gallery) and the Belvedere
+  (NE, a `locked` cage lift down to the Ring: the shortcut). The High Walk, a single line of
+  `iron_grating` at 10 m over the void, joins the Clock Tower's top to the Belvedere's and runs on to the
+  spire passage, where `door key=spire_key` guards the spire's door (`exit model=spire_door`). Its sea of
+  cloud is a `chasm` with `fall=cloud` (the words for the plunge, `world.PLUNGE_MESSAGES`) and `void`
+  (no floor drawn, so the sky's `cloud_sea` layer shows far below), under `edge_top = -40` so no rim
+  wall stands round it. Walled in `herran_brick`, capped in `herran_slate`, paved in `herran_ashlar` and
+  `encaustic_tile`, its labs in `lab_tile`; `herran_tower` landmarks
+  (`style=round|octagon|clock|belvedere|needle`) make its skyline; `tests/test_herrans_castle_world.py`), `herran_spire` (Herran's Spire, behind the castle's spire door:
+  the base hall (24x28), a stair to the drake hatchery at 6 m, a stair on to Herran's study at 11 m and its
   shrine, and behind `door boss=herran_dead` his observatory out on the tower's flank, open to the sky
   under an `observatory_dome`, its `telescope`, ringed by a parapet of wall tiles (never chasm, which
   an arena's flood would leak into)) |
@@ -136,7 +135,7 @@ How `.map` files work and what can stand on a tile.
 | `src/ashen_vault/world/hints.py` | Tutorial hints (`hint text="...\|..."`): shown once, the first time you step onto any of its marker's tiles (`hint:<map>:<marker>` flag); `World._update_hints` fires them |
 | `src/ashen_vault/world/footsteps.py` | Footsteps: each floor `tex` belongs to a surface (stone, wood, soft, mud, water, metal, gravel, glass (Vesperholm's `moon_glass`); the platform under you overrides it), and `Game._footstep` plays its `step_<surface>` sound. A new floor texture needs a surface (`tests/test_footsteps.py`) |
 | `src/ashen_vault/world/rest.py` | The shrine rest: timing and the pixelated ember fog pattern drawn while you pray |
-| `src/ashen_vault/world/sky.py`, `render/sky.py` | Skies (`[meta] sky = overcast\|dusk\|jungle\|ember\|moonlit`): a gradient dome meeting the fog at the horizon, a sun and halo, drifting cloud banks and an overhead cap, horizon mist; every sky's sun stands at `SUN_AT` (low in the south, over the town's sea), but Vesperholm's `moonlit` sky hangs a vast pale moon at `MOON_AT` instead (high in the north, over its cathedral; `Sky.moon` makes it full, lit all over and a touch dimmer at its limb, `LIMB_SHADE`, its seas scattered across it, `sky.maria` / `MARIA`, and still wisps of cloud across it, `sky.wisps`) and buries the sun itself in a bank of cloud silvered at its rims (`Sky.veiled`, `sky.shroud`, with a faint glow round it) among a crowd of stars (`Sky.star_count`) that reach up to the moon's bright corona (`Sky.corona`, `CORONA_SCALE`; stars keep only `Sky.star_clear` degrees clear of the disc, and shine over its halo), with the galaxy's band strewn across them (`Sky.galaxy`, `sky.galaxy_field`) and moonlit cloud overhead; Harrowmere's `dusk` sky shows that same moon far off over the Vesper Gate (`Sky.far_moon`, a `FarMoon`: smaller and paler, its `far_moon` and `far_wisps` layers drawn under the drifting clouds so they pass over it, its halo in the dome, no stars on it); stars glint behind the clouds (`Sky.stars`, their brightness; none in the jungle's daylight), its disc drawn over the clouds (`sky.sun`) and its halo behind them; dimmed by darkness and the Veil. Built pure in `world/sky.py`, drawn first each frame without fog or depth by `render/sky.py` |
+| `src/ashen_vault/world/sky.py`, `render/sky.py` | Skies (`[meta] sky = overcast\|dusk\|jungle\|ember\|moonlit\|storm`): a gradient dome meeting the fog at the horizon, a sun and halo, drifting cloud banks and an overhead cap, horizon mist; every sky's sun stands at `SUN_AT` (low in the south, over the town's sea), but Vesperholm's `moonlit` sky hangs a vast pale moon at `MOON_AT` instead (high in the north, over its cathedral; `Sky.moon` makes it full, lit all over and a touch dimmer at its limb, `LIMB_SHADE`, its seas scattered across it, `sky.maria` / `MARIA`, and still wisps of cloud across it, `sky.wisps`) and buries the sun itself in a bank of cloud silvered at its rims (`Sky.veiled`, `sky.shroud`, with a faint glow round it) among a crowd of stars (`Sky.star_count`) that reach up to the moon's bright corona (`Sky.corona`, `CORONA_SCALE`; stars keep only `Sky.star_clear` degrees clear of the disc, and shine over its halo), with the galaxy's band strewn across them (`Sky.galaxy`, `sky.galaxy_field`) and moonlit cloud overhead; Harrowmere's `dusk` sky shows that same moon far off over the Vesper Gate (`Sky.far_moon`, a `FarMoon`: smaller and paler, its `far_moon` and `far_wisps` layers drawn under the drifting clouds so they pass over it, its halo in the dome, no stars on it); stars glint behind the clouds (`Sky.stars`, their brightness; none in the jungle's daylight), its disc drawn over the clouds (`sky.sun`) and its halo behind them; dimmed by darkness and the Veil. Built pure in `world/sky.py`, drawn first each frame without fog or depth by `render/sky.py` |
 | `tools/level_planner/` | A top-down level planner (`index.html`, open it in a browser; a design aid, not part of the game): paint tiles, pin NPCs, gates and wells, export JSON or an ASCII grid. `map_to_planner.py <map>` turns a game map into JSON for its Import box |
 | `tools/level_sketch/` | A free-form top-down sketchpad for level design (`index.html`, open it in Chrome; a design aid, not part of the game): shapes, lines and markers measured in metres, on layers, over an optional faint underlay of a game map (`map_to_underlay.py <map>`), saved as `<name>.sketch.json` + `.svg` in `sketches/` for planning a level's rebuild. Its logic is `model.js`, tested with `node --test tools/level_sketch/` (not in CI) |
 
