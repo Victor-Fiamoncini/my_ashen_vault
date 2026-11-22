@@ -31,7 +31,7 @@ def world_on(name, flags=(), at=None):
         ("harrow_sewers", "pall_dead", (41, 8)),
         ("vesperholm", "duchess_dead", (21, 4)),
         ("old_harrowmere", "keystone_dead", (22, 43)),
-        ("herran_spire", "herran_dead", (23, 8)),
+        ("herran_spire", "herran_dead", (17, 6)),
     ],
 )
 def test_every_boss_has_a_closed_arena_behind_a_great_door(map_name, flag, lair):

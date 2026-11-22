@@ -158,8 +158,8 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   Terrace, the spire's needle beyond), `--at=20,24,0` (the High Bridge). Hidden labs: `--at=8,51,-90
   --script "attack"` (north of the open lab), `--at=47,66,90 --script "attack"` (south of the aviary),
   `--at=10,24,180 --script "attack"` (behind the clock tower's top room). The lift: `--at=41,45,90`.
-  The spire: `--map herran_spire` (its base hall), `--at=8,6,0` (the study and its shrine). Boss:
-  `--map herran_spire --at=14,5,0 --level 12 --equip right=claymore,body=brigandine --smoke 720 --script
+  The spire: `--map herran_spire` (its base hall), `--at=7,5,0` (the study and its shrine), `--at=8,17,-135` (the hatchery). Boss:
+  `--map herran_spire --at=10,5,0 --level 12 --equip right=claymore,body=brigandine --smoke 720 --script
   "interact wait:0.8 forward:1.6 wait:5"` (through his door; Herran rising in his observatory). The
   ending: `--map harrowmere --at=25,26,-90 --flags bell_unsealed --script "wait:0.5 interact"` (the bell
   refuses without the five sigils in hand).
@@ -172,7 +172,7 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   and picks the first empty slot in the chooser (with a throwaway save that doesn't exist yet).
 - Boss doors: `--map abandoned_prison --at=15,11,-90` faces the Warden's great door, `--at=28,10,-116` the
   Butcher's, `--map verdant_hollow --at=15,11,-90` the Loom Mother's, `--map cinder_keep --at=22,5,180`
-  the gargoyles', `--map ashen_cemetery --at=10,11,-90` the Sexton's, `--map vesperholm --at=21,11,-90` the Duchess's, `--map herran_spire --at=14,5,0` Herran's. The fog appears only
+  the gargoyles', `--map ashen_cemetery --at=10,11,-90` the Sexton's, `--map vesperholm --at=21,11,-90` the Duchess's, `--map herran_spire --at=10,5,0` Herran's. The fog appears only
   after dying in a sealed arena (or with its `fog:` flag set); `tests/test_arena.py` drives the flow.
 - `--level` only sets the level (for equipment requirements); HP and stats stay at level 1, so judge boss
   balance headless (`World` with a `JungleGame`) rather than from a smoke fight.

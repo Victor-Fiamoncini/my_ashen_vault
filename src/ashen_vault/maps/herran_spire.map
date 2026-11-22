@@ -1,13 +1,13 @@
 [meta]
 name = Herran's Spire
-ambient = 0.86 0.8 0.74
-fog = 0.66 0.67 0.76
-fog_range = 22 120
-model_range = 64
-indoor_range = 22
+ambient = 0.42 0.4 0.48
+fog = 0.12 0.12 0.16
+fog_range = 10 60
+model_range = 40
+indoor_range = 18
 sky = storm
-torch = 6 0.95 0.8 0.6
-start = 12 37 -90
+torch = 6 1.0 0.72 0.45
+start = 5 25 -90
 default = _
 entity_floor = auto
 roofs = true
@@ -15,94 +15,78 @@ edge_top = -40
 edge_tex = herran_ashlar
 
 // Herran's Spire, the tallest of his towers, at the head of the castle: the base hall behind the
-// door the Spire Key opens, the stair up to the drake hatchery where his vats still bubble, the stair
-// on up to his study and the shrine there, and beyond his door, out over the clouds on the tower's
-// flank, the observatory under its broken dome, where Herran, the Many-Handed waits by his telescope
-// with the Auric Sigil, the fifth seal, the sun's.
+// door the Spire Key opens, a narrow dim stair winding up to the drake hatchery where his vats still
+// bubble, on up to his study and the shrine there, and beyond his door, out on the tower's flank
+// over the clouds, the observatory under its broken dome, where Herran, the Many-Handed waits by his
+// telescope with the Auric Sigil, the fifth seal, the sun's.
 
 [legend]
 _ = floor tex=cloud_sea h=-40 side=herran_ashlar chasm fall=cloud void
 & = wall tex=herran_brick top=40 cap=herran_slate
 v = wall tex=herran_ashlar top=12.1 cap=herran_ashlar
 // The base hall, where the castle's door lets you in.
-a = floor tex=encaustic_tile h=0 ceil=7 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.2
-// The stair up to the hatchery, half a metre a tile, each step under its own vault.
-b = floor tex=encaustic_tile h=0.5 ceil=5.5 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.3
-c = floor tex=encaustic_tile h=1 ceil=6 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.3
-d = floor tex=encaustic_tile h=1.5 ceil=6.5 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.3
-e = floor tex=encaustic_tile h=2 ceil=7 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.3
-f = floor tex=encaustic_tile h=2.5 ceil=7.5 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.3
-g = floor tex=encaustic_tile h=3 ceil=8 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.3
-h = floor tex=encaustic_tile h=3.5 ceil=8.5 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.3
-i = floor tex=encaustic_tile h=4 ceil=9 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.3
-j = floor tex=encaustic_tile h=4.5 ceil=9.5 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.3
-k = floor tex=encaustic_tile h=5 ceil=10 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.3
-l = floor tex=encaustic_tile h=5.5 ceil=10.5 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.3
-m = floor tex=encaustic_tile h=6 ceil=11 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.3
+a = floor tex=encaustic_tile h=0 ceil=7 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.3
+// The narrow stair up to the hatchery, half a metre a tile, each step under its own vault.
+b = floor tex=encaustic_tile h=0.5 ceil=4.5 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.45
+c = floor tex=encaustic_tile h=1 ceil=5 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.45
+d = floor tex=encaustic_tile h=1.5 ceil=5.5 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.45
+e = floor tex=encaustic_tile h=2 ceil=6 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.45
+f = floor tex=encaustic_tile h=2.5 ceil=6.5 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.45
+g = floor tex=encaustic_tile h=3 ceil=7 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.45
+h = floor tex=encaustic_tile h=3.5 ceil=7.5 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.45
+i = floor tex=encaustic_tile h=4 ceil=8 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.45
+j = floor tex=encaustic_tile h=4.5 ceil=8.5 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.45
+k = floor tex=encaustic_tile h=5 ceil=9 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.45
+l = floor tex=encaustic_tile h=5.5 ceil=9.5 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.45
+m = floor tex=encaustic_tile h=6 ceil=10 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.45
 // The drake hatchery, 6 m up.
-H = floor tex=lab_tile h=6 ceil=11 ceil_tex=lab_tile side=lab_tile roof=40 dark=0.35
+H = floor tex=lab_tile h=6 ceil=11 ceil_tex=lab_tile side=lab_tile roof=40 dark=0.4
 // The stair on up to Herran's study.
-n = floor tex=encaustic_tile h=6.5 ceil=11 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.3
-o = floor tex=encaustic_tile h=7 ceil=11.5 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.3
-p = floor tex=encaustic_tile h=7.5 ceil=12 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.3
-q = floor tex=encaustic_tile h=8 ceil=12.5 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.3
-r = floor tex=encaustic_tile h=8.5 ceil=13 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.3
-s = floor tex=encaustic_tile h=9 ceil=13.5 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.3
-t = floor tex=encaustic_tile h=9.5 ceil=14 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.3
-x = floor tex=encaustic_tile h=10 ceil=14.5 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.3
-y = floor tex=encaustic_tile h=10.5 ceil=15 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.3
-z = floor tex=encaustic_tile h=11 ceil=15.5 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.3
-// Herran's study, 11 m up, and the passage out to his observatory.
-S = floor tex=encaustic_tile h=11 ceil=15.5 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.2
-P = floor tex=encaustic_tile h=11 ceil=15 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.2
+n = floor tex=encaustic_tile h=6.5 ceil=10.5 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.45
+o = floor tex=encaustic_tile h=7 ceil=11 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.45
+p = floor tex=encaustic_tile h=7.5 ceil=11.5 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.45
+q = floor tex=encaustic_tile h=8 ceil=12 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.45
+r = floor tex=encaustic_tile h=8.5 ceil=12.5 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.45
+s = floor tex=encaustic_tile h=9 ceil=13 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.45
+t = floor tex=encaustic_tile h=9.5 ceil=13.5 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.45
+x = floor tex=encaustic_tile h=10 ceil=14 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.45
+y = floor tex=encaustic_tile h=10.5 ceil=14.5 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.45
+z = floor tex=encaustic_tile h=11 ceil=15 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.45
+// Herran's study, 11 m up, and the floor under his door.
+u = floor tex=encaustic_tile h=11 ceil=15.5 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.3
+P = floor tex=encaustic_tile h=11 ceil=15 ceil_tex=herran_ashlar side=herran_brick roof=40 dark=0.3
 // The observatory's floor, open to the sky, ringed by its parapet over the clouds.
 O = floor tex=herran_ashlar h=11 side=herran_ashlar
 
 [grid]
-____________________vvvvvvv_______
-___&&&&&&&&&&&&&&__vvOOOOOvv______
-___&&&&&&&&&&&&&&_vvOOOTOOOvv_____
-___&&&&SSSSSSSC&&vvOOOOOOOOOvv____
-___&&zzÀSSRSSSS&vvOOOOOOOOOOOv____
-___&&yyÀSSSSSSSDOOOOOOOOOOOOOv____
-___&&xxSSSSSSSS&vvOOOOOZOOOOOv____
-___&&ttSBSSSSSS&&vOOOOOOOOOOOv____
-___&&ssSSSSSQSS&&vOOOOOYOOOOOv____
-___&&Ir&&&&&&&&&&vvOOOOOOOOOvv____
-___&&qq&&&&&&&&&&_vvOOOOOOOvv_____
-___&&pp&&&&&&&&&&__vvOOOOOvv______
-___&&oo&&&&&&&&&&___vvvvvvv_______
-___&&nn&&&&&&&&&&_________________
-___&&HHHHHHHHHHJ&_________________
-___&&HHVHHHHHHHH&_________________
-___&&HHHHHHHHNHH&_________________
-___&&HHHHMHHHHHH&_________________
-___&&HHHHHHHHHHH&_________________
-___&&HHHHHMHHHVH&_________________
-___&&JHHHHHHHHHH&_________________
-___&&&&&&&&&mm&&&_________________
-___&&&&&&&&&ll&&&_________________
-___&&&&&&&&&kk&&&_________________
-___&&&&&&&&&jj&&&_________________
-___&&&&&&&&&ii&&&_________________
-___&&&&&&&&&hh&&&_________________
-___&&&&&&&&&gg&&&_________________
-___&&&&&&&&&If&&&_________________
-___&&&&&&&&&ee&&&_________________
-___&&&&&&&&&dd&&&_________________
-___&&&&&&&&&cc&&&_________________
-___&&&&&&&&&bb&&&_________________
-___&&&&&aaaaaaaa&_________________
-___&&&&&aLaaaaLa&_________________
-___&&&&&aaaaaaaa&_________________
-___&&&&&aaaaaaaa&_________________
-___&&&&&aaaaaaaa&_________________
-___&&&&&&&&&X&&&&_________________
-___&&&&&&&&&&&&&&_________________
-___&&&&&&&&&&&&&&_________________
-___&&&&&&&&&&&&&&_________________
-__________________________________
-__________________________________
+&&&&&&&&&&&&vvvvvvvvvvv_
+&&&&&&&&&&&&vvOOOOOOOvv_
+&&&&uuuSuuuCvOOOOTOOOOv_
+&&zuÀuuuuuuuvOOOOOOOOOv_
+&&y&uuuuRuuuvOOOOOOOOOv_
+&&x&uuuuuuuuDOOOOZOOOOv_
+&&t&uBuuIuuuvOOOOOOOOOv_
+&&s&uuuuuuQuvOOOOYOOOOv_
+&&r&&&&&&&&&vOOOOOOOOOv_
+&&q&&&&&&&&&vvOOOOOOOvv_
+&&p&&&&&&&&&vvvvvvvvvvv_
+&&o&&&&&&&&&____________
+&&n&&&&&&&&&____________
+&&HHHIHHJ&&&____________
+&&HVHHNHHHm&____________
+&&HHHHHHH&l&____________
+&&HHHMHHH&k&____________
+&&HHHHHHH&j&____________
+&&HHMHHVH&i&____________
+&&JHHHHHJ&h&____________
+&&&&&&&&&&g&____________
+&&&&&&&&&&f&____________
+&&aaaaaaI&e&____________
+&&aLaaaLa&d&____________
+&&aaaaaaa&c&____________
+&&aaaaaaaab&____________
+&&&&&X&&&&&&____________
+________________________
 
 [entities]
 // The door back down into the castle, and the shrine in Herran's study.

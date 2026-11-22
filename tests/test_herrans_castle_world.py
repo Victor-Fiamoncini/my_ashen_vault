@@ -361,6 +361,7 @@ def test_herrans_spire_climbs_to_his_observatory_and_he_waits_only_behind_his_do
     up, and nowhere you can reach strands you."""
     m = _spire()
     assert m.meta["name"] == "Herran's Spire" and m.meta["sky"] == "storm"
+    assert m.width <= 24 and m.depth <= 28
     start = _start(m)
     (door,) = _spec(m, "door", boss="herran_dead")
     (herran,) = _spec(m, "herran")
@@ -389,7 +390,7 @@ def test_herran_drops_the_auric_sigil_and_turns_in_his_rage():
     assert t.hp > EnemyTypes.get("moon_duchess").hp and t.damage > EnemyTypes.get("moon_duchess").damage
 
 
-def _herran_at(at=(23, 3), herran_at=(23, 8)):
+def _herran_at(at=(16, 3), herran_at=(16, 8)):
     from test_verdant_world import foe
 
     game = JungleGame()
@@ -415,14 +416,14 @@ def test_herrans_hands_rise_in_a_line_and_his_elixir_lands_where_you_stood():
 def test_herrans_sweep_and_embrace_reach_only_so_far():
     from ashen_vault.ai.enemy import EMBRACE_REACH, GRASP_SWEEP_REACH
 
-    game, world, herran = _herran_at(at=(23, 7))
+    game, world, herran = _herran_at(at=(16, 7))
     hp = game.player.stats.hp
     world.grasp_sweep(herran)
     assert game.player.stats.hp < hp
     hp = game.player.stats.hp
     world.embrace(herran)
     assert game.player.stats.hp < hp and game.player.webbed_t > 0
-    game, world, herran = _herran_at(at=(23, 2))
+    game, world, herran = _herran_at(at=(16, 2))
     assert math.hypot(game.player.x - herran.x, game.player.z - herran.z) > max(
         GRASP_SWEEP_REACH, EMBRACE_REACH
     )
