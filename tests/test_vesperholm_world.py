@@ -239,7 +239,7 @@ def test_the_gate_in_town_is_always_open_even_on_a_fresh_save():
 
 def test_the_way_home_from_vesperholm_is_always_open():
     _game, world = city(at=(21, 100))  # the cave's hall, where the gate lets you in
-    (home,) = [p for p in world.props if p.kind == "exit"]
+    (home,) = [p for p in world.props if p.kind == "exit" and p.props["map"] == "harrowmere"]
     assert home.props["map"] == "harrowmere" and world.exit_open(home)
     assert world.map.meta["sky"] == "moonlit"
 
@@ -317,7 +317,8 @@ def test_the_duchess_fights_faster_than_any_other_boss_until_her_rage():
 def test_vesperholm_outmatches_the_areas_before_it():
     """The last area: each of its foes hits harder than the same kind of foe anywhere before."""
     vesper = ("pale_sentinel", "lantern_wraith", "moonhound", "veiled_knight", "glassmite", "moon_duchess")
-    earlier = [t for t in EnemyTypes.ALL.values() if t.id not in vesper]
+    later = ("grafted_drake", "drake_magus", "vat_spawn", "herran")  # Herran's Castle, past Vesperholm
+    earlier = [t for t in EnemyTypes.ALL.values() if t.id not in vesper + later]
     assert EnemyTypes.get("moon_duchess").hp > max(t.hp for t in earlier if t.boss)
     assert EnemyTypes.get("moon_duchess").damage > max(t.damage for t in earlier if t.boss)
     assert EnemyTypes.get("veiled_knight").damage > max(

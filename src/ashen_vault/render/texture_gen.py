@@ -79,6 +79,13 @@ def all_textures():
         "crystal_rock": crystal_rock(),
         "sallow_mire": sallow_mire(),
         "fen_mud": fen_mud(),
+        "herran_brick": herran_brick(),
+        "herran_ashlar": herran_ashlar(),
+        "herran_slate": herran_slate(),
+        "encaustic_tile": encaustic_tile(),
+        "iron_grating": iron_grating(),
+        "lab_tile": lab_tile(),
+        "cloud_sea": cloud_sea(),
         "white": solid(255, 255, 255),
     }
 
@@ -1308,5 +1315,150 @@ def cavern_rock():
             return tint([30, 24, 20], 0.9 + n * 0.2)  # a cleft
         k = 0.55 + n * 0.4 + max(fold, 0) * 0.15
         return tint([120, 96, 70], k)
+
+    return build(px)
+
+
+# --- Herran's Castle, above the clouds -------------------------------------------------------------
+
+
+def herran_brick():
+    """The castle's walls: hard red brick in Flemish bond, every fifth course a band of cream brick, the
+    mortar pale and sooted by the wind, the headers a shade darker than the stretchers."""
+
+    def px(x, y):
+        row = y // 6
+        dy = y % 6
+        shift = 0 if row % 2 == 0 else 6
+        xx = (x + shift) % SIZE
+        unit = xx // 12  # Flemish bond: a stretcher (8) then a header (4) along each course
+        within = xx % 12
+        header = within >= 8
+        if dy == 5 or within in (0, 8):
+            return tint([186, 176, 160], 0.78 + noise(x, y, 4, 701) * 0.2)  # the mortar
+        n = fbm(x, y, 702)
+        if row % 5 == 2:  # the cream band
+            return tint([214, 196, 158], 0.8 + hash_(unit, row, 703) * 0.14 + (n - 0.5) * 0.2)
+        base = [128, 52, 40] if header else [156, 66, 48]
+        k = 0.78 + hash_(unit * 2 + header, row, 704) * 0.2 + (n - 0.5) * 0.24
+        return tint(base, k + (0.06 if dy == 0 else 0))
+
+    return build(px)
+
+
+def herran_ashlar():
+    """Pale dressed limestone: the quoins, cornices and the courts' paving, in square-cut blocks with fine
+    joints, weathered warm by the sun above the clouds."""
+
+    def px(x, y):
+        row = y // 16
+        xx = (x + (0 if row % 2 == 0 else 16)) % SIZE
+        col = xx // 32
+        if y % 16 == 0 or xx % 32 == 0:
+            return tint([150, 138, 118], 0.8 + noise(x, y, 4, 711) * 0.16)
+        n = fbm(x, y, 712)
+        k = 0.8 + hash_(col, row, 713) * 0.14 + (n - 0.5) * 0.22
+        c = tint([214, 202, 178], k)
+        if hash_(x, y, 714) > 0.985:
+            c = tint(c, 0.82)  # a pit in the stone
+        return c
+
+    return build(px)
+
+
+def herran_slate():
+    """Fish-scale slates of the mansard roofs and conical caps: rounded tails in staggered rows, blue-black
+    with a violet cast, each tail's rim catching the sun."""
+
+    def px(x, y):
+        row = y // 8
+        ox = (x + (4 if row % 2 else 0)) % 8
+        dy = y % 8
+        n = fbm(x, y, 721)
+        # A rounded tail: the bottom of each scale is an arc.
+        edge = 7 - rround(((ox - 3.5) / 4.0) ** 2 * 3)
+        if dy > edge:
+            return tint([28, 26, 36], 0.9 + n * 0.2)  # shadow under the tail
+        if dy == edge:
+            return tint([150, 140, 170], 0.85 + n * 0.2)  # the sunlit rim
+        k = 0.72 + hash_((x + (4 if row % 2 else 0)) // 8, row, 722) * 0.22 + (n - 0.5) * 0.24
+        return tint([66, 62, 84], k + (dy / 8) * 0.1)
+
+    return build(px)
+
+
+def encaustic_tile():
+    """The halls' floors: encaustic tiles in a four-tile pattern, terracotta, cream and blue-black, an
+    eight-pointed star in each, worn grey where the drakes' claws have dragged."""
+
+    def px(x, y):
+        tx, ty = x % 16, y % 16
+        if tx == 0 or ty == 0:
+            return tint([70, 60, 52], 0.9 + noise(x, y, 4, 731) * 0.1)  # the grout
+        cx, cy = abs(tx - 8), abs(ty - 8)
+        n = fbm(x, y, 732)
+        quarter = ((x // 16) + (y // 16)) % 2
+        if cx + cy <= 4 or ((cx <= 1 or cy <= 1) and cx + cy <= 6):  # the star
+            c = [214, 196, 160]
+        elif max(cx, cy) >= 6:  # the border
+            c = [42, 44, 58] if quarter else [150, 66, 44]
+        else:
+            c = [150, 66, 44] if quarter else [42, 44, 58]
+        k = 0.82 + (n - 0.5) * 0.26
+        if noise(x, y, 8, 733) > 0.72:
+            k *= 0.82  # worn
+        return tint(c, k)
+
+    return build(px)
+
+
+def iron_grating():
+    """The skybridges' decks: cast-iron plates in a lattice of diamonds, painted a dark green long since
+    flaked to rust, the gaps between them black."""
+
+    def px(x, y):
+        a, b = (x + y) % 8, (x - y) % 8
+        n = fbm(x, y, 741)
+        if a < 2 or b < 2:
+            c = [52, 66, 56] if noise(x, y, 8, 742) > 0.42 else [112, 64, 40]  # paint, or rust
+            k = 0.82 + (n - 0.5) * 0.3 + (0.12 if a == 0 or b == 0 else 0)
+            return tint(c, k)
+        return tint([14, 14, 16], 0.9 + n * 0.2)  # the gap
+
+    return build(px)
+
+
+def lab_tile():
+    """The laboratories' walls and floors: white glazed tiles in a square grid, crazed and yellowed,
+    stained green and brown where something has spilt and dried."""
+
+    def px(x, y):
+        if x % 8 == 0 or y % 8 == 0:
+            return tint([120, 120, 108], 0.85 + noise(x, y, 4, 751) * 0.15)
+        n = fbm(x, y, 752)
+        c = tint([214, 214, 198], 0.86 + hash_(x // 8, y // 8, 753) * 0.1 + (n - 0.5) * 0.12)
+        stain = noise(x, y, 16, 754)
+        if stain > 0.66:
+            c = tint([118, 150, 92] if noise(x, y, 32, 755) > 0.5 else [132, 104, 70], 0.9 + stain * 0.1)
+        if hash_(x, y, 756) > 0.97:
+            c = tint(c, 0.8)  # the crazing
+        return c
+
+    return build(px)
+
+
+def cloud_sea():
+    """The sea of cloud far below the castle: soft billows lit gold from the low sun on one side and
+    shadowed blue-grey on the other."""
+
+    def px(x, y):
+        n = fbm(x, y, 761)
+        m = noise(x, y, 16, 762)
+        k = 0.6 + n * 0.5
+        lit = [236, 224, 206]
+        shade = [150, 156, 180]
+        mix = min(max((m - 0.3) * 1.6, 0.0), 1.0)
+        c = [rround(s + (l - s) * mix) for s, l in zip(shade, lit, strict=True)]
+        return tint(c, min(k, 1.0))
 
     return build(px)

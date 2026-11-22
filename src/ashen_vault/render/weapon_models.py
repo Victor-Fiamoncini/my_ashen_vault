@@ -3,7 +3,7 @@ draws any of them by item id, the area modules' own weapons included."""
 
 import math
 
-from ashen_vault.render import forge_models, moon_models, sunken_models
+from ashen_vault.render import forge_models, herran_models, moon_models, sunken_models
 from ashen_vault.render.parts import (
     BRASS,
     DARK_IRON,
@@ -19,7 +19,7 @@ from ashen_vault.util import rround
 # turned a quarter about the haft by `weapon` so it leads along +X: the way every swing travels.
 HEADED = {
     "hatchet", "bearded_axe", "butcher_cleaver", "war_hammer", "great_iron_hammer", "slagbreaker",
-    "torch_greathammer",
+    "torch_greathammer", "herran_bonesaw",
 }  # fmt: skip
 
 WOOD = (90, 60, 38)
@@ -43,6 +43,7 @@ WEAPON_LEN = {
     "bearded_axe": 1.15,
     "hatchet": 0.9,
     "butcher_cleaver": 1.0,
+    "herran_bonesaw": 1.05,
     "oak_cudgel": 1.0,
     "spiked_club": 1.05,
     "stormbrand": 1.45,
@@ -95,6 +96,8 @@ def _weapon(r, item_id, phase=None):
         hand_axe(r, item_id == "bearded_axe")
     elif item_id == "butcher_cleaver":
         cleaver(r)
+    elif item_id == "herran_bonesaw":
+        herran_models.bonesaw(r)
     elif item_id == "stormbrand":
         forge_models.stormbrand(r)
     elif item_id == "slagbreaker":

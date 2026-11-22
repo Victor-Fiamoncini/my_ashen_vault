@@ -66,6 +66,8 @@ LIGHT_KINDS = (
     "energy_core",
     "street_arch",
     "fen_beacon",
+    "gas_lamp",
+    "specimen_jar",
 )
 LIGHT_Y = {
     "fen_beacon": "3.1",
@@ -75,6 +77,8 @@ LIGHT_Y = {
     "grand_stair": "3.2",
     "street_arch": "3.4",
     "moon_lamp": "2.95",
+    "gas_lamp": "2.9",
+    "specimen_jar": "1.0",
     "moon_stair": "4.2",
     "moon_crystal": "1.4",
     "light": "2.0",
@@ -117,6 +121,8 @@ LIGHT_COLOR = {
     "moon_stair": "1.6,0.8,0.25",  # the lamps at the head of the grand stair
     "moon_crystal": "0.72,0.62,1.0",
     "moon_window": "0.58,0.68,0.98",
+    "gas_lamp": "1.4,0.95,0.5",  # gaslight, warm and yellow over the cold air
+    "specimen_jar": "0.4,1.0,0.45",
 }
 LIGHT_RADIUS = {
     "fen_beacon": "10",
@@ -140,6 +146,8 @@ LIGHT_RADIUS = {
     "moon_stair": "8",
     "moon_crystal": "6",
     "moon_window": "8",
+    "gas_lamp": "8",
+    "specimen_jar": "4",
 }
 # Lights hung on a wall when one stands beside them: they shine from against it.
 WALL_LIGHTS = (
@@ -409,7 +417,8 @@ class MeshBuilder:
         glow = tile.floor_tex in GLOWING_FLOORS
         open_sea = self.open_sea and tile.deep
         self._into = self.sea if open_sea else None
-        self._horizontal(tile.floor_tex, x0, z0, tile.floor, 1, 0.85 if tile.liquid else 1.0, glow=glow)
+        if not tile.void:  # a void chasm shows the sky's sea of cloud far below instead
+            self._horizontal(tile.floor_tex, x0, z0, tile.floor, 1, 0.85 if tile.liquid else 1.0, glow=glow)
         self._into = None
         if tile.ceil is not None:
             self._horizontal(tile.ceil_tex, x0, z0, tile.ceil, -1, 0.75)

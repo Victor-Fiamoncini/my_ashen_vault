@@ -113,9 +113,17 @@ Behaviour flags, special moves, bosses and the rules every enemy model must keep
   you when you are level with it (`World.level_with`: from `REACH_BELOW` under its feet to `REACH_ABOVE`
   or 0.6 of its height over them), and it does not wind up a melee blow otherwise: riding a lift past a
   landing, you are out of reach of what waits there. Fire bursting up from the floor only catches you
-  within `FIRE_ABOVE` of it. Vesperholm, the last
-  area, is tuned above the rest: its foes outmatch everything before them
-  (`test_vesperholm_outmatches_the_areas_before_it`).
+  within `FIRE_ABOVE` of it. Vesperholm is tuned above the areas before it: its foes outmatch everything
+  there (`test_vesperholm_outmatches_the_areas_before_it`), and Herran's Castle, past it, above Vesperholm
+  (`test_herrans_creatures_outmatch_vesperholms`). Its foes (`render/herran_models.py`): the Grafted Drake
+  (`grafted_drake`, a flyer with four human arms sewn on; landed, `rend` rakes with them all, `World.grounded`
+  allowing it only then), the Drake Magus (`drake_magus`, a gowned six-armed caster: gold bolts from its
+  orrery-staff and `sunbrand`, a ring of glyphs under you, `Eruption` style "sun"), the Vat Spawn
+  (`vat_spawn`, a heap of flesh grown arms, toxic) and the boss, Herran, the Many-Handed (`herran`,
+  `herran_dead`, drops the Auric Sigil): `grasp_sweep` (his eight arms raked round him), `hand_rain` (a
+  line of grafted hands up out of the floor, style "grafts", holding you), `elixir_hurl` (a flask lobbed
+  to burst in a toxic splash, style "elixir"), and in his rage, his braces burst, `embrace` (every arm
+  clamping you, then holding you) and `solar_gaze` (a line of sunlight bursts from his feet past you).
   `perch` spawns a statue (`Enemy.perched`) that wakes when it sees you, or is struck; it then spends
   `STATUE_RISE` in state `"rising"` (seams of fire spread, its stone bursts off at `STATUE_BURST`, the wings
   unfold and it lifts off). `rise="ash"` (the Warden, the Butcher, the Loom Mother, the Sexton, the sewers' two, the Duchess, the Keystone) spawns a

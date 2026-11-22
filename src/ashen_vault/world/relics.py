@@ -20,11 +20,14 @@ RELICS = {
         Relic(item="verdant_sigil", key="verdant_sigil", taken_flag="verdant_sigil_taken"),
         Relic(item="iron_sigil", key="iron_sigil", taken_flag="iron_sigil_taken"),
         Relic(item="argent_sigil", key="argent_sigil", taken_flag="argent_sigil_taken"),
+        # Herran's, the fifth seal the king never held: it lies with him in his spire above the clouds.
+        Relic(item="auric_sigil", key="auric_sigil", taken_flag="auric_sigil_taken"),
     ]
 }
 
-# Odrin ends the game once the player brings him all of these.
-ENDING_RELICS = ("ember_sigil", "verdant_sigil", "iron_sigil", "argent_sigil")
+# The sigils of the prophecy: once Odrin has seen all five in your hands he unseals the Silent Bell,
+# and ringing it with them ends the game (`dialogue.bell`).
+ENDING_RELICS = ("ember_sigil", "verdant_sigil", "iron_sigil", "argent_sigil", "auric_sigil")
 # The three sigils found this side of the Vesper Gate. The fourth, the Argent Sigil, lies in
 # Vesperholm, beyond the gate at the head of Harrowmere's cathedral steps. The gate always stands open
 # now; GATE_FLAG only records that the first three have been taken up (saves still carry it).

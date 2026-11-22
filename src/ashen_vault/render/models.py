@@ -11,6 +11,7 @@ from ashen_vault.render import (
     cemetery_models,
     fen_models,
     forge_models,
+    herran_models,
     moon_models,
     prison_models,
     sewer_models,
@@ -131,6 +132,10 @@ def enemy(r, e):
         "sunken_sexton": sunken_models.sunken_sexton,
         "keystone": sunken_models.keystone,
         "harpy": sunken_models.harpy,
+        "grafted_drake": herran_models.grafted_drake,
+        "drake_magus": herran_models.drake_magus,
+        "vat_spawn": herran_models.vat_spawn,
+        "herran": herran_models.herran,
     }.get(e.type.id)
     if e.type.id == "bone_walker" and getattr(e, "look", None) == "grave":
         fn = cemetery_models.grave_walker  # the cemetery's own dead, risen in their winding sheets
@@ -2421,6 +2426,11 @@ BOSS_DOORS = {
     "keystone_dead": DoorStyle(
         (120, 104, 82), "wood_plank", (78, 66, 56), (138, 120, 96), "sunken_brick", "core"
     ),
+    # Herran: dark oak panelled and studded in brass, in an arch of pale ashlar; gilt gas lanterns on
+    # the jambs burning sun-gold.
+    "herran_dead": DoorStyle(
+        (70, 48, 34), "wood_plank", (196, 150, 70), (214, 202, 178), "herran_ashlar", "sun"
+    ),
 }
 DEFAULT_DOOR = "boss_dead"
 
@@ -2511,6 +2521,9 @@ def _door_lamp(r, style, face, t, lit):
         r.part("lozenge", 0, 0.2, 0, 0.08, 0.14, 0.08, sunken_models.CORE_HEART, glow=True, ry=t)
         flicker = 1 + 0.12 * math.sin(t * 7 + face)
         r.part("cone", 0, 0.28, 0, 0.13, 0.2 * flicker, 0.13, teal, glow=True)
+    elif style.lamp == "sun":  # a gilt gas lantern, its flame burning sun-gold
+        r.part("cube", 0, 0.17, 0, 0.12, 0.16, 0.12, (255, 214, 120), glow=True)
+        r.part("pyramid", 0, 0.3, 0, 0.16, 0.08, 0.16, style.iron)
     elif style.lamp == "candle":  # a stub of tallow, guttering
         r.part("cyl", 0, 0.14, 0, 0.06, 0.14, 0.06, (214, 204, 180))
         _flame(r, 0, 0.24, 0, 0.05, t)
@@ -2688,6 +2701,7 @@ DOOR_ARCHES = {
     "matron_dead": _matron_arch,
     "duchess_dead": _duchess_arch,
     "keystone_dead": lambda *a: sunken_models._keystone_arch(*a),
+    "herran_dead": lambda *a: herran_models.herran_arch(*a),
 }
 DOOR_LEAVES = {
     "boss_dead": _warden_leaf,
@@ -2699,6 +2713,7 @@ DOOR_LEAVES = {
     "matron_dead": _matron_leaf,
     "duchess_dead": _duchess_leaf,
     "keystone_dead": lambda *a: sunken_models._keystone_leaf(*a),
+    "herran_dead": lambda *a: herran_models.herran_leaf(*a),
 }
 # The bosses whose door can be a great gate (`door ... great=<side>`):
 # (r, style, swing or None, t, lit, great).
@@ -5358,6 +5373,23 @@ def item(r, id_, t):
         r.part("sphere", 0, -0.12, 0, 0.22, 0.22, 0.22, (255, 150, 60), glow=True)  # the ember in it
         r.part("cyl", 0, 0.16, 0, 0.14, 0.2, 0.14, (180, 56, 30))  # its neck
         r.part("cyl", 0, 0.3, 0, 0.16, 0.1, 0.16, (120, 90, 60))  # the cork
+    elif id_ == "graft_draught":
+        r.part("cyl", 0, -0.16, 0, 0.4, 0.46, 0.4, (150, 170, 140))  # a squat apothecary's bottle
+        r.part("cyl", 0, -0.18, 0, 0.3, 0.36, 0.3, (190, 205, 170), glow=True)  # the cloudy draught
+        r.part("sphere", 0.05, -0.12, 0.04, 0.12, 0.12, 0.12, (210, 160, 150))  # something floating in it
+        r.part("cyl", 0, 0.14, 0, 0.14, 0.16, 0.14, (150, 170, 140))  # its neck
+        r.part("cyl", 0, 0.26, 0, 0.18, 0.08, 0.18, (196, 150, 70))  # a brass cap
+        r.part("cube", 0.2, -0.12, 0, 0.02, 0.2, 0.18, (226, 214, 180))  # its label
+    elif id_ == "sun_tincture":
+        r.part("lozenge", 0, -0.1, 0, 0.3, 0.6, 0.3, (220, 170, 70))  # a cut-glass phial
+        r.part("lozenge", 0, -0.1, 0, 0.2, 0.44, 0.2, (255, 214, 110), glow=True)  # liquid gold
+        r.part("cyl", 0, 0.24, 0, 0.1, 0.12, 0.1, (196, 150, 70))  # its neck
+        r.part("sphere", 0, 0.34, 0, 0.12, 0.12, 0.12, (196, 150, 70))  # a gilt stopper
+        for i in range(4):  # a little sun of rays round the stopper
+            a = i * math.pi / 2
+            r.part(
+                "cube", math.cos(a) * 0.1, 0.34, math.sin(a) * 0.1, 0.06, 0.02, 0.02, (255, 206, 96), ry=-a
+            )
     elif id_ == "fenbane":
         r.part("cyl", 0, -0.14, 0, 0.3, 0.5, 0.3, (110, 55, 150))  # the slim vial
         r.part("cyl", 0, -0.14, 0, 0.18, 0.36, 0.18, (190, 130, 235), glow=True)  # the tincture
@@ -5544,6 +5576,7 @@ KEY_STYLES = {
     "warden_key": ((150, 150, 160), 1.5),  # long, heavy steel, an ember in a crowned trefoil
     "briar_key": ((92, 104, 58), 1.7),  # verdigris bronze branches, thorned, with a leaf for a bit
     "forge_key": ((58, 52, 52), 1.8),  # blackened iron, an anvil for a bow, its bit still glowing
+    "spire_key": ((196, 150, 70), 1.6),  # gilt brass, a little orrery turning in its bow
 }
 
 
@@ -5657,11 +5690,37 @@ def _forge_key(r, metal, t):
     r.part("cube", 0, -0.14, 0.12, 0.06, 0.04, 0.06, (255, 170, 70), glow=True)
 
 
+def _spire_key(r, metal, t):
+    """The spire key: gilt brass, its bow a ring in which a little orrery turns, a sun-gold bead at its
+    heart and three planets on wires about it; a fluted shank and a bit cut in steps like a stair."""
+    dark = _dim(metal, 0.62)
+    sun = (255, 206, 96)
+    for i in range(10):  # the ring of the bow
+        a = i * math.tau / 10
+        r.part("cube", 0, 0.4 + math.sin(a) * 0.16, math.cos(a) * 0.16, 0.06, 0.06, 0.1, metal, rx=-a)
+    r.part("sphere", 0, 0.4, 0, 0.08, 0.08, 0.08, sun, glow=True)  # the sun at its heart
+    for k, (ra, size) in enumerate(((0.07, 0.03), (0.11, 0.035), (0.14, 0.025))):  # the planets
+        a = t * (1.6 - k * 0.4) + k * 2.1
+        r.part("cube", 0, 0.4 + math.sin(a) * ra / 2, math.cos(a) * ra / 2, 0.01, 0.01, ra, dark, rx=-a)
+        r.part(
+            "sphere", 0, 0.4 + math.sin(a) * ra, math.cos(a) * ra, size, size, size, _bright(metal, 1.2, 20)
+        )
+    _key_collar(r, 0.2, metal, 0.11)
+    r.part("cyl", 0, -0.04, 0, 0.07, 0.4, 0.07, metal)  # the shank
+    for i in range(4):  # its flutes
+        a = i * math.pi / 2
+        r.part("cube", math.cos(a) * 0.035, -0.04, math.sin(a) * 0.035, 0.015, 0.36, 0.015, dark)
+    r.part("cyl", 0, -0.25, 0, 0.09, 0.03, 0.09, dark)  # the tip's collar
+    for i, (y, depth) in enumerate(((-0.2, 0.18), (-0.13, 0.13), (-0.06, 0.08))):  # the bit, stepped
+        r.part("cube", 0, y, depth / 2 + 0.02, 0.05, 0.06, depth, metal if i % 2 == 0 else _dim(metal, 0.85))
+
+
 KEY_SHAPES = {
     "cell_key": _cell_key,
     "warden_key": _warden_key,
     "briar_key": _briar_key,
     "forge_key": _forge_key,
+    "spire_key": _spire_key,
 }
 
 
@@ -5671,6 +5730,7 @@ SIGILS = {
     "verdant_sigil": ((62, 92, 70), (110, 230, 120), "leaf"),
     "iron_sigil": ((96, 98, 108), (120, 200, 255), "gear"),
     "argent_sigil": ((176, 182, 198), (214, 230, 255), "crescent"),
+    "auric_sigil": ((184, 132, 60), (255, 206, 96), "sun"),
 }
 
 
@@ -5730,6 +5790,13 @@ def _sigil_device(r, device, core, y, t):
             a = math.pi * (1.1 + 0.8 * i / 6)  # the bow of it, round the disc's lower half
             r.part("cube", math.sin(a) * 0.2, y, math.cos(a) * 0.2, 0.07, 0.03, 0.08, ink, ry=-a)
         r.part("cube", 0.12, y, 0, 0.05, 0.035, 0.05, ink, ry=math.pi / 4 + t * 0.3)  # the star
+    elif device == "sun":  # a round sun, twelve rays turning slowly about it, long and short in turn
+        r.part("cyl", 0, y, 0, 0.16, 0.035, 0.16, ink)
+        for i in range(12):
+            a = i * math.tau / 12 + t * 0.25
+            ray = 0.1 if i % 2 else 0.065
+            ra = 0.1 + ray / 2 + 0.02
+            r.part("cube", math.cos(a) * ra, y, math.sin(a) * ra, ray, 0.03, 0.035, ink, ry=-a)
     else:  # a gear around an anvil
         turn = t * 0.6
         for i in range(8):

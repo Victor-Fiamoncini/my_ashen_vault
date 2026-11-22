@@ -27,6 +27,7 @@ class Item:
     mass: float = 0.0  # kilograms it adds to your load when equipped (see player/burden.py)
     durability: int | None = None  # gear: overrides its maximum (see player/durability.py)
     light: float = 0.0  # weapons: metres of firelight it sheds while held (see world/darkness.py)
+    effect: str | None = None  # consumables: a lasting effect it starts (`Player.drink`): "graft", "sun_ward"
 
 
 class Items:
@@ -101,6 +102,20 @@ class Items:
                 level=6,
                 two_handed=True,
                 desc="Taller than its bearer. Slow, and ruinous when it lands.",
+            ),
+            Item(
+                id="herran_bonesaw",
+                name="Herran's Bonesaw",
+                kind="weapon",
+                mass=3.5,
+                category="axe",
+                weight="medium",
+                price=0,
+                power=19,
+                reach=2.0,
+                speed=1.35,
+                level=8,
+                desc="A surgeon's saw with a hooked back and too many teeth. Herran used it on himself.",
             ),
             Item(
                 id="vesper_moonbrand",
@@ -565,6 +580,24 @@ class Items:
                 cures=("toxic", "poison"),
                 desc="A bitter violet tincture steeped from fen reeds. Purges toxin and poison from the blood.",
             ),
+            # Herran's: what he brewed in his laboratories, out of drakes and himself.
+            Item(
+                id="graft_draught",
+                name="Graft Draught",
+                kind="consumable",
+                price=0,
+                effect="graft",
+                desc="A cloudy draught that burns going down. For a while ST returns fast and blows cost less. It takes HP to take.",
+            ),
+            Item(
+                id="sun_tincture",
+                name="Sun Tincture",
+                kind="consumable",
+                price=0,
+                cures=("poison", "toxic", "bleed", "rot", "frost", "corrosion"),
+                effect="sun_ward",
+                desc="Liquid gold in a phial. Burns every ailment out of the blood, and keeps them out for a minute.",
+            ),
             Item(
                 id="menders_kit",
                 name="Mender's Kit",
@@ -723,6 +756,20 @@ class Items:
                 kind="key",
                 price=0,
                 desc="A disc of pale silver with a crescent at its heart. It shines like the moon, and as coldly.",
+            ),
+            Item(
+                id="spire_key",
+                name="Spire Key",
+                kind="key",
+                price=0,
+                desc="A key of gilt brass with a tiny orrery for a bow. It opens the door at the foot of Herran's Spire.",
+            ),
+            Item(
+                id="auric_sigil",
+                name="Auric Sigil",
+                kind="key",
+                price=0,
+                desc="A disc of red gold with a sun at its heart. It is warm, and it beats like something alive.",
             ),
         ]
     }

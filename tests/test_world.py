@@ -106,6 +106,7 @@ STATIC_BLOCKERS = (
     *("banner_pole", "fountain", "bench", "hand_cart", "hay_wagon", "cargo", "flying_buttress"),
     *("gravestone", "cemetery_gate"),
     *("moon_lamp", "veiled_statue", "silver_tree"),
+    *("gas_lamp", "drake_fountain", "specimen_jar", "alembic_bench", "vat", "surgery_table", "telescope"),
 )
 
 

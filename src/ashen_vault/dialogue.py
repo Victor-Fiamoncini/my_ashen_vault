@@ -108,6 +108,7 @@ SIGIL_HELD = {
     "verdant_sigil": "Green glass with a leaf inside... the Verdant Sigil.",
     "iron_sigil": "Black iron, cold as a grave... the Iron Sigil. Even the gargoyles could not keep it.",
     "argent_sigil": "Silver, and cold as moonlight on frost... the Argent Sigil. Out of the old god's own hands, was it?",
+    "auric_sigil": "Gold, and warm as a living hand... the Auric Sigil. That one was never the king's.",
 }
 SIGIL_HINT = {
     "ember_sigil": "The Ember Sigil waits in the Warden's hall. Climb down through the gaol's grate, up on the Gaol Ward.",
@@ -120,6 +121,10 @@ SIGIL_HINT = {
     ),
     "argent_sigil": (
         "The Argent Sigil is in Vesperholm. Climb the cathedral steps: the Vesper Gate at their head stands open."
+    ),
+    "auric_sigil": (
+        "The Auric Sigil is above the clouds, with Herran. Lift the Argent Sigil from Lyra's hands "
+        "in Vesperholm, and climb the stair of light."
     ),
 }
 SIGIL_FALLEN = {
@@ -142,6 +147,10 @@ SIGIL_FALLEN = {
             "Bring it home."
         ),
     ),
+    "auric_sigil": (
+        "herran_dead",
+        "Herran has fallen? Then the Auric Sigil lies in his observatory, at the top of his spire. Bring it down.",
+    ),
 }
 
 
@@ -159,21 +168,48 @@ def _sigil_lines(flags, held):
     return lines
 
 
+# Set once Odrin has seen every sigil of the prophecy in your hands: the Silent Bell is unsealed, and
+# ringing it (`bell`) ends the game. You keep the sigils until then: the Enthroned and Odrin both count
+# the ones you carry. TODO(story): the descent below the bell will take the ending's place.
+BELL_UNSEALED = "bell_unsealed"
+
+
+def bell(flags, held):
+    """What touching the Silent Bell says, and whether it rings out and ends the game: only once Odrin
+    has unsealed it and you still carry every sigil."""
+    if BELL_UNSEALED in flags and len(held) == len(relics.ENDING_RELICS):
+        return ["The sigils burn in your hands, and the cracked bronze swings at your touch."], True
+    if BELL_UNSEALED in flags:
+        return ["The bell will not swing. It wants every sigil in the hand that rings it."], False
+    return [
+        "The cracked bronze is cold, yet it hums under your palm.",
+        "A whisper rises from the stones: {the secret lies below}.",
+    ], False
+
+
 def odrin(game, flags, inv):
     held = relics.held(inv.has)
     if len(held) == len(relics.ENDING_RELICS):
+        if BELL_UNSEALED in flags:
+            return (
+                "Odrin",
+                ["Go on, Ashen. The bell is waiting in the square. Ring it with the sigils in your hand."],
+                None,
+            )
         return (
             "Odrin",
             [
-                "Ember, leaf, iron... and silver. All four. I never thought to hold them in these hands.",
-                "Give them here. Listen: the ground is quiet, the roots are still, the forges are cooling.",
+                "Ember, leaf, iron, silver... and gold. All five. I never thought to see them in one hand.",
+                "Listen: the ground is quiet, the roots are still, the forges are cooling.",
                 "And over Vesperholm the moon is going down, for the first time since the king turned to stone.",
                 "His sister Ilvane wed the moon on the fourth sigil, so that her city would never see a death.",
-                "But the moon keeps all it shines on as it is: her people as shades, her brother as stone.",
+                "And Herran, her brother, bent the fifth to his own flesh. Lyra's children, the both of them.",
+                "But the moon keeps all it shines on as it is: her people as shades, the king as stone.",
                 "It was him at the rope, wasn't it? From inside the stone. The moon keeps the living. Not ash.",
-                "Up on the hill the stone is cracking open. Harrowmere owes you more than it can pay. Rest now, Ashen.",
+                "Keep them. The prophecy never said to give them to me. The bell was sealed with all five.",
+                "Go down to the Bell Square and ring the Silent Bell with the sigils in your hand.",
             ],
-            lambda g: g.finish_game(),
+            lambda g: g.flags.add(BELL_UNSEALED),
         )
     if "quest" not in flags:
 
@@ -190,7 +226,7 @@ def odrin(game, flags, inv):
                 "You heard it in the grave, didn't you? One toll over the town. No hand was on the rope.",
                 "Who rang it, I cannot tell you. No one in Harrowmere has touched that rope in years.",
                 "I am Odrin. I kept that bell, once. Now I keep a prophecy older than the bell.",
-                "Whoever wakes to the bell must win the four sigils, and the king on the stone throne shall rise.",
+                "Whoever wakes to the bell must win the five sigils, and the king on the stone throne shall rise.",
                 "The Enthroned. Our king, turned to stone in his chair in the cathedral, longer than anyone remembers.",
                 "You are not the first to wake. The cemetery you climbed out of is full of the ones who failed.",
                 "Deep in the Abandoned Prison the Ember Sigil sits in the Warden's hall. That is one.",
@@ -200,6 +236,8 @@ def odrin(game, flags, inv):
                 "They call it the Cinderhold. The north road and its long bridge lead there. Its forges are lit.",
                 "The fourth is the Argent Sigil. At the head of the cathedral steps the Vesper Gate stands open.",
                 "Beyond it lies Vesperholm, the Moonbound City. Nobody remembers the gate shut, nor who opened it.",
+                "The fifth, the Auric Sigil, was never the king's. Herran keeps it, in a castle above the clouds.",
+                "Lyra's altar in Vesperholm holds the Argent Sigil. Take it up, and the way to him will show itself.",
                 "Take these. They are all an old bell-keeper has.",
             ],
             after,
@@ -217,6 +255,7 @@ def odrin(game, flags, inv):
             "The grate in the Gaol Ward leads down into the old prison. The green trail east leads to the hollow's cave.",
             "The north road climbs to the Cinderhold. Its bridge crosses a gorge of fire.",
             "The cathedral steps climb to the Vesper Gate. It stands open on Vesperholm, under the moon.",
+            "Past Lyra's altar in Vesperholm, a stair of light climbs to Herran's castle above the clouds.",
             "Save your strength at the stone shrines. The old wardens built them for the Ashen. Many knelt there.",
         ],
         None,
@@ -885,8 +924,13 @@ ENTHRONED_LINES = (
         "...the moon keeps what it shines on... it kept her city... and it kept me...",
     ],
     [
+        "(The stone of the king's brow splits, and light the colour of noon shows in the crack.)",
+        "...four... and the fifth... never mine... the sun's... kept above the clouds...",
+        "...by one who wished for more hands than he was born with...",
+    ],
+    [
         "(A shard of stone falls from the king's cheek. Under it the skin is grey and warm.)",
-        "...four... the moon lets go... it was I who rang the bell... the only voice the stone left me...",
+        "...five... the moon lets go... it was I who rang the bell... the only voice the stone left me...",
         "...the moon keeps the living... it cannot keep ash... take them to the bell-keeper... and I shall wake...",
     ],
 )

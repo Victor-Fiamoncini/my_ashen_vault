@@ -352,6 +352,22 @@ SHOTS = [
         "Duchess Ilvane, a tall veiled noblewoman with a crescent glaive, rising in the cathedral's choir, "
         "her health bar above",
     ),
+    Shot(
+        "herrans_castle",
+        "--map herrans_castle --at=27,38,-90 --level 12 --equip primary=stormbrand,secondary=spell:ward "
+        "--smoke 60",
+        "Herran's Castle, its towers over a sea of cloud",
+        "A terrace of pale stone high over the clouds, red-brick Victorian towers and a needle spire beyond",
+    ),
+    Shot(
+        "herran",
+        "--map herran_spire --at=14,5,0 --level 12 "
+        "--equip primary=stormbrand,secondary=spell:ward,body=brigandine,hands=iron_gauntlets "
+        '--smoke 720 --script "interact wait:0.8 forward:1.6 wait:5"',
+        "Herran, the Many-Handed, in his observatory",
+        "A towering gaunt figure with eight grafted arms and a crown of gold eyes under a broken iron dome, "
+        "his health bar above",
+    ),
 ]
 
 

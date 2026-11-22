@@ -20,6 +20,10 @@ RINGS = (-40.0, -4.0, 0.0, 5.0, 12.0, 22.0, 36.0, 55.0, 75.0, 90.0)
 CLOUD_BANDS = ((1.0, 19.0, 9, 0.0), (10.0, 34.0, 7, 0.5))  # (low, high elevation, uv repeats, u offset)
 CAP_FROM = 40.0  # elevation where the overhead cloud cap starts
 CAP_SCALE = 1 / 60.0  # uv per metre of the overhead cap
+# The sea of cloud's rings (elevations below the horizon, from straight down up to it), its uv per
+# metre, and how far its edge at the horizon fades into the mist there.
+CLOUD_SEA_RINGS = (-90.0, -55.0, -30.0, -16.0, -8.0, -3.0, 0.0)
+CLOUD_SEA_SCALE = 1 / 34.0
 MIST_BAND = (-6.0, 8.0)
 MIST_REPEATS = 10
 # Where the sun stands over every map: low in the south, over Harrowmere's sea. Every map shares the
@@ -125,6 +129,10 @@ class Sky:
     corona: tuple | None = None  # a moon's bright glow hugging its disc
     veiled: tuple | None = None  # a sun hidden in a bank of cloud in the south: the light leaking round it
     far_moon: FarMoon | None = None  # another land's moon, far off, behind the cloud banks
+    # A sea of cloud below the horizon, seen from above it (Herran's Castle): the lit tops' colour, and
+    # its shadowed hollows'. None for a sky seen from the ground.
+    cloud_sea: tuple | None = None
+    cloud_sea_under: tuple = (0.5, 0.52, 0.62)
 
 
 SKIES = {
@@ -207,6 +215,33 @@ SKIES = {
         maria_shade=0.88,
         corona=(0.86, 0.92, 1.0),
         veiled=(0.62, 0.6, 0.55),
+    ),
+    # Herran's Castle: high over a sea of cloud in the clear thin air, a deep blue overhead fading to
+    # gold toward the low sun, a few bright banks of cloud drifting level with the towers, and in the
+    # north, low over where Vesperholm lies hidden under the clouds, its moon, near and huge.
+    "aloft": Sky(
+        zenith=(0.1, 0.2, 0.44),
+        sun=(1.0, 0.9, 0.64),
+        sun_at=SUN_AT,
+        sun_size=3.2,
+        halo=(0.86, 0.64, 0.4),
+        halo_size=30.0,
+        clouds=(0.92, 0.86, 0.8),
+        cloud_under=(0.56, 0.58, 0.7),
+        drift=0.003,
+        cap=False,
+        mist=(0.8, 0.76, 0.74),
+        stars=0.12,
+        cloud_sea=(0.96, 0.9, 0.82),
+        cloud_sea_under=(0.56, 0.58, 0.7),
+        far_moon=FarMoon(
+            at=(270.0, 16.0),
+            size=9.0,
+            color=(0.88, 0.9, 0.96),
+            halo=(0.34, 0.38, 0.5),
+            halo_size=20.0,
+            wisps=0.6,
+        ),
     ),
 }
 
@@ -633,6 +668,32 @@ def cap(spec, dark=0.0, veil=False):
     return mesh
 
 
+def cloud_sea(spec, fog, dark=0.0, veil=False):
+    """The sea of cloud far below (`cloud_sea_tex`): rings of quads from straight down up to the
+    horizon with their uv laid flat, as the overhead cap's are, so it spreads level to the edge of the
+    world, its billows lit `cloud_sea` and its hollows `cloud_sea_under`, both fading into the fog at
+    the horizon. Drawn under it, a solid floor of the hollows' colour, so the cut-out billows never
+    show the dome through them. None for a sky seen from the ground."""
+    if not spec.cloud_sea:
+        return None
+    mesh = SkyMesh()
+    fogged = shade(fog, dark, veil)
+    lit, under = shade(spec.cloud_sea, dark, veil), shade(spec.cloud_sea_under, dark, veil)
+    for depth, r in ((0, RADIUS * 0.97), (1, RADIUS * 0.96)):  # the floor, then the billows over it
+        for lo, hi in pairwise(CLOUD_SEA_RINGS):
+            for i in range(SEGMENTS):
+                a0, a1 = 360.0 * i / SEGMENTS, 360.0 * (i + 1) / SEGMENTS
+                corners = []
+                for a, e in ((a0, lo), (a1, lo), (a0, hi), (a1, hi)):
+                    fade = (e - CLOUD_SEA_RINGS[0]) / -CLOUD_SEA_RINGS[0]  # 0 straight down, 1 at the horizon
+                    c = _mix(under if depth == 0 else lit, fogged, fade**2.5)
+                    p = direction(a, e)
+                    uv = (p[0] * r * CLOUD_SEA_SCALE, p[2] * r * CLOUD_SEA_SCALE) if depth else (0.0, 0.0)
+                    corners.append((p, uv, c, r))
+                mesh.quad(*corners)
+    return mesh
+
+
 def mist(spec, dark=0.0, veil=False):
     """A band of haze along the horizon (the `mist` texture stipples it). None without mist."""
     if not spec.mist:
@@ -657,6 +718,7 @@ TEXTURES = {
     "dome": "white",
     "stars": "white",
     "cap": "cloud_cap",
+    "cloud_sea": "cloud_cap",
     "clouds": "clouds",
     "far_moon": "white",
     "far_wisps": "cloud_cap",
@@ -675,6 +737,7 @@ def layers(spec, fog, dark=0.0, veil=False):
     across it) and the mist. Layers the sky lacks are left out."""
     built = (
         ("dome", dome(spec, fog, dark, veil)),
+        ("cloud_sea", cloud_sea(spec, fog, dark, veil)),
         ("stars", stars(spec, fog, dark, veil)),
         ("cap", cap(spec, dark, veil)),
         ("far_moon", far_moon(spec, dark, veil)),

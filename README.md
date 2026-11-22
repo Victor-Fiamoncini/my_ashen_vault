@@ -11,7 +11,7 @@
 ---
 
 You are one of the Ashen, woken in a cemetery of ashes by a single toll of Harrowmere's bell, though no
-hand was on its rope. Old Odrin, the bell-keeper, knows the prophecy: whoever wakes must win four sigils
+hand was on its rope. Old Odrin, the bell-keeper, knows the prophecy: whoever wakes must win five sigils
 to raise the king who sits turned to stone in the cathedral. Many Ashen woke before you. None came back.
 Beneath the grate in the old gaol's yard, the sealed cells of the Abandoned Prison have begun to stir, and at the end of a green trail out of the square a cave opens on the jungle of the
 Verdant Hollow, which has swallowed the old woodcutters' camp. Up the north road, past a long bridge over
@@ -19,7 +19,9 @@ a gorge of fire, the forges of the Cinderhold burn again, and two iron gargoyles
 Take up a rusted sword, bring back the Ember Sigil from the prison, the Verdant Sigil from the hollow and the
 Iron Sigil from the Cinderhold. At the head of the cathedral steps the Vesper Gate stands open on
 Vesperholm, a city drowned in the light of a full moon that never sets, where a duchess keeps the fourth
-sigil in her cathedral. Bring all four home and let the bell sing again.
+sigil in her cathedral. The fifth was never the king's: above the clouds, in a castle of towers between
+the sun and the moon, Herran keeps it, who sewed the arms of drakes onto his own back. Bring all five
+home and let the bell sing again.
 
 ### Inspiration
 
@@ -265,7 +267,10 @@ trademarks of FromSoftware, Inc. (*Dark Souls* is published by Bandai Namco Ente
     must be smothered before its gate opens;
   - and Vesperholm, the Moonbound City behind the Vesper Gate at the head of the cathedral steps:
     moonlit streets drowned in the light of a moon that never sets, a glass bridge over a gorge,
-    and a castle where the dead keep watch as pale shades.
+    and a castle where the dead keep watch as pale shades;
+  - and above them all, up a stair of light from Lyra's altar, Herran's Castle: Victorian towers of red
+    brick and gilt iron over a sea of cloud, skybridges between them, many-armed drakes on the wing,
+    gowned drake magi, hidden laboratories of elixirs and grafts, and the spire where Herran waits.
 - **Shortcuts and secrets**: barred doors, fastened lifts and drawbridges fold each area back onto its
   shrine; some walls aren't walls and some chests aren't chests.
 - **Dark places**: caves swallow your light until you burn Lumen or kindle the cold braziers, which

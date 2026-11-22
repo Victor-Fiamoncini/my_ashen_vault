@@ -10,8 +10,10 @@ from ashen_vault.ai.enemy import (
     ASH_SPREAD_GATHER,
     ASHFALL_RADIUS,
     BURROW_RADIUS,
+    EMBRACE_REACH,
     EXHALE_CONE,
     EXHALE_REACH,
+    GRASP_SWEEP_REACH,
     MOVES,
     PILLAR_RADIUS,
     PILLAR_REACH,
@@ -159,6 +161,10 @@ FALL_MESSAGES = {
 }
 FALL_DEATH = "You fall to your death."
 DROP_MESSAGE = "You step off into empty air, and fall!"  # an edge over a lethal drop
+# Going over a chasm's brink, keyed by its `fall=` (the legend's); a chasm without one says nothing.
+PLUNGE_MESSAGES = {
+    "cloud": "You fall from the castle, down through the cloud, and the wind takes your cry.",
+}
 # Going into deep water, and dying in it, keyed by the water's `drown=` (the legend's; "sea" if unset).
 DROWN_MESSAGES = {
     "sea": "You plunge into the sea, and it will not let you go.",
@@ -249,6 +255,7 @@ BLOCKING_PROPS = (
     "moon_crystal",
     "old_idol",
     "lyra_statue",
+    *("gas_lamp", "drake_fountain", "specimen_jar", "alembic_bench", "vat", "surgery_table", "telescope"),
 )
 # Ways to another map that fill their tile, so you take them by facing them and interacting: the well
 # and the gaol's grate in Harrowmere's plaza.
@@ -286,6 +293,9 @@ PROP_TOP = {
     "katana_stand": 1.2,
     "drawers": 1.05,
     "old_idol": 2.6,
+    "alembic_bench": 1.0,
+    "surgery_table": 0.95,
+    "vat": 1.6,
 }
 # Props that block only until they are broken or revealed.
 BREAKABLE_PROPS = ("barrel", "crate", "urn", "cocoon", "secret_wall")
@@ -325,6 +335,7 @@ WALL_PROPS = (
     "outfall_grate",
     "moon_window",
     "prisoner_remains",
+    "potion_shelf",
 )
 # Props drawn as far as the fog lets you see, however far that is: they make a skyline.
 LANDMARKS = (
@@ -357,6 +368,9 @@ LANDMARKS = (
     "sun_shaft",
     "waterfall",
     "wall_crack",
+    "herran_tower",
+    "glasshouse",
+    "observatory_dome",
 )
 # Props that never move, open, break or flicker: they are baked once into world-space batches
 # (`render/prop_bake.py`) instead of being drawn part by part every frame. A prop drawn with the time
@@ -393,6 +407,8 @@ STATIC_PROPS = frozenset(
             "stilt_posts",
         ),
         *("prisoner_remains", "old_idol", "sunken_tower", "lyra_statue"),
+        *("gas_lamp", "herran_tower", "glasshouse", "drake_fountain", "specimen_jar", "alembic_bench"),
+        *("vat", "surgery_table", "potion_shelf", "telescope", "observatory_dome"),
         "wall_crack",
         "ash_mound",
         "spire",
@@ -405,6 +421,7 @@ FACING_PROPS = (
     *("chest", "altar", "table", "bed", "cupboard", "gargoyle_statue", "forge_hearth"),
     *("bench", "hand_cart", "hay_wagon", "mourning_statue", "forge_bellows", "town_statue", "forge_statue"),
     *("ore_cart", "armor_stand", "katana_stand", "bookcase", "drawers", "old_idol", "lyra_statue"),
+    *("alembic_bench", "surgery_table"),
 )
 # Ways through a wall that its rampart bays keep clear of (`World._dress_ramparts`).
 RAMPART_GATES = ("exit", "cemetery_gate", "door", "gate", "door_arch", "moon_portal", "cathedral_portal")
@@ -497,11 +514,21 @@ ERUPTION_SOURCES = {
     "filth": "The filth",
     "core": "The mortar-light",
     "boulder": "The hurled boulder",
+    "sun": "The sunbrand",
+    "grafts": "The grafted hands",
+    "elixir": "Herran's elixir",
 }
 SQUEAL_STAGGER = 1.2  # seconds Mother Gnawl's squeal leaves you stumbling
 BURROW_ROT = (("rot", 25),)  # rot the filth Mother Gnawl bursts up through builds in you
 BURST_RING = 1.4  # metres from where she bursts up to each spout of filth round her
 BURST_SPOUTS = 6
+REND_BLOWS = 3  # blows in a Grafted Drake's rend, one for each pair of arms and its claws
+SUNBRAND_RADIUS = 1.3  # metres across a Drake Magus's ring of glyphs, from its middle
+ELIXIR_RADIUS = 1.5  # metres Herran's flask splashes out where it bursts
+ELIXIR_WARN = 1.1  # seconds its flight lasts, the ring glowing where it will land
+ELIXIR_TOXIC = 45  # toxic its splash builds in you
+ELIXIR_HIGH = 4.4  # metres over his feet he lobs it from, a hand held high
+EMBRACE_HOLD = 1.4  # seconds his embrace leaves you held (slowed, as by silk)
 ENGULF_GLOOM = 2.5  # seconds the dark of the Pall's insides stays on your eyes after it lets you go
 ENGULF_DARK = 0.85  # how dark it gets, as on a `dark=` tile
 LANCE_SPEED = 10.0  # m/s a lance of moon-frost flies
@@ -1926,6 +1953,126 @@ class World:
             child.state = "chase"
             self.enemies.append(child)
 
+    def grounded(self, enemy):
+        """Whether a flyer has come down to fight on foot (a Grafted Drake rends only then)."""
+        return not enemy.aloft
+
+    def rend(self, enemy):
+        """A landed Grafted Drake rakes with all four of its grafted arms at once: REND_BLOWS blows,
+        each that gets through tearing at you (its bleed)."""
+        for _ in range(REND_BLOWS):
+            self.enemy_strike(enemy, MOVES["rend"][2])
+        self.game.sfx("swoosh", 0.8)
+
+    def sunbrand(self, enemy):
+        """A Drake Magus brands the floor where you stand: a ring of gold glyphs kindles under you and
+        bursts into a column of sunlight a moment later (`Eruption` style "sun"). Step out of the ring."""
+        player = self.player
+        tile = self.map.tile_at(player.x, player.z)
+        if tile.solid or not tile.walkable:
+            return
+        damage = rround(enemy.type.damage * MOVES["sunbrand"][2])
+        self.eruptions.append(
+            Eruption(player.x, player.z, tile.floor, damage=damage, radius=SUNBRAND_RADIUS, style="sun")
+        )
+        self.game.sfx("ward", 0.9)
+        self.game.message("Gold glyphs kindle on the floor under you!")
+
+    def grasp_sweep(self, enemy):
+        """Herran rakes his eight arms round him, low: whoever is within GRASP_SWEEP_REACH of him, on any
+        side, is struck. Back off out of their reach, or jump in close behind his raised guard."""
+        player = self.player
+        if math.hypot(player.x - enemy.x, player.z - enemy.z) <= GRASP_SWEEP_REACH:
+            self.enemy_strike(enemy, MOVES["grasp_sweep"][2])
+        self.shockwaves.append(Shockwave(enemy.x, enemy.z, self.enemy_y(enemy), GRASP_SWEEP_REACH))
+        self.game.sfx("swoosh", 1.0)
+
+    def hand_rain(self, enemy):
+        """Herran plunges his arms into the floor, and grafted hands burst up out of it in a line from
+        his feet toward you and past you, one after another (`Eruption` style "grafts"): each that
+        catches you holds you a moment. Step sideways off the line while its seam glows."""
+        player = self.player
+        dx, dz = player.x - enemy.x, player.z - enemy.z
+        d = math.hypot(dx, dz) or 1.0
+        ux, uz = dx / d, dz / d
+        damage = rround(enemy.type.damage * MOVES["hand_rain"][2])
+        s, n = enemy.radius + 0.6, 0
+        while s <= d + FAULT_PAST:
+            x, z = enemy.x + ux * s, enemy.z + uz * s
+            tile = self.map.tile_at(x, z)
+            if tile.solid or not tile.walkable or tile.needs_footing:
+                break
+            self.eruptions.append(
+                Eruption(
+                    x,
+                    z,
+                    tile.floor,
+                    damage=damage,
+                    radius=FAULT_RADIUS,
+                    warn=FAULT_WARN + n * FAULT_RUN,
+                    style="grafts",
+                )
+            )
+            s += FAULT_STEP
+            n += 1
+        self.game.sfx("quake", 0.9)
+
+    def elixir_hurl(self, enemy):
+        """Herran lobs a flask of his elixir from a hand held high, on an arc to where you stand now:
+        its ring glows there while it flies (ELIXIR_WARN), and it bursts in a toxic splash. Get out
+        from under it."""
+        player = self.player
+        tile = self.map.tile_at(player.x, player.z)
+        if tile.solid or not tile.walkable:
+            return
+        damage = rround(enemy.type.damage * MOVES["elixir_hurl"][2])
+        origin = (enemy.x, self.enemy_y(enemy) + ELIXIR_HIGH, enemy.z)
+        self.eruptions.append(
+            Eruption(
+                player.x,
+                player.z,
+                tile.floor,
+                damage=damage,
+                radius=ELIXIR_RADIUS,
+                warn=ELIXIR_WARN,
+                origin=origin,
+                style="elixir",
+            )
+        )
+        self.game.sfx("lob", 0.9)
+
+    def embrace(self, enemy):
+        """Second phase: Herran clamps all eight arms round you at once, as his mother would hold you: a
+        great blow if you are within EMBRACE_REACH, and you are held a moment after it."""
+        player = self.player
+        if math.hypot(player.x - enemy.x, player.z - enemy.z) > EMBRACE_REACH:
+            self.game.sfx("swoosh", 0.8)
+            return
+        if self.enemy_strike(enemy, MOVES["embrace"][2]) > 0:
+            player.webbed_t = max(player.webbed_t, EMBRACE_HOLD)
+            self.game.message("Eight hands close round you!")
+        self.game.sfx("crack", 0.8)
+
+    def solar_gaze(self, enemy):
+        """Second phase: Herran turns the sun's light out of his crown of eyes on you, a line of bursts
+        of sunlight from his feet toward you and on past you, each a moment after the one before
+        (`Eruption` style "sun"). Step sideways out of the line."""
+        player = self.player
+        dx, dz = player.x - enemy.x, player.z - enemy.z
+        d = math.hypot(dx, dz) or 1.0
+        ux, uz = dx / d, dz / d
+        damage = rround(enemy.type.damage * MOVES["solar_gaze"][2])
+        s, n = enemy.radius + 0.6, 0
+        while s <= d + BREATH_PAST:
+            x, z = enemy.x + ux * s, enemy.z + uz * s
+            tile = self.map.tile_at(x, z)
+            if tile.solid or not tile.walkable or tile.needs_footing:
+                break
+            self.eruptions.append(Eruption(x, z, tile.floor, delay=n * 0.12, damage=damage, style="sun"))
+            s += BREATH_STEP
+            n += 1
+        self.game.sfx("breath", 0.9)
+
     def can_shed(self, enemy):
         """Whether the Pall may slough off more clots: not while SHED_MAX of them still crawl."""
         alive = sum(e.alive and e.type.id == enemy.type.sheds for e in self.enemies)
@@ -1991,6 +2138,8 @@ class World:
         elif event == "plunge" and self.terrain.fell_into == "drop":
             self.game.sfx("swoosh", 0.6)
             self.game.message(DROP_MESSAGE)
+        elif event == "plunge" and self.terrain.fell_through:
+            self.game.message(PLUNGE_MESSAGES[self.terrain.fell_through])
         else:
             if event == "lift_unlocked" and self.terrain.unlocked[0].model in LIFT_FREED:
                 self.game.message(LIFT_FREED[self.terrain.unlocked[0].model])
@@ -2157,9 +2306,15 @@ class World:
             if burst and f.style == "boulder":
                 self._boulder_lands(f)
             elif burst:
-                sound = {"hands": "quake", "moon": "motes", "filth": "splash", "core": "motes"}.get(
-                    f.style, "eruption"
-                )
+                sound = {
+                    "hands": "quake",
+                    "moon": "motes",
+                    "filth": "splash",
+                    "core": "motes",
+                    "sun": "motes",
+                    "grafts": "quake",
+                    "elixir": "splash",
+                }.get(f.style, "eruption")
                 self.sfx_near(sound, f.x, f.z, *(BOMB_SOUND if f.origin else ERUPTION_SOUND))
             if player.alive and -REACH_BELOW <= player.y - f.floor <= FIRE_ABOVE:  # not from a lift above it
                 dmg = f.hit(player.x, player.z)
@@ -2178,6 +2333,12 @@ class World:
                     elif f.style == "moon":
                         self.game.message("The moonlight burns you with cold!")
                         self.afflict_player("frost", MOON_FROST)
+                    elif f.style == "grafts":
+                        player.webbed_t = max(player.webbed_t, GRASP_HOLD)
+                        self.game.message("Grafted hands clutch at your legs!")
+                    elif f.style == "elixir":
+                        self.game.message("The elixir splashes over you, burning!")
+                        self.afflict_player("toxic", ELIXIR_TOXIC)
         self.eruptions = [f for f in self.eruptions if not f.done]
         for w in self.shockwaves:
             w.update(dt)
@@ -2694,6 +2855,8 @@ class World:
         return not need or need in self.flags
 
     def _interactable(self, p):
+        if p.kind == "exit" and "hidden" in p.props and not self.exit_open(p):
+            return False  # a way that is not there yet (`exit hidden requires=`)
         if p.kind in (
             "npc",
             "save_statue",

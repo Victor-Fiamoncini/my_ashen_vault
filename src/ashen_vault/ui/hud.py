@@ -473,6 +473,17 @@ def item_icon(id_, cx, cy, t, alpha=255):
         pr.draw_rectangle(cx - 1, cy - 4, 2, 2, color(120, 90, 60, a))
         pr.draw_rectangle(cx - 2, cy - 2, 4, 5, color(190, 60, 30, a))
         pr.draw_rectangle(cx - 1, cy, 2, 2, color(255, 170, 80, rround(a * glow)))
+    elif id_ == "graft_draught":  # a squat bottle of cloudy draught, something pale floating in it
+        pr.draw_rectangle(cx - 1, cy - 4, 2, 2, color(196, 150, 70, a))
+        pr.draw_rectangle(cx - 3, cy - 2, 6, 6, color(150, 170, 140, a))
+        pr.draw_rectangle(cx - 2, cy - 1, 4, 4, color(190, 205, 170, a))
+        _dot(cx, cy, 0, 0, color(210, 160, 150, a), 2, 1)
+    elif id_ == "sun_tincture":  # a phial of liquid gold, glowing like the sun
+        glow = 0.6 + 0.4 * math.sin(t * 3)
+        pr.draw_circle(cx, cy + 1, 4, color(255, 200, 90, rround(a * 0.3 * glow)))
+        pr.draw_rectangle(cx - 1, cy - 4, 2, 2, color(196, 150, 70, a))
+        pr.draw_rectangle(cx - 2, cy - 2, 4, 6, color(220, 170, 70, a))
+        pr.draw_rectangle(cx - 1, cy - 1, 2, 3, color(255, 220, 120, rround(a * glow)))
     elif id_ == "fenbane":  # a slim violet vial, a sprig of reed tucked in its cork
         pr.draw_rectangle(cx - 1, cy - 4, 2, 2, color(120, 90, 60, a))
         pr.draw_rectangle(cx - 2, cy - 2, 4, 6, color(120, 60, 160, a))
@@ -1062,6 +1073,22 @@ def _icon_butcher_cleaver(cx, cy, t, a, ready):
         _glint(cx, cy, [edge0, edge1], t, a)
 
 
+def _icon_herran_bonesaw(cx, cy, t, a, ready):
+    """A surgeon's saw: a turned handle, a long blade with a hooked back and too many teeth along its
+    edge, a little brass at the heel."""
+    _line(cx, cy, (-7, 7), (-3, 3), 2, color(70, 48, 34, a))  # the handle
+    _dot(cx, cy, -3, 2, color(196, 150, 70, a), 2, 2)  # the brass heel
+    steel = color(176, 176, 182, a)
+    back0, back1, edge0, edge1 = (-2, 1), (5, -6), (0, 3), (7, -4)
+    _tri(cx, cy, back0, back1, edge1, steel)
+    _tri(cx, cy, back0, edge1, edge0, steel)
+    _line(cx, cy, back1, (6, -7), 1, color(120, 120, 128, a))  # the hooked back
+    for k in range(4):  # the teeth
+        _dot(cx, cy, 1 + k * 2, 3 - k * 2, color(230, 230, 236, a))
+    if ready:
+        _glint(cx, cy, [edge0, edge1], t, a)
+
+
 WEAPON_ICONS = {
     "fists": _icon_fists,
     "rusted_sword": _icon_rusted_sword,
@@ -1088,6 +1115,7 @@ WEAPON_ICONS = {
     "bearded_axe": _icon_bearded_axe,
     "flamberge": _icon_flamberge,
     "butcher_cleaver": _icon_butcher_cleaver,
+    "herran_bonesaw": _icon_herran_bonesaw,
 }
 # A weapon without its own glyph borrows its category's.
 CATEGORY_ICONS = {

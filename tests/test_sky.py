@@ -17,13 +17,15 @@ def _meta(name):
 
 
 def test_each_outdoor_map_names_a_sky_and_the_keep_has_none():
-    maps = ("harrowmere", "verdant_hollow", "cinderhold", "vesperholm")
+    maps = ("harrowmere", "verdant_hollow", "cinderhold", "vesperholm", "herrans_castle", "herran_spire")
     names = {name: sky.get(_meta(name)) for name in maps}
     assert names == {
         "harrowmere": sky.SKIES["dusk"],
         "verdant_hollow": sky.SKIES["jungle"],
         "cinderhold": sky.SKIES["ember"],
         "vesperholm": sky.SKIES["moonlit"],
+        "herrans_castle": sky.SKIES["aloft"],
+        "herran_spire": sky.SKIES["aloft"],
     }
     assert sky.get(_meta("abandoned_prison")) is None
     assert sky.get({"sky": "no_such_sky"}) is None

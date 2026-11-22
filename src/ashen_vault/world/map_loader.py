@@ -222,6 +222,8 @@ class MapLoader:
             flow=flow,
             slow=float(p.get("slow", "1")),
             chasm="chasm" in p,
+            fall=p.get("fall"),
+            void="void" in p,
             afflict=afflict,
         )
 

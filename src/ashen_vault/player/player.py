@@ -10,6 +10,13 @@ from ashen_vault.player.stats import BASE_ST, Stats
 from ashen_vault.util import clamp
 from ashen_vault.world import collision
 
+# A Graft Draught (`Player.drink`): what it costs, how long it lasts, how much faster ST refills and
+# the share of an attack's ST it still costs.
+GRAFT_HP = 12
+GRAFT_TIME = 30.0
+GRAFT_REFILL = 2.0
+GRAFT_COST = 0.6
+
 QUICK_SLOTS = 4  # quick item slots, filled from Belongings
 DEFAULT_QUICK = ("red_tonic", "blue_moss", None, None)  # a new player's quick slots
 
@@ -53,6 +60,7 @@ class Player:
         self.lumen_t = 0.0
         self.veil_t = 0.0  # seconds left wrapped in a Veil of Mist (foes overlook you)
         self.ward_t = 0.0  # seconds left inside an Ashen Ward (blows land softer)
+        self.graft_t = 0.0  # seconds left of a Graft Draught (ST refills fast, blows cost less)
         self.webbed_t = 0.0  # seconds left caught in spider silk
         self.chill_t = 0.0  # seconds left numbed by Vesperholm's moon-frost: slowed as by silk
         self.spore_t = 0.0  # seconds left choking on spores
@@ -104,6 +112,7 @@ class Player:
         s.restore_mp(s.max_mp)
         self.stamina.fill()
         self.hurt_t = self.lumen_t = self.veil_t = self.ward_t = self.webbed_t = self.spore_t = 0.0
+        self.graft_t = self.ailments.ward_t = 0.0
         self.chill_t = 0.0
         self.swing_t = None
         self.lunge_left = 0.0
@@ -300,6 +309,8 @@ class Player:
                 refill *= ailments.TOXIC_REFILL
             if self.ailments.frostbitten:
                 refill *= ailments.FROST_REFILL
+            if self.graft_t > 0:
+                refill *= GRAFT_REFILL
             self.stamina.update(dt, refill)
         self.since_sprint = 0.0 if self.sprinting else self.since_sprint + dt
         self.still_t += dt
@@ -314,6 +325,7 @@ class Player:
         self.lumen_t = max(self.lumen_t - dt, 0)
         self.veil_t = max(self.veil_t - dt, 0)
         self.ward_t = max(self.ward_t - dt, 0)
+        self.graft_t = max(self.graft_t - dt, 0)
         self.webbed_t = max(self.webbed_t - dt, 0)
         self.chill_t = max(self.chill_t - dt, 0)
         self.spore_t = max(self.spore_t - dt, 0)
@@ -495,8 +507,8 @@ class Player:
         return a
 
     def _loaded(self, a):
-        """Attack `a` with its ST cost scaled by how heavily you are loaded."""
-        cost = self.burden.cost
+        """Attack `a` with its ST cost scaled by how heavily you are loaded (and cut by a Graft Draught)."""
+        cost = self.burden.cost * (GRAFT_COST if self.graft_t > 0 else 1.0)
         return a if cost == 1.0 else dataclasses.replace(a, stamina=a.stamina * cost)
 
     @property
@@ -573,6 +585,17 @@ class Player:
         if took and kind == "rot":
             self.sync_rot()
         return took
+
+    def drink(self, effect):
+        """Starts a consumable's lasting `effect`: a Graft Draught ("graft") takes GRAFT_HP of your HP
+        (never the last) and for GRAFT_TIME refills ST GRAFT_REFILL times as fast and cuts what blows
+        cost to GRAFT_COST; a Sun Tincture ("sun_ward") keeps every ailment from building a minute."""
+        if effect == "graft":
+            s = self.stats
+            s.hp = max(s.hp - GRAFT_HP, 1)
+            self.graft_t = GRAFT_TIME
+        elif effect == "sun_ward":
+            self.ailments.ward_t = ailments.SUN_WARD_TIME
 
     def cure(self, kind=None):
         """Clears `kind`, or every ailment when None."""

@@ -1,0 +1,217 @@
+[meta]
+name = Herran's Castle
+ambient = 0.86 0.8 0.74
+fog = 0.66 0.67 0.76
+fog_range = 22 120
+model_range = 64
+indoor_range = 26
+sky = aloft
+torch = 6 0.95 0.8 0.6
+start = 27 81 -90
+default = _
+entity_floor = auto
+roofs = true
+edge_top = -40
+edge_tex = herran_ashlar
+
+// Herran's Castle, high over a sea of cloud between the sun and Vesperholm's moon: the seat of Herran,
+// a son of Lyra the Embracer, who kept the fifth seal, the Auric Sigil, the one the king never held.
+// His sister Ilvane bent hers to the moon; he bent his to his own flesh. He wanted his mother's many
+// hands, and grafted arms onto his drakes, and then onto himself. You come up the stair of light from
+// Lyra's altar in Vesperholm onto the Cloud Quay, where the shrine stands; through the gatehouse into
+// the Lower Court, the Open Laboratory west of it and the Glasshouse Aviary east; up the Great Stair
+// to the Belvedere Terrace; through the Clock Tower and over the High Bridge to the Belvedere, and the
+// North Bridge on to the Spire Plaza and the foot of Herran's Spire, whose door the Spire Key opens.
+// Hidden laboratories lie behind false walls: north of the open lab, south of the aviary, and behind
+// the clock tower's top room. The lift in the Belvedere drops to the court: the short way home.
+
+[legend]
+// The sea of cloud far below: a sheer fall that no one lives through.
+_ = floor tex=cloud_sea h=-40 side=herran_ashlar chasm fall=cloud void
+// The castle's walls in red and cream brick, its towers, the spire, and the balustrades and parapets.
+# = wall tex=herran_brick top=9 cap=herran_slate
+% = wall tex=herran_brick top=16 cap=herran_slate
+& = wall tex=herran_brick top=24 cap=herran_slate
+b = wall tex=herran_ashlar top=1.1 cap=herran_ashlar
+u = wall tex=herran_ashlar top=7.1 cap=herran_ashlar
+v = wall tex=herran_ashlar top=11.1 cap=herran_ashlar
+// The Cloud Quay, and the gatehouse's passage half a metre up.
+, = floor tex=herran_ashlar h=0 side=herran_ashlar
+p = floor tex=encaustic_tile h=0.5 ceil=5 ceil_tex=herran_ashlar side=herran_brick roof=9
+// The Lower Court, and the aviary under the open sky.
+. = floor tex=herran_ashlar h=1 side=herran_ashlar
+a = floor tex=herran_ashlar h=1 side=herran_brick
+// The laboratories: the open one, and the hidden ones.
+l = floor tex=lab_tile h=1 ceil=4.5 ceil_tex=lab_tile side=lab_tile roof=9 dark=0.25
+s = floor tex=lab_tile h=1 ceil=4 ceil_tex=lab_tile side=lab_tile roof=9 dark=0.45
+k = floor tex=lab_tile h=10 ceil=13.5 ceil_tex=lab_tile side=lab_tile roof=16 dark=0.45
+// The Great Stair, half a metre a tile from the court up to the terrace.
+1 = floor tex=herran_ashlar h=1.5 side=herran_ashlar
+2 = floor tex=herran_ashlar h=2 side=herran_ashlar
+3 = floor tex=herran_ashlar h=2.5 side=herran_ashlar
+4 = floor tex=herran_ashlar h=3 side=herran_ashlar
+5 = floor tex=herran_ashlar h=3.5 side=herran_ashlar
+6 = floor tex=herran_ashlar h=4 side=herran_ashlar
+7 = floor tex=herran_ashlar h=4.5 side=herran_ashlar
+8 = floor tex=herran_ashlar h=5 side=herran_ashlar
+9 = floor tex=herran_ashlar h=5.5 side=herran_ashlar
+// The Belvedere Terrace, 6 m up.
+t = floor tex=herran_ashlar h=6 side=herran_ashlar
+// The Clock Tower's hall, the stair up inside its wall, and the top rooms of both towers at 10 m.
+i = floor tex=encaustic_tile h=6 ceil=10.5 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.2
+α = floor tex=encaustic_tile h=6.5 ceil=11 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.3
+β = floor tex=encaustic_tile h=7 ceil=11.5 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.3
+γ = floor tex=encaustic_tile h=7.5 ceil=12 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.3
+δ = floor tex=encaustic_tile h=8 ceil=12.5 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.3
+ε = floor tex=encaustic_tile h=8.5 ceil=13 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.3
+ζ = floor tex=encaustic_tile h=9 ceil=13.5 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.3
+η = floor tex=encaustic_tile h=9.5 ceil=14 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.3
+j = floor tex=encaustic_tile h=10 ceil=14.5 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.2
+// The Belvedere's long gallery down to the lift, and the lift's shaft, down to the court.
+m = floor tex=encaustic_tile h=10 ceil=14.5 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.3
+e = floor tex=iron_grating h=1 ceil=14.5 ceil_tex=herran_ashlar side=herran_brick roof=16 chasm
+// The skybridges' iron decks, and the Spire Plaza, 10 m up.
+h = floor tex=iron_grating h=10 side=herran_ashlar
+n = floor tex=herran_ashlar h=10 side=herran_ashlar
+// The passage into the foot of the Spire.
+q = floor tex=encaustic_tile h=10 ceil=15 ceil_tex=herran_ashlar side=herran_brick roof=24 dark=0.3
+
+[grid]
+________________________________________________________
+________________________________________________________
+_________________________&&&&&&&&&______________________
+_________________________&&&&J&&&&______________________
+_________________________&&&&q&&&&______________________
+_________________________&&&&q&X&&______________________
+_________________________&&&&q&&&&______________________
+_________________________&&&&q&&&&______________________
+_________________________&&&&q&&&&______________________
+___________________vvvvvv&&&&H&&&&vvvvvvvvvvvvv_________
+___________________vnnnnnnnnnnnnnnnnnnnnnnnnnnv_________
+___________________vnnMnnÄnnnnnnnnnnnnnnnnMnnnv_________
+___________________vnnnnnnnnÅnnnnnnnnnnnnnnnnnv_________
+___________________vnnnnnnnnnnnnnnnnnnÅnnnnnnnv_________
+___________________vnnnnnnnnnnnnnnnnnnnnnnnnnnv_________
+___________________vvvvvvvvvvvvvvvvvvvvvvvvhhvv_________
+__________________________________________vhhv__________
+__________________________________________vhhv__________
+__________________________________________vhhv__________
+__________________________________________vhhv__________
+________________________________________%%%hh%%_________
+___%%%Y%%%______________________________%%%hh%%_________
+___%OkSkk%%%%%%%________________________%jjjjj%_________
+___%kkkkk%jjjjj%vvvvvvvvvvvvvvvvvvvvvvvv%jjjjj%_________
+___%FkkkÃWjjjjjhhhhhhhhhhhhhhhhhhhhhhhhhhjjÄjj%_________
+___%kkkkk%jjjjjhhhhhhhhhhhhhhhhhhhhhhhhhhjjjjj%_________
+___%OkRkk%%%η%%%vvvvvvvvvvvvvvvvvvvvvvvv%jjjjj%_________
+___%%%%%%%%%ζ%%%________________________%m%%%%%_________
+_________%%%ε%%%________________________%m%%V%%_________
+_________%U%δ%%%uuuuuuuuuuuuuuuuuuuuuuuu%m%%%%%_________
+_________%%%γ%%%tttttttttttttttttttttttt%m%%%%%_________
+_________%%%β%%%ttMtttttttttttÄttttttMtt%m%%%%%_________
+_________%%%α%%%ttttttÅttttttttttttttttt%m%%%%%_________
+_________%iiiii%tttttttttttttttttttttttt%m%%%%%_________
+_________%iiiii%tttttttttttttttttttttttt%m%%%%%_________
+_________%iÄiiiitttttttttttttttttttttttt%m%%%%%_________
+_________%iiiii%tttttttttttttttttttttttt%m%%%%%_________
+_________%iiiii%tttttttttttttttttttttttt%m%%%%%_________
+_________%%%%%%%tttttttttttttttttttttttt%m%%%%%_________
+______________############999###########%m%%%%%_________
+______________######Z#####888###########%m%%%%%_________
+______________############777###########%m%%%%%_________
+______________############666###########%m%%%%%_________
+______________############555###########%m%%%%%_________
+_____########_############444###########%m%%%%%_________
+_____#DssssS#_############333###########%m%%%%%_________
+_____#ssssss#_############222###########%m%%%%%_________
+_____#ssssss##############111###########%L%%%%%######___
+_____#Psssss##............................#Iaaaaaaaa#___
+_____#ssÁssO##............................#aaaaaaaaa#___
+_____###W#####..M..........Å...........M..#aaaaaaaaG#___
+_____#llllllO#............................#aaaaaaaaa#___
+_____#Kllllll#............................#aaaaaaaaa#___
+_____#lllÆlll#............................#aaaaaaaaa#___
+_____#lllllll#......Ä.............Ä.......#aaaaaaaaa#___
+_____#lllQlll#............................#aaÅaaaaaa#___
+_____#llllllÀC............................aaaaaaaaaa#___
+_____#Sllllll#.............N..............aaaaaaaaaa#___
+_____#llllPll#............................#aaaaaaaaa#___
+_____#llRllll#............................#aaaaaaaaa#___
+_____#lllllll#............................#aaaaaaÅaa#___
+_____#llllllO#............................#aaaaaaaaa#___
+_____#########..M......................M..#aaaaaaaaa#___
+_____________#............................#aaaaaaaaa#___
+_____________#............................#aaaaaaaaa#___
+_____________#............................#aaaaaaaaa#___
+_____________#............................#aaaaaaaaa#___
+_____________#............................#####W#####___
+_____________#######%%%###ppp####%%%########OssÂssO#____
+_____________#######%%%###ppp####%%%########sssssss#____
+_____________#######%T%###ppp####%T%########ssRssÆs#____
+_____________#######%%%###ppp####%%%########QsssssE#____
+_____________#######%%%###ppp####%%%################____
+_____________#######%%%###ppp####%%%#######_____________
+_____________________b,,,,,,,,,,,,b_____________________
+_____________________bM,,,,,,,,,,Mb_____________________
+_____________________b,,B,,,,,,,,,b_____________________
+_____________________b,,,,,,,,,,,,b_____________________
+_____________________b,,,,,,,,,,,,,_____________________
+_____________________b,,,,,,,,,,,,,_____________________
+_____________________b,,,,,,,,,,,,b_____________________
+_____________________b,,,,,,,,,,,,b_____________________
+_____________________bbbbbbAbbbbbbb_____________________
+________________________________________________________
+________________________________________________________
+________________________________________________________
+________________________________________________________
+________________________________________________________
+________________________________________________________
+________________________________________________________
+________________________________________________________
+________________________________________________________
+
+[entities]
+// The stair of light down to Lyra's altar in Vesperholm, at the quay's south edge, and the shrine.
+A = exit map=vesperholm at=34,18,180 label=Descend_to_Vesperholm model=sky_stair way=out yaw=90
+B = save_statue
+// The Open Laboratory's door off the court, and the false walls of the hidden ones.
+C = door
+W = secret_wall
+// The Belvedere's lift down to the court's north-east corner: fastened until its first ride down.
+L = lift top=10 start=top locked model=cage on=e
+// Finds: the Spire Key in the open lab, and what the hidden labs and the aviary keep.
+K = chest item=spire_key gold=120 model=banded
+D = chest item=graft_draught count=2 gold=140 model=coffer
+E = chest item=herran_bonesaw gold=150 model=banded
+F = chest item=sun_tincture count=2 gold=160 model=coffer
+G = chest item=bitter_root count=2 gold=110
+// The door at the foot of Herran's Spire, and the way in at the passage's end.
+H = door key=spire_key
+J = exit map=herran_spire at=12,37,-90 label=Climb_the_Spire model=spire_door yaw=90 boss=herran_dead
+// Gaslight on the quay, in the court, on the terrace and the plaza, and the drake fountain, dry.
+M = gas_lamp
+N = drake_fountain
+// The laboratories' dressing: specimen jars, alembic benches, vats, the operating table and shelves.
+O = specimen_jar
+P = alembic_bench
+Q = vat
+R = surgery_table
+S = potion_shelf
+// The skyline: the gatehouse's twin towers, the clock tower, the Belvedere's loggia, the Spire's
+// needle, the round tower over the hidden lab and one over the hall; the aviary's glasshouse vault.
+T = herran_tower style=octagon height=12 on=%
+U = herran_tower style=clock height=16 on=%
+V = herran_tower style=belvedere height=12 on=%
+X = herran_tower style=needle height=34 on=&
+Y = herran_tower style=round height=14 on=%
+Z = herran_tower style=round height=9 on=#
+I = glasshouse span=18,38 height=8 on=a
+// Herran's creatures: Drake Magi in their gowns, Grafted Drakes on the wing, Vat Spawn in the labs.
+Ä = drake_magus
+Å = grafted_drake
+Æ = vat_spawn
+// Herran's ledger in the open lab, and his journal, a page in each hidden one.
+À = hint text="A ledger of drakes, each with arms sewn on.|The last entries are in a shakier hand."
+Á = hint text="Mother holds out six hands. I have two.|The drakes take the grafts well. Next, mine."
+Â = hint text="Ilvane wed the moon on her seal to keep her city.|I shall wed the sun's to my own flesh."
+Ã = hint text="My sister and I were born of the Embracer.|Neither she nor Mother answers me now."

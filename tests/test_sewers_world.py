@@ -84,7 +84,7 @@ def test_the_sewers_bosses_guard_no_relic():
     for type_id, flag in (("rat_matron", "matron_dead"), ("sodden_pall", "pall_dead")):
         t = EnemyTypes.get(type_id)
         assert t.boss and t.dead_flag == flag and t.drop is None and t.rise == "ash"
-    assert len(relics.RELICS) == len(relics.ENDING_RELICS) == 4
+    assert set(relics.ENDING_RELICS) <= set(relics.RELICS)
     assert not {t.drop for t in map(EnemyTypes.get, ("rat_matron", "sodden_pall"))} & set(relics.RELICS)
     for type_id in ("rat_matron", "sodden_pall"):  # both rage at half HP; neither calls a brood
         t = EnemyTypes.get(type_id)

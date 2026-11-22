@@ -8,6 +8,7 @@ from ashen_vault.render import (
     fen_models,
     forge_models,
     fortress_props,
+    herran_models,
     models,
     moon_models,
     prison_models,
@@ -375,6 +376,12 @@ class WorldView:
                     sunken_models.core_burst(rig, f.glow, f.flame, world._time, f.radius)
                 elif f.style == "boulder":
                     sunken_models.boulder_mark(rig, f.glow, f.flame, world._time, f.radius)
+                elif f.style == "sun":
+                    herran_models.sunbrand(rig, f.glow, f.flame, world._time, f.radius)
+                elif f.style == "grafts":
+                    herran_models.graft_hands(rig, f.glow, f.flame, world._time, f.radius)
+                elif f.style == "elixir":
+                    herran_models.elixir_splash(rig, f.glow, f.flame, world._time, f.radius)
                 else:
                     models.eruption(rig, f.glow, f.flame, world._time, f.radius)
             bomb = f.bomb()
@@ -385,6 +392,8 @@ class WorldView:
                         sunken_models.core_shard(rig, world._time + f.x)
                     elif f.style == "boulder":
                         sunken_models.boulder(rig, world._time, world._time)
+                    elif f.style == "elixir":
+                        herran_models.elixir_flask(rig, world._time)
                     else:
                         forge_models.magma_bomb(rig, world._time)
         for w in world.shockwaves:
@@ -819,6 +828,8 @@ def _draw_chains(view, rig, p, t):
 
 def _draw_exit(view, rig, p, t):
     world = view.world
+    if "hidden" in p.props and not world.exit_open(p):
+        return  # a way that is not there until its flag is set (the sky stair, until the Argent Sigil)
     if p.props.get("model") == "well":
         models.well(rig, t)
     elif p.props.get("model") == "vine_door":
@@ -841,6 +852,10 @@ def _draw_exit(view, rig, p, t):
         sunken_models.cistern_breach(rig, t)
     elif p.props.get("model") == "chapel_door":
         moon_models.chapel_door(rig, t)
+    elif p.props.get("model") == "spire_door":
+        herran_models.spire_door(rig, t)
+    elif p.props.get("model") == "sky_stair":
+        herran_models.sky_stair(rig, t, p.props.get("way", "up"))
     elif p.props.get("model") == "sunken_stair":
         sunken_models.sunken_stair(rig, t)
     elif p.props.get("model") == "sewer_ladder":  # set back against the wall behind it, if any
@@ -1068,6 +1083,23 @@ PROP_DRAWERS = {
     "inkcaps": lambda view, rig, p, t: sewer_models.inkcaps(rig, p.tx * 7 + p.tz * 3),
     "sump_caps": lambda view, rig, p, t: sewer_models.sump_caps(rig, p.tx * 7 + p.tz * 3),
     "moon_lamp": lambda view, rig, p, t: moon_models.moon_lamp(rig, p.tx * 7 + p.tz * 3),
+    "gas_lamp": lambda view, rig, p, t: herran_models.gas_lamp(rig, p.tx * 7 + p.tz * 3),
+    "herran_tower": lambda view, rig, p, t: herran_models.herran_tower(
+        rig, p.tx * 7 + p.tz * 3, float(p.props.get("height", "14")), p.props.get("style", "round")
+    ),
+    "glasshouse": lambda view, rig, p, t: herran_models.glasshouse(
+        rig, *(float(v) for v in p.props.get("span", "18,38").split(",")), float(p.props.get("height", "8"))
+    ),
+    "drake_fountain": lambda view, rig, p, t: herran_models.drake_fountain(rig, p.tx * 7 + p.tz * 3),
+    "specimen_jar": lambda view, rig, p, t: herran_models.specimen_jar(rig, p.tx * 7 + p.tz * 3),
+    "alembic_bench": lambda view, rig, p, t: herran_models.alembic_bench(rig, p.tx * 7 + p.tz * 3),
+    "vat": lambda view, rig, p, t: herran_models.vat(rig, p.tx * 7 + p.tz * 3),
+    "surgery_table": lambda view, rig, p, t: herran_models.surgery_table(rig, p.tx * 7 + p.tz * 3),
+    "potion_shelf": lambda view, rig, p, t: herran_models.potion_shelf(rig, p.tx * 7 + p.tz * 3),
+    "telescope": lambda view, rig, p, t: herran_models.telescope(rig, p.tx * 7 + p.tz * 3),
+    "observatory_dome": lambda view, rig, p, t: herran_models.observatory_dome(
+        rig, float(p.props.get("radius", "5")), float(p.props.get("height", "1"))
+    ),
     "moon_stair": lambda view, rig, p, t: moon_models.moon_stair(  # down along its yaw from its top tile
         rig,
         int(p.props.get("run", "12")),

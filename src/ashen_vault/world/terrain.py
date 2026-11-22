@@ -629,6 +629,7 @@ class Terrain:
         self.safe = None  # last solid ground the player stood on: (x, z)
         self.under = None  # the platform the player stands on
         self.fell_into = None
+        self.fell_through = None  # the `fall` key of the chasm you went over ("cloud"), if it has one
         self.drowned_in = None  # the `drown` key of the deep water you went into ("sea", "canal"...)
         self.landed = 0  # metres of the last hard landing
         self.sounds = []  # (name, volume) to play this frame; the World plays and clears them
@@ -802,7 +803,7 @@ class Terrain:
                 return self._drown(body, tile) if tile.drown else self._fall(body, hurt, "river")
             ground = body.y if self._ground is None else self._ground
             if ground - tile.floor > FALL_SAFE:
-                return self._plunge(body)
+                return self._plunge(body, fall=tile.fall)
             # A chasm floor at your feet (the bottom of an empty lift shaft) is only ground.
 
         if self._lethal_drop(body):
@@ -881,10 +882,12 @@ class Terrain:
         if d < HEARING:
             self.sounds.append((name, volume * (1 - d / HEARING * 0.7)))
 
-    def _plunge(self, body, into="ravine"):
+    def _plunge(self, body, into="ravine", fall=None):
         """You went over the brink of a chasm ("ravine"), or off an edge over a lethal drop ("drop"):
-        from here you only fall (`_plunging`)."""
+        from here you only fall (`_plunging`). `fell_through` keeps the chasm's `fall` key, so the World
+        can say what you fell through."""
         self.fell_into = into
+        self.fell_through = fall
         self.plunge = 0.0
         self._vy = 0.0
         self.under = None

@@ -32,7 +32,7 @@ def talk(id_, game):
     return speaker, " ".join(lines)
 
 
-ALL_SIGILS = ["ember_sigil", "verdant_sigil", "iron_sigil", "argent_sigil"]
+ALL_SIGILS = ["ember_sigil", "verdant_sigil", "iron_sigil", "argent_sigil", "auric_sigil"]
 FIRST_THREE = ALL_SIGILS[:3]
 TAKEN = {"sigil_taken", "verdant_sigil_taken", "iron_sigil_taken"}  # the first three, taken up
 
@@ -49,11 +49,11 @@ def test_odrin_intro_asks_for_all_three_sigils_and_gives_supplies():
     assert not g.finished
 
 
-def test_odrin_greets_a_woken_ashen_with_the_prophecy_of_four_sigils():
-    """The player is one of the Ashen, woken by the bell: Odrin tells of the prophecy (four sigils to
+def test_odrin_greets_a_woken_ashen_with_the_prophecy_of_five_sigils():
+    """The player is one of the Ashen, woken by the bell: Odrin tells of the prophecy (five sigils to
     raise the stone king) and of the Ashen who failed before; nobody came off a boat."""
     _, text = talk("odrin", FakeGame())
-    assert "bell" in text and "prophecy" in text and "four sigils" in text
+    assert "bell" in text and "prophecy" in text and "five sigils" in text
     assert "Enthroned" in text and "king" in text and "cemetery" in text
     assert "boat" not in text and "traveller" not in text
 
@@ -66,7 +66,7 @@ def test_nobody_in_town_takes_the_ashen_for_a_sailor():
         _, text = talk(npc, FakeGame())
         assert "off the boat" not in text and "the tide brings" not in text, npc
     assert "fourth" in " ".join(dialogue.ENTHRONED_LINES[3])
-    assert "four" in " ".join(dialogue.ENTHRONED_LINES[-1])
+    assert "five" in " ".join(dialogue.ENTHRONED_LINES[-1])
 
 
 def test_odrin_without_sigils_gives_directions():
@@ -101,20 +101,37 @@ def test_odrin_with_two_sigils_still_wants_the_third():
     assert g.player.inventory.has("ember_sigil") and g.player.inventory.has("verdant_sigil")
 
 
-def test_odrin_with_all_four_sigils_ends_the_game():
+def test_odrin_with_all_five_sigils_unseals_the_bell_and_you_keep_them():
     g = FakeGame(flags={"quest", *TAKEN, "vesper_gate_open"}, items=ALL_SIGILS)
     _, text = talk("odrin", g)
-    assert g.finished
-    assert not any(g.player.inventory.has(i) for i in ALL_SIGILS)
+    assert not g.finished and dialogue.BELL_UNSEALED in g.flags
+    assert all(g.player.inventory.has(i) for i in ALL_SIGILS)
     # The story closes: the moon sets over Vesperholm, and the king rang the bell from his stone.
     assert "Vesperholm" in text and "moon" in text and "rope" in text and "stone" in text
+    assert "ring the Silent Bell" in text
     assert "still lost" not in text
+    # Once unsealed, he only sends you on to the bell.
+    _, again = talk("odrin", g)
+    assert "bell" in again and again != text and not g.finished
 
 
-def test_odrin_with_all_four_sigils_ends_the_game_even_before_the_quest():
+def test_odrin_with_all_five_sigils_unseals_the_bell_even_before_the_quest():
     g = FakeGame(items=ALL_SIGILS)
     talk("odrin", g)
-    assert g.finished
+    assert dialogue.BELL_UNSEALED in g.flags and not g.finished
+
+
+def test_the_silent_bell_rings_out_the_ending_only_once_unsealed_with_every_sigil_in_hand():
+    from ashen_vault.world import relics
+
+    lines, ends = dialogue.bell(set(), ALL_SIGILS)
+    assert not ends and "below" in " ".join(lines)
+    lines, ends = dialogue.bell(set(), relics.ENDING_RELICS)  # carried, but Odrin has not seen them
+    assert not ends
+    lines, ends = dialogue.bell({dialogue.BELL_UNSEALED}, list(relics.ENDING_RELICS)[:-1])
+    assert not ends and "every sigil" in " ".join(lines)
+    lines, ends = dialogue.bell({dialogue.BELL_UNSEALED}, list(relics.ENDING_RELICS))
+    assert ends and lines
 
 
 def test_the_first_three_sigils_do_not_end_the_game_and_odrin_sends_you_for_the_fourth():
@@ -295,10 +312,11 @@ def test_the_enthroned_stirs_a_little_more_with_each_sigil_held():
         speaker, text = talk("enthroned", FakeGame(items=ALL_SIGILS[:n]))
         assert speaker == "The Enthroned"
         texts.append(text)
-    assert len(set(texts)) == len(dialogue.ENTHRONED_LINES) == 5
+    assert len(set(texts)) == len(dialogue.ENTHRONED_LINES) == 6
     # Three held: his sister and the moon beyond the gate. All four: it was he who rang the bell.
     assert "sister" in texts[3] and "moon" in texts[3] and "gate" in texts[3]
-    assert "rang the bell" in texts[4] and "ash" in texts[4]
+    assert "fifth" in texts[4] and "sun" in texts[4]
+    assert "rang the bell" in texts[5] and "ash" in texts[5]
 
 
 def test_the_watch_talks_of_the_road_its_gate_keeps():

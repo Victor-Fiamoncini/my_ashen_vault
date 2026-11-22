@@ -1068,6 +1068,8 @@ class Game:
                 self.player.stats.restore_mp(item.mana)
             for kind in item.cures:
                 self.player.cure(kind)
+            if item.effect:
+                self.player.drink(item.effect)
             self.sfx("pickup", 0.6)
             self.message(f"Used {item.name}.")
         elif item.kind == "scroll":
@@ -1135,7 +1137,11 @@ class Game:
             "pickup": "[E] Take",
             "iron_maiden": "[E] Step inside",
             "frog_idol": "[E] Pat the stone frog",
-            "silent_bell": "[E] Touch the Silent Bell",
+            "silent_bell": (
+                "[E] Ring the Silent Bell"
+                if dialogue_data.BELL_UNSEALED in self.flags
+                else "[E] Touch the Silent Bell"
+            ),
             "brazier": "[E] Look at the cold brazier",
             "fen_beacon": "[E] Smother the beacon",
             "bonfire": "[E] Look at the cold ashes",
@@ -1190,10 +1196,15 @@ class Game:
         elif k == "frog_idol":
             self._pat_frog(prop)
         elif k == "silent_bell":
-            # TODO(story): the secret beneath the Silent Bell. Something waits below the Bell Square.
-            self.sfx("bell", 0.25)
-            self.message("The cracked bronze is cold, yet it hums under your palm.")
-            self.message("A whisper rises from the stones: {the secret lies below}.")
+            # TODO(story): the secret beneath the Silent Bell. Once unsealed, ringing it ends the game for
+            # now; the descent below the Bell Square will take the ending's place.
+            lines, ends = dialogue_data.bell(self.flags, relics.held(self.player.inventory.has))
+            for line in lines:
+                self.message(line)
+            if ends:
+                self.finish_game()
+            else:
+                self.sfx("bell", 0.25)
         elif k == "exit":
             self._take_exit(prop)
         elif k == "pickup":
