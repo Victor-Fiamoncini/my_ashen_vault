@@ -90,7 +90,7 @@ Behaviour flags, special moves, bosses and the rules every enemy model must keep
   under you and `MOONBEAM_ASIDE` to either side across your facing, `Eruption(style="moon")`, which
   hurt and chill) and `moonfall` (second phase: a shaft under you and rings of them round it,
   `MOONFALL_RINGS`; stand in a gap). Duchess Ilvane (`moon_duchess`, `proper`, `duchess_dead`) drops
-  the Argent Sigil. At half
+  nothing: the Argent Sigil lies on Lyra's altar up past her choir's back door (`maps.md`). At half
   HP a boss with a `brood` calls it and one with a `rage` kindles it (the Warden's burning blade);
   either way it enters its second phase (`Enemy.phase2`), fights faster and adds its `phase_moves`.
   Nothing staggers it out of that turn (`Enemy.turning`), so the brood or the rage always comes.

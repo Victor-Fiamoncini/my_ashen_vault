@@ -1193,10 +1193,13 @@ class EnemyTypes:
                 height=2.9,
                 tall=3.3,
                 boss=True,
-                drop="argent_sigil",
+                # No drop: the Argent Sigil lies on Lyra's altar, up past her choir's back door.
                 dead_flag="duchess_dead",
                 rise="ash",
-                epitaph="Duchess Ilvane kneels in her own light, and it goes out. Silver gleams where she fell.",
+                epitaph=(
+                    "Duchess Ilvane kneels in her own light, and it goes out. "
+                    "Somewhere above her choir, silver answers the moon."
+                ),
                 poise=22,
                 # The Moonwed, the king's sister and Vesperholm's lady: she wed the moon on the fourth
                 # sigil so the night would never end and nothing in her city would die. Tall as two men

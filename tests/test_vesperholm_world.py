@@ -150,7 +150,7 @@ def test_in_her_second_phase_the_moon_falls_round_you_in_rings():
 def test_the_duchess_is_the_moonwed_who_keeps_the_fourth_sigil():
     t = EnemyTypes.get("moon_duchess")
     assert t.boss and t.proper and t.called == "Duchess Ilvane"
-    assert t.drop == "argent_sigil" and t.dead_flag == "duchess_dead" and t.rise == "ash"
+    assert t.drop is None and t.dead_flag == "duchess_dead" and t.rise == "ash"  # it lies on an altar
     assert t.rage and {"frost_lance", "moonbeam"} <= set(t.moves)
     assert set(t.phase_moves) == {"blink", "moonfall"}
     assert t.material == "spirit"
@@ -177,18 +177,38 @@ def test_she_waits_in_her_choir_behind_a_great_door():
     _game, world = city(keep_foes=True)
     (duchess,) = [e for e in world.enemies if e.type.id == "moon_duchess"]
     assert duchess.state == "ashes"
-    (arena,) = [a for a in world.arenas if a.flag == "duchess_dead"]
+    great, back = sorted((a for a in world.arenas if a.flag == "duchess_dead"), key=lambda a: a.gate[0])
+    assert (great.gate, back.gate) == ((21, 9), (32, 2))  # the great door, and her choir's back door
     tile = (TileMap.tile_coord(duchess.x), TileMap.tile_coord(duchess.z))
-    assert tile in arena.tiles
+    assert tile in great.tiles and great.tiles == back.tiles  # one choir, two mouths
+    assert all(world.map[t].floor_tex == "moon_glass" for t in great.tiles)  # none of the stair beyond
 
 
-def test_the_argent_sigil_lies_where_she_fell_until_it_is_taken():
+def test_the_argent_sigil_lies_in_lyras_hands_at_the_end_of_the_bridge():
+    """She drops nothing: the sigil she wed the moon on rests on the old god's altar, at the end of the
+    bridge over her garden, up the stair behind her choir's back door, 4.5 m over the bailey."""
     _game, world = city(flags={"duchess_dead"}, keep_foes=True)
     assert not any(e.type.id == "moon_duchess" for e in world.enemies)
-    (sigil,) = [p for p in world.props if p.kind == "pickup" and p.props.get("item") == "argent_sigil"]
-    assert (sigil.tx, sigil.tz) == (21, 4)
-    _game, world = city(flags={"duchess_dead", "argent_sigil_taken"})
-    assert not any(p.props.get("item") == "argent_sigil" for p in world.props if p.kind == "pickup")
+    assert not any(p.kind == "pickup" for p in world.props)
+    (altar,) = [p for p in world.props if p.kind == "altar"]
+    assert (altar.tx, altar.tz) == (37, 18)
+    assert altar.props["item"] == "argent_sigil" and altar.props["model"] == "lyra"
+    assert world.map[37, 18].floor == 4.5 and world.map[37, 19].floor == 0  # over the bailey
+    assert altar.open_t == 0
+    assert world.take_from_altar(altar) == "argent_sigil" and altar.open_t > 0
+
+
+def test_the_stair_behind_her_choir_climbs_half_a_metre_at_a_time_to_the_gallery():
+    """The back door opens on a stair in the cathedral's east wall, each step under its own vault, from
+    the choir's floor up to the gallery over the garden; a wall keeps the garden off its low steps."""
+    _game, world = city()
+    m = world.map
+    stair = [m[33, z] for z in range(2, 11)]
+    assert [s.floor for s in stair] == [0.5 * (i + 1) for i in range(9)]
+    assert all(s.ceil is not None for s in stair)
+    assert all(m[34, z].solid for z in range(2, 11))  # walled off from the garden
+    gallery = [(33, z) for z in range(11, 19)] + [(x, 18) for x in range(34, 38)]
+    assert all(m[t].floor == 4.5 and m[t].ceil is None for t in gallery)
 
 
 # --- the Vesper Gate ---------------------------------------------------------------------------------
@@ -337,3 +357,21 @@ def test_glassmites_lie_folded_in_the_cave_among_real_crystals():
     for e in mites:
         assert world.map.tile_at(e.x, e.z).ceil is not None  # in the cave
         assert min(math.hypot(c.x - e.x, c.z - e.z) for c in crystals) < 3 * TileMap.TILE
+
+
+def test_lyras_altar_is_out_of_reach_from_the_bailey_under_the_bridge():
+    """The altar stands 4.5 m up, on the bridge's end: from the bailey or the garden's mouth right under
+    it you can't lift the sigil off it, only from the bridge."""
+    for at, yaw in (((37, 19), NORTH), ((38, 18), math.pi)):
+        _game, world = city(at=at, yaw=yaw, flags={"duchess_dead"})
+        assert world.focus() is None or world.focus().kind != "altar", at
+    _game, world = city(at=(36, 18), yaw=EAST, flags={"duchess_dead"})
+    assert world.player.y == 4.5
+    assert world.focus().kind == "altar"
+
+
+def test_the_compass_points_at_her_great_door_never_her_back_door():
+    """From her garden the choir's back door lies nearer, but it is no way in: the compass keeps to the
+    great door at the nave's head."""
+    _game, world = city(at=(38, 5), keep_foes=True)
+    assert world.boss_target() == TileMap.center(21, 9)

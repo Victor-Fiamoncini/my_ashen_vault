@@ -3,7 +3,8 @@
 Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight. The basics of smoke runs are in AGENTS.md.
 
 - `interact` uses whatever the player faces within reach, nearest first: an unopened chest in front of
-  another prop is opened first.
+  another prop is opened first. A prop more than `world.INTERACT_RISE` (2 m) above or below your feet
+  is out of reach.
 - The `smoke:` line includes the player's height (`y=`), handy for checking lifts.
 - Ailment borders: `--map abandoned_prison --at 15,21,180 --smoke 60 --afflict
   bleed,corrosion,poison,toxic,rot,frost` shows them all combined; bleed's and corrosion's last only
@@ -143,7 +144,11 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   Knight in the bailey). Shortcut: `--at=20,25,90 --script "wait:0.2 interact wait:2.6 strafe_l:0.45 forward:4.5" --smoke 520`
   (the drawbridge's lever in the bailey; walk out through the gatehouse and over it to the Landing). Boss:
   `--at=21,8,-90 --level 8 --equip primary=katana,secondary=buckler --script "wait:4.2"` (Duchess Ilvane
-  rising in her choir behind its great door at 21,9).
+  rising in her choir behind its great door at 21,9). After her, with `--flags duchess_dead`:
+  `--at=31,2,0 --script "interact wait:1.2"` (her choir's back door onto the old stair), `--at=33,11,90`
+  (the gallery over her garden), `--at=35,18,0 --script "forward:1 interact wait:1"` (take the Argent
+  Sigil from Lyra's altar at the bridge's end) and `--at=37,21,-90 --script "look_up:0.3"` (the bridge
+  and the altar from the bailey).
 - The story begins in `ashen_cemetery` (the title's New Game, `Game.start_story`: bare hands and no
   spell, `Player.woken()`, the journey recorded at once). A `--map` run starts on any map with the default
   kit instead: `--map ashen_cemetery` (the waking grave and the first hint), `--map ashen_cemetery

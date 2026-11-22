@@ -1196,19 +1196,31 @@ def test_the_vesper_gate_joins_town_and_vesperholm_both_ways():
 def test_vesperholm_is_solvable():
     """From the Vesper Gate, up through the Glimmering Cave, every street, chest and the lever can be
     reached with only the false wall opened, over the Glass Bridge; the Duchess waits behind her great
-    door. The great bridge is a shortcut, three tiles abreast across the gorge: both its ends are
+    door. Lyra's altar, with the Argent Sigil, is reached only through her choir and out of its back
+    door, up the stair in the cathedral's wall: neither door alone, nor any way round, gets you there.
+    The great bridge is a shortcut, three tiles abreast across the gorge: both its ends are
     reachable before it rises. Nowhere you can get to strands you."""
     m = _vesperholm()
     assert m.meta["name"] == "Vesperholm" and m.meta["sky"] == "moonlit"
     start = tuple(int(v) for v in m.meta["start"][:2])
     secrets = [(s.tx, s.tz) for s in _spec(m, "secret_wall")]
-    (door,) = _spec(m, "door", boss="duchess_dead")
+    great, back = sorted(_spec(m, "door", boss="duchess_dead"), key=lambda d: d.tx)  # her choir's two mouths
     (duchess,) = _spec(m, "moon_duchess")
+    (altar,) = _spec(m, "altar", item="argent_sigil")
     before = _reachable(m, start, open_tiles=secrets)
     assert (duchess.tx, duchess.tz) not in before  # her choir lies behind its great door
-    opened = _reachable(m, start, open_tiles=[*secrets, (door.tx, door.tz)])
+    near_altar = {  # beside it on its own floor: the bridge, not the bailey or garden 4.5 m below
+        (altar.tx + dx, altar.tz + dz)
+        for dx, dz in BESIDE
+        if m[altar.tx + dx, altar.tz + dz].floor == m[altar.tx, altar.tz].floor
+    }
+    assert near_altar
+    assert not near_altar & _reachable(m, start, open_tiles=[*secrets, (great.tx, great.tz)])
+    assert not near_altar & _reachable(m, start, open_tiles=[*secrets, (back.tx, back.tz)])  # no way round
+    opened = _reachable(m, start, open_tiles=[*secrets, (great.tx, great.tz), (back.tx, back.tz)])
+    assert near_altar & opened  # Lyra's altar: through the choir and out of its back door, up the stair
     for s in m.entities:
-        if s.kind in ("chest", "lever", "exit", "moon_duchess", "save_statue"):
+        if s.kind in ("chest", "lever", "exit", "moon_duchess", "save_statue", "altar"):
             near = {(s.tx + dx, s.tz + dz) for dx, dz in BESIDE} | {(s.tx, s.tz)}
             assert near & opened, (s.kind, s.props, s.tx, s.tz)
         if s.kind == "chest":

@@ -1180,6 +1180,7 @@ class Game:
         elif k == "altar":
             item = Items.get(self.world.take_from_altar(prop))
             self.player.inventory.add(item.id)
+            relics.mark_taken(item.id, self.flags)  # a sigil on an altar is taken up as any other
             self.sfx("bell", 0.7)
             self.message(f"Obtained {{{item.name}}}.")
             for line in prop.props.get("said", WARDEN_ALTAR_SAID).split("|"):
@@ -1306,7 +1307,9 @@ class Game:
             return
         self.world.open_prop(prop)
         self.sfx("door")
-        if prop.props.get("boss"):
+        if prop.props.get("boss") in self.flags:  # its boss has fallen: nothing waits beyond it now
+            self.message("The great door groans open.")
+        elif prop.props.get("boss"):
             self.message("The great door groans open. Something stirs beyond.")
         elif key:
             self.message(f"The {Items.get(key).name} turns in the lock.")

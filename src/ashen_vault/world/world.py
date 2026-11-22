@@ -148,6 +148,9 @@ class Gout:
 INTERACT_RANGE = 2.6
 # Props you reach from further away: the Silent Bell hangs in the middle of a plinth you can't climb.
 INTERACT_REACH = {"silent_bell": 3.8}
+# Metres a prop may stand above or below your feet and still be in reach: no taking the Argent Sigil off
+# Lyra's altar from the bailey under the bridge it stands on.
+INTERACT_RISE = 2.0
 WEB_TIME = 2.5  # seconds a web shot slows you
 WEB_BURN_RATE = 0.45  # a web wall that fire has caught burns away over 1 / this many seconds
 THORN_SENSE = 3.4  # metres at which thorn plants bristle as you approach
@@ -930,9 +933,14 @@ class World:
     def boss_target(self):
         """(x, z) of the nearest great door whose boss still lives, or of a way on to one (an `exit`
         with `boss=<dead_flag>`, like the Cinderhold's door to its keep). None when this map has no
-        boss left (or never had one). The compass points there."""
+        boss left (or never had one). The compass points there. A lair's `rear` door (the Duchess's back
+        door, only ever reached from inside her choir) is no way in, so it is never pointed at."""
         p = self.player
-        gates = [TileMap.center(*a.gate) for a in self.arenas if a.tiles and not a.cleared(self.flags)]
+        gates = [
+            TileMap.center(*a.gate)
+            for a in self.arenas
+            if a.tiles and not a.cleared(self.flags) and "rear" not in a.door.props
+        ]
         gates += [
             (q.x, q.z)
             for q in self.props
@@ -2667,6 +2675,8 @@ class World:
             dx = p.x - player.x
             dz = p.z - player.z
             d = math.hypot(dx, dz)
+            if abs(getattr(p, "y", player.y) - player.y) > INTERACT_RISE:
+                continue  # on a floor far above or below you
             reach = INTERACT_REACH.get(getattr(p, "kind", None), INTERACT_RANGE)
             if getattr(p, "props", None) and "reach" in p.props:  # one spoken to through a cell's bars
                 reach = float(p.props["reach"])

@@ -58,7 +58,7 @@ Equipment, combat, spells, shops, saves and the story.
   box and window is `hud.hud_box` (or `panel`), drawn in whole pixels with `HUD_RADIUS` corners
   (`HUD_INNER_RADIUS` for a well inside a box); never pass another radius
   (`test_every_hud_box_shares_the_named_corner_radii`). The
-  compass marks the nearest great door whose boss lives (`World.boss_bearing`). A mouse action must never share a name with
+  compass marks the nearest great door whose boss lives (`World.boss_bearing`), never a `rear` one. A mouse action must never share a name with
   a movement key (`tests/test_input.py`): `"back"` once did, and a raised shield walked you backward. Items carry a `level` requirement: buying is
   allowed, equipping is not (`Inventory.equip_error`). The first-person arms (`models.weapon_view`)
   take their sleeve and glove looks from `SLEEVES` / `GLOVES`, so new armor needs an entry there (the player is one of the Ashen: bare, the forearm is grey ash, `models.ASH_ARM` with the `ash_skin` texture, and the hands `models.ASHEN`; a hand on a weapon holds it in a handshake grip, `models.GRIP_TURN`: knuckles toward the edge, which leads every swing, and the forearm bends to follow it (`arm`'s `heel`), swinging with the hand so the wrist never bends past `models.WRIST_BEND` (`test_wrists_bend_only_so_far_through_every_swing`); a bare fist is held the same way, closed on nothing (and lands only `compare.BARE_HANDED` of a blow
@@ -183,7 +183,10 @@ Equipment, combat, spells, shops, saves and the story.
   keepers who went bad (the Warden, the Loom Mother, the gargoyles). Older than the realm is Lyra the
   Embracer, the faceless old god of six hands held out palms up: the first city raised her colossi
   (broken now in Old Harrowmere's halls) and the prison's chapel still made its inmates kneel to her
-  idols. She is lore only, named by Brother Marrow and a hint on the Drowned Plaza. From inside the stone the king rang
+  idols. Ilvane wed the moon on her altar: the Argent Sigil lies in Lyra's hands on the altar at the
+  end of the bridge over the Duchess's garden, up the stair behind her choir. Taking an altar's sigil
+  marks it taken as picking one up does (`relics.mark_taken`). Brother Marrow and a hint on the
+  Drowned Plaza name her too. From inside the stone the king rang
   the bell himself, once, to wake the Ashen: the dead, whom the moon cannot keep. Odrin names all four
   at the first meeting: the fourth lies with the Duchess beyond the Vesper Gate at the head of the
   cathedral steps, which stands open (nobody remembers it shut, nor who opened it), so the whole realm is

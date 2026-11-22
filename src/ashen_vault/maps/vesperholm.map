@@ -25,8 +25,11 @@ edge_tex = moonstone
 // bridge sunk in the gorge below it, and Lamplighters' Row east. The way over is the Glass
 // Bridge at the west street's head, into the castle's postern; its bailey, the west chapel and the
 // Duchess's pale garden; and at its heart the Cathedral of the Long Night, the nave and, behind its
-// great door, the choir where the Duchess waits. The great bridge's lever, in the bailey, is the short
-// way back to the shrine.
+// great door, the choir where the Duchess waits. Once she falls, her choir's back door opens on the
+// old stair up through its east wall, the gallery along the cathedral's flank over her garden and the
+// bridge at its end over the garden's mouth, where the Argent Sigil she wed the moon on lies on the
+// altar of Lyra the Embracer, older than the city. The great bridge's lever, in the bailey, is the
+// short way back to the shrine.
 
 [legend]
 # = wall tex=moonstone top=9 cap=silver_slate
@@ -74,6 +77,17 @@ q = wall tex=moonstone top=7 cap=silver_slate
 Κ = wall tex=moonstone top=5 cap=moon_paving
 Λ = wall tex=moonstone top=5.5 cap=moon_paving
 Μ = wall tex=moonstone top=6 cap=moon_paving
+// The old stair inside the cathedral's east wall, behind the choir's back door: half a metre a tile
+// from the choir's floor up to the gallery at 4.5 m, each step under its own vault.
+μ = floor tex=moon_paving h=0.5 ceil=4.5 ceil_tex=moonstone side=moonstone dark=0.3
+ν = floor tex=moon_paving h=1 ceil=5 ceil_tex=moonstone side=moonstone dark=0.3
+ξ = floor tex=moon_paving h=1.5 ceil=5.5 ceil_tex=moonstone side=moonstone dark=0.3
+π = floor tex=moon_paving h=2 ceil=6 ceil_tex=moonstone side=moonstone dark=0.3
+ρ = floor tex=moon_paving h=2.5 ceil=6.5 ceil_tex=moonstone side=moonstone dark=0.3
+σ = floor tex=moon_paving h=3 ceil=7 ceil_tex=moonstone side=moonstone dark=0.3
+τ = floor tex=moon_paving h=3.5 ceil=7.5 ceil_tex=moonstone side=moonstone dark=0.3
+υ = floor tex=moon_paving h=4 ceil=8 ceil_tex=moonstone side=moonstone dark=0.3
+φ = floor tex=moon_paving h=4.5 ceil=8.5 ceil_tex=moonstone side=moonstone dark=0.3
 // The Glimmering Cave between the Vesper Gate and the overlook: its rock, and its floors climbing
 // half a metre at a time from the gate's hall at 0 m to the mouth at 6 m, each under its own roof.
 x = wall tex=crystal_rock top=14 cap=crystal_rock
@@ -100,23 +114,23 @@ w = water tex=water h=3.9 side=crystal_rock
 [grid]
 ###########Ø####################Ø###########
 ###########ßÇcccÜccccÜccccÜccccÇ%###########
-###########%cccccccccccccccccccc%###########
-###########%cccccccccccccccccccc%#,,,Û,,,K##
-###########%ÜccccccccDcccccccccÜ%#,,,,,,,,##
-###########%cccccccccccccccccccc%#,,,,,,,,##
-###########%ÑccccccccccccccccccÑ%#,,Æ,,,,,##
-###########%cccccÑcccccccÑcccccc%#,,,,,,,,##
-###########%ÇccccccccccccccccccÇ%#,,,,,,,,##
-###########%%%%%%%%%%E%%%%%%%%%%%#,Û,,L,,,##
-###NaaÚÚaa#%%%nnnnnnnnnnnnnnn%%%%#,,,,,,,,##
-###aaaaaÙa#%%%nnÈnnnnnnnLnÈnn%%%%#,,,,,,,,##
-###aaaaaaa#%%%ÖnnnÉnnnnnÉnnnÖ%%%%#,,,,,Æ,,##
-###aaaaaaa#%%%nnnnnnnSnnnnnnn%%%%#,,,,,,,,##
-###aÙaaaaa#%%%nnÈnnnnnnnnnÈnn%%%%#,,,,,,,,##
-###aaaaaaa#%%%nnnVnnnnnnnnnnn%%%%#,Æ,,,,,,##
-###aaaaaaa#%%%ÖnnnÉnnnnnÉVnnÖ%%%%#,,,,,,,,##
-###aaaaaaa#%%%nnÈnnnnÒnnnnÈnn%%%%#,,,,,,,,##
-#Õ###pp####%%%%%%á%%nân%%á%%%%%%%#pppp,,,,Õ#
+###########%ccccccccccccccccccccÊê##########
+###########%cccccccccccccccccccc%ν#,,Û,,,K##
+###########%ÜccccccccDcccccccccÜ%ξ#,,,,,,,##
+###########%cccccccccccccccccccc%π#,,,,,,,##
+###########%ÑccccccccccccccccccÑ%ë#,Æ,,,,,##
+###########%cccccÑcccccccÑcccccc%σ#,,,,,,,##
+###########%ÇccccccccccccccccccÇ%τ#,,,,,,,##
+###########%%%%%%%%%%E%%%%%%%%%%%υ#Û,,L,,,##
+###NaaÚÚaa#%%%nnnnnnnnnnnnnnn%%%%Þ#,,,,,,,##
+###aaaaaÙa#%%%nnÈnnnnnnnLnÈnn%%%%ι,,,,,,,,##
+###aaaaaaa#%%%ÖnnnÉnnnnnÉnnnÖ%%%%ι,,,,,Æ,,##
+###aaaaaaa#%%%nnnnnnnSnnnnnnn%%%%ι,,,,,,,,##
+###aÙaaaaa#%%%nnÈnnnnnnnnnÈnn%%%%ι,,,,,,,,##
+###aaaaaaa#%%%nnnVnnnnnnnnnnn%%%%ι,Æ,,,,,,##
+###aaaaaaa#%%%ÖnnnÉnnnnnÉVnnÖ%%%%ι,,,,,,,,##
+###aaaaaaa#%%%nnÈnnnnÒnnnnÈnn%%%%ι,,,,,,,,##
+#Õ###pp####%%%%%%á%%nân%%á%%%%%%%ιιιιþ,,,,Õ#
 ###,,,,,,,Ó,,à,à,,,,Ò,Ò,,,,à,à,,Ó,,,,,,,,###
 ###,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,###
 ###,,,,,S,,,,,V,,,,,,,,,,,,,,,,,,,,,,,,,,###
@@ -223,6 +237,14 @@ R = hint text="Far below, a bridge of stone lies sunk in the gorge.|Whatever rai
 // Duchess Ilvane in the choir of her cathedral, behind its great door.
 D = moon_duchess
 E = door boss=duchess_dead on=n
+// Her choir's second mouth, a back door in its east wall (`rear`: the compass never points at it, as
+// it is no way in): it shuts with the great door and opens when she falls, onto the old stair up through the wall to the gallery over her garden, and the bridge at
+// its end to the altar of Lyra the Embracer, where the Argent Sigil lies in the old god's hands.
+Ê = door boss=duchess_dead rear on=p
+ê = hint text="A stair older than the cathedral climbs into the wall.|Above, something silver answers the moon." on=μ
+ë = light y=2.6 color=0.6,0.7,1.0 radius=6 on=ρ
+Þ = stair_flight run=9 rise=0.5 steps=4 width=1 yaw=-90 on=φ
+þ = altar item=argent_sigil model=lyra yaw=180 on=ι said="You lift the Argent Sigil out of Lyra's open hands. They stay open.|Overhead, the moon slips, as if a ring had come loose from its finger."
 // The great bridge over the gorge, three abreast and four long, sunk 18 m down on the gorge floor until
 // the lever in the bailey raises it out of the deep: the short way back to the shrine.
 F = bridge lever=vesper_bridge rise=18 deck=0 on=_

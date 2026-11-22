@@ -727,6 +727,13 @@ def _draw_torch(view, rig, p, t):
 def _draw_altar(view, rig, p, t):
     if p.props.get("model") == "moon":  # the vigil chapel's, the Moonbrand planted in it
         moon_models.moon_altar(rig, p.open_t > 0, t)
+    elif p.props.get("model") == "lyra":  # Vesperholm's, the old god holding out the Argent Sigil
+
+        def offering(r):
+            with r.at(0, 0, 0, ry=math.sin(t * 0.9) * 0.3, s=0.24):
+                models.sigil(r, p.props.get("item", "argent_sigil"), t)
+
+        moon_models.lyra_altar(rig, p.open_t > 0, t, offering)
     else:
         models.warden_altar(rig, p.open_t > 0, t, p.props.get("model", "warden"))
 

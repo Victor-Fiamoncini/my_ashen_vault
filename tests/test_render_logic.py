@@ -2161,6 +2161,35 @@ def test_lyras_colossi_tower_over_the_hall_each_broken_its_own_way_with_nothing_
     assert 3 <= len(statues) <= 5
 
 
+def test_lyras_altar_holds_out_the_argent_sigil_until_it_is_taken_within_its_tile():
+    """Vesperholm's altar of Lyra: the old god behind it, six arms out, all of it inside its tile (it
+    stands on the end of a bridge one tile wide); what she holds is drawn in her hands until taken,
+    when the halo behind her goes cold."""
+    from ashen_vault.render import bounds, moon_models
+
+    held = []
+
+    def offering(r):
+        held.append(True)
+        r.part("cube", 0, 0, 0, 0.3, 0.3, 0.05, (255, 255, 255), glow=True)
+
+    def draw(taken):
+        gpu = _GlowGpu()
+        moon_models.lyra_altar(rig.Rig(gpu), taken, 0.5, offering)
+        return gpu
+
+    full, bare = draw(False), draw(True)
+    assert held == [True]  # only the untaken altar holds it
+    assert len(full.parts) >= 60 and bare.glows < full.glows
+    assert moon_models.LYRA_OFFERING[1] > 1.2  # over the altar's slab, in her lowest hands
+    for taken in (False, True):
+        (lo_x, lo_y, lo_z), (hi_x, hi_y, hi_z) = bounds.measure(
+            lambda r, k=taken: moon_models.lyra_altar(r, k, 0.5, offering)
+        )
+        assert lo_y > -0.05 and 2.4 <= hi_y <= 3.6, (taken, hi_y)
+        assert lo_x >= -1.0 and hi_x <= 1.0 and lo_z >= -1.0 and hi_z <= 1.0, taken  # within its 2 m tile
+
+
 def test_a_fake_wall_shimmers_sears_crumbles_and_is_gone():
     from ashen_vault.render import models
 

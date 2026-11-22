@@ -83,7 +83,14 @@ How `.map` files work and what can stand on a tile.
   wall; the gorge (an 18 m `chasm`) between the lower town and the castle, crossed by the Glass Bridge
   (`moon_glass`) at the west street's head into the castle's postern; the bailey, the west chapel and
   the Duchess's garden; the Cathedral of the Long Night, its nave, and behind its great door
-  (`door boss=duchess_dead`) the choir floored in moon-glass where Duchess Ilvane waits. Shortcut: the
+  (`door boss=duchess_dead`) the choir floored in moon-glass where Duchess Ilvane waits. Her choir has a
+  second mouth, a back door in its east wall (`door boss=duchess_dead rear` at 32,2: it seals, fogs and
+  opens with the great door, and `rear` keeps the compass off it), onto the old stair in the
+  cathedral's east wall (half a metre a tile under its own vaults, walled off from the garden), the
+  gallery at 4.5 m along the cathedral's flank over the Duchess's garden and the bridge at its end over
+  the garden's mouth, where the Argent Sigil lies in the hands of Lyra the Embracer on her altar
+  (`altar item=argent_sigil model=lyra` at 37,18; the Duchess drops nothing). You can't reach it from
+  the bailey or garden 4.5 m below (`world.INTERACT_RISE`); off its edge is the quick way down. Shortcut: the
   great bridge over the gorge, three tiles abreast and four long (`bridge rise=18`, one entity a tile),
   sunk on the gorge floor until its lever in the bailey raises it, back to the Landing. Walled in `moonstone`, paved in `moon_paving`, roofed in `silver_slate`;
   `test_vesperholm_is_solvable`), `vigil_chapel` (the Vigil Chapel, a small map of its own behind
@@ -273,7 +280,8 @@ How `.map` files work and what can stand on a tile.
   one (`Enemy.look`); the wooden chests also come `model=worn` (weathered, roped shut), `banded` (dark wood
   strapped in iron) and `coffer` (a small brass-cornered strongbox), every style a key of `models.CHEST_SHELLS`. Opened, every chest is hollow (`models._chest_body`): a bottom and plank walls lined in darker wood, a batten round the inside of its rim and a crumpled cloth on its floor, its bands and ropes running only round the outside (`models._belt`), and battens or straps under its lid (`models._lid_inside`); shut, its body stays one block (`test_an_open_chest_is_hollow_with_a_bottom`). An exit's `model=` draws its way through (`road_gate` for both ends of the north road (each stands out in the open before its wall, never sunk between rock; `style=forge` is a sooty variant), `well`, `gaol_grate` (Harrowmere's barred pit, flush with its plaza; like the `well` it fills its tile, so you take it with interact, and it casts no light, so a `light` stands beside it), `cave_mouth`, `keep_door`, `cemetery_gate`, `sewer_grate`, `sewer_ladder`, `vesper_gate` (Vesperholm's, both ends: shut, its
   three sockets dark; open, they shine and moonlight pours through), `chapel_door` (the Vigil Chapel's, both ends: oak leaves strapped in silver under a moonstone arch, a moon rosette over it), else a `rope`, hung from a beam just under its tile's ceiling, so it climbs a tall shaft, with the daylit mouth of the well above it there); each is a landmark of some detail (`test_every_way_between_maps_is_built_in_detail`), and one set against a wall shows black passage through it (`parts.PASSAGE_DARK`), never the wall, so the way on stays unseen; a cold `light` hangs over the cemetery's gate on both sides, and a warm one before the north road's Cinderhold end, so their stone shows. An `exit` with `boss=<dead_flag>` is a way on to a boss on another map: the compass
-  points at it while that boss lives (`World.boss_target`). `exit requires=<flag> shut="..."` stays shut
+  points at it while that boss lives (`World.boss_target`), except a lair's `rear` door, reached only
+  from inside it. `exit requires=<flag> shut="..."` stays shut
   (saying `shut=`) until that flag is set (`World.exit_open`), and `exit oneway` never leads back: going
   through records the journey on the far side at once, so you wake by its shrines, and sets `left:<map>`
   (`Game._take_exit`). `hint text="Line one.|Line two."` is a tutorial hint, not a prop (`world/hints.py`):
@@ -318,7 +326,8 @@ How `.map` files work and what can stand on a tile.
   `cinderhold.map` has one too (`test_cinderhold_is_solvable`, lava counted as impassable), and so does
   `cinder_keep.map` (`test_cinder_keep_is_solvable`; `test_cinder_keep_roof_is_walled_in` keeps every wall
   round the rooftop at least 6 m above it), `vesperholm.map` (`test_vesperholm_is_solvable`: every
-  chest and the lever over the Glass Bridge, the Duchess only through her door, the great bridge a
+  chest and the lever over the Glass Bridge, the Duchess only through her door, Lyra's altar only
+  through both of her choir's doors, the great bridge a
   shortcut between two places you can already reach), and `ashen_cemetery.map` (`test_ashen_cemetery_is_solvable_in_order`:
   the sword before any foe, the scroll before the silk, the gate only behind the Sexton, and no way
   back from town). Their tiles are lowercase letters, digits and punctuation and

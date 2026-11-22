@@ -107,7 +107,7 @@ SIGIL_HELD = {
     "ember_sigil": "The Ember Sigil! Warm as a hearthstone.",
     "verdant_sigil": "Green glass with a leaf inside... the Verdant Sigil.",
     "iron_sigil": "Black iron, cold as a grave... the Iron Sigil. Even the gargoyles could not keep it.",
-    "argent_sigil": "Silver, and cold as moonlight on frost... the Argent Sigil. So Ilvane let it go at last.",
+    "argent_sigil": "Silver, and cold as moonlight on frost... the Argent Sigil. Out of the old god's own hands, was it?",
 }
 SIGIL_HINT = {
     "ember_sigil": "The Ember Sigil waits in the Warden's hall. Climb down through the gaol's grate, up on the Gaol Ward.",
@@ -137,7 +137,10 @@ SIGIL_FALLEN = {
     ),
     "argent_sigil": (
         "duchess_dead",
-        "The Duchess has fallen? Then the Argent Sigil lies in her choir, under the moon. Bring it home.",
+        (
+            "The Duchess has fallen? Then the Argent Sigil lies on Lyra's altar, up past her choir. "
+            "Bring it home."
+        ),
     ),
 }
 

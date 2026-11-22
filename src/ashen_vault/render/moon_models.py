@@ -1586,6 +1586,99 @@ def moon_altar(r, taken, t):
                _dim(FROST, 1 - u), glow=True)  # fmt: skip
 
 
+# --- Lyra's altar, at the end of the bridge over the Duchess's garden ----------------------------
+
+LYRA_MOON = (196, 202, 218)  # her moonstone, paler than the city's: older, and longer in the light
+LYRA_MOON_DARK = (128, 134, 154)
+LYRA_OFFERING = (0.34, 1.78, 0.0)  # where the sigil rests in her lowest hands, in the altar's frame
+
+
+def lyra_altar(r, taken, t, offering=None):
+    """The altar of Lyra the Embracer that the Duchess wed the moon on, facing +X: a dais and an altar
+    block of moonstone under silver-white linen, candles at its corners, and behind it, at the back of
+    the tile, the old god herself, faceless, carved in a moonstone paler than the city's and banded in
+    silver. Her blank head is bowed to whoever comes; her six arms reach out from her shoulders, the
+    upper two pairs open to either side as on every idol of her, the lowest pair brought together over
+    the altar and cupped. Until `taken`, `offering(r)` draws what lies in those hands (the Argent Sigil,
+    at `LYRA_OFFERING`), a halo of moonlight on the stone behind her head, motes rising off it. Taken,
+    the hands stay open on nothing and the halo is cold."""
+    stone, dark = LYRA_MOON, LYRA_MOON_DARK
+    r.part("cube", 0, 0.1, 0, 1.95, 0.2, 1.95, MOONSTONE_DARK, tex="moonstone")  # the dais
+    r.part("cube", -0.1, 0.3, 0, 1.7, 0.2, 1.75, MOONSTONE, tex="moonstone")
+    r.part("cube", 0.45, 0.74, 0, 0.56, 0.68, 1.2, MOONSTONE, tex="moonstone")  # the altar block
+    r.part("cube", 0.45, 1.11, 0, 0.66, 0.08, 1.32, _dim(MOONSTONE, 1.1), tex="moonstone")  # its slab
+    r.part("cube", 0.45, 1.16, 0, 0.68, 0.02, 0.44, ALTAR_CLOTH)  # the linen runner
+    r.part("cube", 0.79, 0.9, 0, 0.02, 0.5, 0.44, ALTAR_CLOTH)
+    r.part("cube", 0.8, 0.66, 0, 0.02, 0.05, 0.44, SILVER)  # its silver hem
+    for z in (-0.5, 0.5):
+        r.part("cyl", 0.58, 1.28, z, 0.08, 0.24, 0.08, (232, 228, 214))
+        _flame(r, 0.58, 1.43, z, 0.05, t + z)
+    for i in range(5):  # her closed eyes, carved round the altar's face as round every plinth of hers
+        r.part("cube", 0.74, 0.62, -0.4 + i * 0.2, 0.02, 0.03, 0.1, dark)
+    with r.at(-0.55, 0.4, 0):
+        r.part("cube", 0, 0.12, 0, 0.74, 0.24, 1.0, dark, tex="moonstone")  # her plinth
+        r.part("cube", 0, 0.25, 0, 0.78, 0.03, 1.04, SILVER_DARK)  # banded in silver
+        r.part("cone", 0, 1.0, 0, 0.66, 1.55, 0.78, stone, tex="moonstone")  # the long robed body
+        for y in (0.55, 1.05):  # silver bands about the robe
+            w = 0.6 - (y - 0.3) * 0.24
+            r.part("cyl", 0, y, 0, w, 0.04, w * 1.16, SILVER)
+        r.part("cube", 0.02, 1.68, 0, 0.38, 0.36, 0.66, stone, tex="moonstone")  # the shoulders
+        with r.at(0.06, 2.06, 0, rz=-0.22):  # the blank head, bowed
+            r.part("sphere", 0, 0, 0, 0.36, 0.44, 0.36, stone)
+            r.part("cube", 0.11, -0.04, 0, 0.1, 0.26, 0.22, _dim(stone, 1.06))  # her faceless face
+            _crescent(r, -0.02, 0.3, 0, 0.18, 5, 0.06, SILVER)  # a crescent laid on her brow by the city
+        # Six arms: the upper two pairs held open to either side, palms up, as every idol of her
+        # holds them; the lowest pair brought together before her over the altar, cupped.
+        for k, y in enumerate((1.72, 1.52)):
+            for side in (-1, 1):
+                sh = (0.05, y, side * 0.28)
+                el = (0.3 + 0.05 * k, y - 0.1, side * (0.6 + 0.1 * k))
+                wr = (0.58 + 0.05 * k, y - 0.02 - 0.06 * k, side * (0.78 + 0.1 * k))
+                _bar(r, sh, el, 0.12, stone)
+                _bar(r, el, wr, 0.1, stone)
+                r.part(
+                    "cube", wr[0] + 0.06, wr[1] + 0.02, wr[2], 0.2, 0.05, 0.15, _dim(stone, 1.05)
+                )  # a palm
+                r.part("cube", wr[0] - 0.04, wr[1], wr[2], 0.05, 0.11, 0.13, SILVER)  # a silver cuff
+        for side in (-1, 1):
+            sh = (0.08, 1.32, side * 0.26)
+            el = (0.42, 1.18, side * 0.34)
+            wr = (0.78, 1.3, side * 0.14)
+            _bar(r, sh, el, 0.12, stone)
+            _bar(r, el, wr, 0.1, stone)
+            r.part(
+                "cube",
+                wr[0] + 0.08,
+                wr[1] - 0.01,
+                wr[2] * 0.6,
+                0.22,
+                0.05,
+                0.16,
+                _dim(stone, 1.05),
+                rx=side * 0.35,
+            )
+            r.part("cube", wr[0] - 0.04, wr[1], wr[2], 0.05, 0.11, 0.13, SILVER)
+    # The halo of moonlight on the stone behind her head, in a ring of silver.
+    with r.at(-0.92, 2.5, 0):
+        r.part("cyl", 0, 0, 0, 1.2, 0.05, 1.2, SILVER_DARK, rz=math.pi / 2)
+        r.part("cyl", 0.03, 0, 0, 0.98, 0.04, 0.98, GLOW_COLD if taken else MOON_GLOW, rz=math.pi / 2,
+               glow=not taken)  # fmt: skip
+        for i in range(10):  # its rays
+            a = i * math.tau / 10
+            r.part("cube", 0.05, math.sin(a) * 0.68, math.cos(a) * 0.68, 0.03, 0.22, 0.04, SILVER, rx=-a)
+    if taken:
+        return
+    if offering is not None:
+        with r.at(*LYRA_OFFERING):
+            offering(r)
+    for i in range(4):  # motes of moonlight rising off what she holds
+        u = (t * 0.3 + i / 4) % 1.0
+        a = i * 1.6 + t * 0.7
+        x, y, z = LYRA_OFFERING
+        r.part("cube", x + math.cos(a) * 0.14, y + 0.15 + u * 1.4, z + math.sin(a) * 0.18, 0.04, 0.04, 0.04,
+               _dim(FROST, 1 - u), glow=True)  # fmt: skip
+
+
 # --- the great bridge over the gorge --------------------------------------------------------------
 
 BRIDGE_DECK = 1.1  # metres of masonry under a great bridge's paving, down to its arches' crowns
