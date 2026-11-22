@@ -6,6 +6,7 @@ import re
 
 import pytest
 
+from ashen_vault import map_path
 from ashen_vault.ai.enemy_types import EnemyTypes
 from ashen_vault.player.items import Items
 from ashen_vault.player.spells import Spells
@@ -425,3 +426,25 @@ def test_belongings_and_shop_panels_share_one_margin_and_gap():
     assert (space, space, s.W - 2 * space) == s.SHOP_LIST
     # A full list's rows fit inside the column-high panel.
     assert s.ROW_TOP + s.LIST_ROWS * s.ROW_H <= s.COLUMN_H
+
+
+def test_an_areas_name_fades_in_holds_and_fades_out():
+    from ashen_vault.ui import hud
+
+    assert hud.area_title_alpha(0) == 0
+    assert hud.area_title_alpha(hud.AREA_TITLE_IN / 2) == pytest.approx(0.5)
+    assert hud.area_title_alpha(hud.AREA_TITLE_TIME / 2) == 1
+    assert hud.area_title_alpha(hud.AREA_TITLE_TIME - hud.AREA_TITLE_OUT / 2) == pytest.approx(0.5)
+    assert hud.area_title_alpha(hud.AREA_TITLE_TIME) == 0
+
+
+def test_every_areas_name_can_be_spelt_in_the_title_capitals_and_fits_the_screen():
+    import glob
+
+    from ashen_vault.ui import hud, logofont
+    from ashen_vault.world.map_loader import map_title
+
+    for path in glob.glob(str(map_path("*"))):
+        name = map_title(path).upper()
+        assert set(name) <= set(logofont.FONT) | {" "}, name
+        assert logofont.width(name, 1) <= hud.W - 2 * hud.HUD_MARGIN, name

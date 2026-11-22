@@ -21,7 +21,7 @@ Models, the prop bake, the first-person view, villagers, fonts and sound.
 | `src/ashen_vault/world/villagers.py` | How each villager looks (`Look`: build, garb, hair, hat, beard, apron, cloak, held tool, idle) |
 | `src/ashen_vault/ui/smallfont.py` | The small mixed-case pixel font for all game text: menus, dialogue, messages, prompts and the boss bar (`hud.text` draws with it) |
 | `src/ashen_vault/ui/tinyfont.py` | The HUD's tiny fonts: 3x5 `GLYPHS` (the HP/MP/ST labels and numbers, `hud.tiny`) and 3x4 `MICRO` (the HUD mouse's PRI / SEC labels and the quick item's count, `hud.micro_centered`; only the characters they use) |
-| `src/ashen_vault/ui/logofont.py` | The logo's 5x7 capitals, shared by `docs/logo/make_logo.py` and big headings (`hud.big`: the title, the death screen) |
+| `src/ashen_vault/ui/logofont.py` | The logo's 5x7 capitals, shared by `docs/logo/make_logo.py` and big headings (`hud.big`: the title, the death screen, and the area's name raised over the screen as you enter it, `hud.area_title`) |
 | `src/ashen_vault/audio/synth.py` | Synthesized sound effects (a blow on a foe plays its material's `hit_<material>`; `hit` is a blocked blow). Ambient fire (jets, vents, bombs) plays through `World.sfx_near`, which fades it with distance |
 
 ## Rules

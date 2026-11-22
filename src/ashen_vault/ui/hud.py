@@ -46,14 +46,14 @@ def text_centered(s, cx, y, col=TEXT):
     text(s, cx - measure(s) // 2, y, col)
 
 
-def big(s, cx, y, col=TEXT, px=2):
+def big(s, cx, y, col=TEXT, px=2, shadow=SHADOW):
     """A heading in the logo's 5x7 capitals (see logofont), `px` pixels per glyph pixel, centred
     on `cx`, with a drop shadow."""
     x = cx - logofont.width(s, px) // 2
     off = max(px // 2, 1)
     runs = list(logofont.rects(s, x, int(y), px))
     for rx, ry, rw, rh in runs:
-        pr.draw_rectangle(rx + off, ry + off, rw, rh, SHADOW)
+        pr.draw_rectangle(rx + off, ry + off, rw, rh, shadow)
     for rx, ry, rw, rh in runs:
         pr.draw_rectangle(rx, ry, rw, rh, col)
 
@@ -172,6 +172,7 @@ def hud(game):
 
     gold_counter(game)
     boss_bar(game)
+    area_title(game)
     messages(game, lift)
     prompt(game, lift)
     flash(p)
@@ -1458,6 +1459,40 @@ def _boss_bar(boss, dy):
         pr.draw_rectangle(x, y, fill, 1, color(230, 110, 90))
     for q in (1, 2, 3):
         pr.draw_rectangle(x + bw * q // 4, y, 1, bh, HUD_EDGE)
+
+
+AREA_TITLE_TIME = 4.5  # seconds an area's name stays over the screen as you enter it
+AREA_TITLE_IN = 0.6  # its fade in
+AREA_TITLE_OUT = 1.2  # and out
+AREA_TITLE_Y = 64
+
+
+def area_title_alpha(age):
+    """How opaque (0..1) the area's name is `age` seconds after you entered."""
+    if age < AREA_TITLE_IN:
+        return clamp(age / AREA_TITLE_IN, 0, 1)
+    return clamp((AREA_TITLE_TIME - age) / AREA_TITLE_OUT, 0, 1)
+
+
+def area_title(game):
+    """The name of the area you have just entered, in the logo's capitals over the middle of the
+    screen, a gold rule fading out to either side beneath it."""
+    if not game.area_title:
+        return
+    name, age = game.area_title
+    a = area_title_alpha(age)
+    if a <= 0:
+        return
+    name = name.upper()
+    px = 2 if logofont.width(name, 2) <= W - 2 * HUD_MARGIN else 1
+    big(name, W // 2, AREA_TITLE_Y, color(*HIGHLIGHT_RGB, 255 * a), px, color(0, 0, 0, 200 * a))
+    half = logofont.width(name, px) // 2 + 12
+    y = AREA_TITLE_Y + 7 * px + 5
+    for i in range(half):  # brightest in the middle, gone at the ends
+        k = a * (1 - i / half)
+        rgb = color(*HIGHLIGHT_RGB, 200 * k)
+        pr.draw_pixel(W // 2 + i, y, rgb)
+        pr.draw_pixel(W // 2 - 1 - i, y, rgb)
 
 
 def messages(game, lift=0):

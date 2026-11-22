@@ -113,6 +113,9 @@ How `.map` files work and what can stand on a tile.
 
 ## Rules
 
+- `[meta] name` is the area's name as the player sees it: raised in the logofont over the screen as
+  you enter (`hud.area_title`), so it must be letters and spaces and fit the screen
+  (`tests/test_ui_logic.py`).
 - Map grids are whitespace-sensitive. Don't reformat `.map` files. Each grid character is one 2 m tile;
   an `[entities]` marker places a prop, enemy or hazard there, standing on the legend tile named by
   `on=` (the map's `default` otherwise). With `entity_floor = auto` in `[meta]` (the prison uses it), a

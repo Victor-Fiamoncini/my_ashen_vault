@@ -137,6 +137,7 @@ class Game:
         self._view_blends = view_blend.ViewBlends()  # the arms' poses, carried from frame to frame
         self._preview_camera = _camera((2.6, 0.5, 0), (0, 0, 0), 40)
         self.messages = []
+        self.area_title = None  # [name, seconds shown]: the card over the screen as you enter an area
         self.flags = set()
         self.player = Player()
         self.gold_tally = GoldTally(self.player.inventory.gold)
@@ -260,6 +261,10 @@ class Game:
         for m in self.messages:
             m[1] += dt
         self.messages = [m for m in self.messages if m[1] <= 5]
+        if self.area_title:
+            self.area_title[1] += dt
+            if self.area_title[1] > ui.AREA_TITLE_TIME:
+                self.area_title = None
         inv = self.player.inventory
         if inv is not self._tally_inv:  # a new game or a loaded save: the counter starts settled
             self._tally_inv = inv
@@ -470,6 +475,7 @@ class Game:
         Cemetery of Ashes. The journey is recorded at once, so a death before the first prayer still
         wakes you beside the cemetery's first shrine."""
         self.new_game(STORY_MAP, player=Player.woken())
+        self.announce_area()
         self._saves.save(map=self.world.name, player=self.player, flags=self.flags)
         self._audio.play("bell", volume=0.5)
         self.message("A bell tolls, far off. The ash in you stirs.")
@@ -509,6 +515,7 @@ class Game:
         self._load_world(map_name)
         self.player.place(*beside_shrine(self.world.map, player.x, player.z, player.yaw), self.world.map)
         self._enter_play()
+        self.announce_area()
         self.message("You wake beside the shrine.")
 
     @staticmethod
@@ -529,7 +536,12 @@ class Game:
         self._load_world(map_name)
         x, z, yaw = self._spot(at)
         self.player.place(x, z, yaw, self.world.map)
-        self.message(self.world.meta.get("name", map_name))
+        self.announce_area()
+
+    def announce_area(self):
+        """Raises the area's name over the screen, as you first see it: on waking, on loading a save and on
+        every crossing between areas. Debug drops (`--map`) skip it, so their screenshots stay clear."""
+        self.area_title = [self.world.meta.get("name", self.world.name), 0.0]
 
     def _enter_play(self):
         self.scene = "play"
@@ -1804,6 +1816,7 @@ class Game:
             self.world.mist_arenas()  # the boss's door gives way to fog
         self.player.revive()
         self.messages.clear()
+        self.area_title = None
         self._load_world(map_name)
         self.player.place(*beside_shrine(self.world.map, x, z, yaw), self.world.map)
         self._saves.save(map=self.world.name, player=self.player, flags=self.flags)

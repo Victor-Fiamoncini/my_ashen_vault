@@ -58,6 +58,8 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
   hold them: `--flags sigil_taken,verdant_sigil_taken,iron_sigil_taken` opens the Vesper Gate.
   `--afflict poison,toxic` starts with those ailments taking hold (bleed and frost hurt, corrosion wears
   your gear), to check their screen borders.
+- A `--map` start skips the area's title card, so screenshots stay clear. To see the card, walk
+  through an exit (or start a New Game or load a save without `--map`).
 - Combat rolls are random, so HP can vary between runs; positions, scenes, flags and items do not.
 - On Wayland, `GLFW: Error: 65548` warnings are harmless.
 - Ready-made starts for every area, boss and shortcut: [`docs/dev/smoke-starts.md`](docs/dev/smoke-starts.md).
