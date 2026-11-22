@@ -102,27 +102,27 @@ How `.map` files work and what can stand on a tile.
   `moon_window`s, and up a half-metre step the chancel floored in `moon_glass`, where the Vesper
   Moonbrand stands planted in its altar (`altar model=moon yaw=90 said="..."`: `said=` gives the lines
   shown when you take its offering, one per `|`), veiled statues and candles about it;
-  `tests/test_vigil_chapel_world.py`), `herrans_castle` (Herran's Castle, 32x42, over a sea of cloud under the `storm` sky: a stormy night,
-  gas lamps for light: up the stair of light (`exit model=sky_stair requires=argent_sigil_taken hidden`,
-  at 35,18 on the bridge beside Lyra's altar: `hidden` keeps an exit undrawn and out of reach while it is
-  shut) you arrive on the Cloud Quay, its `start` and shrine, a broken stretch of balustrade open on the
-  clouds, and go north through the gatehouse corridor into the Ring, a roofed passage of sooted brick
-  round a central void that falls to the clouds, its arches open on the drop. Four towers stand on it:
-  the Laboratory (NW, the Spire Key, and in its back wall the one `secret_wall` onto the secret lab, with
-  Herran's Graft Draught, Sun Tincture and Bonesaw and a page of his journal as a `hint`), the Clock Tower
-  (SW, a spiral stair inside its wall up to 10 m), the Aviary (SE, drakes and a gallery) and the Belvedere
-  (NE, a `locked` cage lift down to the Ring: the shortcut). The High Walk, a single line of
-  `iron_grating` at 10 m over the void, joins the Clock Tower's top to the Belvedere's and runs on to the
-  spire passage, where `door key=spire_key` guards the spire's door (`exit model=spire_door`). Its sea of
-  cloud is a `chasm` with `fall=cloud` (the words for the plunge, `world.PLUNGE_MESSAGES`) and `void`
-  (no floor drawn, so the sky's `cloud_sea` layer shows far below), under `edge_top = -40` so no rim
-  wall stands round it. Walled in `herran_brick`, capped in `herran_slate`, paved in `herran_ashlar` and
+  `tests/test_vigil_chapel_world.py`), `herrans_castle` (Herran's Castle, 32x42, over a sea of cloud under the
+  `storm` sky: a stormy night, gas lamps for light: up the stair of light (`exit model=sky_stair
+  requires=argent_sigil_taken hidden`, at 35,18 on the bridge beside Lyra's altar: `hidden` keeps an exit
+  undrawn and out of reach while it is shut) you arrive on the Cloud Quay, its `start` and shrine, a broken
+  stretch of balustrade open on the clouds, and go north through the gatehouse corridor into the Ring, a
+  roofed passage of sooted brick round a central void that falls to the clouds, its arches open on the drop.
+  Four towers stand on it: the Laboratory (NW, the Spire Key, and in its back wall the one `secret_wall` onto
+  the secret lab, with Herran's Graft Draught, Sun Tincture and Bonesaw and a page of his journal as a
+  `hint`), the Clock Tower (SW, a spiral stair inside its wall up to 10 m), the Aviary (SE, drakes and a
+  gallery) and the Belvedere (NE, a `locked` cage lift down to the Ring: the shortcut). The High Walk, a
+  single line of `iron_grating` at 10 m over the void, joins the Clock Tower's top to the Belvedere's and runs
+  on to the spire passage, where `door key=spire_key` guards the spire's door (`exit model=spire_door`). Its
+  sea of cloud is a `chasm` with `fall=cloud` (the words for the plunge, `world.PLUNGE_MESSAGES`) and `void`
+  (no floor drawn, so the sky's `cloud_sea` layer shows far below), under `edge_top = -40` so no rim wall
+  stands round it. Walled in `herran_brick`, capped in `herran_slate`, paved in `herran_ashlar` and
   `encaustic_tile`, its labs in `lab_tile`; `herran_tower` landmarks
-  (`style=round|octagon|clock|belvedere|needle`) make its skyline; `tests/test_herrans_castle_world.py`), `herran_spire` (Herran's Spire, behind the castle's spire door:
-  the base hall (24x28), a stair to the drake hatchery at 6 m, a stair on to Herran's study at 11 m and its
-  shrine, and behind `door boss=herran_dead` his observatory out on the tower's flank, open to the sky
-  under an `observatory_dome`, its `telescope`, ringed by a parapet of wall tiles (never chasm, which
-  an arena's flood would leak into)) |
+  (`style=round|octagon|clock|belvedere|needle`) make its skyline; `tests/test_herrans_castle_world.py`),
+  `herran_spire` (Herran's Spire, behind the castle's spire door: the base hall (24x28), a stair to the drake
+  hatchery at 6 m, a stair on to Herran's study at 11 m and its shrine, and behind `door boss=herran_dead` his
+  observatory out on the tower's flank, open to the sky under an `observatory_dome`, its `telescope`, ringed
+  by a parapet of wall tiles (never chasm, which an arena's flood would leak into)) |
 | `src/ashen_vault/world/terrain.py` | Terrain: rafts, planks, ledges, rotten floorboards, chain lifts (pressure plates, call plates, `summon`), currents, thorns, chasm and river falls, hard landings, the log rack, spore pods (`World.terrain`) |
 | `src/ashen_vault/world/hazards.py` | Dungeon traps: floor spikes, pendulum blades, crumbling floors, flame jets, magma vents (whose bombs are `Eruption`s with an `origin`); the bosses' fire eruptions and slam shockwaves |
 | `src/ashen_vault/world/thin_walls.py` | Thin walls (`wall ... thin=<m>`): the slab each such tile stands as (hugging the side open to the sky, else a full wall it backs onto, centred between two rooms; a run keeps one line, `test_harrowmere_has_no_slits_between_its_thin_walls`), the margins it lends to its open neighbours (`Layout`), and how far a prop must move back to touch it (`inset`) |

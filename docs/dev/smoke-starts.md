@@ -153,11 +153,12 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   only once the Argent Sigil is taken: `--map vesperholm --at=34,18,0 --flags duchess_dead,argent_sigil_taken
   --script "wait:0.3 interact"` (go up; without the flag nothing stands there). Areas: `--map
   herrans_castle` (the Cloud Quay, its `start`), `--at=16,37,90 --script "look_down:0.3"` (the sea of cloud
-  from the quay's edge), `--at=10,2,180` (the Ring), `--at=7,10,90` (the Laboratory and its false wall;
+  from the quay's edge), `--at=4,3,0` (along the Ring), `--at=7,10,90` (the Laboratory and its false wall;
   `attack` it, then `--at=7,14,180` is the secret lab), `--at=7,23,0` (the Clock Tower's top at 10 m),
-  `--at=24,25,180` (the Aviary), `--at=25,7,0` (the Belvedere and its cage lift), `--at=20,12,-90` (the
+  `--at=24,25,180` (the Aviary), `--at=25,7,0` (the Belvedere and its cage lift), `--at=18,12,0` (the
   High Walk), `--at=17,8,180` (the spire passage and its door).
-  The spire: `--map herran_spire` (its base hall), `--at=7,5,0` (the study and its shrine), `--at=8,17,-135` (the hatchery). Boss:
+  The spire: `--map herran_spire` (its base hall), `--at=7,5,0` (the study and its shrine),
+  `--at=8,17,-135` (the hatchery). Boss:
   `--map herran_spire --at=10,5,0 --level 12 --equip right=claymore,body=brigandine --smoke 720 --script
   "interact wait:0.8 forward:1.6 wait:5"` (through his door; Herran rising in his observatory). The
   ending: `--map harrowmere --at=25,26,-90 --flags bell_unsealed --script "wait:0.5 interact"` (the bell
