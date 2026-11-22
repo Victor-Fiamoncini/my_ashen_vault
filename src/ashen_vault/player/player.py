@@ -6,7 +6,7 @@ from ashen_vault.player.combat import Gauge, Stamina
 from ashen_vault.player.inventory import HANDS, RIGHT, Inventory
 from ashen_vault.player.items import Items
 from ashen_vault.player.spells import Spells
-from ashen_vault.player.stats import Stats
+from ashen_vault.player.stats import BASE_ST, Stats
 from ashen_vault.util import clamp
 from ashen_vault.world import collision
 
@@ -73,7 +73,7 @@ class Player:
         self.still_t = 0.0
         self.gauges = {h: Gauge(weapons.refill_time(self.hand_weapon(h))) for h in HANDS}
         self.magic_gauge = Gauge(2.2)
-        self.stamina = Stamina()
+        self.stamina = Stamina(lambda: self.stats.max_st / BASE_ST)
         self.guarding = False
         self.guard_break_t = 0.0
         self.since_block = 99.0  # since your shield last stopped a blow

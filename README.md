@@ -354,7 +354,8 @@ The same list is in the game under **Controls** on the title and pause menus.
   the button to charge a **heavy attack** (the orange bar), then release.
 - Spells need your **focus** back as well as MP: the cyan bar on the spell's button refills after each
   cast.
-- Sprinting, swinging and blocking drain **ST**. Empty it and you are winded until it recovers.
+- Sprinting, swinging and blocking drain **ST**. Empty it and you are winded until it recovers. Every
+  level you gain raises it, so you can sprint and fight for longer.
 - Watch the **Load** line in Belongings: a Heavy or Overloaded load slows your stride and ST. Before
   you equip or buy, the stats show what would change: green is better, red is worse.
 - Find a copy of gear you already own and it is sold on the spot for half its price.

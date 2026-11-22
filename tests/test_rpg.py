@@ -6,7 +6,7 @@ from ashen_vault.player.combat import Combat, Gauge, Stamina
 from ashen_vault.player.inventory import SPELL, Inventory
 from ashen_vault.player.items import Items
 from ashen_vault.player.player import Player
-from ashen_vault.player.stats import Stats
+from ashen_vault.player.stats import BASE_ST, ST_PER_LEVEL, Stats
 from ashen_vault.save.save_system import SaveSystem
 from ashen_vault.world.tile_map import TileMap
 
@@ -40,6 +40,37 @@ def test_level_up():
     assert s.level == 3
     assert s.hp == s.max_hp
     assert s.max_hp == 52
+    assert s.max_st == BASE_ST + 2 * ST_PER_LEVEL
+
+
+def test_an_old_save_without_max_st_gets_what_its_level_gives():
+    assert Stats.from_h({"level": 5}).max_st == BASE_ST + 4 * ST_PER_LEVEL
+    assert Stats.from_h({"level": 5, "max_st": 140}).max_st == 140
+    assert Stats.from_h(Stats(level=4).to_h()).max_st == BASE_ST + 3 * ST_PER_LEVEL
+
+
+def test_a_bigger_stamina_bar_refills_in_the_same_time_and_sprints_longer():
+    small, big = Stamina(), Stamina(lambda: 1.5)
+    assert big.value == pytest.approx(1.5)
+    for st in (small, big):
+        st.spend(st.value)
+        st.update(Stamina.REFILL_DELAY + Stamina.REFILL_TIME / 2)
+    assert big.value == pytest.approx(0.75) and small.value == pytest.approx(0.5)
+    assert big.share == pytest.approx(small.share)
+    small.fill()
+    big.fill()
+    for st in (small, big):
+        st.drain(Stamina.DRAIN_TIME)
+    assert small.exhausted and not big.exhausted
+
+
+def test_the_players_stamina_follows_its_level():
+    p = Player(stats=Stats(level=11))
+    assert p.stamina.value == pytest.approx((BASE_ST + 10 * ST_PER_LEVEL) / BASE_ST)
+    p.stamina.spend(1.0)
+    p.stats.gain_exp(Stats.exp_for(11))
+    p.stamina.fill()
+    assert p.stamina.value == pytest.approx((BASE_ST + 11 * ST_PER_LEVEL) / BASE_ST)
 
 
 def test_inventory_equip_and_buy():

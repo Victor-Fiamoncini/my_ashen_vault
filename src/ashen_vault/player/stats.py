@@ -1,16 +1,21 @@
 from ashen_vault.util import rround
 
+BASE_ST = 100  # ST points at level 1: costs and drains are shares of this (1.0 = 100 ST)
+ST_PER_LEVEL = 3
+
 
 class Stats:
-    FIELDS = ("level", "exp", "hp", "max_hp", "mp", "max_mp", "strength", "magic")
+    FIELDS = ("level", "exp", "hp", "max_hp", "mp", "max_mp", "max_st", "strength", "magic")
 
-    def __init__(self, level=1, exp=0, hp=40, max_hp=40, mp=16, max_mp=16, strength=6, magic=4):
+    def __init__(self, level=1, exp=0, hp=40, max_hp=40, mp=16, max_mp=16, max_st=None, strength=6, magic=4):
         self.level = level
         self.exp = exp
         self.hp = hp
         self.max_hp = max_hp
         self.mp = mp
         self.max_mp = max_mp
+        # A save from before stamina grew with level gets what its level would have given it.
+        self.max_st = BASE_ST + ST_PER_LEVEL * (level - 1) if max_st is None else max_st
         self.strength = strength
         self.magic = magic
         self.cap_share = 1.0  # the share of max HP you can heal up to (rot lowers it; not saved here)
@@ -43,6 +48,7 @@ class Stats:
             self.level += 1
             self.max_hp += 6
             self.max_mp += 3
+            self.max_st += ST_PER_LEVEL
             self.strength += 1
             self.magic += 1
             self.hp = self.hp_cap

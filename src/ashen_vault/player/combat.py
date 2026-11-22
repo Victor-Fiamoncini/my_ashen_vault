@@ -32,17 +32,31 @@ class Gauge:
 
 class Stamina:
     """Sprint stamina. Drains while sprinting and refills after a short rest. Running it dry
-    leaves you exhausted: no sprinting until it recovers to RECOVER."""
+    leaves you exhausted: no sprinting until it recovers to RECOVER.
+
+    `value` is in the units every cost is (1.0 = BASE_ST). The bar holds `cap` of them, which grows as you
+    level (`cap` is read through a callable, so it follows the stats); it refills from empty in
+    REFILL_TIME whatever its size, and a bigger one sprints longer."""
 
     DRAIN_TIME = 6.0  # seconds of sprint from full
     REFILL_TIME = 2.5  # seconds to refill from empty
     REFILL_DELAY = 0.5  # rest needed before it starts refilling
     RECOVER = 0.3
 
-    def __init__(self):
-        self.value = 1.0
+    def __init__(self, cap=lambda: 1.0):
+        self._cap = cap
+        self.value = cap()
         self.exhausted = False
         self._rest_t = self.REFILL_DELAY
+
+    @property
+    def cap(self):
+        return self._cap()
+
+    @property
+    def share(self):
+        """How full the bar is, 0..1."""
+        return min(self.value / self.cap, 1.0)
 
     @property
     def can_sprint(self):
@@ -68,12 +82,13 @@ class Stamina:
         self._rest_t += dt
         if rested <= 0:
             return
-        self.value = min(self.value + rested * rate / self.REFILL_TIME, 1.0)
+        cap = self.cap
+        self.value = min(self.value + rested * rate * cap / self.REFILL_TIME, cap)
         if self.exhausted and self.value >= self.RECOVER:
             self.exhausted = False
 
     def fill(self):
-        self.value = 1.0
+        self.value = self.cap
         self.exhausted = False
 
 

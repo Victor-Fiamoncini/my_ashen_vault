@@ -38,7 +38,7 @@ def facing_cos(px, pz, fx, fz, ax, az):
 
 def block(dmg, cos, shield, stamina):
     """How a raised `shield` deals with a blow of `dmg` from a direction `cos` (see facing_cos) when
-    you have `stamina` (0..1) left. Blows from the side or behind are not blocked at all."""
+    you have `stamina` (1.0 = 100 ST) left. Blows from the side or behind are not blocked at all."""
     if cos < FRONT:
         return Block(dmg, 0.0, False)
     stopped = dmg * shield.guard

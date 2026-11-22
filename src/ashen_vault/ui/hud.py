@@ -147,7 +147,7 @@ def hud(game):
         "ST",
         vx,
         rows + 2 * VITAL_STEP,
-        st.value,
+        st.share,
         (130, 200, 130),
         STAMINA_TIRED_RGB if st.exhausted else STAMINA_RGB,
         rround(st.value * 100),
