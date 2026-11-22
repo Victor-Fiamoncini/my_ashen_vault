@@ -249,7 +249,7 @@ E = door boss=duchess_dead on=n
 Þ = stair_flight run=9 rise=0.5 steps=4 width=1 yaw=-90 on=φ
 // Once the Argent Sigil is lifted from her hands, a stair of light climbs north off the bridge into the
 // sky, to Herran's Castle over the clouds: there is nothing there before.
-ÿ = exit map=herrans_castle at=27,81,-90 label=Climb_the_stair_of_light model=sky_stair yaw=-90 requires=argent_sigil_taken hidden on=ι
+ÿ = exit map=herrans_castle at=16,38,-90 label=Climb_the_stair_of_light model=sky_stair yaw=-90 requires=argent_sigil_taken hidden on=ι
 þ = altar item=argent_sigil model=lyra yaw=180 on=ι said="You lift the Argent Sigil out of Lyra's open hands. They stay open.|Overhead, the moon slips, as if a ring had come loose from its finger."
 // The great bridge over the gorge, three abreast and four long, sunk 18 m down on the gorge floor until
 // the lever in the bailey raises it out of the deep: the short way back to the shrine.

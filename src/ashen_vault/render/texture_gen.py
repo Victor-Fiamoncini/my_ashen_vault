@@ -1323,8 +1323,8 @@ def cavern_rock():
 
 
 def herran_brick():
-    """The castle's walls: hard red brick in Flemish bond, every fifth course a band of cream brick, the
-    mortar pale and sooted by the wind, the headers a shade darker than the stretchers."""
+    """The castle's walls: hard red brick in Flemish bond, every fifth course a band of dun brick, the
+    mortar black with soot, soot streaking the faces, the headers a shade darker than the stretchers."""
 
     def px(x, y):
         row = y // 6
@@ -1348,18 +1348,18 @@ def herran_brick():
 
 
 def herran_ashlar():
-    """Pale dressed limestone: the quoins, cornices and the courts' paving, in square-cut blocks with fine
-    joints, weathered warm by the sun above the clouds."""
+    """Dressed limestone gone grey with soot and rain: the quoins, cornices and the paving, in square-cut
+    blocks with fine dark joints."""
 
     def px(x, y):
         row = y // 16
         xx = (x + (0 if row % 2 == 0 else 16)) % SIZE
         col = xx // 32
         if y % 16 == 0 or xx % 32 == 0:
-            return tint([150, 138, 118], 0.8 + noise(x, y, 4, 711) * 0.16)
+            return tint([44, 42, 40], 0.8 + noise(x, y, 4, 711) * 0.16)
         n = fbm(x, y, 712)
         k = 0.8 + hash_(col, row, 713) * 0.14 + (n - 0.5) * 0.22
-        c = tint([214, 202, 178], k)
+        c = tint([86, 82, 76], k)
         if hash_(x, y, 714) > 0.985:
             c = tint(c, 0.82)  # a pit in the stone
         return c
@@ -1369,7 +1369,7 @@ def herran_ashlar():
 
 def herran_slate():
     """Fish-scale slates of the mansard roofs and conical caps: rounded tails in staggered rows, blue-black
-    with a violet cast, each tail's rim catching the sun."""
+    with a violet cast, each tail's rim catching the lamplight."""
 
     def px(x, y):
         row = y // 8
@@ -1389,8 +1389,8 @@ def herran_slate():
 
 
 def encaustic_tile():
-    """The halls' floors: encaustic tiles in a four-tile pattern, terracotta, cream and blue-black, an
-    eight-pointed star in each, worn grey where the drakes' claws have dragged."""
+    """The halls' floors: encaustic tiles in a four-tile pattern, dull terracotta and blue-black, a
+    dun eight-pointed star in each, worn darker where the drakes' claws have dragged."""
 
     def px(x, y):
         tx, ty = x % 16, y % 16
@@ -1430,8 +1430,8 @@ def iron_grating():
 
 
 def lab_tile():
-    """The laboratories' walls and floors: white glazed tiles in a square grid, crazed and yellowed,
-    stained green and brown where something has spilt and dried."""
+    """The laboratories' walls and floors: grimy grey-green glazed tiles in a square grid, crazed, with
+    black grout, stained green and brown where something has spilt and dried."""
 
     def px(x, y):
         if x % 8 == 0 or y % 8 == 0:

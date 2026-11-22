@@ -9,9 +9,10 @@ from ashen_vault.world.map_loader import MapLoader
 from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.world import PLUNGE_MESSAGES, World
 from test_verdant_world import JungleGame
-from test_world import BESIDE, _reachable, _spec
+from test_world import BESIDE, STATIC_BLOCKERS, _reachable, _spec
 
 CASTLE = "herrans_castle"
+BLOCKERS = ("door", "gate", "secret_wall", *STATIC_BLOCKERS)
 
 
 def _castle():
@@ -95,7 +96,7 @@ def test_stepping_off_the_quays_broken_balustrade_is_a_fall_through_the_clouds()
 
 
 def test_herrans_castle_is_solvable_up_to_the_spires_door():
-    """From the Cloud Quay every chest can be reached, the hidden labs' only through their false walls;
+    """From the Cloud Quay every chest can be reached, the secret lab's only through its false wall;
     the Spire Key lies in the open laboratory, reached before the spire's door it opens. The Belvedere's
     lift is a shortcut down to the court, both ends of it reached before its first ride, and nowhere
     you can get to strands you."""
@@ -104,7 +105,7 @@ def test_herrans_castle_is_solvable_up_to_the_spires_door():
     plain = [(s.tx, s.tz) for s in _spec(m, "door") if "key" not in s.props]
     (spire_door,) = _spec(m, "door", key="spire_key")
     secrets = [(s.tx, s.tz) for s in _spec(m, "secret_wall")]
-    assert len(secrets) == 3
+    assert len(secrets) == 1
     before = _reachable(m, start, open_tiles=plain)
     (key_chest,) = _spec(m, "chest", item="spire_key")
     assert (key_chest.tx, key_chest.tz) in before
@@ -115,8 +116,8 @@ def test_herrans_castle_is_solvable_up_to_the_spires_door():
     for chest in _spec(m, "chest"):
         assert (chest.tx, chest.tz) in hidden, chest.props
     labs = [c for c in _spec(m, "chest") if m[c.tx, c.tz].floor_tex == "lab_tile" and c is not key_chest]
-    assert len(labs) == 3
-    for chest in labs:  # each hidden lab's chest lies behind its false wall
+    assert {c.props["item"] for c in labs} == {"graft_draught", "sun_tincture", "herran_bonesaw"}
+    for chest in labs:  # the secret lab's chests lie behind its false wall
         assert (chest.tx, chest.tz) not in before, chest.props
     (lift,) = _spec(m, "lift")
     assert "locked" in lift.props
@@ -130,13 +131,61 @@ def test_herrans_castle_is_solvable_up_to_the_spires_door():
 
 
 def test_the_castle_climbs_in_steps_never_too_tall():
-    """The Great Stair and the clock tower's inner stair climb half a metre a tile, from the court at
-    1 m to the terrace at 6 and the bridges at 10."""
+    """From the quay at 0 m to the Ring at 1 and the High Walk at 10, the way on climbs no more than half
+    a metre a tile, up or down: every chest and the spire's door are reached without a drop or a lift."""
     m = _castle()
-    floors = {
-        m[t].floor for t in _reachable(m, _start(m), open_tiles=[(s.tx, s.tz) for s in _spec(m, "door")])
-    }
-    assert {0.0, 1.0, 6.0, 10.0} <= floors
+    doors = [(s.tx, s.tz) for s in (*_spec(m, "door"), *_spec(m, "secret_wall"))]
+    floors = {m[t].floor for t in _reachable(m, _start(m), open_tiles=doors)}
+    assert {0.0, 1.0, 10.0} <= floors
+    blocked = {(s.tx, s.tz) for s in m.entities if s.kind in BLOCKERS} - set(doors)
+    seen, todo = {_start(m)}, [_start(m)]
+    while todo:
+        x, z = todo.pop()
+        for dx, dz in BESIDE:
+            n = (x + dx, z + dz)
+            if n in seen or n in blocked or not m[n].walkable or m[n].needs_footing:
+                continue
+            if abs(m[n].floor - m[x, z].floor) <= 0.5:
+                seen.add(n)
+                todo.append(n)
+    (spire_door,) = _spec(m, "door", key="spire_key")
+    assert (spire_door.tx, spire_door.tz) in seen
+    for chest in _spec(m, "chest"):
+        assert (chest.tx, chest.tz) in seen, chest.props
+
+
+def test_the_castle_is_small_and_dark():
+    """A small castle under a stormy night: its halls dim, the secret lab darker still."""
+    m = _castle()
+    assert m.width <= 34 and m.depth <= 44
+    assert float(m.meta["ambient"][0]) <= 0.5
+    doors = [(s.tx, s.tz) for s in _spec(m, "door")]
+    before = _reachable(m, _start(m), open_tiles=doors)
+    secrets = [(s.tx, s.tz) for s in _spec(m, "secret_wall")]
+    after = _reachable(m, _start(m), open_tiles=[*doors, *secrets])
+    for t in after - set(secrets):
+        tile = m[t]
+        if tile.ceil is None:
+            continue
+        if t not in before and tile.floor_tex == "lab_tile":
+            assert tile.dark >= 0.6, t
+        else:
+            assert tile.dark <= 0.35, t
+
+
+def test_the_secret_lab_is_one_room():
+    """Behind the one false wall lies one room: all three of Herran's secret finds and a journal page."""
+    m = _castle()
+    doors = [(s.tx, s.tz) for s in _spec(m, "door")]
+    before = _reachable(m, _start(m), open_tiles=doors)
+    (wall,) = [(s.tx, s.tz) for s in _spec(m, "secret_wall")]
+    behind = _reachable(m, _start(m), open_tiles=[*doors, wall]) - before
+    room = behind - {wall}
+    inside = next(t for t in room if m[t].walkable)
+    assert _reachable(m, inside, avoid=[*before, wall]) == room  # one room, all of it joined
+    finds = {c.props["item"] for c in _spec(m, "chest") if (c.tx, c.tz) in room}
+    assert finds == {"graft_draught", "sun_tincture", "herran_bonesaw"}
+    assert len([h for h in _spec(m, "hint") if (h.tx, h.tz) in room]) == 1
 
 
 def test_the_castles_dressing_draws_and_stands_still():
@@ -265,15 +314,15 @@ def test_a_landed_drake_rends_and_a_magus_brands_the_floor_under_you():
     game = JungleGame()
     world = World(game, CASTLE)
     world.enemies = []
-    game.player.place(*TileMap.center(27, 57 + 2), 0.0, world.map)
-    drake = foe(world, "grafted_drake", (28, 59))
+    game.player.place(*TileMap.center(3, 14), 1.0, world.map)
+    drake = foe(world, "grafted_drake", (3, 15))
     assert not world.grounded(drake)  # on the wing it only stoops
     drake.landed, drake.alt = True, 0.0  # come down to fight on foot
     assert world.grounded(drake) and MOVE_SPECS["rend"].allow == "grounded"
     hp = game.player.stats.hp
     world.rend(drake)
     assert game.player.stats.hp < hp
-    magus = foe(world, "drake_magus", (27, 52))
+    magus = foe(world, "drake_magus", (3, 19))
     world.sunbrand(magus)
     (brand,) = world.eruptions
     assert (

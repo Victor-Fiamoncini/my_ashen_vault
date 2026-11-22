@@ -106,7 +106,7 @@ __________________________________
 
 [entities]
 // The door back down into the castle, and the shrine in Herran's study.
-X = exit map=herrans_castle at=29,4,90 label=Return_to_the_castle model=spire_door yaw=-90
+X = exit map=herrans_castle at=17,8,0 label=Return_to_the_castle model=spire_door yaw=-90
 B = save_statue
 // Herran's door, and Herran in his observatory, by his telescope under the broken dome.
 D = door boss=herran_dead on=P
