@@ -57,7 +57,38 @@ agents and humans alike), and the guide in [`docs/dev/`](docs/dev/) for the part
 - Use `util.rround` instead of `round` in game math (the numbers depend on round-half-away-from-zero).
 - Don't reformat `.map` files: their grids are whitespace-sensitive.
 - Add dependencies with `uv add` / `uv add --dev` so `uv.lock` stays in sync.
-- Write commit messages in the imperative mood ("Add frost spell", not "Added frost spell").
+
+## Commit messages
+
+Everyone, human or agent, writes commits the same way:
+
+```
+feat(spells): add a frost spell that slows what it hits
+
+Frost lands on the first enemy in line and slows its walk and its swings
+for a few seconds; bosses shake it off twice as fast.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Signed-off-by: Your Name <you@example.com>
+```
+
+- **Subject:** `type(scope): summary`, at most 72 characters, in the imperative mood ("add", not
+  "added"), starting lower-case, with no full stop. The scope is optional.
+- **Types:** `feat` (new content or behaviour), `fix`, `perf`, `refactor`, `test`, `docs`, `build`,
+  `ci`, `chore`, `style`, `revert`.
+- **Scopes:** the part of the game touched, such as `maps`, `sky`, `render`, `ai`, `player`, `world`,
+  `save`, `ui`, `audio`, `dialogue`, `input` or `tools`.
+- **Body:** optional for small changes. Otherwise, after a blank line, say in plain prose what the
+  player sees and why, wrapped at 72 columns.
+- **Trailers:** `Signed-off-by` is required (below). An AI agent adds a `Co-Authored-By` line naming
+  itself and its model.
+
+To get the template in your editor and the checker on every commit, run once per clone:
+
+```sh
+git config commit.template .gitmessage
+git config core.hooksPath .githooks
+```
 
 ## Sign your commits (DCO)
 

@@ -1,0 +1,29 @@
+#!/bin/sh
+# Checks a commit message against the pattern in CONTRIBUTING.md ("Commit messages").
+# Enable once per clone: git config core.hooksPath .githooks
+msg_file="$1"
+subject=$(grep -v '^#' "$msg_file" | sed -n '1p')
+
+case "$subject" in
+  "Merge "* | "Revert "* | "fixup! "* | "squash! "* | "amend! "*) exit 0 ;;
+esac
+
+fail() {
+  echo "commit-msg: $1" >&2
+  echo "  subject: $subject" >&2
+  echo "  expected: type(scope): imperative summary, e.g. 'feat(maps): add a bell tower'" >&2
+  echo "  see CONTRIBUTING.md, \"Commit messages\"" >&2
+  exit 1
+}
+
+types='feat|fix|perf|refactor|test|docs|build|ci|chore|style|revert'
+echo "$subject" | grep -Eq "^($types)(\([a-z0-9_-]+\))?!?: [^A-Z ]" ||
+  fail "the subject must be 'type(scope): summary' with a known type and a lower-case summary"
+[ "${#subject}" -le 72 ] || fail "the subject is ${#subject} characters, over 72"
+case "$subject" in *.) fail "the subject must not end with a full stop" ;; esac
+
+second=$(grep -v '^#' "$msg_file" | sed -n '2p')
+[ -z "$second" ] || fail "leave a blank line after the subject"
+
+grep -Eq '^Signed-off-by: .+ <.+>$' "$msg_file" || fail "sign the commit off: git commit -s"
+exit 0

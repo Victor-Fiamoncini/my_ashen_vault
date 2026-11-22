@@ -1,0 +1,17 @@
+# <type>(<scope>): <summary>
+#
+# <body>
+#
+# Co-Authored-By: <Agent Model> <noreply@vendor.com>
+# Signed-off-by: Your Name <you@example.com>
+#
+# Subject: `type(scope): summary`, at most 72 characters, imperative mood
+#   ("add", not "added"), lower-case start, no full stop. Scope is optional.
+#   type:  feat fix perf refactor test docs build ci chore style revert
+#   scope: the part of the game touched, e.g. maps, sky, render, ai, player,
+#          world, save, ui, audio, dialogue, input, tools
+# Body: optional for small changes. Say what the player sees and why, in
+#   plain prose, wrapped at 72 columns. Leave one blank line after the subject.
+# Trailers: `git commit -s` adds Signed-off-by (required). An AI agent adds
+#   a Co-Authored-By line naming itself and its model.
+# Full rules: CONTRIBUTING.md, "Commit messages".
