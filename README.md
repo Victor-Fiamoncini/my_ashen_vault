@@ -114,52 +114,60 @@ trademarks of FromSoftware, Inc. (*Dark Souls* is published by Bandai Namco Ente
     <td align="center"><sub>The Keystone, in the Foundation Court</sub></td>
   </tr>
   <tr>
+    <td><img src="docs/screenshots/vigil_chapel.png" alt="A dim moonstone nave, a red runner between dark pews leading to a faint glow on the altar, tall pillars either side"></td>
     <td><img src="docs/screenshots/combat.png" alt="A claymore held in both hands, ringmail sleeves and chain mitts, facing a bone walker"></td>
-    <td><img src="docs/screenshots/warden.png" alt="The Ashen Warden boss in his hall"></td>
   </tr>
   <tr>
+    <td align="center"><sub>The Vigil Chapel, the one hall the fall never reached</sub></td>
     <td align="center"><sub>The prison's Claymore, against a Bone Walker</sub></td>
-    <td align="center"><sub>The Ashen Warden</sub></td>
   </tr>
   <tr>
+    <td><img src="docs/screenshots/warden.png" alt="The Ashen Warden boss in his hall"></td>
     <td><img src="docs/screenshots/undercroft_lift.png" alt="Riding a barred cage lift down a shaft toward a wall of skulls and bones"></td>
-    <td><img src="docs/screenshots/gallery.png" alt="The Butcher, a hooded brute with a cleaver, in his slaughter hall above the Warden's Gallery, meat hooks hanging behind him"></td>
   </tr>
   <tr>
+    <td align="center"><sub>The Ashen Warden</sub></td>
     <td align="center"><sub>Riding the cage lift down into the Undercroft</sub></td>
-    <td align="center"><sub>The Butcher, waiting in his slaughter hall</sub></td>
   </tr>
   <tr>
+    <td><img src="docs/screenshots/gallery.png" alt="The Butcher, a hooded brute with a cleaver, in his slaughter hall above the Warden's Gallery, meat hooks hanging behind him"></td>
     <td><img src="docs/screenshots/corvane.png" alt="Corvane's shop of curved blades, the katana on show"></td>
-    <td><img src="docs/screenshots/jungle_trail.png" alt="A narrow hedged trail under a darkening canopy, glowing toadstools at the cave mouth ahead"></td>
   </tr>
   <tr>
+    <td align="center"><sub>The Butcher, waiting in his slaughter hall</sub></td>
     <td align="center"><sub>Corvane's blades, for those who have proven themselves</sub></td>
-    <td align="center"><sub>The green trail out of Harrowmere, ending at the cave</sub></td>
   </tr>
   <tr>
+    <td><img src="docs/screenshots/jungle_trail.png" alt="A narrow hedged trail under a darkening canopy, glowing toadstools at the cave mouth ahead"></td>
     <td><img src="docs/screenshots/mossmouth.png" alt="A brazier just kindled in the dark Mossmouth cave, a chest beside it"></td>
-    <td><img src="docs/screenshots/verdant_hollow.png" alt="A vine-walled path under the canopy of the Verdant Hollow"></td>
   </tr>
   <tr>
+    <td align="center"><sub>The green trail out of Harrowmere, ending at the cave</sub></td>
     <td align="center"><sub>Mossmouth: a cold brazier kindled with Pyre</sub></td>
-    <td align="center"><sub>The Verdant Hollow, through the cave at the end of Harrowmere's green trail</sub></td>
   </tr>
   <tr>
+    <td><img src="docs/screenshots/verdant_hollow.png" alt="A vine-walled path under the canopy of the Verdant Hollow"></td>
     <td><img src="docs/screenshots/bark_husk.png" alt="A Bark Husk, a hollow dead tree with a gaping face and splintered crown, beside a thorn plant"></td>
-    <td><img src="docs/screenshots/canopy_walk.png" alt="A plank walkway lit by torches high in the treetops, a snare bloom waiting on it"></td>
   </tr>
   <tr>
+    <td align="center"><sub>The Verdant Hollow, through the cave at the end of Harrowmere's green trail</sub></td>
     <td align="center"><sub>A Bark Husk: circle it and strike the glow in its back</sub></td>
-    <td align="center"><sub>The Canopy Walk, the long way to the Loom Mother</sub></td>
   </tr>
   <tr>
+    <td><img src="docs/screenshots/canopy_walk.png" alt="A plank walkway lit by torches high in the treetops, a snare bloom waiting on it"></td>
     <td><img src="docs/screenshots/root_caverns.png" alt="A bonfire throwing sparks in the dark Root Caverns, roots hanging from the ceiling"></td>
-    <td><img src="docs/screenshots/loom_mother.png" alt="The Loom Mother, a giant spider boss"></td>
   </tr>
   <tr>
+    <td align="center"><sub>The Canopy Walk, the long way to the Loom Mother</sub></td>
     <td align="center"><sub>A bonfire in the Root Caverns, under the bog</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/loom_mother.png" alt="The Loom Mother, a giant spider boss"></td>
+    <td><img src="docs/screenshots/sallow_fen.png" alt="A violet mire under a red sky, a stone beacon on its island crowned with violet fire, a Fen Lurk squatting in the water and the toxin bar filling"></td>
+  </tr>
+  <tr>
     <td align="center"><sub>The Loom Mother</sub></td>
+    <td align="center"><sub>The Sallow Fen: one of its three beacons, burning violet</sub></td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/cinderhold_bridge.png" alt="A long stone bridge leading to a black fortress under a smoky red sky: a crenellated great wall with burning windows rising from the lava, a gatehouse, a bastion, a great keep and smelter stacks"></td>
@@ -234,7 +242,7 @@ trademarks of FromSoftware, Inc. (*Dark Souls* is published by Bandai Namco Ente
   shrug off fire; stone ones crack under blunt weapons.
 - **Bosses behind great doors**: the Ashen Sexton fights with grave ash, the Ashen Warden's blade
   catches fire at half health, the Butcher swings his cleaver among the meat hooks, Mother Gnawl and
-  the Sodden Pall rule the sewers, the Keystone, the giant the first city stood on, rises in its sunken court, the Loom Mother calls her brood, two iron gargoyles take turns on
+  the Sodden Pall rule the sewers, the Keystone, the giant the first city stood on, rises in its sunken court, the Loom Mother calls her brood, the Mire Tyrant wallows on its island in the fen, two iron gargoyles take turns on
   the keep's roof, and Duchess Ilvane, the Moonwed, calls the moon down on you in her cathedral. Die in
   an arena and only fog remains at its door.
 - **Eight areas, hand-built**:
@@ -246,13 +254,15 @@ trademarks of FromSoftware, Inc. (*Dark Souls* is published by Bandai Namco Ente
     leeches in the sludge;
   - Old Harrowmere below them, the sunken first city: tiers of drowned towers and stairs over a sheer
     chasm, a rift of daylight far overhead, stone golems that stand like statues and bell-keepers
-    whose mortar-light staves wake them;
+    whose mortar-light staves wake them, and once the Keystone falls, the untouched Vigil Chapel;
   - the Abandoned Prison below the gaol's grate: dark cell blocks where hollow inmates still kneel, a captive
     monk behind his bars, a chapel to faceless old gods, traps, and cage lifts down to a skull-walled
     Undercroft and up to the Warden's Gallery;
   - the Verdant Hollow at the end of the green trail: rafts, ledges, a log slope, spore pods, dark caves
     and a canopy walk;
-  - the Cinderhold up the north road, a fortress of lava, flame jets and iron, its keep a map of its own;
+  - the Cinderhold up the north road, a fortress of lava, flame jets and iron, its keep a map of its own,
+    reached across the Sallow Fen, a violet mire whose wading poisons you and whose three beacons
+    must be smothered before its gate opens;
   - and Vesperholm, the Moonbound City behind the Vesper Gate at the head of the cathedral steps:
     moonlit streets drowned in the light of a moon that never sets, a glass bridge over a gorge,
     and a castle where the dead keep watch as pale shades.

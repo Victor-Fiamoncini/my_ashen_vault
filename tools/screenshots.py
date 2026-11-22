@@ -7,7 +7,8 @@
 
 Each shot is a smoke run with its own throwaway save, so the player's real save is never touched.
 The gear in each shot is gear the player could hold by then: the --level and --equip follow the
-game's progression (cemetery, town, sewers, prison, hollow, Cinderhold, Vesperholm).
+game's progression (cemetery, town, sewers, Old Harrowmere, prison, hollow, the Sallow Fen and the
+Cinderhold, Vesperholm).
 """
 
 import argparse
@@ -164,6 +165,14 @@ SHOTS = [
         "torchlit court, its health bar above",
     ),
     Shot(
+        "vigil_chapel",
+        "--map vigil_chapel --at=8,19,-90 --level 6 --equip primary=spiked_club,secondary=round_shield "
+        "--smoke 60",
+        "The Vigil Chapel, the one hall the fall never reached",
+        "A dim moonstone nave, a red runner between dark pews leading to a faint glow on the altar, "
+        "tall pillars either side",
+    ),
+    Shot(
         "combat",
         "--map abandoned_prison --at 15,22,0 --level 4 --equip primary=claymore,body=ringmail,hands=chain_mitts "
         "--smoke 100",
@@ -241,6 +250,14 @@ SHOTS = [
         "--map verdant_hollow --at=15,7,-90 --level 6 --equip primary=flamberge --smoke 300",
         "The Loom Mother",
         "The Loom Mother, a giant spider boss",
+    ),
+    Shot(
+        "sallow_fen",
+        "--map cinderhold --at=49,97,-90 --level 7 --equip primary=moonless_tachi,secondary=spell:veil "
+        "--smoke 60",
+        "The Sallow Fen: one of its three beacons, burning violet",
+        "A violet mire under a red sky, a stone beacon on its island crowned with violet fire, a Fen Lurk "
+        "squatting in the water and the toxin bar filling",
     ),
     Shot(
         "cinderhold_bridge",
