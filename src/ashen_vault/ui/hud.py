@@ -489,6 +489,13 @@ def item_icon(id_, cx, cy, t, alpha=255):
         pr.draw_rectangle(cx - 2, cy - 2, 4, 6, color(120, 60, 160, a))
         pr.draw_rectangle(cx - 1, cy + 1, 2, 2, color(200, 150, 240, a))
         _line(cx, cy, (1, -4), (3, -7), 1, color(120, 170, 70, a))
+    elif id_ == "hearth_ash":  # a little heap of grey ash, embers winking in it
+        pr.draw_rectangle(cx - 4, cy + 2, 8, 2, color(110, 108, 104, a))
+        pr.draw_rectangle(cx - 3, cy, 6, 2, color(140, 136, 130, a))
+        pr.draw_rectangle(cx - 1, cy - 1, 2, 1, color(165, 160, 152, a))
+        for i, (dx, dy) in enumerate(((-2, 2), (1, 0), (2, 3))):
+            glow = 0.5 + 0.5 * math.sin(t * 4 + i * 2.1)
+            _dot(cx, cy, dx, dy, color(255, 140, 50, rround(a * glow)), 1, 1)
     else:
         pr.draw_circle(cx, cy, 2, color(200, 200, 200, a))
 
@@ -1850,6 +1857,4 @@ def rest_fog(seq, t):
         tex, pr.Rectangle(0, 0, rest.COLS, rest.ROWS), pr.Rectangle(0, 0, W, H), pr.Vector2(0, 0), 0, pr.WHITE
     )
     if dens >= 0.95:
-        small_centered(
-            "Resting...", W // 2, H // 2 - 4, color(*HIGHLIGHT_RGB, rround(255 * (dens - 0.95) * 20))
-        )
+        small_centered(seq.label, W // 2, H // 2 - 4, color(*HIGHLIGHT_RGB, rround(255 * (dens - 0.95) * 20)))

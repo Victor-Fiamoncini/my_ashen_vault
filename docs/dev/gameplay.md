@@ -88,6 +88,12 @@ Equipment, combat, spells, shops, saves and the story.
   (`Player.cycle_quick`, `quick_index`) and middle click uses the selected one (`Game._quick_use`); a
   slot whose item has run out stays selected and greys out. Saved as `quick_slots` / `quick_index`;
   `Player.restore_quick` reads them, seeding slot 1 from an older save's single `quick` item.
+- Hearth Ash (`hearth_ash`, `effect="homeward"`; Tamsin sells it, and a chest in the Cinder Keep's
+  great hall and one on the floor of Herran's Aviary hold two each) carries you home:
+  `Game._use_hearth_ash` raises the shrine's ember fog (`RestSequence`, labelled "Homeward...") and,
+  under it, loads `world.HOME_MAP` and sets you beside its first shrine (`world.home_spot`). It
+  restores nothing, wakes no one and records nothing. `World.homeward_refusal` keeps it in your pack
+  in Harrowmere, in a sealed boss fight and while you fall or cross a fog.
 - Every attack costs ST. Each category's moveset (`weapons.MOVESETS`) is tuned for a medium weapon;
   an item's `weight` (`light` / `medium` / `heavy` / `great`) scales each attack's ST, damage and poise
   through `weapons.WEIGHTS` (`weapons.attack` returns the sized Attack) and adds `WEIGHT_TEMPO` to its

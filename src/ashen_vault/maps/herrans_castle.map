@@ -105,7 +105,7 @@ __#r#__hhhhhhhhhh__________#r#__
 __#rU%%h%%%%________%%%%%%%%r#__
 __#r%%jjηζε%________%yyyyyG%r#__
 __#rr1%j%%δ%________%xaaaaa%r#__
-__#r%2%jj%γ%________%waaaaa%r#__
+__#r%2%jj%γ%________%waaaaz%r#__
 __#r%3%ÂÄ%β%________%vaaaÄaar#__
 __#Ç%4%%%%α%________%uaaÅaa%Ç#__
 __#r%56789i%________%taaaaa%r#__
@@ -131,8 +131,9 @@ B = save_statue
 W = secret_wall
 // The Belvedere's lift down to the Ring: fastened until its first ride down.
 L = lift top=10 start=top locked model=cage on=e
-// Finds: the Spire Key in the Laboratory, the secret lab's three, and the Aviary's gallery.
+// Finds: the Spire Key in the Laboratory, the secret lab's three, the Aviary's gallery and its floor.
 K = chest item=spire_key gold=120 model=banded
+z = chest item=hearth_ash count=2 gold=90 model=coffer
 D = chest item=graft_draught count=2 gold=140 model=coffer
 E = chest item=herran_bonesaw gold=150 model=banded
 F = chest item=sun_tincture count=2 gold=160 model=coffer

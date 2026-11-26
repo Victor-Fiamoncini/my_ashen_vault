@@ -29,7 +29,15 @@ SHOPS = {
         "tower_shield",
         "blackened_plate",
     ],
-    "tamsin": ["red_tonic", "blue_moss", "bitter_root", "clotting_salve", "grave_lily", "ember_draught"],
+    "tamsin": [
+        "red_tonic",
+        "blue_moss",
+        "bitter_root",
+        "clotting_salve",
+        "grave_lily",
+        "ember_draught",
+        "hearth_ash",
+    ],
     "corvane": ["katana", "moonless_tachi", "nodachi"],
     # Ysolde Vane, in the Oubliette under Old Harrowmere: the two spells she copied off the vault's rift.
     "ysolde": ["scroll_rift_lance", "scroll_bellward", "blue_moss"],

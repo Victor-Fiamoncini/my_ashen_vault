@@ -580,6 +580,14 @@ class Items:
                 cures=("toxic", "poison"),
                 desc="A bitter violet tincture steeped from fen reeds. Purges toxin and poison from the blood.",
             ),
+            Item(
+                id="hearth_ash",
+                name="Hearth Ash",
+                kind="consumable",
+                price=120,
+                effect="homeward",
+                desc="A pinch of grey ash from beneath the Silent Bell. Cast on the wind, its embers carry you home to Harrowmere.",
+            ),
             # Herran's: what he brewed in his laboratories, out of drakes and himself.
             Item(
                 id="graft_draught",

@@ -652,6 +652,7 @@ LOB_SOUND = (0.25, 26.0)  # a soft warning from across the lava
 BOMB_SOUND = (0.25, 14.0)  # a vent's bomb bursting where it lands
 ERUPTION_SOUND = (0.6, 24.0)  # a boss's fire column
 QUIET = 0.03  # a sound fainter than this is not played at all
+HOME_MAP = "harrowmere"  # where Hearth Ash carries you
 SHRINE_REACH = 3.0  # metres: a save made closer than this to a shrine is taken to have been made there
 
 
@@ -664,13 +665,25 @@ def beside_shrine(map_, x, z, yaw):
     ):
         return x, z, yaw
     cx, cz = min(shrines, key=lambda c: math.hypot(c[0] - x, c[1] - z))
+    return _next_to(map_, cx, cz) or (x, z, yaw)
+
+
+def home_spot(map_):
+    """Where Hearth Ash sets you down: on the first open tile beside the map's first shrine (Bell
+    Square's, in Harrowmere), facing it. None on a map without a shrine or room beside it."""
+    shrine = next((s for s in map_.entities if s.kind == "save_statue"), None)
+    return shrine and _next_to(map_, *TileMap.center(shrine.tx, shrine.tz))
+
+
+def _next_to(map_, cx, cz):
+    """(x, z, yaw) on the first open tile beside the one centred at (cx, cz), facing it, or None."""
     tx, tz = TileMap.tile_coord(cx), TileMap.tile_coord(cz)
     taken = {(s.tx, s.tz) for s in map_.entities}
     for dx, dz in ((0, 1), (1, 0), (-1, 0), (0, -1)):
         if map_[tx + dx, tz + dz].walkable and (tx + dx, tz + dz) not in taken:
             nx, nz = TileMap.center(tx + dx, tz + dz)
             return nx, nz, math.atan2(cz - nz, cx - nx)
-    return x, z, yaw
+    return None
 
 
 def foe_harm(dmg):
@@ -1011,6 +1024,17 @@ class World:
                 p.open_t = 1.0  # the door is gone; only the fog stands there
             arenas.append(a)
         return arenas
+
+    def homeward_refusal(self):
+        """Why Hearth Ash won't carry you home right now (the message to show), or None when it will:
+        not in Harrowmere itself, not in a sealed boss fight, not while falling or crossing a fog."""
+        if self.name == HOME_MAP:
+            return "You are already in Harrowmere."
+        if any(a.sealed for a in self.arenas):
+            return "The fight holds you here."
+        if self.terrain.plunging or self.fog_walk is not None:
+            return "Not now."
+        return None
 
     def boss_target(self):
         """(x, z) of the nearest great door whose boss still lives, or of a way on to one (an `exit`

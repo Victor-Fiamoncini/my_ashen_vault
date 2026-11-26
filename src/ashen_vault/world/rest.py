@@ -28,8 +28,9 @@ def _smooth(k):
 class RestSequence:
     DURATION = 3.2
 
-    def __init__(self, duration=DURATION):
+    def __init__(self, duration=DURATION, label="Resting..."):
         self.duration = duration
+        self.label = label  # the word shown while the fog covers the screen
         self.t = 0.0
         self._peaked = False
 

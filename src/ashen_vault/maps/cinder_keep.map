@@ -66,7 +66,7 @@ z = floor tex=flagstone h=9.5 ceil=13.5 ceil_tex=black_brick side=black_brick da
 ##T,,,,Z,,F,,Z,,,,,###############
 ##,,,,,,,,,,,,,,,,,###############
 ##A,,P,,,,P,,,,P,,G###############
-##,,,,,,,,,,,,,,,,,###L.T..#######
+##J,,,,,,,,,,,,,,,,###L.T..#######
 ##,B,,H,,,,,,,,,,,,.......X#######
 ##Q,,,L,,,I,T,K,LON###.....#######
 ##################################
@@ -85,6 +85,7 @@ F = forge_golem
 B = iron_bowman
 H = slag_hound
 Q = chest item=red_tonic count=2 gold=80 model=iron
+J = chest item=hearth_ash count=2 gold=60 model=iron
 // The switchback stair, a niche off its upper flight, and the antechamber's shrine.
 R = chest item=blue_moss count=2 gold=100 model=iron
 W = cinder_wisp

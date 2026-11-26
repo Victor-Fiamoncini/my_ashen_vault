@@ -55,7 +55,7 @@ from ashen_vault.world import darkness, doors, elements, footsteps, loot, relics
 from ashen_vault.world.map_loader import map_title
 from ashen_vault.world.rest import RestSequence
 from ashen_vault.world.tile_map import TileMap
-from ashen_vault.world.world import World, beside_shrine
+from ashen_vault.world.world import HOME_MAP, World, beside_shrine, home_spot
 
 HIT_PITCH = (0.92, 1.08)  # each blow's sound is pitched at random within this, so no two ring alike
 KIND_ORDER = ["service", "weapon", "shield", "armor", "spell", "consumable", "repair", "scroll", "key"]
@@ -154,6 +154,7 @@ class Game:
         self._cursor_at = None  # where the free cursor was when mouse look was last released
         self._look_skip = 0  # frames of mouse delta to ignore after recapturing the cursor
         self._rest = None
+        self._rest_home = False  # the ember fog is Hearth Ash's, carrying you home, not a shrine's
         self._hit_done = False
         self._held = {"attack": False, "cast": False}  # hand buttons held last frame (tap / hold)
         self._pulse = None  # [seconds left, attack, weapon] of a pending second shockwave
@@ -1067,6 +1068,8 @@ class Game:
 
     def _use_item(self, item):
         inv = self.player.inventory
+        if item.effect == "homeward":
+            return self._use_hearth_ash(item)
         if item.kind == "consumable":
             inv.remove(item.id)
             if item.heal:
@@ -1245,26 +1248,51 @@ class Game:
 
     # --- shrine rest ------------------------------------------------------------------
 
-    def _start_rest(self):
+    def _start_rest(self, label="Resting..."):
         """Kneel at the shrine: ember fog rises over the screen, and while it hides everything the
         shrine restores you, wakes the fallen and records the journey."""
-        self._rest = RestSequence()
+        self._rest = RestSequence(label=label)
         self.scene = "rest"
         self.player.charge_t = 0.0
         self._held = {"attack": False, "cast": False}
         self.player.guarding = False
         self.sfx("save")
 
+    def _use_hearth_ash(self, item):
+        """Hearth Ash: ember fog rises as at a shrine, and while it hides everything you are carried
+        to Bell Square in Harrowmere. Nothing is restored or recorded. Refused (and kept) where the
+        world won't let you go (`World.homeward_refusal`)."""
+        refusal = self.world.homeward_refusal()
+        if refusal:
+            self.sfx("door", 0.5)
+            return self.message(refusal)
+        self.player.inventory.remove(item.id)
+        self._pick = None
+        self._mouse_look(True)
+        self._start_rest("Homeward...")
+        self._rest_home = True
+
     def _update_rest(self, dt):
         if self._rest.update(dt):
-            self.player.revive()
-            self.world.respawn_enemies()
-            self._saves.save(map=self.world.name, player=self.player, flags=self.flags)
+            if self._rest_home:
+                self._load_world(HOME_MAP)
+                spot = home_spot(self.world.map)
+                if spot:
+                    self.player.place(*spot, self.world.map)
+                self.announce_area()
+            else:
+                self.player.revive()
+                self.world.respawn_enemies()
+                self._saves.save(map=self.world.name, player=self.player, flags=self.flags)
         if self._rest.done:
             self._rest = None
             self.scene = "play"
-            self.message("The shrine restores you. Your journey is recorded.")
-            self.message("Somewhere below, the fallen stir again.")
+            if self._rest_home:
+                self._rest_home = False
+                self.message("The embers carry you home.")
+            else:
+                self.message("The shrine restores you. Your journey is recorded.")
+                self.message("Somewhere below, the fallen stir again.")
 
     def _pat_frog(self, prop):
         """A small joke by the river: the frog croaks, and the very first time it pays you for the pat."""
