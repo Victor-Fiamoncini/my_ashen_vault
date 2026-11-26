@@ -660,6 +660,91 @@ def test_web_wall_texture_has_holes_to_see_through():
     assert 0 in alphas and 255 in alphas
 
 
+def test_the_north_road_gate_burns_and_stays_on_its_tile():
+    """The north road's gate is wrought in iron and fire: its fire baskets, hot seams and crest glow,
+    its arch rises well above the old sandstone one, and it keeps within its tile's width."""
+    from ashen_vault.render import forge_models
+
+    class Gpu(_ExtentGpu):
+        def __init__(self):
+            super().__init__()
+            self.wide = 0.0
+
+        def draw_part(self, kind, m, rgb, tex="white", glow=False):
+            super().draw_part(kind, m, rgb, tex, glow)
+            for cx in (-0.5, 0.5):
+                for cy in (-0.5, 0.5):
+                    for cz in (-0.5, 0.5):
+                        z = m[8] * cx + m[9] * cy + m[10] * cz + m[11]
+                        self.wide = max(self.wide, abs(z))
+
+    gpu = Gpu()
+    forge_models.road_gate(rig.Rig(gpu), 0.5)
+    assert gpu.glows >= 20
+    assert gpu.top > 6.5
+    assert gpu.wide < 1.6
+
+
+def _bowman_at(state, state_t, kind="shot"):
+    """Where an Iron Bowman draws his bow (its wood, not the quiver), his fists and his arrow."""
+    import random
+
+    from ashen_vault.ai.enemy import Enemy
+    from ashen_vault.ai.enemy_types import EnemyTypes
+    from ashen_vault.render import forge_models
+
+    e = Enemy(EnemyTypes.get("iron_bowman"), 0, 0, rng=random.Random(0))
+    e.state, e.state_t, e.attack_kind = state, state_t, kind
+
+    class Gpu:
+        def __init__(self):
+            self.at = []
+
+        def to_matrix(self, m):
+            return m
+
+        def draw_part(self, kind, m, rgb, tex="white", glow=False):
+            self.at.append((rgb, (m[3], m[7], m[11])))
+
+    gpu = Gpu()
+    forge_models.iron_bowman(rig.Rig(gpu), e, 1.0)
+    bow = [p for rgb, p in gpu.at if rgb == forge_models.BOW_WOOD and p[2] < 0]  # the quiver is at +Z
+    return bow, gpu.at, forge_models._bow_pose(e, 0.0)
+
+
+def test_the_iron_bowman_holds_his_bow_out_before_him():
+    """At rest he carries the bow low in front of him; drawing, he holds it out at shoulder height in
+    front, never behind his back."""
+    bow, _, _ = _bowman_at("idle", 0.5)
+    assert len(bow) == 5
+    assert min(x for x, _, _ in bow) > -0.1
+    for state, t in (("windup", 1.0), ("attack", 0.05)):
+        bow, _, _ = _bowman_at(state, t)
+        assert sum(x for x, _, _ in bow) / 5 > 0.35, state
+        assert 1.2 < sum(y for _, y, _ in bow) / 5 < 1.7, state
+
+
+def test_the_iron_bowman_draws_the_string_with_his_own_hand():
+    """He reaches to his quiver, sets the arrow on the string and draws it to his cheek: his drawing
+    fist lands on the hand's target at every step, the arrow rides from his fist past the bow, and once
+    loosed the arrow is gone from the bow."""
+    from ashen_vault.render import forge_models
+
+    for k in (0.05, 0.12, 0.2, 0.25, 0.6, 1.0):
+        _, parts, (aim, draw, _, hand, arrow) = _bowman_at("windup", k)
+        fists = [p for rgb, p in parts if rgb == forge_models.DARK]
+        assert math.dist(fists[-1], hand) < 1e-6, k
+        if k >= forge_models.NOCK_REACH + 0.01:
+            assert arrow and math.dist(arrow[0], hand) < 1e-6 and arrow[1][0] > hand[0] + 0.5, k
+    _, _, (aim, draw, _, hand, _) = _bowman_at("windup", 1.0)
+    assert aim == 1.0 and draw == 1.0
+    assert -0.3 < hand[0] < 0.1 and hand[1] > 1.35  # back at his cheek
+    _, _, (_, _, string, _, arrow) = _bowman_at("attack", 0.02)
+    assert arrow is None and string != 0.0
+    _, _, (aim, _, _, _, _) = _bowman_at("recover", 1.6)
+    assert aim == 0.0
+
+
 def test_cinderhold_props_shots_and_hazards_draw():
     from ashen_vault.render import forge_models
 
@@ -2098,7 +2183,6 @@ def test_every_way_between_maps_is_built_in_detail():
 
     exits = {
         "road_gate": lambda r: forge_models.road_gate(r, 0.3),
-        "road_gate forge": lambda r: forge_models.road_gate(r, 0.3, "forge"),
         "keep_door": lambda r: forge_models.keep_door(r, 0.3),
         "well": lambda r: models.well(r, 0.3),
         "cave_mouth": lambda r: models.cave_mouth(r, 0.3),
@@ -2119,7 +2203,6 @@ def test_every_way_between_maps_is_built_in_detail():
     for name, fn in exits.items():
         assert len(parts(fn)) >= 25, name
         assert min(y for _, y in parts(fn)) > -0.1, name
-    assert parts(exits["road_gate"]) != parts(exits["road_gate forge"])
     assert parts(exits["vesper_gate"]) != parts(exits["vesper_gate open"])
 
 

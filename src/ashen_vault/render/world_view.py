@@ -854,7 +854,7 @@ def _draw_exit(view, rig, p, t):
     elif p.props.get("model") == "cave_mouth":
         models.cave_mouth(rig, t)
     elif p.props.get("model") == "road_gate":
-        forge_models.road_gate(rig, t, p.props.get("style", "town"))
+        forge_models.road_gate(rig, t)
     elif p.props.get("model") == "keep_door":
         forge_models.keep_door(rig, t)
     elif p.props.get("model") == "cemetery_gate":  # it swings open once its keeper falls

@@ -484,6 +484,7 @@ class EnemyTypes:
                 poise=4,
                 ranged=True,
                 bite_reach=1.8,  # too close and he bashes you with his bow-stave
+                mouth=1.44,  # his arrows leave from the bow, held out at his shoulder
                 shot_rgb=(150, 150, 160),
                 shot="arrow",
                 conductive=True,

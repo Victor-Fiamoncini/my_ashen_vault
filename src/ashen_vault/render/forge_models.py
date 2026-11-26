@@ -19,7 +19,6 @@ from ashen_vault.render.parts import (
     death_fall,
     fireball,
     hit_tint,
-    realm_crest,
     strike_angle,
     walk_cycle,
 )
@@ -126,20 +125,149 @@ def forge_golem(r, e, t):
 # --- the Iron Bowman ---------------------------------------------------------------------------
 
 MAIL = (84, 82, 88)
+BOW_SHOULDER = (0.0, 1.42, -0.26)  # the bow arm's shoulder
+DRAW_SHOULDER = (0.0, 1.42, 0.24)  # the drawing arm's
+BOW_ARM = 0.62  # shoulder to the fist round the grip
+DRAW_UPPER, DRAW_FORE = 0.31, 0.33  # the drawing arm's two bones, shoulder to elbow to fist
+BOW_REST, BOW_AIM = 0.35, 1.6  # the bow arm's swing forward, held low and raised to aim
+BOW_INWARD = 0.23  # how far the raised bow arm turns in across his body, toward his centre line
+BOW_LIMB = 0.72  # grip to a bow tip
+BOW_PULL = 0.42  # how far the string comes back at full draw
+NOCK_REACH, NOCK_SET = 0.12, 0.25  # windup shares: hand at the quiver, then the arrow on the string
+QUIVER_MOUTH = (-0.22, 1.76, 0.12)
+ARROW_LEN = 0.95
+
+
+def _two_bone(r, shoulder, target, upper, fore, rgb_upper, rgb_fore, rgb_fist):
+    """An arm from `shoulder` whose fist lands on `target` (clamped to its reach), the elbow bent out
+    behind: the arm's plane turned about X toward the target, then a two-bone solve within it."""
+    dx, dy, dz = (q - p for p, q in zip(shoulder, target, strict=True))
+    phi = math.atan2(-dz, -dy)  # turns the arm's hanging (-Y) toward the target in the Y-Z plane
+    down = math.hypot(dy, dz)
+    reach = min(math.hypot(dx, down), upper + fore - 1e-3)
+    theta = math.atan2(dx, down)
+    alpha = math.acos(
+        max(-1.0, min(1.0, (upper * upper + reach * reach - fore * fore) / (2 * upper * reach)))
+    )
+    elbow = math.acos(max(-1.0, min(1.0, (upper * upper + fore * fore - reach * reach) / (2 * upper * fore))))
+    with r.at(*shoulder, rx=phi), r.at(0, 0, 0, rz=theta - alpha):
+        r.part("cube", 0, -upper / 2, 0, 0.1, upper, 0.1, rgb_upper)
+        with r.at(0, -upper, 0, rz=math.pi - elbow):
+            r.part("cube", 0, -fore / 2, 0, 0.09, fore, 0.09, rgb_fore)
+            r.part("cube", 0, -fore, 0, 0.11, 0.1, 0.12, rgb_fist)
+
+
+def _bow_pose(e, swing):
+    """(aim 0..1 the bow arm raised, draw 0..1 the string back, the string's give, the draw hand's
+    target or None to let it hang, the arrow's nock and tip or None) for an Iron Bowman now."""
+    shooting = e.attack_kind == "shot" and e.state in ("windup", "attack", "recover")
+    if not shooting or e.state == "dead":
+        return 0.0, 0.0, 0.0, None, None
+    k = _windup_k(e)
+    if e.state == "windup":
+        aim = _ease(min(k / NOCK_SET, 1.0))
+    elif e.state == "attack":
+        aim = 1.0
+    else:
+        aim = 1.0 - _ease(min(e.state_t / max(e.recover_time, 1e-3), 1.0))
+    a = _mix(BOW_REST + swing * 0.3, BOW_AIM, aim)
+    hx, hy, hz = _bow_hand(a, aim)
+    draw = _ease((k - NOCK_SET) / (1 - NOCK_SET)) if e.state == "windup" and k > NOCK_SET else 0.0
+    tip_x, _ = _bow_tip(draw)
+    string = 0.0
+    if e.state == "attack":  # loosed: the string snaps forward past its rest and shivers there
+        string = 0.07 * math.sin(e.state_t * 70) * math.exp(-e.state_t * 9)
+    nock = (hx + tip_x - BOW_PULL * draw, hy, hz)
+    rest = (DRAW_SHOULDER[0] + 0.08, DRAW_SHOULDER[1] - 0.58, DRAW_SHOULDER[2] + 0.04)
+    arrow = None
+    if e.state == "windup":
+        if k < NOCK_REACH:  # reaching back over the shoulder for an arrow
+            hand = _lerp(rest, QUIVER_MOUTH, _ease(k / NOCK_REACH))
+        elif k < NOCK_SET:  # drawing it out and bringing it round to the string
+            hand = _lerp(QUIVER_MOUTH, nock, _ease((k - NOCK_REACH) / (NOCK_SET - NOCK_REACH)))
+            arrow = hand, (hand[0] + ARROW_LEN * 0.8, hand[1] + 0.1, hand[2] - 0.05)
+        else:
+            hand = nock
+            arrow = nock, (nock[0] + ARROW_LEN, nock[1], nock[2])
+    else:  # the shot is away: the open hand flies back past the ear, then falls to the side
+        anchor = (hx + _bow_tip(1.0)[0] - BOW_PULL, hy, hz)  # where the string was loosed from
+        thrown = (anchor[0] - 0.12, anchor[1] + 0.1, anchor[2] + 0.26)
+        if e.state == "attack":
+            hand = _lerp(anchor, thrown, _ease(min(e.state_t / 0.15, 1.0)))
+        else:
+            hand = _lerp(thrown, rest, 1.0 - aim)
+    return aim, draw, string, hand, arrow
+
+
+def _mix(a, b, k):
+    return a + (b - a) * k
+
+
+def _bow_hand(a, aim):
+    """Where the bow arm's fist is when it has swung `a` radians forward from hanging, turned in
+    across the body as far as `aim` raises it."""
+    x, y, z = BOW_SHOULDER
+    inward = BOW_INWARD * aim
+    reach = BOW_ARM * math.sin(a)
+    return x + reach * math.cos(inward), y - BOW_ARM * math.cos(a), z + reach * math.sin(inward)
+
+
+def _bow_tip(draw):
+    """(x, y) of the bow's upper tip from its grip: the limbs bend back further as it is drawn."""
+    return -0.14 - 0.14 * draw, BOW_LIMB - 0.05 * draw
+
+
+def _bow(r, draw, string, nocked):
+    """A recurved bow of dark wood tipped in iron, held upright at its grip (the origin), its belly
+    toward -X: five staves to a limb's curve, bending back as `draw` grows, and the string from tip to
+    tip, pulled back to the nock (or shivering forward by `string` once loosed)."""
+    bend = 0.045 + 0.05 * draw
+    for i in range(5):
+        y = (i - 2) * 0.28 * (1 - 0.04 * draw)
+        r.part("cube", -bend * abs(i - 2) ** 1.5, y, 0, 0.075, 0.31, 0.075, BOW_WOOD,
+               rz=(i - 2) * (0.25 + 0.14 * draw))  # fmt: skip
+    tip_x, tip_y = _bow_tip(draw)
+    for sign in (1, -1):
+        r.part("wedge", tip_x + 0.03, sign * tip_y, 0, 0.07, 0.16, 0.07, RIVET,
+               rz=0.6 * sign + (0 if sign > 0 else math.pi))  # fmt: skip  # the iron nocks
+    r.part("cube", 0, 0, 0, 0.09, 0.2, 0.09, (60, 44, 32))  # leather grip
+    nock_x = tip_x - BOW_PULL * draw + string
+    for sign in (1, -1):
+        _segment(r, (tip_x, sign * tip_y, 0), (nock_x, 0, 0), 0.015, STRING, glow=False)
+    if nocked:
+        r.part("cube", 0.02, 0.06, 0, 0.06, 0.03, 0.04, (60, 44, 32))  # the arrow rest
+
+
+def _arrow_held(r, nock, tip):
+    """An arrow from its nock to its head: a dark shaft, red fletching at the nock, an iron head."""
+    _segment(r, nock, tip, 0.025, (120, 96, 70), glow=False)
+    d = [q - p for p, q in zip(nock, tip, strict=True)]
+    ln = math.sqrt(sum(c * c for c in d)) or 1e-6
+    u = [c / ln for c in d]
+    head = tuple(q + c * 0.06 for q, c in zip(tip, u, strict=True))
+    _segment(r, tip, head, 0.05, RIVET, glow=False)
+    fletch = tuple(p + c * 0.12 for p, c in zip(nock, u, strict=True))
+    for dy, dz in ((0.035, 0.0), (-0.02, 0.03), (-0.02, -0.03)):
+        _segment(r, (nock[0], nock[1] + dy, nock[2] + dz), (fletch[0], fletch[1] + dy, fletch[2] + dz), 0.03,
+                 (150, 40, 34), glow=False)  # fmt: skip
 
 
 def iron_bowman(r, e, t):
     """A gaunt archer in black scale over a mail skirt, a visored sallet with an ember behind its slit,
-    and a recurved bow of dark wood tipped in iron. He draws the string back to his cheek on the
-    windup and lets fly; close in, he clubs you with the bow. Slain, he sags and falls onto his back."""
+    and a recurved bow of dark wood tipped in iron, carried low in front of him. To shoot he raises
+    the bow before him, reaches back over his shoulder to the quiver for an arrow, sets it on the
+    string and draws it back to his cheek as the bow bends; loosed, the string snaps and shivers and
+    his drawing hand flies back past his ear, and the bow comes down again. Close in, he clubs you with
+    the bow. Slain, he sags and falls onto his back."""
     swing = walk_cycle(e, t) * 0.6
     fall = death_fall(e, 0.8)
     dead = e.state == "dead"
-    k = _windup_k(e)
-    shooting = e.attack_kind == "shot" and e.state in ("windup", "attack")
     bashing = e.attack_kind == "bite" and e.state in ("windup", "attack")
-    draw = k if shooting and e.state == "windup" else 0.0
-    bow_arm = -1.5 if shooting else strike_angle(e) if bashing else swing * 0.4 - 0.3
+    aim, draw, string, hand, arrow = _bow_pose(e, swing)
+    if bashing:
+        bow_arm = BOW_REST + strike_angle(e)
+    else:
+        bow_arm = _mix(BOW_REST + swing * 0.3, BOW_AIM, aim)
     with r.at(0, 0.3 * fall, 0, rz=1.35 * fall):
         for side, a in ((-0.13, swing), (0.13, -swing)):
             with r.at(0, 0.9, side, rz=a):
@@ -176,40 +304,25 @@ def iron_bowman(r, e, t):
             r.part("wedge", 0.0, 0.33, 0, 0.3, 0.08, 0.04, DARK)  # the comb
             r.part("cube", 0.14, 0.12, 0, 0.02, 0.03, 0.18, MOLTEN if not dead else CRUST, glow=not dead)
             r.part("cube", 0.12, -0.06, 0, 0.06, 0.1, 0.22, DARK)  # bevor over the jaw
-        # The bow hand holds the bow out in front; the other draws the string back.
-        with r.at(0, 1.42, -0.26, rz=bow_arm):
-            r.part("cube", 0, -0.3, 0, 0.1, 0.6, 0.1, DARK)
-            with r.at(0, -0.62, 0, rz=-bow_arm):
-                r.part("cube", 0, 0, 0, 0.11, 0.13, 0.13, DARK)  # the fist round the bow's grip
-                for i in range(5):  # the bow: a curve of five staves, its tips recurved
-                    y = (i - 2) * 0.28
-                    r.part(
-                        "cube", -0.04 * abs(i - 2) ** 1.5, y, 0, 0.05, 0.3, 0.05, BOW_WOOD, rz=(i - 2) * 0.25
-                    )
-                for sign in (1, -1):
-                    r.part(
-                        "wedge",
-                        -0.05,
-                        sign * 0.72,
-                        0,
-                        0.05,
-                        0.14,
-                        0.05,
-                        RIVET,
-                        rz=0.6 * sign + (0 if sign > 0 else math.pi),
-                    )
-                r.part("cube", 0, 0, 0, 0.07, 0.16, 0.07, (60, 44, 32))  # leather grip
-                pull = 0.08 + 0.45 * draw
-                r.part("cube", -pull / 2 - 0.15, 0.3, 0, pull, 0.01, 0.01, STRING, rz=-0.9)
-                r.part("cube", -pull / 2 - 0.15, -0.3, 0, pull, 0.01, 0.01, STRING, rz=0.9)
-                if shooting and e.state == "windup":
-                    r.part("cube", 0.15 - pull / 2, 0, 0, 0.9, 0.03, 0.03, (120, 116, 120))
-                    r.part("wedge", 0.6 - pull / 2, 0, 0, 0.03, 0.08, 0.05, RIVET, rz=-math.pi / 2)
-        with r.at(0, 1.42, 0.24, rz=-1.4 * draw if shooting else -swing * 0.4):
-            r.part("cube", 0, -0.15, 0, 0.1, 0.3, 0.1, DARK)
-            with r.at(0, -0.3, 0, rz=0.3 + 0.6 * draw):
-                r.part("cube", 0, -0.15, 0, 0.09, 0.3, 0.09, BLACK_IRON)
-                r.part("cube", 0, -0.33, 0, 0.11, 0.1, 0.12, DARK)  # the drawing hand
+        # The bow arm holds the bow out before him, upright; swung as a club, the bow swings with it.
+        with r.at(*BOW_SHOULDER, ry=-BOW_INWARD * aim, rz=bow_arm):
+            r.part("cube", 0, -BOW_ARM / 2, 0, 0.1, BOW_ARM, 0.1, DARK)
+            r.part("cube", 0, -BOW_ARM + 0.14, 0, 0.12, 0.14, 0.12, BLACK_IRON)  # the bracer
+        hx, hy, hz = _bow_hand(bow_arm, aim)
+        with r.at(hx, hy, hz, rz=bow_arm - BOW_REST if bashing else 0.0):
+            r.part("cube", 0, 0, 0, 0.12, 0.13, 0.13, DARK)  # the fist round the bow's grip
+            _bow(r, draw, string, arrow is not None and hand == arrow[0])
+        if arrow:
+            _arrow_held(r, *arrow)
+        # The drawing arm: hanging at his side, or reaching to the quiver, the string and back.
+        if hand is None:
+            with r.at(*DRAW_SHOULDER, rz=-swing * 0.4):
+                r.part("cube", 0, -0.15, 0, 0.1, 0.3, 0.1, DARK)
+                with r.at(0, -0.3, 0, rz=0.3):
+                    r.part("cube", 0, -0.16, 0, 0.09, 0.32, 0.09, BLACK_IRON)
+                    r.part("cube", 0, -0.32, 0, 0.11, 0.1, 0.12, DARK)  # the drawing hand
+        else:
+            _two_bone(r, DRAW_SHOULDER, hand, DRAW_UPPER, DRAW_FORE, DARK, BLACK_IRON, DARK)
 
 
 # --- the Slag Hound ----------------------------------------------------------------------------
@@ -856,74 +969,183 @@ def magma_vent(r, t):
                0.08, 0.08, 0.08, (255, 200, 90), glow=True)  # fmt: skip
 
 
-GATE_STYLES = {
-    # (stone, its texture, the cornice and plinth, the lanterns' light)
-    "town": ((200, 186, 160), "ashlar", (170, 156, 132), (255, 206, 130)),
-    "forge": ((92, 84, 86), "rough_stone", (70, 62, 64), MOLTEN),
-}
+# The north road's gate: a pointed arch of soot-black stone like the Vesper Gate's, but wrought in
+# iron and fire for the Cinderhold the road climbs to.
+ROAD_SPRING = 3.8  # where its pointed arch springs from the piers
+ROAD_HALF = 0.85  # half the doorway's width
+ROAD_TOP = 6.5  # the top of the lintel wall, under the cornice
+ROAD_BACK = 0.97  # the tunnel's far end, hard against the wall behind
+ROAD_FRONT = -0.45  # the gatehouse's face
+ROAD_WIDTH = 1.45  # half the gatehouse's width
+SOOT = (58, 50, 48)
+GATE_STONE = (130, 116, 110)  # black basalt, lit warm by its fires
+GATE_STONE_LIGHT = (164, 148, 138)
+HAZE = (62, 26, 14)  # the far end of the road, lit by the fires of the fortress
 
 
-def road_gate(r, t=0.0, style="town"):
-    """The gatehouse over the north road, its passage running along X: two piers on plinths carrying a
-    round arch of voussoirs under a crenellated lintel, the portcullis wound up into the arch with its
-    teeth showing, and an iron lantern hung on each pier's either face. The town's (`style="town"`)
-    is sandstone with the realm's crest over the arch, and both ends of the road use it; `"forge"` is the
-    same gate gone black with soot, its lanterns burning with ember and iron spikes on its merlons."""
-    stone, tex, trim, flame = GATE_STYLES[style]
-    # The road running on into darkness through the wall behind (+X), so the far end stays unseen: a
-    # black tunnel (its end hard against the wall, its sides and roof) you can walk right up to without
-    # ever seeing past it.
-    r.part("cube", 0.97, 1.95, 0, 0.04, 3.9, 1.72, PASSAGE_DARK)
-    for side in (-1, 1):
-        r.part("cube", 0.68, 1.95, side * 0.84, 0.6, 3.9, 0.04, PASSAGE_DARK)
-    r.part("cube", 0.68, 3.88, 0, 0.6, 0.04, 1.72, PASSAGE_DARK)
-    # The gatehouse's flanks, its masonry carried back from the piers and the lintel to the wall, so the
-    # tunnel is walled in stone and shows no black from the side.
-    for side in (-1, 1):
-        r.part("cube", 0.7, 2.3, side * 1.07, 0.6, 4.6, 0.5, stone, tex=tex)
-    r.part("cube", 0.7, 4.25, 0, 0.6, 0.7, 1.7, stone, tex=tex)
-    for side in (-1, 1):
-        z = side * 1.05
-        r.part("cube", 0, 0.2, z, 0.98, 0.4, 0.72, trim, tex=tex)  # the plinth
-        r.part("cube", 0, 1.6, z, 0.82, 2.8, 0.56, stone, tex=tex)  # the pier
-        r.part("cube", 0, 3.05, z, 0.92, 0.14, 0.66, trim, tex=tex)  # its impost, where the arch springs
-        r.part("cube", 0, 1.5, side * 0.765, 0.14, 2.6, 0.04, (24, 22, 24))  # the portcullis's groove
-    for i in range(7):  # the arch's voussoirs, a half ring over the passage
-        a = math.pi * i / 6
-        z, y = math.cos(a) * 0.86, 3.05 + math.sin(a) * 0.86
-        rgb = trim if i == 3 else stone
-        r.part("cube", 0, y, z, 0.9 if i == 3 else 0.86, 0.34 if i == 3 else 0.28, 0.4, rgb, tex=tex,
-               rx=math.pi / 2 - a)  # fmt: skip
-    for side in (-1, 1):  # the spandrels, walling in over the arch's haunches
-        r.part("cube", 0, 3.55, side * 1.05, 0.74, 1.0, 0.56, stone, tex=tex)
-    r.part("cube", 0, 4.25, 0, 0.74, 0.5, 2.66, stone, tex=tex)  # the lintel wall
-    r.part("cube", 0, 4.55, 0, 0.9, 0.12, 2.82, trim, tex=tex)  # the cornice
-    for i in range(4):  # the merlons
-        z = -1.2 + i * 0.8
-        r.part("cube", 0, 4.86, z, 0.78, 0.5, 0.42, stone, tex=tex)
-        if style == "forge":
-            r.part("lozenge", 0, 5.28, z, 0.05, 0.36, 0.05, BLACK_IRON)
-    # The portcullis, raised: bars hanging down out of the arch, a rail across them and their teeth.
+def _road_arch(half, spring):
+    """The pointed arch's geometry: (radius, apex height, the sweep of each arc from its springing)."""
+    mid = 2 * half + 0.2
+    return mid, spring + math.sqrt(mid * mid - half * half), math.pi - math.acos(-half / mid)
+
+
+def _anvil_crest(r, t):
+    """The Cinderhold's sign in wrought iron: an anvil with a flame rising out of it, under a crown of
+    iron spikes fanned out behind like the rays of a fire. Faces -X."""
+    for i in range(9):  # the spikes, fanned in a half ring behind it
+        a = math.pi * (0.06 + 0.88 * i / 8)
+        long = 0.62 if i % 2 == 0 else 0.46
+        r.part("lozenge", 0.06, math.sin(a) * long * 0.55 + 0.05, math.cos(a) * long * 0.55, 0.05, long, 0.05,
+               BLACK_IRON, rx=a - math.pi / 2)  # fmt: skip
+    r.part("cyl", 0.04, 0.05, 0, 0.66, 0.06, 0.66, MOLTEN, rz=math.pi / 2, glow=True)  # its hot rim
+    r.part("cyl", 0.02, 0.05, 0, 0.58, 0.06, 0.58, DARK, rz=math.pi / 2)  # the disc behind it
+    r.part("cube", 0, -0.18, 0, 0.12, 0.1, 0.34, BLACK_IRON)  # the anvil's foot
+    r.part("cube", 0, -0.08, 0, 0.1, 0.12, 0.16, BLACK_IRON)  # its waist
+    r.part("cube", 0, 0.03, 0.02, 0.14, 0.1, 0.44, BLACK_IRON)  # its face
+    r.part("wedge", 0, 0.03, -0.27, 0.12, 0.1, 0.16, BLACK_IRON, rx=math.pi / 2)  # its horn
+    r.part("cube", -0.07, 0.08, 0.02, 0.02, 0.02, 0.4, RIVET)
+    with r.at(-0.05, 0.22, 0.02, s=0.75):
+        fireball(r, MOLTEN, t, 0.9, seed=4.0)
+
+
+def _cresset(r, t, seed, size=0.55):
+    """An iron fire basket, burning: a flared cage of bars round a bed of coals, flames above it."""
+    r.part("frustum", 0, 0, 0, 0.34, 0.24, 0.34, BLACK_IRON)
     for i in range(6):
-        z = -0.6 + i * 0.24
-        r.part("cube", 0, 3.0, z, 0.06, 0.9, 0.06, BLACK_IRON)
-        r.part("lozenge", 0, 2.45, z, 0.05, 0.22, 0.05, BLACK_IRON, rz=math.pi)
-    for y in (2.75, 3.25):
-        r.part("cube", 0, y, 0, 0.07, 0.07, 1.36, BLACK_IRON)
-    if style == "town":
-        with r.at(0, 4.15, 0):  # the realm's crest over the arch, carved through the lintel
-            realm_crest(r, (214, 184, 112), cy=0.0, scale=0.75, through=0.78)
-    else:
-        for side in (-1, 1):  # soot licking up both faces of the arch
-            r.part("cube", side * 0.38, 3.9, 0, 0.02, 0.9, 1.2, (40, 34, 34))
-    for side in (-1, 1):  # the lanterns, one on each face of each pier
-        for face in (-1, 1):
-            flick = 0.85 + 0.15 * math.sin(t * 6 + side * 2 + face)
-            with r.at(face * 0.42, 2.35, side * 1.05):
-                r.part("cube", face * 0.12, 0.12, 0, 0.24, 0.04, 0.04, BLACK_IRON)  # the bracket
-                r.part("cube", face * 0.22, -0.08, 0, 0.16, 0.22, 0.16, BLACK_IRON)  # the lantern's cage
-                r.part("cube", face * 0.22, -0.08, 0, 0.12, 0.17, 0.17, _dim_rgb(flame, flick), glow=True)
-                r.part("frustum", face * 0.22, 0.08, 0, 0.2, 0.1, 0.2, BLACK_IRON)  # its hood
+        a = i * math.pi / 3
+        r.part("cube", math.cos(a) * 0.17, 0.16, math.sin(a) * 0.17, 0.03, 0.2, 0.03, BLACK_IRON, ry=-a)
+    r.part("cyl", 0, 0.12, 0, 0.3, 0.04, 0.3, MOLTEN, glow=True)  # the coals
+    with r.at(0, 0.18, 0):
+        fireball(r, MOLTEN, t, size, seed=seed, lean=True)
+
+
+def road_gate(r, t=0.0):
+    """The gatehouse over the north road, at both its ends, its passage running along X (+X on into
+    the wall): soot-black stone on stepped plinths, its piers strapped and studded in iron, rising to a
+    tall pointed arch whose joints glow with heat, as though the fire of the Cinderhold ran in the
+    mortar. Over the keystone, the fortress's sign: an anvil with a flame rising from it under a crown
+    of iron spikes, and fire baskets burn on the cornice and on brackets either side of the door. The
+    portcullis is wound up into the arch, its teeth glowing at their tips, on chains to winches in the
+    piers; two leaves of riveted iron stand swung back against the passage, and the road runs on
+    through a dim red haze, sparks drifting out of it, toward the fires to the north."""
+    spring, half, top, front, width = ROAD_SPRING, ROAD_HALF, ROAD_TOP, ROAD_FRONT, ROAD_WIDTH
+    mid, apex, span = _road_arch(half, spring)
+    depth = ROAD_BACK - front
+    cx = (ROAD_BACK + front) / 2
+    stone, light = GATE_STONE, GATE_STONE_LIGHT
+    # The road on into the dark: its far end a haze of firelight, the tunnel's sides and roof black.
+    r.part("cube", ROAD_BACK, (spring + 0.2) / 2, 0, 0.04, spring + 0.2, 2 * half + 0.1, PASSAGE_DARK)
+    for k in range(3):  # brightest low down, where the road runs on, fading up into the dark
+        h = (spring - 0.2) / 3
+        r.part("cube", ROAD_BACK - 0.06, 0.1 + h * (k + 0.5), 0, 0.02, h + 0.02, 2 * half - 0.1,
+               _dim_rgb(HAZE, 1.3 - 0.4 * k), glow=True)  # fmt: skip
+    for side in (-1, 1):
+        r.part("cube", 0.3, (spring + 0.2) / 2, side * (half + 0.02), 1.3, spring + 0.2, 0.04, PASSAGE_DARK)
+    r.part("cube", 0.3, spring + 0.12, 0, 1.3, 0.04, 2 * half + 0.1, PASSAGE_DARK)
+    for i in range(6):  # sparks drifting out through the arch
+        u = (t * 0.35 + i / 6) % 1.0
+        r.part("cube", 0.9 - 1.8 * u, 0.4 + 2.6 * ((i * 0.41) % 1.0) + 0.6 * u, (i - 2.5) * 0.26 * (1 - u * 0.4),
+               0.05, 0.05, 0.05, _dim_rgb(EMBER, 1 - 0.6 * u), glow=True)  # fmt: skip
+    # The piers, carried right back to the wall, on stepped plinths, strapped in iron.
+    pz = (half + width) / 2  # the middle of a pier
+    pw = width - half
+    for side in (-1, 1):
+        z = side * pz
+        r.part("cube", cx - 0.06, 0.2, z, depth + 0.12, 0.4, pw + 0.12, SOOT, tex="rough_stone")
+        r.part("cube", cx - 0.03, 0.5, z, depth + 0.06, 0.2, pw + 0.06, stone, tex="rough_stone")
+        r.part("cube", cx, spring / 2, z, depth, spring, pw, stone, tex="rough_stone")
+        for y in (0.95, 2.05, 3.15):  # the iron straps round the pier's face, studded
+            r.part("cube", front - 0.02, y, z, 0.04, 0.16, pw + 0.02, (150, 146, 156), tex="iron_plate")
+            for dz in (-0.2, 0.0, 0.2):
+                r.part("cube", front - 0.05, y, z + dz, 0.03, 0.05, 0.05, RIVET)
+        r.part(
+            "cube",
+            front - 0.02,
+            1.55,
+            z + side * 0.1,
+            0.03,
+            0.46 + 0.04 * math.sin(t * 5 + side),
+            0.07,
+            MOLTEN,
+            glow=True,
+        )  # an arrow slit, firelit within
+        r.part("cube", cx - 0.04, spring - 0.07, z, depth + 0.08, 0.14, pw + 0.1, SOOT, tex="rough_stone")
+        r.part("cube", front + 0.1, 1.8, side * (half + 0.04), 0.1, 3.4, 0.04, (20, 18, 20))  # the groove
+        # A fire basket on a bracket out from the pier's face.
+        with r.at(front - 0.34, 2.6, z):
+            r.part("cube", 0.17, -0.2, 0, 0.3, 0.05, 0.05, BLACK_IRON, rz=0.6)
+            r.part("cube", 0.2, 0.02, 0, 0.26, 0.05, 0.05, BLACK_IRON)
+            _cresset(r, t, side * 3.0, 0.5)
+    # The pointed arch: its voussoirs in courses of black and lighter stone, the joints between them
+    # glowing with heat.
+    for side in (-1, 1):
+        for i in range(6):
+            a = math.pi - (i + 0.5) * span / 6
+            vz, vy = half + mid * math.cos(a), spring + mid * math.sin(a)
+            r.part("cube", front + 0.02, vy, side * vz, 0.34, 0.4, 0.4, light if i % 2 else stone,
+                   tex="rough_stone", rx=side * (math.pi / 2 - a))  # fmt: skip
+            if i:  # the hot seam on its joint with the last
+                b = math.pi - i * span / 6
+                jz, jy = half + mid * math.cos(b), spring + mid * math.sin(b)
+                r.part("cube", front - 0.16, jy, side * jz, 0.02, 0.03, 0.4, MOLTEN,
+                       rx=side * (math.pi / 2 - b), glow=True)  # fmt: skip
+        # The spandrel over the arch's haunch, built up in courses to the arch's outer edge.
+        outer = mid + 0.2
+        y = spring
+        while y < apex:
+            h = min(0.3, apex - y)
+            dz = math.sqrt(max(outer * outer - (y + h - spring) ** 2, 0.0))
+            inner = max(dz - half, 0.0)  # the arch's outer edge at the top of this course
+            if width > inner:
+                r.part("cube", cx, y + h / 2, side * (inner + width) / 2, depth, h, width - inner, stone,
+                       tex="rough_stone")  # fmt: skip
+            y += h
+    r.part("cube", front - 0.02, apex + 0.05, 0, 0.42, 0.62, 0.42, light, tex="rough_stone")  # keystone
+    # The lintel wall over it all, the cornice, merlons spiked with iron and fire baskets between.
+    r.part("cube", cx, (apex + top) / 2, 0, depth, top - apex, 2 * width, stone, tex="rough_stone")
+    r.part("cube", cx - 0.06, top + 0.06, 0, depth + 0.12, 0.12, 2 * width + 0.16, SOOT, tex="rough_stone")
+    for z in (-1.2, 1.2, -0.42, 0.42):
+        r.part("cube", cx, top + 0.42, z, depth - 0.1, 0.6, 0.46, stone, tex="rough_stone")
+        r.part("lozenge", front + 0.2, top + 0.92, z, 0.05, 0.4, 0.05, BLACK_IRON)
+    for z in (-0.81, 0.81):
+        with r.at(front + 0.1, top + 0.24, z):
+            _cresset(r, t, z * 5.0, 0.6)
+    r.part("cube", front - 0.02, top - 0.4, 0, 0.04, 0.6, 2 * width - 0.2, SOOT)  # soot over the arch
+    with r.at(front - 0.24, apex + 0.55, 0, s=1.1):
+        _anvil_crest(r, t)
+    # The tympanum under the arch: a fanlight of iron bars before the glow of the haze beyond, over an
+    # iron transom at the springing.
+    r.part("cube", front + 0.3, spring + 0.06, 0, 0.16, 0.16, 2 * half + 0.1, BLACK_IRON)
+    r.part("cube", front + 0.36, (spring + apex) / 2, 0, 0.02, apex - spring, 2 * half, HAZE, tex="mist",
+           glow=True)  # fmt: skip
+    for i in range(7):  # the fanlight's rays from the middle of the transom
+        a = math.pi * (0.12 + 0.76 * i / 6)
+        ln = 1.6
+        r.part("cube", front + 0.3, spring + 0.1 + math.sin(a) * ln / 2, math.cos(a) * ln / 2, 0.04,
+               ln, 0.04, BLACK_IRON, rx=a - math.pi / 2)  # fmt: skip
+    # The portcullis, wound up: its bars hanging out of the arch, a rail across them, teeth hot at
+    # their tips, and the chains up into the piers.
+    for i in range(7):
+        z = (i - 3) * 0.24
+        r.part("cube", front + 0.12, spring - 0.42, z, 0.06, 0.7, 0.06, BLACK_IRON)
+        r.part("lozenge", front + 0.12, spring - 0.86, z, 0.05, 0.2, 0.05, BLACK_IRON, rz=math.pi)
+        r.part("cube", front + 0.12, spring - 0.96, z, 0.04, 0.05, 0.04, EMBER, glow=True)
+    r.part("cube", front + 0.12, spring - 0.5, 0, 0.07, 0.07, 2 * half, BLACK_IRON)
+    for side in (-1, 1):
+        for k in range(5):  # the chain, link by link up into the pier
+            u = k / 4
+            r.part("cube", front + 0.2, spring - 0.3 + 0.12 * k, side * (half - 0.25 + 0.06 * k), 0.03,
+                   0.1, 0.05 if k % 2 else 0.02, DARK, rx=side * 0.45 * u)  # fmt: skip
+    # The leaves of riveted iron, swung back against the passage either side.
+    for side in (-1, 1):
+        with r.at(front + 0.12, 0, side * (half - 0.08), ry=-side * 1.45), r.at(0, 0, -side * half / 2):
+            r.part("cube", 0, (spring - 0.6) / 2, 0, 0.08, spring - 0.6, half - 0.06, (150, 146, 156),
+                   tex="iron_plate")  # fmt: skip
+            for y in (0.4, 1.5, 2.6):  # its bands, studded, on the face turned to the road
+                r.part("cube", -0.05, y, 0, 0.03, 0.14, half - 0.04, BLACK_IRON)
+                for dz in (-0.25, 0.0, 0.25):
+                    r.part("cube", -0.07, y, dz, 0.03, 0.05, 0.05, RIVET)
+    r.part("cube", cx, 0.03, 0, depth, 0.06, 2 * half + 0.4, SOOT, tex="rough_stone")  # the threshold
 
 
 def keep_door(r, t):

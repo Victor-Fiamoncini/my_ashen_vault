@@ -358,5 +358,6 @@ z = mushrooms on=y
 ( = exit map=vesperholm at=21,100,-90 label=Pass_the_Vesper_Gate model=vesper_gate yaw=90 on=;
 // A cold light beside it, so its pale stone shows at the top of the porch.
 ) = light y=4.5 color=0.62,0.7,0.92 radius=7 on=;
-// The north road, out through the wall to the Cinderhold.
+// The north road, out through the wall to the Cinderhold, under a gate built in its likeness: black
+// stone and iron, fire baskets burning on it and a red haze down the road beyond.
 N = exit map=cinderhold at=30,111,-90 label=Take_the_north_road model=road_gate yaw=-90 on=-
