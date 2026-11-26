@@ -1,24 +1,16 @@
 """Models for Herran's Castle, which hangs over a sea of cloud between the sun and Vesperholm's moon:
-the stair of light between it and Vesperholm, built in the castle's Victorian Gothic manner (gilt cast
-iron, brass and glass), and the castle's own dressing.
+the castle's own dressing, built in its Victorian Gothic manner (gilt cast iron, brass and glass).
 Original low-poly models assembled from primitives; like everything in `models`, they face +X."""
 
 import math
 
 from ashen_vault.render.parts import HIT_GLOW, _bar, _dim, death_fall, hit_tint
-from ashen_vault.util import rround
 
 GILT = (196, 150, 70)  # gilt cast iron and brass, the castle's metal
 GILT_DARK = (120, 86, 42)
 IRON = (46, 52, 48)  # cast iron painted a dark green, flaking
-SUNLIGHT = (255, 214, 140)  # the stair's light: the sun's, caught and held
-MOONLIGHT = (214, 230, 255)
+SUNLIGHT = (255, 214, 140)  # the warm gaslight of the castle's lamps
 LAMP_GLASS = (255, 226, 160)
-
-
-def _blend(a, b, k):
-    """The colour `k` of the way from `a` to `b`."""
-    return tuple(rround(x + (y - x) * k) for x, y in zip(a, b, strict=True))
 
 
 def _lamp_post(r, z, t, height=2.6):
@@ -37,51 +29,6 @@ def _lamp_post(r, z, t, height=2.6):
         r.part("sphere", 0, height + 0.42, 0, 0.06, 0.06, 0.06, GILT)  # its finial
         flame = 0.09 + 0.012 * math.sin(t * 5 + z)
         r.part("sphere", 0, height - 0.02, 0, flame, flame * 1.5, flame, SUNLIGHT, glow=True)
-
-
-def sky_stair(r, t, way="up"):
-    """The stair of light between Vesperholm and Herran's Castle, its head at the tile's middle and
-    running off along +X: at its head two gilt lamp posts and a wrought-iron arch between them crowned
-    with a sun; past it, treads of held light, edged in brighter light, hanging on nothing. `way="up"`
-    climbs (Vesperholm's end, up into the sky); `way="out"` runs out level from the quay's edge and
-    fades into the cloud. Motes of light drift up off it. Nothing of it is below the floor."""
-    with r.at(0.85, 0, 0):  # its head on the tile's +X edge, so the stair runs off it, not across it
-        _sky_stair(r, t, way)
-
-
-def _sky_stair(r, t, way):
-    half = 0.95  # the arch's half-width
-    for side in (-1, 1):
-        _lamp_post(r, side * half, t)
-    for i in range(9):  # the arch: a round of wrought-iron bars between the posts' lanterns
-        a0, a1 = math.pi * i / 9, math.pi * (i + 1) / 9
-        p0 = (0, 3.05 + math.sin(a0) * 0.8, math.cos(a0) * half)
-        p1 = (0, 3.05 + math.sin(a1) * 0.8, math.cos(a1) * half)
-        _bar(r, p0, p1, 0.06, IRON if i % 2 else GILT_DARK)
-    for side in (-1, 1):  # scrolls hung inside it
-        r.part("cyl", 0, 3.25, side * 0.42, 0.24, 0.03, 0.24, GILT, rz=math.pi / 2)
-    with r.at(0, 4.05, 0):  # the sun that crowns it
-        r.part("cyl", 0, 0, 0, 0.36, 0.06, 0.36, GILT, rz=math.pi / 2)
-        r.part("cyl", 0.02, 0, 0, 0.22, 0.06, 0.22, SUNLIGHT, rz=math.pi / 2, glow=True)
-        for i in range(8):
-            a = i * math.pi / 4 + t * 0.2
-            r.part("cube", 0, math.sin(a) * 0.3, math.cos(a) * 0.3, 0.04, 0.16, 0.05, GILT, rx=-a)
-    treads = 10
-    for i in range(treads):
-        fade = 1 - i / (treads + 2)
-        if way == "up":
-            x, y = 0.6 + i * 0.6, 0.12 + i * 0.42
-        else:
-            x, y = 0.6 + i * 0.7, 0.06 + 0.02 * i
-        light = _blend(MOONLIGHT, SUNLIGHT, i / treads)
-        pulse = 0.85 + 0.15 * math.sin(t * 2 - i * 0.6)
-        r.part("cube", x, y, 0, 0.5, 0.06, 1.5 - i * 0.03, _dim(light, 0.7 * fade * pulse), glow=True)
-        r.part("cube", x + 0.24, y + 0.03, 0, 0.04, 0.04, 1.54 - i * 0.03, _dim(light, fade), glow=True)
-    for k in range(6):  # motes drifting up off the treads
-        s = (t * 0.35 + k / 6) % 1
-        x = 0.8 + (k * 1.37) % 5
-        y = (x * 0.7 if way == "up" else 0.1) + s * 1.6
-        r.part("sphere", x, y, (k % 3 - 1) * 0.5, 0.04, 0.04, 0.04, _dim(SUNLIGHT, 1 - s), glow=True)
 
 
 # --- The castle's dressing ------------------------------------------------------------------------

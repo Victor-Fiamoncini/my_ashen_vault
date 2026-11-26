@@ -132,7 +132,7 @@ SIGIL_HINT = {
     ),
     "auric_sigil": (
         "The Auric Sigil is above the clouds, with Herran. Lift the Argent Sigil from Lyra's hands "
-        "in Vesperholm, and climb the stair of light."
+        "in Vesperholm, and pass the portal behind her."
     ),
 }
 SIGIL_FALLEN = {
@@ -263,7 +263,7 @@ def odrin(game, flags, inv):
             "The grate in the Gaol Ward leads down into the old prison. The green trail east leads to the hollow's cave.",
             "The north road climbs to the Cinderhold. Its bridge crosses a gorge of fire.",
             "The cathedral steps climb to the Vesper Gate. It stands open on Vesperholm, under the moon.",
-            "Past Lyra's altar in Vesperholm, a stair of light climbs to Herran's castle above the clouds.",
+            "In Lyra's chapel above Vesperholm, a portal opens to Herran's castle above the clouds.",
             "Save your strength at the stone shrines. The old wardens built them for the Ashen. Many knelt there.",
         ],
         None,

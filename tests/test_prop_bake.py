@@ -279,7 +279,7 @@ def test_a_long_prop_stays_drawn_from_the_far_end_of_it():
     its foot looking out over the court, its top is far behind you, but the steps under your feet are
     its own and must still be drawn."""
     world, game = _baking_world("vesperholm")
-    stair = next(p for p in world.props if p.kind == "moon_stair")
+    stair = max((p for p in world.props if p.kind == "moon_stair"), key=lambda p: p.tz)  # the overlook's
     entries = [e for e in world.view._baked if e[2] == prop_bake.chunk_of(stair.tx, stair.tz) and e[3]]
     world.player.x, world.player.z = stair.x, stair.z - 22.0  # at the foot, the top behind you
     world.player.yaw = -math.pi / 2

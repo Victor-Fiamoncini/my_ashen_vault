@@ -140,28 +140,31 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   cathedral steps; it always stands open: `--map harrowmere --at=22,15,-90` (from the foot of the steps,
   the gate straight ahead up the porch), `--map harrowmere --at=22,2,-90 --script "wait:0.3 interact"`
   (goes through, even on a fresh save). Areas: `--map vesperholm` (the Glimmering Cave's hall, its
-  `start`, the Vesper Gate behind you), `--at=8,93,-90 --smoke 75 --script "forward:0.75 wait:0.45"` (a
-  Glassmite in the geode gallery unfolds), `--at 24,83,0` (the moon-pool grotto), `--at=16,60,-80` (the
-  overlook's parapet: the city, the cathedral and the moon), `--at=21,72,-90` (the overlook at the cave's
-  mouth, the shrine at 17,71, the grand stair down into the Gate Court), `--at 21,67,90 --script
-  "look_up:0.15"` (the cave's mouth from the stair), `--at=21,54,-90` (the Gate Court), `--at=21,43,-90
+  `start`, the Vesper Gate behind you), `--at=8,113,-90 --smoke 75 --script "forward:0.75 wait:0.45"` (a
+  Glassmite in the geode gallery unfolds), `--at 24,103,0` (the moon-pool grotto), `--at=16,80,-80` (the
+  overlook's parapet: the city, the cathedral and the moon), `--at=21,92,-90` (the overlook at the cave's
+  mouth, the shrine at 17,91, the grand stair down into the Gate Court), `--at 21,87,90 --script
+  "look_up:0.15"` (the cave's mouth from the stair), `--at=21,74,-90` (the Gate Court), `--at=21,63,-90
   --script "look_up:0.5"` (the moon and the stars over Lantern Square, from beside its moon pool),
-  `--at=19,32,-70 --script "forward:0.25 look_down:0.7"` (the great bridge sunk on the gorge floor),
-  `--at=21,34,-90 --flags lever:vesper_bridge` (the great bridge raised, across to the castle's postern), `--at=4,35,-90` (the west street
-  and the Glass Bridge), `--at=21,26,-90 --script "look_up:0.25"` (the cathedral's front from the bailey),
-  `--at=21,17,-90` (the nave). A fight: `--at=25,42,-90 --level 6 --equip primary=katana,secondary=buckler
-  --script "wait:2.2"` (a Lantern Wraith's lances), `--at=17,21,180 --script "wait:0.9 attack"` (a Veiled
-  Knight in the bailey). Shortcut: `--at=20,25,90 --script "wait:0.2 interact wait:2.6 strafe_l:0.45 forward:4.5" --smoke 520`
+  `--at=19,52,-70 --script "forward:0.25 look_down:0.7"` (the great bridge sunk on the gorge floor),
+  `--at=21,54,-90 --flags lever:vesper_bridge` (the great bridge raised, across to the castle's postern), `--at=4,55,-90` (the west street
+  and the Glass Bridge), `--at=21,46,-90 --script "look_up:0.25"` (the cathedral's front from the bailey),
+  `--at=21,37,-90` (the nave). A fight: `--at=25,62,-90 --level 6 --equip primary=katana,secondary=buckler
+  --script "wait:2.2"` (a Lantern Wraith's lances), `--at=17,41,180 --script "wait:0.9 attack"` (a Veiled
+  Knight in the bailey). Shortcut: `--at=20,45,90 --script "wait:0.2 interact wait:2.6 strafe_l:0.45 forward:4.5" --smoke 520`
   (the drawbridge's lever in the bailey; walk out through the gatehouse and over it to the Landing). Boss:
-  `--at=21,8,-90 --level 8 --equip primary=katana,secondary=buckler --script "wait:4.2"` (Duchess Ilvane
-  rising in her choir behind its great door at 21,9). After her, with `--flags duchess_dead`:
-  `--at=31,2,0 --script "interact wait:1.2"` (her choir's back door onto the old stair), `--at=33,11,90`
-  (the gallery over her garden), `--at=35,18,0 --script "forward:1 interact wait:1"` (take the Argent
-  Sigil from Lyra's altar at the bridge's end) and `--at=37,21,-90 --script "look_up:0.3"` (the bridge
-  and the altar from the bailey).
-- Herran's Castle (`herrans_castle`) is up the stair of light beside Lyra's altar in Vesperholm, there
-  only once the Argent Sigil is taken: `--map vesperholm --at=34,18,0 --flags duchess_dead,argent_sigil_taken
-  --script "wait:0.3 interact"` (go up; without the flag nothing stands there). Areas: `--map
+  `--at=21,28,-90 --level 8 --equip primary=katana,secondary=buckler --script "wait:4.2"` (Duchess Ilvane
+  rising in her choir behind its great door at 21,29). After her, with `--flags duchess_dead`:
+  `--at=31,22,0 --script "interact wait:1.2"` (her choir's back door onto the old stair),
+  `--at=33,22,-90 --smoke 200 --script "forward:3"` (up the old stair through the wall and its tower),
+  `--at=33,17,180` (the flying stair over the drop behind the cathedral, the chapel's crag beyond it),
+  `--at=24,17,-90 --script "look_up:0.3"` (the grand stair from the Moon Terrace, the chapel's front at
+  its head), `--at=21,8,-90` (Lyra's Chapel: her altar in the nave, the apse behind her),
+  `--at=21,6,-90 --script "interact wait:1"` (take the Argent Sigil from Lyra's hands) and
+  `--at=27,46,-110 --script "look_up:0.4"` (the chapel's roof over the cathedral's, from the bailey).
+- Herran's Castle (`herrans_castle`) is through the portal behind Lyra's altar in Vesperholm, there
+  only once the Argent Sigil is taken: `--map vesperholm --at=21,3,-90 --flags duchess_dead,argent_sigil_taken
+  --script "wait:0.3 interact"` (go through; without the flag nothing stands there). Areas: `--map
   herrans_castle` (the Cloud Quay, its `start`), `--at=16,37,90 --script "look_down:0.3"` (the sea of cloud
   from the quay's edge), `--at=4,3,0` (along the Ring), `--at=7,10,90` (the Laboratory and its false wall;
   `attack` it, then `--at=7,14,180` is the secret lab), `--at=7,23,0` (the Clock Tower's top at 10 m),

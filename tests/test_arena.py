@@ -29,7 +29,7 @@ def world_on(name, flags=(), at=None):
         ("cinder_keep", "gargoyles_dead", (4, 4)),
         ("ashen_cemetery", "sexton_dead", (10, 5)),
         ("harrow_sewers", "pall_dead", (41, 8)),
-        ("vesperholm", "duchess_dead", (21, 4)),
+        ("vesperholm", "duchess_dead", (21, 24)),
         ("old_harrowmere", "keystone_dead", (22, 43)),
         ("herran_spire", "herran_dead", (17, 6)),
     ],

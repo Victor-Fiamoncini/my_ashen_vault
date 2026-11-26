@@ -1207,8 +1207,9 @@ def test_the_vesper_gate_joins_town_and_vesperholm_both_ways():
 def test_vesperholm_is_solvable():
     """From the Vesper Gate, up through the Glimmering Cave, every street, chest and the lever can be
     reached with only the false wall opened, over the Glass Bridge; the Duchess waits behind her great
-    door. Lyra's altar, with the Argent Sigil, is reached only through her choir and out of its back
-    door, up the stair in the cathedral's wall: neither door alone, nor any way round, gets you there.
+    door. Lyra's altar, with the Argent Sigil, in her chapel on the crag behind the cathedral, is reached
+    only through the choir and out of its back door, up the stair in the cathedral's wall and the
+    flying stair beyond: neither door alone, nor any way round, gets you there.
     The great bridge is a shortcut, three tiles abreast across the gorge: both its ends are
     reachable before it rises. Nowhere you can get to strands you."""
     m = _vesperholm()
@@ -1220,7 +1221,7 @@ def test_vesperholm_is_solvable():
     (altar,) = _spec(m, "altar", item="argent_sigil")
     before = _reachable(m, start, open_tiles=secrets)
     assert (duchess.tx, duchess.tz) not in before  # her choir lies behind its great door
-    near_altar = {  # beside it on its own floor: the bridge, not the bailey or garden 4.5 m below
+    near_altar = {  # beside it on its own floor: the chapel's, not the drop below
         (altar.tx + dx, altar.tz + dz)
         for dx, dz in BESIDE
         if m[altar.tx + dx, altar.tz + dz].floor == m[altar.tx, altar.tz].floor
@@ -1281,7 +1282,7 @@ def test_the_vesper_gate_opens_into_a_crystal_cave_that_climbs_to_an_overlook():
     assert any(m[t].ceil is None for t in cave)  # the moon-pool grotto, open to the sky
     mites = _spec(m, "glassmite")
     assert len(mites) == 3 and all(m[s.tx, s.tz].ceil is not None for s in mites)
-    (stair,) = _spec(m, "moon_stair")  # its own, not Harrowmere's
+    stair = max(_spec(m, "moon_stair"), key=lambda s: s.tz)  # the overlook's, not the chapel's
     assert int(stair.props["run"]) * float(stair.props["rise"]) == pytest.approx(6.0)
     foot = (stair.tx, stair.tz - int(stair.props["run"]))
     assert m[foot].floor == 0 and foot in reach  # down into the court
@@ -1290,9 +1291,11 @@ def test_the_vesper_gate_opens_into_a_crystal_cave_that_climbs_to_an_overlook():
 def test_vesperholms_cathedral_front_is_a_great_gate_under_victorian_roofs():
     """The cathedral's front on the bailey is its great gate, standing in a doorway three tiles wide
     that you can walk straight through into the nave, its windows hung clear of it; every roof in the
-    city is a Victorian one of polychrome slate, and the cathedral's is the grand one."""
+    city is a Victorian one of polychrome slate, and the grand ones are the cathedral's and, higher still
+    on its crag behind it, Lyra's Chapel's."""
     m = _vesperholm()
-    (portal,) = _spec(m, "moon_portal")
+    portal, chapel = sorted(_spec(m, "moon_portal"), key=lambda s: -s.tz)  # the cathedral's; Lyra's Chapel's
+    assert chapel.tz < portal.tz - 20  # the chapel's, on its crag far behind the cathedral
     for dx in (-1, 0, 1):
         tile = m[portal.tx + dx, portal.tz]
         assert not tile.solid and tile.ceil is not None, dx  # under the arch, three tiles wide
@@ -1303,8 +1306,10 @@ def test_vesperholms_cathedral_front_is_a_great_gate_under_victorian_roofs():
         if w.tz == portal.tz + 1:
             assert abs(w.tx - portal.tx) >= 6, (w.tx, w.tz)  # clear of the portal's buttresses
     assert not _spec(m, "roof") and len(_spec(m, "moon_roof")) >= 10
-    (grand,) = [s for s in _spec(m, "moon_roof") if "grand" in s.props]
+    grand, lyras = sorted((s for s in _spec(m, "moon_roof") if "grand" in s.props), key=lambda s: -s.tz)
     assert grand.props["span"] == "22,18" and float(grand.props["pitch"]) > 7
+    ridges = [float(roof.props["top"]) + float(roof.props["pitch"]) for roof in (grand, lyras)]
+    assert ridges[1] > ridges[0] + 6  # Lyra's Chapel's roof stands high over the cathedral's
 
 
 def test_vesperholms_gorge_is_a_sheer_drop_under_the_open_moon():

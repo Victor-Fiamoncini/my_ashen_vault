@@ -116,3 +116,60 @@ def test_a_save_from_before_the_prison_was_renamed_loads_into_it(tmp_path):
         "chest:harrowmere:3,3",
     }
     assert s.summary().map == "abandoned_prison"
+
+
+def _old_save(s, map_name, player, flags, version):
+    s.save(map_name, player, set())
+    with open(s.path, encoding="utf-8") as f:
+        data = json.load(f)
+    data["version"] = version
+    data["flags"] = flags
+    with open(s.path, "w", encoding="utf-8") as f:
+        json.dump(data, f)
+
+
+def test_a_save_from_before_vesperholm_grew_its_crag_wakes_where_it_was_made(tmp_path):
+    """Vesperholm gained twenty rows to the north, the crag behind its cathedral and Lyra's Chapel on
+    it: an older save made there wakes on the same spot, its remnant and the tiles its flags name moved
+    with the city; flags of other maps, and flags naming no tile, stay as they were."""
+    s = SaveSystem(str(tmp_path / "save.json"))
+    player = Player()
+    player.x, player.z = 35.0, 143.0  # the shrine on the overlook, by the old grid
+    player.remnant = {"map": "vesperholm", "x": 43.0, "z": 45.0, "gold": 30}
+    flags = [
+        "duchess_dead",
+        "lever:vesper_bridge",
+        "chest:vesperholm:40,3",
+        "slain:vesperholm:21,4",
+        "loot:slain:vesperholm:21,4",
+        "hint:vesperholm:P",
+        "chest:harrowmere:3,3",
+    ]
+    _old_save(s, "vesperholm", player, flags, 2)
+    _map, loaded, got = s.load()
+    assert (loaded.x, loaded.z) == (35.0, 183.0)
+    assert (loaded.remnant["x"], loaded.remnant["z"]) == (43.0, 85.0)
+    assert got == {
+        "duchess_dead",
+        "lever:vesper_bridge",
+        "chest:vesperholm:40,23",
+        "slain:vesperholm:21,24",
+        "loot:slain:vesperholm:21,24",
+        "hint:vesperholm:P",
+        "chest:harrowmere:3,3",
+    }
+
+
+def test_a_save_made_since_vesperholm_grew_or_elsewhere_stays_put(tmp_path):
+    s = SaveSystem(str(tmp_path / "save.json"))
+    player = Player()
+    player.x, player.z = 35.0, 183.0
+    _old_save(s, "vesperholm", player, ["chest:vesperholm:40,23"], 3)
+    _map, loaded, got = s.load()
+    assert (loaded.x, loaded.z) == (35.0, 183.0) and got == {"chest:vesperholm:40,23"}
+    player.x, player.z = 10.0, 20.0
+    player.remnant = {"map": "harrowmere", "x": 4.0, "z": 6.0, "gold": 5}
+    _old_save(s, "harrowmere", player, ["chest:harrowmere:3,3"], 2)
+    _map, loaded, got = s.load()
+    assert (loaded.x, loaded.z) == (10.0, 20.0) and loaded.remnant["z"] == 6.0
+    assert got == {"chest:harrowmere:3,3"}

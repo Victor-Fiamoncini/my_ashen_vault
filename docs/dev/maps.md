@@ -85,13 +85,20 @@ How `.map` files work and what can stand on a tile.
   (`moon_glass`) at the west street's head into the castle's postern; the bailey, the west chapel and
   the Duchess's garden; the Cathedral of the Long Night, its nave, and behind its great door
   (`door boss=duchess_dead`) the choir floored in moon-glass where Duchess Ilvane waits. Her choir has a
-  second mouth, a back door in its east wall (`door boss=duchess_dead rear` at 32,2: it seals, fogs and
-  opens with the great door, and `rear` keeps the compass off it), onto the old stair in the
-  cathedral's east wall (half a metre a tile under its own vaults, walled off from the garden), the
-  gallery at 4.5 m along the cathedral's flank over the Duchess's garden and the bridge at its end over
-  the garden's mouth, where the Argent Sigil lies in the hands of Lyra the Embracer on her altar
-  (`altar item=argent_sigil model=lyra` at 37,18; the Duchess drops nothing). You can't reach it from
-  the bailey or garden 4.5 m below (`world.INTERACT_RISE`); off its edge is the quick way down. Shortcut: the
+  second mouth, a back door in its east wall (`door boss=duchess_dead rear` at 32,22: it seals, fogs and
+  opens with the great door, and `rear` keeps the compass off it), onto the old stair north up through
+  the cathedral's east wall and the stair tower on its north-east corner (half a metre a tile under its
+  own vaults), out onto a flying stair one tile wide that climbs west over the drop behind the
+  cathedral (an 18 m `chasm` either side, a Lantern Wraith throwing down it from the Moon Terrace at
+  8 m), then a grand stair (`moon_stair`, three abreast between cheek walls) north up to the forecourt
+  of Lyra's Chapel at 11.5 m, on its crag behind the choir (two Pale Sentinels keep it): a nave of
+  `moon_glass` under a vault 12.5 m high, its walls rising to 26 m over the cathedral's 14, behind its
+  own `moon_portal` and under a `grand` `moon_roof` higher than the cathedral's. The Argent Sigil lies
+  in the hands of Lyra the Embracer on her altar in the middle of the nave (`altar item=argent_sigil
+  model=lyra` at 21,5; the Duchess drops nothing), and once it is lifted the portal to Herran's Castle
+  opens in the apse behind her (`exit model=argent_portal requires=argent_sigil_taken hidden` at 21,2).
+  The crag and the chapel are twenty rows north of the city's old edge: saves made before them are
+  moved to match (`save_system.SHIFTED_MAPS`). Shortcut: the
   great bridge over the gorge, three tiles abreast and four long (`bridge rise=18`, one entity a tile),
   sunk on the gorge floor until its lever in the bailey raises it, back to the Landing. Walled in `moonstone`, paved in `moon_paving`, roofed in `silver_slate`;
   `test_vesperholm_is_solvable`), `vigil_chapel` (the Vigil Chapel, a small map of its own behind
@@ -103,9 +110,9 @@ How `.map` files work and what can stand on a tile.
   Moonbrand stands planted in its altar (`altar model=moon yaw=90 said="..."`: `said=` gives the lines
   shown when you take its offering, one per `|`), veiled statues and candles about it;
   `tests/test_vigil_chapel_world.py`), `herrans_castle` (Herran's Castle, 32x42, over a sea of cloud under the
-  `storm` sky: a stormy night, gas lamps for light: up the stair of light (`exit model=sky_stair
-  requires=argent_sigil_taken hidden`, at 35,18 on the bridge beside Lyra's altar: `hidden` keeps an exit
-  undrawn and out of reach while it is shut) you arrive on the Cloud Quay, its `start` and shrine, a broken
+  `storm` sky: a stormy night, gas lamps for light: through the portal (`exit model=argent_portal
+  requires=argent_sigil_taken hidden`, at 21,2 in the apse of Lyra's Chapel: `hidden` keeps an exit
+  undrawn and out of reach while it is shut; its twin stands at the quay's edge) you arrive on the Cloud Quay, its `start` and shrine, a broken
   stretch of balustrade open on the clouds, and go north through the gatehouse corridor into the Ring, a
   roofed passage of sooted brick round a central void that falls to the clouds, its arches open on the drop.
   Four towers stand on it: the Laboratory (NW, the Spire Key, and in its back wall the one `secret_wall` onto

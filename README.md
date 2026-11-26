@@ -284,7 +284,7 @@ trademarks of FromSoftware, Inc. (*Dark Souls* is published by Bandai Namco Ente
   - and Vesperholm, the Moonbound City behind the Vesper Gate at the head of the cathedral steps:
     moonlit streets drowned in the light of a moon that never sets, a glass bridge over a gorge,
     and a castle where the dead keep watch as pale shades;
-  - and above them all, up a stair of light from Lyra's altar, Herran's Castle: Victorian towers of sooted
+  - and above them all, through a portal in Lyra's Chapel, Herran's Castle: Victorian towers of sooted
     dark brick and gilt iron over a sea of cloud, a walk of iron grating between them, many-armed drakes
     on the wing, gowned drake magi, a secret laboratory of elixirs and grafts, and the spire where Herran waits.
 - **Shortcuts and secrets**: barred doors, fastened lifts and drawbridges fold each area back onto its

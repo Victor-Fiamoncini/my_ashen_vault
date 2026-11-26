@@ -8,9 +8,14 @@ from ashen_vault.player.player import Player
 from ashen_vault.player.stats import Stats
 from ashen_vault.save.slots import SLOTS, SlotSummary, slot_path
 
-VERSION = 2
+VERSION = 3
 # Maps whose id changed: older saves name them by the old id, in the map, the remnant and the flags.
 RENAMED_MAPS = {"sunken_keep": "abandoned_prison"}
+# Maps whose grid grew on its north or west side, by (tiles across, tiles down), and the save version
+# the growth came in: an older save's spot, remnant and tile flags there are moved to match. Vesperholm
+# gained the crag behind its cathedral, and Lyra's Chapel on it, twenty rows to the north.
+SHIFTED_MAPS = {"vesperholm": (0, 20, 3)}
+TILE = 2.0  # metres a tile (`TileMap.TILE`)
 
 
 def _renamed_flag(flag):
@@ -19,14 +24,43 @@ def _renamed_flag(flag):
     return ":".join(RENAMED_MAPS.get(part, part) if i else part for i, part in enumerate(parts))
 
 
+def _shifted_flag(flag, version):
+    """A flag ending in a tile (`chest:<map>:x,z`, `loot:slain:<map>:x,z`) on a map whose grid has grown
+    since `version`, moved with the map."""
+    parts = flag.split(":")
+    for map_name, (dx, dz, since) in SHIFTED_MAPS.items():
+        if version < since and map_name in parts[1:-1]:
+            try:
+                tx, tz = (int(v) for v in parts[-1].split(","))
+            except ValueError:
+                return flag
+            return ":".join([*parts[:-1], f"{tx + dx},{tz + dz}"])
+    return flag
+
+
+def _shift_spot(spot, map_name, version):
+    """Moves a saved `{x, z}` (the player, a remnant) with its map's grid, if it has grown since."""
+    dx, dz, since = SHIFTED_MAPS.get(map_name, (0, 0, 0))
+    if spot is not None and version < since:
+        spot["x"] = spot["x"] + dx * TILE
+        spot["z"] = spot["z"] + dz * TILE
+
+
 def migrate(data):
     """Brings an older save's data up to date in place, and returns it: maps that were renamed are
-    named by their new id (the saved spot, the remnant and every flag)."""
+    named by their new id (the saved spot, the remnant and every flag), and on a map whose grid has
+    grown since, the spot, the remnant and every flag naming a tile move with it."""
+    version = int(data.get("version", 1))
     data["map"] = RENAMED_MAPS.get(data["map"], data["map"])
-    remnant = data.get("player", {}).get("remnant")
+    player = data.get("player", {})
+    remnant = player.get("remnant")
     if remnant and remnant.get("map") in RENAMED_MAPS:
         remnant["map"] = RENAMED_MAPS[remnant["map"]]
-    data["flags"] = [_renamed_flag(f) for f in data.get("flags", [])]
+    if "x" in player and "z" in player:
+        _shift_spot(player, data["map"], version)
+    if remnant:
+        _shift_spot(remnant, remnant.get("map"), version)
+    data["flags"] = [_shifted_flag(_renamed_flag(f), version) for f in data.get("flags", [])]
     data["version"] = VERSION
     return data
 

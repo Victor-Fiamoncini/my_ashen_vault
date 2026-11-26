@@ -1752,6 +1752,76 @@ def lyra_altar(r, taken, t, offering=None):
                _dim(FROST, 1 - u), glow=True)  # fmt: skip
 
 
+# --- the portal between Lyra's Chapel and Herran's Castle -----------------------------------------
+
+ARGENT_SPRING = 4.0  # where the portal's pointed arch springs from its piers
+ARGENT_HALF = 1.4  # half the width of the light inside it
+ARGENT_RINGS = 5  # rings of moonlight turning in the veil
+
+
+def argent_portal(r, t):
+    """The portal the moon opens once the Argent Sigil is lifted (Lyra's apse in Vesperholm, the Cloud
+    Quay over Herran's Castle), standing at the back of its tile (-X) and facing +X: a tall pointed arch
+    of Lyra's pale moonstone on clustered piers, banded in silver, six open hands carved up its jambs
+    as on her idols, a crescent over its keystone and an empty socket under it, where the sigil was
+    set. Inside it stands a veil of moonlight, rings of brighter light turning slowly through it and
+    motes of frost rising off it, both fading as they shrink. Nothing of it is below the floor."""
+    stone, dark = LYRA_MOON, LYRA_MOON_DARK
+    spring, half = ARGENT_SPRING, ARGENT_HALF
+    mid = 2 * half + 0.2
+    x = -0.7
+    span = math.pi - math.acos(-half / mid)
+    apex = spring + math.sqrt(mid * mid - half * half)
+    # The veil of light: strips under the arch, brightest in the middle, breathing.
+    strips = 12
+    breathe = 0.9 + 0.1 * math.sin(t * 1.3)
+    for i in range(strips):
+        z0 = -half + 2 * half * i / strips
+        zm = z0 + half / strips
+        top = spring + max(math.sqrt(max(mid * mid - (half + abs(zm)) ** 2, 0.0)), 0.0)
+        bright = 1.0 - 0.35 * abs(zm) / half
+        r.part("cube", x, top / 2, zm, 0.04, top, 2 * half / strips + 0.01, _dim(MOON_GLOW, bright * breathe),
+               glow=True)  # fmt: skip
+    for k in range(ARGENT_RINGS):  # rings of brighter light, swelling out of the middle and fading
+        u = (t * 0.22 + k / ARGENT_RINGS) % 1.0
+        radius = 0.2 + u * (half - 0.15)
+        bead = 0.02 + 0.08 * (1 - u)  # each fades by shrinking, never by darkening
+        with r.at(x + 0.05, spring - 0.6, 0, rx=t * 0.3 + k):
+            for j in range(12):
+                a = j * math.tau / 12
+                r.part(
+                    "cube", 0, math.sin(a) * radius, math.cos(a) * radius, 0.03, bead, bead, FROST, glow=True
+                )
+    for side in (-1, 1):
+        z = side * (half + 0.22)
+        r.part("cube", x + 0.04, 0.3, z, 0.8, 0.6, 0.58, dark, tex="moonstone")  # the pier's base
+        r.part("cube", x, spring / 2, z, 0.6, spring, 0.42, stone, tex="moonstone")  # the pier
+        for dz in (-0.17, 0.17):  # clustered shafts up its face
+            r.part("cyl", x + 0.32, spring / 2, z + dz, 0.12, spring - 0.5, 0.12, _dim(stone, 1.1))
+        for y in (0.9, 1.9, 2.9):  # its silver bands, and an open hand carved between each
+            r.part("cube", x + 0.31, y, z, 0.04, 0.06, 0.46, SILVER)
+            if y < spring - 0.5:
+                r.part("cube", x + 0.36, y + 0.42, z, 0.1, 0.05, 0.26, _dim(stone, 1.08), rx=side * 0.4)
+        r.part("cube", x + 0.02, spring - 0.08, z, 0.72, 0.16, 0.54, dark, tex="moonstone")  # its capital
+        for i in range(6):  # the voussoirs of the pointed arch
+            a = math.pi - (i + 0.5) * span / 6
+            vz, vy = half + mid * math.cos(a), spring + mid * math.sin(a)
+            r.part("cube", x, vy, side * vz, 0.6, 0.38, 0.42, stone if i % 2 else _dim(stone, 0.92),
+                   tex="moonstone", rx=side * (math.pi / 2 - a))  # fmt: skip
+            hy, hz = vy + 0.22 * math.sin(a), side * (vz + 0.22 * math.cos(a))  # the silver hood moulding
+            r.part("cube", x + 0.3, hy, hz, 0.06, 0.08, 0.44, SILVER_DARK, rx=side * (math.pi / 2 - a))
+    r.part("cube", x + 0.02, apex, 0, 0.64, 0.5, 0.36, _dim(stone, 1.1), tex="moonstone")  # the keystone
+    r.part("cyl", x + 0.34, apex - 0.02, 0, 0.18, 0.04, 0.18, VOID, rz=math.pi / 2)  # the sigil's socket
+    r.part("cyl", x + 0.33, apex - 0.02, 0, 0.26, 0.03, 0.26, SILVER, rz=math.pi / 2)
+    _crescent(r, x + 0.34, apex + 0.7, 0, 0.4, 9, 0.1, SILVER)  # the crescent over it
+    r.part("cube", x + 0.1, 0.04, 0, 0.9, 0.08, 2 * half + 1.2, dark, tex="moonstone")  # the threshold
+    for k in range(6):  # motes of frost rising off the veil
+        u = (t * 0.3 + k / 6) % 1.0
+        zz = ((k * 0.37) % 1.0 - 0.5) * 1.6 * half
+        size = 0.015 + 0.05 * (1 - u)
+        r.part("cube", x + 0.25 + 0.3 * u, 0.3 + u * (spring - 0.2), zz, size, size, size, FROST, glow=True)
+
+
 # --- the great bridge over the gorge --------------------------------------------------------------
 
 BRIDGE_DECK = 1.1  # metres of masonry under a great bridge's paving, down to its arches' crowns

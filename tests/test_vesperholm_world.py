@@ -2,6 +2,7 @@
 of the moonlight behind you, the Duchess's shafts of moonlight, her Argent Sigil, and the Vesper Gate
 that stands open in Harrowmere."""
 
+import itertools
 import math
 import random
 
@@ -23,8 +24,9 @@ from ashen_vault.world.world import (
 )
 from test_verdant_world import JungleGame, foe, prop
 
-BAILEY = (20, 22)  # the middle of the castle's open bailey
+BAILEY = (20, 42)  # the middle of the castle's open bailey
 NORTH, EAST = -math.pi / 2, 0.0
+CHAPEL_ALTAR = (21, 5)  # Lyra's altar, in the middle of her chapel's nave
 THREE_TAKEN = {"sigil_taken", "verdant_sigil_taken", "iron_sigil_taken"}
 
 
@@ -42,7 +44,7 @@ def city(at=BAILEY, yaw=NORTH, flags=(), keep_foes=False):
 
 def test_a_lantern_wraith_throws_lances_of_moon_frost_one_at_a_time_or_three_at_once():
     game, world = city()
-    wraith = foe(world, "lantern_wraith", (20, 19))
+    wraith = foe(world, "lantern_wraith", (20, 39))
     world.enemy_fire(wraith, "shot")
     (lance,) = world.projectiles
     assert lance.effect == "lance" and lance.hostile and lance.damage == wraith.type.damage
@@ -61,7 +63,7 @@ def test_a_lantern_wraith_throws_lances_of_moon_frost_one_at_a_time_or_three_at_
 
 def test_a_lance_that_strikes_you_numbs_your_legs():
     game, world = city()
-    wraith = foe(world, "lantern_wraith", (20, 19))
+    wraith = foe(world, "lantern_wraith", (20, 39))
     world.enemy_fire(wraith, "shot")
     (lance,) = world.projectiles
     lance.x, lance.z, lance.y = game.player.x, game.player.z, game.player.y + 1.0
@@ -77,7 +79,7 @@ def test_a_lance_that_strikes_you_numbs_your_legs():
 
 def test_a_veiled_knight_steps_out_of_the_moonlight_behind_you():
     game, world = city(yaw=NORTH)
-    knight = foe(world, "veiled_knight", (20, 18))
+    knight = foe(world, "veiled_knight", (20, 38))
     assert world.blink(knight)
     assert math.hypot(knight.x - game.player.x, knight.z - (game.player.z + BLINK_BEHIND)) < 1e-6
     assert [w.style for w in world.shockwaves] == ["blink", "blink"]  # mist where it left and arrived
@@ -86,13 +88,13 @@ def test_a_veiled_knight_steps_out_of_the_moonlight_behind_you():
 
 
 def test_a_blink_never_lands_in_a_wall_or_the_gorge():
-    _game, world = city(at=(3, 20), yaw=EAST)  # the bailey's west wall at your back
-    knight = foe(world, "veiled_knight", (8, 20))
+    _game, world = city(at=(3, 40), yaw=EAST)  # the bailey's west wall at your back
+    knight = foe(world, "veiled_knight", (8, 40))
     assert world.blink(knight)
     tile = world.map.tile_at(knight.x, knight.z)
     assert tile.walkable and not tile.solid
-    _game, world = city(at=(21, 32), yaw=-NORTH)  # on the Landing's brink, the gorge at your back
-    knight = foe(world, "veiled_knight", (21, 35))
+    _game, world = city(at=(21, 52), yaw=-NORTH)  # on the Landing's brink, the gorge at your back
+    knight = foe(world, "veiled_knight", (21, 55))
     assert world.blink(knight)
     tile = world.map.tile_at(knight.x, knight.z)
     assert not tile.chasm and tile.floor == 0
@@ -100,7 +102,7 @@ def test_a_blink_never_lands_in_a_wall_or_the_gorge():
 
 def test_a_knight_kept_at_bay_blinks_and_strikes_from_where_it_steps_out():
     game, world = city(yaw=NORTH)
-    knight = foe(world, "veiled_knight", (20, 19))
+    knight = foe(world, "veiled_knight", (20, 39))
     knight.state = "chase"
     knight.cooldowns["blink"] = 0.0
     dist = math.hypot(knight.x - game.player.x, knight.z - game.player.z)
@@ -122,7 +124,7 @@ def test_a_knight_kept_at_bay_blinks_and_strikes_from_where_it_steps_out():
 
 def test_the_duchess_calls_shafts_of_moonlight_where_you_stand_and_to_either_side():
     game, world = city(yaw=NORTH)
-    duchess = foe(world, "moon_duchess", (20, 18))
+    duchess = foe(world, "moon_duchess", (20, 38))
     world.moonbeam(duchess)
     assert len(world.eruptions) == 3 and all(f.style == "moon" for f in world.eruptions)
     first = world.eruptions[0]
@@ -139,7 +141,7 @@ def test_the_duchess_calls_shafts_of_moonlight_where_you_stand_and_to_either_sid
 
 def test_in_her_second_phase_the_moon_falls_round_you_in_rings():
     game, world = city()
-    duchess = foe(world, "moon_duchess", (20, 18))
+    duchess = foe(world, "moon_duchess", (20, 38))
     world.moonfall(duchess)
     assert len(world.eruptions) == 1 + sum(count for _, count, _ in MOONFALL_RINGS)
     rings = {round(math.hypot(f.x - game.player.x, f.z - game.player.z), 1) for f in world.eruptions}
@@ -163,7 +165,7 @@ def test_the_duchess_is_the_moonwed_who_keeps_the_fourth_sigil():
 
 def test_at_half_hp_she_casts_off_her_veil_and_learns_to_blink():
     game, world = city()
-    duchess = Enemy(EnemyTypes.get("moon_duchess"), *TileMap.center(20, 18), rng=random.Random(0))
+    duchess = Enemy(EnemyTypes.get("moon_duchess"), *TileMap.center(20, 38), rng=random.Random(0))
     world.enemies = [duchess]
     duchess.state, duchess.hp = "chase", duchess.type.hp // 2
     duchess.update(0.01, world)
@@ -178,37 +180,59 @@ def test_she_waits_in_her_choir_behind_a_great_door():
     (duchess,) = [e for e in world.enemies if e.type.id == "moon_duchess"]
     assert duchess.state == "ashes"
     great, back = sorted((a for a in world.arenas if a.flag == "duchess_dead"), key=lambda a: a.gate[0])
-    assert (great.gate, back.gate) == ((21, 9), (32, 2))  # the great door, and her choir's back door
+    assert (great.gate, back.gate) == ((21, 29), (32, 22))  # the great door, and her choir's back door
     tile = (TileMap.tile_coord(duchess.x), TileMap.tile_coord(duchess.z))
     assert tile in great.tiles and great.tiles == back.tiles  # one choir, two mouths
     assert all(world.map[t].floor_tex == "moon_glass" for t in great.tiles)  # none of the stair beyond
 
 
-def test_the_argent_sigil_lies_in_lyras_hands_at_the_end_of_the_bridge():
-    """She drops nothing: the sigil she wed the moon on rests on the old god's altar, at the end of the
-    bridge over her garden, up the stair behind her choir's back door, 4.5 m over the bailey."""
+def test_the_argent_sigil_lies_in_lyras_hands_in_her_chapel():
+    """She drops nothing: the sigil she wed the moon on rests in the old god's hands, on her altar in the
+    middle of Lyra's Chapel, under its vault on the crag behind the cathedral, high over the choir."""
     _game, world = city(flags={"duchess_dead"}, keep_foes=True)
     assert not any(e.type.id == "moon_duchess" for e in world.enemies)
     assert not any(p.kind == "pickup" for p in world.props)
     (altar,) = [p for p in world.props if p.kind == "altar"]
-    assert (altar.tx, altar.tz) == (37, 18)
+    assert (altar.tx, altar.tz) == CHAPEL_ALTAR
     assert altar.props["item"] == "argent_sigil" and altar.props["model"] == "lyra"
-    assert world.map[37, 18].floor == 4.5 and world.map[37, 19].floor == 0  # over the bailey
+    tile = world.map[CHAPEL_ALTAR]
+    assert tile.floor == 11.5 and tile.ceil is not None and tile.floor_tex == "moon_glass"
     assert altar.open_t == 0
     assert world.take_from_altar(altar) == "argent_sigil" and altar.open_t > 0
 
 
-def test_the_stair_behind_her_choir_climbs_half_a_metre_at_a_time_to_the_gallery():
-    """The back door opens on a stair in the cathedral's east wall, each step under its own vault, from
-    the choir's floor up to the gallery over the garden; a wall keeps the garden off its low steps."""
+def _climb():
+    """The way from her choir's back door to the chapel's door, tile by tile: north up the wall stair,
+    west along the flying stair to the Moon Terrace, north up the grand stair to the forecourt."""
+    wall = [(33, z) for z in range(22, 16, -1)]
+    flying = [(x, 17) for x in range(32, 20, -1)]
+    grand = [(21, z) for z in range(16, 8, -1)]
+    return wall + flying + grand
+
+
+def test_the_stair_behind_her_choir_climbs_to_lyras_chapel_high_over_it():
+    """The back door opens on the old stair north up through the cathedral's east wall, each step under
+    its own vault; out of its tower a flying stair climbs west over the drop behind the cathedral to the
+    Moon Terrace, and a grand stair north off it between cheek walls to the chapel's forecourt: never a
+    step over half a metre, and the chapel's walls tower over the cathedral's."""
     _game, world = city()
     m = world.map
-    stair = [m[33, z] for z in range(2, 11)]
-    assert [s.floor for s in stair] == [0.5 * (i + 1) for i in range(9)]
-    assert all(s.ceil is not None for s in stair)
-    assert all(m[34, z].solid for z in range(2, 11))  # walled off from the garden
-    gallery = [(33, z) for z in range(11, 19)] + [(x, 18) for x in range(34, 38)]
-    assert all(m[t].floor == 4.5 and m[t].ceil is None for t in gallery)
+    way = _climb()
+    assert m[way[0]].floor == 0.5 and m[32, 22].floor == 0  # off the choir's floor, through the back door
+    for a, b in itertools.pairwise(way):
+        assert 0 <= m[b].floor - m[a].floor <= 0.5 + 1e-6, (a, b)
+    assert all(m[33, z].ceil is not None for z in range(18, 23))  # the wall stair, vaulted
+    assert all(m[33, z].solid for z in range(23, 38))  # nothing of the old stair to the garden is left
+    flying = [(x, 17) for x in range(24, 33)]
+    assert all(m[t].ceil is None for t in flying)
+    for x, z in flying[:-1]:  # nothing either side of it but the drop (the last step is by the tower)
+        assert m[x, z - 1].chasm and m[x, z + 1].chasm, (x, z)
+    for z in range(11, 17):  # the grand stair, three abreast, between its cheek walls
+        assert m[19, z].solid and m[23, z].solid
+        assert {m[x, z].floor for x in (20, 21, 22)} == {m[21, z].floor}
+    assert m[way[-1]].floor == 11.5 and m[way[-1]].ceil is not None  # in the chapel's door
+    chapel_walls = [t for _x, _z, t in m.each_tile() if t.solid and t.top is not None and t.top > 20]
+    assert chapel_walls and min(t.top for t in chapel_walls) > m[20, 29].top  # over the cathedral's
 
 
 # --- the Vesper Gate ---------------------------------------------------------------------------------
@@ -238,7 +262,7 @@ def test_the_gate_in_town_is_always_open_even_on_a_fresh_save():
 
 
 def test_the_way_home_from_vesperholm_is_always_open():
-    _game, world = city(at=(21, 100))  # the cave's hall, where the gate lets you in
+    _game, world = city(at=(21, 120))  # the cave's hall, where the gate lets you in
     (home,) = [p for p in world.props if p.kind == "exit" and p.props["map"] == "harrowmere"]
     assert home.props["map"] == "harrowmere" and world.exit_open(home)
     assert world.map.meta["sky"] == "moonlit"
@@ -262,7 +286,7 @@ def test_moon_frost_slows_your_stride_until_it_thaws():
 
 def test_a_lance_that_strikes_you_builds_frost():
     game, world = city()
-    wraith = foe(world, "lantern_wraith", (20, 19))
+    wraith = foe(world, "lantern_wraith", (20, 39))
     world.enemy_fire(wraith, "shot")
     (lance,) = world.projectiles
     lance.x, lance.z, lance.y = game.player.x, game.player.z, game.player.y + 1.0
@@ -272,7 +296,7 @@ def test_a_lance_that_strikes_you_builds_frost():
 
 def test_a_shaft_of_moonlight_builds_frost():
     game, world = city()
-    duchess = foe(world, "moon_duchess", (20, 18))
+    duchess = foe(world, "moon_duchess", (20, 38))
     world.moonbeam(duchess)
     for _ in range(30):
         world._update_fire(0.05)
@@ -335,7 +359,7 @@ def test_vesperholm_outmatches_the_areas_before_it():
 def test_the_bailey_lever_raises_the_great_bridge_out_of_the_gorge_for_good():
     """One pull of the lever and all twelve spans of the stone bridge grind up out of the gorge
     together, to one long rumble, and it stays up on every visit after."""
-    game, world = city(at=(21, 26))
+    game, world = city(at=(21, 46))
     spans = [p for p in world.terrain.platforms if p.kind == "bridge"]
     assert len(spans) == 12 and all(p.locked and not p.afloat and p.risen_y < -17 for p in spans)
     world.pull_lever(prop(world, "lever", id="vesper_bridge"))
@@ -360,19 +384,19 @@ def test_glassmites_lie_folded_in_the_cave_among_real_crystals():
         assert min(math.hypot(c.x - e.x, c.z - e.z) for c in crystals) < 3 * TileMap.TILE
 
 
-def test_lyras_altar_is_out_of_reach_from_the_bailey_under_the_bridge():
-    """The altar stands 4.5 m up, on the bridge's end: from the bailey or the garden's mouth right under
-    it you can't lift the sigil off it, only from the bridge."""
-    for at, yaw in (((37, 19), NORTH), ((38, 18), math.pi)):
+def test_lyras_chapel_is_out_of_reach_from_below():
+    """Her chapel stands on its crag 11.5 m over the drop: from the bailey, the garden or the Moon
+    Terrace you can't reach the altar, only from the chapel's own floor."""
+    for at, yaw in (((21, 41), NORTH), ((38, 23), NORTH), ((21, 17), NORTH)):
         _game, world = city(at=at, yaw=yaw, flags={"duchess_dead"})
         assert world.focus() is None or world.focus().kind != "altar", at
-    _game, world = city(at=(36, 18), yaw=EAST, flags={"duchess_dead"})
-    assert world.player.y == 4.5
+    _game, world = city(at=(21, 6), yaw=NORTH, flags={"duchess_dead"})
+    assert world.player.y == 11.5
     assert world.focus().kind == "altar"
 
 
 def test_the_compass_points_at_her_great_door_never_her_back_door():
     """From her garden the choir's back door lies nearer, but it is no way in: the compass keeps to the
     great door at the nave's head."""
-    _game, world = city(at=(38, 5), keep_foes=True)
-    assert world.boss_target() == TileMap.center(21, 9)
+    _game, world = city(at=(38, 25), keep_foes=True)
+    assert world.boss_target() == TileMap.center(21, 29)

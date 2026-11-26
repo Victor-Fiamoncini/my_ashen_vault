@@ -846,7 +846,7 @@ def _draw_chains(view, rig, p, t):
 def _draw_exit(view, rig, p, t):
     world = view.world
     if "hidden" in p.props and not world.exit_open(p):
-        return  # a way that is not there until its flag is set (the sky stair, until the Argent Sigil)
+        return  # a way that is not there until its flag is set (the portal in Lyra's apse, until the Argent Sigil)
     if p.props.get("model") == "well":
         models.well(rig, t)
     elif p.props.get("model") == "vine_door":
@@ -871,8 +871,8 @@ def _draw_exit(view, rig, p, t):
         moon_models.chapel_door(rig, t)
     elif p.props.get("model") == "spire_door":
         herran_models.spire_door(rig, t)
-    elif p.props.get("model") == "sky_stair":
-        herran_models.sky_stair(rig, t, p.props.get("way", "up"))
+    elif p.props.get("model") == "argent_portal":
+        moon_models.argent_portal(rig, t)
     elif p.props.get("model") == "sunken_stair":
         sunken_models.sunken_stair(rig, t)
     elif p.props.get("model") == "sewer_ladder":  # set back against the wall behind it, if any

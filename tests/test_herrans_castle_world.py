@@ -1,4 +1,4 @@
-"""Herran's Castle, over the clouds, driven headless: the stair of light up from Lyra's altar in
+"""Herran's Castle, over the clouds, driven headless: the portal from Lyra's Chapel in
 Vesperholm, the sea of cloud round the castle, and the way through it to the foot of Herran's Spire."""
 
 import math
@@ -34,28 +34,29 @@ def _start(m):
     return tuple(int(v) for v in m.meta["start"][:2])
 
 
-def test_the_stair_of_light_joins_lyras_altar_and_the_cloud_quay_both_ways():
-    """Off the bridge beside Lyra's altar a stair of light climbs to the Cloud Quay, where you arrive
-    with its head right behind you; going back down puts you on the bridge beside it."""
+def test_the_portal_joins_lyras_chapel_and_the_cloud_quay_both_ways():
+    """In the apse of Lyra's Chapel, behind her altar, a portal opens onto the Cloud Quay, where you
+    arrive with its twin right behind you; stepping back through puts you in the chapel before it."""
     city, castle = _vesperholm(), _castle()
     (up,) = _spec(city, "exit", map=CASTLE)
     (down,) = _spec(castle, "exit", map="vesperholm")
-    assert up.props["model"] == down.props["model"] == "sky_stair"
+    assert up.props["model"] == down.props["model"] == "argent_portal"
     assert _at(up) == _start(castle)
     assert sum(abs(a - b) for a, b in zip(_at(up), (down.tx, down.tz), strict=True)) == 1
     bx, bz = _at(down)
     assert abs(bx - up.tx) + abs(bz - up.tz) == 1 and city[bx, bz].walkable
     (altar,) = _spec(city, "altar", item="argent_sigil")
-    assert city[up.tx, up.tz].floor == city[altar.tx, altar.tz].floor  # on the altar's bridge
-    assert abs(up.tx - altar.tx) + abs(up.tz - altar.tz) == 2  # not on its doorstep: the altar keeps its own
+    assert city[up.tx, up.tz].floor == city[altar.tx, altar.tz].floor  # on the chapel's floor
+    assert city[up.tx, up.tz].ceil is not None  # under its vault
+    assert abs(up.tx - altar.tx) + abs(up.tz - altar.tz) >= 2  # not on its doorstep: the altar keeps its own
 
 
-def test_the_stair_of_light_is_not_there_until_the_argent_sigil_is_taken():
+def test_the_portal_is_not_there_until_the_argent_sigil_is_taken():
     for flags, there in (((), False), (("duchess_dead",), False), (("argent_sigil_taken",), True)):
         world = World(JungleGame(flags), "vesperholm")
-        (stair,) = [p for p in world.props if p.kind == "exit" and p.props.get("map") == CASTLE]
-        assert world.exit_open(stair) is there
-        assert world._interactable(stair) is there
+        (portal,) = [p for p in world.props if p.kind == "exit" and p.props.get("map") == CASTLE]
+        assert world.exit_open(portal) is there
+        assert world._interactable(portal) is there
 
 
 def test_the_castle_floats_on_a_sea_of_cloud_you_fall_through_to_your_death():

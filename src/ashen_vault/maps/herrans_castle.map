@@ -17,7 +17,7 @@ edge_tex = herran_ashlar
 // Herran's Castle, high over a sea of cloud under a stormy night: the seat of Herran, a son of Lyra the
 // Embracer, who kept the fifth seal, the Auric Sigil, the one the king never held. His sister Ilvane
 // bent hers to the moon; he bent his to his own flesh. He wanted his mother's many hands, and grafted
-// arms onto his drakes, and then onto himself. You come up the stair of light from Lyra's altar in
+// arms onto his drakes, and then onto himself. You come through the portal in Lyra's Chapel in
 // Vesperholm onto the Cloud Quay, where the shrine stands, and through the gatehouse into the Ring: a
 // narrow passage of sooted brick round a void that falls to the clouds, arches open on the drop. Four
 // towers stand on it: the Laboratory (NW), with the Spire Key, and behind a false wall in its back wall
@@ -124,8 +124,9 @@ ________________________________
 ________________________________
 
 [entities]
-// The stair of light down to Lyra's altar in Vesperholm, at the quay's south edge, and the shrine.
-A = exit map=vesperholm at=34,18,180 label=Descend_to_Vesperholm model=sky_stair way=out yaw=90
+// The portal back to Lyra's Chapel in Vesperholm, at the quay's south edge, facing the quay; and the
+// shrine.
+A = exit map=vesperholm at=21,3,90 label=Step_through_the_portal model=argent_portal yaw=-90
 B = save_statue
 // The false wall in the Laboratory's back wall, onto the secret lab.
 W = secret_wall

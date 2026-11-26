@@ -2196,8 +2196,7 @@ def test_every_way_between_maps_is_built_in_detail():
         "cistern_breach": lambda r: sunken_models.cistern_breach(r, 0.3),
         "sunken_stair": lambda r: sunken_models.sunken_stair(r, 0.3),
         "chapel_door": lambda r: moon_models.chapel_door(r, 0.3),
-        "sky_stair": lambda r: herran_models.sky_stair(r, 0.3),
-        "sky_stair out": lambda r: herran_models.sky_stair(r, 0.3, "out"),
+        "argent_portal": lambda r: moon_models.argent_portal(r, 0.3),
         "spire_door": lambda r: herran_models.spire_door(r, 0.3),
     }
     for name, fn in exits.items():

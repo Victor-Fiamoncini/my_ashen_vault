@@ -199,8 +199,8 @@ Equipment, combat, spells, shops, saves and the story.
   open to explore from the start; the fifth is Herran's, and the way to him opens from Lyra's altar. The fifth seal, the Auric Sigil (the sun's, gold), was never the
   king's: Ilvane and her brother Herran are both children of Lyra (the Enthroned's own parentage is left a
   mystery), and Herran kept it in his castle of towers above the clouds, Herran's Castle
-  (`herrans_castle`, then `herran_spire`), up the stair of light that rises off the bridge beside Lyra's
-  altar in Vesperholm once the Argent Sigil is lifted from her hands. He wanted his mother's many hands:
+  (`herrans_castle`, then `herran_spire`), through the portal that opens in the apse of Lyra's Chapel, high
+  on its crag behind Vesperholm's cathedral, once the Argent Sigil is lifted from her hands. He wanted his mother's many hands:
   he grafted arms onto his drakes, then the arms of drakes and men onto his own back until he bore eight,
   and went mad (his journal tells it: pages in the secret laboratory, atop the Clock Tower and the
   Belvedere, and the last in his spire's study). He drops the Auric Sigil. Odrin no longer ends the game: shown all five
