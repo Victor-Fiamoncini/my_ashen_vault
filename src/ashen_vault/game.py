@@ -541,7 +541,14 @@ class Game:
     def announce_area(self):
         """Raises the area's name over the screen, as you first see it: on waking, on loading a save and on
         every crossing between areas. Debug drops (`--map`) skip it, so their screenshots stay clear."""
-        self.area_title = [self.world.meta.get("name", self.world.name), 0.0]
+        p = self.player
+        self.world.region = self.world.region_at(p.x, p.z)
+        self.announce_region(self.world.region)
+
+    def announce_region(self, name):
+        """Raises `name` over the screen: an area's, or a named region's within it as you cross into it
+        (`World._update_regions`)."""
+        self.area_title = [name, 0.0]
 
     def _enter_play(self):
         self.scene = "play"

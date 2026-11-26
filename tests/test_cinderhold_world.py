@@ -684,3 +684,50 @@ def test_the_mire_tyrant_keeps_the_north_beacon_and_falls_only_once():
     assert math.hypot(tyrant.x - north.x, tyrant.z - north.z) < 5 * TileMap.TILE
     assert tyrant.type.once and not tyrant.type.boss and tyrant.loot == "fenbane"
     assert {e.type.id for e in world.enemies} >= {"fen_lurk", "bilegut"}
+
+
+# --- the Sallow Fen and the Gargoyle Way ----------------------------------------------------------------
+
+ROAD = range(28, 33)  # the Gargoyle Way's five lanes, from the fen gate up to the long bridge
+
+
+def step_to(world, at):
+    world.player.x, world.player.z = TileMap.center(*at)
+    world._update_regions()
+
+
+def test_the_north_road_lands_you_in_the_sallow_fen_and_the_keep_stair_in_the_cinderhold():
+    _, world = hold(FEN_START)
+    assert world.region_at(*TileMap.center(30, 111)) == "Sallow Fen"
+    assert world.region_at(*TileMap.center(33, 105)) == "Sallow Fen"  # the fen's watch-post shrine
+    for at in ((47, 3), (33, 26), (36, 62), (30, 58)):  # the keep stair, two shrines, the bridge head
+        assert world.region_at(*TileMap.center(*at)) == "The Cinderhold", at
+
+
+def test_going_through_the_fen_gate_raises_the_cinderhold_and_coming_back_the_fen():
+    game, world = hold((30, 72))
+    world._update_regions()  # settles where you start, silently
+    assert world.region == "Sallow Fen" and game.titles == []
+    step_to(world, (30, 71))
+    assert game.titles == [], "still in the fen"
+    step_to(world, (30, 69))
+    step_to(world, (30, 68))
+    step_to(world, (31, 68))
+    assert game.titles == ["The Cinderhold"], "once, on crossing"
+    step_to(world, (30, 71))
+    assert game.titles == ["The Cinderhold", "Sallow Fen"]
+
+
+def test_the_gargoyle_way_runs_straight_and_its_gargoyles_face_it_from_their_niches():
+    _, world = hold(FEN_START)
+    for z in range(58, 68):
+        for x in ROAD:
+            assert not world.map[x, z].solid, (x, z)
+    statues = [s for s in world.map.entities if s.kind == "gargoyle_statue" and 58 <= s.tz <= 68]
+    assert len(statues) == 4
+    for s in statues:
+        assert s.tx not in ROAD
+        assert float(s.props["yaw"]) == (0 if s.tx < ROAD.start else 180), "facing the road"
+    assert not any(
+        s.kind in ("rubble", "slag_heap") and s.tx in ROAD and 58 <= s.tz <= 68 for s in world.map.entities
+    )

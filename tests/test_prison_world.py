@@ -31,6 +31,10 @@ class FakeGame:
         self.sounds = []
         self.volumes = []  # (name, volume) of every sound, in the order played
         self.wounds = []
+        self.titles = []  # every area or region name raised over the screen
+
+    def announce_region(self, name):
+        self.titles.append(name)
 
     def message(self, text):
         self.messages.append(text)

@@ -149,20 +149,20 @@ AAA__________________________==__________________________AAA
 AAA__________________________==__________________________AAA
 AAA_________________________r==r_________________________AAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAA,==,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAÚ,,,,,,,,,C,,TAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAA,,,TÝ,,,,,,,,L,,ÑAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAA,Û,,,,,Ï,,,,,,,âãAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAA,,,AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAA,,,AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAA,,,,,,,,L,,,áàAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAA,,,,,,,Ý,,T,,áAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAA,Ï,,Û,,,C,,,,àAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAA,,ÚAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAA,,,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAÚä,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAA,,,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAT,,,,,TAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAă,,,,,ĂAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAA,,,,,A,,áàAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAA,,,,,,,,,âAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAT,,,,,,,,ÑãAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAA,,,,,,,,,âAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAA,Ý,,,AÝ,àáAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAā,,,,,ĀAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAA,,,,,AAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAT,,,,,TAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAÚċċċÚAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAA,ä,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAðAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAA----------------*77777777777777777----------------AAAAA
+AAAAA----------------*7777777ĊĊĊ7777777----------------AAAAA
 AAAA--------------****7ò77777777777777ò7----*******-----AAAAA
 AAAA-------------*****77777í77777777777ì--**ò7777**-----AAAA
 AAAAA---ó-------******77Û7777777777[[[77-**7777777**----AAAA
@@ -215,6 +215,10 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 // drawbridges, north to the path up to the gate and east toward the east beacon, so that, once it is
 // pulled, the fen can be crossed dry. Fen Lurks squat in the mire, Bileguts crawl its banks, and the Mire
 // Tyrant keeps the north island. Great dead trees stand on the dirt mounds and loom over the mire.
+// The fen is a region of its own: its name rises as you come down into it, the Cinderhold's as you go
+// up through the fen gate onto the Gargoyle Way (`world/regions.py`; a band of markers either side).
+Ċ = region name="Sallow Fen" on=7
+ċ = region name="The Cinderhold"
 ý = hint text="The mire is fouled violet. Wading it works a toxin into your blood.|Three beacons burn on the fen. Smother them, and the gate north opens.|The old moot's planks are rotten. Do not linger on them." sets=visited_sallow_fen
 ï = fen_beacon gate=fen_beacons
 ð = gate lever=fen_beacons on=,
@@ -237,7 +241,13 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 · = huge_rotten_tree size=1.25
 ° = huge_rotten_tree size=0.8
 þ = light y=0.6 color=0.75,0.35,1.0 radius=6
-// The wayside shrine up the ash road.
+// The Gargoyle Way: the ash road runs straight from the fen gate up to the long bridge, staked with
+// warnings at the gate, gargoyles crouched in facing pairs in niches in its cliffs, torches between them,
+// and the wayside shrine in its own court off the road's east side.
+ā = gargoyle_statue yaw=0
+Ā = gargoyle_statue yaw=180
+ă = gargoyle_statue pose=snarl yaw=0
+Ă = gargoyle_statue pose=snarl yaw=180
 Ð = exit map=harrowmere at=31,2,90 label=Return_to_Harrowmere model=road_gate yaw=90
 ä = light y=4.5 color=0.9,0.62,0.42 radius=7
 Ñ = save_statue

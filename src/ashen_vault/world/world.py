@@ -39,6 +39,7 @@ from ashen_vault.world import (
     hints,
     loot,
     ramparts,
+    regions,
     relics,
     shots,
     terrain,
@@ -704,6 +705,8 @@ class World:
         self.arenas = []
         self.fog_walk = None  # (x, z) you walk to while pushing through a fog, input locked
         self.hints = hints.build(self.map)
+        self.regions = regions.build(self.map)
+        self.region = None  # the named part of the map you are in (`regions`), settled on the first update
         self._spawn_entities()
         self.view.bake_props()
         self.arenas = self._build_arenas()
@@ -792,7 +795,7 @@ class World:
         self.enemies = spawn_enemies(self.map, self.flags)
         self.starve_bosses()
         for spec in self.map.entities:
-            if spec.kind == "hint":  # words, not a thing: `hints` shows them
+            if spec.kind in ("hint", "region"):  # words, not things: `hints` and `regions` show them
                 continue
             x, z = TileMap.center(spec.tx, spec.tz)
             y = self.map[spec.tx, spec.tz].floor
@@ -2228,6 +2231,25 @@ class World:
         self._update_thorns(dt)
         self._update_arenas()
         self._update_hints()
+        self._update_regions()
+
+    def region_at(self, x, z):
+        """The name of the region at the world point (x, z): its nearest marker's, or the map's own."""
+        return regions.nearest(self.regions, x, z) or self.meta.get("name", self.name)
+
+    def _update_regions(self):
+        """Crossing into another named region (`world/regions.py`) raises its name over the screen. The
+        region you start in is settled silently, from wherever you stand."""
+        if not self.regions:
+            return
+        player = self.player
+        if self.region is None:
+            self.region = self.region_at(player.x, player.z)
+            return
+        name = self.regions.get((TileMap.tile_coord(player.x), TileMap.tile_coord(player.z)))
+        if name and name != self.region:
+            self.region = name
+            self.game.announce_region(name)
 
     def _update_hints(self):
         """A tutorial hint shows the first time you step onto its tile, and never again (setting its
