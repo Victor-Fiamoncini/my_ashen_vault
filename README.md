@@ -172,52 +172,66 @@ trademarks of FromSoftware, Inc. (*Dark Souls* is published by Bandai Namco Ente
     <td align="center"><sub>The Sallow Fen: one of its three beacons, burning violet</sub></td>
   </tr>
   <tr>
+    <td><img src="docs/screenshots/gargoyle_way.png" alt="A straight ash road between dark cliffs leading to the black fortress, gargoyles and torches in niches either side, the name THE CINDERHOLD rising over the screen"></td>
     <td><img src="docs/screenshots/cinderhold_bridge.png" alt="A long stone bridge leading to a black fortress under a smoky red sky: a crenellated great wall with burning windows rising from the lava, a gatehouse, a bastion, a great keep and smelter stacks"></td>
-    <td><img src="docs/screenshots/postern_ledge.png" alt="A narrow ledge along the fortress wall above lava, a magma bomb arcing toward a glowing landing circle and an iron bowman ahead"></td>
   </tr>
   <tr>
+    <td align="center"><sub>Through the fen gate, onto the Gargoyle Way</sub></td>
     <td align="center"><sub>The long bridge to the Cinderhold, up Harrowmere's north road</sub></td>
-    <td align="center"><sub>The postern ledge: a magma bomb about to land, a bowman waiting</sub></td>
   </tr>
   <tr>
+    <td><img src="docs/screenshots/postern_ledge.png" alt="A narrow ledge along the fortress wall above lava, a magma bomb arcing toward a glowing landing circle and an iron bowman ahead"></td>
     <td><img src="docs/screenshots/foundry.png" alt="The torchlit foundry hall, a channel of lava across the floor and a forge golem beyond it, the Stormbrand in an iron gauntlet"></td>
-    <td><img src="docs/screenshots/thunder_scroll.png" alt="Belongings on the Spells tab, previewing the Scroll of Thunder Spear: a soot-dark scroll on iron rods, its blue wax seal pressed with a glowing lightning rune"></td>
   </tr>
   <tr>
+    <td align="center"><sub>The postern ledge: a magma bomb about to land, a bowman waiting</sub></td>
     <td align="center"><sub>The foundry, where a Forge Golem guards the lava channels</sub></td>
-    <td align="center"><sub>A spell scroll, sealed with its rune</sub></td>
   </tr>
   <tr>
+    <td><img src="docs/screenshots/thunder_scroll.png" alt="Belongings on the Spells tab, previewing the Scroll of Thunder Spear: a soot-dark scroll on iron rods, its blue wax seal pressed with a glowing lightning rune"></td>
     <td><img src="docs/screenshots/keep_hall.png" alt="The Cinderhold Keep's great hall: iron pillars and a brazier, a forge golem standing among them"></td>
-    <td><img src="docs/screenshots/gargoyles.png" alt="Two iron gargoyles on the keep's walled rooftop, battlements and turrets behind them, under two boss health bars"></td>
   </tr>
   <tr>
+    <td align="center"><sub>A spell scroll, sealed with its rune</sub></td>
     <td align="center"><sub>The great hall of the Cinderhold Keep</sub></td>
-    <td align="center"><sub>Brand and Bellows, the twin gargoyles on the keep's roof</sub></td>
   </tr>
   <tr>
+    <td><img src="docs/screenshots/gargoyles.png" alt="Two iron gargoyles on the keep's walled rooftop, battlements and turrets behind them, under two boss health bars"></td>
     <td><img src="docs/screenshots/vesper_gate.png" alt="The Vesper Gate in Harrowmere's north wall standing open, pale moonlight pouring through it"></td>
-    <td><img src="docs/screenshots/vesperholm.png" alt="Lantern Square in Vesperholm, pale stone and silver roofs under a huge moon and a sky full of stars"></td>
   </tr>
   <tr>
+    <td align="center"><sub>Brand and Bellows, the twin gargoyles on the keep's roof</sub></td>
     <td align="center"><sub>The Vesper Gate, standing open at the head of the cathedral steps</sub></td>
-    <td align="center"><sub>Vesperholm, the Moonbound City, under a moon that never sets</sub></td>
   </tr>
   <tr>
+    <td><img src="docs/screenshots/vesperholm.png" alt="Lantern Square in Vesperholm, pale stone and silver roofs under a huge moon and a sky full of stars"></td>
     <td><img src="docs/screenshots/veiled_knight.png" alt="A Veiled Knight, a pale armored shade, closing in across the moonlit castle bailey"></td>
-    <td><img src="docs/screenshots/lantern_wraith.png" alt="A lantern-bearing wraith in a moonlit square by a pale statue, frost creeping in at the screen's corners after its lance hits"></td>
   </tr>
   <tr>
+    <td align="center"><sub>Vesperholm, the Moonbound City, under a moon that never sets</sub></td>
     <td align="center"><sub>A Veiled Knight in the castle bailey</sub></td>
-    <td align="center"><sub>A Lantern Wraith's frost lance: moon-frost numbs your legs</sub></td>
   </tr>
   <tr>
+    <td><img src="docs/screenshots/lantern_wraith.png" alt="A lantern-bearing wraith in a moonlit square by a pale statue, frost creeping in at the screen's corners after its lance hits"></td>
     <td><img src="docs/screenshots/cathedral_long_night.png" alt="The front of a pale cathedral rising over the castle bailey, its spires lit by the moon"></td>
-    <td><img src="docs/screenshots/duchess.png" alt="Duchess Ilvane, a tall veiled noblewoman with a crescent glaive, rising in the cathedral's choir, her health bar above"></td>
   </tr>
   <tr>
+    <td align="center"><sub>A Lantern Wraith's frost lance: moon-frost numbs your legs</sub></td>
     <td align="center"><sub>The Cathedral of the Long Night, from the bailey</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/duchess.png" alt="Duchess Ilvane, a tall veiled noblewoman with a crescent glaive, rising in the cathedral's choir, her health bar above"></td>
+    <td><img src="docs/screenshots/herrans_castle.png" alt="A terrace of pale stone high over the clouds, red-brick Victorian towers and a needle spire beyond"></td>
+  </tr>
+  <tr>
     <td align="center"><sub>Duchess Ilvane, the Moonwed, in her choir</sub></td>
+    <td align="center"><sub>Herran's Castle, its towers over a sea of cloud</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/herran.png" alt="A towering gaunt figure with eight grafted arms and a crown of gold eyes under a broken iron dome, his health bar above"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Herran, the Many-Handed, in his observatory</sub></td>
   </tr>
 </table>
 

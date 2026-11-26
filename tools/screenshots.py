@@ -260,6 +260,14 @@ SHOTS = [
         "squatting in the water and the toxin bar filling",
     ),
     Shot(
+        "gargoyle_way",
+        "--map cinderhold --at=30,72,-90 --flags lever:fen_beacons --level 7 "
+        '--equip primary=moonless_tachi,secondary=spell:veil --smoke 230 --script "wait:0.3 forward:2.6"',
+        "Through the fen gate, onto the Gargoyle Way",
+        "A straight ash road between dark cliffs leading to the black fortress, gargoyles and torches in "
+        "niches either side, the name THE CINDERHOLD rising over the screen",
+    ),
+    Shot(
         "cinderhold_bridge",
         "--map cinderhold --at=29,52,-90 --level 7 --equip primary=moonless_tachi,secondary=spell:veil "
         '--smoke 60 --script "look_up:0.15"',
