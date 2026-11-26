@@ -136,7 +136,8 @@ class Sky:
 
 
 SKIES = {
-    # The cemetery: a low, gloomy grey ceiling with a dim, wan sun barely breaking through it.
+    # The cemetery: a low, gloomy grey ceiling with a dim, wan sun in the south and Vesperholm's
+    # full moon in the north, both half-hidden by the cloud ceiling.
     "overcast": Sky(
         zenith=(0.17, 0.2, 0.27),
         sun=(0.95, 0.9, 0.76),
@@ -148,9 +149,18 @@ SKIES = {
         cloud_under=(0.27, 0.28, 0.32),
         mist=(0.39, 0.4, 0.43),
         stars=0.32,
+        far_moon=FarMoon(
+            at=MOON_AT,
+            size=7.0,
+            color=(0.8, 0.84, 0.92),
+            halo=(0.24, 0.26, 0.36),
+            halo_size=18.0,
+            maria_shade=0.85,
+            wisps=0.85,
+        ),
     ),
-    # Harrowmere: dusk under a bruised ceiling of cloud, a dull copper sun sinking through it, and in
-    # the north, over the Vesper Gate, Vesperholm's full moon, small and far, half lost in the cloud.
+    # Harrowmere: dusk under a bruised ceiling of cloud, a dull copper sun sinking in the south,
+    # and in the north, over the Vesper Gate, Vesperholm's full moon.
     "dusk": Sky(
         zenith=(0.07, 0.07, 0.12),
         sun=(0.92, 0.6, 0.38),
@@ -162,9 +172,18 @@ SKIES = {
         cloud_under=(0.12, 0.12, 0.17),
         mist=(0.18, 0.18, 0.23),
         stars=0.5,
-        far_moon=FarMoon(),
+        far_moon=FarMoon(
+            at=MOON_AT,
+            size=7.0,
+            color=(0.8, 0.84, 0.92),
+            halo=(0.24, 0.26, 0.36),
+            halo_size=18.0,
+            maria_shade=0.82,
+            wisps=0.85,
+        ),
     ),
-    # The hollow: thick, humid green-gold haze over the canopy and a pale sun glaring through it.
+    # The hollow: thick, humid green-gold haze over the canopy, a pale sun glaring in the south,
+    # and a full moon in the north.
     "jungle": Sky(
         zenith=(0.16, 0.26, 0.2),
         sun=(1.0, 0.98, 0.76),
@@ -177,8 +196,19 @@ SKIES = {
         drift=0.002,
         cap=False,
         mist=(0.2, 0.3, 0.2),
+        stars=0.2,
+        far_moon=FarMoon(
+            at=MOON_AT,
+            size=6.0,
+            color=(0.85, 0.88, 0.95),
+            halo=(0.3, 0.32, 0.4),
+            halo_size=16.0,
+            maria_shade=0.75,
+            wisps=0.7,
+        ),
     ),
-    # The Cinderhold: smoke lit from beneath by the forges, and a blood-orange sun through it.
+    # The Cinderhold: smoke lit from beneath by the forges, a blood-orange sun in the south,
+    # and a full moon in the north, both struggling through the smoke.
     "ember": Sky(
         zenith=(0.08, 0.03, 0.03),
         sun=(1.0, 0.6, 0.26),
@@ -191,11 +221,20 @@ SKIES = {
         drift=0.006,
         mist=(0.36, 0.13, 0.07),
         stars=0.24,
+        far_moon=FarMoon(
+            at=MOON_AT,
+            size=5.5,
+            color=(0.7, 0.7, 0.8),
+            halo=(0.2, 0.2, 0.3),
+            halo_size=15.0,
+            maria_shade=0.7,
+            wisps=0.6,
+        ),
     ),
-    # Vesperholm: a night that never ends, drowned in the light of a vast, blazing full moon hung in
-    # the north over the cathedral, wisps of cloud trailing across it and a thin moonlit layer drifting
-    # overhead, a sky crowded with stars right up to the moon's glow and the galaxy strewn across them,
-    # and in the south the sun the city denies, buried in a bank of cloud.
+    # Vesperholm: a night that never ends, a full moon blazing in the north over the cathedral,
+    # wisps of cloud trailing across it, a thin moonlit layer drifting overhead, stars crowded up
+    # to the moon's glow and the galaxy strewn across them, and in the south the sun the city
+    # denies, buried in a bank of cloud.
     "moonlit": Sky(
         zenith=(0.03, 0.05, 0.14),
         sun=(1.0, 1.0, 1.0),
@@ -216,9 +255,9 @@ SKIES = {
         corona=(0.86, 0.92, 1.0),
         veiled=(0.62, 0.6, 0.55),
     ),
-    # Herran's Castle: high over a sea of cloud in the clear thin air, a deep blue overhead fading to
-    # gold toward the low sun, a few bright banks of cloud drifting level with the towers, and in the
-    # north, low over where Vesperholm lies hidden under the clouds, its moon, near and huge.
+    # Herran's Castle: high over a sea of cloud in the clear thin air, a deep blue overhead fading
+    # to gold toward the low sun in the south, bright banks of cloud drifting level with the towers,
+    # and in the north, Vesperholm's full moon, near and huge.
     "aloft": Sky(
         zenith=(0.1, 0.2, 0.44),
         sun=(1.0, 0.9, 0.64),
@@ -235,7 +274,7 @@ SKIES = {
         cloud_sea=(0.96, 0.9, 0.82),
         cloud_sea_under=(0.56, 0.58, 0.7),
         far_moon=FarMoon(
-            at=(270.0, 16.0),
+            at=MOON_AT,
             size=9.0,
             color=(0.88, 0.9, 0.96),
             halo=(0.34, 0.38, 0.5),
@@ -243,8 +282,9 @@ SKIES = {
             wisps=0.6,
         ),
     ),
-    # Herran's Castle in the storm: a near-black slate night over a sea of dark cloud, the sun a dim
-    # glow buried in a heavy bank, no stars and no moon.
+    # Herran's Castle in the storm: a near-black slate night over a sea of dark cloud, the sun a
+    # dim glow buried in a heavy bank in the south, and a full moon in the north, half-lost in
+    # the storm clouds.
     "storm": Sky(
         zenith=(0.04, 0.04, 0.07),
         sun=(0.5, 0.5, 0.55),
@@ -260,6 +300,16 @@ SKIES = {
         veiled=(0.3, 0.3, 0.34),
         cloud_sea=(0.3, 0.3, 0.36),
         cloud_sea_under=(0.12, 0.12, 0.17),
+        stars=0.15,
+        far_moon=FarMoon(
+            at=MOON_AT,
+            size=5.0,
+            color=(0.6, 0.6, 0.7),
+            halo=(0.15, 0.15, 0.25),
+            halo_size=14.0,
+            maria_shade=0.6,
+            wisps=0.5,
+        ),
     ),
 }
 

@@ -33,8 +33,14 @@ def test_each_outdoor_map_names_a_sky_and_the_keep_has_none():
 
 def test_the_storm_is_dark_over_the_clouds():
     s = sky.SKIES["storm"]
-    assert max(s.zenith) < 0.1 and s.cloud_sea is not None and s.far_moon is None and s.stars == 0
+    assert max(s.zenith) < 0.1 and s.cloud_sea is not None
     assert max(s.cloud_sea) < 0.45
+    # The storm sky now has a far moon in the north and faint stars
+    assert s.far_moon is not None
+    assert s.far_moon.at == sky.MOON_AT
+    assert s.far_moon.size == 5.0
+    assert s.far_moon.maria_shade == 0.6
+    assert s.stars == 0.15
 
 
 def test_the_dome_meets_the_fog_at_the_horizon_and_the_zenith_overhead():
@@ -104,7 +110,10 @@ def test_dark_places_darken_every_layer():
 
 
 def test_every_sky_puts_the_sun_low_in_the_south_over_the_towns_sea():
-    assert {spec.sun_at for spec in sky.SKIES.values() if not spec.moon} == {sky.SUN_AT}
+    # All skies except moonlit have the sun in the south (SUN_AT).
+    # Moonlit has its main moon in the north (MOON_AT) and a veiled sun in the south.
+    non_moonlit = {name: spec for name, spec in sky.SKIES.items() if name != "moonlit"}
+    assert {spec.sun_at for spec in non_moonlit.values()} == {sky.SUN_AT}
     azimuth, elevation = sky.SUN_AT
     d = sky.direction(azimuth, elevation)
     assert d[2] > 0.9 and 0 < elevation < 20  # south (+z), low over the horizon
@@ -145,9 +154,15 @@ def test_the_stars_are_brighter_than_the_sky_behind_them():
         assert sum(mesh.colors[i * 3 : i * 3 + 3]) > sum(behind)
 
 
-def test_the_jungles_daylight_hides_the_stars():
-    assert sky.stars(sky.SKIES["jungle"], FOG) is None
-    assert "stars" not in dict(sky.layers(sky.SKIES["jungle"], FOG))
+def test_the_jungle_has_faint_stars_and_a_far_moon():
+    # The jungle has faint stars and a far moon in the north
+    spec = sky.SKIES["jungle"]
+    assert not spec.moon and spec.stars == 0.2
+    assert spec.far_moon is not None
+    assert spec.far_moon.at == sky.MOON_AT
+    mesh = sky.stars(spec, FOG)
+    assert mesh is not None and mesh.vertex_count > 0
+    assert "stars" in dict(sky.layers(spec, FOG))
 
 
 @pytest.mark.parametrize("name", ["dusk", "overcast", "ember"])
@@ -173,11 +188,15 @@ def _verts(mesh):
 
 
 def test_vesperholms_moon_hangs_vast_in_the_north_among_a_crowd_of_stars():
-    """Vesperholm's sky is a night that never ends: in place of a sun a moon many times its size, high
-    in the north over the cathedral, and far more stars than the town's."""
+    """Vesperholm's sky is a night that never ends: a vast moon in the north over the cathedral,
+    far more stars than other skies, and the sun buried in cloud in the south."""
     spec, dusk = sky.SKIES["moonlit"], sky.SKIES["dusk"]
-    assert spec.moon and not dusk.moon
-    assert spec.sun_size >= 3 * dusk.sun_size
+    assert spec.moon and not dusk.moon  # moonlit has main moon, dusk has far_moon
+    assert dusk.far_moon is not None
+    # Vesperholm's moon is the main disc at MOON_AT (north)
+    assert spec.sun_at == sky.MOON_AT
+    assert spec.sun_size > 5.0  # vast moon
+    # Vesperholm's moon is in the north
     d = sky.direction(*spec.sun_at)
     assert d[2] / math.hypot(d[0], d[2]) < -0.9 and 15 < spec.sun_at[1] < 35  # north (-z), over the roofs
     assert min(spec.sun) > 0.8 and spec.sun[2] >= spec.sun[0]  # pale, a little blue

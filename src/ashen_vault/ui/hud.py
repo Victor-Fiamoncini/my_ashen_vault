@@ -1371,7 +1371,7 @@ def compass(heading, cx, cy, r=17, target=None):
         if depth < -0.05:
             continue
         alpha = rround(clamp(40 + depth * 400, 0, 255))
-        rgb = (190, 20, 16) if label == "N" else (30, 18, 8)
+        rgb = (30, 18, 8)
         runs = list(tinyfont.rects(label, rround(px) - 1, rround(py) - 2))
         halo = color(245, 230, 190, rround(alpha * 0.8))  # pale outline keeps 3x5 letters legible
         for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
