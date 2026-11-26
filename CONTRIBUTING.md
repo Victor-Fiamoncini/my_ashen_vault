@@ -90,6 +90,9 @@ git config commit.template .gitmessage
 git config core.hooksPath .githooks
 ```
 
+(`mise run setup` does both, plus `uv sync`.) CI runs the same checker over every commit you push
+or open a pull request with, so a commit made with `--no-verify` still fails there.
+
 ## Sign your commits (DCO)
 
 Every commit must carry a `Signed-off-by` line, certifying that you wrote the change or otherwise

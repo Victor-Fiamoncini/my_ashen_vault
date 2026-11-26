@@ -123,7 +123,9 @@ Read the one that covers what you are changing before you start:
 - Commit messages follow CONTRIBUTING.md, "Commit messages": `type(scope): imperative summary` (≤ 72
   characters, lower-case start, no full stop), an optional prose body wrapped at 72 columns, then a
   `Co-Authored-By: <you and your model> <noreply@...>` trailer, and always `git commit -s`. Subagents
-  follow it too. `.githooks/commit-msg` checks it (`git config core.hooksPath .githooks`).
+  follow it too. `.githooks/commit-msg` checks it locally (`mise run setup`
+  enables it once per clone) and CI runs the same check on every pushed commit
+  (`tools/check_commits.sh`).
 - Commit only when asked. Don't commit `.idea/`, screenshots outside `docs/`, or coverage files.
 - The README screenshots show the HUD and fonts. After changing either, they can be retaken with
   `tools/screenshots.py`, but leave that to the maintainer unless asked.

@@ -9,6 +9,14 @@ uv = "0.13.7"
 description = "Create or update .venv from uv.lock"
 run = "uv sync"
 
+[tasks.setup]
+description = "Once per clone: create .venv and enable the commit template and commit-msg hook"
+run = [
+  "uv sync",
+  "git config commit.template .gitmessage",
+  "git config core.hooksPath .githooks",
+]
+
 [tasks.play]
 description = "Start the game"
 run = "uv run ashen-vault"
