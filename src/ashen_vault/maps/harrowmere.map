@@ -88,8 +88,8 @@ c = floor tex=rough_stone h=0 ceil=3.4 ceil_tex=cliff_rock side=cliff_rock dark=
 
 [grid]
 ®RRRRRRRRRRR¯RRRRRRRRRRRRR¯RRRRRRRRRRRRR¯RRRRR°AAAAAAAAAAAAAA
-R;;;;;;;;;;;;;;;;;;;;)(;;,,,,ÌßNßÿ,!AAAAAAAAAARAAAAAAAAAAAAAA
-R;;;;;;;íììíììíììí;CCË;čđ,,,,,ÞsÞù,,AAAAAAAAAARAAAAAAAAAAAAAA
+R;;;;;;;;;;;;;;;;;;;;)(;;,,,,Ì,N,ÿ,!AAAAAAAAAARAAAAAAAAAAAAAA
+R;;;;;;;íììíììíììí;CCË;čđ,,,,,,s,ù,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;;ÉCCCCCCCCCCCCCCCèC;;,,,,,,,,s,,,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;;êDaYnnOOðOOñOOnnC===9876,Þù,s,ù,ùAAAAAAAAAARAAAAAAAAAAAAAA
 R;;CaannIQQIQQIQQInn===4321,,,,s,,,,AAAAAAAAAARAAAAAAAAAAAAAA
@@ -258,8 +258,8 @@ D = banner
 ä = door_arch yaw=0 on=i
 æ = door_arch yaw=-90 on=i
 ¹ = door_arch yaw=0 on=k
-// The realm's crest: banners on poles about the square, the pier and the gate, carved over the gate
-// and on the cliff over the gaol's plaza.
+// The realm's crest: banners on poles about the square, the pier and the north road, carved on the
+// cliff over the gaol's plaza.
 Þ = banner_pole
 ß = crest_plaque
 // The market's fountain and the benches round it, the gaol plaza's, carts and cargo up from the quay.
