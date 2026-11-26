@@ -38,7 +38,7 @@ def test_the_storm_is_dark_over_the_clouds():
     # The storm sky now has a far moon in the north and faint stars
     assert s.far_moon is not None
     assert s.far_moon.at == sky.MOON_AT
-    assert s.far_moon.size == 5.0
+    assert s.far_moon.size == sky.MOON_SIZE
     assert s.far_moon.maria_shade == 0.6
     assert s.stars == 0.15
 
@@ -110,10 +110,10 @@ def test_dark_places_darken_every_layer():
 
 
 def test_every_sky_puts_the_sun_low_in_the_south_over_the_towns_sea():
-    # All skies except moonlit have the sun in the south (SUN_AT).
+    # All skies except moonlit have the sun in the south (SUN_AT), the same size (SUN_SIZE) over every map.
     # Moonlit has its main moon in the north (MOON_AT) and a veiled sun in the south.
     non_moonlit = {name: spec for name, spec in sky.SKIES.items() if name != "moonlit"}
-    assert {spec.sun_at for spec in non_moonlit.values()} == {sky.SUN_AT}
+    assert {(spec.sun_at, spec.sun_size) for spec in non_moonlit.values()} == {(sky.SUN_AT, sky.SUN_SIZE)}
     azimuth, elevation = sky.SUN_AT
     d = sky.direction(azimuth, elevation)
     assert d[2] > 0.9 and 0 < elevation < 20  # south (+z), low over the horizon
@@ -181,6 +181,21 @@ def test_the_sun_is_drawn_over_the_clouds_and_its_halo_behind_them(name):
 def _cos_to(p, d):
     r = math.dist((0, 0, 0), p)
     return sum(a * b / r for a, b in zip(p, d, strict=True))
+
+
+def test_the_moon_is_the_same_size_over_every_map():
+    """Vesperholm's moon hangs in the same place and at the same size wherever it shows: as the city's
+    own disc, or seen from afar through another land's sky, its halo wider than its disc."""
+    seen = 0
+    for spec in sky.SKIES.values():
+        if spec.moon:
+            assert (spec.sun_at, spec.sun_size) == (sky.MOON_AT, sky.MOON_SIZE)
+            seen += 1
+        if spec.far_moon:
+            assert (spec.far_moon.at, spec.far_moon.size) == (sky.MOON_AT, sky.MOON_SIZE)
+            assert spec.far_moon.halo_size > 2 * spec.far_moon.size
+            seen += 1
+    assert seen == len(sky.SKIES)  # every sky shows the moon
 
 
 def _verts(mesh):
@@ -306,14 +321,14 @@ def test_a_sky_without_a_sun_has_no_disc():
 
 def test_harrowmere_sees_vesperholms_moon_far_off_in_the_north_behind_its_clouds():
     """Over the Vesper Gate, Harrowmere's dusk shows Vesperholm's full moon where it hangs over that
-    city: smaller than there, pale, its seas on it, behind the drifting banks and veiled by wisps."""
+    city: as large as there, paler, its seas on it, behind the drifting banks and veiled by wisps."""
     spec, moonlit = sky.SKIES["dusk"], sky.SKIES["moonlit"]
     far = spec.far_moon
     assert far and not spec.moon and moonlit.far_moon is None
     assert far.at == moonlit.sun_at == sky.MOON_AT
     d = sky.direction(*far.at)
     assert d[2] / math.hypot(d[0], d[2]) < -0.9 and 15 < far.at[1] < 35  # north (-z), over the gate
-    assert far.size < moonlit.sun_size and min(far.color) > 0.7 and far.color[2] >= far.color[0]
+    assert far.size == moonlit.sun_size and min(far.color) > 0.7 and far.color[2] >= far.color[0]
     order = [name for name, _ in sky.layers(spec, FOG)]
     assert order.index("stars") < order.index("far_moon") < order.index("far_wisps") < order.index("clouds")
     assert sky.TEXTURES["far_moon"] == "white" and sky.TEXTURES["far_wisps"] == "cloud_cap"

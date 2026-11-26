@@ -29,6 +29,9 @@ MIST_REPEATS = 10
 # Where the sun stands over every map: low in the south, over Harrowmere's sea. Every map shares the
 # same axes (+x east, +z south), so one bearing keeps it in the same place wherever you travel.
 SUN_AT = (90.0, 13.0)
+# The sun's disc radius in degrees: Harrowmere's, the same over every map. Only its halo changes from sky
+# to sky, as wide as each land's haze, smoke or dusk spreads its light.
+SUN_SIZE = 2.4
 SUN_THROUGH_CLOUD = 0.1  # how far the disc takes the cloud undersides' colour, as if seen through them
 SUN_GLARE = 0.4  # how far the disc's colour runs toward white, so it glares against the sky
 STAR_COUNT = 220
@@ -39,6 +42,10 @@ STAR_TINTS = ((0.92, 0.95, 1.0), (1.0, 0.94, 0.82), (0.78, 0.86, 1.0))  # cool w
 # Where Vesperholm's moon hangs: in the north, over the Duchess's cathedral, high enough to stand clear
 # of its roofs (and the flèche on its ridge) from Lantern Square and the gate court. It never sets.
 MOON_AT = (270.0, 30.0)
+# The moon's disc radius in degrees: the same over every map, whether it blazes over Vesperholm or shows
+# pale through another land's clouds, and its halo round it when seen from afar.
+MOON_SIZE = 8.5
+FAR_MOON_HALO = MOON_SIZE * 2.4
 # Vesperholm's moon is full: its whole disc lit, a touch dimmer toward its limb (LIMB_SHADE), so it
 # reads as a sphere, its seas scattered across it.
 LIMB_SHADE = 0.93
@@ -95,14 +102,15 @@ SHROUD_RIM = 0.7  # how far each billow's rim takes the hidden sun's light
 
 @dataclass(frozen=True)
 class FarMoon:
-    """Another land's moon seen from afar: a small full moon (its seas on it) in a faint halo, low
-    enough that the drifting cloud banks pass over it, with wisps of the sky's own cloud across it."""
+    """Vesperholm's moon seen from another land: the same full moon, as large as it hangs over the
+    city (its seas on it), but paler, dimmed by the sky it is seen through, in a faint halo, low enough
+    that the drifting cloud banks pass over it, with wisps of the sky's own cloud across it."""
 
     at: tuple = MOON_AT  # (azimuth, elevation) in degrees
-    size: float = 5.0  # the disc's radius, degrees
+    size: float = MOON_SIZE  # the disc's radius, degrees
     color: tuple = (0.8, 0.84, 0.92)
     halo: tuple = (0.24, 0.26, 0.36)
-    halo_size: float = 13.0
+    halo_size: float = FAR_MOON_HALO
     maria_shade: float = 0.84
     wisps: float = 0.85  # how much of the sky's cloud colour its wisps take (the rest the moon's light)
 
@@ -112,7 +120,7 @@ class Sky:
     zenith: tuple  # colour straight up; the horizon is always the map's fog colour
     sun: tuple | None = None  # the sun's disc colour (None: no sun)
     sun_at: tuple = SUN_AT  # (azimuth, elevation) in degrees; azimuth 0 = +x (east), 90 = +z
-    sun_size: float = 2.5  # the disc's radius, degrees
+    sun_size: float = SUN_SIZE  # the disc's radius, degrees (a moon's: MOON_SIZE)
     halo: tuple | None = None  # the glow around the sun
     halo_size: float = 20.0
     clouds: tuple | None = None  # lit tops of the cloud banks (None: a clear sky)
@@ -142,7 +150,6 @@ SKIES = {
         zenith=(0.17, 0.2, 0.27),
         sun=(0.95, 0.9, 0.76),
         sun_at=SUN_AT,
-        sun_size=2.6,
         halo=(0.7, 0.62, 0.49),
         halo_size=24.0,
         clouds=(0.48, 0.48, 0.5),
@@ -151,10 +158,8 @@ SKIES = {
         stars=0.32,
         far_moon=FarMoon(
             at=MOON_AT,
-            size=7.0,
             color=(0.8, 0.84, 0.92),
             halo=(0.24, 0.26, 0.36),
-            halo_size=18.0,
             maria_shade=0.85,
             wisps=0.85,
         ),
@@ -165,7 +170,6 @@ SKIES = {
         zenith=(0.07, 0.07, 0.12),
         sun=(0.92, 0.6, 0.38),
         sun_at=SUN_AT,
-        sun_size=2.4,
         halo=(0.43, 0.29, 0.23),
         halo_size=18.0,
         clouds=(0.24, 0.22, 0.27),
@@ -174,10 +178,8 @@ SKIES = {
         stars=0.5,
         far_moon=FarMoon(
             at=MOON_AT,
-            size=7.0,
             color=(0.8, 0.84, 0.92),
             halo=(0.24, 0.26, 0.36),
-            halo_size=18.0,
             maria_shade=0.82,
             wisps=0.85,
         ),
@@ -188,7 +190,6 @@ SKIES = {
         zenith=(0.16, 0.26, 0.2),
         sun=(1.0, 0.98, 0.76),
         sun_at=SUN_AT,
-        sun_size=3.0,
         halo=(0.64, 0.7, 0.42),
         halo_size=34.0,
         clouds=(0.26, 0.34, 0.24),
@@ -199,10 +200,8 @@ SKIES = {
         stars=0.2,
         far_moon=FarMoon(
             at=MOON_AT,
-            size=6.0,
             color=(0.85, 0.88, 0.95),
             halo=(0.3, 0.32, 0.4),
-            halo_size=16.0,
             maria_shade=0.75,
             wisps=0.7,
         ),
@@ -213,7 +212,6 @@ SKIES = {
         zenith=(0.08, 0.03, 0.03),
         sun=(1.0, 0.6, 0.26),
         sun_at=SUN_AT,
-        sun_size=3.4,
         halo=(0.72, 0.24, 0.1),
         halo_size=26.0,
         clouds=(0.2, 0.12, 0.11),
@@ -223,10 +221,8 @@ SKIES = {
         stars=0.24,
         far_moon=FarMoon(
             at=MOON_AT,
-            size=5.5,
             color=(0.7, 0.7, 0.8),
             halo=(0.2, 0.2, 0.3),
-            halo_size=15.0,
             maria_shade=0.7,
             wisps=0.6,
         ),
@@ -239,7 +235,7 @@ SKIES = {
         zenith=(0.03, 0.05, 0.14),
         sun=(1.0, 1.0, 1.0),
         sun_at=MOON_AT,
-        sun_size=8.5,
+        sun_size=MOON_SIZE,
         halo=(0.48, 0.6, 0.84),
         halo_size=48.0,
         clouds=(0.36, 0.42, 0.58),
@@ -257,12 +253,11 @@ SKIES = {
     ),
     # Herran's Castle: high over a sea of cloud in the clear thin air, a deep blue overhead fading
     # to gold toward the low sun in the south, bright banks of cloud drifting level with the towers,
-    # and in the north, Vesperholm's full moon, near and huge.
+    # and in the north, Vesperholm's full moon, pale in the clear air.
     "aloft": Sky(
         zenith=(0.1, 0.2, 0.44),
         sun=(1.0, 0.9, 0.64),
         sun_at=SUN_AT,
-        sun_size=3.2,
         halo=(0.86, 0.64, 0.4),
         halo_size=30.0,
         clouds=(0.92, 0.86, 0.8),
@@ -275,10 +270,8 @@ SKIES = {
         cloud_sea_under=(0.56, 0.58, 0.7),
         far_moon=FarMoon(
             at=MOON_AT,
-            size=9.0,
             color=(0.88, 0.9, 0.96),
             halo=(0.34, 0.38, 0.5),
-            halo_size=20.0,
             wisps=0.6,
         ),
     ),
@@ -289,7 +282,6 @@ SKIES = {
         zenith=(0.04, 0.04, 0.07),
         sun=(0.5, 0.5, 0.55),
         sun_at=SUN_AT,
-        sun_size=2.4,
         halo=(0.2, 0.2, 0.25),
         halo_size=24.0,
         clouds=(0.26, 0.26, 0.31),
@@ -303,10 +295,8 @@ SKIES = {
         stars=0.15,
         far_moon=FarMoon(
             at=MOON_AT,
-            size=5.0,
             color=(0.6, 0.6, 0.7),
             halo=(0.15, 0.15, 0.25),
-            halo_size=14.0,
             maria_shade=0.6,
             wisps=0.5,
         ),
