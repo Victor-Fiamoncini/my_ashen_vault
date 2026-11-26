@@ -23,7 +23,7 @@ _BY_TEX = {
         "encaustic_tile",
         "lab_tile",
     ),
-    "wood": ("wood_plank", "timber", "bark"),
+    "wood": ("wood_plank", "timber", "bark", "rotten_wood"),
     "soft": (
         "dirt",
         "ash_ground",
@@ -35,6 +35,7 @@ _BY_TEX = {
         "canopy",
         "thorns",
         "cloud_sea",
+        "dirt_path",
     ),
     "mud": ("mud", "bog", "sludge", "fen_mud"),
     "water": ("water", "rapids", "sallow_mire"),

@@ -79,6 +79,9 @@ def all_textures():
         "crystal_rock": crystal_rock(),
         "sallow_mire": sallow_mire(),
         "fen_mud": fen_mud(),
+        "dirt_path": dirt_path(),
+        "dirt_hill": dirt_hill(),
+        "rotten_wood": rotten_wood(),
         "herran_brick": herran_brick(),
         "herran_ashlar": herran_ashlar(),
         "herran_slate": herran_slate(),
@@ -1300,6 +1303,58 @@ def fen_mud():
         if abs(noise(x, y, 10, 653) - 0.5) < 0.015:
             return tint([110, 104, 64], 0.7 + n * 0.3)  # a pressed reed
         return tint([58, 46, 40], 0.6 + n * 0.45)
+
+    return build(px)
+
+
+def dirt_path():
+    """A packed earth path through the fen: firm brown dirt, slightly raised, with scattered
+    pebbles and the faint impression of wagon ruts. No toxic stain here."""
+
+    def px(x, y):
+        n = fbm(x, y, 661)
+        rut = math.sin(x * 0.3 + noise(x, y, 6, 662) * 0.5) * 0.05
+        if noise(x, y, 8, 663) > 0.92:
+            return tint([90, 76, 58], 0.55 + n * 0.3)  # a pebble
+        if abs(noise(x, y, 12, 664) - 0.5) < 0.008:
+            return tint([130, 110, 86], 0.7 + n * 0.2)  # a highlight
+        return tint([106, 88, 66], 0.65 + rut + n * 0.35)
+
+    return build(px)
+
+
+def dirt_hill():
+    """A raised mound of firm earth in the fen: a safe island of packed soil and grass roots,
+    standing above the toxic mire. Green-brown with tufts of hardy sedge."""
+
+    def px(x, y):
+        n = fbm(x, y, 671)
+        if noise(x, y, 5, 672) > 0.88:
+            return tint([120, 108, 72], 0.7 + n * 0.25)  # a grass tuft
+        if noise(x, y, 7, 673) > 0.95:
+            return tint([72, 60, 44], 0.6 + n * 0.3)  # a root
+        return tint([98, 84, 58], 0.65 + n * 0.4)
+
+    return build(px)
+
+
+def rotten_wood():
+    """The bridge's deck: ancient blackened timber, warped and cracked by decades of violet mist.
+    Deep grey-brown with mossy green stains and violet slime in the cracks."""
+
+    def px(x, y):
+        n = fbm(x, y, 681)
+        grain = math.sin(x * 0.45 + noise(x, y, 10, 682) * 0.3)
+        crack = noise(x, y, 4, 683) > 0.98
+        if crack:
+            return tint([50, 38, 30], 0.5 + n * 0.3)  # a deep crack
+        if grain > 0.85:
+            return tint([68, 58, 46], 0.7 + n * 0.2)  # a raised grain
+        if noise(x, y, 8, 684) > 0.93:
+            return tint([82, 90, 68], 0.6 + n * 0.3)  # moss stain
+        if noise(x, y, 12, 685) > 0.97:
+            return tint([110, 70, 140], 0.4 + n * 0.2)  # violet slime
+        return tint([60, 50, 40], 0.65 + n * 0.35)
 
     return build(px)
 

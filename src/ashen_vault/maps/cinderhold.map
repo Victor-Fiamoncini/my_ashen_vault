@@ -77,6 +77,9 @@ z = floor tex=flagstone h=9.5 side=black_brick
 ? = floor tex=fen_mud h=0 side=fen_mud slow=0.85 dark=0.25
 & = floor tex=flagstone h=0 side=fen_mud
 % = water tex=sallow_mire h=-0.6 side=fen_mud drown=mire
+@ = floor tex=dirt_path h=0 side=fen_mud slow=0.9
+[ = floor tex=dirt_hill h=1.5 side=fen_mud
+{ = floor tex=rotten_wood h=0 side=fen_mud
 
 [grid]
 KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK
@@ -151,25 +154,25 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAÚä,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAA,,,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAðAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAA----------------*77777777777777777----------------AAAAA
-AAAA--------------****7ò7777777777777ò7----*******-----AAAAA
-AAAA-------------*****77777í77777777777---**ò7777**-----AAAA
-AAAAA---ó-------******77Û77777777777777ì-**7777777**----AAAA
-AAAAA----------*******777777777ö7777777-***777ï7777**---AAAA
-AAAAA----------*****ó*%%%%%%%%ø%%%%%%%%***777777777**?-AAAAA
-AAAA-----------***********----&---------**777777777*ò?--AAAA
-AAAAA777--------*******?*-----&----------**î777777**???AAAAA
-AAAA-7ù7---------****????-----&-----------***777***???--AAAA
-AAAA-777-----------*??ò??-----&-----------**********??--AAAA
-AAAA-----------------????-----&----ì-----************--AAAAA
-AAAA--------------þ---?-------&---------ó************--AAAAA
-AAAAA---****í-----------------&----------************--AAAAA
-AAAAA--***77**---------------õ&-----------**********ì---AAAA
-AAAAA-**ò7777**-ì-------------&-----------********------AAAA
-AAAA--*7777777*---------------&--ó----------****--------AAAA
-AAAA-**777ï777**--------------&------------þ---*****---AAAAA
-AAAAA-*7777777*---------------&---------------**7û7**--AAAAA
-AAAA--*777777**--ó------ì-----&--------------**77777**--AAAA
-AAAAA--**777**----------------&------ì-------*7777777*--AAAA
+AAAA--------------****7ò77777@7@777777ò7----*******-----AAAAA
+AAAA-------------*****77777í77@Φ@777777---**ò7777**-----AAAA
+AAAAA---ó-------******77Û777@7777777777ì-**7777777**----AAAA
+AAAAA----------*******777777777@7777777-***777ï7777**---ΩAAA
+AAAAA----------*****ó{%%%%%%%%Ψ%%%%%%%%{**777777777**?-AAAAA
+AAAA-----------***********----&@---------**777777777*ò?--AAAA
+AAAAA777--------*******?*-----&@---------**î777777**???AAAAA
+AAAA-7ù7---------****????-----&@----------**777***???--AAAA
+AAAA-777-----------*??ò??-----&@----------**********??--AAAA
+AAAA-----------------????-----&@---ì-----************--AAAAA
+AAAA--------------þ---?-------&@--------ó************--AAAAA
+AAAAA---****í-----------------&@---------************--AAAAA
+AAAAA--***77**---------------õ&@----------**********ì---AAAA
+AAAAA-**ò7777**-ì-------------&@----------********------AAAA
+AAAA--*7777777*---------------&@-ó----------****--------AAAA
+AAAA-**777ï777**--------------&@-----------þ---*****---AAAAA
+AAAAA-*7777777*---------------&@--------------**7û7**--AAAAA
+AAAA--*777777**--ó------ì-----&@-------------**77777**--AAAA
+AAAAA--**777**----------------&@-----ì-------*7777777*--AAAA
 AAAA--********----------------&õ------------**777ï777**AAAAA
 AAAA-ó********ì---777---------&--------------*7777777*--AAAA
 AAAAA**********---7ô7---------&--------------*í777777*--AAAA
@@ -197,13 +200,14 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 [entities]
 // The Sallow Fen: the north road from Harrowmere comes down into it. Three beacons of the fortress's violet
 // fire burn on its islands, and the fen gate up to the ash road stays shut until all three are smothered.
-// A drawbridge across the sink-holes, let down from the gate's side, makes the causeway a way straight
-// through. Fen Lurks squat in the mire, Bileguts crawl its banks, and the Mire Tyrant keeps the north island.
-ý = hint text="The mire is fouled violet. Wading it works a toxin into your blood.|Three beacons burn on the fen. Smother them, and the gate north opens." sets=visited_sallow_fen
+// A great rotten wood bridge spans the sink-holes; its lever sits in the center of the great square.
+// Fen Lurks squat in the mire, Bileguts crawl its banks, and the Mire Tyrant keeps the north island.
+// Dirt paths and hills offer safe passage through the toxic mire. Huge rotten trees loom overhead.
+ý = hint text="The mire is fouled violet. Wading it works a toxin into your blood.|Three beacons burn on the fen. Smother them, and the gate north opens.|A great rotten bridge spans the sink-holes. Its lever stands in the great square." sets=visited_sallow_fen
 ï = fen_beacon gate=fen_beacons
 ð = gate lever=fen_beacons on=,
-ö = lever id=fen_causeway model=wood
-ø = bridge lever=fen_causeway hinge=n deck=0 on=%
+Φ = lever id=fen_causeway model=rotten_lever
+Ψ = bridge lever=fen_causeway hinge=n deck=0 on=% model=rotten_wood_bridge
 ì = fen_lurk
 í = bilegut
 î = mire_tyrant item=fenbane
@@ -214,6 +218,7 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 ó = fen_reeds
 ô = sunken_hut yaw=90
 õ = stilt_posts
+Ω = huge_rotten_tree
 þ = light y=0.6 color=0.75,0.35,1.0 radius=6
 // The wayside shrine up the ash road.
 Ð = exit map=harrowmere at=31,2,90 label=Return_to_Harrowmere model=road_gate yaw=90
