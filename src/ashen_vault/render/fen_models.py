@@ -341,164 +341,138 @@ def stilt_posts(r, seed):
     r.part("cube", 0, 0.7, -0.35, 0.3, 0.06, 0.8, (255, 255, 255), tex="wood_plank", rx=0.2)
 
 
-# --- new scenario props -------------------------------------------------------------------------------
+# --- the great trees, the old moot's lever and its rotten bridges --------------------------------------
+
+ROT_TIMBER = (96, 80, 60)
+ROT_TIMBER_DARK = (64, 52, 40)
+HOLLOW = (12, 9, 12)  # the black inside of a hollow trunk
+SHELF = (176, 158, 124)  # pale shelf fungus on dead wood
+SLIME = (120, 64, 150)  # violet slime off the mire, on wet timber
+HANGING_MOSS = (96, 104, 86)
+# Tints over the textures (which carry the wood's own dark tone): rotten boards, sodden bark, a great bole.
+BOARD_TINT = (215, 200, 185)
+SODDEN_BARK = (150, 132, 112)
+BOLE = (128, 116, 102)
 
 
-def huge_rotten_tree(r, seed):
-    """A colossal dead fen tree: a massive trunk flaring into vast buttress roots, great knobbly knees
-    rising from the mire like sentinels, sprawling crooked limbs draped in grey moss, a shattered crown.
-    Far larger than a dead_cypress, it dominates the skyline of the fen."""
-    # Base height much taller than dead_cypress
-    h = 14.0 + (seed % 4) * 1.5
-    trunk_base = 1.8 + (seed % 3) * 0.3
-
-    # Massive buttress roots flaring at the base
-    for k in range(8):
-        a = k * 0.785 + seed * 0.1
-        root_len = 3.5 + (k % 3) * 0.8
-        root_w = 0.7 + (k % 2) * 0.2
-        r.part("cone", math.cos(a) * root_w, 0.6, math.sin(a) * root_w, root_w, 2.0, root_w, DEAD_WOOD, ry=-a)
-        # Root extends outward along the ground
-        r.part("cone", math.cos(a) * (root_w + root_len * 0.3), 0.15, math.sin(a) * (root_w + root_len * 0.3),
-               root_w * 0.5, root_len, root_w * 0.5, _dim(DEAD_WOOD, 0.85), ry=-a, rx=math.pi / 2)
-
-    # Main trunk
-    r.part("cyl", 0, h * 0.45, 0, trunk_base, h * 0.9, trunk_base, DEAD_WOOD, tex="bark")
-
-    # Major knees rising from the mire around the trunk
-    for k in range(12):
-        a = k * 0.52 + seed * 0.2
-        d = 2.0 + (k % 4) * 0.5
-        knee_h = 1.5 + ((seed + k) % 5) * 0.6
-        r.part("cone", math.cos(a) * d, 0.25, math.sin(a) * d, 0.35, knee_h, 0.35, _dim(DEAD_WOOD, 0.8))
-        # Moss on knee tops
-        r.part("cone", math.cos(a) * d * 0.8, knee_h - 0.2, math.sin(a) * d * 0.8, 0.4, 0.8, 0.4, MOSS, rx=math.pi)
-
-    # Sprawling crooked limbs at multiple levels
-    for tier in range(4):
-        tier_y = h * (0.35 + tier * 0.18)
-        limbs_this_tier = 3 + (tier == 0)  # more limbs lower down
-        for k in range(limbs_this_tier):
-            a = k * (2 * math.pi / limbs_this_tier) + seed * 0.5 + tier * 0.7
-            limb_len = 4.0 + (tier * 1.2) + ((seed + k) % 3) * 0.8
-            limb_w = 0.5 - tier * 0.08
-            segments = 3
-            for seg in range(segments):
-                seg_a = a + math.sin(seg * 1.5 + seed + k) * 0.3
-                seg_len = limb_len / segments
-                start_y = tier_y + seg * (seg_len * 0.15)
-                end = (math.cos(seg_a) * (limb_len * (seg + 1) / segments),
-                       tier_y + (seg + 1) * (seg_len * 0.15) + 0.5,
-                       math.sin(seg_a) * (limb_len * (seg + 1) / segments))
-                start = (math.cos(seg_a) * (limb_len * seg / segments) if seg > 0 else 0,
-                         start_y,
-                         math.sin(seg_a) * (limb_len * seg / segments) if seg > 0 else 0)
-                _bar(r, start, end, limb_w * (1 - seg * 0.15), DEAD_WOOD)
-                # Moss hanging from limb segments
-                if seg % 2 == 0:
-                    r.part("cone", end[0] * 0.7, end[1] - 0.3, end[2] * 0.7, 0.25, 1.2, 0.25, MOSS, rx=math.pi)
-
-    # Shattered crown with multiple broken spires
-    for k in range(5):
-        a = k * 1.25 + seed
-        spire_h = 1.5 + (k % 3) * 0.7
-        r.part("cone", math.cos(a) * 0.4, h + 0.2, math.sin(a) * 0.4, 0.35, spire_h, 0.35, _dim(DEAD_WOOD, 0.75))
-
-
-ROT_TIMBER = (58, 48, 38)
-ROT_TIMBER_DARK = (42, 34, 26)
-ROPE_GREY = (72, 68, 64)
+def huge_rotten_tree(r, seed, size=1.0):
+    """A great dead fen tree, many times a dead cypress's height: a trunk two metres through, flared
+    into buttress roots that run out over the mud, split near the top where the rot ate its heart out,
+    a black hollow at its foot, crooked limbs hung with long beards of grey moss, shelf fungus up its
+    sides and a few violet caps glowing among the roots. It fills its tile; its roots stay low past it."""
+    with r.at(0, 0, 0, s=size):
+        h = 12.0 + (seed % 4) * 1.1
+        for k in range(7):  # the buttress roots, flaring out and down into the mud
+            a = k * 0.9 + seed * 0.37
+            ca, sa = math.cos(a), math.sin(a)
+            reach = 2.2 + (k % 3) * 0.45
+            _bar(r, (ca * 0.6, 2.4, sa * 0.6), (ca * reach, 0.05, sa * reach), 0.42, _dim(DEAD_WOOD, 0.62))
+            _bar(
+                r,
+                (ca * reach, 0.05, sa * reach),
+                (ca * (reach + 0.9), -0.1, sa * (reach + 0.9)),
+                0.22,
+                DEAD_WOOD,
+            )
+        r.part("cyl", 0, h * 0.28, 0, 2.2, h * 0.56, 2.2, BOLE, tex="bark")  # the great bole
+        r.part("cyl", 0, 0.5, 0, 2.6, 1.0, 2.6, _dim(BOLE, 0.8), tex="bark")  # its swollen foot
+        r.part("cube", 1.0, 1.0, 0.1, 0.3, 1.9, 0.8, HOLLOW)  # the hollow at its foot
+        r.part("cube", 1.04, 2.0, 0.1, 0.32, 0.2, 0.5, HOLLOW)
+        r.part("cyl", 0, h * 0.7, 0, 1.6, h * 0.32, 1.6, BOLE, tex="bark")  # the upper trunk
+        for side in (-1, 1):  # split at the top into two leaning, broken leaders
+            with r.at(0, h * 0.84, side * 0.35, rx=side * 0.22):
+                r.part("cyl", 0, 1.3, 0, 0.8, 2.6, 0.75, BOLE, tex="bark")
+                r.part("cone", 0, 2.9, 0, 0.75, 1.0 + (seed + side) % 2 * 0.6, 0.7, _dim(DEAD_WOOD, 0.7))
+        for k in range(6):  # shelf fungus stepping up its sides
+            a = k * 2.1 + seed
+            y = 1.6 + k * h * 0.09
+            rad = 1.1 if y < h * 0.56 else 0.8
+            r.part("cyl", math.cos(a) * rad, y, math.sin(a) * rad, 0.7, 0.1, 0.7, SHELF)
+        for k in range(6):  # crooked limbs, each bent once, hung with moss
+            a = k * 1.05 + seed * 0.61
+            ca, sa = math.cos(a), math.sin(a)
+            y = h * (0.5 + 0.07 * k)
+            reach = 3.2 + (seed + k) % 3 * 0.7
+            elbow = (ca * reach * 0.55, y + 1.0, sa * reach * 0.55)
+            bend = a + (0.5 if k % 2 else -0.5)
+            end = (math.cos(bend) * reach, y + 2.0 + (k % 3) * 0.5, math.sin(bend) * reach)
+            _bar(r, (ca * 0.6, y, sa * 0.6), elbow, 0.38, DEAD_WOOD)
+            _bar(r, elbow, end, 0.22, DEAD_WOOD)
+            for x, yy, z, long in (  # the beards of moss off the elbow and the tip
+                (elbow[0], elbow[1], elbow[2], 2.2),
+                (end[0], end[1], end[2], 1.4 + (k % 2)),
+            ):
+                r.part("cone", x, yy - long / 2, z, 0.34, long, 0.34, HANGING_MOSS, rx=math.pi)
+        for k in range(9):  # knees standing out of the mud round it
+            a = k * 0.71 + seed * 0.2
+            d = 2.4 + (k % 3) * 0.5
+            kh = 0.4 + ((seed + k) % 3) * 0.25
+            r.part("cone", math.cos(a) * d, kh / 2, math.sin(a) * d, 0.32, kh, 0.32, _dim(DEAD_WOOD, 0.6))
+        for k in range(4):  # violet caps glowing among the roots
+            a = k * 1.7 + seed * 0.9
+            x, z = math.cos(a) * 1.7, math.sin(a) * 1.7
+            r.part("cyl", x, 0.12, z, 0.05, 0.24, 0.05, VIOLET_PALE)
+            r.part("sphere", x, 0.26, z, 0.22, 0.09, 0.22, FEN_VIOLET, glow=True)
 
 
-def rotten_wood_bridge(r, seed, length=24):
-    """A great rotten wood bridge spanning the sink-holes: massive sagging timbers, missing planks,
-    frayed rope railings, moss and violet slime clinging to every surface. It sways imperceptibly."""
-    # The bridge runs along +Z (north), centered at 0,0
-    half_len = length / 2
-    num_spans = int(length / 3)  # a support every 3 tiles (6m)
-
-    # Main support beams - huge rotten logs
-    for i in range(num_spans + 1):
-        z = -half_len + i * (length / num_spans)
-        # Two main beams side by side
-        for sx in (-0.9, 0.9):
-            r.part("cyl", sx, 0.35 + math.sin(z * 0.4 + seed) * 0.15, z, 0.55, 0.55, 0.55, ROT_TIMBER_DARK)
-            # Moss and slime on beams
-            for k in range(3):
-                mz = z + (k - 1) * 0.8
-                if -half_len <= mz <= half_len:
-                    r.part("sphere", sx + 0.3, 0.6, mz, 0.3, 0.15, 0.3, MOSS)
-                    r.part("sphere", sx - 0.2, 0.2, mz, 0.2, 0.1, 0.2, _dim(FEN_VIOLET, 0.4))
-
-    # Cross-beams under the deck
-    for i in range(num_spans * 2):
-        z = -half_len + i * (length / (num_spans * 2))
-        r.part("cyl", 0, 0.1, z, 0.12, 2.2, 0.12, ROT_TIMBER_DARK, rx=math.pi / 2)
-
-    # Deck planks - many missing, some broken, sagging
-    for i in range(length * 2):  # half-tile resolution
-        z = -half_len + i * 0.5
-        present = ((seed + i * 7) % 11) < 8  # ~73% of planks present
-        if present:
-            plank_w = 1.8 + math.sin(i * 0.5 + seed) * 0.3
-            plank_h = 0.08 + math.sin(i * 1.1 + seed) * 0.04  # varying thickness/warp
-            sag = math.sin((z + half_len) / length * math.pi) * 0.25  # sags in middle
-            r.part("cube", 0, 0.2 + sag, z, plank_w, plank_h, 0.45, ROT_TIMBER)
-            # Moss on planks
-            if (i % 5) == 0:
-                r.part("sphere", 0, 0.3 + sag, z, 0.5, 0.08, 0.2, MOSS)
-        else:
-            # Gap - maybe a broken plank fragment
-            if (seed + i) % 4 == 0:
-                r.part("cube", 0, 0.05, z, 0.6, 0.05, 0.3, _dim(ROT_TIMBER_DARK, 0.6), rz=0.3)
-
-    # Rope railings - frayed, mostly gone
-    for side in (-1, 1):
-        for i in range(num_spans):
-            z = -half_len + i * (length / num_spans) + (length / num_spans) / 2
-            # Post stump
-            r.part("cyl", side * 1.1, 0.4, z, 0.1, 0.9, 0.1, ROT_TIMBER_DARK)
-            # Frayed rope between posts
-            if i < num_spans - 1:
-                next_z = z + (length / num_spans)
-                for strand in range(3):
-                    droop = 0.2 + strand * 0.1
-                    r.part("cyl", side * 1.1, 0.9 - droop, (z + next_z) / 2, 0.03, next_z - z, 0.03, ROPE_GREY, rx=math.pi / 2, ry=0)
-
-    # Violet slime trails along the sides
-    for side in (-1, 1):
-        for i in range(length):
-            z = -half_len + i
-            if (seed + i * 3) % 7 == 0:
-                r.part("sphere", side * 1.3, 0.15, z, 0.3, 0.1, 0.3, _dim(FEN_VIOLET, 0.5), glow=True)
+DRAWBRIDGE_POST = 3.6  # how tall the gallows posts on the bank stand, the chains hauling the span from them
 
 
-def rotten_lever(r, t, engaged=False):
-    """A gnarled rotten lever of ancient blackened wood with corroded iron fittings. It sits in a
-    stone socket, its handle worn smooth by generations of desperate hands. When pulled, it groans."""
-    # Stone socket/base
-    r.part("cube", 0, 0.15, 0, 0.9, 0.3, 0.9, (38, 34, 40), tex="rough_stone")
-    r.part("cyl", 0, 0.3, 0, 0.5, 0.1, 0.5, (30, 26, 32))
+def rotten_drawbridge(r, lowered, i=0, n=1):
+    """One tile of a great rotten drawbridge `n` tiles long: tile `i` from the hinge, which lies on the
+    -X edge of the first tile. The whole span swings on that one hinge as a single deck: raised (0) it
+    stands upright on the bank, a wall of black timber `n` tiles tall; `lowered` (1) lays it across the
+    sink-holes. Cross boards on two great stringers, warped and gapped, moss and violet slime on them; on
+    the first tile also the gallows posts on the bank and the chains that let it down."""
+    k = lowered * lowered  # it falls slowly at first, then crashes down
+    lift = (1 - k) * math.pi / 2
+    with r.at(-1.0 - 2.0 * i, 0, 0, rz=lift):
+        x0 = 2.0 * i
+        for z in (-0.92, 0.92):  # the two stringers, with a tie bolt where they meet the next tile
+            r.part("cube", x0 + 1.0, -0.2, z, 2.0, 0.24, 0.2, SODDEN_BARK, tex="bark")
+            r.part("cube", x0 + 0.05, -0.08, z, 0.1, 0.06, 0.24, _dim(IRON, 0.45))
+        for b in range(5):  # the cross boards, warped and one in five split short
+            x = x0 + 0.2 + b * 0.4
+            short = (i * 5 + b) % 5 == 2
+            w = 1.2 if short else 1.95
+            zc = -0.35 if short else 0.0
+            r.part(
+                "cube", x, -0.04, zc, 0.36, 0.08, w, BOARD_TINT, tex="rotten_wood", rx=0.03 * ((b % 3) - 1)
+            )
+        r.part("sphere", x0 + 0.7, 0.02, 0.5, 0.5, 0.06, 0.4, MOSS)
+        r.part("sphere", x0 + 1.5, 0.0, -0.6, 0.3, 0.05, 0.5, SLIME)
+        if i == n - 1:  # the tip's iron lip, where the chains are made fast
+            r.part("cube", x0 + 1.96, -0.1, 0, 0.08, 0.2, 1.9, _dim(IRON, 0.5))
+    if i:
+        return
+    tip = 2.0 * n
+    tx, ty = tip * math.cos(lift), tip * math.sin(lift)
+    with r.at(-1.0, 0, 0):
+        for z in (-1.05, 1.05):  # the gallows posts on the bank, and a chain from each to the tip
+            r.part("cube", -0.2, DRAWBRIDGE_POST / 2, z, 0.34, DRAWBRIDGE_POST, 0.34, SODDEN_BARK, tex="bark")
+            r.part("cube", -0.2, 0.8, z, 0.4, 0.14, 0.4, _dim(IRON, 0.45))  # an iron band
+            _bar(r, (-0.05, DRAWBRIDGE_POST - 0.2, z), (tx, ty, z), 0.06, _dim(IRON, 0.55))
+        r.part("cube", -0.2, DRAWBRIDGE_POST + 0.1, 0, 0.38, 0.3, 2.6, SODDEN_BARK, tex="bark")  # the lintel
+        r.part("cone", -0.2, DRAWBRIDGE_POST - 0.6, 0.6, 0.18, 0.9, 0.18, HANGING_MOSS, rx=math.pi)
 
-    # The lever shaft - a twisted length of rotten wood with iron banding
-    angle = -0.6 if engaged else 0.2  # pulled back when engaged
-    with r.at(0, 0.45, 0, rx=angle):
-        # Main shaft
-        r.part("cyl", 0, 1.0, 0, 0.14, 2.4, 0.14, ROT_TIMBER_DARK)
-        # Iron bands along the shaft
-        for k in range(5):
-            bz = k * 0.5
-            r.part("cyl", 0, bz, 0, 0.18, 0.08, 0.18, _dim(IRON, 0.5))
-        # Corroded iron fitting at the base (pivot)
-        r.part("sphere", 0, -0.1, 0, 0.22, 0.15, 0.22, _dim(IRON, 0.4))
-        r.part("cyl", 0, -0.05, 0, 0.1, 0.2, 0.1, _dim(IRON, 0.6))
-        # Handle - worn, split wood
-        with r.at(0, 2.1, 0):
-            r.part("cyl", 0, 0.15, 0, 0.1, 0.5, 0.1, _dim(ROT_TIMBER, 1.2))
-            r.part("sphere", 0, 0.45, 0, 0.18, 0.15, 0.18, ROT_TIMBER)
-            # A notch carved in the handle
-            r.part("cube", 0, 0.3, 0, 0.15, 0.08, 0.15, _dim(ROT_TIMBER_DARK, 1.5))
 
-    # Faint violet glow from the mechanism when engaged (the bridge responds)
-    if engaged:
-        r.part("sphere", 0, 0.35, 0, 0.3, 0.15, 0.3, FEN_VIOLET, glow=True)
+def rotten_lever(r, k):
+    """The old moot's lever: a windlass of black, rotten timber on a squat plinth of mossy stone, its
+    drum wound with rusted chain that runs off to the bridges, and a long gnarled arm swinging across
+    it, from raised back (k=0) to thrown forward and down (k=1). Iron bands keep it from splitting."""
+    r.part("cube", 0, 0.2, 0, 1.3, 0.4, 1.1, (255, 255, 255), tex="rough_stone")  # the plinth
+    r.part("sphere", 0.4, 0.42, -0.35, 0.4, 0.08, 0.3, MOSS)
+    for z in (-0.42, 0.42):  # the two uprights the drum turns between
+        r.part("cube", 0, 0.95, z, 0.26, 1.1, 0.2, SODDEN_BARK, tex="bark")
+        r.part("cube", 0, 0.7, z, 0.3, 0.1, 0.24, _dim(IRON, 0.45))
+    drum_y = 1.3
+    with r.at(0, drum_y, 0, rz=-2.4 * k):  # the drum turns as the arm is thrown
+        r.part("cyl", 0, 0, 0, 0.42, 0.64, 0.42, BOARD_TINT, tex="rotten_wood", rx=math.pi / 2)
+        for z in (-0.2, 0.0, 0.2):  # its wound chain
+            r.part("cyl", 0, 0, z, 0.48, 0.07, 0.48, _dim(IRON, 0.55), rx=math.pi / 2)
+    for z in (-0.25, 0.25):  # the chain running off it, down to the flagstones and away
+        _bar(r, (-0.2, drum_y - 0.1, z), (-1.0, 0.04, z * 1.6), 0.05, _dim(IRON, 0.55))
+    with r.at(0, drum_y, 0.36, rz=0.95 - 1.9 * k):  # the arm, on the drum's axle
+        r.part("cube", 0, 0.8, 0, 0.16, 1.6, 0.14, SODDEN_BARK, tex="bark")
+        r.part("cube", 0, 0.45, 0, 0.2, 0.08, 0.18, _dim(IRON, 0.45))
+        r.part("cube", 0, 1.45, 0, 0.2, 0.3, 0.18, _dim(ROT_TIMBER, 0.75))  # the worn grip

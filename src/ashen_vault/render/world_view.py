@@ -281,9 +281,12 @@ class WorldView:
                 elif pl.kind == "ward":
                     sunken_models.ward_deck(rig, world._time + pl.x * 0.1, pl.lowered, pl.ward)
                 elif pl.kind == "bridge":
-                    hinge = world._bridge_hinge.get((TileMap.tile_coord(pl.x), TileMap.tile_coord(pl.z)), 0.0)
-                    with rig.at(0, 0, 0, ry=hinge):
-                        models.bridge(rig, pl.lowered)
+                    tile = (TileMap.tile_coord(pl.x), TileMap.tile_coord(pl.z))
+                    with rig.at(0, 0, 0, ry=world._bridge_hinge.get(tile, 0.0)):
+                        if pl.model == "rotten":
+                            fen_models.rotten_drawbridge(rig, pl.lowered, *world._bridge_runs[tile])
+                        else:
+                            models.bridge(rig, pl.lowered)
                 else:
                     models.plank(rig, pl.creaking)
             for c in pl.calls:
@@ -984,6 +987,16 @@ def _draw_waterfall(view, rig, p, t):
 
 # How each kind of prop is drawn: (view, rig, prop, time) -> None. Harrowmere's own (`TOWN_PROPS`) go
 # to `WorldView._draw_town_prop`.
+def _draw_lever(view, rig, p, t):
+    """A lever by its `model=`: the prison's iron, the jungle's `wood`, or the fen moot's `rotten`
+    windlass, which stands free in the middle of its square."""
+    model = p.props.get("model")
+    if model == "rotten":
+        fen_models.rotten_lever(rig, p.open_t)
+    else:
+        models.lever(rig, p.open_t, p.wall, wood=model == "wood")
+
+
 PROP_DRAWERS = {
     "torch": _draw_torch,
     "banner": lambda view, rig, p, t: models.banner(rig, t + p.tz, p.tx * 3 + p.tz, burnt="burnt" in p.props),
@@ -1002,7 +1015,7 @@ PROP_DRAWERS = {
     "chest": lambda view, rig, p, t: models.chest(rig, p.open_t > 0, p.props.get("model", "wood")),
     "door": _draw_door,
     "gate": lambda view, rig, p, t: models.door(rig, p.open_t, p.axis, tex="iron_bars"),
-    "lever": lambda view, rig, p, t: models.lever(rig, p.open_t, p.wall, wood=p.props.get("model") == "wood"),
+    "lever": _draw_lever,
     "pillar": lambda view, rig, p, t: _draw_pillar(view, rig, p),
     "sarcophagus": lambda view, rig, p, t: models.sarcophagus(rig, p.tx * 5 + p.tz),
     "prisoner_remains": lambda view, rig, p, t: prison_models.prisoner_remains(rig, p.tx * 5 + p.tz * 3),
@@ -1114,6 +1127,9 @@ PROP_DRAWERS = {
         rig, t + p.tx, lit=not view.world.is_doused(p)
     ),
     "dead_cypress": lambda view, rig, p, t: fen_models.dead_cypress(rig, p.tx * 7 + p.tz * 3),
+    "huge_rotten_tree": lambda view, rig, p, t: fen_models.huge_rotten_tree(
+        rig, p.tx * 7 + p.tz * 3, float(p.props.get("size", "1"))
+    ),
     "fen_reeds": lambda view, rig, p, t: fen_models.fen_reeds(rig, p.tx * 7 + p.tz * 3),
     "sunken_hut": lambda view, rig, p, t: fen_models.sunken_hut(rig, p.tx * 7 + p.tz * 3),
     "stilt_posts": lambda view, rig, p, t: fen_models.stilt_posts(rig, p.tx * 7 + p.tz * 3),

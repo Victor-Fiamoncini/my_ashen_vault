@@ -200,6 +200,7 @@ BLOCKING_PROPS = (
     "ward_crystal",
     "fen_beacon",
     "dead_cypress",
+    "huge_rotten_tree",
     "energy_core",
     "well",
     "save_statue",
@@ -402,6 +403,7 @@ STATIC_PROPS = frozenset(
             "hanging_crystal",
             "crystal_arch",
             "dead_cypress",
+            "huge_rotten_tree",
             "fen_reeds",
             "sunken_hut",
             "stilt_posts",
@@ -580,6 +582,29 @@ FROG_GOLD = 33  # coins the frog coughs up the first time it is patted
 # Turns that put a drawbridge model's hinge (its local -X edge) on the named side of its tile.
 BRIDGE_RISING = "Deep in the gorge, stone grinds against stone."
 BRIDGE_YAW = {"w": 0.0, "e": math.pi, "n": -math.pi / 2, "s": math.pi / 2}
+BRIDGE_HINGE_DIR = {"w": (-1, 0), "e": (1, 0), "n": (0, -1), "s": (0, 1)}  # toward the bank it hangs from
+
+
+def bridge_runs(entities):
+    """(i, n) for every drawbridge tile: a run of drawbridge tiles in a line away from their hinge,
+    sharing a lever and a hinge side, swings as one span `n` tiles long, and this tile is the `i`th
+    from the hinge (0 beside the bank)."""
+    tiles = {
+        (s.tx, s.tz): (s.props.get("lever"), s.props.get("hinge")) for s in entities if s.kind == "bridge"
+    }
+    out = {}
+    for (tx, tz), key in tiles.items():
+        dx, dz = BRIDGE_HINGE_DIR.get(key[1], (-1, 0))
+        i = 0
+        while tiles.get((tx + dx * (i + 1), tz + dz * (i + 1))) == key:
+            i += 1
+        n = i + 1
+        while tiles.get((tx - dx * (n - i), tz - dz * (n - i))) == key:
+            n += 1
+        out[tx, tz] = (i, n)
+    return out
+
+
 FOG_WALK_SPEED = 1.6  # m/s: you push through a boss's fog at a slow, steady walk (World.cross_fog)
 # The Sallow Fen's beacons: smother every one sharing a `gate=` and the gates of that lever open.
 BEACON_OUT = "The beacon's violet fire gutters and dies. ({n} of {of})"
@@ -668,6 +693,7 @@ class World:
             for s in self.map.entities
             if s.kind == "bridge"
         }
+        self._bridge_runs = bridge_runs(self.map.entities)  # each drawbridge tile's place along its span
         self._bridge_spans = terrain.bridge_spans(
             self.terrain.platforms
         )  # how each stone bridge tile is built

@@ -46,11 +46,15 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   harbour, Tamsin's hipped roof behind), `--map harrowmere --at=43,29,0` (the east lane up to the gap, Garrick
   on its corner),
   `--map cinderhold` (its `start`: the Sallow Fen's foot, the north road behind you), `--map cinderhold
-  --at=30,104,-90` (the causeway north from the watch-post shrine), `--map cinderhold --at=10,88,-90 --script
+  --at=30,102,-90` (the dirt path north from the watch-post shrine, the mounds and great dead trees round it),
+  `--map cinderhold --at=29,96,-90 --script forward:3` (over the great rotten bridge's rotting planks to the
+  great square; `--script "wait:0.3 forward:1 wait:3"` stops on a plank, which sinks into the fouled pool), `--map cinderhold --at=10,88,-90 --script
   "wait:0.3 interact"` (smother the west beacon; the others stand at 49,91 and 46,75),
   `--map cinderhold --at=39,78,0 --level 8` (the Mire Tyrant on the north island), `--map cinderhold
   --at=30,72,-90 --flags lever:fen_beacons --script forward:3` (through the open fen gate onto the ash road),
-  `--map cinderhold --at=31,74,90 --script interact` (the drawbridge lever),
+  `--map cinderhold --at=30,88,-90 --smoke 200 --script "wait:0.3 interact"` (the moot's rotten lever: both
+  rotten drawbridges swing down), `--map cinderhold --at=29,85,-90 --flags lever:fen_causeway --script forward:6`
+  (the dry way north over the lowered span to the north island),
   `--map cinderhold --at=29,52,-90 --script "look_up:0.15"` (the long bridge and the fortress's skyline), `--map cinderhold --at=28,30,180`
   (the postern ledge and its flame jets), `--map cinderhold --at=18,17,180` (the foundry),
   `--map cinderhold --at=5,24,0` (the smelter pits), `--map cinderhold --at=47,3,180 --script interact`

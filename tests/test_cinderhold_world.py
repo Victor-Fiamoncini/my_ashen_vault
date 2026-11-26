@@ -526,6 +526,11 @@ def test_blunt_weapons_crack_brittle_stone_and_edges_skate_off():
 
 FEN_START = (30, 111)
 DEEP_MIRE = (8, 93)
+FEN_PATH = (28, 98)  # the dirt path winding north from the shrine's plaza
+MOUND = (21, 99)  # the flank of the dirt mound west of the path
+SQUARE = (28, 88)  # the great square, the old moot ringed by sink-holes
+MOOT_LEVER = (30, 87)
+CROSSING_PLANK = (29, 92)  # a rotting plank on the great rotten bridge out to the square
 
 
 def beacons(world):
@@ -549,8 +554,8 @@ def test_wading_the_fen_works_toxic_into_you_until_it_takes_hold():
     assert "toxic" in game.sounds and any("toxin" in m for m in game.messages)
 
 
-def test_the_road_and_the_causeway_work_no_toxin_into_you():
-    for at in (FEN_START, (30, 90)):
+def test_the_road_the_dirt_paths_the_mounds_and_the_square_work_no_toxin_into_you():
+    for at in (FEN_START, FEN_PATH, MOUND, SQUARE):
         game, world = hold(at)
         for _ in range(100):
             world.update_terrain(0.05)
@@ -587,14 +592,82 @@ def test_smothered_beacons_stay_dark_and_the_gate_stays_open_on_a_later_visit():
     assert all(not again._light_on(e) for e in again.map.entities if e.kind == "fen_beacon")
 
 
-def test_the_fen_lever_lets_the_drawbridge_down_across_the_sink_holes():
-    _game, world = hold((30, 75))
-    (bridge,) = [p for p in world.terrain.platforms if p.lever == "fen_causeway"]
-    assert bridge.locked and world.map[30, 76].drown == "mire"
-    world.pull_lever(
-        next(p for p in world.props if p.kind == "lever" and p.props.get("id") == "fen_causeway")
-    )
-    assert not bridge.locked
+def fen_bridges(world):
+    return [p for p in world.terrain.platforms if p.lever == "fen_causeway"]
+
+
+def test_the_moot_lever_lets_both_rotten_drawbridges_down_as_whole_spans():
+    _game, world = hold(SQUARE)
+    bridges = fen_bridges(world)
+    assert len(bridges) == 12 and all(p.locked and p.model == "rotten" for p in bridges)
+    tiles = [(TileMap.tile_coord(p.x), TileMap.tile_coord(p.z)) for p in bridges]
+    assert all(world.map[t].drown == "mire" for t in tiles)
+    # North, three tiles out from the square's north edge; east, three out from its east edge.
+    assert world._bridge_runs[29, 83] == (0, 3) and world._bridge_runs[29, 81] == (2, 3)
+    assert world._bridge_runs[36, 86] == (0, 3) and world._bridge_runs[38, 87] == (2, 3)
+    lever = next(p for p in world.props if p.kind == "lever" and p.props.get("id") == "fen_causeway")
+    assert (lever.tx, lever.tz) == MOOT_LEVER and lever.props["model"] == "rotten"
+    world.pull_lever(lever)
+    assert not any(p.locked for p in bridges)
+    for _ in range(60):
+        world.update_terrain(0.05)
+    assert all(p.lowered == 1.0 for p in bridges)
+
+
+def test_the_moot_lever_stands_at_the_heart_of_a_square_ringed_by_sink_holes():
+    """The square's only ways on are the great rotten bridge from the south and the two drawbridges:
+    every tile beside it is a drowning sink-hole, a drawbridge tile or the bridge's rotten deck."""
+    _game, world = hold(SQUARE)
+    m = world.map
+    square = {(x, z) for x, z, tile in m.each_tile() if tile.floor_tex == "flagstone" and 80 < z < 95}
+    xs, zs = [x for x, _ in square], [z for _, z in square]
+    assert ((min(xs) + max(xs)) / 2, (min(zs) + max(zs)) / 2) == MOOT_LEVER
+    bridges = {(s.tx, s.tz) for s in m.entities if s.kind == "bridge"}
+    for x, z in square:
+        for n in ((x + 1, z), (x - 1, z), (x, z + 1), (x, z - 1)):
+            if n in square:
+                continue
+            assert m[n].drown == "mire" or n in bridges or m[n].floor_tex == "rotten_wood", n
+
+
+def test_the_crossing_planks_rot_over_a_fouled_pool_that_sickens_but_does_not_drown():
+    game, world = hold((CROSSING_PLANK[0], CROSSING_PLANK[1] - 1))
+    pool = world.map[CROSSING_PLANK]
+    assert pool.liquid and pool.drown is None and pool.afflict[0] == "toxic"
+    planks = [p for p in world.terrain.platforms if p.kind == "plank" and p.z > 180]
+    assert len(planks) == 4
+    world.update_terrain(0.05)  # on the rotten deck before it: sound timber
+    game.player.place(*TileMap.center(*CROSSING_PLANK), 0.0, world.map)
+    hp = game.player.stats.hp
+    for _ in range(60):  # stand on it: it gives way, and the pool spits you back onto sound timber
+        world.update_terrain(0.05)
+    assert game.player.alive and game.player.stats.hp < hp
+    assert game.player.ailments.meters["toxic"] >= 40 or game.player.ailments.toxic
+    assert world.map.tile_at(game.player.x, game.player.z).floor_tex == "rotten_wood"
+
+
+def test_once_the_bridges_are_down_the_fen_can_be_crossed_dry():
+    """From the road a dry way (no fouled mire, no sink-hole) runs over the path, the great rotten
+    bridge, the square and the north drawbridge up to the fen gate; until the lever is pulled it does not."""
+    from test_world import _reachable
+
+    _game, world = hold(SQUARE)
+    m = world.map
+    decks = {(TileMap.tile_coord(p.x), TileMap.tile_coord(p.z)) for p in world.terrain.platforms}
+    fouled = {(x, z) for x, z, tile in m.each_tile() if tile.afflict} - decks
+    below_gate = (30, FEN_GATE_Z + 1)
+    assert below_gate in _reachable(m, FEN_START, shortcuts=True, avoid=fouled)
+    before = _reachable(m, FEN_START, avoid=fouled)
+    assert below_gate not in before
+    assert MOOT_LEVER in before  # the great rotten bridge alone gets you to the lever
+
+
+def test_the_great_dead_trees_stand_on_the_mounds_and_fill_their_tiles():
+    _game, world = hold(SQUARE)
+    trees = [p for p in world.props if p.kind == "huge_rotten_tree"]
+    assert len(trees) >= 8
+    assert all(world.blocked_tile(p.tx, p.tz) for p in trees)
+    assert sum(world.map[p.tx, p.tz].floor_tex == "dirt_hill" for p in trees) >= 5
 
 
 def test_tamsin_stocks_fenbane_once_you_have_seen_the_fen():

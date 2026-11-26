@@ -36,6 +36,7 @@ _BY_TEX = {
         "thorns",
         "cloud_sea",
         "dirt_path",
+        "dirt_hill",
     ),
     "mud": ("mud", "bog", "sludge", "fen_mud"),
     "water": ("water", "rapids", "sallow_mire"),

@@ -173,6 +173,14 @@ class MapLoader:
         return tile
 
     @staticmethod
+    def _afflict(p):
+        """A tile's `afflict=kind:rate` as (kind, rate), or None."""
+        if "afflict" not in p:
+            return None
+        kind, rate = p["afflict"].split(":")
+        return kind, float(rate)
+
+    @staticmethod
     def _tile_of_kind(kind, p):
         floor = float(p.get("h", "0"))
         ceil = float(p["ceil"]) if "ceil" in p else None
@@ -199,11 +207,9 @@ class MapLoader:
                 floor_tex=p.get("tex", "water"),
                 wall_tex=p.get("side", "stone_brick"),
                 ceil_tex=p.get("ceil_tex", "rough_stone"),
+                afflict=MapLoader._afflict(p),  # a fouled pool: a fall into it works this dose in at once
             )
-        afflict = None
-        if "afflict" in p:
-            kind, rate = p["afflict"].split(":")
-            afflict = (kind, float(rate))
+        afflict = MapLoader._afflict(p)
         flow = None
         if "flow" in p:
             fx, fz = (float(v) for v in p["flow"].split(","))

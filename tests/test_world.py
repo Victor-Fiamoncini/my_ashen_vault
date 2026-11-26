@@ -10,7 +10,7 @@ from ashen_vault.world import collision, terrain
 from ashen_vault.world.hazards import CrumbleFloor
 from ashen_vault.world.map_loader import MapError, MapLoader
 from ashen_vault.world.tile_map import Tile, TileMap
-from ashen_vault.world.world import LANDMARKS
+from ashen_vault.world.world import BRIDGE_HINGE_DIR, LANDMARKS, bridge_runs
 from conftest import ROOM
 
 
@@ -104,7 +104,7 @@ STATIC_BLOCKERS = (
     *("anvil", "chimney", "gargoyle_statue", "forge_hearth", "quench_trough", "crucible", "impaler"),
     *("pew", "bed", "cupboard", "fence", "lamp_post", "tree"),
     *("banner_pole", "fountain", "bench", "hand_cart", "hay_wagon", "cargo", "flying_buttress"),
-    *("gravestone", "cemetery_gate"),
+    *("gravestone", "cemetery_gate", "dead_cypress", "huge_rotten_tree"),
     *("moon_lamp", "veiled_statue", "silver_tree"),
     *("gas_lamp", "drake_fountain", "specimen_jar", "alembic_bench", "vat", "surgery_table", "telescope"),
 )
@@ -856,11 +856,19 @@ def test_cinderhold_is_solvable():
     (gate,) = _spec(m, "gate", lever="hold_gate")
     assert {(gate.tx, gate.tz - 1), (gate.tx, gate.tz + 1)} <= opened
     for p in terrain.build_platforms(m):
-        if not p.locked:
+        if not p.locked or p.kind != "lift":
             continue
         sx, sz = TileMap.tile_coord(p.x), TileMap.tile_coord(p.z)
         near = {(sx + dx, sz + dz) for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1))}
         assert {round(m[t].floor, 1) for t in near & opened} >= {p.low, p.high}, (sx, sz)
+    # The fen's rotten drawbridges: each span joins the bank it hangs from to a landing past its tip.
+    runs = bridge_runs(m.entities)
+    for s in _spec(m, "bridge"):
+        i, n = runs[s.tx, s.tz]
+        dx, dz = BRIDGE_HINGE_DIR[s.props["hinge"]]
+        bank = (s.tx + dx * (i + 1), s.tz + dz * (i + 1))
+        landing = (s.tx - dx * (n - i), s.tz - dz * (n - i))
+        assert {bank, landing} <= opened, (s.tx, s.tz)
     # Every tile you can drop into, you can climb back out of.
     doors = [(s.tx, s.tz) for s in m.entities if s.kind in ("door", "gate", "secret_wall")]
     full = _reachable(m, start, open_tiles=doors, shortcuts=True, avoid=lava)

@@ -154,7 +154,8 @@ class Platform:
     # out of the chasm; it swings on no hinge. 0 for a drawbridge.
     rise: float = 0.0
     # How a lift is drawn: "" for an open deck, "cage" for a barred jail cage, whose `doors` are the
-    # (dx, dz) sides that open onto a landing.
+    # (dx, dz) sides that open onto a landing. A drawbridge's: "" for lashed logs, "rotten" for a span
+    # of the Sallow Fen's great rotten bridges.
     model: str = ""
     doors: tuple = ()
     # A ward deck (`ward set=a|b|c`, Old Harrowmere's roads of light): of its sets only the `active`
@@ -498,6 +499,7 @@ def build_platforms(map_):
         elif spec.kind == "bridge":
             p.lever = spec.props.get("lever")
             p.rise = float(spec.props.get("rise", "0"))
+            p.model = spec.props.get("model", "")  # "rotten": the Sallow Fen's great timber spans
             p.locked = p.lever is not None
             p.lowered = 0.0 if p.locked else 1.0
         elif spec.kind == "ward":
@@ -800,7 +802,7 @@ class Terrain:
         self.under = self.support(body.x, body.z)
         if tile.needs_footing and self.under is None:
             if tile.liquid:
-                return self._drown(body, tile) if tile.drown else self._fall(body, hurt, "river")
+                return self._drown(body, tile) if tile.drown else self._fall(body, hurt, "river", tile)
             ground = body.y if self._ground is None else self._ground
             if ground - tile.floor > FALL_SAFE:
                 return self._plunge(body, fall=tile.fall)
@@ -934,11 +936,16 @@ class Terrain:
         body.stats.hurt(body.stats.hp)
         return "fell_dead"
 
-    def _fall(self, body, hurt, into):
+    def _fall(self, body, hurt, into, tile=None):
+        """Into water that casts you back: it costs a share of your HP, and a fouled pool (the Sallow
+        Fen's under its rotting planks, `afflict=`) works its whole dose into you at once."""
         self.fell_into = into
         if into == "river":
             self.sounds.append(("splash", 1.0))
-        hurt(max(rround(body.stats.max_hp * FALL_FRAC), 6), "The river")
+        fouled = tile is not None and tile.afflict
+        hurt(max(rround(body.stats.max_hp * FALL_FRAC), 6), "The mire" if fouled else "The river")
+        if fouled:
+            self.afflicts.append(tile.afflict)
         if self.safe is None:
             sx, sz = self.map.meta["start"][:2]
             self.safe = TileMap.center(int(sx), int(sz))

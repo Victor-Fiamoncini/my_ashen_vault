@@ -77,9 +77,18 @@ z = floor tex=flagstone h=9.5 side=black_brick
 ? = floor tex=fen_mud h=0 side=fen_mud slow=0.85 dark=0.25
 & = floor tex=flagstone h=0 side=fen_mud
 % = water tex=sallow_mire h=-0.6 side=fen_mud drown=mire
-@ = floor tex=dirt_path h=0 side=fen_mud slow=0.9
-[ = floor tex=dirt_hill h=1.5 side=fen_mud
-{ = floor tex=rotten_wood h=0 side=fen_mud
+// The dry ways through it: dirt paths raised a hand over the mire, and mounds of firm earth (each step
+// up half a metre at most) where the great dead trees stand. No toxin works into you on either.
+@ = floor tex=dirt_path h=0.1 side=fen_mud
+[ = floor tex=dirt_hill h=0.2 side=fen_mud
+( = floor tex=dirt_hill h=0.7 side=fen_mud
+) = floor tex=dirt_hill h=1.2 side=fen_mud
+// The great square: the flagstones of the marsh-folk's old moot, an island ringed by sink-holes. The
+// great rotten bridge out to it is decked in rotten timber; its rotting planks span a shallow, fouled
+// pool that will not drown you, but sickens you and spits you back onto the last sound timber.
+< = floor tex=flagstone h=0.3 side=fen_mud
+{ = floor tex=rotten_wood h=0.2 side=fen_mud
+> = water tex=sallow_mire h=-0.6 side=fen_mud afflict=toxic:45
 
 [grid]
 KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK
@@ -154,40 +163,40 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAÚä,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAA,,,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAðAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAA----------------*77777777777777777----------------AAAAA
-AAAA--------------****7ò77777@7@777777ò7----*******-----AAAAA
-AAAA-------------*****77777í77@Φ@777777---**ò7777**-----AAAA
-AAAAA---ó-------******77Û777@7777777777ì-**7777777**----AAAA
-AAAAA----------*******777777777@7777777-***777ï7777**---ΩAAA
-AAAAA----------*****ó{%%%%%%%%Ψ%%%%%%%%{**777777777**?-AAAAA
-AAAA-----------***********----&@---------**777777777*ò?--AAAA
-AAAAA777--------*******?*-----&@---------**î777777**???AAAAA
-AAAA-7ù7---------****????-----&@----------**777***???--AAAA
-AAAA-777-----------*??ò??-----&@----------**********??--AAAA
-AAAA-----------------????-----&@---ì-----************--AAAAA
-AAAA--------------þ---?-------&@--------ó************--AAAAA
-AAAAA---****í-----------------&@---------************--AAAAA
-AAAAA--***77**---------------õ&@----------**********ì---AAAA
-AAAAA-**ò7777**-ì-------------&@----------********------AAAA
-AAAA--*7777777*---------------&@-ó----------****--------AAAA
-AAAA-**777ï777**--------------&@-----------þ---*****---AAAAA
-AAAAA-*7777777*---------------&@--------------**7û7**--AAAAA
-AAAA--*777777**--ó------ì-----&@-------------**77777**--AAAA
-AAAAA--**777**----------------&@-----ì-------*7777777*--AAAA
-AAAA--********----------------&õ------------**777ï777**AAAAA
-AAAA-ó********ì---777---------&--------------*7777777*--AAAA
-AAAAA**********---7ô7---------&--------------*í777777*--AAAA
-AAAA***********---777---------&------777------**777ò*---AAAA
-AAAA********þ**------------ó--&------7ô7-------*****---AAAAA
-AAAA***********---------------&-----*777---------------AAAAA
-AAAA****ì*****---------------õ&--*******----ì---------ó-AAAA
-AAAAA*******-????-------------&**********---------------AAAA
-AAAAA-------?ò????-------ì----þ*********??--------------AAAA
-AAAA--------???ò??------------&********?????------------AAAA
-AAAA---------????ò--í---------&********??ò??-----------AAAAA
-AAAA---------?????------------&********???ò?--------777-AAAA
+AAAA--------------****7ò77777777777777ò7----*******-----AAAAA
+AAAA-------------*****77777í77777777777ì--**ò7777**-----AAAA
+AAAAA---ó-------******77Û7777777777[[[77-**7777777**----AAAA
+AAAAA----------*[[[***777777777777[((([-***777ï7777**---7AAA
+AAAAA----------[((([ó-----------@-[(¶([-**777777777**°-AAAAA
+AAAA-----------[(¶([******-----@@-[((([--**777777777*ò?--AAAA
+AAAAA777-------[((([***?*------@---[[[---**î777777**???AAAAA
+AAAA-7ù7--------[[[**???ì-----@@--ì-------**777***???--AAAA
+AAAA-777-·---------*??ò??----@@õ----------**********??--AAAA
+AAAA-----------------????-%%¬¥¥%%%%------************--AAAAA
+AAAA--------------þ---?%%%%%%¥¥%%%%%%%--ó************--AAAAA
+AAAAA---****í----------%%%%%%¥¥%%%%%%%---****ì*******--AAAAA
+AAAAA--***77**---------%%%<<<<<<<<<%%%----**********ì---AAAA
+AAAAA-**ò7777**--------%%<<Û<<<<<<Û<%%%---********------AAAA
+AAAA--*7777777*--------%%<ò<<<<<þ<<<¦¦¦@----****--------AAAA
+AAAA-**777ï777**-----·-%%<<<<<¤<<<<<¦¦¦@@@@þ---*****---AAAAA
+AAAAA-*7777777*--------%%<Ý<<<<<<<Ï<%%%---@@@-**7û7**--AAAAA
+AAAA--*777777**-ìó-----%%<<<<<<<<Û<<%%-------**77777**--AAAA
+AAAAA--**777**---------%%%<<<<<<<<<%%%---ì---*7777777*--AAAA
+AAAA--********---------%%%%%¬{{¬%%%%%%------**777ï777**AAAAA
+AAAA-ó**ì*****----777--%%%%%%§§%%%%%%%-------*7777777*--AAAA
+AAAAA**********---7ô7----%%%%{{¬%%%%---------*í777777*--AAAA
+AAAA********[[[---777----%%%%§§%%%%%-777------**777ò*---AAAA
+AAAA*******[((([---------%%%¬{{%%%%%-7ô7---°---*****---AAAAA
+AAAA*******[(¶([--------ì---@@@@----*777---------------AAAAA
+AAAA****-**[((([-----[[[---@@----**ì****------------ì-ó-AAAA
+AAAAA*******[[[??---[((([@@@@--*****[[[**---------------AAAA
+AAAAA-------?ò????--[(¶([@--@@-****[((([??--------------AAAA
+AAAA--------???ò??--[((([----@@****[(¶([????------------AAAA
+AAAA---------????ò--í[[[------@@***[((([?ò??-----------AAAAA
+AAAA---------?????------------@@****[[[???ò?--------777-AAAA
 AAAA----------------------&&&&&&&&&*****-?----------7ú7-AAAA
 AAAA-------ó--------------&T&&&&&&&***--------------777-AAAA
-AAAAA---------------------&&&&&&&Ñ&*---------ó---------AAAAA
+AAAAA°--------------------&&&&&&&Ñ&*---------ó---------AAAAA
 AAAAAA--------------------&&Ý&&&&&&--------------------AAAAA
 AAAAA---------------------&&&&&&&&&--------------------AAAAA
 AAAAA---------------------&&&&&&&&T-------------------AAAAAA
@@ -200,14 +209,19 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 [entities]
 // The Sallow Fen: the north road from Harrowmere comes down into it. Three beacons of the fortress's violet
 // fire burn on its islands, and the fen gate up to the ash road stays shut until all three are smothered.
-// A great rotten wood bridge spans the sink-holes; its lever sits in the center of the great square.
-// Fen Lurks squat in the mire, Bileguts crawl its banks, and the Mire Tyrant keeps the north island.
-// Dirt paths and hills offer safe passage through the toxic mire. Huge rotten trees loom overhead.
-ý = hint text="The mire is fouled violet. Wading it works a toxin into your blood.|Three beacons burn on the fen. Smother them, and the gate north opens.|A great rotten bridge spans the sink-holes. Its lever stands in the great square." sets=visited_sallow_fen
+// A dirt path winds north from the watch-post shrine to the great rotten bridge, which crosses a lagoon
+// of sink-holes out to the great square, the marsh-folk's old moot: two of its spans are rotting planks
+// that sink under you if you linger. The rotten lever at the square's heart lets down two great rotten
+// drawbridges, north to the path up to the gate and east toward the east beacon, so that, once it is
+// pulled, the fen can be crossed dry. Fen Lurks squat in the mire, Bileguts crawl its banks, and the Mire
+// Tyrant keeps the north island. Great dead trees stand on the dirt mounds and loom over the mire.
+ý = hint text="The mire is fouled violet. Wading it works a toxin into your blood.|Three beacons burn on the fen. Smother them, and the gate north opens.|The old moot's planks are rotten. Do not linger on them." sets=visited_sallow_fen
 ï = fen_beacon gate=fen_beacons
 ð = gate lever=fen_beacons on=,
-Φ = lever id=fen_causeway model=rotten_lever
-Ψ = bridge lever=fen_causeway hinge=n deck=0 on=% model=rotten_wood_bridge
+¤ = lever id=fen_causeway model=rotten on=<
+¥ = bridge lever=fen_causeway hinge=s deck=0.3 on=% model=rotten
+¦ = bridge lever=fen_causeway hinge=w deck=0.3 on=% model=rotten
+§ = plank deck=0.2 on=>
 ì = fen_lurk
 í = bilegut
 î = mire_tyrant item=fenbane
@@ -218,7 +232,10 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 ó = fen_reeds
 ô = sunken_hut yaw=90
 õ = stilt_posts
-Ω = huge_rotten_tree
+¬ = stilt_posts on=%
+¶ = huge_rotten_tree on=)
+· = huge_rotten_tree size=1.25
+° = huge_rotten_tree size=0.8
 þ = light y=0.6 color=0.75,0.35,1.0 radius=6
 // The wayside shrine up the ash road.
 Ð = exit map=harrowmere at=31,2,90 label=Return_to_Harrowmere model=road_gate yaw=90
