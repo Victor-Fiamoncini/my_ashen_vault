@@ -20,7 +20,8 @@ Take up a rusted sword, bring back the Ember Sigil from the prison, the Verdant 
 Iron Sigil from the Cinderhold. At the head of the cathedral steps the Vesper Gate stands open on
 Vesperholm, a city drowned in the light of a full moon that never sets, where a duchess keeps the fourth
 sigil in her cathedral. The fifth was never the king's: above the clouds, in a castle of towers between
-the sun and the moon, Herran keeps it, who sewed the arms of drakes onto his own back. Bring all five
+the sun and the moon, Herran keeps it, Ilvane's brother, who wanted the many hands of their mother, the
+old god Lyra, and sewed the arms of drakes and men onto his own back. Bring all five
 home and let the bell sing again.
 
 ### Inspiration
@@ -259,9 +260,10 @@ trademarks of FromSoftware, Inc. (*Dark Souls* is published by Bandai Namco Ente
 - **Bosses behind great doors**: the Ashen Sexton fights with grave ash, the Ashen Warden's blade
   catches fire at half health, the Butcher swings his cleaver among the meat hooks, Mother Gnawl and
   the Sodden Pall rule the sewers, the Keystone, the giant the first city stood on, rises in its sunken court, the Loom Mother calls her brood, the Mire Tyrant wallows on its island in the fen, two iron gargoyles take turns on
-  the keep's roof, and Duchess Ilvane, the Moonwed, calls the moon down on you in her cathedral. Die in
+  the keep's roof, Duchess Ilvane, the Moonwed, calls the moon down on you in her cathedral, and
+  Herran, the Many-Handed, rakes you with eight grafted arms in the observatory atop his spire. Die in
   an arena and only fog remains at its door.
-- **Eight areas, hand-built**:
+- **Nine areas, hand-built**:
   - the Cemetery of Ashes where you wake, a short first level that teaches as you go;
   - Harrowmere, a walled town of stone and half-timbered houses under clay-tile roofs, climbing in
     terraces from its harbour past the Silent Bell to the cathedral where the Enthroned sits, with a smith, an

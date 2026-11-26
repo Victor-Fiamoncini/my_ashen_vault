@@ -187,16 +187,17 @@ Equipment, combat, spells, shops, saves and the story.
   end of the bridge over the Duchess's garden, up the stair behind her choir. Taking an altar's sigil
   marks it taken as picking one up does (`relics.mark_taken`). Brother Marrow and a hint on the
   Drowned Plaza name her too. From inside the stone the king rang
-  the bell himself, once, to wake the Ashen: the dead, whom the moon cannot keep. Odrin names all four
+  the bell himself, once, to wake the Ashen: the dead, whom the moon cannot keep. Odrin names all five
   at the first meeting: the fourth lies with the Duchess beyond the Vesper Gate at the head of the
   cathedral steps, which stands open (nobody remembers it shut, nor who opened it), so the whole realm is
-  open to explore from the start. The fifth seal, the Auric Sigil (the sun's, gold), was never the
+  open to explore from the start; the fifth is Herran's, and the way to him opens from Lyra's altar. The fifth seal, the Auric Sigil (the sun's, gold), was never the
   king's: Ilvane and her brother Herran are both children of Lyra (the Enthroned's own parentage is left a
   mystery), and Herran kept it in his castle of towers above the clouds, Herran's Castle
   (`herrans_castle`, then `herran_spire`), up the stair of light that rises off the bridge beside Lyra's
   altar in Vesperholm once the Argent Sigil is lifted from her hands. He wanted his mother's many hands:
-  he grafted the arms of men onto his drakes, then onto himself, until he went mad (his journal, in the
-  secret laboratory, tells it). He drops the Auric Sigil. Odrin no longer ends the game: shown all five
+  he grafted arms onto his drakes, then the arms of drakes and men onto his own back until he bore eight,
+  and went mad (his journal tells it: pages in the secret laboratory, atop the Clock Tower and the
+  Belvedere, and the last in his spire's study). He drops the Auric Sigil. Odrin no longer ends the game: shown all five
   (`relics.ENDING_RELICS`) he sets `dialogue.BELL_UNSEALED` and you keep them, and ringing the Silent
   Bell with all five in hand (`dialogue.bell`) plays the ending. The Enthroned stirs a stage further for
   each you carry (`dialogue.ENTHRONED_LINES`, six stages), and at five confesses he rang the bell. What
