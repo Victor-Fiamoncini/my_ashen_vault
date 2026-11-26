@@ -50,6 +50,10 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   `--map cinderhold --at=29,96,-90 --script forward:3` (over the great rotten bridge's rotting planks to the
   great square; `--script "wait:0.3 forward:1 wait:3"` stops on a plank, which sinks into the fouled pool), `--map cinderhold --at=10,88,-90 --script
   "wait:0.3 interact"` (smother the west beacon; the others stand at 49,91 and 46,75),
+  `--map cinderhold --at=27,103,180` (down the west sunken way to the west beacon), `--map cinderhold
+  --at=45,89,-90 --flags lever:fen_causeway` (up the north-east sunken way to the Mire Tyrant's island),
+  `--map cinderhold --at=31,80,-100 --script "look_up:0.25"` (the great fen gate in the curtain wall; add
+  `--flags lever:fen_beacons` to see it raised),
   `--map cinderhold --at=39,78,0 --level 8` (the Mire Tyrant on the north island), `--map cinderhold
   --at=30,72,-90 --flags lever:fen_beacons --smoke 230 --script "wait:0.3 forward:2.6"` (through the open fen gate
   onto the Gargoyle Way: the card reads "The Cinderhold"), `--map cinderhold --at=30,63,-90` (up the Gargoyle

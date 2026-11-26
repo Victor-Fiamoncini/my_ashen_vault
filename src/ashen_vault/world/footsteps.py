@@ -7,8 +7,9 @@ VOLUME = 0.35  # a footstep's volume
 
 _BY_TEX = {
     # Stone is the default; Harrowmere's cathedral floor, Vesperholm's moonstone paving and silvered slate and Old Harrowmere's
-    # ochre paving are named all the same.
+    # ochre paving are named all the same, and so are the mossy cobbles of the Sallow Fen's sunken ways.
     "stone": (
+        "cobble_moss",
         "cathedral_floor",
         "moonstone",
         "moon_paving",

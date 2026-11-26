@@ -2739,3 +2739,34 @@ def test_the_gaol_grate_blocks_its_tile_like_the_well_and_entity_flags_read_bare
     assert {"well", "gaol_grate"} <= set(world_mod.BLOCKING_EXITS)
     assert world_mod.flag({"hip": None}, "hip") and world_mod.flag({"hip": "true"}, "hip")
     assert not world_mod.flag({"hip": "false"}, "hip") and not world_mod.flag({}, "hip")
+
+
+def test_the_fen_lurk_holds_its_spear_in_both_fists():
+    """Through a lope, a windup and a thrust both its fists close on the haft (they lie on its line),
+    the right behind the left, and the haft stays level whatever the hunch of its back."""
+    from ashen_vault.render import fen_models
+
+    for draw, lean in ((0.0, -0.55), (-0.35, -0.85), (0.32, -0.3)):
+        (ox, oy), angle, hands = fen_models._spear_grip(draw, lean)
+        assert abs(angle + lean) < 0.1, "level in the world"
+        c, s = math.cos(angle), math.sin(angle)
+        for hx, hy in hands.values():
+            assert abs(-(hx - ox) * s + (hy - oy) * c) < 1e-9, "on the haft"
+        along = {side: (hx - ox) * c + (hy - oy) * s for side, (hx, hy) in hands.items()}
+        assert along[1] < 0 < along[-1], "the right fist behind, the left before"
+        assert abs(ox - (0.22 + draw)) < 1e-9, "the fists go with the spear"
+
+
+def test_the_great_fen_gate_is_built_in_detail_and_its_portcullis_winds_clear():
+    from ashen_vault.render import fen_models
+
+    gate = _RecordingGpu()
+    fen_models.fen_great_gate(rig.Rig(gate), 3, 0.3)
+    assert len(gate.parts) >= 100
+    fires = _ExtentGpu()
+    fen_models.fen_great_gate(rig.Rig(fires), 3, 0.3)
+    assert fires.glows > 0, "its cressets and slits burn"
+    shut, raised = _ExtentGpu(), _ExtentGpu()
+    fen_models.great_portcullis(rig.Rig(shut), 0.0, 0, 3)
+    fen_models.great_portcullis(rig.Rig(raised), 1.0, 0, 3)
+    assert shut.bottom < 0.0 and raised.bottom > 4.5, "it winds up clear of the passage"

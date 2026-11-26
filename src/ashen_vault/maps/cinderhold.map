@@ -89,6 +89,17 @@ z = floor tex=flagstone h=9.5 side=black_brick
 < = floor tex=flagstone h=0.3 side=fen_mud
 { = floor tex=rotten_wood h=0.2 side=fen_mud
 > = water tex=sallow_mire h=-0.6 side=fen_mud afflict=toxic:45
+// The sunken ways: old stone-lined trenches the marsh-folk cut below the mire out to two of the beacon
+// islands, their low walls holding the violet water back, so you walk them dry under its surface.
+Ď = floor tex=cobble_moss h=-0.9 side=rough_stone
+ď = floor tex=cobble_moss h=-0.4 side=rough_stone
+Đ = wall tex=rough_stone top=0.8 cap=rough_stone
+// Broken stretches of the marsh-folk's walls, standing out of the mire.
+đ = wall tex=rough_stone top=1.4 cap=rough_stone
+Ē = wall tex=rough_stone top=2.4 cap=rough_stone
+// The fortress's curtain wall closing the fen's north side, and the two towers of its great gate.
+ē = wall tex=black_brick top=9 cap=slate dress=rampart
+Ĕ = wall tex=black_brick top=13 cap=slate
 
 [grid]
 KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK
@@ -161,43 +172,43 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAA,,,,,AAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAT,,,,,TAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAÚċċċÚAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAA,ä,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAðAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAA----------------*7777777ĊĊĊ7777777----------------AAAAA
+AAAAēēēēēēēēēēēēēēēēēēēēēēēēĔðððĔēēēēēēēēēēēēēēēēēēēēēēēAAAA
+AAAAA----------------*777777ĔĊĊĊĔ777777----------------AAAAA
 AAAA--------------****7ò77777777777777ò7----*******-----AAAAA
-AAAA-------------*****77777í77777777777ì--**ò7777**-----AAAA
-AAAAA---ó-------******77Û7777777777[[[77-**7777777**----AAAA
-AAAAA----------*[[[***777777777777[((([-***777ï7777**---7AAA
+AAAA------------đ*****77777í77ė77777777ì--**ò7777**-----AAAA
+AAAAA---ó-----đĒ******77Û7777777777[[[77-**7777777**Ē---AAAA
+AAAAA----------*[[[***777777777777[((([-***777ï7777*đ---7AAA
 AAAAA----------[((([ó-----------@-[(¶([-**777777777**°-AAAAA
 AAAA-----------[(¶([******-----@@-[((([--**777777777*ò?--AAAA
 AAAAA777-------[((([***?*------@---[[[---**î777777**???AAAAA
 AAAA-7ù7--------[[[**???ì-----@@--ì-------**777***???--AAAA
-AAAA-777-·---------*??ò??----@@õ----------**********??--AAAA
-AAAA-----------------????-%%¬¥¥%%%%------************--AAAAA
-AAAA--------------þ---?%%%%%%¥¥%%%%%%%--ó************--AAAAA
-AAAAA---****í----------%%%%%%¥¥%%%%%%%---****ì*******--AAAAA
-AAAAA--***77**---------%%%<<<<<<<<<%%%----**********ì---AAAA
-AAAAA-**ò7777**--------%%<<Û<<<<<<Û<%%%---********------AAAA
-AAAA--*7777777*--------%%<ò<<<<<þ<<<¦¦¦@----****--------AAAA
-AAAA-**777ï777**-----·-%%<<<<<¤<<<<<¦¦¦@@@@þ---*****---AAAAA
-AAAAA-*7777777*--------%%<Ý<<<<<<<Ï<%%%---@@@-**7û7**--AAAAA
-AAAA--*777777**-ìó-----%%<<<<<<<<Û<<%%-------**77777**--AAAA
+AAAA-777-·---------*??ò??----@@õ----------**ĐďĐ*****??--AAAA
+AAAA-----------------????-%%¬¥¥%%%%------***ĐĎĐ******--AAAAA
+AAAA--------------þ---?%%%%%%¥¥%%%%%%%--ó***ĐĎĐ******--AAAAA
+AAAAA---****í----------%%%%%%¥¥%%%%%%%---***ĐĎĐ*ì****--AAAAA
+AAAAA--***77**------Ē--%%%<<<<<<<<<%%%----**ĐĎĐ*****ì---AAAA
+AAAAA-**ò7777**-----đ--%%<<Û<<<<<<Û<%%%---**ĐĎĐ***------AAAA
+AAAA--*7777777*--------%%<ò<<<<<þ<<<¦¦¦@----ĐĎĐ*--------AAAA
+AAAA-**777ï777**-----·-%%<<<<<¤<<<<<¦¦¦@@@@þĐĎĐ*****---AAAAA
+AAAAAĒ*7777777*-----đ--%%<Ý<<<<<<<Ï<%%%---@@@ďĐ*7û7**--AAAAA
+AAAA-đ*777777**-ìó-----%%<<<<<<<<Û<<%%-------ĐĐ77777**--AAAA
 AAAAA--**777**---------%%%<<<<<<<<<%%%---ì---*7777777*--AAAA
-AAAA--********---------%%%%%¬{{¬%%%%%%------**777ï777**AAAAA
-AAAA-ó**ì*****----777--%%%%%%§§%%%%%%%-------*7777777*--AAAA
-AAAAA**********---7ô7----%%%%{{¬%%%%---------*í777777*--AAAA
-AAAA********[[[---777----%%%%§§%%%%%-777------**777ò*---AAAA
-AAAA*******[((([---------%%%¬{{%%%%%-7ô7---°---*****---AAAAA
-AAAA*******[(¶([--------ì---@@@@----*777---------------AAAAA
-AAAA****-**[((([-----[[[---@@----**ì****------------ì-ó-AAAA
-AAAAA*******[[[??---[((([@@@@--*****[[[**---------------AAAA
-AAAAA-------?ò????--[(¶([@--@@-****[((([??--------------AAAA
-AAAA--------???ò??--[((([----@@****[(¶([????------------AAAA
-AAAA---------????ò--í[[[------@@***[((([?ò??-----------AAAAA
-AAAA---------?????------------@@****[[[???ò?--------777-AAAA
-AAAA----------------------&&&&&&&&&*****-?----------7ú7-AAAA
-AAAA-------ó--------------&T&&&&&&&***--------------777-AAAA
-AAAAA°--------------------&&&&&&&Ñ&*---------ó---------AAAAA
-AAAAAA--------------------&&Ý&&&&&&--------------------AAAAA
+AAAA--**ĐďĐ***---------%%%%%¬{{¬%%%%%%-đĒ---**777ï777**AAAAA
+AAAA-ó**ĐĎĐ***----777--%%%%%%§§%%%%%%%---đ---*7777777*--AAAA
+AAAAA*ì*ĐĎĐ****---7ô7----%%%%{{¬%%%%---------*í777777*--AAAA
+AAAA****ĐĎĐ*[[[---777----%%%%§§%%%%%-777------**777ò*---AAAA
+AAAA****ĐĎĐ[((([---------%%%¬{{%%%%%-7ô7---°---*****---AAAAA
+AAAA****ĐĕĐ[(¶([--------ì---@@@@----*777----Ēđ---------AAAAA
+AAAA****ĐĎĐ[((([-----[[[---@@----**ì****------------ì-ó-AAAA
+AAAAA***ĐĎĐ*[[[??---[((([@@@@--*****[[[**---------------AAAA
+AAAAA---ĐĎĐ-?ò????--[(¶([@--@@-****[((([??--------------AAAA
+AAAA----ĐĎĐ-???ò??--[((([----@@****[(¶([????------------AAAA
+AAAA----ĐĎĐ--????ò--í[[[------@@***[((([?ò??-----------AAAAA
+AAAA----ĐĎĐĐĐĐĐĐĐĐĐĐĐĐĐĐĐĐ----@@****[[[???ò?--------777-AAAA
+AAAA----ĐĎĎĎĎĎĎĎĎĎĎĎĎĎĎĎĎď&&&&&&&&&*****-?----------7ú7-AAAA
+AAAA----ĐĐĐĐĐĐĐĐĐĐĐĐĐĐĐĐĐĐ&T&&&&&&&***--------------777-AAAA
+AAAAA°------------------đ-&&&&&&&Ñ&*---------ó---------AAAAA
+AAAAAA------------------Ē-&&Ý&&&&&&--------------------AAAAA
 AAAAA---------------------&&&&&&&&&--------------------AAAAA
 AAAAA---------------------&&&&&&&&T-------------------AAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAA,ý,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
@@ -215,19 +226,24 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 // drawbridges, north to the path up to the gate and east toward the east beacon, so that, once it is
 // pulled, the fen can be crossed dry. Fen Lurks squat in the mire, Bileguts crawl its banks, and the Mire
 // Tyrant keeps the north island. Great dead trees stand on the dirt mounds and loom over the mire.
+// Two sunken ways, walled trenches below the mire, run dry out to the west and north-east beacons, and
+// the fen's north side is the fortress's curtain wall, its great gate between two towers.
 // The fen is a region of its own: its name rises as you come down into it, the Cinderhold's as you go
 // up through the fen gate onto the Gargoyle Way (`world/regions.py`; a band of markers either side).
 Ċ = region name="Sallow Fen" on=7
 ċ = region name="The Cinderhold"
 ý = hint text="The mire is fouled violet. Wading it works a toxin into your blood.|Three beacons burn on the fen. Smother them, and the gate north opens.|The old moot's planks are rotten. Do not linger on them." sets=visited_sallow_fen
 ï = fen_beacon gate=fen_beacons
-ð = gate lever=fen_beacons on=,
+ð = gate lever=fen_beacons model=great on=,
+// Torchlight before the great gate, so its stone shows from the fen.
+ė = light y=5 color=0.9,0.6,0.45 radius=9
 ¤ = lever id=fen_causeway model=rotten on=<
 ¥ = bridge lever=fen_causeway hinge=s deck=0.3 on=% model=rotten
 ¦ = bridge lever=fen_causeway hinge=w deck=0.3 on=% model=rotten
 § = plank deck=0.2 on=>
 ì = fen_lurk
 í = bilegut
+ĕ = bilegut on=Ď
 î = mire_tyrant item=fenbane
 ù = chest item=fenbane count=2 gold=40 model=worn
 ú = chest item=blue_moss count=2 gold=90 model=worn

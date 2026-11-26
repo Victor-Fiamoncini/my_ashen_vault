@@ -773,6 +773,20 @@ def _draw_door(view, rig, p, t):
         models.door(rig, p.open_t, p.axis, style=p.props.get("model", "wood"), frame=frame)
 
 
+def _draw_gate(view, rig, p, t):
+    """A gate of iron bars filling its tile; `model=great` is the slice of a great gate's portcullis
+    (`world.gate_runs`), the run's first tile also drawing the gatehouse centred over the whole row."""
+    if p.props.get("model") != "great":
+        models.door(rig, p.open_t, p.axis, tex="iron_bars")
+        return
+    i, n = view.world._gate_runs.get((p.tx, p.tz), (0, 1))
+    with rig.at(0, 0, 0, ry=0 if p.axis == "x" else math.pi / 2):
+        fen_models.great_portcullis(rig, p.open_t, i, n)
+        if i == 0:
+            with rig.at(0, 0, TileMap.TILE * (n - 1) / 2):
+                fen_models.fen_great_gate(rig, n, t)
+
+
 def _great_gate(view, rig, p):
     """Where a `door ... great=<side>` stands, as `models.GreatGate`: its facade turned to that side.
     It takes the light out before its facade, where it is seen from, not the dark of its doorway."""
@@ -1014,7 +1028,7 @@ PROP_DRAWERS = {
     "totem": lambda view, rig, p, t: models.totem(rig, p.tx * 3 + p.tz, t),
     "chest": lambda view, rig, p, t: models.chest(rig, p.open_t > 0, p.props.get("model", "wood")),
     "door": _draw_door,
-    "gate": lambda view, rig, p, t: models.door(rig, p.open_t, p.axis, tex="iron_bars"),
+    "gate": _draw_gate,
     "lever": _draw_lever,
     "pillar": lambda view, rig, p, t: _draw_pillar(view, rig, p),
     "sarcophagus": lambda view, rig, p, t: models.sarcophagus(rig, p.tx * 5 + p.tz),

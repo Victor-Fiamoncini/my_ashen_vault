@@ -12,7 +12,7 @@ from ashen_vault.render.mesh_builder import MeshBuilder
 from ashen_vault.world import elements, relics, shots
 from ashen_vault.world.hazards import Eruption, FlameJet, MagmaVent
 from ashen_vault.world.tile_map import TileMap
-from ashen_vault.world.world import LAVA_MIN, LAVA_SHARE, World
+from ashen_vault.world.world import LAVA_MIN, LAVA_SHARE, World, gate_runs
 from conftest import risen
 from test_enemy import FakeWorld, tick
 from test_prison_world import FakeGame
@@ -525,7 +525,7 @@ def test_blunt_weapons_crack_brittle_stone_and_edges_skate_off():
 # --- the Sallow Fen -----------------------------------------------------------------------------------
 
 FEN_START = (30, 111)
-DEEP_MIRE = (8, 93)
+DEEP_MIRE = (6, 96)
 FEN_PATH = (28, 98)  # the dirt path winding north from the shrine's plaza
 MOUND = (21, 99)  # the flank of the dirt mound west of the path
 SQUARE = (28, 88)  # the great square, the old moot ringed by sink-holes
@@ -537,8 +537,12 @@ def beacons(world):
     return [p for p in world.props if p.kind == "fen_beacon"]
 
 
+def fen_gates(world):
+    return [p for p in world.props if p.kind == "gate" and p.props.get("lever") == "fen_beacons"]
+
+
 def fen_gate(world):
-    return next(p for p in world.props if p.kind == "gate" and p.props.get("lever") == "fen_beacons")
+    return fen_gates(world)[0]
 
 
 def test_wading_the_fen_works_toxic_into_you_until_it_takes_hold():
@@ -579,6 +583,7 @@ def test_the_fen_gate_opens_only_once_every_beacon_is_smothered():
             else f"The beacon's violet fire gutters and dies. ({i + 1} of 3)"
         )
     assert gate.open_t > 0 and "lever:fen_beacons" in game.flags
+    assert all(g.open_t > 0 for g in fen_gates(world)), "the whole great gate rises as one"
     assert game.sounds.count("douse") == 3
 
 
@@ -660,6 +665,75 @@ def test_once_the_bridges_are_down_the_fen_can_be_crossed_dry():
     before = _reachable(m, FEN_START, avoid=fouled)
     assert below_gate not in before
     assert MOOT_LEVER in before  # the great rotten bridge alone gets you to the lever
+
+
+def test_the_fen_gate_is_one_great_portcullis_three_tiles_wide_between_two_towers():
+    _game, world = hold(FEN_START)
+    gates = sorted(fen_gates(world), key=lambda g: g.tx)
+    assert [(g.tx, g.tz) for g in gates] == [(29, FEN_GATE_Z), (30, FEN_GATE_Z), (31, FEN_GATE_Z)]
+    assert all(g.props["model"] == "great" and g.axis == "z" for g in gates)
+    assert [world._gate_runs[g.tx, g.tz] for g in gates] == [(0, 3), (1, 3), (2, 3)]
+    m = world.map
+    for x in (28, 32):  # its towers, standing out into the fen over the curtain wall
+        assert all(
+            m[x, z].solid and m[x, z].top > m[x - 1 if x == 28 else x + 1, FEN_GATE_Z].top for z in (70, 71)
+        )
+    wall = [m[x, FEN_GATE_Z] for x in range(5, 55) if x not in range(28, 33)]
+    assert all(t.solid and t.dress == "rampart" for t in wall), "the curtain wall closes the fen's north side"
+
+
+def test_a_row_of_great_gate_tiles_on_one_lever_is_one_run():
+    from ashen_vault.world.tile_map import EntitySpec
+
+    def gate(tx, tz, lever="a", model="great"):
+        return EntitySpec(kind="gate", tx=tx, tz=tz, props={"lever": lever, "model": model})
+
+    runs = gate_runs([gate(4, 2), gate(5, 2), gate(9, 9), gate(3, 7), gate(3, 8), gate(6, 2, lever="b")])
+    assert runs[4, 2] == (0, 2) and runs[5, 2] == (1, 2) and runs[6, 2] == (0, 1)
+    assert runs[9, 9] == (0, 1)
+    assert runs[3, 7] == (0, 2) and runs[3, 8] == (1, 2)  # a row running north to south
+    assert gate_runs([gate(1, 1, model=None)]) == {}  # a plain gate of bars is no great gate
+
+
+SUNKEN_WAYS = {"west": ((25, 103), (9, 91)), "north-east": ((45, 88), (45, 80))}  # (mouth, island end)
+
+
+def test_sunken_ways_run_dry_under_the_mire_between_low_walls_out_to_two_beacons():
+    """Two trenches cut below the mire, walled against it, lead out to the west and north-east
+    beacons: the west one from the shrine's court before the lever, the north-east one from the east
+    path once the drawbridges are down. No step down into them is taller than half a metre."""
+    from test_world import _reachable
+
+    game, world = hold(SQUARE)
+    m = world.map
+    decks = {(TileMap.tile_coord(p.x), TileMap.tile_coord(p.z)) for p in world.terrain.platforms}
+    fouled = {(x, z) for x, z, tile in m.each_tile() if tile.afflict} - decks
+    trench = {(x, z) for x, z, tile in m.each_tile() if tile.floor_tex == "cobble_moss"}
+    for x, z in trench:
+        tile = m[x, z]
+        assert tile.floor < m[MOUND].floor and not tile.afflict and not tile.liquid, (x, z)
+        for n in ((x + 1, z), (x - 1, z), (x, z + 1), (x, z - 1)):
+            if not m[n].solid and n not in trench:  # a mouth: a short step up out of it
+                assert abs(m[n].floor - tile.floor) <= 0.5, (x, z, n)
+            if n not in trench and m[n].solid:
+                assert m[n].top >= tile.floor + 1.2, "walled well over the mire's surface"
+
+    def beside(b):
+        return {(b.tx + dx, b.tz + dz) for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1))}
+
+    west = min(beacons(world), key=lambda b: b.tx)
+    north_east = min(beacons(world), key=lambda b: b.tz)
+    before = _reachable(m, FEN_START, avoid=fouled)
+    assert beside(west) & before, "the west beacon, dry from the shrine"
+    assert not beside(north_east) & before
+    after = _reachable(m, FEN_START, shortcuts=True, avoid=fouled)
+    assert beside(north_east) & after, "the north-east beacon, dry once the bridges are down"
+    for mouth, end in SUNKEN_WAYS.values():
+        assert mouth in trench and end in trench
+    for _ in range(100):  # walking them works no toxin into you
+        game.player.place(*TileMap.center(9, 97), 0.0, m)
+        world.update_terrain(0.05)
+    assert game.player.ailments.meters["toxic"] == 0
 
 
 def test_the_great_dead_trees_stand_on_the_mounds_and_fill_their_tiles():

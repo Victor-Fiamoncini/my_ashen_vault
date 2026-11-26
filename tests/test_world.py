@@ -792,7 +792,7 @@ def test_cinderhold_loads_with_its_bridge_fortress_and_the_way_up_to_its_keep():
     (door,) = _spec(m, "exit", map="cinder_keep")
     assert m[door.tx, door.tz].floor >= 11 and door.props["boss"] == "gargoyles_dead"
     # Every chest in the fortress is iron, and so is the mimic hiding among them; the fen's are worn.
-    (fen_gate,) = _spec(m, "gate", lever="fen_beacons")
+    fen_gate = _spec(m, "gate", lever="fen_beacons")[0]
     fort = [s for s in _spec(m, "chest") + _spec(m, "mimic") if s.tz < fen_gate.tz]
     assert {s.props.get("model") for s in fort} == {"iron"}
     # The new loot is in its chests.
@@ -825,18 +825,20 @@ def test_cinderhold_is_solvable():
     lava = _lava(m)
     start = tuple(int(v) for v in m.meta["start"][:2])
     reach = _reachable(m, start, avoid=lava)
-    (fen_gate,) = _spec(m, "gate", lever="fen_beacons")
+    fen_gates = _spec(m, "gate", lever="fen_beacons")
+    assert [(g.tx, g.tz) for g in fen_gates] == [(29, 70), (30, 70), (31, 70)]  # the great gate, 3 wide
     beacons = _spec(m, "fen_beacon", gate="fen_beacons")
     assert len(beacons) == 3
     for b in beacons:  # solid: you smother it from beside it, before the gate opens
         assert {(b.tx + dx, b.tz + dz) for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1))} & reach, b
-    assert (fen_gate.tx, fen_gate.tz - 1) not in reach
+    assert not {(g.tx, g.tz - 1) for g in fen_gates} & reach
     (key_chest,) = [s for s in _spec(m, "chest") if s.props.get("item") == "forge_key"]
     (key_door,) = _spec(m, "door", key="forge_key")
     (postern,) = [s for s in _spec(m, "door") if not s.props.get("key") and not s.props.get("boss")]
     secrets = [(s.tx, s.tz) for s in _spec(m, "secret_wall")]
     bosses = [(s.tx, s.tz) for s in _spec(m, "door") if s.props.get("boss")]  # the roof's great door
-    honest = [(postern.tx, postern.tz), (fen_gate.tx, fen_gate.tz), *secrets, *bosses]
+    fen_gate_tiles = [(g.tx, g.tz) for g in fen_gates]
+    honest = [(postern.tx, postern.tz), *fen_gate_tiles, *secrets, *bosses]
     before_key = _reachable(m, start, open_tiles=honest, avoid=lava)
     assert (key_chest.tx, key_chest.tz) in before_key
     (keep,) = _spec(m, "exit", map="cinder_keep")
@@ -850,7 +852,7 @@ def test_cinderhold_is_solvable():
             around = {(s.tx + dx, s.tz + dz) for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1))}
             assert around & opened, (s.kind, s.tx, s.tz)
     (store,) = [s for s in _spec(m, "chest") if s.props.get("item") == "stormbrand"]
-    gates = [(postern.tx, postern.tz), (fen_gate.tx, fen_gate.tz)]
+    gates = [(postern.tx, postern.tz), *fen_gate_tiles]
     assert (store.tx, store.tz) not in _reachable(m, start, open_tiles=gates, avoid=lava)
     # The main gate joins the bridge to the gatehouse; the lift joins the pits to the guardroom.
     (gate,) = _spec(m, "gate", lever="hold_gate")

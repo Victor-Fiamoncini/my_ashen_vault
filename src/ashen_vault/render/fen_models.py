@@ -5,7 +5,7 @@ enemy model."""
 
 import math
 
-from ashen_vault.render.parts import BONE, IRON, _bar, _dim, _ease, death_fall, hit_tint
+from ashen_vault.render.parts import BONE, FLAME, IRON, _bar, _dim, _ease, _flame, death_fall, hit_tint
 
 FEN_VIOLET = (190, 90, 240)  # the beacons' fire and the creatures' toxin
 VIOLET_PALE = (236, 196, 255)
@@ -31,12 +31,30 @@ def _charge(e):
 # --- the Fen Lurk ------------------------------------------------------------------------------------
 
 
+SPEAR_Z = 0.08  # the spear rides a little to the lurk's right, both fists on it
+SPEAR_HANDS = {1: -0.32, -1: 0.28}  # where each fist closes on the haft: right behind, left before
+
+
+def _spear_grip(draw, lean):
+    """How the Fen Lurk holds its spear, in its hunched body's frame: the haft's centre `(x, y)`, the
+    angle (about z) that keeps the haft level whatever the body's `lean`, and each fist's `(x, y)` on
+    the haft by side (+1 its right, behind; -1 its left, before), at z SPEAR_Z. `draw` slides the
+    spear back through a windup and drives it forward in the thrust, and the fists go with it."""
+    ox, oy = 0.22 + draw, 0.12
+    angle = -lean - 0.05
+    c, s = math.cos(angle), math.sin(angle)
+    hands = {side: (ox + c * along, oy + s * along) for side, along in SPEAR_HANDS.items()}
+    return (ox, oy), angle, hands
+
+
 def fen_lurk(r, e, t):
     """The Fen Lurk: a marsh-dweller bent double under a cloak of rotten reed, its skin the mire's
     violet-grey, two pin-points of violet for eyes under its hood, a hooked spear of bone in its fists.
     Lurking, it is a hummock of reed sunk in the water with only the glint of its eyes and the spear's
     hook above it. Woken, it lopes hunched; through its windup it draws the spear back and sinks on its
-    haunches, then springs and drives it forward. Slain, it pitches forward on its face."""
+    haunches, then springs and drives it forward. It holds the spear level in both fists, the right
+    behind and the left before (`_spear_grip`), its elbows bent out. Slain, it pitches forward on its
+    face."""
     seed = _seed(e)
     lit = e.alive
     eye = FEN_VIOLET if lit else GLOW_COLD
@@ -86,18 +104,27 @@ def fen_lurk(r, e, t):
                 r.part("cube", 0.2, -0.07, 0, 0.12, 0.06, 0.14, shade)  # the jaw
                 for side in (-1, 1):
                     r.part("cube", 0.2, 0.02, side * 0.07, 0.04, 0.03, 0.04, eye, glow=lit)
-            draw = -0.35 * charge * (1 - thrust) + 0.45 * thrust  # spear drawn back, then driven
-            for side in (-1, 1):  # both arms on the spear (limp at its sides in death)
-                _bar(r, (0.0, 0.42, side * 0.2), (0.22 + draw - 0.2 * fall, 0.12, side * 0.22), 0.08, skin)
-            if fall > 0:
+            draw = -0.35 * charge * (1 - thrust) + 0.32 * thrust  # spear drawn back, then driven
+            if fall > 0:  # its arms hang limp at its sides
+                for side in (-1, 1):
+                    _bar(r, (0.0, 0.42, side * 0.2), (0.02 - 0.2 * fall, 0.12, side * 0.22), 0.08, skin)
                 return
-            with r.at(0.22 + draw, 0.12, 0, rz=-lean - 0.05):  # the spear, held level
-                _bar(r, (-0.7, 0, 0.04), (0.9, 0, 0.04), 0.05, _dim(BONE, 0.8))  # the haft
-                r.part("cone", 0.98, 0, 0.04, 0.07, 0.2, 0.07, BONE, rz=-math.pi / 2)  # the point
-                _bar(r, (0.86, 0, 0.04), (0.78, 0.1, 0.04), 0.035, BONE)  # the barb of its hook
-                r.part("sphere", 0.9, -0.04, 0.04, 0.05, 0.06, 0.05, FEN_VIOLET, glow=lit)  # dripping fen
-                for k in range(3):  # reed bindings round the haft
-                    r.part("cyl", 0.1 + k * 0.25, 0, 0.04, 0.08, 0.04, 0.08, REED_DARK, rz=math.pi / 2)
+            (ox, oy), angle, hands = _spear_grip(draw, lean)
+            for side, (hx, hy) in hands.items():  # both arms on the spear: shoulder, bent elbow, fist
+                shoulder = (0.0, 0.42, side * 0.2)
+                hand = (hx, hy, SPEAR_Z)
+                elbow = ((shoulder[0] + hx) / 2 - 0.04, (shoulder[1] + hy) / 2 - 0.1, side * 0.3)
+                _bar(r, shoulder, elbow, 0.09, shade)  # the upper arm
+                _bar(r, elbow, hand, 0.08, skin)  # the forearm
+                r.part("cube", hx, hy, SPEAR_Z + side * 0.02, 0.12, 0.12, 0.13, skin, rz=angle)  # the fist
+                r.part("cube", hx, hy + 0.05, SPEAR_Z + side * 0.06, 0.13, 0.04, 0.04, shade, rz=angle)
+            with r.at(ox, oy, SPEAR_Z, rz=angle):  # the spear, held level in both fists
+                _bar(r, (-0.7, 0, 0), (0.9, 0, 0), 0.05, _dim(BONE, 0.8))  # the haft
+                r.part("cone", 0.98, 0, 0, 0.07, 0.2, 0.07, BONE, rz=-math.pi / 2)  # the point
+                _bar(r, (0.86, 0, 0), (0.78, 0.1, 0), 0.035, BONE)  # the barb of its hook
+                r.part("sphere", 0.9, -0.04, 0, 0.05, 0.06, 0.05, FEN_VIOLET, glow=lit)  # dripping fen
+                for k in range(3):  # reed bindings round the haft, clear of its fists
+                    r.part("cyl", -0.55 + k * 0.6, 0, 0, 0.08, 0.04, 0.08, REED_DARK, rz=math.pi / 2)
 
 
 # --- the Bilegut -------------------------------------------------------------------------------------
@@ -476,3 +503,110 @@ def rotten_lever(r, k):
         r.part("cube", 0, 0.8, 0, 0.16, 1.6, 0.14, SODDEN_BARK, tex="bark")
         r.part("cube", 0, 0.45, 0, 0.2, 0.08, 0.18, _dim(IRON, 0.45))
         r.part("cube", 0, 1.45, 0, 0.2, 0.3, 0.18, _dim(ROT_TIMBER, 0.75))  # the worn grip
+
+
+# --- the great fen gate --------------------------------------------------------------------------------
+# The fortress's gate in the curtain wall over the fen (`gate lever=fen_beacons model=great`): a row of
+# gate tiles that share a lever is one portcullis under one gatehouse (`world.gate_runs`). Local +X runs
+# through the gate, local +Z along the row; the wall it stands in is one tile (2 m) deep.
+
+GREAT_GATE_OPEN = 5.6  # the height of its square opening, from the floor to the lintel
+GREAT_GATE_LIFT = 5.3  # how far the portcullis rises into the masonry over it when it is open
+GATE_BRICK = (255, 255, 255)  # black_brick, untinted, so it reads as the wall it is built into
+GATE_TRIM = (214, 204, 206)
+GATE_IRON = (58, 54, 62)
+GATE_RIVET = (112, 106, 116)
+
+
+def great_portcullis(r, open_t, i=0, n=1):
+    """One tile's slice of the great gate's portcullis: tile `i` of a row `n` wide, the slices meeting
+    into one grille of square black-iron bars on riveted rails, spiked at the foot. It winds up into
+    the masonry over the opening as `open_t` runs to 1, its teeth still showing under the lintel."""
+    lift = _ease(min(open_t, 1.0)) * GREAT_GATE_LIFT
+    h = GREAT_GATE_OPEN
+    with r.at(0, lift, 0):
+        for k in range(5):  # the uprights, spaced evenly across the row's seams
+            z = -0.8 + k * 0.4
+            r.part("cube", 0, h / 2, z, 0.12, h, 0.12, GATE_IRON)
+            r.part("lozenge", 0, -0.1, z, 0.08, 0.3, 0.08, GATE_IRON, rz=math.pi)  # its spike
+        for y in (0.5, 1.6, 2.7, 3.8, 4.9):  # the rails, run edge to edge so the slices join
+            r.part("cube", 0, y, 0, 0.16, 0.14, 2.0, _dim(GATE_IRON, 0.85))
+            for k in range(5):
+                for face in (-1, 1):
+                    r.part("cube", face * 0.09, y, -0.8 + k * 0.4, 0.03, 0.07, 0.07, GATE_RIVET)
+        if i in (0, n - 1):  # a heavier stile at each end, riding in the jambs' grooves
+            z = -0.96 if i == 0 else 0.96
+            r.part("cube", 0, h / 2, z, 0.18, h, 0.1, _dim(GATE_IRON, 0.8))
+
+
+def fen_great_gate(r, n, t):
+    """The gatehouse over the great fen gate, centred on its row of `n` tiles: deep jambs grooved for
+    the portcullis, a square opening under a lintel of pale trim, the masonry over it built up to the
+    curtain wall's top under a relieving arch of voussoirs on both faces, and over the wall a
+    machicolated gate-house with merlons and slits lit by the fires within. On the towers either side
+    an iron cresset on a bracket burns on the fen's face, and arrow slits glow up the towers."""
+    w = 2.0 * n  # the opening's width
+    h = GREAT_GATE_OPEN
+    wall_top = 9.0
+    for side in (-1, 1):  # the jambs, flush with the towers, grooved for the portcullis
+        z = side * (w / 2 + 0.15)
+        r.part("cube", 0, h / 2, z, 2.1, h, 0.3, GATE_BRICK, tex="black_brick")
+        r.part("cube", 0, h / 2, side * (w / 2 + 0.01), 0.24, h, 0.04, (18, 16, 20))  # the groove
+        for face in (-1, 1):  # a plinth at each jamb's foot
+            r.part("cube", face * 1.0, 0.3, z, 0.3, 0.6, 0.5, GATE_TRIM, tex="rough_stone")
+    # The masonry over the opening, up to the wall's top, and a lintel of pale trim across both faces.
+    r.part("cube", 0, (h + wall_top) / 2, 0, 2.0, wall_top - h, w + 0.6, GATE_BRICK, tex="black_brick")
+    for face in (-1, 1):
+        x = face * 1.04
+        r.part("cube", x, h + 0.2, 0, 0.12, 0.4, w + 0.6, GATE_TRIM, tex="rough_stone")
+        rad = w / 2 - 0.2
+        for k in range(9):  # the relieving arch, a half ring of voussoirs springing from the lintel
+            a = math.pi * k / 8
+            z, y = math.cos(a) * rad, h + 0.4 + math.sin(a) * (wall_top - h - 1.0)
+            key = k == 4
+            r.part(
+                "cube", x, y, z, 0.16, 0.5 if key else 0.36, 0.7 if key else 0.55,
+                GATE_TRIM, tex="rough_stone", rx=math.pi / 2 - a,
+            )  # fmt: skip
+        r.part("cube", x + face * 0.04, h + 0.62, 0, 0.04, 0.16, w - 0.2, (24, 22, 26))  # the lintel's shadow
+    # The gate-house over the wall: a block between the towers, a gallery corbelled out on both faces
+    # with its machicolations, merlons and two burning slits on each face.
+    top = wall_top + 3.2
+    r.part("cube", 0, (wall_top + top) / 2, 0, 2.0, top - wall_top, w + 0.4, GATE_BRICK, tex="black_brick")
+    for face in (-1, 1):
+        r.part("cube", face * 1.25, wall_top + 0.8, 0, 0.5, 0.3, w + 0.4, GATE_TRIM, tex="rough_stone")
+        for k in range(int(w / 0.8) + 1):  # the corbels under the gallery
+            r.part("cube", face * 1.2, wall_top + 0.4, -w / 2 + k * 0.8, 0.4, 0.5, 0.24, GATE_TRIM)
+        for z in (-w / 4, w / 4):
+            r.part("cube", face * 1.01, wall_top + 2.0, z, 0.03, 1.0, 0.24, FLAME, glow=True)
+        for k in range(int(w / 1.2) + 1):  # its merlons
+            r.part(
+                "cube",
+                face * 0.85,
+                top + 0.45,
+                -w / 2 + k * 1.2,
+                0.3,
+                0.9,
+                0.6,
+                GATE_BRICK,
+                tex="black_brick",
+            )
+    # The cressets on the towers' fen faces (the towers' tiles run one tile out past the wall, -X).
+    for side in (-1, 1):
+        z = side * (w / 2 + 1.0)
+        with r.at(-3.0, 5.2, z):
+            _bar(r, (0, 0.6, 0), (-0.7, 0.0, 0), 0.1, GATE_IRON)  # the bracket
+            r.part("cube", -0.04, 0.3, 0, 0.08, 1.0, 0.36, GATE_IRON)  # its plate on the wall
+            r.part("cyl", -0.8, 0, 0, 0.6, 0.3, 0.6, GATE_IRON)  # the cresset
+            r.part("cyl", -0.8, -0.24, 0, 0.3, 0.2, 0.3, _dim(GATE_IRON, 0.7))
+            _flame(r, -0.8, 0.45, 0, 0.36, t + side)
+        for face_x, y in ((-3.02, 9.5), (-3.02, 6.8)):  # arrow slits up the towers' fen faces
+            r.part("cube", face_x, y, z, 0.03, 1.0, 0.24, FLAME, glow=True)
+        with r.at(-1.0, 13.0, z):  # the tower's crown: a corbelled parapet and merlons
+            r.part("cube", 0, 0.15, 0, 4.4, 0.3, 2.4, GATE_TRIM, tex="rough_stone")
+            for mx in (-2.0, -1.0, 0.0, 1.0, 2.0):
+                for mz in (-1.05, 1.05):
+                    r.part("cube", mx, 0.75, mz, 0.5, 0.9, 0.3, GATE_BRICK, tex="black_brick")
+            for mz in (-0.35, 0.35):
+                for mx in (-2.05, 2.05):
+                    r.part("cube", mx, 0.75, mz, 0.3, 0.9, 0.5, GATE_BRICK, tex="black_brick")

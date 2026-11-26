@@ -606,6 +606,29 @@ def bridge_runs(entities):
     return out
 
 
+def gate_runs(entities):
+    """(i, n) for every great gate tile (`gate model=great`): a row of them side by side, sharing a
+    lever, is one portcullis `n` tiles wide under one gatehouse, and this tile is the `i`th from its
+    west (or north) end. The row runs along x if a neighbour in x shares the lever, else along z."""
+    tiles = {
+        (s.tx, s.tz): s.props.get("lever")
+        for s in entities
+        if s.kind == "gate" and s.props.get("model") == "great"
+    }
+    out = {}
+    for (tx, tz), lever in tiles.items():
+        along_x = lever in (tiles.get((tx - 1, tz)), tiles.get((tx + 1, tz)))
+        dx, dz = (1, 0) if along_x else (0, 1)
+        i = 0
+        while tiles.get((tx - dx * (i + 1), tz - dz * (i + 1))) == lever:
+            i += 1
+        n = i + 1
+        while tiles.get((tx + dx * (n - i), tz + dz * (n - i))) == lever:
+            n += 1
+        out[tx, tz] = (i, n)
+    return out
+
+
 FOG_WALK_SPEED = 1.6  # m/s: you push through a boss's fog at a slow, steady walk (World.cross_fog)
 # The Sallow Fen's beacons: smother every one sharing a `gate=` and the gates of that lever open.
 BEACON_OUT = "The beacon's violet fire gutters and dies. ({n} of {of})"
@@ -695,6 +718,7 @@ class World:
             if s.kind == "bridge"
         }
         self._bridge_runs = bridge_runs(self.map.entities)  # each drawbridge tile's place along its span
+        self._gate_runs = gate_runs(self.map.entities)  # each great gate tile's place along its portcullis
         self._bridge_spans = terrain.bridge_spans(
             self.terrain.platforms
         )  # how each stone bridge tile is built
