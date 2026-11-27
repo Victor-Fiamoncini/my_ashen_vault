@@ -2272,7 +2272,7 @@ def gaol_grate(r, t):
 
 
 # Harrowmere's skyline and harbour life: the harbour light out on its rock, the windmill on the cliffs
-# over the east lane, smoking chimney stacks on the houses' roofs, market stalls by the fountain,
+# east of the town wall, smoking chimney stacks on the houses' roofs, market stalls by the fountain,
 # washing strung across the lanes, nets drying on the quay and wrecks rotting out in the bay.
 HOUSE_SMOKE = (92, 90, 96)
 SAIL_CLOTH = (196, 184, 156)

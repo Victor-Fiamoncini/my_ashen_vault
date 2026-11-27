@@ -132,24 +132,18 @@ def _step_off(world, game, start, into, seconds):
 
 def test_walking_off_the_quay_into_the_sea_drowns_you_and_leaves_your_ashes_ashore():
     game, world = _harbour()
-    assert world.map[5, 41].deep and world.map[20, 44].walkable  # the sea, and the pier over it
-    _step_off(world, game, (5, 40), (5, 41), terrain.DROWN_TIME + 0.2)
+    assert world.map[5, 44].deep and world.map[24, 46].walkable  # the sea, and the pier over it
+    _step_off(world, game, (5, 43), (5, 44), terrain.DROWN_TIME + 0.2)
     assert not game.player.alive
     assert "The sea drags you under." in game.messages
-    assert world.death_spot() == TileMap.center(5, 40)  # the heap lies on the quay, not in the sea
+    assert world.death_spot() == TileMap.center(5, 43)  # the heap lies on the quay, not in the sea
 
 
-def test_off_the_pier_is_the_sea_too_and_the_canal_drowns_you_as_well():
+def test_off_the_pier_is_the_sea_too():
     game, world = _harbour()
-    _step_off(world, game, (20, 45), (19, 45), terrain.DROWN_TIME + 0.2)
+    _step_off(world, game, (23, 47), (22, 47), terrain.DROWN_TIME + 0.2)
     assert not game.player.alive
-    game, world = _harbour()
-    canal = world.map[10, 39]
-    assert canal.liquid and canal.drown == "canal" and not canal.deep  # it drowns, but is no open sea
-    _step_off(world, game, (9, 39), (10, 39), terrain.DROWN_TIME + 0.2)
-    assert not game.player.alive
-    assert DROWN_MESSAGES["canal"] in game.messages and DROWN_DEATHS["canal"] in game.messages
-    assert world.death_spot() == TileMap.center(9, 39)  # the heap lies on the bank, not in the canal
+    assert world.death_spot() == TileMap.center(23, 47)  # the heap lies on the pier
 
 
 def test_every_water_you_drown_in_has_words_for_it():
@@ -157,5 +151,5 @@ def test_every_water_you_drown_in_has_words_for_it():
     keys = set()
     for path in glob.glob(os.path.join(MAP_DIR, "*.map")):
         keys |= {t.drown for _tx, _tz, t in MapLoader.load_file(path).each_tile() if t.drown}
-    assert {"sea", "canal"} <= keys
+    assert {"sea", "mire"} <= keys
     assert keys <= DROWN_MESSAGES.keys() and DROWN_MESSAGES.keys() == DROWN_DEATHS.keys()

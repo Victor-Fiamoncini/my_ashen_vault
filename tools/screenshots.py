@@ -36,9 +36,9 @@ class Shot:
 SHOTS = [
     Shot(
         "village",
-        "--map harrowmere --at=22,30,-60 --equip primary=hatchet,secondary=buckler --smoke 40",
+        "--map harrowmere --at=26,28,-110 --equip primary=hatchet,secondary=buckler --smoke 40",
         "The Silent Bell, at the heart of Harrowmere",
-        "The Silent Bell in its frame on Harrowmere's paved Bell Square, a cathedral tower behind, "
+        "The Silent Bell in its frame on Harrowmere's round plaza, the cathedral on its terrace behind, "
         "a hatchet and a buckler in hand",
     ),
     Shot(

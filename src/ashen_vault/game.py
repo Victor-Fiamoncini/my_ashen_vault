@@ -84,7 +84,7 @@ CONFIRM_OPTIONS = ["No", "Yes"]
 # Scenes that count toward a save's play time: the title, pause and its submenus, and the ending don't.
 PLAYED_SCENES = ("play", "dialogue", "menu", "shop", "repair", "rest", "shrine", "storage", "dead")
 TITLE_Y, TITLE_STEP = 140, 14
-TITLE_ORBIT = (25, 24)  # the title camera circles Harrowmere's Silent Bell (its tile)
+TITLE_ORBIT = (23, 22)  # the title camera circles Harrowmere's Silent Bell (its tile)
 # Comparing gear: a better stat green, a worse one red (keyed by compare.better).
 COMPARE_COLORS = {1: ui.color(120, 210, 110), -1: ui.color(225, 95, 80), 0: ui.TEXT}
 ENDING = [
@@ -1205,7 +1205,7 @@ class Game:
             self._pat_frog(prop)
         elif k == "silent_bell":
             # TODO(story): the secret beneath the Silent Bell. Once unsealed, ringing it ends the game for
-            # now; the descent below the Bell Square will take the ending's place.
+            # now; the descent below the plaza will take the ending's place.
             lines, ends = dialogue_data.bell(self.flags, relics.held(self.player.inventory.has))
             for line in lines:
                 self.message(line)
@@ -1258,7 +1258,7 @@ class Game:
 
     def _use_hearth_ash(self, item):
         """Hearth Ash: ember fog rises as at a shrine, and while it hides everything you are carried
-        to Bell Square in Harrowmere. Nothing is restored or recorded. Refused (and kept) where the
+        to the plaza in Harrowmere. Nothing is restored or recorded. Refused (and kept) where the
         world won't let you go (`World.homeward_refusal`)."""
         refusal = self.world.homeward_refusal()
         if refusal:

@@ -277,7 +277,7 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 Ā = gargoyle_statue yaw=180
 ă = gargoyle_statue pose=snarl yaw=0
 Ă = gargoyle_statue pose=snarl yaw=180
-Ð = exit map=harrowmere at=31,2,90 label=Return_to_Harrowmere model=road_gate yaw=90
+Ð = exit map=harrowmere at=10,2,90 label=Return_to_Harrowmere model=road_gate yaw=90
 ä = light y=4.5 color=0.9,0.62,0.42 radius=7
 Ñ = save_statue
 T = torch radius=7

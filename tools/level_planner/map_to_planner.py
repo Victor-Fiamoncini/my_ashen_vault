@@ -18,11 +18,12 @@ from pathlib import Path
 # Map legend character -> planner tile character. Covers Harrowmere's legend; other maps fall back to
 # the floor/wall kind of their legend entry (see `planner_tile`).
 HARROWMERE = {
-    "R": "#", "A": "^", "H": "H", "J": "J", "C": "C", "P": "_", "_": "_",
-    ",": ".", ".": ".", "q": ".", "s": "s", "-": "s",
-    ";": "=", "=": "=", "4": "/", "3": "/", "2": "/", "1": "/",
-    "n": "n", "a": "n", "i": "i", "k": "i", "o": "o", "5": "o",
-    "p": "p", "~": "~", "r": "r", "G": "G", "V": "G", "w": "j", "y": "j", "v": "j", "c": "c",
+    "R": "#", "A": "^", "[": "#", "]": "#", "9": "#", "8": "#", "7": "#", "6": "#",
+    "H": "H", "#": "H", "q": "H", "^": "H", "C": "C", "P": "_",
+    ",": ".", ".": ".", "t": ".", "_": ".", "s": "s", "-": "s", "/": "s", "e": "s",
+    ";": "=", "4": "/", "3": "/", "2": "/", "1": "/",
+    "n": "n", "a": "n", "i": "i", "k": "i",
+    "p": "p", "~": "~", "G": "G", "V": "G", "w": "j", "y": "j", "v": "j", "c": "c",
 }  # fmt: skip
 SOLID = set("#^HJC_G")
 ROLES = {
@@ -34,8 +35,26 @@ ROLES = {
     "aldous": "Aldous, watch at the north gate",
     "tobin": "Tobin, watch at the north gate",
     "fenn": "Fenn, watch by the cemetery gate",
-    "reyna": "Reyna, watch at the east trail gap",
+    "reyna": "Reyna, watch at the east gate",
+    "wynn": "Wynn, watch at the Vesper Gate",
+    "garrick": "Garrick, captain of the watch, in the watch office",
+    "hollis": "Hollis, keeper of the gaol's pit",
+    "maeve": "Maeve, fishing off the pier (gift)",
+    "wren": "Wren, the Drowned Lantern's keeper",
+    "ilse": "Sister Ilse, in the cathedral",
     "enthroned": "The Enthroned, the stone king",
+    "hedda": "Old Hedda, at prayer in the nave",
+    "aubrey": "Aubrey, the cathedral's acolyte",
+    "lisbet": "Lisbet, the flower seller",
+    "osric": "Osric, the town crier",
+    "merrit": "Merrit, begging by the bell",
+    "tilde": "Tilde, the weaver",
+    "barnaby": "Barnaby, the cooper",
+    "ottilie": "Ottilie, the midwife",
+    "hamund": "Old Hamund, a sailor ashore",
+    "sefa": "Sefa, the baker",
+    "jorun": "Jorun, a fisherman's wife",
+    "cobb": "Cobb, the lamplighter",
 }
 
 

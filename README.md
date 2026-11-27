@@ -17,7 +17,7 @@ Beneath the grate in the old gaol's yard, the sealed cells of the Abandoned Pris
 Verdant Hollow, which has swallowed the old woodcutters' camp. Up the north road, past a long bridge over
 a gorge of fire, the forges of the Cinderhold burn again, and two iron gargoyles keep watch from its roof.
 Take up a rusted sword, bring back the Ember Sigil from the prison, the Verdant Sigil from the hollow and the
-Iron Sigil from the Cinderhold. At the head of the cathedral steps the Vesper Gate stands open on
+Iron Sigil from the Cinderhold. In the town's north wall the Vesper Gate stands open on
 Vesperholm, a city drowned in the light of a full moon that never sets, where a duchess keeps the fourth
 sigil in her cathedral. The fifth was never the king's: in a castle of many towers built against the
 black mountain behind Vesperholm, Herran keeps it, Ilvane's brother, who wanted the many hands of their
@@ -140,7 +140,7 @@ trademarks of FromSoftware, Inc. (*Dark Souls* is published by Bandai Namco Ente
   - the Cinderhold up the north road, a fortress of lava, flame jets and iron, its keep a map of its own,
     reached across the Sallow Fen, a violet mire whose wading poisons you and whose three beacons
     must be smothered before its gate opens;
-  - and Vesperholm, the Moonbound City behind the Vesper Gate at the head of the cathedral steps:
+  - and Vesperholm, the Moonbound City behind the Vesper Gate in the town's north wall:
     moonlit streets drowned in the light of a moon that never sets, a glass bridge over a gorge,
     and a castle where the dead keep watch as pale shades;
   - and through a portal in Lyra's Chapel, Herran's Castle, built against the black mountain behind

@@ -139,7 +139,7 @@ def test_the_first_three_sigils_do_not_end_the_game_and_odrin_sends_you_for_the_
     g = FakeGame(flags={"quest", *TAKEN}, items=FIRST_THREE)
     _, text = talk("odrin", g)
     assert not g.finished
-    assert "Vesper Gate" in text and "Argent Sigil" in text and "cathedral steps" in text
+    assert "Vesper Gate" in text and "Argent Sigil" in text and "Vesper street" in text
     assert all(g.player.inventory.has(i) for i in FIRST_THREE)
 
 
@@ -148,7 +148,7 @@ def test_odrin_names_the_fourth_sigil_and_its_open_gate_from_the_start():
     and points the way to it before a single sigil is taken."""
     _, text = talk("odrin", FakeGame())
     assert "Argent Sigil" in text and "Vesper Gate" in text and "Vesperholm" in text
-    assert "cathedral steps" in text and "stands open" in text
+    assert "Vesper street" in text and "stands open" in text
     g = FakeGame(flags={"quest"}, items=["ember_sigil"])
     _, text = talk("odrin", g)
     assert dialogue.SIGIL_HINT["argent_sigil"] in text
@@ -566,3 +566,33 @@ def test_vell_s_mortar_shard_cracks_stone_like_a_hammer():
     assert elements.shot_mult(stone, "mortar") == elements.BRITTLE_STRIKE_MULT
     assert elements.shot_mult(stone, "flame") == 1.0 and elements.shot_mult(flesh, "mortar") == 1.0
     assert Spells.power("mortar_shard", 5) == Spells.mortar_damage(5, 1.0) > 0
+
+
+def test_every_townsperson_in_harrowmere_speaks_and_has_a_look_of_their_own():
+    """Every villager standing in town has words of their own (no silent strangers) and a look of their own
+    (none in the strangers' plain grey)."""
+    from ashen_vault import map_path
+    from ashen_vault.world import villagers
+    from ashen_vault.world.map_loader import MapLoader
+
+    town = MapLoader.load_file(map_path("harrowmere"))
+    ids = {s.props["id"] for s in town.entities if s.kind == "npc"}
+    assert set(dialogue.TOWNSFOLK) <= ids
+    for id_ in ids:
+        speaker, _ = talk(id_, FakeGame())
+        assert speaker != "Stranger", id_
+        assert id_ in villagers.LOOKS or id_ == "enthroned", id_  # the stone king is no villager
+    names = [name for name, _ in dialogue.TOWNSFOLK.values()]
+    assert len(set(names)) == len(names)
+
+
+def test_the_townsfolks_talk_turns_as_the_roads_out_are_won():
+    _, closed = talk("osric", FakeGame())
+    _, opened = talk("osric", FakeGame(flags={"gargoyles_dead"}))
+    assert "closed" in closed and "reopened" in opened
+    _, before = talk("lisbet", FakeGame())
+    _, after = talk("lisbet", FakeGame(flags={"spider_dead"}))
+    assert before != after
+    _, crying = talk("ottilie", FakeGame())
+    _, sleeping = talk("ottilie", FakeGame(flags={"boss_dead", "spider_dead", "gargoyles_dead"}))
+    assert "north" in crying and "sleep" in sleeping

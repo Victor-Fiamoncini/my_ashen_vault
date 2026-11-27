@@ -332,22 +332,22 @@ def test_town_props_hang_on_the_thin_house_walls_and_the_stalls_are_gone():
     assert "stall" not in kinds
     assert {"fountain", "bench", "banner_pole", "shutters", "door_arch", "cathedral_tower"} <= kinds
     # Brannoc's forge hearth stands back against the west wall of his forge: its slab, not the tile's edge.
-    hearth = next(p for p in world.props if p.kind == "forge_hearth" and (p.tx, p.tz) == (4, 17))
-    assert world.map[3, 17].thin
-    assert hearth.x == pytest.approx(TileMap.center(4, 17)[0] - world.map.wall_inset(4, 17, -1, 0))
-    assert world.map.wall_inset(4, 17, -1, 0) == pytest.approx(1.5)
+    hearth = next(p for p in world.props if p.kind == "forge_hearth" and (p.tx, p.tz) == (3, 14))
+    assert world.map[2, 14].thin
+    assert hearth.x == pytest.approx(TileMap.center(3, 14)[0] - world.map.wall_inset(3, 14, -1, 0))
+    assert world.map.wall_inset(3, 14, -1, 0) == pytest.approx(1.5)
 
 
 def test_pells_shopfront_is_a_closed_wall_with_his_doorstep_free():
     world = World(FakeGame(), "harrowmere")
     assert not any(p.kind == "outside_stair" for p in world.props)  # no stair up to a loft door
-    assert not world.blocked_tile(10, 33)  # the step outside Pell's door
+    assert not world.blocked_tile(38, 14)  # the step outside Pell's door
     assert all(
-        world.map[x, z].walkable and not world.blocked_tile(x, z) for x in (10, 11) for z in range(31, 36)
+        world.map[x, z].walkable and not world.blocked_tile(x, z) for x in (38, 39) for z in range(12, 17)
     )
     # The corner south of his door, where the sign hangs, closes the east face right up to the doorway.
-    assert world.map.tile_at(19.75, 68.5).solid
-    assert not world.map.tile_at(20.25, 68.5).solid  # the street outside it
+    assert world.map.tile_at(75.75, 30.5).solid
+    assert not world.map.tile_at(76.25, 30.5).solid  # the street outside it
 
 
 def test_an_outside_stairs_flight_fills_the_tiles_it_climbs_over():
@@ -361,8 +361,8 @@ def test_an_outside_stairs_flight_fills_the_tiles_it_climbs_over():
     assert world.blocked_tile(10, 31) and not world.blocked_tile(10, 34)
 
 
-def _town_door(at=(9, 33)):
-    """Harrowmere with you on the step outside Pell's door (a door arch at 9,33 facing east)."""
+def _town_door(at=(37, 14)):
+    """Harrowmere with you on the step outside Pell's door (a door arch at 37,14 facing east)."""
     game = FakeGame()
     world = World(game, "harrowmere")
     game.player.place(*TileMap.center(at[0] + 1, at[1]), math.pi, world.map)
@@ -377,14 +377,16 @@ def _swing(world, seconds=1.0):
 
 def test_house_doors_start_shut_and_bar_the_doorway():
     _game, world, door = _town_door()
-    assert door.open_t == 0 and world.blocked_tile(9, 33)
+    assert door.open_t == 0 and world.blocked_tile(37, 14)
     assert world.focus() is door
-    # Every house's arch hangs a door; the cathedral's great west door stands open, with none.
+    # Every house's arch hangs a door; the cathedral's great door stands open, with none.
     arches = [p for p in world.props if p.kind == "door_arch"]
     doors = {(p.tx, p.tz) for p in world.props if p.kind == "house_door"}
     assert {(p.tx, p.tz) for p in arches if "rose" not in p.props} == doors
     assert all((p.tx, p.tz) not in doors for p in arches if "rose" in p.props)
-    assert len(doors) == 5  # the forge, Corvane's hut, Pell's, Wren's and Tamsin's
+    assert (
+        len(doors) == 11
+    )  # the forge, Corvane's hut, Pell's, Wren's, Tamsin's, the watch office, five homes
 
 
 def test_a_house_door_opens_lets_you_in_and_shuts_again():
@@ -393,22 +395,22 @@ def test_a_house_door_opens_lets_you_in_and_shuts_again():
     world.update(0.05)
     assert 0 < door.open_t < 1 and not world._interactable(door)  # not while it swings
     _swing(world)
-    assert door.open_t == 1.0 and not world.blocked_tile(9, 33)
+    assert door.open_t == 1.0 and not world.blocked_tile(37, 14)
     assert world._interactable(door)
     assert world.swing_door(door)
     _swing(world)
-    assert door.open_t == 0.0 and world.blocked_tile(9, 33)
+    assert door.open_t == 0.0 and world.blocked_tile(37, 14)
 
 
 def test_a_house_door_will_not_shut_on_you_and_is_shut_again_when_you_return():
     game, world, door = _town_door()
     world.swing_door(door)
     _swing(world)
-    game.player.x, game.player.z = TileMap.center(9, 33)  # standing in the doorway
+    game.player.x, game.player.z = TileMap.center(37, 14)  # standing in the doorway
     assert not world.swing_door(door) and door.goal == 1.0
     assert not any(k.startswith("house_door") for k in game.flags)  # never saved
     again = World(game, "harrowmere")
-    assert next(p for p in again.props if p.kind == "house_door" and (p.tx, p.tz) == (9, 33)).open_t == 0
+    assert next(p for p in again.props if p.kind == "house_door" and (p.tx, p.tz) == (37, 14)).open_t == 0
 
 
 def _close_from(spot, yaw):
@@ -426,19 +428,19 @@ def _close_from(spot, yaw):
 @pytest.mark.parametrize(
     "spot, yaw",
     [
-        ((20.13, 67.0), math.pi),  # stepped back out onto the step, a shoulder still over the sill
-        ((20.6, 67.6), math.pi),  # on the step, off to one side
-        ((17.85, 67.0), 0.0),  # just inside, having walked in and turned round
-        ((17.4, 66.3), 0.0),  # inside, beside the jamb
+        ((76.13, 29.0), math.pi),  # stepped back out onto the step, a shoulder still over the sill
+        ((76.6, 29.6), math.pi),  # on the step, off to one side
+        ((73.85, 29.0), 0.0),  # just inside, having walked in and turned round
+        ((73.4, 28.3), 0.0),  # inside, beside the jamb
     ],
 )
 def test_a_house_door_shuts_from_wherever_you_stand_beside_it(spot, yaw):
     game, world, door, shut = _close_from(spot, yaw)
     assert shut and door.goal == 0.0
     _swing(world)
-    assert door.open_t == 0.0 and world.blocked_tile(9, 33)
+    assert door.open_t == 0.0 and world.blocked_tile(37, 14)
     p = game.player
-    assert not (18.0 - p.RADIUS < p.x < 20.0 + p.RADIUS and 66.0 - p.RADIUS < p.z < 68.0 + p.RADIUS)
+    assert not (74.0 - p.RADIUS < p.x < 76.0 + p.RADIUS and 28.0 - p.RADIUS < p.z < 30.0 + p.RADIUS)
     # Nothing left you wedged against the shut leaf: you walk away from it freely.
     x0, z0 = p.x, p.z
     p.yaw = yaw + math.pi
@@ -447,7 +449,7 @@ def test_a_house_door_shuts_from_wherever_you_stand_beside_it(spot, yaw):
 
 
 def test_a_house_door_still_will_not_shut_on_you_in_its_doorway():
-    for spot in ((19.0, 67.0), (19.9, 66.2)):
+    for spot in ((75.0, 29.0), (75.9, 28.2)):
         _game, _world, door, shut = _close_from(spot, math.pi)
         assert not shut and door.goal == 1.0
 

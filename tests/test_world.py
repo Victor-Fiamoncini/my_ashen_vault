@@ -309,12 +309,14 @@ def test_harrowmere_every_villager_shop_and_road_is_reachable_from_the_cemetery_
         "fenn",
         "reyna",
         "wynn",
+        *("hedda", "aubrey", "lisbet", "osric", "merrit", "tilde", "barnaby", "ottilie", "hamund", "sefa"),
+        *("jorun", "cobb"),
     } <= ids
     (throne,) = _spec(m, "npc", id="enthroned")
     (bell,) = _spec(m, "silent_bell")
     assert m[throne.tx, throne.tz].floor >= m[bell.tx, bell.tz - 2].floor + 2.0  # up on the hill
     assert all(s.props.get("span") for s in _spec(m, "roof"))  # no flat-topped boxes left
-    assert len(_spec(m, "roof")) >= 6  # the cathedral's and the five houses'
+    assert len(_spec(m, "roof")) >= 12  # the cathedral's, the six shops and halls, and the five homes
 
 
 def test_every_harrowmere_gate_has_a_watchman_beside_it():
@@ -386,35 +388,36 @@ def test_every_harrowmere_turret_is_seated_on_a_corner_of_its_house():
 
 
 def test_harrowmeres_cathedral_rises_up_a_grand_stair_to_a_great_door_three_tiles_wide():
-    """The cathedral's great door opens three tiles wide on a porch; the grand stair runs straight down
-    from the porch to the north road, a step at a time, between cheek walls whose tops step down with
-    it; the plainer flight still climbs to the porch from the south; and its floor is marble."""
+    """The cathedral stands on its terrace at the top of the town, its great door opening three tiles wide
+    on a porch that faces south; the grand stair runs straight down from the porch to the plaza and the
+    bell, a step at a time, between cheek walls whose tops step down with it; and its floor is marble."""
     m = MapLoader.load_file(map_path("harrowmere"))
     (portal,) = _spec(m, "cathedral_portal")
-    for dz in (-1, 0, 1):
-        tile = m[portal.tx, portal.tz + dz]
-        assert not tile.solid and tile.ceil is not None and tile.floor_tex == "cathedral_floor", dz
+    assert portal.props["yaw"] == "90"  # facing south, down onto the plaza
+    for dx in (-1, 0, 1):
+        tile = m[portal.tx + dx, portal.tz]
+        assert not tile.solid and tile.ceil is not None and tile.floor_tex == "cathedral_floor", dx
     for side in (-2, 2):
-        assert m[portal.tx, portal.tz + side].solid  # walled either side of the doorway
-    porch = m[portal.tx + 1, portal.tz].floor
+        assert m[portal.tx + side, portal.tz].solid  # walled either side of the doorway
+    porch = m[portal.tx, portal.tz + 1].floor
     (stair,) = _spec(m, "grand_stair")
     run, rise = int(stair.props["run"]), float(stair.props.get("rise", "0.4"))
-    assert stair.tz == portal.tz and "yaw" not in stair.props  # on the door's axis, coming down from it
-    for tx in range(portal.tx + 1, stair.tx):  # across the porch before it
-        assert all(m[tx, portal.tz + dz].floor == porch for dz in (-1, 0, 1)), tx
+    assert stair.tx == portal.tx and stair.props["yaw"] == "90"  # on the door's axis, coming down from it
+    for tz in range(portal.tz + 1, stair.tz):  # across the porch before it
+        assert all(m[portal.tx + dx, tz].floor == porch for dx in (-1, 0, 1)), tz
     for i in range(run):
-        for dz in (-1, 0, 1):
-            tile = m[stair.tx + i, stair.tz + dz]
-            assert tile.floor == pytest.approx(porch - (i + 1) * rise), (i, dz)
+        for dx in (-1, 0, 1):
+            tile = m[stair.tx + dx, stair.tz + i]
+            assert tile.floor == pytest.approx(porch - (i + 1) * rise), (i, dx)
         for side in (-2, 2):  # a cheek wall, its top the floor of the stair tile above it
-            cheek = m[stair.tx + i, stair.tz + side]
+            cheek = m[stair.tx + side, stair.tz + i]
             assert cheek.solid and cheek.top == pytest.approx(porch - i * rise), (i, side)
-    assert m[stair.tx + run, stair.tz].floor == pytest.approx(0)  # the north road at its foot
-    reach = _reachable(m, (stair.tx + run, stair.tz))
-    assert (portal.tx, portal.tz) in reach and (portal.tx - 1, portal.tz) in reach  # up into the nave
-    (flight,) = _spec(m, "stair_flight", on="4")  # the cathedral's own; the town's terraces have theirs
-    assert flight.props["yaw"] == "90" and m[flight.tx, flight.tz - 1].floor == pytest.approx(porch)
-    assert (flight.tx, flight.tz + int(flight.props["run"])) in reach  # down to the lane south of it
+    foot = (stair.tx, stair.tz + run)
+    assert m[foot].floor == pytest.approx(0) and m[foot].floor_tex == "flagstone"  # the plaza at its foot
+    (bell,) = _spec(m, "silent_bell")
+    assert bell.tx == stair.tx and bell.tz > foot[1]  # straight down the stair to the bell
+    reach = _reachable(m, foot)
+    assert (portal.tx, portal.tz) in reach and (portal.tx, portal.tz - 1) in reach  # up into the nave
 
 
 def test_every_harrowmere_house_roof_covers_a_house_with_someone_living_in_it():
@@ -435,8 +438,9 @@ def test_every_harrowmere_house_roof_covers_a_house_with_someone_living_in_it():
 
 
 def test_the_gaol_grate_and_the_prisons_ladder_lead_to_each_other():
-    """The barred pit in the Gaol Ward's plaza drops you at the foot of the prison's ladder; the ladder
-    climbs back up to stand you on the plaza beside the grate, up on the terrace."""
+    """The barred pit in the gaol yard drops you at the foot of the prison's ladder; the ladder climbs
+    back up to stand you in the yard beside the grate. The yard is walled, its one gate opening on the
+    west avenue, and Hollis keeps it."""
     town, prison = MapLoader.load_file(map_path("harrowmere")), _prison()
     (grate,) = _spec(town, "exit", map="abandoned_prison")
     (ladder,) = _spec(prison, "exit", map="harrowmere")
@@ -447,29 +451,87 @@ def test_the_gaol_grate_and_the_prisons_ladder_lead_to_each_other():
     assert abs(bx - grate.tx) + abs(bz - grate.tz) == 1
     start = tuple(int(v) for v in town.meta["start"][:2])
     assert (bx, bz) in _reachable(town, start)
-    assert town[bx, bz].floor == pytest.approx(1.0)  # up on the Gaol Ward's terrace
+    ring = [
+        (grate.tx + dx, grate.tz + dz)
+        for dx in range(-2, 3)
+        for dz in range(-2, 3)
+        if 2 in (abs(dx), abs(dz))
+    ]
+    gates = [t for t in ring if not town[t].solid]
+    assert len(gates) == 1 and town[gates[0]].walkable  # walled round, but for its gate
+    (hollis,) = _spec(town, "npc", id="hollis")
+    assert abs(hollis.tx - grate.tx) + abs(hollis.tz - grate.tz) <= 2
+    (bell,) = _spec(town, "silent_bell")
+    assert grate.tx < bell.tx  # on the town's west side
 
 
-def test_harrowmere_climbs_in_terraces_no_step_too_tall():
-    """The town is laid out on terraces half a metre apart, never more: wherever two walkable tiles
-    meet, the step between them is one a walker can take, so every rise is a stair or a kerb, never a
-    ledge. The Gaol Ward stands a metre over the square, the cathedral's terrace two."""
+def test_harrowmere_lies_flat_but_for_the_cathedral_and_no_step_is_too_tall():
+    """The town lies flat inside its walls, kerbs and doorsteps aside; only the cathedral stands up on its
+    terrace, two metres over the plaza, reached by the grand stair half a metre a tile. Wherever two
+    walkable tiles meet, the step between them is one a walker can take. The sea gate's arch spans the
+    south street between two walls."""
     m = MapLoader.load_file(map_path("harrowmere"))
     reach = _reachable(m, tuple(int(v) for v in m.meta["start"][:2]))
     heights = {round(m[t].floor, 2) for t in reach}
     assert {0.0, 0.15, 0.5, 1.0, 1.5, 2.0} <= heights
-    (grate,) = _spec(m, "exit", map="abandoned_prison")
+    (portal,) = _spec(m, "cathedral_portal")
+    for tx, tz in reach:
+        if m[tx, tz].floor > 0.2:  # up on the terrace or its stair, north of the plaza
+            assert abs(tx - portal.tx) <= 7 and tz <= portal.tz + 5, (tx, tz)
+    for ax, az in reach:
+        for nx, nz in ((ax + 1, az), (ax, az + 1)):
+            if (nx, nz) in reach:
+                assert abs(m[ax, az].floor - m[nx, nz].floor) <= collision.STEP_HEIGHT + 0.01, (ax, az)
+    (arch,) = _spec(m, "street_arch")
+    assert m[arch.tx, arch.tz - 1].walkable and m[arch.tx, arch.tz + 1].walkable  # a way through the wall
+    w = int(arch.props["width"])
+    across = (0, 1) if arch.props["yaw"] == "0" else (1, 0)
+    for side in (-1, 1):
+        k = side * (w + 1) // 2
+        assert m[arch.tx + across[0] * k, arch.tz + across[1] * k].solid, (arch.tx, arch.tz)
+    assert all(
+        (arch.tx + across[0] * i, arch.tz + across[1] * i) in reach for i in range(-(w // 2), w // 2 + 1)
+    )
+
+
+def test_harrowmere_is_laid_out_as_its_plan_has_it():
+    """A walled square of a town, one gate to each road: the north road's in the north wall's west end and
+    the Vesper Gate in its east end, the cemetery's in the west wall, the trail's in the east wall and
+    the sea gate in the south wall, onto the quay. The plaza and its bell lie at the heart of town, the
+    cathedral north of it, the craftsmen and the watch west of it, the traders east of it, and the
+    neighbourhood's homes south-east. A sewer grate stands in each corner."""
+    m = MapLoader.load_file(map_path("harrowmere"))
     (bell,) = _spec(m, "silent_bell")
-    assert m[grate.tx, grate.tz].floor == pytest.approx(m[bell.tx, bell.tz - 2].floor + 1.0)
-    for s in _spec(m, "street_arch"):  # each arch spans its street between two walls
-        w = int(s.props["width"])
-        across = (0, 1) if s.props["yaw"] == "0" else (1, 0)
-        for side in (-1, 1):
-            k = side * (w + 1) // 2
-            assert m[s.tx + across[0] * k, s.tz + across[1] * k].solid, (s.tx, s.tz)
-        assert all(
-            (s.tx + across[0] * i, s.tz + across[1] * i) in reach for i in range(-(w // 2), w // 2 + 1)
-        )
+    x0, x1 = 0, 46  # the town wall's west and east sides
+    assert all(m[x0, z].solid or m[x0 + 1, z].walkable for z in range(m.depth))
+    assert abs(bell.tx - (x0 + x1) / 2) <= 1  # at the middle of the town
+    (north,) = _spec(m, "exit", map="cinderhold")
+    (vesper,) = _spec(m, "exit", map="vesperholm")
+    assert north.tz == vesper.tz == 1 and north.tx < bell.tx - 8 and vesper.tx > bell.tx + 8
+    (cemetery,) = _spec(m, "cemetery_gate")
+    assert cemetery.tx == x0 + 1 and abs(cemetery.tz - bell.tz) <= 2
+    gap = [z for z in range(m.depth) if m[x1, z].walkable]
+    assert gap and all(abs(z - bell.tz) <= 2 for z in gap)  # the east gate, level with the bell
+    sea = [x for x in range(x0, x1) if m[x, 41].walkable]
+    assert sea and all(abs(x - bell.tx) <= 1 for x in sea) and m[bell.tx, 42].walkable
+    (portal,) = _spec(m, "cathedral_portal")
+    assert portal.tx == bell.tx and portal.tz < bell.tz
+    east, west = {"pell", "tamsin"}, {"corvane", "brannoc", "garrick", "hollis"}
+    homes = {"tilde", "barnaby", "ottilie", "hamund", "sefa"}
+    for s in _spec(m, "npc"):
+        npc = s.props["id"]
+        if npc in east:
+            assert s.tx > bell.tx + 6, npc
+        if npc in west:
+            assert s.tx < bell.tx - 6, npc
+        if npc in homes:
+            assert s.tx > bell.tx and s.tz > bell.tz and m[s.tx, s.tz].ceil is not None, npc
+    grates = _spec(m, "exit", map="harrow_sewers")
+    corners = {(s.tx < bell.tx, s.tz < bell.tz) for s in grates}
+    assert len(grates) == 4 and len(corners) == 4
+    assert all(min(s.tx - x0, x1 - s.tx) <= 3 and min(s.tz, 41 - s.tz) <= 4 for s in grates)
+    (maeve,) = _spec(m, "npc", id="maeve")
+    assert m[maeve.tx, maeve.tz].floor_tex == "wood_plank" and maeve.tz > 41  # out on the pier
 
 
 def test_harrowmere_has_the_jungle_cave():
@@ -1179,10 +1241,10 @@ def _vesperholm():
 
 
 def test_the_vesper_gate_joins_town_and_vesperholm_both_ways():
-    """The Vesper Gate stands open in Harrowmere's north wall at the head of the cathedral steps: from
-    the gate a straight walk south leads down the porch and the steps to the street. You come through it
-    into Vesperholm's Glimmering Cave, just before the gate home, and that one leads back out just south of
-    the town's gate. Neither is ever shut."""
+    """The Vesper Gate stands open in the east end of Harrowmere's north wall: from the gate a straight
+    walk south runs down the Vesper street to the east avenue. You come through it into Vesperholm's
+    Glimmering Cave, just before the gate home, and that one leads back out just south of the town's
+    gate. Neither is ever shut."""
     town, city = MapLoader.load_file(map_path("harrowmere")), _vesperholm()
     (gate,) = _spec(town, "exit", map="vesperholm")
     (home,) = _spec(city, "exit", map="harrowmere")
@@ -1190,14 +1252,9 @@ def test_the_vesper_gate_joins_town_and_vesperholm_both_ways():
     assert "requires" not in gate.props and "shut" not in gate.props
     assert "requires" not in home.props and "oneway" not in gate.props
     assert town[gate.tx, gate.tz - 1].solid and gate.tz == 1  # in the north wall
-    # In line with the forecourt steps: straight south from the gate every tile is open, down the porch
-    # and its steps (each lower than the last) to the street.
-    floors, tz = [], gate.tz
-    while town[gate.tx, tz].floor > 0:
-        assert town[gate.tx, tz].walkable, (gate.tx, tz)
-        floors.append(town[gate.tx, tz].floor)
-        tz += 1
-    assert town[gate.tx, tz].walkable and floors == sorted(floors, reverse=True) and len(set(floors)) >= 4
+    (bell,) = _spec(town, "silent_bell")
+    for tz in range(gate.tz + 1, bell.tz + 1):  # the Vesper street, straight down to the avenue
+        assert town[gate.tx, tz].walkable and town[gate.tx, tz].floor < 0.2, tz
     tx, tz = (int(v) for v in gate.props["at"].split(",")[:2])
     assert (tx, tz) == tuple(int(v) for v in city.meta["start"][:2])
     assert abs(tx - home.tx) + abs(tz - home.tz) == 1 and city[tx, tz].walkable

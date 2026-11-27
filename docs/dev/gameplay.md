@@ -194,8 +194,8 @@ Equipment, combat, spells, shops, saves and the story.
   marks it taken as picking one up does (`relics.mark_taken`). Brother Marrow and a hint on the
   Drowned Plaza name her too. From inside the stone the king rang
   the bell himself, once, to wake the Ashen: the dead, whom the moon cannot keep. Odrin names all five
-  at the first meeting: the fourth lies with the Duchess beyond the Vesper Gate at the head of the
-  cathedral steps, which stands open (nobody remembers it shut, nor who opened it), so the whole realm is
+  at the first meeting: the fourth lies with the Duchess beyond the Vesper Gate in the east end of
+  the town's north wall, which stands open (nobody remembers it shut, nor who opened it), so the whole realm is
   open to explore from the start; the fifth is Herran's, and the way to him opens from Lyra's altar. The fifth seal, the Auric Sigil (the sun's, gold), was never the
   king's: Ilvane and her brother Herran are both children of Lyra (the Enthroned's own parentage is left a
   mystery), and Herran kept it in his castle on the Hollow Peak, the black mountain behind Vesperholm,
@@ -213,4 +213,4 @@ Equipment, combat, spells, shops, saves and the story.
   (`relics.ENDING_RELICS`) he sets `dialogue.BELL_UNSEALED` and you keep them, and ringing the Silent
   Bell with all five in hand (`dialogue.bell`) plays the ending. The Enthroned stirs a stage further for
   each you carry (`dialogue.ENTHRONED_LINES`, six stages), and at five confesses he rang the bell. What
-  lies below the Bell Square, which will take the ending's place, is still a `TODO(story)` in `game.py`.
+  lies below the plaza, which will take the ending's place, is still a `TODO(story)` in `game.py`.

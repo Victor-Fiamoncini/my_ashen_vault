@@ -11,7 +11,7 @@ from ashen_vault.player.stats import Stats
 from ashen_vault.save.slots import SLOTS, SlotSummary, slot_path
 from ashen_vault.world.map_loader import MapLoader
 
-VERSION = 4
+VERSION = 5
 # Maps whose id changed: older saves name them by the old id, in the map, the remnant and the flags.
 RENAMED_MAPS = {"sunken_keep": "abandoned_prison"}
 # Maps whose grid grew on its north or west side, by (tiles across, tiles down), and the save version
@@ -22,8 +22,13 @@ TILE = 2.0  # metres a tile (`TileMap.TILE`)
 # Maps torn down and built anew (or gone into another), by the map an older save made there wakes on
 # instead, and the save version the rebuild came in: the spot and the remnant go to that map's `start`,
 # and every flag naming the old map is dropped, since none of its tiles mean what they did. Herran's
-# Castle above the clouds, and the spire on it, became his castle on the Hollow Peak.
-REBUILT_MAPS = {"herrans_castle": ("herrans_castle", 4), "herran_spire": ("herrans_castle", 4)}
+# Castle above the clouds, and the spire on it, became his castle on the Hollow Peak; Harrowmere was laid
+# out anew, square inside its walls, the cathedral turned to face the plaza.
+REBUILT_MAPS = {
+    "herrans_castle": ("herrans_castle", 4),
+    "herran_spire": ("herrans_castle", 4),
+    "harrowmere": ("harrowmere", 5),
+}
 # Items taken out of the game with nothing to replace them (`Items.RENAMED` has those with): an older
 # save loses them, from its pack, its hands and body, its quick slots and its shrine store.
 RETIRED_ITEMS = frozenset({"graft_draught", "sun_tincture", "herran_bonesaw", "spire_key"})

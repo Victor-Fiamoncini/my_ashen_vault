@@ -89,7 +89,7 @@ m = chest item=blue_moss count=2 gold=30 model=coffer
 z = chest item=claymore on=- model=worn
 h = chest item=war_hammer on=: model=banded
 S = save_statue
-E = exit map=harrowmere at=38,14,90 label=Climb_the_ladder model=sewer_ladder yaw=-90
+E = exit map=harrowmere at=12,25,90 label=Climb_the_ladder model=sewer_ladder yaw=-90
 ^ = spikes on=|
 * = spikes phase=0.9 on=|
 + = spikes phase=1.8 on=|

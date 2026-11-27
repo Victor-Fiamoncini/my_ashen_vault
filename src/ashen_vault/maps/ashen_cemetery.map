@@ -132,6 +132,6 @@ J = sexton
 Ø = ash_mound
 Ú = bones
 Ð = tree kind=dead
-E = exit map=harrowmere at=2,31,0 label=Leave_the_cemetery model=cemetery_gate yaw=90 oneway requires=sexton_dead shut="The gate will not yield while its keeper stands."
+E = exit map=harrowmere at=2,22,0 label=Leave_the_cemetery model=cemetery_gate yaw=90 oneway requires=sexton_dead shut="The gate will not yield while its keeper stands."
 // A cold grey light falling on the gate, so its stone shows against the dark beyond it.
 Ó = light y=4.5 color=0.5,0.52,0.62 radius=7

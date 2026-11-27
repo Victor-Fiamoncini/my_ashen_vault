@@ -54,6 +54,6 @@ def test_cinderhold_has_lava_and_harrowmere_has_sea():
 def test_marks_are_tile_centres_in_metres():
     out = mod.convert(MAPS / "harrowmere.map")
     start = next(m for m in out["marks"] if m["kind"] == "start")
-    assert (start["x"], start["y"]) == (2 * 2 + 1, 31 * 2 + 1)  # harrowmere: start = 2 31 0
+    assert (start["x"], start["y"]) == (2 * 2 + 1, 22 * 2 + 1)  # harrowmere: start = 2 22 0
     assert any(m["kind"] == "npc" and m["label"] == "Odrin" for m in out["marks"])
     assert any(m["kind"] == "shrine" for m in out["marks"])

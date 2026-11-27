@@ -29,7 +29,7 @@ RELICS = {
 # and ringing it with them ends the game (`dialogue.bell`).
 ENDING_RELICS = ("ember_sigil", "verdant_sigil", "iron_sigil", "argent_sigil", "auric_sigil")
 # The three sigils found this side of the Vesper Gate. The fourth, the Argent Sigil, lies in
-# Vesperholm, beyond the gate at the head of Harrowmere's cathedral steps. The gate always stands open
+# Vesperholm, beyond the gate in the east end of Harrowmere's north wall. The gate always stands open
 # now; GATE_FLAG only records that the first three have been taken up (saves still carry it).
 FIRST_THREE = ("ember_sigil", "verdant_sigil", "iron_sigil")
 GATE_FLAG = "vesper_gate_open"

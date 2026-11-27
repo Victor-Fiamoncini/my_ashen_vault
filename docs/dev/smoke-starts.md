@@ -11,7 +11,7 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   `ailments.FLARE_TIME` (2.5 s), so keep `--smoke` under 150 frames for those.
 - The Abandoned Prison (`abandoned_prison`): `--map abandoned_prison` (its `start`, in the gaol's shaft
   at the foot of the ladder; `--at=15,32,90 --script "back:0.3 look_up:0.5"` looks up the shaft at the grate;
-  `--at=15,32,90 --script "wait:0.3 interact wait:1.5"` climbs the ladder back to the Gaol Ward, beside the grate),
+  `--at=15,32,90 --script "wait:0.3 interact wait:1.5"` climbs the ladder back to the gaol yard, beside the grate),
   `--at=15,21,90` (the guard hall), `--at=4,23,-90` (the west cell block's dark aisle; `--at=4,16,-90
   --script "wait:0.2 interact wait:2"` pulls its lever and raises every cell's bars), `--at=22,21,90
   --script "forward:0.6 wait:0.2 interact"` (Brother Marrow, through his cell's bars), `--at=32,21,0`
@@ -21,30 +21,36 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   "strafe_l:0.7 wait:5"` (ride the shrine lift up, which frees it), `--at=13,26,180 --script "wait:0.2
   forward:0.2"` (its call plate above, refusing while it is still fastened), `--at=23,13,0 --script "forward:0.7 wait:5"` (the cage lift up to the Warden's Gallery),
   `--at=27,7,-90` (the Butcher in his slaughter hall north of the Gallery),
-  `--map harrowmere --at=47,30,0` (the hedged jungle trail; `--at=56,34,-90` its dark end at the cave
+  `--map harrowmere --at=47,23,0` (the hedged jungle trail past the east gate; `--at=56,27,-90` its dark end at the cave
   mouth), `--map verdant_hollow`
   (Mossmouth, the dark cave you arrive in), `--at=15,31,180 --equip left=spell:pyre --script "cast"`
   (kindle Mossmouth's cold brazier), `--at=6,41,-90` (the Root Caverns), `--at=32,3,180` (the Canopy
   Walk), `--at=15,20,-90 --script interact` (the barred door, from its wrong side),
   `--at=14,41,-90 --script "interact wait:2.5 strafe_l:2"` (lower the drawbridge and cross),
   `--at=49,12,-90` (the Highland log slope), `--at=15,7,-90` (the Loom Mother),
-  `--at=15,7,-90` (the Ashen Warden in his hall), `--map harrowmere --at=28,25,-90 --script "wait:0.2
-  interact"` (Odrin's dialogue box, by the Silent Bell), `--map harrowmere --at=25,22,90 --script
-  "forward:0.6 interact"` (touch the Silent Bell; `world.INTERACT_REACH` lets you reach it from its plinth), `--map harrowmere --at=6,26,180 --script "forward:2 interact"`
-  (Corvane; below `--level 5` they stay silent), `--map harrowmere --at=31,4,-90` (the north road's gate),
-  `--map harrowmere --at=22,30,-60` (the Bell Square), `--map harrowmere --at=28,37,-90` (the market's fountain
-  and benches), `--map harrowmere --at=31,6,180` (the cathedral's great stair, west door and rose window),
-  `--map harrowmere --at=6,25,-90 --script "look_up:0.1"` (a house's face, its balcony and the cathedral's
-  towers behind), `--map harrowmere --at=14,33,-90 --script "forward:3"` (walk to a thin wall's slab:
-  you stop at z=62.9), `--map harrowmere --at=17,6,180` (the cathedral's nave;
-  `--at=6,6,180 --script "wait:0.2 interact"` speaks to the Enthroned), `--map harrowmere --at=7,18,180 --script
-  "wait:0.2 interact"` (Brannoc's gift and forge), `--map harrowmere --at=10,18,-90 --script "look_up:0.3"` (the anvil sign by his forge; `--at 13,18,180` faces its door between two windows), `--map harrowmere --at 24,1,90 --script "wait:0.2 interact"` (Corporal Wynn of the watch, on the Vesper Gate's porch; `--at=22,7,-90` looks up the porch at the gate between its lamps),
-  `--map harrowmere --at=10,33,180 --script "wait:0.2 interact wait:1"` (open Pell's door; `interact` again shuts it), `--map harrowmere --at=38,17,-90` (the Gaol Ward's plaza, the gaol's grate and Hollis beside it;
-  `--at=38,14,-90 --script "wait:0.3 interact wait:1.5"` descends the grate into the prison), `--map harrowmere
-  --at=28,22,-90` (the north road's stair up to the Gaol Ward, under its crenellated arch), `--map harrowmere
-  --at=12,11,60` (from the cathedral's terrace over the clay roofs), `--map harrowmere --at=30,39,180` (the
-  harbour, Tamsin's hipped roof behind), `--map harrowmere --at=43,29,0` (the east lane up to the gap, Garrick
-  on its corner),
+  `--at=15,7,-90` (the Ashen Warden in his hall), `--map harrowmere --at=20,20,-90 --script "wait:0.2
+  interact"` (Odrin's dialogue box, by the Silent Bell), `--map harrowmere --at=23,20,90 --script
+  "forward:0.6 interact"` (touch the Silent Bell; `world.INTERACT_REACH` lets you reach it from its plinth), `--map harrowmere --at=8,7,180 --script "wait:0.2 interact wait:1
+  forward:2.5 interact"` (open the hut's door and walk in to Corvane; below `--level 5` they stay silent), `--map harrowmere --at=10,4,-90` (the north road's gate),
+  `--map harrowmere --at=23,33,-90` (across the plaza to the bell and the cathedral on its terrace),
+  `--map harrowmere --at=24,33,0` (the market's fountain and stall by the south street), `--map harrowmere
+  --at=23,19,-90 --script "look_up:0.3"` (the cathedral's grand stair, great door and rose window),
+  `--map harrowmere --at=10,7,180 --script "look_up:0.1"` (Corvane's hut on the north road's street, its sign
+  and its shuttered windows), `--map harrowmere --at=11,30,180 --script "forward:3"` (walk to the watch
+  office's thin wall: you stop at its slab), `--map harrowmere --at=23,10,-90` (the cathedral's nave;
+  `--at=23,5,-90 --script "wait:0.2 interact"` speaks to the Enthroned), `--map harrowmere --at=6,15,180 --script
+  "wait:0.2 interact"` (Brannoc's gift and forge), `--map harrowmere --at=9,15,-90 --script "look_up:0.3"` (the anvil
+  sign by his forge; `--at 11,15,180` faces its door between two windows), `--map harrowmere --at 41,3,-90 --script "wait:0.2 interact"` (Corporal Wynn of the watch, by the
+  Vesper Gate; `--at=40,12,-90` looks up the Vesper street at the gate between its lamps),
+  `--map harrowmere --at=38,14,180 --script "wait:0.2 interact wait:1"` (open Pell's door; `interact` again shuts
+  it), `--map harrowmere --at=12,22,90` (the gaol yard's gate, the barred pit and Hollis inside;
+  `--at=12,25,90 --script "wait:0.3 interact wait:1.5"` descends the grate into the prison), `--map harrowmere
+  --at=8,29,180 --script "wait:0.2 interact wait:0.8 forward:0.5"` (into the watch office, Garrick at his
+  table), `--map harrowmere --at=19,10,90` (from the cathedral's terrace down over the plaza and the clay roofs),
+  `--map harrowmere --at=23,38,90 --script "forward:2.5"` (out through the sea gate onto the quay, the pier
+  ahead and Maeve at its end), `--map harrowmere --at=36,31,-90 --script "wait:0.2 interact"` (the
+  neighbourhood's lane: Jorun's lines, the homes round her), `--map harrowmere --at=44,23,0` (the east gate,
+  Reyna beside it),
   `--map cinderhold` (its `start`: the Sallow Fen's foot, the north road behind you), `--map cinderhold
   --at=30,102,-90` (the dirt path north from the watch-post shrine, the mounds and great dead trees round it),
   `--map cinderhold --at=29,96,-90 --script forward:3` (over the great rotten bridge's rotting planks to the
@@ -68,10 +74,10 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   great hall), `--map cinder_keep --at=9,6,180 --level 10`
   (the keep's walled roof: the gargoyles wake at once).
 - The Harrow Sewers (`harrow_sewers`) lie under the town; each town grate stands over the sewer ladder that
-  climbs back to it, at the same tile: `--map harrowmere --at=2,14,180 --script "wait:0.3 interact"`
-  (go down the west lane's grate, under the cathedral terrace; the others are at 35,1 in the north road's
-  corner by its gate, 3,37 and 41,37 at the harbour lane's west and east ends), `--map harrow_sewers
-  --at=35,2,-90 --script "wait:0.3 interact"` (climb back up by the north road). Districts: `--map
+  climbs back to it, at the same tile, one in each corner of the town: `--map harrowmere --at=3,2,180 --script
+  "wait:0.3 interact"` (go down the north-west grate, by the north road's gate; the others are at 45,2 by the
+  Vesper Gate, 3,37 and 45,39 at the south lane's west and east ends), `--map harrow_sewers
+  --at=2,3,-90 --script "wait:0.3 interact"` (climb back up by the north road). Districts: `--map
   harrow_sewers` (the drain into the Market Drains, its `start`), `--at=27,6,0`
   (the North Sluices), `--at=4,36,0` (the Canal Culvert), `--at=36,36,90` (the Quay Outfall and its
   great grates), `--at=25,24,-120` (the Cistern, its shrine at 20,16), `--at=43,25,-120` (the Sump, 8 m down
@@ -136,9 +142,9 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
 - Hollow chests: open one and look in, e.g. `--map old_harrowmere --at 10,44,0 --flags keystone_dead
   --smoke 110 --script "forward:0.35 interact wait:0.5 look_down:0.5"` (the Keystone's coffer) or `--map
   cinder_keep --at 3,23,180 --smoke 80 --script "interact wait:0.5 look_down:0.35"` (an iron chest).
-- Vesperholm (`vesperholm`) lies behind the Vesper Gate in Harrowmere's north wall, at the head of the
-  cathedral steps; it always stands open: `--map harrowmere --at=22,15,-90` (from the foot of the steps,
-  the gate straight ahead up the porch), `--map harrowmere --at=22,2,-90 --script "wait:0.3 interact"`
+- Vesperholm (`vesperholm`) lies behind the Vesper Gate in the east end of Harrowmere's north wall, at the
+  head of the Vesper street; it always stands open: `--map harrowmere --at=40,15,-90` (from down the street,
+  the gate straight ahead between its lamps), `--map harrowmere --at=40,2,-90 --script "wait:0.3 interact"`
   (goes through, even on a fresh save). Areas: `--map vesperholm` (the Glimmering Cave's hall, its
   `start`, the Vesper Gate behind you), `--at=8,113,-90 --smoke 75 --script "forward:0.75 wait:0.45"` (a
   Glassmite in the geode gallery unfolds), `--at 24,103,0` (the moon-pool grotto), `--at=16,80,-80` (the
@@ -182,7 +188,7 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   "interact wait:0.8 forward:1.6 wait:3"` (the Hall of Sentinels: the two stone giants tear free),
   `--map herrans_castle --at=23,5,0 --level 12 --equip right=claymore,body=brigandine --smoke 520 --script
   "interact wait:0.8 forward:1.4 wait:5.5"` (through his door; Herran rising before it, facing you). The
-  ending: `--map harrowmere --at=25,26,-90 --flags bell_unsealed --script "wait:0.5 interact"` (the bell
+  ending: `--map harrowmere --at=23,24,-90 --flags bell_unsealed --script "wait:0.5 interact"` (the bell
   refuses without the five sigils in hand).
 - The story begins in `ashen_cemetery` (the title's New Game, `Game.start_story`: bare hands and no
   spell, `Player.woken()`, the journey recorded at once). A `--map` run starts on any map with the default
@@ -197,13 +203,14 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   after dying in a sealed arena (or with its `fog:` flag set); `tests/test_arena.py` drives the flow.
 - `--level` only sets the level (for equipment requirements); HP and stats stay at level 1, so judge boss
   balance headless (`World` with a `JungleGame`) rather than from a smoke fight.
-- The world's skyline (`world/atlas.py`): `--map harrowmere --at=30,39,70` (the harbour light, a wreck and
-  the headlands either side of the sea), `--map harrowmere --at=30,39,-70 --script "look_up:0.15"` (the
+- The world's skyline (`world/atlas.py`): `--map harrowmere --at=24,49,70` (from the pier: the harbour light, a wreck and
+  the headlands either side of the sea), `--map harrowmere --at=23,33,-110 --script "look_up:0.15"` (the
   volcano's smoke in the north-west over the roofs), `--map vesperholm --at=16,80,-45` (the Hollow Peak under
   its storm north-east of the city), `--map vesperholm --at=21,63,180 --script "look_up:0.2"` (the volcano's
   plume in the west over Lantern Square), `--map cinderhold --at=30,100,-60` (the peak's storm over the
   fen's curtain wall) and `--at=30,96,10` / `--at=26,96,170` (the burnt hills over the fen's crags).
-  Harrowmere's dressing: `--map harrowmere --at=11,31,90 --script "look_up:0.3"` (washing across the lane),
-  `--at=36,39,60 --script "look_up:0.25"` (the harbour light), `--at=28,33,135` (a market stall). The fen's:
+  Harrowmere's dressing: `--map harrowmere --at=11,33,-90 --script "look_up:0.3"` (washing between the
+  watch office and Wren's house), `--at=32,43,60 --script "look_up:0.25"` (the harbour light, from the quay),
+  `--at=26,29,0` (a market stall). The fen's:
   `--map cinderhold --at=20,74,-90 --script "look_up:0.2"` (a runoff sluice in the curtain wall),
   `--at=37,104,20` (the fallen watchtower).

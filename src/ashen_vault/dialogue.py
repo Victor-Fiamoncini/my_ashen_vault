@@ -84,6 +84,9 @@ def for_npc(id_, game):
     if id_ in WATCH:
         name, lines = WATCH[id_]
         return name, lines(flags), None
+    if id_ in TOWNSFOLK:
+        name, lines = TOWNSFOLK[id_]
+        return name, lines(flags), None
     if id_ == "maeve":
         return maeve(game, flags)
     if id_ == "corvane":
@@ -119,16 +122,16 @@ SIGIL_HELD = {
     "auric_sigil": "Gold, and warm as a living hand... the Auric Sigil. That one was never the king's.",
 }
 SIGIL_HINT = {
-    "ember_sigil": "The Ember Sigil waits in the Warden's hall. Climb down through the gaol's grate, up on the Gaol Ward.",
+    "ember_sigil": "The Ember Sigil waits in the Warden's hall. Climb down through the gaol's grate, in its yard off the west avenue.",
     "verdant_sigil": (
-        "The Verdant Sigil is in the hollow. Follow the green trail east of the square to the cave. "
+        "The Verdant Sigil is in the hollow. Go out by the east gate and follow the green trail to the cave. "
         "Take a light."
     ),
     "iron_sigil": (
         "The Iron Sigil is held in the Cinderhold. Take the north road and cross the long bridge over the fire."
     ),
     "argent_sigil": (
-        "The Argent Sigil is in Vesperholm. Climb the cathedral steps: the Vesper Gate at their head stands open."
+        "The Argent Sigil is in Vesperholm. Go up the Vesper street: the Vesper Gate at its head stands open."
     ),
     "auric_sigil": (
         "The Auric Sigil is on the Hollow Peak, with Herran. Lift the Argent Sigil from Lyra's hands "
@@ -201,7 +204,7 @@ def odrin(game, flags, inv):
         if BELL_UNSEALED in flags:
             return (
                 "Odrin",
-                ["Go on, Ashen. The bell is waiting in the square. Ring it with the sigils in your hand."],
+                ["Go on, Ashen. The bell is waiting on the plaza. Ring it with the sigils in your hand."],
                 None,
             )
         return (
@@ -215,7 +218,7 @@ def odrin(game, flags, inv):
                 "But the moon keeps all it shines on as it is: her people as shades, the king as stone.",
                 "It was him at the rope, wasn't it? From inside the stone. The moon keeps the living. Not ash.",
                 "Keep them. The prophecy never said to give them to me. The bell was sealed with all five.",
-                "Go down to the Bell Square and ring the Silent Bell with the sigils in your hand.",
+                "Go down to the plaza and ring the Silent Bell with the sigils in your hand.",
             ],
             lambda g: g.flags.add(BELL_UNSEALED),
         )
@@ -238,11 +241,11 @@ def odrin(game, flags, inv):
                 "The Enthroned. Our king, turned to stone in his chair in the cathedral, longer than anyone remembers.",
                 "You are not the first to wake. The cemetery you climbed out of is full of the ones who failed.",
                 "Deep in the Abandoned Prison the Ember Sigil sits in the Warden's hall. That is one.",
-                "The next is the Verdant Sigil. A green trail has crept out of the square's east side.",
+                "The next is the Verdant Sigil. A green trail has crept up to the east gate.",
                 "It ends at a cave, and beyond it a hollow has grown where no wood should be. Something nests there.",
                 "Then the Iron Sigil. Look north at night: the old fortress on the ridge glows again.",
                 "They call it the Cinderhold. The north road and its long bridge lead there. Its forges are lit.",
-                "The fourth is the Argent Sigil. At the head of the cathedral steps the Vesper Gate stands open.",
+                "The fourth is the Argent Sigil. At the head of the Vesper street the Vesper Gate stands open.",
                 "Beyond it lies Vesperholm, the Moonbound City. Nobody remembers the gate shut, nor who opened it.",
                 "The fifth, the Auric Sigil, was never the king's. Herran keeps it, in his castle on the Hollow Peak.",
                 "Lyra's altar in Vesperholm holds the Argent Sigil. Take it up, and the way to him will show itself.",
@@ -260,9 +263,9 @@ def odrin(game, flags, inv):
     return (
         "Odrin",
         [
-            "The grate in the Gaol Ward leads down into the old prison. The green trail east leads to the hollow's cave.",
+            "The grate in the gaol yard leads down into the old prison. The green trail east leads to the hollow's cave.",
             "The north road climbs to the Cinderhold. Its bridge crosses a gorge of fire.",
-            "The cathedral steps climb to the Vesper Gate. It stands open on Vesperholm, under the moon.",
+            "The Vesper street runs up to the Vesper Gate. It stands open on Vesperholm, under the moon.",
             "In Lyra's chapel above Vesperholm, a portal opens to Herran's castle on the mountain.",
             "Save your strength at the stone shrines. The old wardens built them for the Ashen. Many knelt there.",
         ],
@@ -343,12 +346,12 @@ def west_gate_lines(flags):
         "You came through it, didn't you? Grey as the ash. You're not the first I've seen.",
     ]
     if "quest" not in flags:
-        lines.append("Old Odrin by the bell will want a word with you. Up the lane, in the square.")
+        lines.append("Old Odrin by the bell will want a word with you. Down the avenue, on the plaza.")
     return lines
 
 
 def vesper_gate_lines(flags):
-    """Corporal Wynn, on the porch of the Vesper Gate: the cold road beyond it, and how many of the three
+    """Corporal Wynn, at the Vesper Gate: the cold road beyond it, and how many of the three
     sigils this side of the wall you have won back."""
     if "duchess_dead" in flags:
         return [
@@ -384,6 +387,131 @@ WATCH = {  # the town watch at its gates: (name, lines)
     "reyna": ("Reyna", east_gap_lines),
     "fenn": ("Old Fenn", west_gate_lines),
     "wynn": ("Corporal Wynn", vesper_gate_lines),
+}
+
+
+# --- the townsfolk of Harrowmere ------------------------------------------------------------------
+# Folk with no shop and no gift: a few lines of their own, some of which turn as the roads out are won.
+
+
+def _cleared(flags):
+    """How many of the three old roads out of town (the prison, the hollow, the fortress) are quiet."""
+    return sum(flag in flags for flag in ("boss_dead", "spider_dead", "gargoyles_dead"))
+
+
+def hedda_lines(flags):
+    lines = [
+        "Hush. I come to pray for my Aldo. Forty years he worked the quay, and the sea kept him.",
+        "The Enthroned never answers. But it never sends me away, either.",
+    ]
+    if _cleared(flags) >= 2:
+        lines.append("The candles burn steadier these nights. Is that your doing, grey one?")
+    return lines
+
+
+def aubrey_lines(flags):
+    return [
+        "I trim the candles and sweep the nave. Sister Ilse says the work is the prayer.",
+        "Don't stare too long at the throne. Folk who do go quiet for days after.",
+    ]
+
+
+def lisbet_lines(flags):
+    if "spider_dead" in flags:
+        return [
+            "Flowers for the bell? I pick them by the east gate now the trail's gone quiet.",
+            "Strange blooms, mind. Lovely, though. Nothing in them bites any more.",
+        ]
+    return [
+        "Flowers! Flowers for the bell! Nobody buys, but I like to say it.",
+        "I used to pick by the east gate. Not since the green came out of that cave.",
+    ]
+
+
+def osric_lines(flags):
+    lines = ["Hear ye! By order of the watch: no one is to touch the bell's rope. Not that it has one."]
+    if "gargoyles_dead" in flags:
+        lines.append("Hear ye! The north road is reopened to carters, at their own peril. Mostly peril.")
+    else:
+        lines.append("Hear ye! The north road is closed to carters. The fortress on the ridge burns again.")
+    if "duchess_dead" in flags:
+        lines.append("And hear ye: the Vesper Gate has thawed. First notice I've had to write about frost.")
+    return lines
+
+
+def merrit_lines(flags):
+    return [
+        "A coin for old Merrit? No? Then a word for free: the bell rang once, and I was the only one awake.",
+        "Never you mind what I saw on the plaza that night. Grey, it was. Grey like you.",
+    ]
+
+
+def tilde_lines(flags):
+    return [
+        "Mind the loom. I weave sailcloth, though there's few enough sails to mend these days.",
+        "The watch buys my wool for tabards. Captain Garrick pays late, but he pays.",
+    ]
+
+
+def barnaby_lines(flags):
+    return [
+        "Casks for the inn, tubs for the fish. Nobody's fishing, so I make casks.",
+        "Wren takes all I can make. Folk drink more when the roads go bad.",
+    ]
+
+
+def ottilie_lines(flags):
+    lines = [
+        "I've brought half this street into the world. Three born the week the bell rang, all grey-eyed.",
+    ]
+    if _cleared(flags) == 3:
+        lines.append("Since the roads went quiet the babes sleep through. You'll not tell me that's chance.")
+    else:
+        lines.append("They cry at night, every one of them, facing north. Babes know things.")
+    return lines
+
+
+def hamund_lines(flags):
+    return [
+        "Forty years at sea and I come home to a town that's walled itself in from it.",
+        "Go out by the sea gate if you want air. Maeve's on the pier, always is. Tell her old Hamund says hello.",
+    ]
+
+
+def sefa_lines(flags):
+    return [
+        "Bread's for the watch first, the cathedral second, and the rest of us after.",
+        "Flour comes up the north road. When it comes. Until then, it's barley and hope.",
+    ]
+
+
+def jorun_lines(flags):
+    return [
+        "My man's boat sits on the quay. He won't take her out while the bell's quiet.",
+        "He says the fish won't bite. I say he won't bait the hook.",
+    ]
+
+
+def cobb_lines(flags):
+    return [
+        "Every lamp in town, lit by dusk. That's my charge. Dusk never seems to end, lately.",
+        "There's a grate in every corner of the wall. I'd keep my lamp out of them if I were you.",
+    ]
+
+
+TOWNSFOLK = {  # the townsfolk of Harrowmere: (name, lines)
+    "hedda": ("Old Hedda", hedda_lines),
+    "aubrey": ("Aubrey", aubrey_lines),
+    "lisbet": ("Lisbet", lisbet_lines),
+    "osric": ("Osric the Crier", osric_lines),
+    "merrit": ("Merrit", merrit_lines),
+    "tilde": ("Tilde", tilde_lines),
+    "barnaby": ("Barnaby", barnaby_lines),
+    "ottilie": ("Ottilie", ottilie_lines),
+    "hamund": ("Old Hamund", hamund_lines),
+    "sefa": ("Sefa", sefa_lines),
+    "jorun": ("Jorun", jorun_lines),
+    "cobb": ("Cobb", cobb_lines),
 }
 
 
@@ -900,7 +1028,7 @@ def wren_lines(flags):
     flags.add("met_wren")
     return [
         "Welcome to the Drowned Lantern. I'm Wren. Rooms are cheap, since nobody's travelling.",
-        "You'll have seen the bell in the square. The Silent Bell, we call it. Cracked, and dumb for years.",
+        "You'll have seen the bell on the plaza. The Silent Bell, we call it. Cracked, and dumb for years.",
         "Then one still night it rang. Once. No wind, no storm, and nobody at the rope.",
         "Since then: the prison below wakes, a wood grows in a cave, the old fortress north is lit again.",
         "Three roads out of Harrowmere, and every one of them gone bad.",

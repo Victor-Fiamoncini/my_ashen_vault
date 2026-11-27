@@ -233,6 +233,63 @@ LOOKS = {
         cloth=(130, 74, 60), hair=(180, 120, 60), build="stout", hair_style="bun", apron=(190, 180, 160),
         tool="tankard",
     ),
+    # The townsfolk. Two at prayer in the cathedral's nave: an old widow in black, and the acolyte who
+    # keeps its candles.
+    "hedda": Look(
+        cloth=(46, 42, 46), hair=(196, 192, 186), skin=(188, 160, 136), build="stooped", garb="robe",
+        hair_style="bun", hood=True, cloak=(34, 32, 36), idle="pray",
+    ),
+    "aubrey": Look(
+        cloth=(150, 140, 120), hair=(120, 84, 48), skin=(206, 172, 140), build="slight", garb="robe",
+        hair_style="short", belt=(110, 86, 60), tool="lantern", idle="pray",
+    ),
+    # About the plaza: the flower seller with her basket's ladle, the crier with his ledger of
+    # notices, and old Merrit, who begs by the bell.
+    "lisbet": Look(
+        cloth=(150, 96, 120), hair=(170, 110, 60), build="slight", hair_style="long",
+        apron=(210, 200, 176), tool="ladle",
+    ),
+    "osric": Look(
+        cloth=(40, 70, 110), hair=(80, 56, 36), build="tall", hat="brim", hat_rgb=(50, 40, 34),
+        cloak=(110, 34, 34), tool="ledger", idle="count", beard="short",
+    ),
+    "merrit": Look(
+        cloth=(98, 90, 76), hair=(130, 124, 116), skin=(176, 142, 112), build="stooped", hair_style="long",
+        beard="long", beard_tip=(170, 166, 160), cloak=(74, 66, 56), hood=True, tool="staff",
+        trousers=(80, 72, 60), boots=(60, 50, 40),
+    ),
+    # The neighbourhood: the weaver, the cooper, the midwife, the old sailor, the baker, and out in
+    # the lane the fisherman's wife and the lamplighter.
+    "tilde": Look(
+        cloth=(160, 120, 70), hair=(90, 50, 30), build="average", hair_style="bun", apron=(200, 190, 160),
+        tool="rod", idle="count",
+    ),
+    "barnaby": Look(
+        cloth=(110, 84, 56), hair=(60, 44, 32), skin=(180, 140, 104), build="stout", hair_style="bald",
+        beard="short", apron=(96, 70, 44), sleeves="rolled", tool="hammer",
+    ),
+    "ottilie": Look(
+        cloth=(90, 110, 120), hair=(150, 140, 130), build="average", hair_style="bun", hat="coif",
+        hat_rgb=(220, 214, 200), apron=(220, 214, 200), tool="ladle", idle="stir",
+    ),
+    "hamund": Look(
+        cloth=(50, 70, 96), hair=(190, 186, 176), skin=(170, 126, 94), build="stout", hat="cap",
+        hat_rgb=(40, 50, 70), beard="long", beard_tip=(214, 210, 200), tool="tankard",
+        trousers=(64, 60, 56),
+    ),
+    "sefa": Look(
+        cloth=(200, 190, 170), hair=(110, 60, 30), skin=(160, 112, 80), build="stout", hair_style="short",
+        apron=(230, 224, 210), sleeves="rolled", hat="coif", hat_rgb=(236, 230, 218), tool="ladle",
+        idle="stir",
+    ),
+    "jorun": Look(
+        cloth=(80, 100, 90), hair=(70, 46, 30), build="slight", hair_style="long", cloak=(60, 74, 70),
+        tool="rod", idle="watch",
+    ),
+    "cobb": Look(
+        cloth=(70, 66, 60), hair=(150, 100, 60), build="tall", hat="brim", hat_rgb=(44, 40, 36),
+        tool="lantern", idle="watch", trousers=(56, 52, 48),
+    ),
     # Brother Marrow, the lay brother left in a cell of the Abandoned Prison: a grey, stained robe
     # gone to rags, bare feet, a shaven head and a long beard grown wild in the dark.
     "marrow": Look(

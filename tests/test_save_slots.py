@@ -99,7 +99,7 @@ def test_a_save_from_before_the_prison_was_renamed_loads_into_it(tmp_path):
         "loot:barrel:sunken_keep:3,4",
         "left:sunken_keep",
         "lever:crypt_winch",
-        "chest:harrowmere:3,3",
+        "chest:verdant_hollow:3,3",
     ]
     with open(s.path, "w", encoding="utf-8") as f:
         json.dump(data, f)
@@ -113,7 +113,7 @@ def test_a_save_from_before_the_prison_was_renamed_loads_into_it(tmp_path):
         "loot:barrel:abandoned_prison:3,4",
         "left:abandoned_prison",
         "lever:crypt_winch",
-        "chest:harrowmere:3,3",
+        "chest:verdant_hollow:3,3",
     }
     assert s.summary().map == "abandoned_prison"
 
@@ -143,7 +143,7 @@ def test_a_save_from_before_vesperholm_grew_its_crag_wakes_where_it_was_made(tmp
         "slain:vesperholm:21,4",
         "loot:slain:vesperholm:21,4",
         "hint:vesperholm:P",
-        "chest:harrowmere:3,3",
+        "chest:verdant_hollow:3,3",
     ]
     _old_save(s, "vesperholm", player, flags, 2)
     _map, loaded, got = s.load()
@@ -156,7 +156,7 @@ def test_a_save_from_before_vesperholm_grew_its_crag_wakes_where_it_was_made(tmp
         "slain:vesperholm:21,24",
         "loot:slain:vesperholm:21,24",
         "hint:vesperholm:P",
-        "chest:harrowmere:3,3",
+        "chest:verdant_hollow:3,3",
     }
 
 
@@ -168,11 +168,38 @@ def test_a_save_made_since_vesperholm_grew_or_elsewhere_stays_put(tmp_path):
     _map, loaded, got = s.load()
     assert (loaded.x, loaded.z) == (35.0, 183.0) and got == {"chest:vesperholm:40,23"}
     player.x, player.z = 10.0, 20.0
-    player.remnant = {"map": "harrowmere", "x": 4.0, "z": 6.0, "gold": 5}
-    _old_save(s, "harrowmere", player, ["chest:harrowmere:3,3"], 2)
+    player.remnant = {"map": "verdant_hollow", "x": 4.0, "z": 6.0, "gold": 5}
+    _old_save(s, "verdant_hollow", player, ["chest:verdant_hollow:3,3"], 2)
     _map, loaded, got = s.load()
     assert (loaded.x, loaded.z) == (10.0, 20.0) and loaded.remnant["z"] == 6.0
-    assert got == {"chest:harrowmere:3,3"}
+    assert got == {"chest:verdant_hollow:3,3"}
+
+
+def test_a_save_from_the_old_town_wakes_at_the_new_towns_start(tmp_path):
+    """Harrowmere was laid out anew, square inside its walls: an older save made there wakes at the cemetery
+    gate, the new town's start, its remnant there too; the town's tile flags go (none of its tiles mean
+    what they did), and every other flag stays."""
+    from ashen_vault.save.save_system import _start_spot
+
+    s = SaveSystem(str(tmp_path / "save.json"))
+    player = Player()
+    player.x, player.z = 49.0, 49.0  # by the old Bell Square's shrine
+    player.remnant = {"map": "harrowmere", "x": 82.0, "z": 60.0, "gold": 25}
+    flags = [
+        "quest",
+        "maeve_gift",
+        "loot:barrel:harrowmere:44,10",
+        "hint:harrowmere:Z",
+        "chest:vesperholm:40,23",
+    ]
+    _old_save(s, "harrowmere", player, flags, 4)
+    map_name, loaded, got = s.load()
+    start = _start_spot("harrowmere")
+    assert map_name == "harrowmere"
+    assert (loaded.x, loaded.z) == (start["x"], start["z"])
+    assert loaded.remnant["map"] == "harrowmere" and loaded.remnant["gold"] == 25
+    assert (loaded.remnant["x"], loaded.remnant["z"]) == (start["x"], start["z"])
+    assert got == {"quest", "maeve_gift", "chest:vesperholm:40,23"}
 
 
 def test_a_save_from_herrans_old_castle_wakes_at_the_new_ones_start_without_its_lost_things(tmp_path):

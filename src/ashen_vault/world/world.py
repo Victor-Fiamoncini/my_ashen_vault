@@ -176,12 +176,10 @@ PLUNGE_MESSAGES = {
 # Going into deep water, and dying in it, keyed by the water's `drown=` (the legend's; "sea" if unset).
 DROWN_MESSAGES = {
     "sea": "You plunge into the sea, and it will not let you go.",
-    "canal": "You slip into the canal, and its black water drags you down.",
     "mire": "You step into a sink-hole, and the mire sucks you under.",
 }
 DROWN_DEATHS = {
     "sea": "The sea drags you under.",
-    "canal": "The canal closes over you.",
     "mire": "The mire closes over you.",
 }
 HAZARD_MESSAGES = {
