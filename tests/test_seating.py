@@ -18,7 +18,7 @@ MAPS = (
     "vesperholm",
     "old_harrowmere",
     "herrans_castle",
-    "herran_spire",
+    "herran_laboratory",
 )  # the town has no chests
 
 

@@ -36,7 +36,7 @@ def test_mesh_builder_batches_shipped_maps():
         "old_harrowmere",
         "vigil_chapel",
         "herrans_castle",
-        "herran_spire",
+        "herran_laboratory",
     ):
         m = MapLoader.load_file(map_path(name))
         b = MeshBuilder(m, lights=MeshBuilder.lights_for(m)).build()
@@ -274,9 +274,9 @@ def test_dead_glowing_enemies_go_dark():
         "veiled_knight",
         "moon_duchess",
         "glassmite",
-        "grafted_drake",
-        "drake_magus",
-        "vat_spawn",
+        "grafted_footman",
+        "castellan_warden",
+        "amalgam",
         "herran",
         "harpy",
         "fen_lurk",
@@ -529,6 +529,8 @@ def test_bosses_have_boss_level_detail():
         "sodden_pall",
         "moon_duchess",
         "keystone",
+        "bulwark_sentinel",
+        "blade_sentinel",
         "herran",
     )
     for boss in bosses:
@@ -560,6 +562,10 @@ def test_bosses_have_boss_level_detail():
         "fen_lurk",
         "bilegut",
         "mire_tyrant",
+        "grafted_footman",
+        "castellan_warden",
+        "amalgam",
+        "handcrawler",
     )
     for foe in foes:
         assert _drawn(foe)[1] >= 30, foe
@@ -570,6 +576,8 @@ def test_phase_two_changes_how_each_boss_looks():
         *("ashen_warden", "butcher", "brand", "bellows", "sexton", "rat_matron", "sodden_pall"),
         "moon_duchess",
         "keystone",
+        "bulwark_sentinel",
+        "blade_sentinel",
         "herran",
     ):
         (calm, calm_n), (raging, raging_n) = _drawn(boss), _drawn(boss, phase2=True)
@@ -1204,7 +1212,7 @@ def test_every_map_texture_is_generated():
         "old_harrowmere",
         "vigil_chapel",
         "herrans_castle",
-        "herran_spire",
+        "herran_laboratory",
     ):
         m = MapLoader.load_file(ashen_vault.map_path(map_name))
         tiles = {m[tx, tz] for tz in range(m.depth) for tx in range(m.width)}
@@ -1612,7 +1620,7 @@ def test_every_boss_has_its_own_great_door_and_its_lamps_go_out_when_cleared():
         "harrow_sewers",
         "vesperholm",
         "old_harrowmere",
-        "herran_spire",
+        "herrans_castle",
     ):
         m = MapLoader.load_file(map_path(name))
         flags |= {s.props["boss"] for s in m.entities if s.kind == "door" and s.props.get("boss")}
@@ -2168,7 +2176,6 @@ def test_every_way_between_maps_is_built_in_detail():
     from ashen_vault.render import (
         cemetery_models,
         forge_models,
-        herran_models,
         models,
         moon_models,
         sewer_models,
@@ -2198,7 +2205,6 @@ def test_every_way_between_maps_is_built_in_detail():
         "chapel_door": lambda r: moon_models.chapel_door(r, 0.3),
         "argent_portal": lambda r: moon_models.argent_portal(r, 0.3),
         "argent_portal dormant": lambda r: moon_models.argent_portal(r, 0.3, lit=False),
-        "spire_door": lambda r: herran_models.spire_door(r, 0.3),
     }
     for name, fn in exits.items():
         assert len(parts(fn)) >= 25, name

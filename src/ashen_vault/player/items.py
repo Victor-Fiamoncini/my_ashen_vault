@@ -27,7 +27,7 @@ class Item:
     mass: float = 0.0  # kilograms it adds to your load when equipped (see player/burden.py)
     durability: int | None = None  # gear: overrides its maximum (see player/durability.py)
     light: float = 0.0  # weapons: metres of firelight it sheds while held (see world/darkness.py)
-    effect: str | None = None  # consumables: a lasting effect it starts (`Player.drink`): "graft", "sun_ward"
+    effect: str | None = None  # consumables: what using it does beyond healing and curing: "homeward"
 
 
 class Items:
@@ -102,20 +102,6 @@ class Items:
                 level=6,
                 two_handed=True,
                 desc="Taller than its bearer. Slow, and ruinous when it lands.",
-            ),
-            Item(
-                id="herran_bonesaw",
-                name="Herran's Bonesaw",
-                kind="weapon",
-                mass=3.5,
-                category="axe",
-                weight="medium",
-                price=0,
-                power=19,
-                reach=2.0,
-                speed=1.35,
-                level=8,
-                desc="A surgeon's saw with a hooked back and too many teeth. Herran used it on himself.",
             ),
             Item(
                 id="vesper_moonbrand",
@@ -381,6 +367,20 @@ class Items:
                 desc="The slaughterman's cleaver, broad as a shovel and never quite clean.",
             ),
             Item(
+                id="surgeons_cleaver",
+                name="Surgeon's Cleaver",
+                kind="weapon",
+                mass=4.0,
+                category="axe",
+                weight="medium",
+                price=0,
+                power=20,
+                reach=2.0,
+                speed=1.4,
+                level=10,
+                desc="Herran's own, from the laboratory under the peak. Its edge parts bone as easily as cloth.",
+            ),
+            Item(
                 id="bearded_axe",
                 name="Bearded Axe",
                 kind="weapon",
@@ -492,6 +492,17 @@ class Items:
                 desc="Plate blackened in the forge to keep the rust away. Heavy and sure.",
             ),
             Item(
+                id="sentinel_plate",
+                name="Sentinel Plate",
+                kind="armor",
+                mass=18.0,
+                slot="body",
+                price=0,
+                power=17,
+                level=12,
+                desc="Grey plate fitted to a man by Herran's armourers, after the stone sentinels of his keep.",
+            ),
+            Item(
                 id="leather_gloves",
                 name="Leather Gloves",
                 kind="armor",
@@ -523,6 +534,17 @@ class Items:
                 power=4,
                 level=7,
                 desc="Articulated iron fingers. Your fists become hammers.",
+            ),
+            Item(
+                id="sentinel_gauntlets",
+                name="Sentinel Gauntlets",
+                kind="armor",
+                mass=3.5,
+                slot="hands",
+                price=0,
+                power=5,
+                level=12,
+                desc="Heavy grey gauntlets from the Hall of Sentinels, their knuckles cut like stone.",
             ),
             Item(
                 id="red_tonic",
@@ -587,24 +609,6 @@ class Items:
                 price=120,
                 effect="homeward",
                 desc="A pinch of grey ash from beneath the Silent Bell. Cast on the wind, its embers carry you home to Harrowmere.",
-            ),
-            # Herran's: what he brewed in his laboratories, out of drakes and himself.
-            Item(
-                id="graft_draught",
-                name="Graft Draught",
-                kind="consumable",
-                price=0,
-                effect="graft",
-                desc="A cloudy draught that burns going down. For a while ST returns fast and blows cost less. It takes HP to take.",
-            ),
-            Item(
-                id="sun_tincture",
-                name="Sun Tincture",
-                kind="consumable",
-                price=0,
-                cures=("poison", "toxic", "bleed", "rot", "frost", "corrosion"),
-                effect="sun_ward",
-                desc="Liquid gold in a phial. Burns every ailment out of the blood, and keeps them out for a minute.",
             ),
             Item(
                 id="menders_kit",
@@ -764,13 +768,6 @@ class Items:
                 kind="key",
                 price=0,
                 desc="A disc of pale silver with a crescent at its heart. It shines like the moon, and as coldly.",
-            ),
-            Item(
-                id="spire_key",
-                name="Spire Key",
-                kind="key",
-                price=0,
-                desc="A key of gilt brass with a tiny orrery for a bow. It opens the door at the foot of Herran's Spire.",
             ),
             Item(
                 id="auric_sigil",

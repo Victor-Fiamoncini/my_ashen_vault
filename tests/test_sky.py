@@ -17,7 +17,7 @@ def _meta(name):
 
 
 def test_each_outdoor_map_names_a_sky_and_the_keep_has_none():
-    maps = ("harrowmere", "verdant_hollow", "cinderhold", "vesperholm", "herrans_castle", "herran_spire")
+    maps = ("harrowmere", "verdant_hollow", "cinderhold", "vesperholm", "herrans_castle")
     names = {name: sky.get(_meta(name)) for name in maps}
     assert names == {
         "harrowmere": sky.SKIES["dusk"],
@@ -25,17 +25,15 @@ def test_each_outdoor_map_names_a_sky_and_the_keep_has_none():
         "cinderhold": sky.SKIES["ember"],
         "vesperholm": sky.SKIES["moonlit"],
         "herrans_castle": sky.SKIES["storm"],
-        "herran_spire": sky.SKIES["storm"],
     }
     assert sky.get(_meta("abandoned_prison")) is None
     assert sky.get({"sky": "no_such_sky"}) is None
 
 
-def test_the_storm_is_dark_over_the_clouds():
+def test_the_storm_over_the_hollow_peak_is_dark():
     s = sky.SKIES["storm"]
-    assert max(s.zenith) < 0.1 and s.cloud_sea is not None
-    assert max(s.cloud_sea) < 0.45
-    # The storm sky now has a far moon in the north and faint stars
+    assert max(s.zenith) < 0.1 and s.cap
+    # A far moon in the north and faint stars, half-lost in the storm.
     assert s.far_moon is not None
     assert s.far_moon.at == sky.MOON_AT
     assert s.far_moon.size == sky.MOON_SIZE

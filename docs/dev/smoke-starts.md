@@ -167,15 +167,19 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
 - Herran's Castle (`herrans_castle`) is through the portal behind Lyra's altar in Vesperholm, there
   only once the Argent Sigil is taken: `--map vesperholm --at=21,3,-90 --flags duchess_dead,argent_sigil_taken
   --script "wait:0.3 interact"` (go through; without the flag nothing stands there). Areas: `--map
-  herrans_castle` (the Cloud Quay, its `start`), `--at=16,37,90 --script "look_down:0.3"` (the sea of cloud
-  from the quay's edge), `--at=4,3,0` (along the Ring), `--at=7,10,90` (the Laboratory and its false wall;
-  `attack` it, then `--at=7,14,180` is the secret lab), `--at=7,23,0` (the Clock Tower's top at 10 m),
-  `--at=24,25,180` (the Aviary), `--at=25,7,0` (the Belvedere and its cage lift), `--at=18,12,0` (the
-  High Walk), `--at=17,8,180` (the spire passage and its door).
-  The spire: `--map herran_spire` (its base hall), `--at=7,5,0` (the study and its shrine),
-  `--at=8,17,-135` (the hatchery). Boss:
-  `--map herran_spire --at=10,5,0 --level 12 --equip right=claymore,body=brigandine --smoke 720 --script
-  "interact wait:0.8 forward:1.6 wait:5"` (through his door; Herran rising in his observatory). The
+  herrans_castle` (the Portal Ledge, its `start`), `--at=19,72,-90 --script "look_up:0.25"` (the Long
+  Causeway, the towers and the Hollow Peak beyond), `--at=19,44,-90` (the sealed gate, its two eyes
+  burning; `--flags` can't name the Wardens' `slain:` flags, whose tile holds a comma, so
+  `tests/test_herrans_castle_world.py` checks it opening),
+  `--at=13,40,180` (a Castellan Warden on its tower's deck), `--at=19,33,-90` (the Outer Ward),
+  `--at=19,23,-90 --script "look_up:0.2"` (the Great Hall), `--at=10,8,90` (the library's false wall;
+  `attack` it), `--at=20,5,0` (Herran's study and its shrine). The laboratory: `--map herran_laboratory`
+  (the vat cellar), `--at=5,8,180` (the dissecting rooms), `--at=27,8,0` (the menagerie),
+  `--at=16,16,90` (the ossuary of hands), `--at=16,24,90` (Herran's own laboratory). Fights: `--map
+  herrans_castle --at=10,18,180 --level 12 --equip right=claymore,body=brigandine --smoke 480 --script
+  "interact wait:0.8 forward:1.6 wait:3"` (the Hall of Sentinels: the two stone giants tear free),
+  `--map herrans_castle --at=23,5,0 --level 12 --equip right=claymore,body=brigandine --smoke 520 --script
+  "interact wait:0.8 forward:1.4 wait:5.5"` (through his door; Herran rising in his anatomy theatre). The
   ending: `--map harrowmere --at=25,26,-90 --flags bell_unsealed --script "wait:0.5 interact"` (the bell
   refuses without the five sigils in hand).
 - The story begins in `ashen_cemetery` (the title's New Game, `Game.start_story`: bare hands and no
@@ -187,7 +191,7 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   and picks the first empty slot in the chooser (with a throwaway save that doesn't exist yet).
 - Boss doors: `--map abandoned_prison --at=15,11,-90` faces the Warden's great door, `--at=28,10,-116` the
   Butcher's, `--map verdant_hollow --at=15,11,-90` the Loom Mother's, `--map cinder_keep --at=22,5,180`
-  the gargoyles', `--map ashen_cemetery --at=10,11,-90` the Sexton's, `--map vesperholm --at=21,31,-90` the Duchess's, `--map herran_spire --at=10,5,0` Herran's. The fog appears only
+  the gargoyles', `--map ashen_cemetery --at=10,11,-90` the Sexton's, `--map vesperholm --at=21,31,-90` the Duchess's, `--map herrans_castle --at=10,18,180` the sentinels', `--at=23,5,0` Herran's. The fog appears only
   after dying in a sealed arena (or with its `fog:` flag set); `tests/test_arena.py` drives the flow.
 - `--level` only sets the level (for equipment requirements); HP and stats stay at level 1, so judge boss
   balance headless (`World` with a `JungleGame`) rather than from a smoke fight.

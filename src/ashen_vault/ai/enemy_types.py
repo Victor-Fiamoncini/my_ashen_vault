@@ -57,6 +57,8 @@ class EnemyType:
     brood: str | None = None
     # A boss without a brood that flies into a rage at half HP instead: the message shown.
     rage: str | None = None
+    # What a perched pair calls out as they tear free together (`World.rouse_twin`).
+    wakes: str | None = None
     # Enemy type a boss sloughs off with its "shed" move (killed with it when it falls).
     sheds: str | None = None
     # Moves a boss only adds to its mix once it reaches its second phase.
@@ -538,6 +540,7 @@ class EnemyTypes:
                 fireproof=True,
                 perch=True,
                 twin="bellows",
+                wakes="The iron gargoyles tear free of their perches!",
                 shot_rgb=(255, 150, 60),
             ),
             EnemyType(
@@ -570,6 +573,7 @@ class EnemyTypes:
                 fireproof=True,
                 perch=True,
                 twin="brand",
+                wakes="The iron gargoyles tear free of their perches!",
                 shot_rgb=(255, 170, 70),
             ),
             # --- the Cemetery of Ashes -----------------------------------------------------------
@@ -1225,81 +1229,172 @@ class EnemyTypes:
                 # For all her poise, a heavy or great weapon rocks her every time, once per two seconds.
                 heavy_stagger=2.0,
             ),
-            # Herran's Castle: what Herran made of his drakes, and what crawled out of his vats.
+            # Herran's Castle, on the Hollow Peak behind Vesperholm: his household, grafted to his
+            # design, the wardens bound to his gate and the stone sentinels of his keep; and under it,
+            # in the rock, what he made in his laboratory.
             EnemyType(
-                id="grafted_drake",
+                id="grafted_footman",
                 material="flesh",
-                name="Grafted Drake",
-                # A lean wyvern with four human arms sewn down its flanks. It stoops on you from the
-                # sky like a harpy, then lands and rakes you with every arm at once.
-                hp=80,
-                speed=2.9,
+                name="Grafted Footman",
+                # One of Herran's household guard, too tall in his gothic tabard: a second pair of arms
+                # sewn on below the first, one holding up a lantern while the halberd swings.
+                hp=95,
+                speed=1.7,
                 damage=21,
-                reach=2.0,
-                sight=18,
-                windup=0.75,
-                recover=1.0,
-                exp=120,
-                gold=range(24, 46),
-                radius=0.6,
-                height=1.1,
-                tall=1.9,
-                fly=4.5,
-                moves=("dive", "rend"),
-                tempo=0.6,
-                inflicts=(("bleed", 24),),
-            ),
-            EnemyType(
-                id="drake_magus",
-                material="flesh",
-                name="Drake Magus",
-                # A drake grown upright on Herran's tables, gowned and hooded, six arms like the old
-                # god's. It throws bolts of gold from its orrery-staff and brands the floor under you.
-                hp=70,
-                speed=1.4,
-                damage=21,
-                reach=11.0,
-                sight=16,
+                reach=2.6,
+                sight=14,
                 windup=0.8,
-                recover=1.5,
-                exp=115,
-                gold=range(26, 48),
-                radius=0.45,
-                height=1.9,
-                tall=2.4,
-                ranged=True,
-                bite_reach=1.8,
-                mouth=1.9,
-                shot_rgb=(255, 200, 96),
-                moves=("sunbrand",),
+                recover=1.1,
+                exp=110,
+                gold=range(20, 41),
+                radius=0.5,
+                height=2.3,
+                tall=2.5,
+                poise=14,
+                moves=("combo",),
+                inflicts=(("bleed", 22),),
             ),
             EnemyType(
-                id="vat_spawn",
-                material="flesh",
-                name="Vat Spawn",
-                # One of Herran's failures, crawled out of its vat: a heap of flesh grown arms at
-                # random. Slow, but it smashes hard and its fluid is toxic.
-                hp=110,
-                speed=1.1,
-                damage=23,
-                reach=1.9,
-                sight=9,
+                id="castellan_warden",
+                material="iron",
+                name="Castellan Warden",
+                # Bound to the barbican's great gate, one atop each tower beside it: a giant in black
+                # plate with a great maul, an eye of the gate's fire burning in its helm. Slay both and
+                # the gate opens. It never rises again.
+                hp=260,
+                speed=1.2,
+                damage=26,
+                reach=2.8,
+                sight=12,
+                windup=1.1,
+                recover=1.4,
+                exp=400,
+                gold=range(80, 121),
+                radius=0.75,
+                height=2.6,
+                tall=2.8,
+                poise=24,
+                once=True,
+                turn_rate=2.0,
+                back_mult=1.3,
+                moves=("slam", "sweep"),
+            ),
+            EnemyType(
+                id="bulwark_sentinel",
+                material="stone",
+                name="Bulwark Sentinel",
+                # One of the two stone giants that keep the way to Herran's keep, cut from the peak
+                # itself: a tower shield as tall as a door and a short heavy blade. It bears down
+                # behind the shield and brings it crashing down; alone, it stamps the hall to shake you.
+                hp=420,
+                speed=1.3,
+                damage=25,
+                reach=3.4,
+                sight=16,
                 windup=1.0,
                 recover=1.3,
-                exp=95,
-                gold=range(12, 28),
-                radius=0.65,
-                height=0.9,
-                tall=1.7,
-                poise=12,
-                inflicts=(("toxic", 28),),
+                exp=700,
+                gold=range(150, 151),
+                radius=1.3,
+                height=4.6,
+                tall=5.0,
+                boss=True,
+                dead_flag="sentinels_dead",
+                epitaph="The stone sentinels crumble where they stand. The way to the keep lies open.",
+                poise=30,
+                turn_rate=1.4,
+                tempo=1.15,
+                moves=("sweep", "slam"),
+                phase_moves=("quake",),
+                rage="The Bulwark Sentinel grinds round to face you, cracks of fire running through it!",
+                brittle=True,
+                perch=True,
+                twin="blade_sentinel",
+                wakes="The stone sentinels grind free of their plinths!",
+            ),
+            EnemyType(
+                id="blade_sentinel",
+                material="stone",
+                name="Blade Sentinel",
+                # The other stone giant: a long blade held in both hands, quicker than the Bulwark,
+                # in long sweeping cuts and lunges across the hall.
+                hp=360,
+                speed=1.6,
+                damage=24,
+                reach=4.0,
+                sight=16,
+                windup=0.9,
+                recover=1.2,
+                exp=700,
+                gold=range(150, 151),
+                radius=1.2,
+                height=4.6,
+                tall=5.0,
+                boss=True,
+                dead_flag="sentinels_dead",
+                epitaph="The stone sentinels crumble where they stand. The way to the keep lies open.",
+                poise=26,
+                turn_rate=1.6,
+                tempo=1.1,
+                moves=("sweep", "combo", "pounce"),
+                phase_moves=("slam",),
+                rage="The Blade Sentinel raises its blade over its fallen twin, cracks of fire running through it!",
+                brittle=True,
+                perch=True,
+                twin="bulwark_sentinel",
+                wakes="The stone sentinels grind free of their plinths!",
+            ),
+            EnemyType(
+                id="amalgam",
+                material="flesh",
+                name="Amalgam",
+                # Herran's work in the laboratory under the peak: a hound, an ape and a man sewn into
+                # one heaving body crowded with arms. Slow, but its fists come down hard, and the
+                # fluid it weeps is toxic.
+                hp=150,
+                speed=1.0,
+                damage=24,
+                reach=2.2,
+                sight=10,
+                windup=1.0,
+                recover=1.4,
+                exp=140,
+                gold=range(20, 41),
+                radius=0.8,
+                height=1.6,
+                tall=2.0,
+                poise=18,
+                moves=("slam", "sweep"),
+                inflicts=(("toxic", 30),),
+            ),
+            EnemyType(
+                id="handcrawler",
+                material="flesh",
+                name="Handcrawler",
+                # What was left over: a knot of human arms walking on its hands like a spider, a face
+                # sewn into its middle. They lie still among the tables until you come close.
+                hp=48,
+                speed=2.9,
+                damage=21,
+                reach=1.4,
+                sight=8,
+                windup=0.45,
+                recover=0.8,
+                exp=60,
+                gold=range(8, 19),
+                radius=0.45,
+                height=0.7,
+                tall=0.9,
+                lurk=True,
+                moves=("pounce",),
+                inflicts=(("bleed", 26),),
             ),
             EnemyType(
                 id="herran",
                 material="flesh",
                 name="Herran, the Many-Handed",
-                # Lyra's son, in the observatory at the top of his spire: he grafted the arms of drakes
-                # and men onto his own back until there were eight, and went mad. He rakes and plunges
+                # Lyra's son, in the anatomy theatre at the top of his keep: he grafted the arms of
+                # beasts and men onto his own back until there were eight, and went mad. He rakes and plunges
                 # them, lobs his elixirs; at half HP his braces burst, and he clamps you in all of his
                 # arms at once and turns the sun's light out of his crown of eyes on you.
                 hp=640,

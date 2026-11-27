@@ -75,10 +75,6 @@ MOVES = {
     "fault_line": (1.1, 8.0, 0.9),
     # The Bilegut's own: it rears and spews three gobbets of the fen's violet bile in a narrow fan.
     "spew": (0.8, 5.5, 0.6),
-    # Herran's Castle's: a Grafted Drake, landed, rakes with all four of its grafted arms at once; a
-    # Drake Magus brands the floor under you with a ring of gold glyphs that bursts into sunlight.
-    "rend": (0.7, 5.0, 0.55),
-    "sunbrand": (0.9, 7.0, 0.9),
     # Herran's own: his eight arms raked round him low; a line of grafted hands bursting up out of the
     # floor toward you; a flask of his elixir lobbed to burst where you stand; and (second phase) the
     # embrace, every arm clamping you at once, and his crown of eyes turning the sun's light on you.
@@ -135,7 +131,6 @@ LUNGES = {
 FROST_LANCE_RANGE = (3.0, 12.0)
 BLINK_RANGE = (3.0, 10.0)  # it steps through the moonlight only while you keep your distance
 MOONBEAM_RANGE = (2.0, 12.0)
-SUNBRAND_RANGE = (3.0, 13.0)
 GRASP_SWEEP_REACH = 4.2  # metres Herran's arms rake round him
 HAND_RAIN_RANGE = (3.0, 14.0)
 ELIXIR_RANGE = (4.0, 15.0)
@@ -259,8 +254,6 @@ MOVE_SPECS = {
     "pillar_crush": MoveSpec(hi=PILLAR_RANGE, lands="pillar_crush"),
     "fault_line": MoveSpec(lo=FAULT_RANGE[0], hi=FAULT_RANGE[1], sight=True, lands="fault_line"),
     "spew": MoveSpec(lo=SPEW_RANGE[0], hi=SPEW_RANGE[1], sight=True, fires=True),
-    "rend": MoveSpec(hi=0.3, hi_reach=True, close=True, allow="grounded", lands="rend"),
-    "sunbrand": MoveSpec(lo=SUNBRAND_RANGE[0], hi=SUNBRAND_RANGE[1], sight=True, lands="sunbrand"),
     "grasp_sweep": MoveSpec(hi=GRASP_SWEEP_REACH * 0.8, close=True, lands="grasp_sweep"),
     "hand_rain": MoveSpec(lo=HAND_RAIN_RANGE[0], hi=HAND_RAIN_RANGE[1], sight=True, lands="hand_rain"),
     "elixir_hurl": MoveSpec(lo=ELIXIR_RANGE[0], hi=ELIXIR_RANGE[1], sight=True, lands="elixir_hurl"),
@@ -296,8 +289,6 @@ ATTACK_TIMES = {
     "core_nova": 0.7,
     "pillar_crush": 0.6,
     "fault_line": 0.6,
-    "rend": 0.45,
-    "sunbrand": 0.5,
     "grasp_sweep": 0.5,
     "hand_rain": 0.6,
     "elixir_hurl": 0.45,

@@ -82,13 +82,12 @@ def all_textures():
         "dirt_path": dirt_path(),
         "dirt_hill": dirt_hill(),
         "rotten_wood": rotten_wood(),
-        "herran_brick": herran_brick(),
-        "herran_ashlar": herran_ashlar(),
-        "herran_slate": herran_slate(),
-        "encaustic_tile": encaustic_tile(),
-        "iron_grating": iron_grating(),
-        "lab_tile": lab_tile(),
-        "cloud_sea": cloud_sea(),
+        "castle_stone": castle_stone(),
+        "castle_slate": castle_slate(),
+        "castle_flags": castle_flags(),
+        "mountain_rock": mountain_rock(),
+        "lab_stone": lab_stone(),
+        "lab_floor": lab_floor(),
         "white": solid(255, 255, 255),
     }
 
@@ -1374,147 +1373,122 @@ def cavern_rock():
     return build(px)
 
 
-# --- Herran's Castle, above the clouds -------------------------------------------------------------
+# --- Herran's Castle, on the Hollow Peak -------------------------------------------------------------
 
 
-def herran_brick():
-    """The castle's walls: hard red brick in Flemish bond, every fifth course a band of dun brick, the
-    mortar black with soot, soot streaking the faces, the headers a shade darker than the stretchers."""
+def castle_stone():
+    """Herran's walls: big dressed blocks of dark grey stone in deep courses, sooted black by the storm's
+    smoke and rain, streaked where the wet runs down them, and pale lichen in the joints."""
 
     def px(x, y):
-        row = y // 6
-        dy = y % 6
-        shift = 0 if row % 2 == 0 else 6
-        xx = (x + shift) % SIZE
-        unit = xx // 12  # Flemish bond: a stretcher (8) then a header (4) along each course
-        within = xx % 12
-        header = within >= 8
-        if dy == 5 or within in (0, 8):
-            return tint([24, 22, 22], 0.8 + noise(x, y, 4, 701) * 0.3)  # the sooted mortar
-        n = fbm(x, y, 702)
-        if row % 5 == 2:  # the cream band
-            return tint([112, 100, 82], 0.7 + hash_(unit, row, 703) * 0.14 + (n - 0.5) * 0.2)
-        base = [84, 32, 26] if header else [102, 40, 30]
-        soot = 0.55 + 0.45 * noise(x, y, 12, 705)  # soot streaks darken the face
-        k = (0.66 + hash_(unit * 2 + header, row, 704) * 0.2 + (n - 0.5) * 0.24) * soot
-        return tint(base, k + (0.05 if dy == 0 else 0))
+        row = y // 21
+        xx = (x + (0 if row % 2 == 0 else 19)) % SIZE
+        col = 0 if xx < 34 else 1
+        left = 0 if col == 0 else 34
+        if y % 21 == 0 or xx == left:
+            if noise(x, y, 4, 1401) > 0.7:
+                return tint([110, 118, 100], 0.7)  # lichen in the joint
+            return tint([22, 22, 26], 0.9)  # the joint
+        n = fbm(x, y, 1402)
+        k = 0.62 + hash_(col, row, 1403) * 0.2 + (n - 0.5) * 0.3
+        if y % 21 == 20 or xx == left + 1:
+            k *= 0.75  # the block's shadowed lower lip
+        c = tint([86, 86, 94], k)
+        if abs(math.sin(x * 0.9 + noise(x, 0, 8, 1404) * 5)) < 0.08 and noise(x, y, 16, 1405) > 0.45:
+            c = tint(c, 0.7)  # a streak of soot where the wet runs down
+        return c
 
     return build(px)
 
 
-def herran_ashlar():
-    """Dressed limestone gone grey with soot and rain: the quoins, cornices and the paving, in square-cut
-    blocks with fine dark joints."""
+def castle_slate():
+    """The castle's roofs and its towers' caps: narrow slates of near-black blue in staggered courses,
+    wet with rain, a faint grey sheen on each slate's lower edge."""
+
+    def px(x, y):
+        row = y // 6
+        ox = (x + (3 if row % 2 else 0)) % 6
+        dy = y % 6
+        n = fbm(x, y, 1411)
+        if ox == 0:
+            return tint([16, 16, 22], 0.9 + n * 0.2)  # the joint between two slates
+        if dy == 5:
+            return tint([104, 108, 124], 0.8 + n * 0.2)  # the wet lower edge, catching the lightning
+        k = 0.6 + hash_((x + (3 if row % 2 else 0)) // 6, row, 1412) * 0.26 + (n - 0.5) * 0.24
+        return tint([50, 52, 64], k + (dy / 6) * 0.1)
+
+    return build(px)
+
+
+def castle_flags():
+    """The castle's floors: long flags of dark stone laid in a running bond, worn hollow down their
+    middles, black water standing in the gaps."""
 
     def px(x, y):
         row = y // 16
         xx = (x + (0 if row % 2 == 0 else 16)) % SIZE
-        col = xx // 32
         if y % 16 == 0 or xx % 32 == 0:
-            return tint([44, 42, 40], 0.8 + noise(x, y, 4, 711) * 0.16)
-        n = fbm(x, y, 712)
-        k = 0.8 + hash_(col, row, 713) * 0.14 + (n - 0.5) * 0.22
-        c = tint([86, 82, 76], k)
-        if hash_(x, y, 714) > 0.985:
-            c = tint(c, 0.82)  # a pit in the stone
+            return tint([16, 16, 20], 0.9 + noise(x, y, 4, 1421) * 0.2)  # the gap
+        n = fbm(x, y, 1422)
+        k = 0.66 + hash_(xx // 32, row, 1423) * 0.2 + (n - 0.5) * 0.28
+        worn = 1 - abs((xx % 32) - 16) / 16
+        return tint([92, 90, 96], k + worn * 0.06)
+
+    return build(px)
+
+
+def mountain_rock():
+    """The Hollow Peak itself: black rock broken into big angular slabs, slick with rain, a little
+    lighter on each slab's upper edge where the weather has worn it, black in the cracks between."""
+
+    def px(x, y):
+        n = fbm(x, y, 1431)
+        jx = rround(noise(x, y, 16, 1432) * 10)
+        sx, sy = (x + jx) // 21, (y + jx // 2) // 13
+        ex, ey = (x + jx) % 21, (y + jx // 2) % 13
+        if ex == 0 or ey == 0:
+            return tint([18, 18, 22], 0.9 + n * 0.2)  # a crack between slabs
+        k = 0.5 + hash_(sx, sy, 1433) * 0.22 + (n - 0.5) * 0.22
+        if ey == 1:
+            k += 0.12  # the worn upper edge
+        return tint([82, 82, 90], k)
+
+    return build(px)
+
+
+def lab_stone():
+    """The laboratory's walls, hewn out of the peak's black rock and faced with mortared rubble, sweating
+    damp, stained green and rust-brown where the vats have leaked."""
+
+    def px(x, y):
+        n = fbm(x, y, 1441)
+        cell = (x // 11 + (y // 9) * 7) % 5
+        if x % 11 == 0 or y % 9 == 0:
+            return tint([20, 22, 18], 0.9 + n * 0.2)  # the mortar
+        c = tint([70, 72, 66], 0.6 + hash_(x // 11, y // 9, 1442) * 0.25 + (n - 0.5) * 0.25 + cell * 0.01)
+        stain = noise(x, y, 16, 1443)
+        if stain > 0.72:
+            c = [rround(c[0] * 0.7), rround(c[1] * 1.15), rround(c[2] * 0.7)]  # a green leak
+        elif stain < 0.22:
+            c = [rround(c[0] * 1.15), rround(c[1] * 0.85), rround(c[2] * 0.7)]  # rust from the iron
         return c
 
     return build(px)
 
 
-def herran_slate():
-    """Fish-scale slates of the mansard roofs and conical caps: rounded tails in staggered rows, blue-black
-    with a violet cast, each tail's rim catching the lamplight."""
+def lab_floor():
+    """The laboratory's floor: square tiles of glazed white gone grey and cracked, a drain-gutter grid
+    between them, and old dark stains no scrubbing took out."""
 
     def px(x, y):
-        row = y // 8
-        ox = (x + (4 if row % 2 else 0)) % 8
-        dy = y % 8
-        n = fbm(x, y, 721)
-        # A rounded tail: the bottom of each scale is an arc.
-        edge = 7 - rround(((ox - 3.5) / 4.0) ** 2 * 3)
-        if dy > edge:
-            return tint([10, 10, 16], 0.9 + n * 0.2)  # shadow under the tail
-        if dy == edge:
-            return tint([70, 74, 100], 0.85 + n * 0.2)  # the lamplit rim
-        k = 0.72 + hash_((x + (4 if row % 2 else 0)) // 8, row, 722) * 0.22 + (n - 0.5) * 0.24
-        return tint([34, 36, 52], k + (dy / 8) * 0.1)
-
-    return build(px)
-
-
-def encaustic_tile():
-    """The halls' floors: encaustic tiles in a four-tile pattern, dull terracotta and blue-black, a
-    dun eight-pointed star in each, worn darker where the drakes' claws have dragged."""
-
-    def px(x, y):
-        tx, ty = x % 16, y % 16
-        if tx == 0 or ty == 0:
-            return tint([16, 14, 14], 0.9 + noise(x, y, 4, 731) * 0.1)  # the grout
-        cx, cy = abs(tx - 8), abs(ty - 8)
-        n = fbm(x, y, 732)
-        quarter = ((x // 16) + (y // 16)) % 2
-        if cx + cy <= 4 or ((cx <= 1 or cy <= 1) and cx + cy <= 6):  # the star
-            c = [128, 108, 70]
-        elif max(cx, cy) >= 6:  # the border
-            c = [22, 24, 34] if quarter else [86, 28, 26]
-        else:
-            c = [86, 28, 26] if quarter else [22, 24, 34]
-        k = 0.7 + (n - 0.5) * 0.26
-        if noise(x, y, 8, 733) > 0.72:
-            k *= 0.7  # worn
-        return tint(c, k)
-
-    return build(px)
-
-
-def iron_grating():
-    """The skybridges' decks: cast-iron plates in a lattice of diamonds, painted a dark green long since
-    flaked to rust, the gaps between them black."""
-
-    def px(x, y):
-        a, b = (x + y) % 8, (x - y) % 8
-        n = fbm(x, y, 741)
-        if a < 2 or b < 2:
-            c = [52, 66, 56] if noise(x, y, 8, 742) > 0.42 else [112, 64, 40]  # paint, or rust
-            k = 0.82 + (n - 0.5) * 0.3 + (0.12 if a == 0 or b == 0 else 0)
-            return tint(c, k)
-        return tint([14, 14, 16], 0.9 + n * 0.2)  # the gap
-
-    return build(px)
-
-
-def lab_tile():
-    """The laboratories' walls and floors: grimy grey-green glazed tiles in a square grid, crazed, with
-    black grout, stained green and brown where something has spilt and dried."""
-
-    def px(x, y):
-        if x % 8 == 0 or y % 8 == 0:
-            return tint([22, 24, 20], 0.85 + noise(x, y, 4, 751) * 0.15)
-        n = fbm(x, y, 752)
-        c = tint([104, 112, 96], 0.7 + hash_(x // 8, y // 8, 753) * 0.1 + (n - 0.5) * 0.12)
-        stain = noise(x, y, 16, 754)
-        if stain > 0.66:
-            c = tint([50, 74, 40] if noise(x, y, 32, 755) > 0.5 else [70, 52, 34], 0.9 + stain * 0.1)
-        if hash_(x, y, 756) > 0.97:
-            c = tint(c, 0.8)  # the crazing
+        if x % 16 == 0 or y % 16 == 0:
+            return tint([30, 30, 28], 0.9 + noise(x, y, 4, 1451) * 0.2)  # the grouting
+        n = fbm(x, y, 1452)
+        c = tint([150, 150, 140], 0.62 + hash_(x // 16, y // 16, 1453) * 0.18 + (n - 0.5) * 0.24)
+        if noise(x, y, 8, 1454) > 0.8:
+            c = [rround(c[0] * 0.55), rround(c[1] * 0.3), rround(c[2] * 0.3)]  # an old stain
+        if hash_(x, y, 1455) > 0.985:
+            c = tint(c, 0.5)  # a crack
         return c
-
-    return build(px)
-
-
-def cloud_sea():
-    """The sea of cloud far below the castle: soft billows lit gold from the low sun on one side and
-    shadowed blue-grey on the other."""
-
-    def px(x, y):
-        n = fbm(x, y, 761)
-        m = noise(x, y, 16, 762)
-        k = 0.6 + n * 0.5
-        lit = [236, 224, 206]
-        shade = [150, 156, 180]
-        mix = min(max((m - 0.3) * 1.6, 0.0), 1.0)
-        c = [rround(s + (l - s) * mix) for s, l in zip(shade, lit, strict=True)]
-        return tint(c, min(k, 1.0))
 
     return build(px)

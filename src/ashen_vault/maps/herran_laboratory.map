@@ -1,0 +1,92 @@
+[meta]
+name = Herran's Laboratory
+ambient = 0.22 0.26 0.22
+fog = 0.03 0.05 0.03
+fog_range = 6 34
+torch = 5 0.85 0.95 0.7
+start = 16 2 90
+default = v
+entity_floor = auto
+edge_top = 8
+edge_tex = lab_stone
+
+// Herran's laboratory, hewn out of the Hollow Peak under his castle, behind the false wall in his
+// library: where he sewed beasts and men into many-armed things before he did it to himself. The
+// hidden stair comes down into the vat cellar, where his failures hang in green fluid and the
+// Handcrawlers lie still among the vats; west of it the dissecting rooms, east the menagerie's pens and
+// their cages, and south down the ossuary of hands, his own laboratory, deepest of all, with three
+// pages of his journal, his cleaver, and a stair that climbs back up to the Great Hall (`oneway`).
+// It is dark: no tile here keeps less than 0.6 of it.
+
+[legend]
+// The peak's rock, faced in rubble.
+# = wall tex=lab_stone top=8 cap=lab_stone
+// The foot of the hidden stair.
+f = floor tex=lab_floor h=0 ceil=4 ceil_tex=lab_stone side=lab_stone dark=0.65
+// The vat cellar.
+v = floor tex=lab_floor h=0 ceil=5 ceil_tex=lab_stone side=lab_stone dark=0.6
+// The dissecting rooms, the menagerie's pens and the ossuary of hands, darker still.
+r = floor tex=lab_floor h=0 ceil=4.5 ceil_tex=lab_stone side=lab_stone dark=0.7
+n = floor tex=lab_floor h=0 ceil=5 ceil_tex=lab_stone side=lab_stone dark=0.7
+o = floor tex=lab_floor h=0 ceil=4 ceil_tex=lab_stone side=lab_stone dark=0.75
+// Herran's own laboratory.
+p = floor tex=lab_floor h=0 ceil=5.5 ceil_tex=lab_stone side=lab_stone dark=0.6
+
+[grid]
+################################
+################A###############
+##############fffff#############
+##############ffLff#############
+##rrrrrrr#vvvvvvvvvvvvv#nnnnnnn#
+##rTrrTrr#vvVvvVvvVvvVv#nGnnnGn#
+##rrrrrrr#vvvvvvvvvvvvv#nnnnnnn#
+##rrrrrrrrvvvvvvvvvvCvv#nnnnnnn#
+##rrrMrrrrvvvCvvvvvvvvvnnGnnnGn#
+##rrrrrrr#vvvvvvCvvvvvvnnnnMnnn#
+##rTrrrrr#vvVvvVvvVvvVv#nnnnnnn#
+##rrrrCrr#vvvvvvvvvvvvv#nGnnnGn#
+##rrrrrrr######ooo######nnnnnnn#
+##NrrrrrB######RoR######nnnNnnD#
+###############ooo##############
+###############RoR##############
+###############oLo##############
+###############RoR##############
+###############ooo##############
+###############ooo##############
+########ppppppppppppppppp#######
+########ppEppEpppppEppEpp#######
+########ppppppppppCpppppp#######
+########ppppppppVpppppppp#######
+########ppIpppppppppppJpp#######
+########ppppTpppppppTpppp#######
+########pppCppppLpppppppp#######
+########ppppppMppppppCppp#######
+########pFppppppppppppppH#######
+################Z###############
+################################
+################################
+
+[entities]
+// The hidden stair back up to the castle's library, and the stair at the far end that climbs to the
+// Great Hall: once taken, it leaves you there.
+A = exit map=herrans_castle at=10,10,-90 label=Climb_back_up model=sunken_stair yaw=90 on=f
+Z = exit map=herrans_castle at=21,22,-90 label=Climb_the_hidden_stair model=sunken_stair yaw=-90 oneway on=p
+// Lights: what little there is, green from the vats and cold from a few lamps.
+L = light y=3 color=0.5,0.8,0.5 radius=6
+N = light y=3 color=0.7,0.7,0.6 radius=5
+V = vat
+T = dissecting_table
+G = specimen_cage
+R = hand_rack
+E = lab_bench
+// What he made.
+C = handcrawler
+M = amalgam
+// Finds: a salve in the dissecting rooms, a draught in the pens, and on his own bench his cleaver.
+B = chest item=clotting_salve count=3 gold=160 model=coffer
+D = chest item=ember_draught count=2 gold=180 model=banded
+F = chest item=hearth_ash count=1 gold=200 model=coffer
+H = chest item=surgeons_cleaver gold=250 model=banded
+// Three pages of his journal.
+I = hint text="A hound, an ape, a man. They took to each other|better than I dared hope. They took to me less."
+J = hint text="The hands I did not need I hung in the hall.|I could not bear to burn them. They were Mother's gift."

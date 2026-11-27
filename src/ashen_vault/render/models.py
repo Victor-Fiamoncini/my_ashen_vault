@@ -132,9 +132,12 @@ def enemy(r, e):
         "sunken_sexton": sunken_models.sunken_sexton,
         "keystone": sunken_models.keystone,
         "harpy": sunken_models.harpy,
-        "grafted_drake": herran_models.grafted_drake,
-        "drake_magus": herran_models.drake_magus,
-        "vat_spawn": herran_models.vat_spawn,
+        "grafted_footman": herran_models.grafted_footman,
+        "castellan_warden": herran_models.castellan_warden,
+        "bulwark_sentinel": herran_models.bulwark_sentinel,
+        "blade_sentinel": herran_models.blade_sentinel,
+        "amalgam": herran_models.amalgam,
+        "handcrawler": herran_models.handcrawler,
         "herran": herran_models.herran,
     }.get(e.type.id)
     if e.type.id == "bone_walker" and getattr(e, "look", None) == "grave":
@@ -2324,16 +2327,20 @@ DOOR_FRAME = (70, 64, 66)  # the dark dressed stone round an iron door
 DOOR_FRAME_LIGHT = (88, 80, 80)
 
 
-def door(r, open_t, axis, tex="door_wood", style="wood", frame=4.0):
+def door(r, open_t, axis, tex="door_wood", style="wood", frame=4.0, eyes=0, t=0.0):
     """Door slab spanning the tile; axis 'x' means it blocks movement along X. `style` "iron" is the
     Cinderhold's: a riveted iron leaf banded and studded, with a ring on each face, sliding up into a
     frame of dark stone (jambs and a lintel `frame` metres up, the passage's ceiling) that stays put;
-    "stone" is Old Harrowmere's carved slab (`sunken_models.stone_door`), sinking into the floor."""
+    "stone" is Old Harrowmere's carved slab (`sunken_models.stone_door`), sinking into the floor;
+    "sealed" is Herran's barbican gate (`herran_models.sealed_gate`), `eyes` of fire still burning on it."""
     lift = open_t * 2.4
     ry = 0 if axis == "x" else math.pi / 2
     with r.at(0, 0, 0, ry=ry):
         if style == "stone":
             sunken_models.stone_door(r, open_t, frame)
+            return
+        if style == "sealed":
+            herran_models.sealed_gate(r, open_t, frame, eyes, t)
             return
         if style != "iron":
             r.part("cube", 0, 1.25 + lift, 0, 0.18, 2.5, 2.0, WHITE, tex=tex)
@@ -2426,10 +2433,15 @@ BOSS_DOORS = {
     "keystone_dead": DoorStyle(
         (120, 104, 82), "wood_plank", (78, 66, 56), (138, 120, 96), "sunken_brick", "core"
     ),
-    # Herran: dark oak panelled and studded in brass, in an arch of pale ashlar; gilt gas lanterns on
-    # the jambs burning sun-gold.
+    # The Hall of Sentinels: oak gone grey as the stone, in an arch of the castle's dark ashlar;
+    # candles guttering on the jambs.
+    "sentinels_dead": DoorStyle(
+        (92, 90, 88), "wood_plank", (40, 40, 46), (96, 96, 104), "castle_stone", "candle"
+    ),
+    # Herran: black oak cast with small iron hands, in the same dark stone; a sun of gold in a carved
+    # hand over it.
     "herran_dead": DoorStyle(
-        (70, 48, 34), "wood_plank", (196, 150, 70), (214, 202, 178), "herran_ashlar", "sun"
+        (52, 38, 30), "wood_plank", (40, 40, 46), (96, 96, 104), "castle_stone", "candle"
     ),
 }
 DEFAULT_DOOR = "boss_dead"
@@ -2521,9 +2533,6 @@ def _door_lamp(r, style, face, t, lit):
         r.part("lozenge", 0, 0.2, 0, 0.08, 0.14, 0.08, sunken_models.CORE_HEART, glow=True, ry=t)
         flicker = 1 + 0.12 * math.sin(t * 7 + face)
         r.part("cone", 0, 0.28, 0, 0.13, 0.2 * flicker, 0.13, teal, glow=True)
-    elif style.lamp == "sun":  # a gilt gas lantern, its flame burning sun-gold
-        r.part("cube", 0, 0.17, 0, 0.12, 0.16, 0.12, (255, 214, 120), glow=True)
-        r.part("pyramid", 0, 0.3, 0, 0.16, 0.08, 0.16, style.iron)
     elif style.lamp == "candle":  # a stub of tallow, guttering
         r.part("cyl", 0, 0.14, 0, 0.06, 0.14, 0.06, (214, 204, 180))
         _flame(r, 0, 0.24, 0, 0.05, t)
@@ -2701,6 +2710,7 @@ DOOR_ARCHES = {
     "matron_dead": _matron_arch,
     "duchess_dead": _duchess_arch,
     "keystone_dead": lambda *a: sunken_models._keystone_arch(*a),
+    "sentinels_dead": lambda *a: herran_models.sentinel_arch(*a),
     "herran_dead": lambda *a: herran_models.herran_arch(*a),
 }
 DOOR_LEAVES = {
@@ -2713,6 +2723,7 @@ DOOR_LEAVES = {
     "matron_dead": _matron_leaf,
     "duchess_dead": _duchess_leaf,
     "keystone_dead": lambda *a: sunken_models._keystone_leaf(*a),
+    "sentinels_dead": lambda *a: herran_models.sentinel_leaf(*a),
     "herran_dead": lambda *a: herran_models.herran_leaf(*a),
 }
 # The bosses whose door can be a great gate (`door ... great=<side>`):
@@ -4572,12 +4583,14 @@ SLEEVES = {
     "lamellar_vest": ((112, 44, 36), (170, 146, 80)),
     "brigandine": ((118, 36, 34), (168, 168, 176)),
     "blackened_plate": ((48, 48, 54), (138, 138, 148)),
+    "sentinel_plate": ((92, 92, 100), (60, 60, 68)),
 }
 GLOVES = {
     None: (ASHEN, (118, 118, 128)),
     "leather_gloves": ((86, 58, 38), (58, 38, 26)),
     "chain_mitts": ((128, 130, 138), (78, 80, 88)),
     "iron_gauntlets": ((108, 108, 118), (168, 168, 178)),
+    "sentinel_gauntlets": ((96, 96, 104), (64, 64, 72)),
 }
 FOREARM = 0.15  # the forearm's girth where it leaves the view; it tapers to TAPER of that at the wrist
 REACH = 1.3  # how far past the elbow (wrist 0, elbow 1) the forearm is drawn, out of the view
@@ -5373,23 +5386,6 @@ def item(r, id_, t):
         r.part("sphere", 0, -0.12, 0, 0.22, 0.22, 0.22, (255, 150, 60), glow=True)  # the ember in it
         r.part("cyl", 0, 0.16, 0, 0.14, 0.2, 0.14, (180, 56, 30))  # its neck
         r.part("cyl", 0, 0.3, 0, 0.16, 0.1, 0.16, (120, 90, 60))  # the cork
-    elif id_ == "graft_draught":
-        r.part("cyl", 0, -0.16, 0, 0.4, 0.46, 0.4, (150, 170, 140))  # a squat apothecary's bottle
-        r.part("cyl", 0, -0.18, 0, 0.3, 0.36, 0.3, (190, 205, 170), glow=True)  # the cloudy draught
-        r.part("sphere", 0.05, -0.12, 0.04, 0.12, 0.12, 0.12, (210, 160, 150))  # something floating in it
-        r.part("cyl", 0, 0.14, 0, 0.14, 0.16, 0.14, (150, 170, 140))  # its neck
-        r.part("cyl", 0, 0.26, 0, 0.18, 0.08, 0.18, (196, 150, 70))  # a brass cap
-        r.part("cube", 0.2, -0.12, 0, 0.02, 0.2, 0.18, (226, 214, 180))  # its label
-    elif id_ == "sun_tincture":
-        r.part("lozenge", 0, -0.1, 0, 0.3, 0.6, 0.3, (220, 170, 70))  # a cut-glass phial
-        r.part("lozenge", 0, -0.1, 0, 0.2, 0.44, 0.2, (255, 214, 110), glow=True)  # liquid gold
-        r.part("cyl", 0, 0.24, 0, 0.1, 0.12, 0.1, (196, 150, 70))  # its neck
-        r.part("sphere", 0, 0.34, 0, 0.12, 0.12, 0.12, (196, 150, 70))  # a gilt stopper
-        for i in range(4):  # a little sun of rays round the stopper
-            a = i * math.pi / 2
-            r.part(
-                "cube", math.cos(a) * 0.1, 0.34, math.sin(a) * 0.1, 0.06, 0.02, 0.02, (255, 206, 96), ry=-a
-            )
     elif id_ == "fenbane":
         r.part("cyl", 0, -0.14, 0, 0.3, 0.5, 0.3, (110, 55, 150))  # the slim vial
         r.part("cyl", 0, -0.14, 0, 0.18, 0.36, 0.18, (190, 130, 235), glow=True)  # the tincture
@@ -5539,7 +5535,7 @@ def garment(r, id_):
     r.part("cube", 0, 0.34, 0, 0.32, 0.14, 0.86, col)
     r.part("cube", 0, 0.0, -0.42, 0.22, 0.6, 0.18, col, rx=-0.15)
     r.part("cube", 0, 0.0, 0.42, 0.22, 0.6, 0.18, col, rx=0.15)
-    if id_ == "blackened_plate":  # pauldrons and a ridged breastplate
+    if id_ in ("blackened_plate", "sentinel_plate"):  # pauldrons and a ridged breastplate
         for dz in (-0.42, 0.42):
             r.part("sphere", 0, 0.32, dz, 0.3, 0.22, 0.3, col)
         r.part("cube", 0.16, 0.05, 0, 0.04, 0.6, 0.06, trim)
@@ -5576,7 +5572,6 @@ KEY_STYLES = {
     "warden_key": ((150, 150, 160), 1.5),  # long, heavy steel, an ember in a crowned trefoil
     "briar_key": ((92, 104, 58), 1.7),  # verdigris bronze branches, thorned, with a leaf for a bit
     "forge_key": ((58, 52, 52), 1.8),  # blackened iron, an anvil for a bow, its bit still glowing
-    "spire_key": ((196, 150, 70), 1.6),  # gilt brass, a little orrery turning in its bow
 }
 
 
@@ -5690,37 +5685,11 @@ def _forge_key(r, metal, t):
     r.part("cube", 0, -0.14, 0.12, 0.06, 0.04, 0.06, (255, 170, 70), glow=True)
 
 
-def _spire_key(r, metal, t):
-    """The spire key: gilt brass, its bow a ring in which a little orrery turns, a sun-gold bead at its
-    heart and three planets on wires about it; a fluted shank and a bit cut in steps like a stair."""
-    dark = _dim(metal, 0.62)
-    sun = (255, 206, 96)
-    for i in range(10):  # the ring of the bow
-        a = i * math.tau / 10
-        r.part("cube", 0, 0.4 + math.sin(a) * 0.16, math.cos(a) * 0.16, 0.06, 0.06, 0.1, metal, rx=-a)
-    r.part("sphere", 0, 0.4, 0, 0.08, 0.08, 0.08, sun, glow=True)  # the sun at its heart
-    for k, (ra, size) in enumerate(((0.07, 0.03), (0.11, 0.035), (0.14, 0.025))):  # the planets
-        a = t * (1.6 - k * 0.4) + k * 2.1
-        r.part("cube", 0, 0.4 + math.sin(a) * ra / 2, math.cos(a) * ra / 2, 0.01, 0.01, ra, dark, rx=-a)
-        r.part(
-            "sphere", 0, 0.4 + math.sin(a) * ra, math.cos(a) * ra, size, size, size, _bright(metal, 1.2, 20)
-        )
-    _key_collar(r, 0.2, metal, 0.11)
-    r.part("cyl", 0, -0.04, 0, 0.07, 0.4, 0.07, metal)  # the shank
-    for i in range(4):  # its flutes
-        a = i * math.pi / 2
-        r.part("cube", math.cos(a) * 0.035, -0.04, math.sin(a) * 0.035, 0.015, 0.36, 0.015, dark)
-    r.part("cyl", 0, -0.25, 0, 0.09, 0.03, 0.09, dark)  # the tip's collar
-    for i, (y, depth) in enumerate(((-0.2, 0.18), (-0.13, 0.13), (-0.06, 0.08))):  # the bit, stepped
-        r.part("cube", 0, y, depth / 2 + 0.02, 0.05, 0.06, depth, metal if i % 2 == 0 else _dim(metal, 0.85))
-
-
 KEY_SHAPES = {
     "cell_key": _cell_key,
     "warden_key": _warden_key,
     "briar_key": _briar_key,
     "forge_key": _forge_key,
-    "spire_key": _spire_key,
 }
 
 

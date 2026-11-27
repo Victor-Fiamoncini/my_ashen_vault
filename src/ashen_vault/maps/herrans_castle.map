@@ -1,171 +1,229 @@
 [meta]
 name = Herran's Castle
-ambient = 0.42 0.4 0.48
-fog = 0.12 0.12 0.16
-fog_range = 10 60
-model_range = 40
-indoor_range = 18
+ambient = 0.36 0.36 0.44
+fog = 0.1 0.1 0.13
+fog_range = 16 220
+model_range = 60
+indoor_range = 26
 sky = storm
 torch = 6 1.0 0.72 0.45
-start = 16 38 -90
-default = _
+start = 19 81 -90
+default = w
 entity_floor = auto
 roofs = true
-edge_top = -40
-edge_tex = herran_ashlar
+edge_top = 24
+edge_tex = mountain_rock
 
-// Herran's Castle, high over a sea of cloud under a stormy night: the seat of Herran, a son of Lyra the
-// Embracer, who kept the fifth seal, the Auric Sigil, the one the king never held. His sister Ilvane
-// bent hers to the moon; he bent his to his own flesh. He wanted his mother's many hands, and grafted
-// arms onto his drakes, and then onto himself. You come through the portal in Lyra's Chapel in
-// Vesperholm onto the Cloud Quay, where the shrine stands, and through the gatehouse into the Ring: a
-// narrow passage of sooted brick round a void that falls to the clouds, arches open on the drop. Four
-// towers stand on it: the Laboratory (NW), with the Spire Key, and behind a false wall in its back wall
-// the secret lab; the Clock Tower (SW), whose stair winds up inside its walls to 10 m and out onto the
-// High Walk over the void; the Aviary (SE), its drakes and its gallery; and the Belvedere (NE), where
-// the High Walk ends, its cage lift down to the Ring the short way home, and the door the Spire Key
-// opens on the passage into the foot of Herran's Spire.
+// Herran's Castle, built against the flank of the Hollow Peak, the black mountain behind Vesperholm,
+// in a storm that never breaks. Lyra's portal opens on a ledge of the mountain below it, the Portal
+// Ledge, where a shrine stands. North of it the Long Causeway runs out over the gorge, between statues
+// and the household's grafted footmen, to the platform before the barbican; its great gate is sealed,
+// bound to the two Castellan Wardens on the decks of the towers either side of it (`door seal=gate`,
+// `world/seals.py`: lifts climb both towers, and with both Wardens slain the gate opens for good).
+// Past it, the Outer Ward and its shrine under the many towers; the Great Hall, vast and dark, and its
+// east chapel; west of it, up a short stair, the Hall of Sentinels, where two stone giants of the peak
+// keep the way (`door boss=sentinels_dead`, a rear door onto the keep stair). The keep stair climbs to
+// Herran's library at 8 m, where a false wall behind the shelves hides the way down into the mountain,
+// to his laboratory (`herran_laboratory`); on to his study at 10 m and its shrine, and through his
+// door the anatomy theatre, open to the storm under its broken dome, where Herran, the Many-Handed
+// waits with the Auric Sigil.
 
 [legend]
-// The sea of cloud far below: a sheer fall that no one lives through.
-_ = floor tex=cloud_sea h=-40 side=herran_ashlar chasm fall=cloud void
-// The castle's sooted brick: the Ring's walls, the towers, the spire; the quay's balustrade, and the
-// low walls of the Ring's arches onto the void.
-# = wall tex=herran_brick top=9 cap=herran_slate
-% = wall tex=herran_brick top=16 cap=herran_slate
-& = wall tex=herran_brick top=24 cap=herran_slate
-b = wall tex=herran_ashlar top=1.1 cap=herran_ashlar
-c = wall tex=herran_brick top=2.1 cap=herran_slate
-// The Cloud Quay, and the gatehouse's passage half a metre up.
-, = floor tex=herran_ashlar h=0 side=herran_ashlar
-p = floor tex=encaustic_tile h=0.5 ceil=5 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.3
-// The Ring, a metre up, round the void.
-r = floor tex=encaustic_tile h=1 ceil=4.5 ceil_tex=herran_ashlar side=herran_brick roof=9 dark=0.3
-// The Laboratory, and the secret lab behind its false wall, darker still.
-l = floor tex=lab_tile h=1 ceil=4.5 ceil_tex=lab_tile side=lab_tile roof=16 dark=0.25
-s = floor tex=lab_tile h=1 ceil=4 ceil_tex=lab_tile side=lab_tile roof=16 dark=0.65
-// The Clock Tower's stair, half a metre a tile inside its walls, and its top room at 10 m.
-1 = floor tex=encaustic_tile h=1.5 ceil=6 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.3
-2 = floor tex=encaustic_tile h=2 ceil=6.5 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.3
-3 = floor tex=encaustic_tile h=2.5 ceil=7 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.3
-4 = floor tex=encaustic_tile h=3 ceil=7.5 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.3
-5 = floor tex=encaustic_tile h=3.5 ceil=8 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.3
-6 = floor tex=encaustic_tile h=4 ceil=8.5 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.3
-7 = floor tex=encaustic_tile h=4.5 ceil=9 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.3
-8 = floor tex=encaustic_tile h=5 ceil=9.5 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.3
-9 = floor tex=encaustic_tile h=5.5 ceil=10 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.3
-i = floor tex=encaustic_tile h=6 ceil=10.5 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.3
-α = floor tex=encaustic_tile h=6.5 ceil=11 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.3
-β = floor tex=encaustic_tile h=7 ceil=11.5 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.3
-γ = floor tex=encaustic_tile h=7.5 ceil=12 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.3
-δ = floor tex=encaustic_tile h=8 ceil=12.5 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.3
-ε = floor tex=encaustic_tile h=8.5 ceil=13 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.3
-ζ = floor tex=encaustic_tile h=9 ceil=13.5 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.3
-η = floor tex=encaustic_tile h=9.5 ceil=14 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.3
-j = floor tex=encaustic_tile h=10 ceil=14.5 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.25
-// The Aviary, open to the sky, and the stair up its wall to its gallery at 4 m.
-a = floor tex=herran_ashlar h=1 side=herran_brick
-t = floor tex=herran_ashlar h=1.5 side=herran_brick
-u = floor tex=herran_ashlar h=2 side=herran_brick
-v = floor tex=herran_ashlar h=2.5 side=herran_brick
-w = floor tex=herran_ashlar h=3 side=herran_brick
-x = floor tex=herran_ashlar h=3.5 side=herran_brick
-y = floor tex=herran_ashlar h=4 side=herran_brick
-// The Belvedere's top room at 10 m, and its lift's shaft, down to the Ring.
-m = floor tex=encaustic_tile h=10 ceil=14.5 ceil_tex=herran_ashlar side=herran_brick roof=16 dark=0.3
-e = floor tex=iron_grating h=1 ceil=14.5 ceil_tex=herran_ashlar side=herran_brick roof=16 chasm
-// The High Walk's iron deck over the void, 10 m up.
-h = floor tex=iron_grating h=10 side=herran_ashlar
-// The passage into the foot of the Spire.
-q = floor tex=encaustic_tile h=10 ceil=15 ceil_tex=herran_ashlar side=herran_brick roof=24 dark=0.3
+// The gorge: a sheer drop into the dark that no one lives through.
+_ = floor tex=mountain_rock h=-40 side=mountain_rock chasm fall=gorge
+// The mountain's rock, round the ledge.
+m = wall tex=mountain_rock top=24 cap=mountain_rock
+// The Portal Ledge.
+l = floor tex=mountain_rock h=0 side=mountain_rock
+// The causeway, the platform at its head and their low parapets.
+c = floor tex=castle_flags h=0 side=castle_stone
+p = wall tex=castle_stone top=1.2 cap=castle_stone
+// The castle's walls, and the keep's, taller.
+# = wall tex=castle_stone top=14 cap=castle_slate
+% = wall tex=castle_stone top=22 cap=castle_slate
+// The barbican: a tower's room, its lift's shaft, its deck at 8 m inside its crenels; the gate passage.
+t = floor tex=castle_flags h=0 ceil=6 ceil_tex=castle_stone side=castle_stone roof=14 dark=0.4
+q = floor tex=castle_flags h=0 ceil=12.5 ceil_tex=castle_stone side=castle_stone roof=14 chasm
+d = floor tex=castle_flags h=8 side=castle_stone
+k = wall tex=castle_stone top=9.2 cap=castle_stone
+g = floor tex=castle_flags h=0 ceil=5 ceil_tex=castle_stone side=castle_stone roof=14 dark=0.35
+// The Outer Ward, open to the storm.
+w = floor tex=castle_flags h=0 side=castle_stone
+// The Great Hall's arch from the ward, the hall, and its east chapel.
+a = floor tex=castle_flags h=0 ceil=6 ceil_tex=castle_stone side=castle_stone roof=14 dark=0.35
+h = floor tex=castle_flags h=0 ceil=12 ceil_tex=castle_stone side=castle_stone roof=14 dark=0.45
+u = floor tex=castle_flags h=0 ceil=6 ceil_tex=castle_stone side=castle_stone roof=14 dark=0.5
+// The short stair up to the Hall of Sentinels, the floor under its doors, and the hall.
+1 = floor tex=castle_flags h=0.5 ceil=5 ceil_tex=castle_stone side=castle_stone roof=14 dark=0.4
+2 = floor tex=castle_flags h=1 ceil=5.5 ceil_tex=castle_stone side=castle_stone roof=14 dark=0.4
+3 = floor tex=castle_flags h=1.5 ceil=6 ceil_tex=castle_stone side=castle_stone roof=14 dark=0.4
+v = floor tex=castle_flags h=2 ceil=6 ceil_tex=castle_stone side=castle_stone roof=14 dark=0.4
+s = floor tex=castle_flags h=2 ceil=13 ceil_tex=castle_stone side=castle_stone roof=14 dark=0.4
+// The keep stair, half a metre a tile, each step under its own vault.
+α = floor tex=castle_flags h=2.5 ceil=7 ceil_tex=castle_stone side=castle_stone roof=22 dark=0.5
+β = floor tex=castle_flags h=3 ceil=7.5 ceil_tex=castle_stone side=castle_stone roof=22 dark=0.5
+γ = floor tex=castle_flags h=3.5 ceil=8 ceil_tex=castle_stone side=castle_stone roof=22 dark=0.5
+δ = floor tex=castle_flags h=4 ceil=8.5 ceil_tex=castle_stone side=castle_stone roof=22 dark=0.5
+ε = floor tex=castle_flags h=4.5 ceil=9 ceil_tex=castle_stone side=castle_stone roof=22 dark=0.5
+ζ = floor tex=castle_flags h=5 ceil=9.5 ceil_tex=castle_stone side=castle_stone roof=22 dark=0.5
+η = floor tex=castle_flags h=5.5 ceil=10 ceil_tex=castle_stone side=castle_stone roof=22 dark=0.5
+θ = floor tex=castle_flags h=6 ceil=10.5 ceil_tex=castle_stone side=castle_stone roof=22 dark=0.5
+ι = floor tex=castle_flags h=6.5 ceil=11 ceil_tex=castle_stone side=castle_stone roof=22 dark=0.5
+κ = floor tex=castle_flags h=7 ceil=11.5 ceil_tex=castle_stone side=castle_stone roof=22 dark=0.5
+λ = floor tex=castle_flags h=7.5 ceil=12 ceil_tex=castle_stone side=castle_stone roof=22 dark=0.5
+// The library, 8 m up, and the hidden way down behind its false wall, darker still.
+b = floor tex=castle_flags h=8 ceil=13 ceil_tex=castle_stone side=castle_stone roof=22 dark=0.4
+x = floor tex=lab_floor h=8 ceil=11 ceil_tex=lab_stone side=lab_stone roof=22 dark=0.7
+// The stair on to the study, the study at 10 m, and the floor under Herran's door.
+ν = floor tex=castle_flags h=8.5 ceil=12.5 ceil_tex=castle_stone side=castle_stone roof=22 dark=0.45
+ξ = floor tex=castle_flags h=9 ceil=13 ceil_tex=castle_stone side=castle_stone roof=22 dark=0.45
+ο = floor tex=castle_flags h=9.5 ceil=13.5 ceil_tex=castle_stone side=castle_stone roof=22 dark=0.45
+y = floor tex=castle_flags h=10 ceil=14.5 ceil_tex=castle_stone side=castle_stone roof=22 dark=0.3
+z = floor tex=castle_flags h=10 ceil=14 ceil_tex=castle_stone side=castle_stone roof=22 dark=0.3
+// The anatomy theatre, open to the storm, ringed by its parapet (wall, never chasm: an arena's flood
+// would leak into a chasm).
+o = floor tex=castle_flags h=10 side=castle_stone
+e = wall tex=castle_stone top=11.2 cap=castle_stone
 
 [grid]
-________________________________
-________________________________
-__############################__
-__#rrrrrrrÇrrrrrrrrrrrÇrrrrrr#__
-__#r%%%%%%%T&&&&&&&&%%%%%%%%r#__
-__#r%lSlPlK%&X&&&&&&%mmmmmmVr#__
-__#Ç%llllll%&&&&&&&&%mÃmmmm%r#__
-__#r%llRlll%&&&&&&&&%mmmÄmmLr#__
-__#rlllllÆl%&&&&JqqqHmmmmmm%r#__
-__#r%lÀlQll%&&&&&&&&%Mmmmmm%r#__
-__#r%OllllO%________%mmmmmM%r#__
-__#r%%%W%%%%________%%%m%%%%r#__
-__#r%DssO%______hhhhÅhhh___#r#__
-__#r%ssÁs%______h__________#r#__
-__#r%RsÆS%______h__________cr#__
-__#r%ssss%______h__________#r#__
-__#Ç%EQsF%______Å__________#Ç#__
-__#r%%%%%%______h__________#r#__
-__#r#___________h__________cr#__
-__#r#___________h__________#r#__
-__#rc___________h__________#r#__
-__#r#__hhhhhhhhhh__________#r#__
-__#rU%%h%%%%________%%%%%%%%r#__
-__#r%%jjηζε%________%yyyyyG%r#__
-__#rr1%j%%δ%________%xaaaaa%r#__
-__#r%2%jj%γ%________%waaaaz%r#__
-__#r%3%ÂÄ%β%________%vaaaÄaar#__
-__#Ç%4%%%%α%________%uaaÅaa%Ç#__
-__#r%56789i%________%taaaaa%r#__
-__#r%%%%%%%%#c##c##c%%%%%%%Yr#__
-__#rrrrrrrÇrrrrrrrrrrrÇrrrrrr#__
-__##########%%##p##%%#########__
-____________%T##p##T%___________
-________bbbb%%##p##%%bbbb_______
-________bM,,,,,,,,,,,,,Mb_______
-________b,,B,,,,,,,,,,,,b_______
-________b,,,,,,,,,,,,,,,________
-________b,,,,,,,,,,,,,,,________
-________b,,,,M,,,,,,,,,,b_______
-________bbbbbbbbAbbbbbbbb_______
-________________________________
-________________________________
+À%%%%%%%Á%%%%%%%Â%%M%Ã%%eeeeeeeeeeeeee#Ä
+%%%%%%%%%%%%%%%%%%%%%%%%%ooooooooooooe##
+%%%%%%%ËbËbËbËb%%%yyyyyK%ooooooooooooe##
+%%%%ικλbbbbbbbb%%%yyByyy%ooooooooooooe##
+%%%%Ò%%bbbbbbbb%%%yyyyyy%ooooooooooooe##
+%%%%η%%bbbbbbbbνξοyyyyyyZoooooYooooooe##
+%%%%ζ%%bIbbbbbb%%%yJyyyy%ooooooHoooooe##
+%%%%ε%%bbbbbbKb%%%yyyyÍy%ooooooooooooe##
+%%%%δ%%bbbbbbbÌ%%%yyyyyy%ooooooooooooe##
+%%%%Ñ%%%%%X%%%%%%%%%%%%%%ooooooooooooe##
+%%%%β%%%%%x%%%%%%%%%%%%%%ooooooooooooe##
+%%%%α%%%%%E%%%%%%%%%%%%%eeeeeeeeeeeeee##
+####Q###################################
+#KssssssK#####hhhhhhhhhhhh##############
+#ssssssss#####hKhhhhhhhhKh#uuuuÊ########
+#ssUsssss#####hhPhhhhhhPhh#uuuuu########
+#ssssssss#####hhhhhGhhhhhh#uuuuu########
+#ssssssss#####hhhhhhhhhhhhuuuKuu####Î###
+#ssssssssOv321hhPhhNhhhPhh#uuuuu########
+#ssssssss#####hhhhhhhhhhhh#uuuuu########
+#ssssssss#####hhhhhhhGhhhh#uuuuu########
+#ssVsssss#####hhPhhhhhhPhh##############
+#ssssssss#####hKhhhhhhhhKh##############
+#KssssssK#####hhhhhhhhhhhh##############
+###################aa###################
+######wwwwwwwwwwwwwwwwwwwwwwwwwwww######
+######wwTwwwwwwwwwwwwwwwwwwwwwwTww######
+######wwwwwwwwwwwwwwwwwwwwwwwwwwww######
+######wwwwwwwwwwwwwwwwwwwwwGwwwwww######
+######wwwwwwGwwwwwwwwwwwwwwwwwwwww######
+##Å###wwwwwwwwwwwwwwwwwwwwwwwwwwww###Æ##
+######wwwwwwwwwwwwwwwwwwwwwwwwwwww######
+######wwwwwwwwFwwwwwwwwwwFwwwwwwww######
+######wwwwwwwwwwwwwwwwwwwwwwwwwwww######
+######wwwwwwwwwwwwwwwwwwwwwwwwwwww######
+######wwwwwwwwwwwwwwwBwwwwwwwwwwww######
+######Éwwwwwwwwwwwwwwwwwwwwwwwwwww######
+###################g####################
+________kkkkkkk####g####kkkkkkk_________
+________kÇddddk####g####kddddÈk_________
+________kddWddk####g####kddWddk_________
+________kdddddk####g####kdddddk_________
+________###L#######D#######L###_________
+________##ttt######g######ttt##_________
+________##tNt######g######tNt##_________
+________##ttt######g######ttt##_________
+________###t#######g#######t###_________
+_______pcccccccccccccccccccccccp________
+_______pcFcccGcccccccccccccccFcp________
+_______pcccccccccccccccccGcccccp________
+________pppppppppcccccppppppppp_________
+________________pcccccp_________________
+________________pcccccp_________________
+________________pcccccp_________________
+________________pTcccTp_________________
+________________pcccccp_________________
+________________pcccccp_________________
+________________pccGcc__________________
+________________pcccccp_________________
+________________pcccccp_________________
+________________pTcccTp_________________
+________________pcccccp_________________
+_________________cccccp_________________
+________________pcccccp_________________
+________________pcGcccp_________________
+________________pcccccp_________________
+________________pTcccTp_________________
+________________pcccccp_________________
+________________pcccccp_________________
+________________pcccGcp_________________
+________________pcccccp_________________
+________________pcccccp_________________
+________________pTcccTp_________________
+________________pcccccp_________________
+mmmmmmmmmmmmmmmmmcccccmmmmmmmmmmmmmmmmmm
+mmmmmmmmmmmmmmmmmcccccmmmmmmmmmmmmmmmmmm
+mmmmmmmmmmmmmmlllllllllllmmmmmmmmmmmmmmm
+mmmmmmmmmmmmmmllllllllNllmmmmmmmmmmmmmmm
+mmmmmmmmmmmmmmllBllllllllmmmmmmmmmmmmmmm
+mmmmmmmmmmmmmmlllllllllllmmmmmmmmmmmmmmm
+mmmmmmmmmmmmmmlllllllllllmmmmmmmmmmmmmmm
+mmmmmmmmmmmmmmlllllllllllmmmmmmmmmmmmmmm
+mmmmmmmmmmmmmmmmmmmAmmmmmmmmmmmmmmmmmmmm
+mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm
 
 [entities]
-// The portal back to Lyra's Chapel in Vesperholm, at the quay's south edge, facing the quay; and the
-// shrine.
-A = exit map=vesperholm at=21,3,90 label=Step_through_the_portal model=argent_portal yaw=-90
+// The portal back to Lyra's Chapel in Vesperholm, at the ledge's south edge, facing the ledge; the
+// shrines: on the ledge, in the Outer Ward past the gate, and in Herran's study.
+A = exit map=vesperholm at=21,3,90 label=Step_through_the_portal model=argent_portal yaw=-90 on=l
 B = save_statue
-// The false wall in the Laboratory's back wall, onto the secret lab.
-W = secret_wall
-// The Belvedere's lift down to the Ring: fastened until its first ride down.
-L = lift top=10 start=top locked model=cage on=e
-// Finds: the Spire Key in the Laboratory, the secret lab's three, the Aviary's gallery and its floor.
-K = chest item=spire_key gold=120 model=banded
-z = chest item=hearth_ash count=2 gold=90 model=coffer
-D = chest item=graft_draught count=2 gold=140 model=coffer
-E = chest item=herran_bonesaw gold=150 model=banded
-F = chest item=sun_tincture count=2 gold=160 model=coffer
-G = chest item=bitter_root count=2 gold=110
-// The door to the Spire's passage, and the way in at its end.
-H = door key=spire_key
-// The yaw turns the door model to face its passage.
-J = exit map=herran_spire at=5,25,-90 label=Climb_the_Spire model=spire_door yaw=0 boss=herran_dead
-// Gaslight on the quay and in the Belvedere, and the gas jets along the Ring.
-M = gas_lamp
-Ç = light y=2.6 color=1.0,0.72,0.45 radius=6
-// The laboratories' dressing: specimen jars, alembic benches, vats, the operating tables and shelves.
-O = specimen_jar
-P = alembic_bench
-Q = vat
-R = surgery_table
-S = potion_shelf
-// The skyline: the gatehouse's twin towers and the Laboratory's, octagonal; the Clock Tower; the
-// Belvedere's loggia; the round Aviary; the Spire's needle.
-T = herran_tower style=octagon height=12 on=%
-U = herran_tower style=clock height=16 on=%
-V = herran_tower style=belvedere height=12 on=%
-X = herran_tower style=needle height=34 on=&
-Y = herran_tower style=round height=14 on=%
-// Herran's creatures: Drake Magi in the towers, Grafted Drakes on the wing, Vat Spawn in the labs.
-Ä = drake_magus
-Å = grafted_drake
-Æ = vat_spawn
-// Herran's ledger in the Laboratory, and his journal: a page in the secret lab, and one atop each of
-// the Clock Tower and the Belvedere.
-À = hint text="A ledger of drakes, each with arms sewn on.|The last entries are in a shakier hand."
-Á = hint text="Mother holds out six hands. I have two.|The drakes take the grafts well. Next, mine."
-Â = hint text="Ilvane wed the moon on her seal to keep her city.|I shall wed the sun's to my own flesh."
-Ã = hint text="My sister and I were born of the Embracer.|Neither she nor Mother answers me now."
+// Light: a cold light on the ledge and in the barbican's rooms, high in the Great Hall and up the keep
+// stair; braziers before the barbican and in the ward; candelabra in the halls.
+N = light y=4 color=0.9,0.8,0.7 radius=9
+Ñ = light y=3 color=0.9,0.75,0.6 radius=7 on=γ
+Ò = light y=3 color=0.9,0.75,0.6 radius=7 on=θ
+F = brazier
+K = candelabra
+// Statues along the causeway and in the ward; the Great Hall's pillars.
+T = gate_statue
+P = pillar
+// Herran's household, and the barbican's sealed gate with the two Wardens bound to it, one on the
+// deck of each tower, up its lift.
+G = grafted_footman
+D = door seal=gate model=sealed on=g
+L = lift top=8 model=cage on=q
+W = castellan_warden seal=gate
+// The Hall of Sentinels: its great door from the Great Hall's stair, its rear door onto the keep
+// stair, and its two stone giants, each with a piece of its armour to drop.
+O = door boss=sentinels_dead on=v
+Q = door boss=sentinels_dead rear on=v
+U = bulwark_sentinel item=sentinel_plate
+V = blade_sentinel item=sentinel_gauntlets
+// The library's bookcases, the false wall behind them and the hidden stair down into the mountain.
+Ë = bookcase
+X = secret_wall on=x
+E = exit map=herran_laboratory at=16,2,90 label=Descend_into_the_dark model=sunken_stair yaw=-90 on=x
+// Herran's study: his dissecting table; his door, and Herran in his theatre under its broken dome.
+Í = dissecting_table
+Z = door boss=herran_dead on=z
+H = herran
+Y = anatomy_dome radius=11 height=1.2
+// Finds: Hearth Ash in the ward, Mender's Kits in the chapel, a draught and tonics on the towers'
+// decks and in the library.
+É = chest item=hearth_ash count=2 gold=90 model=coffer
+Ê = chest item=menders_kit count=2 gold=140 model=banded
+Ç = chest item=ember_draught count=2 gold=120 model=banded
+È = chest item=red_tonic count=3 gold=120 model=worn
+Ì = chest item=red_tonic count=3 gold=300 model=banded
+// Two pages of Herran's journal.
+I = hint text="The sentinels keep the stair, and the stair keeps me.|Below, in the rock, I keep what I have made."
+J = hint text="Mother has a hundred hands to hold us. I have eight.|It will be enough. It must be enough."
+// The skyline: the Hollow Peak beyond the keep, and the castle's towers.
+M = hollow_peak height=140 width=120 yaw=-90 on=%
+À = castle_tower style=keep height=40 width=8 on=%
+Á = castle_tower style=round height=30 on=%
+Â = castle_tower style=octagon height=28 on=%
+Ã = castle_tower style=belfry height=32 on=%
+Ä = castle_tower style=square height=30 on=#
+Å = castle_tower style=round height=26 on=#
+Æ = castle_tower style=square height=27 on=#
+Î = castle_tower style=octagon height=24 on=#

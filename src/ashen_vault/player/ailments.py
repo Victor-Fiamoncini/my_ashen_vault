@@ -46,7 +46,6 @@ KINDS = {
 ORDER = tuple(KINDS)  # the HUD stacks the bars in this order, from the vitals box up
 
 FULL = 100.0  # a meter that reaches this takes hold
-SUN_WARD_TIME = 60.0  # seconds a Sun Tincture keeps every ailment from building
 TICK = 1.0  # seconds between poison's bites
 POISON_TIME = 30.0
 POISON_SHARE = 0.02  # of max HP, each tick
@@ -109,7 +108,6 @@ class Ailments:
         self.rotted = False
         self.frost_t = 0.0  # seconds of Frostbite left
         self.flare = dict.fromkeys(FLARES, 0.0)  # seconds left of a one-off ailment's border (not saved)
-        self.ward_t = 0.0  # seconds left of a Sun Tincture's ward: nothing builds (not saved)
 
     @property
     def poisoned(self):
@@ -139,7 +137,7 @@ class Ailments:
     def build(self, kind, amount):
         """Adds `amount` to `kind`'s meter. Returns True when that fills it and the ailment takes hold;
         the meter then empties (poison, toxic, rot and frost start lingering)."""
-        if kind not in self.meters or amount <= 0 or self.active(kind) or self.ward_t > 0:
+        if kind not in self.meters or amount <= 0 or self.active(kind):
             return False
         self.meters[kind] = min(self.meters[kind] + amount, FULL)
         if self.meters[kind] < FULL:
@@ -166,7 +164,6 @@ class Ailments:
             if value > 0:
                 self.meters[kind] = max(value - KINDS[kind].decay * dt, 0.0)
         self.frost_t = max(self.frost_t - dt, 0.0)
-        self.ward_t = max(self.ward_t - dt, 0.0)
         for kind, value in self.flare.items():
             self.flare[kind] = max(value - dt, 0.0)
         lost = 0

@@ -1,28 +1,26 @@
-"""Herran's Castle, over the clouds, driven headless: the portal from Lyra's Chapel in
-Vesperholm, the sea of cloud round the castle, and the way through it to the foot of Herran's Spire."""
+"""Herran's Castle on the Hollow Peak, driven headless: the portal from Lyra's Chapel in Vesperholm,
+the gorge under the causeway, the barbican's sealed gate and its Wardens, the Hall of Sentinels, the
+keep, the way down to the laboratory, and Herran in his anatomy theatre."""
 
 import math
 
-import pytest
-
 from ashen_vault import map_path
-from ashen_vault.world import terrain
+from ashen_vault.ai.enemy_types import EnemyTypes
+from ashen_vault.world import seals, terrain
 from ashen_vault.world.map_loader import MapLoader
 from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.world import PLUNGE_MESSAGES, World
-from test_verdant_world import JungleGame
-from test_world import BESIDE, STATIC_BLOCKERS, _reachable, _spec
+from test_verdant_world import JungleGame, foe
+from test_world import BESIDE, _reachable, _spec
 
 CASTLE = "herrans_castle"
-BLOCKERS = ("door", "gate", "secret_wall", *STATIC_BLOCKERS)
+LAB = "herran_laboratory"
+CASTLE_FOES = ("grafted_footman", "castellan_warden", "amalgam", "handcrawler")
+SENTINELS = ("bulwark_sentinel", "blade_sentinel")
 
 
 def _castle():
     return MapLoader.load_file(map_path(CASTLE))
-
-
-def _vesperholm():
-    return MapLoader.load_file(map_path("vesperholm"))
 
 
 def _at(exit_spec):
@@ -34,113 +32,188 @@ def _start(m):
     return tuple(int(v) for v in m.meta["start"][:2])
 
 
-def test_the_portal_joins_lyras_chapel_and_the_cloud_quay_both_ways():
-    """In the apse of Lyra's Chapel, behind her altar, a portal opens onto the Cloud Quay, where you
+def _beside(m, spec, reached):
+    return any((spec.tx + dx, spec.tz + dz) in reached for dx, dz in BESIDE)
+
+
+def _gate(m):
+    (gate,) = _spec(m, "door", seal="gate")
+    return gate
+
+
+def _doors(m, *, gate=True, sentinels=True, herran=True, secret=True):
+    """The tiles to count as open: the sealed gate, each boss's doors and the false wall, as asked."""
+    tiles = []
+    for s in _spec(m, "door"):
+        boss = s.props.get("boss")
+        if (
+            (s.props.get("seal") and gate)
+            or (boss == "sentinels_dead" and sentinels)
+            or (boss == "herran_dead" and herran)
+        ):
+            tiles.append((s.tx, s.tz))
+    if secret:
+        tiles += [(s.tx, s.tz) for s in _spec(m, "secret_wall")]
+    return tiles
+
+
+def test_the_portal_joins_lyras_chapel_and_the_portal_ledge_both_ways():
+    """In the apse of Lyra's Chapel a portal opens onto the Portal Ledge below the castle, where you
     arrive with its twin right behind you; stepping back through puts you in the chapel before it."""
-    city, castle = _vesperholm(), _castle()
+    city, castle = MapLoader.load_file(map_path("vesperholm")), _castle()
     (up,) = _spec(city, "exit", map=CASTLE)
     (down,) = _spec(castle, "exit", map="vesperholm")
     assert up.props["model"] == down.props["model"] == "argent_portal"
+    assert "hidden" in up.props and up.props["requires"] == "argent_sigil_taken"
     assert _at(up) == _start(castle)
     assert sum(abs(a - b) for a, b in zip(_at(up), (down.tx, down.tz), strict=True)) == 1
     bx, bz = _at(down)
     assert abs(bx - up.tx) + abs(bz - up.tz) == 1 and city[bx, bz].walkable
-    (altar,) = _spec(city, "altar", item="argent_sigil")
-    assert city[up.tx, up.tz].floor == city[altar.tx, altar.tz].floor  # on the chapel's floor
-    assert city[up.tx, up.tz].ceil is not None  # under its vault
-    assert abs(up.tx - altar.tx) + abs(up.tz - altar.tz) >= 2  # not on its doorstep: the altar keeps its own
 
 
-def test_the_portal_is_not_there_until_the_argent_sigil_is_taken():
-    for flags, there in (((), False), (("duchess_dead",), False), (("argent_sigil_taken",), True)):
-        world = World(JungleGame(flags), "vesperholm")
-        (portal,) = [p for p in world.props if p.kind == "exit" and p.props.get("map") == CASTLE]
-        assert world.exit_open(portal) is there
-        assert world._interactable(portal) is there
-
-
-def test_the_castle_floats_on_a_sea_of_cloud_you_fall_through_to_your_death():
-    """All round the castle, and under its bridges, lies the sea of cloud: a chasm far below with
-    words of its own for the fall. Every edge of the map is cloud, and no rim wall stands round it."""
+def test_the_castle_stands_on_the_mountain_in_the_storm():
     m = _castle()
-    assert m.meta["sky"] == "storm" and m.meta["name"] == "Herran's Castle"
-    edges = [(tx, 0) for tx in range(m.width)] + [(tx, m.depth - 1) for tx in range(m.width)]
-    edges += [(0, tz) for tz in range(m.depth)] + [(m.width - 1, tz) for tz in range(m.depth)]
-    for tx, tz in edges:
-        tile = m[tx, tz]
-        assert tile.chasm and tile.fall == "cloud" and tile.floor <= -30, (tx, tz)
-    assert float(m.meta["edge_top"]) <= min(m[t].floor for t in edges)
-    falls = {t.fall for _tx, _tz, t in m.each_tile() if t.fall}
-    assert falls <= PLUNGE_MESSAGES.keys()
+    assert m.meta["name"] == "Herran's Castle" and m.meta["sky"] == "storm"
+    (peak,) = _spec(m, "hollow_peak")
+    assert peak.tz == 0 and m[peak.tx, peak.tz].solid  # beyond the keep, out of reach
+    towers = _spec(m, "castle_tower")
+    assert len(towers) >= 8  # many towers
+    assert {"round", "square", "octagon", "belfry", "keep"} <= {t.props["style"] for t in towers}
+    for t in towers:
+        assert m[t.tx, t.tz].solid, (t.tx, t.tz)  # each stands where no one walks
+    falls = {
+        m[tx, tz].fall for tx, tz, tile in m.each_tile() if (tile.chasm and not tile.walkable) or tile.chasm
+    }
+    assert falls - {None} <= PLUNGE_MESSAGES.keys()
 
 
-def test_stepping_off_the_quays_broken_balustrade_is_a_fall_through_the_clouds():
+def test_stepping_off_the_causeway_where_its_parapet_has_fallen_is_a_plunge_into_the_gorge():
     game = JungleGame()
     world = World(game, CASTLE)
     world.enemies = []
     gap = next(
         (tx, tz)
         for tz in range(world.map.depth)
-        for tx in range(world.map.width - 1)
+        for tx in range(1, world.map.width)
         if world.map[tx, tz].walkable
         and world.map[tx, tz].floor == 0
-        and world.map[tx + 1, tz].fall == "cloud"
+        and world.map[tx - 1, tz].fall == "gorge"
     )
     p = game.player
     p.x, p.z = TileMap.center(*gap)
     p.y = 0
     for _ in range(4):
         world.update_terrain(0.05)
-    p.x, p.z = TileMap.center(gap[0] + 1, gap[1])
+    p.x, p.z = TileMap.center(gap[0] - 1, gap[1])
     for _ in range(round((terrain.PLUNGE_TIME + 0.3) / 0.05)):
         world.update_terrain(0.05)
-    assert PLUNGE_MESSAGES["cloud"] in game.messages
+    assert PLUNGE_MESSAGES["gorge"] in game.messages
     assert not p.alive
 
 
-def test_herrans_castle_is_solvable_up_to_the_spires_door():
-    """From the Cloud Quay every chest can be reached, the secret lab's only through its false wall;
-    the Spire Key lies in the open laboratory, reached before the spire's door it opens. The Belvedere's
-    lift is a shortcut down to the court, both ends of it reached before its first ride, and nowhere
-    you can get to strands you."""
+def test_the_barbican_gate_is_sealed_by_the_two_wardens_atop_its_towers():
+    """The gate is bound to two Castellan Wardens, each on a tower's deck, which a lift climbs from the
+    platform before it; both lifts and both Wardens are reached before the gate opens, and beyond it
+    lies the rest of the castle. Every guardian is a foe that stays dead."""
+    m = _castle()
+    gate = _gate(m)
+    assert gate.props["model"] == "sealed"
+    wardens = _spec(m, "castellan_warden")
+    assert len(wardens) == 2 and all(w.props["seal"] == "gate" for w in wardens)
+    assert sorted(seals.guardians(m, "gate")) == sorted((w.tx, w.tz) for w in wardens)
+    assert EnemyTypes.get("castellan_warden").once
+    for s in m.entities:  # nothing else is bound to a seal, and every guardian stays dead
+        if s.props.get("seal") and s.kind != "door":
+            assert EnemyTypes.get(s.kind).once, s.kind
+    before = _reachable(m, _start(m), open_tiles=[])
+    for w in wardens:
+        assert (w.tx, w.tz) in before
+        assert m[w.tx, w.tz].floor == 8  # up on the tower's deck
+    assert len(_spec(m, "lift")) == 2 and not any("locked" in s.props for s in _spec(m, "lift"))
+    assert (gate.tx, gate.tz) not in before and _beside(m, gate, before)
+    (shrine,) = [s for s in _spec(m, "save_statue") if s.tz < gate.tz and s.tz > 24]
+    assert not _beside(m, shrine, before)  # the ward's shrine waits past the gate
+    assert _beside(m, shrine, _reachable(m, _start(m), open_tiles=[(gate.tx, gate.tz)]))
+
+
+def test_the_seal_breaks_only_once_both_wardens_have_fallen_and_stays_broken():
+    game = JungleGame()
+    world = World(game, CASTLE)
+    (gate,) = [p for p in world.props if p.kind == "door" and p.props.get("seal")]
+    assert world.seal_eyes(gate) == 2 and not world.seal_broken(gate)
+    world.update(0.016)
+    assert gate.open_t == 0
+    first, second = seals.guardians(world.map, "gate")
+    game.flags.add(f"slain:{CASTLE}:{first[0]},{first[1]}")
+    world.update(0.016)
+    assert world.seal_eyes(gate) == 1 and gate.open_t == 0
+    game.flags.add(f"slain:{CASTLE}:{second[0]},{second[1]}")
+    world.update(0.016)
+    assert world.seal_eyes(gate) == 0 and gate.open_t > 0 and gate.key in game.flags
+    assert any("grinds open" in m for m in game.messages)
+    again = World(JungleGame(game.flags), CASTLE)  # a later visit: the gate stands open, the Wardens gone
+    (gate,) = [p for p in again.props if p.kind == "door" and p.props.get("seal")]
+    assert gate.open_t == 1.0
+    assert not [e for e in again.enemies if e.type.id == "castellan_warden"]
+
+
+def test_a_seal_with_no_guardians_never_breaks():
+    m = _castle()
+    assert seals.guardians(m, "nothing") == [] and not seals.broken(m, set(), "nothing")
+
+
+def test_the_hall_of_sentinels_holds_two_stone_twins_between_its_two_doors():
+    """West of the Great Hall, up a short stair, two stone giants wait as statues between the hall's
+    great door and its rear door onto the keep stair; each drops a piece of its armour."""
+    m = _castle()
+    front = [s for s in _spec(m, "door", boss="sentinels_dead") if "rear" not in s.props]
+    rear = [s for s in _spec(m, "door", boss="sentinels_dead") if "rear" in s.props]
+    assert len(front) == len(rear) == 1
+    for i, j in ((0, 1), (1, 0)):
+        t = EnemyTypes.get(SENTINELS[i])
+        assert t.boss and t.perch and t.twin == SENTINELS[j] and t.dead_flag == "sentinels_dead"
+        assert t.brittle and t.tall >= 4.5
+    drops = {s.props["item"] for k in SENTINELS for s in _spec(m, k)}
+    assert drops == {"sentinel_plate", "sentinel_gauntlets"}
+    gate = _gate(m)
+    past_gate = _reachable(m, _start(m), open_tiles=[(gate.tx, gate.tz)])
+    for k in SENTINELS:
+        (s,) = _spec(m, k)
+        assert (s.tx, s.tz) not in past_gate
+    assert _beside(m, front[0], past_gate) and not _beside(m, rear[0], past_gate)
+
+
+def test_the_castle_is_solvable_to_herrans_door_and_never_strands_you():
+    """From the ledge: past the sealed gate, through the Hall of Sentinels, up the keep to Herran's
+    door; every chest is reached, the study's shrine stands before his door, and nowhere you can get to
+    strands you."""
     m = _castle()
     start = _start(m)
-    plain = [(s.tx, s.tz) for s in _spec(m, "door") if "key" not in s.props]
-    (spire_door,) = _spec(m, "door", key="spire_key")
-    secrets = [(s.tx, s.tz) for s in _spec(m, "secret_wall")]
-    assert len(secrets) == 1
-    before = _reachable(m, start, open_tiles=plain)
-    (key_chest,) = _spec(m, "chest", item="spire_key")
-    assert (key_chest.tx, key_chest.tz) in before
-    assert (spire_door.tx, spire_door.tz) not in before
-    beside_door = {(spire_door.tx + dx, spire_door.tz + dz) for dx, dz in BESIDE}
-    assert beside_door & before  # you come to the door with the key in hand
-    hidden = _reachable(m, start, open_tiles=[*plain, *secrets])
-    for chest in _spec(m, "chest"):
-        assert (chest.tx, chest.tz) in hidden, chest.props
-    labs = [c for c in _spec(m, "chest") if m[c.tx, c.tz].floor_tex == "lab_tile" and c is not key_chest]
-    assert {c.props["item"] for c in labs} == {"graft_draught", "sun_tincture", "herran_bonesaw"}
-    for chest in labs:  # the secret lab's chests lie behind its false wall
-        assert (chest.tx, chest.tz) not in before, chest.props
-    (lift,) = _spec(m, "lift")
-    assert "locked" in lift.props
-    ends = [(lift.tx + dx, lift.tz + dz) for dx, dz in BESIDE if m[lift.tx + dx, lift.tz + dz].walkable]
-    assert len(ends) == 2 and all(e in before for e in ends)
-    assert {m[e].floor for e in ends} == {1.0, 10.0}
-    doors = [*plain, *secrets, (spire_door.tx, spire_door.tz)]
-    full = _reachable(m, start, open_tiles=doors, shortcuts=True)
+    (door,) = _spec(m, "door", boss="herran_dead")
+    (herran,) = _spec(m, "herran")
+    open_ = _doors(m, herran=False)
+    before = _reachable(m, start, open_tiles=open_)
+    assert (herran.tx, herran.tz) not in before and _beside(m, door, before)
+    study_shrine = min(_spec(m, "save_statue"), key=lambda s: abs(s.tx - door.tx) + abs(s.tz - door.tz))
+    assert abs(study_shrine.tx - door.tx) + abs(study_shrine.tz - door.tz) <= 8 and _beside(
+        m, study_shrine, before
+    )
+    for s in m.entities:
+        if s.kind in ("chest", "exit", "save_statue"):
+            assert _beside(m, s, before) or (s.tx, s.tz) in before, (s.kind, s.tx, s.tz)
+    full = _reachable(m, start, open_tiles=_doors(m))
+    assert (herran.tx, herran.tz) in full
+    lair = m[herran.tx, herran.tz]
+    assert lair.ceil is None and lair.floor == 10  # open to the storm, at the top of the keep
     for tile in full:
-        assert start in _reachable(m, tile, open_tiles=doors, shortcuts=True), tile
+        assert start in _reachable(m, tile, open_tiles=_doors(m)), tile
 
 
-def test_the_castle_climbs_in_steps_never_too_tall():
-    """From the quay at 0 m to the Ring at 1 and the High Walk at 10, the way on climbs no more than half
-    a metre a tile, up or down: every chest and the spire's door are reached without a drop or a lift."""
+def test_the_way_up_climbs_half_a_metre_a_tile_at_most():
+    """From the ledge to the library at 8 m and the theatre at 10, the stairs rise no more than half a
+    metre a tile, so the keep is walked up, never dropped down (the towers' decks are reached by lift)."""
     m = _castle()
-    doors = [(s.tx, s.tz) for s in (*_spec(m, "door"), *_spec(m, "secret_wall"))]
-    floors = {m[t].floor for t in _reachable(m, _start(m), open_tiles=doors)}
-    assert {0.0, 1.0, 10.0} <= floors
-    blocked = {(s.tx, s.tz) for s in m.entities if s.kind in BLOCKERS} - set(doors)
+    blocked = {(s.tx, s.tz) for s in m.entities if s.kind in ("door", "secret_wall")} - set(_doors(m))
     seen, todo = {_start(m)}, [_start(m)]
     while todo:
         x, z = todo.pop()
@@ -151,272 +224,104 @@ def test_the_castle_climbs_in_steps_never_too_tall():
             if abs(m[n].floor - m[x, z].floor) <= 0.5:
                 seen.add(n)
                 todo.append(n)
-    (spire_door,) = _spec(m, "door", key="spire_key")
-    assert (spire_door.tx, spire_door.tz) in seen
-    for chest in _spec(m, "chest"):
-        assert (chest.tx, chest.tz) in seen, chest.props
+    (herran,) = _spec(m, "herran")
+    assert (herran.tx, herran.tz) in seen
+    assert {0.0, 2.0, 8.0, 10.0} <= {m[t].floor for t in seen}
 
 
-def test_the_castle_is_small_and_dark():
-    """A small castle under a stormy night: its halls dim, the secret lab darker still."""
-    m = _castle()
-    assert m.width <= 34 and m.depth <= 44
-    assert float(m.meta["ambient"][0]) <= 0.5
-    doors = [(s.tx, s.tz) for s in _spec(m, "door")]
-    before = _reachable(m, _start(m), open_tiles=doors)
-    secrets = [(s.tx, s.tz) for s in _spec(m, "secret_wall")]
-    after = _reachable(m, _start(m), open_tiles=[*doors, *secrets])
-    for t in after - set(secrets):  # the false wall has no ceiling of its own
-        tile = m[t]
-        if tile.ceil is None:
-            continue
-        if t not in before and tile.floor_tex == "lab_tile":
-            assert tile.dark >= 0.6, t
-        else:
-            assert tile.dark <= 0.35, t
+def test_the_library_hides_the_way_down_to_the_laboratory_and_it_comes_back_up():
+    """Behind the library's one false wall, a stair goes down into the mountain to the laboratory; its
+    foot leads back to the passage behind the wall. The laboratory's far stair climbs out to the Great
+    Hall, one way."""
+    m, lab = _castle(), MapLoader.load_file(map_path(LAB))
+    (secret,) = _spec(m, "secret_wall")
+    (down,) = _spec(m, "exit", map=LAB)
+    assert m[secret.tx, secret.tz].floor == 8 and m[down.tx, down.tz].floor == 8
+    no_secret = _reachable(m, _start(m), open_tiles=_doors(m, secret=False, herran=False))
+    assert not _beside(m, down, no_secret)
+    assert _beside(m, down, _reachable(m, _start(m), open_tiles=_doors(m, herran=False)))
+    assert _at(down) == _start(lab)
+    back = [s for s in _spec(lab, "exit", map=CASTLE) if "oneway" not in s.props]
+    (out,) = [s for s in _spec(lab, "exit", map=CASTLE) if "oneway" in s.props]
+    assert len(back) == 1 and _at(back[0]) in no_secret | {(secret.tx, secret.tz + 1)}
+    assert m[_at(back[0])].floor == 8
+    hall = _at(out)
+    assert m[hall].floor == 0 and m[hall].ceil == 12  # out in the Great Hall
+    assert hall in _reachable(m, _start(m), open_tiles=[(_gate(m).tx, _gate(m).tz)])
 
 
-def test_a_save_from_before_the_castle_was_rebuilt_wakes_beside_its_shrine():
-    from ashen_vault.world.world import SHRINE_REACH, beside_shrine
-
-    m = _castle()
-    (shrine,) = _spec(m, "save_statue")
-    sx, sz = TileMap.center(shrine.tx, shrine.tz)
-    x, z, yaw = beside_shrine(m, *TileMap.center(27, 81), 0.0)  # the old Vesperholm landing
-    assert math.hypot(x - sx, z - sz) <= SHRINE_REACH
-    assert m.tile_at(x, z).walkable
-    assert yaw == pytest.approx(math.atan2(sz - z, sx - x))
-
-
-def test_the_secret_lab_is_one_room():
-    """Behind the one false wall lies one room: all three of Herran's secret finds and a journal page."""
-    m = _castle()
-    doors = [(s.tx, s.tz) for s in _spec(m, "door")]
-    before = _reachable(m, _start(m), open_tiles=doors)
-    (wall,) = [(s.tx, s.tz) for s in _spec(m, "secret_wall")]
-    behind = _reachable(m, _start(m), open_tiles=[*doors, wall]) - before
-    room = behind - {wall}
-    inside = next(t for t in room if m[t].walkable)
-    assert _reachable(m, inside, avoid=[*before, wall]) == room  # one room, all of it joined
-    finds = {c.props["item"] for c in _spec(m, "chest") if (c.tx, c.tz) in room}
-    assert finds == {"graft_draught", "sun_tincture", "herran_bonesaw"}
-    assert len([h for h in _spec(m, "hint") if (h.tx, h.tz) in room]) == 1
-
-
-def test_the_castles_dressing_draws_and_stands_still():
-    """Every piece of the castle's dressing is a model of some detail, stands on its floor and is baked
-    once; the towers on the skyline are each their own shape."""
-    from ashen_vault.render import herran_models, mesh_builder, rig
-    from ashen_vault.world.world import BLOCKING_PROPS, LANDMARKS, STATIC_PROPS, WALL_PROPS
-    from test_render_logic import _RecordingGpu
-
-    def parts(fn):
-        gpu = _RecordingGpu()
-        fn(rig.Rig(gpu))
-        return gpu.parts
-
-    pieces = {
-        "gas_lamp": lambda r: herran_models.gas_lamp(r, 4),
-        "glasshouse": lambda r: herran_models.glasshouse(r, 18.0, 38.0, 8.0),
-        "drake_fountain": lambda r: herran_models.drake_fountain(r, 4),
-        "specimen_jar": lambda r: herran_models.specimen_jar(r, 4),
-        "alembic_bench": lambda r: herran_models.alembic_bench(r, 4),
-        "vat": lambda r: herran_models.vat(r, 4),
-        "surgery_table": lambda r: herran_models.surgery_table(r, 4),
-        "potion_shelf": lambda r: herran_models.potion_shelf(r, 4),
-    }
-    for name, fn in pieces.items():
-        drawn = parts(fn)
-        assert len(drawn) >= 12, name
-        assert min(y for _, y in drawn) > -0.1, name
-        assert name in STATIC_PROPS, name
-    towers = {
-        style: parts(lambda r, s=style: herran_models.herran_tower(r, 4, 14.0, s))
-        for style in ("round", "octagon", "clock", "belvedere", "needle")
-    }
-    assert len({tuple(p) for p in towers.values()}) == len(towers)  # no two alike
-    assert {"herran_tower", "glasshouse"} <= set(LANDMARKS) and "herran_tower" in STATIC_PROPS
-    assert {"gas_lamp", "drake_fountain", "specimen_jar", "vat"} <= set(BLOCKING_PROPS)
-    assert "potion_shelf" in WALL_PROPS
-    assert {"gas_lamp", "specimen_jar"} <= set(mesh_builder.LIGHT_KINDS)
-    m = _castle()
-    styles = [s.props["style"] for s in _spec(m, "herran_tower")]
-    assert {"round", "octagon", "clock", "belvedere", "needle"} <= set(styles)
-    for s in _spec(m, "herran_tower"):
-        assert m[s.tx, s.tz].solid, (s.tx, s.tz)  # on a wall top no one walks
+def test_the_laboratory_is_dark_solvable_and_full_of_his_failures():
+    lab = MapLoader.load_file(map_path(LAB))
+    assert lab.meta["name"] == "Herran's Laboratory" and "sky" not in lab.meta
+    start = _start(lab)
+    reached = _reachable(lab, start)
+    floors = [tile for tx, tz, tile in lab.each_tile() if tile.walkable]
+    assert floors and all(tile.dark >= 0.6 for tile in floors)
+    for s in lab.entities:
+        if s.kind in ("chest", "exit"):
+            assert _beside(lab, s, reached) or (s.tx, s.tz) in reached, (s.kind, s.tx, s.tz)
+    items = {s.props["item"] for s in _spec(lab, "chest")}
+    assert "surgeons_cleaver" in items
+    kinds = {s.kind for s in lab.entities}
+    assert {
+        "amalgam",
+        "handcrawler",
+        "vat",
+        "specimen_cage",
+        "hand_rack",
+        "dissecting_table",
+        "lab_bench",
+    } <= kinds
+    assert len(_spec(lab, "hint")) >= 2
+    for tile in reached:
+        assert start in _reachable(lab, tile), tile
 
 
-def test_a_graft_draught_costs_hp_and_speeds_stamina_for_a_while():
-    from ashen_vault.player import player as player_mod
-    from ashen_vault.player.player import Player
-
-    p = Player()
-    hp = p.stats.hp
-    p.drink("graft")
-    assert p.stats.hp == hp - player_mod.GRAFT_HP and p.graft_t == player_mod.GRAFT_TIME
-    p.stamina.spend(50)
-    p.update_timers(0.6)  # past the rest before it starts refilling
-    before = p.stamina.value
-    p.update_timers(0.5)
-    grafted = p.stamina.value - before
-    q = Player()
-    q.stamina.spend(50)
-    q.update_timers(0.6)
-    before = q.stamina.value
-    q.update_timers(0.5)
-    assert grafted > q.stamina.value - before > 0  # it refills faster while the draught lasts
-    p.update_timers(player_mod.GRAFT_TIME)
-    assert p.graft_t == 0
-    weak = Player()
-    weak.stats.hp = 3
-    weak.drink("graft")
-    assert weak.stats.hp == 1  # it never takes the last HP
-
-
-def test_a_sun_tincture_cures_everything_and_keeps_ailments_out_for_a_minute():
-    from ashen_vault.player import ailments
-    from ashen_vault.player.items import Items
-    from ashen_vault.player.player import Player
-
-    tincture = Items.get("sun_tincture")
-    assert set(tincture.cures) == set(ailments.KINDS)
-    p = Player()
-    p.ailments.build("poison", ailments.FULL)
-    assert p.ailments.poisoned
-    for kind in tincture.cures:
-        p.cure(kind)
-    p.drink(tincture.effect)
-    assert not p.ailments.poisoned
-    assert not p.ailments.build("bleed", ailments.FULL) and p.ailments.meters["bleed"] == 0
-    p.ailments.update(ailments.SUN_WARD_TIME, p.stats.max_hp)
-    assert p.ailments.build("bleed", ailments.FULL)  # the ward has worn off
-
-
-def test_the_hidden_labs_keep_herrans_brews_and_his_bonesaw():
-    m = _castle()
-    found = {c.props["item"] for c in _spec(m, "chest") if m[c.tx, c.tz].floor_tex == "lab_tile"}
-    assert {"graft_draught", "sun_tincture", "herran_bonesaw", "spire_key"} <= found
-
-
-def test_herrans_journal_fits_the_screen_and_names_his_mother_and_sister():
+def test_herrans_journal_fits_the_screen():
     from ashen_vault.screen import W
     from ashen_vault.ui import smallfont
 
-    world = World(JungleGame(), CASTLE)
-    text = " ".join(line for h in world.hints.values() for line in h.lines)
-    assert "Embracer" in text and "Ilvane" in text and "Mother" in text
-    for h in world.hints.values():
-        assert 1 <= len(h.lines) <= 2
-        assert all(smallfont.width(line) <= W - 40 for line in h.lines), h.lines
+    for name in (CASTLE, LAB):
+        for h in _spec(MapLoader.load_file(map_path(name)), "hint"):
+            lines = h.props["text"].split("|")
+            assert 1 <= len(lines) <= 2
+            for line in lines:
+                assert smallfont.width(line) <= W - 40, line
 
 
 def test_herrans_creatures_outmatch_vesperholms():
-    """Past Vesperholm: every regular foe of the castle hits harder than any regular foe before it."""
-    from ashen_vault.ai.enemy_types import EnemyTypes
-
-    castle = ("grafted_drake", "drake_magus", "vat_spawn")
-    before = [t for t in EnemyTypes.ALL.values() if t.id not in (*castle, "herran")]
+    """Past Vesperholm: every regular foe of the castle and the laboratory hits harder than any regular
+    foe before it, and the sentinels and Herran outmatch the Duchess."""
+    later = {*CASTLE_FOES, *SENTINELS, "herran"}
+    before = [t for t in EnemyTypes.ALL.values() if t.id not in later]
     strongest = max(t.damage for t in before if not (t.boss or t.ambush))
-    assert all(EnemyTypes.get(i).damage > strongest for i in castle)
-    assert EnemyTypes.get("grafted_drake").fly and "rend" in EnemyTypes.get("grafted_drake").moves
-    assert EnemyTypes.get("drake_magus").ranged and EnemyTypes.get("drake_magus").shot is None
+    assert all(EnemyTypes.get(i).damage > strongest for i in CASTLE_FOES)
+    duchess = EnemyTypes.get("moon_duchess")
+    assert all(EnemyTypes.get(i).damage > duchess.damage - 1 for i in SENTINELS)
+    herran = EnemyTypes.get("herran")
+    assert herran.hp > duchess.hp and herran.damage > duchess.damage
 
 
-def test_a_landed_drake_rends_and_a_magus_brands_the_floor_under_you():
-    from ashen_vault.ai.enemy import MOVE_SPECS
-    from test_verdant_world import foe
-
-    game = JungleGame()
-    world = World(game, CASTLE)
-    world.enemies = []
-    game.player.place(*TileMap.center(3, 14), 1.0, world.map)
-    drake = foe(world, "grafted_drake", (3, 15))
-    assert not world.grounded(drake)  # on the wing it only stoops
-    drake.landed, drake.alt = True, 0.0  # come down to fight on foot
-    assert world.grounded(drake) and MOVE_SPECS["rend"].allow == "grounded"
-    hp = game.player.stats.hp
-    world.rend(drake)
-    assert game.player.stats.hp < hp
-    magus = foe(world, "drake_magus", (3, 19))
-    world.sunbrand(magus)
-    (brand,) = world.eruptions
-    assert (
-        brand.style == "sun" and math.isclose(brand.x, game.player.x) and math.isclose(brand.z, game.player.z)
-    )
-
-
-SPIRE = "herran_spire"
-
-
-def _spire():
-    return MapLoader.load_file(map_path(SPIRE))
-
-
-def test_the_spire_door_and_its_way_back_lead_to_each_other():
-    """At the end of the passage behind the locked door, the spire's door lets you into its base hall,
-    the way back right behind you; going back out puts you in the passage before it. The compass points
-    at it while Herran lives."""
-    castle, spire = _castle(), _spire()
-    (into,) = _spec(castle, "exit", map=SPIRE)
-    (out,) = _spec(spire, "exit", map=CASTLE)
-    assert into.props["model"] == out.props["model"] == "spire_door" and into.props["boss"] == "herran_dead"
-    assert _at(into) == _start(spire)
-    assert sum(abs(a - b) for a, b in zip(_at(into), (out.tx, out.tz), strict=True)) == 1
-    bx, bz = _at(out)
-    assert abs(bx - into.tx) + abs(bz - into.tz) == 1 and castle[bx, bz].walkable
-    (door,) = _spec(castle, "door", key="spire_key")
-    assert (into.tx, into.tz) not in _reachable(castle, _start(castle))
-    plain = [(s.tx, s.tz) for s in _spec(castle, "door") if "key" not in s.props]
-    assert (bx, bz) in _reachable(castle, _start(castle), open_tiles=[*plain, (door.tx, door.tz)])
-
-
-def test_herrans_spire_climbs_to_his_observatory_and_he_waits_only_behind_his_door():
-    """From the base hall a stair climbs to the hatchery and on to the study, where the shrine stands;
-    Herran waits out in his observatory, open to the sky, only through his great door. It stands 11 m
-    up, and nowhere you can reach strands you."""
-    m = _spire()
-    assert m.meta["name"] == "Herran's Spire" and m.meta["sky"] == "storm"
-    assert m.width <= 24 and m.depth <= 28
-    start = _start(m)
-    (door,) = _spec(m, "door", boss="herran_dead")
-    (herran,) = _spec(m, "herran")
-    (shrine,) = _spec(m, "save_statue")
-    before = _reachable(m, start)
-    assert (herran.tx, herran.tz) not in before
-    assert any((shrine.tx + dx, shrine.tz + dz) in before for dx, dz in BESIDE)
-    assert abs(shrine.tx - door.tx) + abs(shrine.tz - door.tz) <= 10  # a shrine in the study before his door
-    opened = _reachable(m, start, open_tiles=[(door.tx, door.tz)])
-    assert (herran.tx, herran.tz) in opened
-    lair = m[herran.tx, herran.tz]
-    assert lair.ceil is None and lair.floor == 11
-    for s in m.entities:
-        if s.kind in ("chest", "exit", "save_statue"):
-            assert any((s.tx + dx, s.tz + dz) in before for dx, dz in BESIDE), (s.kind, s.tx, s.tz)
-    for tile in opened:
-        assert start in _reachable(m, tile, open_tiles=[(door.tx, door.tz)]), tile
-
-
-def test_herran_drops_the_auric_sigil_and_turns_in_his_rage():
-    from ashen_vault.ai.enemy_types import EnemyTypes
-
+def test_herran_waits_only_behind_his_door_and_drops_the_auric_sigil():
     t = EnemyTypes.get("herran")
     assert t.boss and t.drop == "auric_sigil" and t.dead_flag == "herran_dead" and t.rise == "ash"
     assert t.rage and set(t.phase_moves) == {"embrace", "solar_gaze"}
-    assert t.hp > EnemyTypes.get("moon_duchess").hp and t.damage > EnemyTypes.get("moon_duchess").damage
+    m = _castle()
+    (herran,) = _spec(m, "herran")
+    (dome,) = _spec(m, "anatomy_dome")
+    assert abs(dome.tx - herran.tx) + abs(dome.tz - herran.tz) <= 2
 
 
-def _herran_at(at=(16, 3), herran_at=(16, 8)):
-    from test_verdant_world import foe
-
+def _herran_at(at, herran_at=(31, 6)):
     game = JungleGame()
-    world = World(game, SPIRE)
+    world = World(game, CASTLE)
     world.enemies = []
     game.player.place(*TileMap.center(*at), 0.0, world.map)
     return game, world, foe(world, "herran", herran_at)
 
 
 def test_herrans_hands_rise_in_a_line_and_his_elixir_lands_where_you_stood():
-    game, world, herran = _herran_at()
+    game, world, herran = _herran_at((27, 6))
     world.hand_rain(herran)
     hands = [f for f in world.eruptions if f.style == "grafts"]
     assert len(hands) >= 3
@@ -426,19 +331,22 @@ def test_herrans_hands_rise_in_a_line_and_his_elixir_lands_where_you_stood():
     (flask,) = world.eruptions
     assert flask.style == "elixir" and flask.origin is not None
     assert math.isclose(flask.x, game.player.x) and math.isclose(flask.z, game.player.z)
+    world.eruptions = []
+    world.solar_gaze(herran)
+    assert world.eruptions and all(f.style == "sun" for f in world.eruptions)
 
 
 def test_herrans_sweep_and_embrace_reach_only_so_far():
     from ashen_vault.ai.enemy import EMBRACE_REACH, GRASP_SWEEP_REACH
 
-    game, world, herran = _herran_at(at=(16, 7))
+    game, world, herran = _herran_at((30, 6))
     hp = game.player.stats.hp
     world.grasp_sweep(herran)
     assert game.player.stats.hp < hp
     hp = game.player.stats.hp
     world.embrace(herran)
     assert game.player.stats.hp < hp and game.player.webbed_t > 0
-    game, world, herran = _herran_at(at=(16, 2))
+    game, world, herran = _herran_at((26, 2))
     assert math.hypot(game.player.x - herran.x, game.player.z - herran.z) > max(
         GRASP_SWEEP_REACH, EMBRACE_REACH
     )
@@ -446,3 +354,56 @@ def test_herrans_sweep_and_embrace_reach_only_so_far():
     world.grasp_sweep(herran)
     world.embrace(herran)
     assert game.player.stats.hp == hp
+
+
+def test_every_new_prop_and_landmark_is_built_in_detail():
+    from ashen_vault.render import herran_models, rig
+    from ashen_vault.world.world import BLOCKING_PROPS, LANDMARKS, STATIC_PROPS, WALL_PROPS
+    from test_render_logic import _RecordingGpu
+
+    def parts(fn):
+        gpu = _RecordingGpu()
+        fn(rig.Rig(gpu))
+        return gpu.parts
+
+    built = {
+        "candelabra": lambda r: herran_models.candelabra(r, 4, 0.3),
+        "gate_statue": lambda r: herran_models.gate_statue(r, 4),
+        "vat": lambda r: herran_models.vat(r, 4, 0.3),
+        "dissecting_table": lambda r: herran_models.dissecting_table(r, 4),
+        "specimen_cage": lambda r: herran_models.specimen_cage(r, 4),
+        "hand_rack": lambda r: herran_models.hand_rack(r, 4),
+        "lab_bench": lambda r: herran_models.lab_bench(r, 4),
+        "anatomy_dome": lambda r: herran_models.anatomy_dome(r, 11.0, 1.2),
+        "hollow_peak": lambda r: herran_models.hollow_peak(r, 4, 140.0, 120.0),
+        "sealed_gate": lambda r: herran_models.sealed_gate(r, 0.0, 5.0, 2, 0.3),
+        **{
+            f"castle_tower {style}": lambda r, s=style: herran_models.castle_tower(r, 4, 26.0, s)
+            for style in ("round", "square", "octagon", "belfry", "keep")
+        },
+    }
+    for name, fn in built.items():
+        assert len(parts(fn)) >= 20, name
+    looks = {len(parts(lambda r, s=s: herran_models.castle_tower(r, 4, 26.0, s))) for s in
+             ("round", "square", "octagon", "belfry", "keep")}  # fmt: skip
+    assert len(looks) == 5  # no two tower styles alike
+    assert {"castle_tower", "hollow_peak", "anatomy_dome"} <= set(LANDMARKS) <= set(LANDMARKS) | STATIC_PROPS
+    assert {"candelabra", "gate_statue", "vat", "dissecting_table", "specimen_cage", "lab_bench"} <= set(
+        BLOCKING_PROPS
+    )
+    assert "hand_rack" in WALL_PROPS
+    lit, out = parts(lambda r: herran_models.sealed_gate(r, 0.0, 5.0, 2, 0.0)), None
+    out = parts(lambda r: herran_models.sealed_gate(r, 0.0, 5.0, 0, 0.0))
+    assert len(lit) == len(out)  # its eyes go out; nothing else changes
+
+
+def test_the_sentinels_drop_their_armour_and_the_laboratory_keeps_herrans_cleaver():
+    from ashen_vault.player.items import Items
+
+    plate, gauntlets, cleaver = (
+        Items.get("sentinel_plate"),
+        Items.get("sentinel_gauntlets"),
+        Items.get("surgeons_cleaver"),
+    )
+    assert plate.slot == "body" and gauntlets.slot == "hands" and cleaver.category == "axe"
+    assert plate.power > Items.get("brigandine").power

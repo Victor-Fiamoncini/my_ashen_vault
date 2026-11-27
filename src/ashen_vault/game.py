@@ -1078,8 +1078,6 @@ class Game:
                 self.player.stats.restore_mp(item.mana)
             for kind in item.cures:
                 self.player.cure(kind)
-            if item.effect:
-                self.player.drink(item.effect)
             self.sfx("pickup", 0.6)
             self.message(f"Used {item.name}.")
         elif item.kind == "scroll":
@@ -1346,6 +1344,13 @@ class Game:
         if not doors.opens_from(prop.props.get("from"), prop.x, prop.z, self.player.x, self.player.z):
             self.sfx("clunk", 0.6)
             self.message("It is barred from the other side.")
+            return
+        if not self.world.seal_broken(prop):
+            self.sfx("clunk", 0.6)
+            eyes = self.world.seal_eyes(prop)
+            self.message(
+                f"The gate is sealed. {eyes} {'eye still burns' if eyes == 1 else 'eyes still burn'} on it."
+            )
             return
         key = prop.props.get("key")
         if key and not self.player.inventory.has(key):

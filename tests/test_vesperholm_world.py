@@ -383,7 +383,10 @@ def test_the_duchess_fights_faster_than_any_other_boss_until_her_rage():
 def test_vesperholm_outmatches_the_areas_before_it():
     """The last area: each of its foes hits harder than the same kind of foe anywhere before."""
     vesper = ("pale_sentinel", "lantern_wraith", "moonhound", "veiled_knight", "glassmite", "moon_duchess")
-    later = ("grafted_drake", "drake_magus", "vat_spawn", "herran")  # Herran's Castle, past Vesperholm
+    later = (  # Herran's Castle, past Vesperholm
+        *("grafted_footman", "castellan_warden", "bulwark_sentinel", "blade_sentinel"),
+        *("amalgam", "handcrawler", "herran"),
+    )
     earlier = [t for t in EnemyTypes.ALL.values() if t.id not in vesper + later]
     assert EnemyTypes.get("moon_duchess").hp > max(t.hp for t in earlier if t.boss)
     assert EnemyTypes.get("moon_duchess").damage > max(t.damage for t in earlier if t.boss)

@@ -75,7 +75,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | `src/ashen_vault/game.py` | Scenes and the main loop |
 | `src/ashen_vault/input.py` | Key bindings and the `--script` driver |
 | `src/ashen_vault/dialogue.py` | NPC conversations, gifts and shops |
-| `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. One per area: `ashen_cemetery`, `harrowmere`, `harrow_sewers`, `abandoned_prison`, `verdant_hollow`, `cinderhold`, `cinder_keep`, `vesperholm`, `old_harrowmere`, `vigil_chapel`, `herrans_castle` and `herran_spire` (`docs/dev/maps.md` describes each) |
+| `src/ashen_vault/maps/*.map` | Plain-text tile maps: `[meta]`, `[legend]`, `[grid]`, `[entities]`. One per area: `ashen_cemetery`, `harrowmere`, `harrow_sewers`, `abandoned_prison`, `verdant_hollow`, `cinderhold`, `cinder_keep`, `vesperholm`, `old_harrowmere`, `vigil_chapel`, `herrans_castle` and `herran_laboratory` (`docs/dev/maps.md` describes each) |
 | `tests/` | pytest suite; `conftest.py` has a small test map, `test_*_world.py` build a real `World` headless |
 | `tools/` | `screenshots.py` (the README gallery), the level planner and level sketch (design aids) |
 | `docs/dev/` | The detailed guides below |

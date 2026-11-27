@@ -1,14 +1,17 @@
 import json
+import math
 import os
 
+from ashen_vault import map_path
 from ashen_vault.player.ailments import Ailments
 from ashen_vault.player.inventory import Inventory
 from ashen_vault.player.items import Items
 from ashen_vault.player.player import Player
 from ashen_vault.player.stats import Stats
 from ashen_vault.save.slots import SLOTS, SlotSummary, slot_path
+from ashen_vault.world.map_loader import MapLoader
 
-VERSION = 3
+VERSION = 4
 # Maps whose id changed: older saves name them by the old id, in the map, the remnant and the flags.
 RENAMED_MAPS = {"sunken_keep": "abandoned_prison"}
 # Maps whose grid grew on its north or west side, by (tiles across, tiles down), and the save version
@@ -16,6 +19,14 @@ RENAMED_MAPS = {"sunken_keep": "abandoned_prison"}
 # gained the crag behind its cathedral, and Lyra's Chapel on it, twenty rows to the north.
 SHIFTED_MAPS = {"vesperholm": (0, 20, 3)}
 TILE = 2.0  # metres a tile (`TileMap.TILE`)
+# Maps torn down and built anew (or gone into another), by the map an older save made there wakes on
+# instead, and the save version the rebuild came in: the spot and the remnant go to that map's `start`,
+# and every flag naming the old map is dropped, since none of its tiles mean what they did. Herran's
+# Castle above the clouds, and the spire on it, became his castle on the Hollow Peak.
+REBUILT_MAPS = {"herrans_castle": ("herrans_castle", 4), "herran_spire": ("herrans_castle", 4)}
+# Items taken out of the game with nothing to replace them (`Items.RENAMED` has those with): an older
+# save loses them, from its pack, its hands and body, its quick slots and its shrine store.
+RETIRED_ITEMS = frozenset({"graft_draught", "sun_tincture", "herran_bonesaw", "spire_key"})
 
 
 def _renamed_flag(flag):
@@ -46,14 +57,56 @@ def _shift_spot(spot, map_name, version):
         spot["z"] = spot["z"] + dz * TILE
 
 
+def _start_spot(map_name):
+    """A map's `start` as a saved spot: {x, z, yaw} (yaw in radians, as a player saves it)."""
+    tx, tz, yaw = MapLoader.load_file(map_path(map_name)).meta["start"][:3]
+    return {"x": (int(tx) + 0.5) * TILE, "z": (int(tz) + 0.5) * TILE, "yaw": yaw * math.pi / 180}
+
+
+def _rebuilt(map_name, version):
+    """The map a save made on `map_name` before `version` wakes on, if that map has been rebuilt since."""
+    into, since = REBUILT_MAPS.get(map_name, (None, 0))
+    return into if version < since else None
+
+
+def _retire_items(player):
+    """Takes the retired items out of a saved player dict, wherever they are kept."""
+    inv = player.get("inventory") or {}
+    for key in ("counts", "wear"):
+        for id_ in RETIRED_ITEMS & set(inv.get(key) or {}):
+            del inv[key][id_]
+    for key, value in list(inv.items()):
+        if isinstance(value, str) and value in RETIRED_ITEMS:
+            inv[key] = None
+    for id_ in RETIRED_ITEMS & set(player.get("stash") or {}):
+        del player["stash"][id_]
+    if player.get("quick_slots"):
+        player["quick_slots"] = [None if i in RETIRED_ITEMS else i for i in player["quick_slots"]]
+    if player.get("quick") in RETIRED_ITEMS:
+        player["quick"] = None
+
+
 def migrate(data):
     """Brings an older save's data up to date in place, and returns it: maps that were renamed are
-    named by their new id (the saved spot, the remnant and every flag), and on a map whose grid has
-    grown since, the spot, the remnant and every flag naming a tile move with it."""
+    named by their new id (the saved spot, the remnant and every flag); on a map whose grid has grown
+    since, the spot, the remnant and every flag naming a tile move with it; a save on a map rebuilt
+    since wakes at the new map's start, its remnant there too, and the old map's flags are dropped;
+    and retired items are taken away."""
     version = int(data.get("version", 1))
-    data["map"] = RENAMED_MAPS.get(data["map"], data["map"])
     player = data.get("player", {})
     remnant = player.get("remnant")
+    gone = {name for name in REBUILT_MAPS if _rebuilt(name, version)}
+    into = _rebuilt(data.get("map"), version)
+    if into:
+        data["map"] = into
+        player.update(_start_spot(into))
+    if remnant and _rebuilt(remnant.get("map"), version):
+        remnant["map"] = _rebuilt(remnant["map"], version)
+        remnant.update({k: v for k, v in _start_spot(remnant["map"]).items() if k != "yaw"})
+    if gone:
+        data["flags"] = [f for f in data.get("flags", []) if not gone & set(f.split(":")[1:])]
+    _retire_items(player)
+    data["map"] = RENAMED_MAPS.get(data["map"], data["map"])
     if remnant and remnant.get("map") in RENAMED_MAPS:
         remnant["map"] = RENAMED_MAPS[remnant["map"]]
     if "x" in player and "z" in player:

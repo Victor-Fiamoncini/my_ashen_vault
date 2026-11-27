@@ -313,8 +313,8 @@ E = door boss=duchess_dead on=n
 // The altar of Lyra the Embracer in the middle of her nave, the Argent Sigil the Duchess wed the moon
 // on in the old god's hands. In the apse behind her stands an arch of her pale moonstone, empty and
 // dark; once the sigil is lifted, the moon's light pours into it and opens there into a portal to
-// Herran's Castle over the clouds (`hidden`: it can't be taken before).
-ÿ = exit map=herrans_castle at=16,38,-90 label=Step_through_the_portal model=argent_portal yaw=90 requires=argent_sigil_taken hidden on=щ
+// Herran's Castle on the Hollow Peak (`hidden`: it can't be taken before).
+ÿ = exit map=herrans_castle at=19,81,-90 label=Step_through_the_portal model=argent_portal yaw=90 requires=argent_sigil_taken hidden on=щ
 þ = altar item=argent_sigil model=lyra yaw=90 on=щ said="You lift the Argent Sigil out of Lyra's open hands. They stay open.|Behind her, the moonlight pours into the apse and does not stop."
 // The great bridge over the gorge, three abreast and four long, sunk 18 m down on the gorge floor until
 // the lever in the bailey raises it out of the deep: the short way back to the shrine.

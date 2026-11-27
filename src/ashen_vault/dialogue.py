@@ -131,7 +131,7 @@ SIGIL_HINT = {
         "The Argent Sigil is in Vesperholm. Climb the cathedral steps: the Vesper Gate at their head stands open."
     ),
     "auric_sigil": (
-        "The Auric Sigil is above the clouds, with Herran. Lift the Argent Sigil from Lyra's hands "
+        "The Auric Sigil is on the Hollow Peak, with Herran. Lift the Argent Sigil from Lyra's hands "
         "in Vesperholm, and pass the portal behind her."
     ),
 }
@@ -157,7 +157,7 @@ SIGIL_FALLEN = {
     ),
     "auric_sigil": (
         "herran_dead",
-        "Herran has fallen? Then the Auric Sigil lies in his observatory, at the top of his spire. Bring it down.",
+        "Herran has fallen? Then the Auric Sigil lies in his theatre, at the top of his keep. Bring it down.",
     ),
 }
 
@@ -244,7 +244,7 @@ def odrin(game, flags, inv):
                 "They call it the Cinderhold. The north road and its long bridge lead there. Its forges are lit.",
                 "The fourth is the Argent Sigil. At the head of the cathedral steps the Vesper Gate stands open.",
                 "Beyond it lies Vesperholm, the Moonbound City. Nobody remembers the gate shut, nor who opened it.",
-                "The fifth, the Auric Sigil, was never the king's. Herran keeps it, in a castle above the clouds.",
+                "The fifth, the Auric Sigil, was never the king's. Herran keeps it, in his castle on the Hollow Peak.",
                 "Lyra's altar in Vesperholm holds the Argent Sigil. Take it up, and the way to him will show itself.",
                 "Take these. They are all an old bell-keeper has.",
             ],
@@ -263,7 +263,7 @@ def odrin(game, flags, inv):
             "The grate in the Gaol Ward leads down into the old prison. The green trail east leads to the hollow's cave.",
             "The north road climbs to the Cinderhold. Its bridge crosses a gorge of fire.",
             "The cathedral steps climb to the Vesper Gate. It stands open on Vesperholm, under the moon.",
-            "In Lyra's chapel above Vesperholm, a portal opens to Herran's castle above the clouds.",
+            "In Lyra's chapel above Vesperholm, a portal opens to Herran's castle on the mountain.",
             "Save your strength at the stone shrines. The old wardens built them for the Ashen. Many knelt there.",
         ],
         None,
@@ -933,7 +933,7 @@ ENTHRONED_LINES = (
     ],
     [
         "(The stone of the king's brow splits, and light the colour of noon shows in the crack.)",
-        "...four... and the fifth... never mine... the sun's... kept above the clouds...",
+        "...four... and the fifth... never mine... the sun's... kept on the mountain...",
         "...by one who wished for more hands than he was born with...",
     ],
     [

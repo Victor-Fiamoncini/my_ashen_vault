@@ -25,7 +25,7 @@ MAPS = (
     "harrow_sewers",
     "vesperholm",
     "old_harrowmere",
-    "herran_spire",
+    "herrans_castle",
 )
 
 

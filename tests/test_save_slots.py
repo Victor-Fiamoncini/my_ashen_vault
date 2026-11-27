@@ -173,3 +173,55 @@ def test_a_save_made_since_vesperholm_grew_or_elsewhere_stays_put(tmp_path):
     _map, loaded, got = s.load()
     assert (loaded.x, loaded.z) == (10.0, 20.0) and loaded.remnant["z"] == 6.0
     assert got == {"chest:harrowmere:3,3"}
+
+
+def test_a_save_from_herrans_old_castle_wakes_at_the_new_ones_start_without_its_lost_things(tmp_path):
+    """Herran's castle above the clouds and its spire were torn down and the castle built anew on the
+    Hollow Peak: an older save made in either wakes at the new castle's start, its remnant there too;
+    the old maps' tile flags go, the rest stay; and the items taken out with them are gone from the pack,
+    the hands, the quick slots and the shrine store."""
+    from ashen_vault.save.save_system import RETIRED_ITEMS, _start_spot
+
+    s = SaveSystem(str(tmp_path / "save.json"))
+    player = Player()
+    player.x, player.z = 30.0, 12.0
+    player.remnant = {"map": "herrans_castle", "x": 50.0, "z": 50.0, "gold": 40}
+    flags = [
+        "argent_sigil_taken",
+        "herran_dead",
+        "chest:herrans_castle:5,6",
+        "door:herran_spire:3,4",
+        "fog:herran_spire:17,6",
+        "left:herran_spire",
+        "chest:vesperholm:40,23",
+    ]
+    _old_save(s, "herran_spire", player, flags, 3)
+    with open(s.path, encoding="utf-8") as f:
+        data = json.load(f)
+    p = data["player"]
+    p["inventory"]["counts"].update({"graft_draught": 2, "herran_bonesaw": 1})
+    p["inventory"]["right"] = "herran_bonesaw"
+    p["stash"] = {"sun_tincture": 1, "spire_key": 1}
+    p["quick_slots"] = ["graft_draught", None, None, None]
+    with open(s.path, "w", encoding="utf-8") as f:
+        json.dump(data, f)
+    map_name, loaded, got = s.load()
+    start = _start_spot("herrans_castle")
+    assert map_name == "herrans_castle"
+    assert (loaded.x, loaded.z) == (start["x"], start["z"])
+    assert loaded.remnant["map"] == "herrans_castle" and loaded.remnant["gold"] == 40
+    assert (loaded.remnant["x"], loaded.remnant["z"]) == (start["x"], start["z"])
+    assert got == {"argent_sigil_taken", "herran_dead", "chest:vesperholm:40,23"}
+    inv = loaded.inventory
+    assert not RETIRED_ITEMS & set(inv.counts) and inv.slots["right"] is None
+    assert not RETIRED_ITEMS & set(loaded.stash) and not RETIRED_ITEMS & set(filter(None, loaded.quick_slots))
+    assert s.summary().map == "herrans_castle"
+
+
+def test_a_save_made_in_the_new_castle_stays_put(tmp_path):
+    s = SaveSystem(str(tmp_path / "save.json"))
+    player = Player()
+    player.x, player.z = 9.0, 11.0
+    _old_save(s, "herrans_castle", player, ["chest:herrans_castle:2,2"], 4)
+    _map, loaded, got = s.load()
+    assert (loaded.x, loaded.z) == (9.0, 11.0) and got == {"chest:herrans_castle:2,2"}

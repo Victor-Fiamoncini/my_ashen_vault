@@ -35,11 +35,8 @@ class Tile:
     slow: float = 1.0
     chasm: bool = False
     # The words for going over a chasm's brink (`world.PLUNGE_MESSAGES`, the legend's `fall=`): Herran's
-    # Castle's cloud sea says you fall through cloud. None says nothing but the rush of air.
+    # Castle's gorge says you fall into it. None says nothing but the rush of air.
     fall: str | None = None
-    # A chasm with no floor drawn at all (`void` in the legend): the sky's own sea of cloud shows far
-    # below through it (Herran's Castle).
-    void: bool = False
     # A fouled mire (the Sallow Fen): wading it builds this ailment, (kind, meter points a second),
     # while nothing holds you up out of it (a raised causeway, a stilt-walk). It doesn't count as a
     # hazard: foes wade it too, and you can stand in it.

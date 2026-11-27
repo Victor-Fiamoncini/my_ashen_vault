@@ -19,9 +19,9 @@ a gorge of fire, the forges of the Cinderhold burn again, and two iron gargoyles
 Take up a rusted sword, bring back the Ember Sigil from the prison, the Verdant Sigil from the hollow and the
 Iron Sigil from the Cinderhold. At the head of the cathedral steps the Vesper Gate stands open on
 Vesperholm, a city drowned in the light of a full moon that never sets, where a duchess keeps the fourth
-sigil in her cathedral. The fifth was never the king's: above the clouds, in a castle of towers between
-the sun and the moon, Herran keeps it, Ilvane's brother, who wanted the many hands of their mother, the
-old god Lyra, and sewed the arms of drakes and men onto his own back. Bring all five
+sigil in her cathedral. The fifth was never the king's: in a castle of many towers built against the
+black mountain behind Vesperholm, Herran keeps it, Ilvane's brother, who wanted the many hands of their
+mother, the old god Lyra, and sewed the arms of beasts and men onto his own back. Bring all five
 home and let the bell sing again.
 
 ### Inspiration
@@ -85,12 +85,12 @@ trademarks of FromSoftware, Inc. (*Dark Souls* is published by Bandai Namco Ente
     <td align="center"><sub>Vesperholm, the Moonbound City, under a moon that never sets</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/herrans_castle.png" alt="A terrace of pale stone high over the clouds, red-brick Victorian towers and a needle spire beyond"></td>
-    <td><img src="docs/screenshots/herran.png" alt="Herran's grafted arms reaching in under the broken iron dome of his observatory, his health bar above"></td>
+    <td><img src="docs/screenshots/herrans_castle.png" alt="A long causeway over a gorge in the storm, a grafted footman on it, gothic towers and a black mountain under the moon beyond"></td>
+    <td><img src="docs/screenshots/herran.png" alt="Herran rising in his anatomy theatre under its broken iron dome, open to the storm, his health bar above"></td>
   </tr>
   <tr>
-    <td align="center"><sub>Herran's Castle, its towers over a sea of cloud</sub></td>
-    <td align="center"><sub>Herran, the Many-Handed, in his observatory</sub></td>
+    <td align="center"><sub>Herran's Castle, on the mountain behind Vesperholm</sub></td>
+    <td align="center"><sub>Herran, the Many-Handed, in his anatomy theatre</sub></td>
   </tr>
 </table>
 
@@ -119,7 +119,8 @@ trademarks of FromSoftware, Inc. (*Dark Souls* is published by Bandai Namco Ente
   catches fire at half health, the Butcher swings his cleaver among the meat hooks, Mother Gnawl and
   the Sodden Pall rule the sewers, the Keystone, the giant the first city stood on, rises in its sunken court, the Loom Mother calls her brood, the Mire Tyrant wallows on its island in the fen, two iron gargoyles take turns on
   the keep's roof, Duchess Ilvane, the Moonwed, calls the moon down on you in her cathedral, and
-  Herran, the Many-Handed, rakes you with eight grafted arms in the observatory atop his spire. Die in
+  two stone sentinels guard Herran's keep, where Herran, the Many-Handed, rakes you with eight grafted arms
+  in the anatomy theatre at its top. Die in
   an arena and only fog remains at its door.
 - **Nine areas, hand-built**:
   - the Cemetery of Ashes where you wake, a short first level that teaches as you go;
@@ -142,9 +143,10 @@ trademarks of FromSoftware, Inc. (*Dark Souls* is published by Bandai Namco Ente
   - and Vesperholm, the Moonbound City behind the Vesper Gate at the head of the cathedral steps:
     moonlit streets drowned in the light of a moon that never sets, a glass bridge over a gorge,
     and a castle where the dead keep watch as pale shades;
-  - and above them all, through a portal in Lyra's Chapel, Herran's Castle: Victorian towers of sooted
-    dark brick and gilt iron over a sea of cloud, a walk of iron grating between them, many-armed drakes
-    on the wing, gowned drake magi, a secret laboratory of elixirs and grafts, and the spire where Herran waits.
+  - and through a portal in Lyra's Chapel, Herran's Castle, built against the black mountain behind
+    Vesperholm in a storm that never breaks: a long causeway over a gorge, a gate sealed by the two
+    wardens of its towers, vast dark halls, stone sentinels, and hidden in the rock beneath it a
+    laboratory of many-armed things sewn together from beasts and men.
 - **Shortcuts and secrets**: barred doors, fastened lifts and drawbridges fold each area back onto its
   shrine; some walls aren't walls and some chests aren't chests.
 - **Dark places**: caves swallow your light until you burn Lumen or kindle the cold braziers, which

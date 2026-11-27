@@ -41,6 +41,7 @@ from ashen_vault.world import (
     ramparts,
     regions,
     relics,
+    seals,
     shots,
     terrain,
     vault,
@@ -164,7 +165,7 @@ FALL_DEATH = "You fall to your death."
 DROP_MESSAGE = "You step off into empty air, and fall!"  # an edge over a lethal drop
 # Going over a chasm's brink, keyed by its `fall=` (the legend's); a chasm without one says nothing.
 PLUNGE_MESSAGES = {
-    "cloud": "You fall from the castle, down through the cloud, and the wind takes your cry.",
+    "gorge": "You fall from the mountain into the gorge, and the storm swallows your cry.",
 }
 # Going into deep water, and dying in it, keyed by the water's `drown=` (the legend's; "sea" if unset).
 DROWN_MESSAGES = {
@@ -257,7 +258,7 @@ BLOCKING_PROPS = (
     "moon_crystal",
     "old_idol",
     "lyra_statue",
-    *("gas_lamp", "drake_fountain", "specimen_jar", "alembic_bench", "vat", "surgery_table", "telescope"),
+    *("candelabra", "gate_statue", "vat", "dissecting_table", "specimen_cage", "lab_bench"),
 )
 # Ways to another map that fill their tile, so you take them by facing them and interacting: the well
 # and the gaol's grate in Harrowmere's plaza.
@@ -295,9 +296,10 @@ PROP_TOP = {
     "katana_stand": 1.2,
     "drawers": 1.05,
     "old_idol": 2.6,
-    "alembic_bench": 1.0,
-    "surgery_table": 0.95,
+    "lab_bench": 1.0,
+    "dissecting_table": 0.95,
     "vat": 1.6,
+    "gate_statue": 3.0,
 }
 # Props that block only until they are broken or revealed.
 BREAKABLE_PROPS = ("barrel", "crate", "urn", "cocoon", "secret_wall")
@@ -337,7 +339,7 @@ WALL_PROPS = (
     "outfall_grate",
     "moon_window",
     "prisoner_remains",
-    "potion_shelf",
+    "hand_rack",
 )
 # Props drawn as far as the fog lets you see, however far that is: they make a skyline.
 LANDMARKS = (
@@ -370,9 +372,9 @@ LANDMARKS = (
     "sun_shaft",
     "waterfall",
     "wall_crack",
-    "herran_tower",
-    "glasshouse",
-    "observatory_dome",
+    "castle_tower",
+    "hollow_peak",
+    "anatomy_dome",
 )
 # Props that never move, open, break or flicker: they are baked once into world-space batches
 # (`render/prop_bake.py`) instead of being drawn part by part every frame. A prop drawn with the time
@@ -410,8 +412,8 @@ STATIC_PROPS = frozenset(
             "stilt_posts",
         ),
         *("prisoner_remains", "old_idol", "sunken_tower", "lyra_statue"),
-        *("gas_lamp", "herran_tower", "glasshouse", "drake_fountain", "specimen_jar", "alembic_bench"),
-        *("vat", "surgery_table", "potion_shelf", "telescope", "observatory_dome"),
+        *("castle_tower", "hollow_peak", "anatomy_dome", "gate_statue", "dissecting_table"),
+        *("specimen_cage", "hand_rack", "lab_bench"),
         "wall_crack",
         "ash_mound",
         "spire",
@@ -424,7 +426,7 @@ FACING_PROPS = (
     *("chest", "altar", "table", "bed", "cupboard", "gargoyle_statue", "forge_hearth"),
     *("bench", "hand_cart", "hay_wagon", "mourning_statue", "forge_bellows", "town_statue", "forge_statue"),
     *("ore_cart", "armor_stand", "katana_stand", "bookcase", "drawers", "old_idol", "lyra_statue"),
-    *("alembic_bench", "surgery_table"),
+    *("lab_bench", "dissecting_table", "gate_statue"),
 )
 # Ways through a wall that its rampart bays keep clear of (`World._dress_ramparts`).
 RAMPART_GATES = ("exit", "cemetery_gate", "door", "gate", "door_arch", "moon_portal", "cathedral_portal")
@@ -517,7 +519,7 @@ ERUPTION_SOURCES = {
     "filth": "The filth",
     "core": "The mortar-light",
     "boulder": "The hurled boulder",
-    "sun": "The sunbrand",
+    "sun": "The sunlight",
     "grafts": "The grafted hands",
     "elixir": "Herran's elixir",
 }
@@ -525,8 +527,6 @@ SQUEAL_STAGGER = 1.2  # seconds Mother Gnawl's squeal leaves you stumbling
 BURROW_ROT = (("rot", 25),)  # rot the filth Mother Gnawl bursts up through builds in you
 BURST_RING = 1.4  # metres from where she bursts up to each spout of filth round her
 BURST_SPOUTS = 6
-REND_BLOWS = 3  # blows in a Grafted Drake's rend, one for each pair of arms and its claws
-SUNBRAND_RADIUS = 1.3  # metres across a Drake Magus's ring of glyphs, from its middle
 ELIXIR_RADIUS = 1.5  # metres Herran's flask splashes out where it bursts
 ELIXIR_WARN = 1.1  # seconds its flight lasts, the ring glowing where it will land
 ELIXIR_TOXIC = 45  # toxic its splash builds in you
@@ -1429,7 +1429,8 @@ class World:
         return [e for e in self.enemies if enemy.type.twin and e.type.id == enemy.type.twin]
 
     def rouse_twin(self, enemy):
-        """One perched gargoyle wakes: its twin tears free of its perch as well."""
+        """One perched twin wakes (a gargoyle, a stone sentinel): its twin tears free of its perch as well,
+        and the pair calls out its `wakes` words; stone grinds, iron screeches."""
         woke = False
         for e in self._twins_of(enemy):
             if e.perched:
@@ -1438,8 +1439,9 @@ class World:
         if not enemy.type.twin:
             self.game.sfx("quake", 0.4)  # a lone statue grinds free of its plinth
         elif woke:
-            self.game.sfx("screech")
-            self.game.message("The iron gargoyles tear free of their perches!")
+            self.game.sfx("quake" if enemy.type.brittle else "screech", 0.6 if enemy.type.brittle else 1.0)
+            if enemy.type.wakes:
+                self.game.message(enemy.type.wakes)
 
     def twin_fallen(self, enemy):
         return enemy.type.twin is not None and not any(e.alive for e in self._twins_of(enemy))
@@ -2030,31 +2032,6 @@ class World:
             child.state = "chase"
             self.enemies.append(child)
 
-    def grounded(self, enemy):
-        """Whether a flyer has come down to fight on foot (a Grafted Drake rends only then)."""
-        return not enemy.aloft
-
-    def rend(self, enemy):
-        """A landed Grafted Drake rakes with all four of its grafted arms at once: REND_BLOWS blows,
-        each that gets through tearing at you (its bleed)."""
-        for _ in range(REND_BLOWS):
-            self.enemy_strike(enemy, MOVES["rend"][2])
-        self.game.sfx("swoosh", 0.8)
-
-    def sunbrand(self, enemy):
-        """A Drake Magus brands the floor where you stand: a ring of gold glyphs kindles under you and
-        bursts into a column of sunlight a moment later (`Eruption` style "sun"). Step out of the ring."""
-        player = self.player
-        tile = self.map.tile_at(player.x, player.z)
-        if tile.solid or not tile.walkable:
-            return
-        damage = rround(enemy.type.damage * MOVES["sunbrand"][2])
-        self.eruptions.append(
-            Eruption(player.x, player.z, tile.floor, damage=damage, radius=SUNBRAND_RADIUS, style="sun")
-        )
-        self.game.sfx("ward", 0.9)
-        self.game.message("Gold glyphs kindle on the floor under you!")
-
     def grasp_sweep(self, enemy):
         """Herran rakes his eight arms round him, low: whoever is within GRASP_SWEEP_REACH of him, on any
         side, is struck. Back off out of their reach, or jump in close behind his raised guard."""
@@ -2278,6 +2255,7 @@ class World:
         self._push_player_out_of_bodies()
         self._update_thorns(dt)
         self._update_arenas()
+        self._update_seals()
         self._update_hints()
         self._update_regions()
 
@@ -3048,6 +3026,24 @@ class World:
     def open_prop(self, p):
         p.open_t = 0.01
         self.flags.add(p.key)
+
+    def seal_eyes(self, p):
+        """How many eyes still burn on a sealed door (`door seal=`): one for each guardian still standing."""
+        name = p.props.get("seal")
+        return seals.living(self.map, self.flags, name) if name else 0
+
+    def seal_broken(self, p):
+        """Whether a door's seal is broken (or it has none): every guardian bound to it has fallen."""
+        name = p.props.get("seal")
+        return not name or seals.broken(self.map, self.flags, name)
+
+    def _update_seals(self):
+        """A sealed door whose last guardian has fallen opens of itself, for good (`world/seals.py`)."""
+        for p in self.props:
+            if p.kind == "door" and p.props.get("seal") and p.open_t == 0 and self.seal_broken(p):
+                self.open_prop(p)
+                self.game.sfx("door")
+                self.game.message("The last eye on the gate gutters out, and it grinds open.")
 
     def drop_sigil(self, x, z):
         self.drop_pickup(x, z, "ember_sigil", "sigil")

@@ -107,18 +107,19 @@ SHOTS = [
     ),
     Shot(
         "herrans_castle",
-        "--map herrans_castle --at=27,38,-90 --level 12 --equip primary=stormbrand,secondary=spell:ward "
-        "--smoke 60",
-        "Herran's Castle, its towers over a sea of cloud",
-        "A terrace of pale stone high over the clouds, red-brick Victorian towers and a needle spire beyond",
+        "--map herrans_castle --at=19,72,-90 --level 12 --equip primary=stormbrand,secondary=spell:ward "
+        '--smoke 60 --script "look_up:0.25"',
+        "Herran's Castle, on the mountain behind Vesperholm",
+        "A long causeway over a gorge in the storm, a grafted footman on it, gothic towers and a black "
+        "mountain under the moon beyond",
     ),
     Shot(
         "herran",
-        "--map herran_spire --at=14,5,0 --level 12 "
+        "--map herrans_castle --at=23,5,0 --level 12 "
         "--equip primary=stormbrand,secondary=spell:ward,body=brigandine,hands=iron_gauntlets "
-        '--smoke 360 --script "interact wait:0.8 forward:1.0 wait:5"',
-        "Herran, the Many-Handed, in his observatory",
-        "Herran's grafted arms reaching in under the broken iron dome of his observatory, "
+        '--smoke 520 --script "interact wait:0.8 forward:1.4 wait:5.5"',
+        "Herran, the Many-Handed, in his anatomy theatre",
+        "Herran rising in his anatomy theatre under its broken iron dome, open to the storm, "
         "his health bar above",
     ),
 ]

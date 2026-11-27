@@ -380,7 +380,7 @@ class WorldView:
                 elif f.style == "boulder":
                     sunken_models.boulder_mark(rig, f.glow, f.flame, world._time, f.radius)
                 elif f.style == "sun":
-                    herran_models.sunbrand(rig, f.glow, f.flame, world._time, f.radius)
+                    herran_models.sunburst(rig, f.glow, f.flame, world._time, f.radius)
                 elif f.style == "grafts":
                     herran_models.graft_hands(rig, f.glow, f.flame, world._time, f.radius)
                 elif f.style == "elixir":
@@ -770,7 +770,8 @@ def _draw_door(view, rig, p, t):
     else:
         tile = world.map[p.tx, p.tz]
         frame = (tile.ceil - tile.floor) if tile.ceil is not None else DOOR_FRAME_SKY
-        models.door(rig, p.open_t, p.axis, style=p.props.get("model", "wood"), frame=frame)
+        eyes = world.seal_eyes(p)
+        models.door(rig, p.open_t, p.axis, style=p.props.get("model", "wood"), frame=frame, eyes=eyes, t=t)
 
 
 def _draw_gate(view, rig, p, t):
@@ -875,8 +876,6 @@ def _draw_exit(view, rig, p, t):
         sunken_models.cistern_breach(rig, t)
     elif p.props.get("model") == "chapel_door":
         moon_models.chapel_door(rig, t)
-    elif p.props.get("model") == "spire_door":
-        herran_models.spire_door(rig, t)
     elif p.props.get("model") == "argent_portal":
         moon_models.argent_portal(rig, t)
     elif p.props.get("model") == "sunken_stair":
@@ -1116,23 +1115,26 @@ PROP_DRAWERS = {
     "inkcaps": lambda view, rig, p, t: sewer_models.inkcaps(rig, p.tx * 7 + p.tz * 3),
     "sump_caps": lambda view, rig, p, t: sewer_models.sump_caps(rig, p.tx * 7 + p.tz * 3),
     "moon_lamp": lambda view, rig, p, t: moon_models.moon_lamp(rig, p.tx * 7 + p.tz * 3),
-    "gas_lamp": lambda view, rig, p, t: herran_models.gas_lamp(rig, p.tx * 7 + p.tz * 3),
-    "herran_tower": lambda view, rig, p, t: herran_models.herran_tower(
-        rig, p.tx * 7 + p.tz * 3, float(p.props.get("height", "14")), p.props.get("style", "round")
+    "castle_tower": lambda view, rig, p, t: herran_models.castle_tower(
+        rig,
+        p.tx * 7 + p.tz * 3,
+        float(p.props.get("height", "24")),
+        p.props.get("style", "round"),
+        float(p.props.get("width", "5")),
     ),
-    "glasshouse": lambda view, rig, p, t: herran_models.glasshouse(
-        rig, *(float(v) for v in p.props.get("span", "18,38").split(",")), float(p.props.get("height", "8"))
+    "hollow_peak": lambda view, rig, p, t: herran_models.hollow_peak(
+        rig, p.tx * 7 + p.tz * 3, float(p.props.get("height", "90")), float(p.props.get("width", "60"))
     ),
-    "drake_fountain": lambda view, rig, p, t: herran_models.drake_fountain(rig, p.tx * 7 + p.tz * 3),
-    "specimen_jar": lambda view, rig, p, t: herran_models.specimen_jar(rig, p.tx * 7 + p.tz * 3),
-    "alembic_bench": lambda view, rig, p, t: herran_models.alembic_bench(rig, p.tx * 7 + p.tz * 3),
-    "vat": lambda view, rig, p, t: herran_models.vat(rig, p.tx * 7 + p.tz * 3),
-    "surgery_table": lambda view, rig, p, t: herran_models.surgery_table(rig, p.tx * 7 + p.tz * 3),
-    "potion_shelf": lambda view, rig, p, t: herran_models.potion_shelf(rig, p.tx * 7 + p.tz * 3),
-    "telescope": lambda view, rig, p, t: herran_models.telescope(rig, p.tx * 7 + p.tz * 3),
-    "observatory_dome": lambda view, rig, p, t: herran_models.observatory_dome(
-        rig, float(p.props.get("radius", "5")), float(p.props.get("height", "1"))
+    "anatomy_dome": lambda view, rig, p, t: herran_models.anatomy_dome(
+        rig, float(p.props.get("radius", "6")), float(p.props.get("height", "1.2"))
     ),
+    "candelabra": lambda view, rig, p, t: herran_models.candelabra(rig, p.tx * 7 + p.tz * 3, t),
+    "gate_statue": lambda view, rig, p, t: herran_models.gate_statue(rig, p.tx * 7 + p.tz * 3),
+    "vat": lambda view, rig, p, t: herran_models.vat(rig, p.tx * 7 + p.tz * 3, t),
+    "dissecting_table": lambda view, rig, p, t: herran_models.dissecting_table(rig, p.tx * 7 + p.tz * 3),
+    "specimen_cage": lambda view, rig, p, t: herran_models.specimen_cage(rig, p.tx * 7 + p.tz * 3),
+    "hand_rack": lambda view, rig, p, t: herran_models.hand_rack(rig, p.tx * 7 + p.tz * 3),
+    "lab_bench": lambda view, rig, p, t: herran_models.lab_bench(rig, p.tx * 7 + p.tz * 3),
     "moon_stair": lambda view, rig, p, t: moon_models.moon_stair(  # down along its yaw from its top tile
         rig,
         int(p.props.get("run", "12")),

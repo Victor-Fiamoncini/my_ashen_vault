@@ -20,7 +20,7 @@ RELICS = {
         Relic(item="verdant_sigil", key="verdant_sigil", taken_flag="verdant_sigil_taken"),
         Relic(item="iron_sigil", key="iron_sigil", taken_flag="iron_sigil_taken"),
         Relic(item="argent_sigil", key="argent_sigil", taken_flag="argent_sigil_taken"),
-        # Herran's, the fifth seal the king never held: it lies with him in his spire above the clouds.
+        # Herran's, the fifth seal the king never held: it lies with him atop his keep on the Hollow Peak.
         Relic(item="auric_sigil", key="auric_sigil", taken_flag="auric_sigil_taken"),
     ]
 }
