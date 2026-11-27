@@ -83,6 +83,24 @@ MOVES = {
     "elixir_hurl": (1.0, 7.0, 0.8),
     "embrace": (1.2, 9.0, 1.6),
     "solar_gaze": (1.1, 9.0, 0.9),
+    # Herran's arms each to their own work: the beast's pair, the lowest, raking a wide arc before
+    # him; his own pair, the topmost, cutting with their scalpel fingers in a flurry of quick cuts;
+    # all eight plunged into the floor so a cage of grafted hands bursts up round you; and (second
+    # phase) the men's four arms each lobbing a flask in turn, and every arm raised and clasped to
+    # bring them all down together before him.
+    "beast_rake": (0.95, 6.5, 1.15),
+    "scalpel_flurry": (0.5, 6.0, 0.45),
+    "hand_cage": (1.2, 10.0, 0.9),
+    "flask_volley": (1.2, 10.0, 0.7),
+    "cradle_slam": (1.4, 10.0, 1.35),
+    # The twin sentinels' own: the Bulwark's charge behind its tower shield, and (second phase) its
+    # rampart, the shield's edge driven into the floor so it splits toward you in a fan of fire; the
+    # Blade's whirlwind, a full turn with its long blade held out, and (second phase) its leap, down
+    # blade-first on where you stood, the floor there glowing while it is in the air.
+    "shield_charge": (0.9, 8.0, 1.0),
+    "rampart_slam": (1.2, 9.0, 0.9),
+    "whirlwind": (0.8, 6.5, 1.0),
+    "sky_rend": (1.0, 9.0, 1.4),
 }
 COMBO_SWINGS = 3
 COMBO_GAP = 0.45  # seconds between the swings of a combo (scaled by a type's `tempo`: `Enemy.combo_gap`)
@@ -123,11 +141,29 @@ ENGULF_TIME = 1.4  # longest a lurch lasts
 ENGULF_OVERSHOOT = 1.5  # metres it lurches on past where you stood
 ENGULF_HIT = 0.6  # a lurch passing this close (beyond its radius) flows over you, once
 SHED_RANGE = 12.0  # it sheds its gobbets only while you are this close
+SHIELD_CHARGE_RANGE = (3.5, 10.0)  # distances the Bulwark charges you from
 # The lunges along a straight line: speed (m/s), longest (s), overshoot past you (m), hit reach (m).
 LUNGES = {
     "dive": (DIVE_SPEED, DIVE_TIME, DIVE_OVERSHOOT, DIVE_HIT),
     "engulf": (ENGULF_SPEED, ENGULF_TIME, ENGULF_OVERSHOOT, ENGULF_HIT),
+    "shield_charge": (9.0, 1.0, 1.0, 0.9),
 }
+# The chains of swings: how many, the gap between them as a share of `combo_gap`, and how much harder
+# the last one hits. A sentinel's combo; Herran's scalpels, quicker and one cut more.
+COMBOS = {
+    "combo": (COMBO_SWINGS, 1.0, 1.4),
+    "scalpel_flurry": (4, 0.55, 1.6),
+}
+# Leaps at where you stood as it sprang: speed (m/s) and longest flight (s). The Blade Sentinel's is
+# higher and slower, and where it will come down glows while it is in the air (`World.sky_rend`).
+LEAPS = {
+    "pounce": (POUNCE_SPEED, POUNCE_TIME),
+    "sky_rend": (9.0, 0.9),
+}
+SKY_REND_RANGE = (4.0, 12.0)
+SKY_REND_RADIUS = 2.6  # metres round where it comes down that the burst catches you
+RAMPART_RANGE = (2.5, 11.0)  # distances the Bulwark drives its rampart toward you from
+WHIRLWIND_REACH = 0.8  # extra reach of the Blade's whirlwind over its blow, on every side
 FROST_LANCE_RANGE = (3.0, 12.0)
 BLINK_RANGE = (3.0, 10.0)  # it steps through the moonlight only while you keep your distance
 MOONBEAM_RANGE = (2.0, 12.0)
@@ -135,6 +171,11 @@ GRASP_SWEEP_REACH = 4.2  # metres Herran's arms rake round him
 HAND_RAIN_RANGE = (3.0, 14.0)
 ELIXIR_RANGE = (4.0, 15.0)
 EMBRACE_REACH = 3.4  # metres his arms clamp out to
+BEAST_RAKE_REACH = 4.8  # metres the beast's arms rake out to before him
+BEAST_RAKE_ARC = 1.3  # half-angle (radians) of the rake's arc: get round his flank and it misses
+HAND_CAGE_RANGE = (1.5, 12.0)
+FLASK_VOLLEY_RANGE = (4.0, 15.0)
+CRADLE_RADIUS = 4.6  # metres round him that his clasped arms, brought down, strike
 MOONFALL_RANGE = 12.0
 TOLL_RANGE = (3.0, 14.0)  # a sexton rings its bell only while you keep this far off and in sight
 TOLL_RADIUS = 14.0  # metres round the bell that stone sleepers wake
@@ -259,6 +300,17 @@ MOVE_SPECS = {
     "elixir_hurl": MoveSpec(lo=ELIXIR_RANGE[0], hi=ELIXIR_RANGE[1], sight=True, lands="elixir_hurl"),
     "embrace": MoveSpec(hi=EMBRACE_REACH * 0.8, close=True, lands="embrace"),
     "solar_gaze": MoveSpec(lo=BREATH_RANGE[0], hi=BREATH_RANGE[1], sight=True, lands="solar_gaze"),
+    "beast_rake": MoveSpec(hi=BEAST_RAKE_REACH * 0.8, close=True, lands="beast_rake"),
+    "scalpel_flurry": MoveSpec(hi=0.3, hi_reach=True, close=True),
+    "hand_cage": MoveSpec(lo=HAND_CAGE_RANGE[0], hi=HAND_CAGE_RANGE[1], sight=True, lands="hand_cage"),
+    "flask_volley": MoveSpec(
+        lo=FLASK_VOLLEY_RANGE[0], hi=FLASK_VOLLEY_RANGE[1], sight=True, lands="flask_volley"
+    ),
+    "cradle_slam": MoveSpec(hi=CRADLE_RADIUS * 0.8, close=True, lands="cradle_slam"),
+    "shield_charge": MoveSpec(lo=SHIELD_CHARGE_RANGE[0], hi=SHIELD_CHARGE_RANGE[1], sight=True),
+    "rampart_slam": MoveSpec(lo=RAMPART_RANGE[0], hi=RAMPART_RANGE[1], sight=True, lands="rampart_slam"),
+    "whirlwind": MoveSpec(hi=0.4, hi_reach=True, close=True, lands="whirlwind"),
+    "sky_rend": MoveSpec(lo=SKY_REND_RANGE[0], hi=SKY_REND_RANGE[1], sight=True),
 }
 
 
@@ -294,6 +346,12 @@ ATTACK_TIMES = {
     "elixir_hurl": 0.45,
     "embrace": 0.7,
     "solar_gaze": 0.6,
+    "beast_rake": 0.55,
+    "hand_cage": 0.6,
+    "flask_volley": 0.5,
+    "cradle_slam": 0.7,
+    "rampart_slam": 0.5,
+    "whirlwind": 0.55,
 }
 
 
@@ -798,9 +856,11 @@ class Enemy:
             kind = self.attack_kind
             self._switch("attack")
             self.attack_kind = kind
-            if kind == "pounce":
+            if kind in LEAPS:
                 # It springs at where you stand now; step aside at the last moment to dodge.
                 self._target = (world.player_x, world.player_z)
+                if kind == "sky_rend":  # where it will come down glows while it is in the air
+                    world.sky_rend(self)
             elif kind in LUNGES:
                 # It swoops (or surges) through where you stand now and carries on past.
                 overshoot = LUNGES[kind][2]
@@ -810,9 +870,9 @@ class Enemy:
 
     def _attack(self, world, dist, dt=0.0):
         kind = self.attack_kind
-        if kind == "pounce":
+        if kind in LEAPS:
             return self._pounce(world, dt)
-        if kind == "combo":
+        if kind in COMBOS:
             return self._combo(world, dist, dt)
         if kind in LUNGES:
             return self._dive(world, dt)
@@ -883,42 +943,57 @@ class Enemy:
         if self.state_t >= BURROW_TIME + BURST_TIME:
             self._switch("recover")
 
+    def _chain(self):
+        """(swings, gap) of the chain of swings under way (COMBOS; a plain combo's otherwise)."""
+        swings, share, _last = COMBOS.get(self.attack_kind, COMBOS["combo"])
+        return swings, self.combo_gap * share
+
     @property
     def combo_swing(self):
-        """Which swing (0, 1, 2) of a combo is under way."""
-        return min(int(self.state_t / self.combo_gap), COMBO_SWINGS - 1)
+        """Which swing (0, 1, 2, ...) of a combo is under way."""
+        swings, gap = self._chain()
+        return min(int(self.state_t / gap), swings - 1)
 
     def _combo(self, world, dist, dt):
-        """Three swings, `combo_gap` apart. Each must reach you and face you, so stepping back or
-        round him breaks the chain; the last one hits hardest. He turns only slowly between swings."""
+        """A chain of swings (COMBOS: three of a combo, `combo_gap` apart). Each must reach you and
+        face you, so stepping back or round him breaks the chain; the last one hits hardest. He turns
+        only slowly between swings."""
+        kind = self.attack_kind
+        swings, gap = self._chain()
+        last_mult = COMBOS[kind][2]
         want = math.atan2(world.player_z - self.z, world.player_x - self.x)
         diff = _wrap(want - self.yaw)
         step = COMBO_TURN * dt
         self.yaw = want if abs(diff) <= step else self.yaw + math.copysign(step, diff)
-        due = min(int(self.state_t / self.combo_gap) + 1, COMBO_SWINGS)
+        due = min(int(self.state_t / gap) + 1, swings)
         while int(self._struck) < due:
             self._struck += 1
             if dist <= self.type.reach + 0.3 and self._facing(world.player_x, world.player_z):
-                last = self._struck == COMBO_SWINGS
-                world.enemy_strike(self, MOVES["combo"][2] * (1.4 if last else 1.0))
-        if self.state_t >= self.combo_gap * (COMBO_SWINGS - 1) + 0.25:
+                last = self._struck == swings
+                world.enemy_strike(self, MOVES[kind][2] * (last_mult if last else 1.0))
+        if self.state_t >= gap * (swings - 1) + 0.25:
             self._switch("recover")
 
     def _pounce(self, world, dt):
+        """A leap (LEAPS) at where you stood as it sprang: a pounce strikes you if you are still by it
+        where it lands; the Blade Sentinel's leap comes down in a burst already marked on the floor."""
+        kind = self.attack_kind
+        speed, longest = LEAPS[kind]
         tx, tz = self._target
         dx = tx - self.x
         dz = tz - self.z
         d = math.hypot(dx, dz)
-        landed = d < 0.4 or self.state_t >= POUNCE_TIME
+        landed = d < 0.4 or self.state_t >= longest
         if not landed:
-            step = min(POUNCE_SPEED * dt, d)
+            step = min(speed * dt, d)
             ox, oz = self.x, self.z
             world.move_enemy(self, dx / d * step, dz / d * step)
             # Hit a wall (or you): the leap ends here.
             landed = math.hypot(self.x - ox, self.z - oz) < step * 0.3
         if landed:
-            dist = math.hypot(world.player_x - self.x, world.player_z - self.z)
-            if dist <= self.radius + 1.2:
+            if kind == "sky_rend":
+                world.sky_rend_land(self)
+            elif math.hypot(world.player_x - self.x, world.player_z - self.z) <= self.radius + 1.2:
                 world.enemy_strike(self, MOVES["pounce"][2])
             self._switch("recover")
 
@@ -942,6 +1017,8 @@ class Enemy:
                 self._struck = True
                 if kind == "engulf":
                     world.engulf(self)
+                elif kind == "shield_charge":
+                    world.shield_bash(self)
                 else:
                     world.enemy_strike(self, MOVES["dive"][2])
         if done:

@@ -754,8 +754,9 @@ def _draw_door(view, rig, p, t):
     if p.props.get("boss"):
         a = world.arena_at_door(p)
         great = _great_gate(view, rig, p)
+        tile = world.map[p.tx, p.tz]
+        frame = (tile.ceil - tile.floor) if tile.ceil is not None and great is None else None
         if a and a.fogged(world.flags):
-            tile = world.map[p.tx, p.tz]
             height = models.BOSS_DOOR_TOP if great is None else models.GREAT_DOOR_TOP
             if tile.ceil is not None:
                 height = min(height, tile.ceil - tile.floor)
@@ -764,14 +765,27 @@ def _draw_door(view, rig, p, t):
                     rig, 0.0, p.axis, t, lit=True, boss=p.props["boss"], great=great, leaves=False
                 )
             models.fog_gate(rig, t, p.axis, a.sealed, height)
+            lit = True
         else:
             lit = not (a and a.cleared(world.flags))
             models.boss_door(rig, p.open_t, p.axis, t, lit=lit, boss=p.props.get("boss"), great=great)
+        if frame is not None and frame > models.BOSS_DOOR_TOP:  # the wall over it, up to the ceiling
+            _infill_light(view, rig, p, frame)
+            models.boss_door_infill(rig, p.axis, p.props["boss"], frame, t, lit)
     else:
         tile = world.map[p.tx, p.tz]
         frame = (tile.ceil - tile.floor) if tile.ceil is not None else DOOR_FRAME_SKY
         eyes = world.seal_eyes(p)
         models.door(rig, p.open_t, p.axis, style=p.props.get("model", "wood"), frame=frame, eyes=eyes, t=t)
+
+
+def _infill_light(view, rig, p, frame):
+    """The masonry over a boss door is a wall seen from the room you stand in: it takes that room's
+    light, partway up, rather than the dim light down in the doorway."""
+    player = view.world.player
+    d = TileMap.TILE if (player.x - p.x if p.axis == "x" else player.z - p.z) > 0 else -TileMap.TILE
+    x, z = (p.x + d, p.z) if p.axis == "x" else (p.x, p.z + d)
+    view._model_light(rig.gpu, x, p.y + min(frame, 8.0) / 2, z)
 
 
 def _draw_gate(view, rig, p, t):
@@ -931,7 +945,8 @@ def _draw_moon_window(
         rig.at(0, 0, 0, s=size),
         rig.at(0.95, 0, 0),
     ):
-        moon_models.moon_window(rig, p.tx * 7 + p.tz * 3)
+        draw = moon_models.moon_great_window if p.kind == "moon_great_window" else moon_models.moon_window
+        draw(rig, p.tx * 7 + p.tz * 3)
 
 
 def _draw_anatomy_dome(view, rig, p, t):  # on the theatre's -X/-Z floor tile, `span=` tiles across
@@ -1158,6 +1173,7 @@ PROP_DRAWERS = {
     "veiled_statue": lambda view, rig, p, t: moon_models.veiled_statue(rig, p.tx * 7 + p.tz * 3),
     "silver_tree": lambda view, rig, p, t: moon_models.silver_tree(rig, p.tx * 7 + p.tz * 3),
     "moon_window": _draw_moon_window,
+    "moon_great_window": _draw_moon_window,
     "fen_beacon": lambda view, rig, p, t: fen_models.fen_beacon(
         rig, t + p.tx, lit=not view.world.is_doused(p)
     ),

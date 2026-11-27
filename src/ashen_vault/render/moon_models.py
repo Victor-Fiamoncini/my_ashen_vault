@@ -1039,7 +1039,7 @@ def moon_stair(r, run=12, width=3, rise=0.5, steps=5):
             h = rise * (steps - k) / steps
             rgb = _dim(pale, 0.92 + 0.08 * ((i * steps + k) % 2))
             r.part("cube", x0 + d / 2, floor + h / 2, 0, d, h, across, rgb, tex="moonstone")
-            r.part("cube", x0 + 0.03, floor + h - 0.015, 0, 0.07, 0.04, across + 0.02, SILVER)  # its nosing
+            r.part("cube", x0 + d - 0.03, floor + h - 0.015, 0, 0.08, 0.04, across + 0.02, SILVER)  # nosing
         if i % 4 == 0 and 0 < i < run - 1:  # a crescent inlaid in the landing step
             with r.at(i * T - T / 2 + d / 2, floor + rise + 0.005, 0, rz=-math.pi / 2):
                 _crescent(r, 0, 0, 0, 0.5, 9, 0.12, SILVER)
@@ -1178,6 +1178,70 @@ def moon_window(r, seed):
     r.part("cube", -0.86, apex + 0.62, 0, 0.06, 0.18, 0.06, SILVER)  # its finial
     r.part("cube", -0.84, 0.6, 0, 0.26, 0.1, 1.3, MOONSTONE_DARK, tex="moonstone")  # the sill
     r.part("cube", -0.86, 0.5, 0, 0.18, 0.1, 1.1, _dim(MOONSTONE_DARK, 0.9), tex="moonstone")
+
+
+GREAT_WINDOW_HIGH = 5.6  # the top of a great window's gablet finial, before its `size`
+GLASS_VIOLET = (138, 118, 196)  # the stained panes of the great windows: dusk violet,
+GLASS_PALE = (206, 214, 238)  # moon-white,
+GLASS_AMBER = (214, 178, 120)  # and the warm amber of the chapel's flame far above
+
+
+def moon_great_window(r, seed):
+    """One of the great windows of the Duchess's choir, in the wall behind (-X): three tall lancets of
+    stained moon-glass, the middle one the tallest, leaded in silver into small panes of moon-blue, dusk
+    violet and moon-white, with a crescent of amber glass in the middle light; over them a rose of
+    eight petals round a glowing boss. Clustered colonnettes between the lights and up the jambs, a
+    pointed containing arch with its hood mould and label stops, a crocketed gablet over it and a deep
+    sill. Hung high and scaled (`size=`), it fills a bay of the choir's back wall."""
+    x = -0.93
+    tints = (GLASS_LIT, GLASS_VIOLET, GLASS_LIT, GLASS_PALE)
+    r.part("cube", -0.97, 2.4, 0, 0.04, 3.9, 1.72, MOONSTONE_DARK, tex="moonstone")  # the reveal
+    for j, z in enumerate((-0.52, 0.0, 0.52)):  # the three lights
+        top = 3.05 if j == 1 else 2.75
+        w = 0.36
+        _glass_lancet(r, x, z, w, 0.75, top, GLASS_LIT)
+        rows = int((top - 0.75) / 0.3)
+        for k in range(rows):  # its stained panes, a different tint every row and light
+            y = 0.9 + k * 0.3
+            rgb = tints[(k + j + seed) % len(tints)]
+            r.part("cube", x + 0.01, y, z, 0.03, 0.24, w - 0.06, rgb, tex="moon_glass", glow=True)
+            r.part("cube", x + 0.03, y + 0.15, z, 0.03, 0.03, w, SILVER_DARK)  # the leading
+        r.part("cube", x + 0.03, (0.75 + top) / 2, z, 0.03, top - 0.75, 0.025, SILVER_DARK)  # a mid bar
+    _crescent(r, x + 0.05, 2.35, 0, 0.11, 7, 0.05, GLASS_AMBER, glow=True)  # amber, in the middle light
+    with r.at(x, 3.95, 0):  # the rose: eight petals round a boss
+        r.part("cyl", -0.01, 0, 0, 1.06, 0.03, 1.06, _dim(GLASS_LIT, 0.8), tex="moon_glass", glow=True,
+               rz=math.pi / 2)  # fmt: skip
+        for i in range(8):
+            a = i * math.pi / 4
+            rgb = GLASS_VIOLET if i % 2 else GLASS_PALE
+            r.part("cube", 0.01, math.sin(a) * 0.3, math.cos(a) * 0.3, 0.03, 0.2, 0.2, rgb, tex="moon_glass",
+                   glow=True, rx=math.pi / 4)  # fmt: skip
+            r.part("cube", 0.03, math.sin(a) * 0.27, math.cos(a) * 0.27, 0.03, 0.03, 0.46, SILVER_DARK,
+                   rx=math.pi / 2 - a)  # fmt: skip
+        r.part("sphere", 0.03, 0, 0, 0.12, 0.12, 0.12, GLASS_AMBER, glow=True)  # the boss
+        _wheel(r, 0.03, 0.55, 16, 0.07, 0.07, FACADE, tex="moonstone")  # its moulded ring
+        _wheel(r, 0.04, 0.14, 8, 0.04, 0.04, SILVER)
+    for z in (-0.26, 0.26):  # clustered colonnettes between the lights
+        r.part("cyl", -0.88, 1.9, z, 0.08, 2.4, 0.08, SILVER_DARK)
+        r.part("cube", -0.86, 3.12, z, 0.12, 0.1, 0.14, _dim(MOONSTONE, 1.1))
+    for side in (-1, 1):  # the jambs, two colonnettes up each, and their capitals
+        r.part("cube", -0.9, 2.0, side * 0.84, 0.18, 3.0, 0.16, FACADE, tex="moonstone")
+        for dz in (0.0, 0.1):
+            r.part("cyl", -0.8 + dz, 2.0, side * (0.8 - dz), 0.1, 2.9, 0.1, _dim(MOONSTONE, 1.2 - dz))
+        r.part("cube", -0.78, 3.5, side * 0.8, 0.22, 0.14, 0.26, _dim(MOONSTONE, 1.1))
+        r.part("cube", -0.94, 3.25, side * 0.7, 0.06, 0.5, 0.14, FACADE, tex="moonstone")  # the spandrel
+    apex = _pointed_arch(r, -0.88, 3.5, 0.84, 0.3, 7, 0.2, 0.18, FACADE, tex="moonstone")  # containing arch
+    _pointed_arch(r, -0.82, 3.5, 0.98, 0.34, 7, 0.12, 0.1, MOONSTONE_DARK, tex="moonstone")  # its hood mould
+    for side in (-1, 1):  # the hood's label stops, and a crocket climbing the gablet each side
+        r.part("cube", -0.8, 3.38, side * 1.0, 0.16, 0.2, 0.16, _dim(MOONSTONE, 1.1))
+        r.part("cube", -0.82, apex + 0.3, side * 0.3, 0.1, 0.1, 0.1, _dim(MOONSTONE, 1.15), rx=math.pi / 4)
+    r.part("wedge", -0.9, apex + 0.32, 0, 1.3, 0.6, 0.12, FACADE, tex="moonstone", ry=math.pi / 2)  # gablet
+    r.part("cube", -0.86, apex + 0.72, 0, 0.07, 0.24, 0.07, SILVER)  # its finial
+    _crescent(r, -0.84, apex + 0.9, 0, 0.09, 5, 0.05, SILVER)
+    r.part("cube", -0.84, 0.62, 0, 0.3, 0.12, 1.9, MOONSTONE_DARK, tex="moonstone")  # the sill
+    r.part("cube", -0.86, 0.5, 0, 0.2, 0.12, 1.7, _dim(MOONSTONE_DARK, 0.9), tex="moonstone")
+    for side in (-1, 1):  # corbels under it
+        r.part("cube", -0.86, 0.36, side * 0.6, 0.16, 0.18, 0.18, _dim(MOONSTONE_DARK, 0.95), tex="moonstone")
 
 
 def moon_spire(r, seed, height=14.0):

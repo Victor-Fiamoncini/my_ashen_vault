@@ -11,8 +11,9 @@ import pytest
 from ashen_vault.ai.enemy import BLINK_RANGE, MOVES, Enemy
 from ashen_vault.ai.enemy_types import EnemyTypes
 from ashen_vault.player import ailments
+from ashen_vault.render.moon_models import GREAT_WINDOW_HIGH
 from ashen_vault.util import rround
-from ashen_vault.world import relics, terrain
+from ashen_vault.world import collision, relics, terrain
 from ashen_vault.world.tile_map import TileMap
 from ashen_vault.world.world import (
     BLINK_BEHIND,
@@ -211,19 +212,26 @@ def _climb():
 
 
 def test_the_stair_behind_her_choir_climbs_to_lyras_chapel_high_over_it():
-    """The back door opens on the old stair's foot, level with the choir, and the stair climbs north from
-    it up through the cathedral's east wall, each step under its own vault; out of its tower a flying stair climbs west over the drop behind the cathedral to the
-    Moon Terrace, and a grand stair north off it between cheek walls to the chapel's forecourt: never a
-    step over half a metre, and the chapel's walls tower over the cathedral's."""
+    """The back door opens on a level landing, flat paving with no steps on it, and the old stair climbs
+    north off it up through the cathedral's east wall, each step under its own vault; out of its tower a
+    flying stair climbs west over the drop behind the cathedral to the Moon Terrace, and a grand stair
+    north off it between cheek walls to the chapel's forecourt: never a step you cannot climb (half a
+    metre a tile but in the wall, which has one tile fewer to climb its 3 m), and the chapel's walls
+    tower over the cathedral's."""
     _game, world = city()
     m = world.map
     way = _climb()
-    assert m[way[0]].floor == 0 and m[32, 23].floor == 0  # through the back door onto its level foot
+    assert m[way[0]].floor == 0 and m[32, 23].floor == 0  # through the back door onto its level landing
     (flight,) = [p for p in m.entities if p.kind == "stair_flight" and p.tx == 33]
-    head = int(flight.props["run"]) - 1  # its steps reach down onto the foot, from the choir's floor up
-    assert (flight.tz + head, m[flight.tx, flight.tz + head].floor) == (23, 0)
+    foot = flight.tz + int(flight.props["run"]) - 1  # its lowest tile, just north of the landing
+    assert (foot, m[flight.tx, foot].floor) == (22, 0)  # level with the landing: no steps drawn on it
+    rise = float(flight.props["rise"])
+    assert m[flight.tx, flight.tz].floor + rise == pytest.approx(
+        m[33, 17].floor
+    )  # its top step meets the flying stair
     for a, b in itertools.pairwise(way):
-        assert 0 <= m[b].floor - m[a].floor <= 0.5 + 1e-6, (a, b)
+        most = collision.STEP_HEIGHT if a[0] == 33 and a[1] > 17 else 0.5
+        assert 0 <= m[b].floor - m[a].floor <= most + 1e-6, (a, b)
     assert all(m[33, z].ceil is not None for z in range(18, 24))  # the wall stair, vaulted
     assert all(m[33, z].solid for z in range(24, 38))  # nothing of the old stair to the garden is left
     flying = [(x, 17) for x in range(24, 33)]
@@ -239,18 +247,22 @@ def test_the_stair_behind_her_choir_climbs_to_lyras_chapel_high_over_it():
 
 
 def test_great_windows_of_moon_glass_look_out_of_the_choirs_back_wall_over_the_drop():
-    """Seen from the Moon Terrace and the chapel's forecourt, the choir's back wall is no blank: three
-    great windows of moon-glass hang high in it, in line with the choir's own windows inside."""
+    """The choir's back wall is no blank either way: it stands as high as the walls and roof beside it,
+    and three great windows of stained moon-glass fill its bays, inside over the choir and outside over
+    the drop, seen from the climb, the Moon Terrace and the chapel's forecourt."""
     _game, world = city()
     m = world.map
-    inside = sorted(p.tx for p in m.entities if p.kind == "moon_window" and p.tz == 21)
-    outside = [p for p in m.entities if p.kind == "moon_window" and p.tz == 19]
-    assert sorted(p.tx for p in outside) == inside == [16, 21, 26]
-    for w in outside:
-        assert m[w.tx, w.tz].chasm and m[w.tx, w.tz + 1].solid  # hung on the wall's face over the drop
+    assert {m[x, 20].top for x in range(12, 32)} == {m[11, 22].top}  # no band of open dark over it
+    inside = [p for p in m.entities if p.kind == "moon_great_window" and p.tz == 21]
+    outside = [p for p in m.entities if p.kind == "moon_great_window" and p.tz == 19]
+    assert sorted(p.tx for p in outside) == sorted(p.tx for p in inside) == [16, 21, 26]
+    for w in inside + outside:
+        wall = m[w.tx, 20]
+        assert wall.solid and (m[w.tx, w.tz].chasm if w.tz == 19 else not m[w.tx, w.tz].solid)
         size = float(w.props["size"])
         foot = m[w.tx, w.tz].floor + float(w.props["rise"])
-        assert size >= 2 and foot > 0 and foot + 3.4 * size <= m[w.tx, w.tz + 1].top  # within the wall
+        roof = wall.top if w.tz == 19 else m[w.tx, w.tz].ceil
+        assert size >= 2 and foot > 0 and foot + GREAT_WINDOW_HIGH * size <= roof  # within the wall
 
 
 def test_great_cracks_split_lyras_chapel_and_the_choirs_back_wall_and_nothing_else():

@@ -29,7 +29,8 @@ Behaviour flags, special moves, bosses and the rules every enemy model must keep
   cooldown, damage) and one in `MOVE_SPECS` (a `MoveSpec`: the range it is picked from, whether it needs
   you in sight, whether it is an up-close move, a World predicate that must allow it, and the World
   method its blow calls or whether it fires a shot); its place in `MOVE_SPECS` is its place in the
-  random pick, so add it at the end to keep seeded fights as they were. Any type picks special attacks from `moves` (see `MOVES` in
+  random pick, so add it at the end to keep seeded fights as they were. A chain of swings joins `COMBOS` (swings, gap, last blow), a leap at where you stood `LEAPS`, a
+  dash `LUNGES`; any other move holds its pose for its `ATTACK_TIMES` entry. Any type picks special attacks from `moves` (see `MOVES` in
   `ai/enemy.py`: `sweep`, `web`, `pounce`, `cinders`, `combo`, `slam`, `eruption`, `hook`, `breath`
   (a line of `Eruption`s raking toward you and past), `dive` (a swoop through where you stood), and the
   Ashen Sexton's own, all of ash: `exhale` (a cone of grave dust breathed `EXHALE_REACH` ahead, a `Gout`
@@ -121,14 +122,25 @@ Behaviour flags, special moves, bosses and the rules every enemy model must keep
   maul, `slam` and `sweep`; the two of them are bound to the barbican's sealed gate, `seal=gate`), the
   Bulwark and Blade Sentinels (`bulwark_sentinel` and `blade_sentinel`: perched stone twins, `brittle`,
   `sentinels_dead`, no relic; each drops a piece of the Sentinel armour as its entity's `item=`, and the
-  pair calls out its `wakes` words as they tear free), and in the laboratory the Amalgam (`amalgam`, a
+  pair calls out its `wakes` words as they tear free; each has moves of its own: the Bulwark's
+  `shield_charge`, a `LUNGES` dash behind its tower shield that throws you back (`World.shield_bash`), and
+  in phase two its `rampart_slam`, a fan of three faults of fire; the Blade's `whirlwind`, a full turn
+  that cuts on every side, and in phase two its `sky_rend`, a `LEAPS` leap whose landing is marked first
+  by a ring of fire where you stood; `herran_models.sentinel_stance` poses them), and in the laboratory the Amalgam (`amalgam`, a
   hound, an ape and a man sewn into one, crowded with arms, `slam` and `sweep`, toxic) and the
   Handcrawler (`handcrawler`, a knot of arms walking on its hands, `lurk`, `pounce`, bleed); and the
   boss, Herran, the Many-Handed (`herran`, `herran_dead`, drops the Auric Sigil): `grasp_sweep` (his
   eight arms raked round him), `hand_rain` (a line of grafted hands up out of the floor, style "grafts",
   holding you), `elixir_hurl` (a flask lobbed to burst in a toxic splash, style "elixir"), and in his rage, his braces burst, `embrace` (every arm
   clamping you, then holding you) and `solar_gaze` (a line of sunlight bursts from his feet past you,
-  `Eruption` style "sun", `herran_models.sunburst`).
+  `Eruption` style "sun", `herran_models.sunburst`). His arms each have their own work
+  (`herran_models.ARM_GROUPS` and `HERRAN_ARM_POSES`: his own, the topmost pair, with scalpels; the men's,
+  the two pairs below; the beast's, the lowest, clawed): `beast_rake` (the beast's arms rake a wide arc
+  before him and bleed you deep; it misses behind him), `scalpel_flurry` (his own arms' quick cuts, a
+  four-swing `COMBOS` chain) and `hand_cage` (a ring of grafted hands round you with a gap on your far
+  side, then a burst where you stood), and in his rage `flask_volley` (the men's arms each lob a flask,
+  on you, then either side and beyond) and `cradle_slam` (every arm raised and clasped, brought down on
+  all sides of him, then a short line of grafts toward you).
   `perch` spawns a statue (`Enemy.perched`) that wakes when it sees you, or is struck; it then spends
   `STATUE_RISE` in state `"rising"` (seams of fire spread, its stone bursts off at `STATUE_BURST`, the wings
   unfold and it lifts off). `rise="ash"` (the Warden, the Butcher, the Loom Mother, the Sexton, the sewers' two, the Duchess, the Keystone) spawns a

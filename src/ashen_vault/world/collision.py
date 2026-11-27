@@ -5,6 +5,7 @@ import math
 from ashen_vault.world.tile_map import TileMap
 
 STEP_HEIGHT = 0.6
+STEP_SLACK = 1e-6  # float slack, so a flight rising exactly STEP_HEIGHT a tile still climbs
 BODY_HEIGHT = 1.7
 
 
@@ -18,7 +19,7 @@ def passable(map_, tx, tz, from_floor, blocked=None, floating=None):
             return False
     elif not tile.walkable:
         return False
-    if tile.floor - from_floor > STEP_HEIGHT:
+    if tile.floor - from_floor > STEP_HEIGHT + STEP_SLACK:
         return False
     if tile.ceil is not None and tile.ceil - tile.floor < BODY_HEIGHT:
         return False

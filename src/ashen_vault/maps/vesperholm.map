@@ -36,7 +36,7 @@ crack_span = 14
 [legend]
 # = wall tex=moonstone top=9 cap=silver_slate
 // The choir's back wall over the drop behind the cathedral, split by the years the moon has hung over it.
-Ъ = wall tex=moonstone top=9 cap=silver_slate dress=cracks
+Ъ = wall tex=moonstone top=14 cap=silver_slate dress=cracks
 % = wall tex=moonstone top=14 cap=silver_slate
 h = wall tex=moonstone top=5.5 cap=silver_slate
 , = floor tex=moon_paving h=0 side=moonstone
@@ -81,16 +81,16 @@ q = wall tex=moonstone top=7 cap=silver_slate
 Κ = wall tex=moonstone top=5 cap=moon_paving
 Λ = wall tex=moonstone top=5.5 cap=moon_paving
 Μ = wall tex=moonstone top=6 cap=moon_paving
-// The old stair inside the cathedral's east wall, behind the choir's back door: half a metre a tile
-// north from the choir's floor, each step under its own vault, up through the wall and the stair tower
-// on the cathedral's north-east corner to the head of the flying stair at 3 m. Its foot, just inside
-// the back door, lies level with the choir.
+// The old stair inside the cathedral's east wall, behind the choir's back door: from a level landing
+// just inside the door, 0.6 m a tile north, each step under its own vault, up through the wall and the
+// stair tower on the cathedral's north-east corner to the head of the flying stair at 3 m. Its landing
+// and the foot of the flight both lie level with the choir, so the door opens onto flat paving.
 τ = floor tex=moon_paving h=0 ceil=4 ceil_tex=moonstone side=moonstone dark=0.3
-μ = floor tex=moon_paving h=0.5 ceil=4.5 ceil_tex=moonstone side=moonstone dark=0.3
-ν = floor tex=moon_paving h=1 ceil=5 ceil_tex=moonstone side=moonstone dark=0.3
-ξ = floor tex=moon_paving h=1.5 ceil=5.5 ceil_tex=moonstone side=moonstone dark=0.3
-π = floor tex=moon_paving h=2 ceil=6 ceil_tex=moonstone side=moonstone dark=0.3
-ρ = floor tex=moon_paving h=2.5 ceil=6.5 ceil_tex=moonstone side=moonstone dark=0.3
+μ = floor tex=moon_paving h=0 ceil=4.5 ceil_tex=moonstone side=moonstone dark=0.3
+ν = floor tex=moon_paving h=0.6 ceil=5.1 ceil_tex=moonstone side=moonstone dark=0.3
+ξ = floor tex=moon_paving h=1.2 ceil=5.7 ceil_tex=moonstone side=moonstone dark=0.3
+π = floor tex=moon_paving h=1.8 ceil=6.3 ceil_tex=moonstone side=moonstone dark=0.3
+ρ = floor tex=moon_paving h=2.4 ceil=6.9 ceil_tex=moonstone side=moonstone dark=0.3
 // The flying stair off the tower's head, one tile wide over the drop behind the cathedral, climbing
 // west from 3 m (`ζ`..`λ` above) to the Moon Terrace at 8 m; the grand stair north off the terrace to
 // the chapel's forecourt at 11.5 m, between cheek walls half a metre over its treads.
@@ -163,7 +163,7 @@ w = water tex=water h=3.9 side=crystal_rock
 Я_______________________________%Þ%________Я
 Я_______________Ѣ____Ѣ____Ѣ_____%ë%________Я
 ###########ØЪЪЪЪЪЪЪЪЪЪЪЪЪЪЪЪЪЪЪЪØξ##########
-###########ßÇcccÜccccÜccccÜccccÇ%ν##########
+###########ßÇcccӁccccӁccccӁccccÇ%ν##########
 ###########%cccccccccccccccccccc%μ##########
 ###########%ccccccccccccccccccccÊê#,,Û,,,K##
 ###########%ÜccccccccDcccccccccÜ%%#,,,,,,,##
@@ -287,9 +287,10 @@ A = exit map=harrowmere at=22,2,90 label=Return_to_Harrowmere model=vesper_gate 
 B = save_statue
 Q = hint text="The moon here never sets, and it keeps all it shines on.|Nothing in this city has died. Nothing in it lives."
 R = hint text="Far below, a bridge of stone lies sunk in the gorge.|Whatever raises it lies on the far side."
-// Duchess Ilvane in the choir of her cathedral, behind its great door.
+// Duchess Ilvane in the choir of her cathedral, behind its great door (on passage floor: its vault
+// is low, so the wall stands solid from just over the door's lintel up to the nave's ceiling).
 D = moon_duchess
-E = door boss=duchess_dead on=n
+E = door boss=duchess_dead on=p
 // Her choir's second mouth, a back door in its east wall (`rear`: the compass never points at it, as
 // it is no way in): it shuts with the great door and opens when she falls, onto the old stair's foot,
 // level with the choir, and the stair north up through the wall and its tower, the flying stair west over the drop behind the cathedral, the
@@ -297,7 +298,7 @@ E = door boss=duchess_dead on=n
 Ê = door boss=duchess_dead rear on=p
 ê = hint text="A stair older than the cathedral climbs into the wall.|Above, something silver answers the moon." on=τ
 ë = light y=2.6 color=0.6,0.7,1.0 radius=6 on=π
-Þ = stair_flight run=6 rise=0.5 steps=4 width=1 yaw=90 on=ρ
+Þ = stair_flight run=5 rise=0.6 steps=5 width=1 yaw=90 on=ρ
 ӂ = stair_flight run=9 rise=0.5 steps=4 width=1 yaw=0 on=д
 ё = moon_stair run=6 rise=0.5 steps=5 width=3 yaw=90 on=ч
 // The chapel: its front on the forecourt, a lesser gate of the cathedral's kind, a spire either side;
@@ -341,9 +342,12 @@ O = chest item=bitter_root count=2 gold=100 model=coffer
 Ô = moon_lamp
 Ö = moon_window on=n
 Ü = moon_window on=c
-// Great windows of moon-glass high in the choir's back wall, over the drop behind the cathedral, in
-// line with the choir's own: seen from the Moon Terrace and the chapel's forecourt.
-Ѣ = moon_window rise=18.2 size=2.4 on=_
+// The great windows of the choir's back wall, three tall lights of stained moon-glass under a rose,
+// glowing through the wall both ways: inside over the Duchess's choir (`Ӂ`), and outside over the drop
+// behind the cathedral (`Ѣ`, hung from the chasm's floor), seen from the climb, the Moon Terrace and
+// the chapel's forecourt.
+Ӂ = moon_great_window rise=0.6 size=2.1 on=c
+Ѣ = moon_great_window rise=19.2 size=2.2 on=_
 Ú = moon_window on=a
 Ñ = light y=3 color=0.6,0.7,1.0 radius=9 on=c
 Ò = light y=3 color=0.62,0.72,1.0 radius=7

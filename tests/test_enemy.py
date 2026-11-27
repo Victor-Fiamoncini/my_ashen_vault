@@ -1233,3 +1233,83 @@ def test_every_move_has_a_spec_and_every_world_call_a_name():
     for move, spec in MOVE_SPECS.items():
         assert spec.lo <= spec.hi, move
         assert not (spec.lands and spec.fires), move  # a blow either calls the world or fires a shot
+
+
+# --- Herran's arms and the twin sentinels' own moves ---------------------------------------------
+
+
+class TwinWorld(FakeWorld):
+    """Notes the sentinels' and Herran's own blows as they land."""
+
+    def __init__(self, px, pz):
+        super().__init__(px, pz)
+        self.called = []
+        for name in ("shield_bash", "sky_rend", "sky_rend_land", "whirlwind", "rampart_slam", "beast_rake"):
+            setattr(self, name, lambda _e, n=name: self.called.append(n))
+
+
+def boss_with(type_id, move, seed=3):
+    """A boss of `type_id` awake, with only `move` ready (a phase move too)."""
+    e = risen(Enemy(EnemyTypes.get(type_id), 0.0, 0.0, rng=random.Random(seed)))
+    e.cooldowns = dict.fromkeys(e.cooldowns, 99.0)
+    e.cooldowns[move] = 0.0
+    e._rng = random.Random(0)
+    e._rng.random = lambda: 0.9  # never skip a close-range special for a plain blow
+    return e
+
+
+def test_herrans_scalpels_cut_four_times_quicker_than_a_combo():
+    from ashen_vault.ai.enemy import COMBOS
+
+    boss = boss_with("herran", "scalpel_flurry")
+    world = FakeWorld(3.0, 0.0)
+    world.move_enemy = lambda *_: None
+    tick(boss, world, 0.1)
+    assert boss.attack_kind == "scalpel_flurry"
+    tick(boss, world, 2.5)
+    swings = COMBOS["scalpel_flurry"][0]
+    assert swings > COMBOS["combo"][0] and len(world.struck) == swings
+    assert world.struck[-1] > world.struck[0]  # the last cut is the deepest
+
+
+def test_the_bulwark_charges_behind_its_shield_and_throws_you_back():
+    boss = boss_with("bulwark_sentinel", "shield_charge")
+    world = TwinWorld(7.0, 0.0)
+    tick(boss, world, 0.1)
+    assert boss.attack_kind == "shield_charge"
+    tick(boss, world, 2.5)
+    assert world.called.count("shield_bash") == 1 and boss.x > 4.0  # it ran at you, once
+
+
+def test_the_blade_leaps_where_you_stood_its_landing_marked_first():
+    boss = boss_with("blade_sentinel", "sky_rend")
+    boss.phase2 = True
+    world = TwinWorld(8.0, 0.0)
+    tick(boss, world, 0.1)
+    assert boss.attack_kind == "sky_rend"
+    tick(boss, world, 3.0)
+    assert world.called[:2] == ["sky_rend", "sky_rend_land"]  # marked as it springs, then down
+    assert boss.x > 6.0 and world.strikes == 0  # the marked burst does the harm, not the landing
+
+
+def test_the_twins_and_herran_carry_moves_of_their_own():
+    from ashen_vault.ai.enemy import ATTACK_TIMES, COMBOS, LEAPS, LUNGES, MOVE_SPECS, MOVES
+
+    own = {
+        "herran": {"beast_rake", "scalpel_flurry", "hand_cage", "flask_volley", "cradle_slam"},
+        "bulwark_sentinel": {"shield_charge", "rampart_slam"},
+        "blade_sentinel": {"whirlwind", "sky_rend"},
+    }
+    for type_id, moves in own.items():
+        t = EnemyTypes.get(type_id)
+        assert moves <= set(t.moves) | set(t.phase_moves), type_id
+        for m in moves:
+            assert m in MOVES and m in MOVE_SPECS
+            routine = m in COMBOS or m in LEAPS or m in LUNGES
+            assert routine or (MOVE_SPECS[m].lands and m in ATTACK_TIMES), m
+    others = {m for t in EnemyTypes.ALL.values() if t.id not in own for m in (*t.moves, *t.phase_moves)}
+    assert not others & set().union(*own.values())  # nobody else has them
+    assert list(MOVE_SPECS)[-9:] == [
+        *("beast_rake", "scalpel_flurry", "hand_cage", "flask_volley", "cradle_slam"),
+        *("shield_charge", "rampart_slam", "whirlwind", "sky_rend"),
+    ]  # appended, so every older fight still picks as it did

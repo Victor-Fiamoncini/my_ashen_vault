@@ -2464,13 +2464,14 @@ class GreatGate:
 GREAT_DOOR_TOP = 6.4  # a great gate's opening: twice a boss door's, the fog filling it as tall
 
 
-def boss_door(r, open_t, axis, t, lit=True, boss=None, great=None, leaves=True):
+def boss_door(r, open_t, axis, t, lit=True, boss=None, great=None, leaves=True, frame=None):
     """The great double door before a boss's lair, spanning its tile, dressed for the boss behind it
     (BOSS_DOORS, by its `dead_flag`): two banded leaves between plain stone jambs under a flat lintel,
     a lamp (or a beast) on each jamb that burns while the boss lives, and one motif of its boss. The
     leaves swing apart (inward) as `open_t` runs to 1. Axis 'x' means it blocks movement along X.
     `great` (a GreatGate) draws the boss's great gate instead, if it has one (GREAT_GATES); without
-    its `leaves` it is only the masonry the fog stands in."""
+    its `leaves` it is only the masonry the fog stands in. `frame`, the height of its tile's ceiling,
+    walls the opening over the lintel up to it (boss_door_infill)."""
     key = boss if boss in BOSS_DOORS else DEFAULT_DOOR
     style = BOSS_DOORS[key]
     swing = _ease(min(open_t, 1.0)) * 1.45
@@ -2480,6 +2481,7 @@ def boss_door(r, open_t, axis, t, lit=True, boss=None, great=None, leaves=True):
         return
     with r.at(0, 0, 0, ry=0 if axis == "x" else math.pi / 2):
         _door_frame(r, style, t, lit)
+        _door_infill(r, style, key, frame, t, lit)  # world_view draws it apart, in its own light
         DOOR_ARCHES[key](r, style, t, lit)
         for side in (-1, 1):
             with r.at(0, 0, side * 0.9, ry=side * swing), r.at(0, 0, -side * 0.45):
@@ -2488,6 +2490,35 @@ def boss_door(r, open_t, axis, t, lit=True, boss=None, great=None, leaves=True):
                     for y in (0.5, 2.3):  # two iron bands across each face
                         r.part("cube", face * 0.08, y, 0, 0.03, 0.14, 0.9, style.iron)
                     DOOR_LEAVES[key](r, style, side, face, t, lit)
+
+
+BOSS_DOOR_CLEAR = 4.2  # every boss's motif over its lintel stands below this; solid masonry above
+BOSS_INFILL_DEPTH = 1.96  # that masonry's depth: a hair inside the tile, so it never fights the walls
+
+
+def boss_door_infill(r, axis, boss, frame, t=0.0, lit=True):
+    """Only the masonry over a boss door's lintel (the fog stands in the doorway below it)."""
+    key = boss if boss in BOSS_DOORS else DEFAULT_DOOR
+    with r.at(0, 0, 0, ry=0 if axis == "x" else math.pi / 2):
+        _door_infill(r, BOSS_DOORS[key], key, frame, t, lit)
+
+
+def _door_infill(r, style, key, frame, t, lit):
+    """The wall over a boss door, from its lintel up to `frame` (its tile's ceiling) so no slot of
+    open dark runs up from it: a thin tympanum set back behind the boss's motif, then a moulded
+    string course and solid courses of its arch's stone the tile's whole depth. A tall vault over a
+    door is better lowered in its map (the mesh builds that wall, lit as the walls are)."""
+    if frame is None or frame <= BOSS_DOOR_TOP + 0.01:
+        return
+    top = min(frame, BOSS_DOOR_CLEAR)
+    r.part("cube", 0, (BOSS_DOOR_TOP + top) / 2, 0, 0.06, top - BOSS_DOOR_TOP, 2.0, _dim(style.stone, 0.72),
+           tex=style.stone_tex)  # fmt: skip
+    if frame <= BOSS_DOOR_CLEAR:
+        return
+    r.part("cube", 0, (BOSS_DOOR_CLEAR + frame) / 2, 0, BOSS_INFILL_DEPTH, frame - BOSS_DOOR_CLEAR, 2.0,
+           _dim(style.stone, 0.95), tex=style.stone_tex)  # fmt: skip
+    r.part("cube", 0, BOSS_DOOR_CLEAR + 0.08, 0, BOSS_INFILL_DEPTH + 0.1, 0.16, 2.0, _dim(style.stone, 1.12),
+           tex=style.stone_tex)  # fmt: skip
 
 
 def _door_frame(r, style, t, lit):

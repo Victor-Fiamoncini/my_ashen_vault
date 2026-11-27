@@ -86,10 +86,10 @@ How `.map` files work and what can stand on a tile.
   the Duchess's garden; the Cathedral of the Long Night, its nave, and behind its great door
   (`door boss=duchess_dead`) the choir floored in moon-glass where Duchess Ilvane waits. Her choir has a
   second mouth, a back door in its east wall (`door boss=duchess_dead rear` at 32,23: it seals, fogs and
-  opens with the great door, and `rear` keeps the compass off it), onto the old stair's foot, level with
-  the choir (its `stair_flight` reaches down onto it, so the first tread rises off the choir's floor), and the stair north up through
-  the cathedral's east wall and the stair tower on its north-east corner (half a metre a tile under its
-  own vaults), out onto a flying stair one tile wide that climbs west over the drop behind the
+  opens with the great door, and `rear` keeps the compass off it), onto a flat landing level with the
+  choir, and the stair north off it up through the cathedral's east wall and the stair tower on its
+  north-east corner (its `stair_flight` starts on the tile past the landing, at the choir's floor, and
+  climbs 0.6 m a tile, `collision.STEP_HEIGHT`, under its own vaults), out onto a flying stair one tile wide that climbs west over the drop behind the
   cathedral (an 18 m `chasm` either side, a Lantern Wraith throwing down it from the Moon Terrace at
   8 m), then a grand stair (`moon_stair`, three abreast between cheek walls) north up to the forecourt
   of Lyra's Chapel at 11.5 m, on its crag behind the choir (two Pale Sentinels keep it): a nave of
@@ -98,9 +98,11 @@ How `.map` files work and what can stand on a tile.
   in the hands of Lyra the Embracer on her altar in the middle of the nave (`altar item=argent_sigil
   model=lyra` at 21,5; the Duchess drops nothing), and once it is lifted the portal to Herran's Castle
   opens in the apse behind her (`exit model=argent_portal requires=argent_sigil_taken hidden` at 21,2;
-  its arch stands there dormant, dark and empty, until then). Three great `moon_window`s (`rise=` and
-  `size=`, on the drop's tiles) hang high in the choir's back wall over the drop, in line with its windows
-  inside, and the choir's back wall (`Ъ`) and the chapel's walls are `dress=cracks`, cracked only near
+  its arch stands there dormant, dark and empty, until then). The great door stands on passage floor
+  (`on=p`, a 4.5 m vault), so the wall over it is solid up to the nave's ceiling. The choir's back wall
+  (`Ъ`) rises to 14 m, as high as its other walls and its roof, and three `moon_great_window`s (`rise=`
+  and `size=`; tall triple lancets of stained moon-glass under a rose) fill its bays both inside, over the
+  choir (`Ӂ`), and outside, hung from the drop's tiles (`Ѣ`); it and the chapel's walls are `dress=cracks`, cracked only near
   their tops (`[meta] crack_span`), where they are seen from the climb.
   The crag and the chapel are twenty rows north of the city's old edge: saves made before them are
   moved to match (`save_system.SHIFTED_MAPS`). Shortcut: the
@@ -359,7 +361,9 @@ How `.map` files work and what can stand on a tile.
   silk that blades can't cut and only fire burns: Pyre, a fiery art, or a Flame Bolt that strikes it;
   it burns away over about two seconds, `models.burning_web`, but lets you through at once). `door boss=<dead_flag>` is a boss's great door
   (`models.boss_door`, dressed for its boss by `BOSS_DOORS` / `DOOR_ARCHES` / `DOOR_LEAVES`, keyed by
-  the `dead_flag`; a new boss door needs an entry in each): the arena behind it seals once you are inside with its boss awake, opens when
+  the `dead_flag`; a new boss door needs an entry in each; under a vault higher than its lintel,
+  `models.boss_door_infill` walls the opening up to the ceiling, though a tall vault is better lowered in
+  the map, as the mesh then builds that wall lit like the rest): the arena behind it seals once you are inside with its boss awake, opens when
   the boss dies, and after you die in there becomes a fog gate (`models.fog_gate`) the boss walks
   through freely and you cross with interact: you walk through it slowly (`World.fog_walk`, `FOG_WALK_SPEED`), never jump. Each arena must stay closed behind its one door
   (`tests/test_arena.py`). `door boss=<dead_flag> great=n|s|e|w` makes it the boss's great gate

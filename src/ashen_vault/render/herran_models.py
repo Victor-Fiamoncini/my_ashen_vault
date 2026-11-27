@@ -68,61 +68,179 @@ EYE_GOLD = (255, 214, 110)
 BRACE = (170, 130, 70)  # the brass surgical braces that hold him together
 
 
-def herran_pose(e, t):
-    """(spread, lift, reach, plunge, lean, gaze) for Herran's eight grafted arms and his body: idle, the
-    arms fanned and swaying; gathering a move, drawn up and back; then each move's own stroke: the
-    `grasp_sweep` rakes them round low, `hand_rain` plunges them into the floor, `elixir_hurl` flings
-    one high, `embrace` clamps them all forward together and `solar_gaze` throws them wide while he
-    leans in, his eyes blazing."""
-    sway = math.sin(t * 1.3) * 0.12
+BEAST_HIDE = (92, 70, 58)  # the beast's arms: a bear's, coarse-pelted, sewn on below the rest
+BEAST_CLAW = (40, 34, 30)
+MAN_SKIN = (190, 158, 140)  # the men's arms, ruddier than his own
+SCALPEL = (200, 206, 214)  # the blades sewn into his own fingers
+
+# Which of his arms each rank is: his own, the topmost pair; the men's, the two pairs below; the
+# beast's, the lowest pair (`_herran_arm`).
+ARM_GROUPS = ("own", "men", "men", "beast")
+# An arm's pose: (spread, lift, reach, plunge, sweep). `sweep` swings it about its root, forward round
+# his body (+) or back behind him (-).
+ARM_REST = (0.9, 0.2, 0.0, 0.0, 0.0)
+ARM_DRAWN = (1.0, 1.0, -0.4, 0.0, -0.2)  # gathering a move: drawn up and back
+ARM_TUCKED = (0.55, 0.35, -0.3, 0.0, -0.3)  # out of the way while other arms do the work
+ARM_SPENT = (0.8, 0.0, 1.0, 0.0, 0.2)  # a plain blow
+# Each move's (cocked, strike) for each group of arms: drawn back over the windup, then the stroke.
+HERRAN_ARM_POSES = {
+    "grasp_sweep": dict.fromkeys(ARM_GROUPS, ((1.2, 0.2, -0.3, 0.0, -0.6), (1.2, -0.4, 0.9, 0.0, 0.9))),
+    "hand_rain": dict.fromkeys(ARM_GROUPS, ((0.8, 1.1, -0.2, 0.0, 0.0), (0.6, -0.2, 0.6, 1.0, 0.3))),
+    "elixir_hurl": {
+        "own": (ARM_TUCKED, ARM_TUCKED),
+        "men": ((0.6, 1.3, -0.5, 0.0, -0.3), (0.9, 0.9, 1.0, 0.0, 0.6)),
+        "beast": (ARM_TUCKED, ARM_TUCKED),
+    },
+    "embrace": dict.fromkeys(ARM_GROUPS, ((1.5, 0.6, 0.2, 0.0, -0.7), (0.1, 0.2, 1.2, 0.0, 1.1))),
+    "solar_gaze": dict.fromkeys(ARM_GROUPS, ((1.4, 0.6, 0.2, 0.0, -0.4), (1.4, 0.6, 0.2, 0.0, -0.4))),
+    "beast_rake": {
+        "own": (ARM_TUCKED, ARM_TUCKED),
+        "men": (ARM_TUCKED, ARM_TUCKED),
+        "beast": ((1.4, 0.4, 0.1, 0.0, -1.0), (1.0, -0.3, 1.2, 0.0, 1.3)),
+    },
+    "scalpel_flurry": {
+        "own": ((0.3, 0.9, 0.2, 0.0, 0.4), (0.2, 0.35, 1.35, 0.0, 0.9)),
+        "men": (ARM_TUCKED, ARM_TUCKED),
+        "beast": (ARM_TUCKED, ARM_TUCKED),
+    },
+    "hand_cage": dict.fromkeys(ARM_GROUPS, ((1.1, 1.3, -0.2, 0.0, -0.1), (1.2, -0.2, 0.5, 1.0, 0.2))),
+    "flask_volley": {
+        "own": (ARM_TUCKED, ARM_TUCKED),
+        "men": ((0.7, 1.3, -0.4, 0.0, -0.3), (0.9, 1.0, 1.0, 0.0, 0.5)),
+        "beast": (ARM_TUCKED, ARM_TUCKED),
+    },
+    "cradle_slam": dict.fromkeys(ARM_GROUPS, ((0.3, 1.7, 0.4, 0.0, 0.6), (0.2, -0.5, 1.2, 0.6, 1.1))),
+}
+SWEEPS = ("grasp_sweep", "beast_rake")  # strokes that travel over their attack rather than snapping
+VOLLEY_ARMS = (2, 3, 4, 5)  # the men's arms (ranks 1, 2), each throwing its flask in turn
+VOLLEY_BEAT = 0.12  # seconds between one arm's throw and the next
+
+
+def _mix5(a, b, k):
+    return tuple(x + (y - x) * k for x, y in zip(a, b, strict=True))
+
+
+def herran_body(e, t):
+    """(lean, gaze) of Herran's body: leaning into a move as he gathers it, his crown of eyes turned
+    on you; leaning in hardest as his solar gaze or his clasped arms come down, his eyes blazing."""
     kind = getattr(e, "attack_kind", None)
     if e.state == "windup":
         k = _windup_k(e)
-        return 0.8 + 0.2 * k, 0.4 + 0.6 * k, -0.4 * k, 0.0, -0.15 * k, 0.4 * k
+        if kind == "cradle_slam":
+            return -0.35 * k, 0.6 * k  # reared back, his arms high over him
+        return -0.15 * k, 0.4 * k
     if e.state == "attack":
-        if kind == "grasp_sweep":
-            return 1.2, -0.4, 0.9, 0.0, 0.2, 0.2
-        if kind == "hand_rain":
-            return 0.6, -0.2, 0.6, 1.0, 0.4, 0.2
-        if kind == "elixir_hurl":
-            return 0.9, 0.9, 1.0, 0.0, 0.1, 0.3
-        if kind == "embrace":
-            return 0.2, 0.2, 1.2, 0.0, 0.35, 0.5
-        if kind == "solar_gaze":
-            return 1.4, 0.6, 0.2, 0.0, 0.45, 1.0
-        return 0.8, 0.0, 1.0, 0.0, 0.3, 0.2
+        return {
+            "grasp_sweep": (0.2, 0.2),
+            "hand_rain": (0.4, 0.2),
+            "elixir_hurl": (0.1, 0.3),
+            "embrace": (0.35, 0.5),
+            "solar_gaze": (0.45, 1.0),
+            "beast_rake": (0.3, 0.3),
+            "scalpel_flurry": (0.3, 0.6),
+            "hand_cage": (0.45, 0.4),
+            "flask_volley": (0.1, 0.5),
+            "cradle_slam": (0.55, 0.7),
+        }.get(kind, (0.3, 0.2))
     if e.state in ("recover", "hurt"):
-        return 0.9 + sway, 0.1, 0.1, 0.0, -0.1, 0.0
-    return 0.9 + sway, 0.2 + sway, 0.0, 0.0, 0.0, 0.0
+        return -0.1, 0.0
+    return 0.0, 0.0
 
 
-def _herran_arm(r, i, spread, lift, reach, plunge, skin, seam, glow, raging):
+def herran_arm_pose(e, i, t):
+    """The pose of the `i`th of his eight arms: fanned and swaying idle; for each move its own group of
+    arms at its own work (HERRAN_ARM_POSES) and the rest held out of the way: drawn back over the
+    windup, then the stroke, a sweep travelling round him over its attack, settling back as he
+    recovers. His own arms' scalpels cut in turn, one side then the other; the men's arms throw their
+    flasks of a volley one after another."""
+    sway = math.sin(t * 1.3 + i * 0.7) * 0.12
+    rest = (ARM_REST[0] + sway, ARM_REST[1] + sway, 0.0, 0.0, 0.0)
+    kind = getattr(e, "attack_kind", None)
+    group = ARM_GROUPS[i // 2]
+    poses = HERRAN_ARM_POSES.get(kind)
+    cocked, strike = poses[group] if poses else (ARM_DRAWN, ARM_SPENT)
+    if e.state == "windup":
+        return _mix5(rest, cocked, _ease(_windup_k(e)))
+    if e.state == "attack":
+        if kind == "scalpel_flurry" and group == "own":
+            cut = getattr(e, "combo_swing", 0)
+            return strike if (cut + i) % 2 else cocked  # one blade cuts as the other draws back
+        start = 0.0
+        if kind == "flask_volley" and i in VOLLEY_ARMS:
+            start = VOLLEY_ARMS.index(i) * VOLLEY_BEAT
+        span = 0.35 if kind in SWEEPS else 0.15
+        k = min(max(e.state_t - start, 0.0) / span, 1.0)
+        return _mix5(cocked, strike, _ease(k))
+    if e.state == "recover" and poses:
+        return _mix5(strike, rest, _ease(min(e.state_t / max(e.recover_time, 1e-3), 1)))
+    if e.state in ("recover", "hurt"):
+        return (0.9 + sway, 0.1, 0.1, 0.0, 0.0)
+    return rest
+
+
+def holds_flask(e, i):
+    """Whether the `i`th arm holds a flask of his elixir: a man's arm, over the windup of an elixir
+    hurl (the first of them) or a volley (all four), and through the attack until it throws."""
+    if i not in VOLLEY_ARMS or e.state not in ("windup", "attack"):
+        return False
+    kind = getattr(e, "attack_kind", None)
+    if kind == "elixir_hurl":
+        return i == VOLLEY_ARMS[0] and e.state == "windup"
+    if kind != "flask_volley":
+        return False
+    return e.state == "windup" or e.state_t < VOLLEY_ARMS.index(i) * VOLLEY_BEAT + 0.08
+
+
+def _herran_arm(r, e, i, pose, skin, seam, glow, raging):
     """The `i`th of his eight grafted arms, out of his back: upper arm and forearm (`_bar`s), a seam
-    where it was sewn on, a hand of long fingers."""
+    where it was sewn on, and its hand. His own arms (the topmost pair) are long and pale, scalpels
+    sewn into their fingers; the men's (the two pairs below) are ruddier and thicker, stitched at the
+    elbow; the beast's (the lowest) are thick and furred, with hooked black claws."""
+    spread, lift, reach, plunge, sweep = pose
     side = 1 if i % 2 else -1
     rank = i // 2  # 0 the topmost pair, 3 the lowest
+    group = ARM_GROUPS[rank]
+    flash = skin != HERRAN_SKIN
+    flesh = skin if group == "own" or flash else (MAN_SKIN if group == "men" else BEAST_HIDE)
     root = (-0.25, 3.05 - rank * 0.32, side * (0.28 + rank * 0.05))
     out = 0.35 + 0.35 * rank
     fan = spread * (0.5 + 0.28 * rank)
     elbow = (
-        root[0] + 0.3 + 0.7 * reach,
-        root[1] + (0.6 - 0.3 * rank) * lift - 0.8 * plunge,
-        root[2] + side * (out + fan),
+        0.3 + 0.7 * reach,
+        (0.6 - 0.3 * rank) * lift - 0.8 * plunge,
+        side * (out + fan),
     )
-    hand_at = (
+    hand = (
         elbow[0] + 0.5 + 0.9 * reach + 0.4 * plunge,
-        elbow[1] - 0.5 + 0.9 * lift - (elbow[1] - 0.1) * plunge,
+        elbow[1] - 0.5 + 0.9 * lift - (elbow[1] + root[1] - 0.1) * plunge,
         elbow[2] + side * (0.3 + 0.6 * fan) * (1 - 0.5 * reach),
     )
-    thick = 0.13 - rank * 0.015
-    _bar(r, root, elbow, thick, skin)
-    _bar(r, elbow, hand_at, thick * 0.85, skin)
-    r.part("cyl", *root, thick * 1.8, 0.06, thick * 1.8, seam, glow=raging and glow)  # the seam at its root
-    r.part("sphere", *elbow, thick * 1.2, thick * 1.2, thick * 1.2, _dim(skin, 0.85))  # the elbow
-    with r.at(*hand_at):
-        r.part("cube", 0, 0, 0, 0.16, 0.1, 0.14, skin)  # the palm
-        for f in range(4):  # long fingers
-            r.part("cube", 0.12, -0.02, (f - 1.5) * 0.045, 0.16, 0.025, 0.025, skin, rz=-0.3)
+    thick = {"own": 0.11, "men": 0.13, "beast": 0.19}[group]
+    with r.at(*root, ry=side * sweep):  # swung about its root, forward round him or back
+        _bar(r, (0, 0, 0), elbow, thick, flesh)
+        _bar(r, elbow, hand, thick * 0.85, flesh)
+        r.part("cyl", 0, 0, 0, thick * 1.8, 0.06, thick * 1.8, seam, glow=raging and glow)  # its seam
+        r.part("sphere", *elbow, thick * 1.2, thick * 1.2, thick * 1.2, _dim(flesh, 0.85))  # the elbow
+        if group == "men":  # a ring of black stitches round the elbow, where two men were made one
+            r.part("cyl", *elbow, thick * 1.5, 0.03, thick * 1.5, STITCH)
+        if group == "beast":  # coarse tufts of its pelt along the forearm
+            for k in (0.3, 0.6):
+                at = tuple(a + (b - a) * k for a, b in zip(elbow, hand, strict=True))
+                r.part("cube", at[0], at[1] + thick * 0.5, at[2], 0.12, 0.06, 0.1, _dim(BEAST_HIDE, 0.75))
+        with r.at(*hand):
+            if group == "beast":  # a broad paw and four hooked claws
+                r.part("cube", 0, 0, 0, 0.24, 0.14, 0.24, flesh)
+                for f in range(4):
+                    r.part("cone", 0.16, -0.06, (f - 1.5) * 0.06, 0.05, 0.18, 0.05, BEAST_CLAW, rz=-2.0)
+            else:
+                r.part("cube", 0, 0, 0, 0.16, 0.1, 0.14, flesh)  # the palm
+                for f in range(4):  # long fingers
+                    r.part("cube", 0.12, -0.02, (f - 1.5) * 0.045, 0.16, 0.025, 0.025, flesh, rz=-0.3)
+                if group == "own":  # a scalpel sewn into the forefinger, glinting
+                    r.part("cube", 0.28, -0.06, -0.06, 0.2, 0.02, 0.03, SCALPEL, rz=-0.3)
+            if holds_flask(e, i):  # a flask of his elixir, green and glowing
+                r.part("cyl", 0.08, 0.14, 0, 0.14, 0.24, 0.14, (120, 200, 100), glow=True)
+                r.part("cyl", 0.08, 0.3, 0, 0.06, 0.1, 0.06, GILT)  # its gilt collar
 
 
 def herran(r, e, t):
@@ -135,7 +253,7 @@ def herran(r, e, t):
     fall = death_fall(e, 1.0)
     dead = e.state == "dead"
     raging = bool(getattr(e, "phase2", False)) and not dead
-    spread, lift, reach, plunge, lean, gaze = herran_pose(e, t) if not dead else (0.8, 0.6, 0.2, 0, 0, 0)
+    lean, gaze = herran_body(e, t) if not dead else (0.0, 0.0)
     skin = hit_tint((250, 230, 220)) if e.flashing else HERRAN_SKIN
     coat = hit_tint((150, 120, 130)) if e.flashing else COAT
     glow = not dead
@@ -183,9 +301,8 @@ def herran(r, e, t):
                 r.part("sphere", 0.1, 0.25, 0, 0.3, 0.3, 0.3, _dim(EYE_GOLD, 0.6), glow=True)
         with r.at(0, -0.1 * fall, 0):
             for i in range(8):
-                _herran_arm(r, i, spread, lift, reach, plunge, skin, seam, glow, raging)
-        if e.state == "windup" and getattr(e, "attack_kind", None) == "elixir_hurl":
-            r.part("cyl", 1.2, 4.4, 0.6, 0.18, 0.3, 0.18, (120, 200, 100), glow=True)  # the flask, held high
+                pose = herran_arm_pose(e, i, t) if not dead else (0.8, 0.6, 0.2, 0.0, 0.0)
+                _herran_arm(r, e, i, pose, skin, seam, glow, raging)
 
 
 def graft_hands(r, glow, flame, t, radius=1.0):
@@ -488,6 +605,41 @@ def _sentinel_body(r, e, t, stone, dark, glow, cracks, statue):
             r.part("cube", x, y, z, 0.02, h, 0.03, glow, rx=a, glow=True)
 
 
+def sentinel_stance(e):
+    """(lean, spin, hop, guard) of a sentinel's whole body through its own moves: the Bulwark crouching
+    in behind its shield for a charge, and raising it high to drive its edge down for its rampart; the
+    Blade coiling back and spinning a full turn for its whirlwind, and crouching to spring, then high
+    in the air, for its leap. `guard` raises the shield arm."""
+    kind = getattr(e, "attack_kind", None)
+    if e.state not in ("windup", "attack", "recover"):
+        return 0.0, 0.0, 0.0, None
+    k = _windup_k(e) if e.state == "windup" else 1.0
+    after = e.state == "recover"
+    settle = 1.0 - _ease(min(e.state_t / max(e.recover_time, 1e-3), 1)) if after else 1.0
+    if kind == "shield_charge":
+        return 0.35 * k * settle, 0.0, 0.0, 1.1 * k * settle
+    if kind == "rampart_slam":
+        if e.state == "windup":
+            return -0.15 * k, 0.0, 0.0, 1.8 * _ease(k)
+        down = _ease(min(e.state_t / 0.15, 1.0)) if e.state == "attack" else 1.0
+        return 0.35 * down * settle, 0.0, 0.0, (1.8 - 2.4 * down) * settle
+    if kind == "whirlwind":
+        if e.state == "windup":
+            return 0.0, -0.8 * _ease(k), 0.0, None
+        if e.state == "attack":  # one full turn round, over the move's attack
+            p = _ease(min(e.state_t / 0.4, 1.0))
+            return 0.1, -0.8 + (math.tau + 0.8) * p, 0.0, None
+        return 0.0, 0.0, 0.0, None
+    if kind == "sky_rend":
+        if e.state == "windup":
+            return 0.2 * k, 0.0, -0.25 * _ease(k), None
+        if e.state == "attack":  # up through its flight and down on the blade
+            p = min(e.state_t / 0.6, 1.0)
+            return 0.3 * p, 0.0, 2.2 * math.sin(math.pi * p), None
+        return 0.3 * settle, 0.0, 0.0, None
+    return 0.0, 0.0, 0.0, None
+
+
 def _sentinel(r, e, t, weapon):
     """Either stone sentinel: the shared body, scaled up to a giant, and its weapon (`weapon`: "shield"
     for the Bulwark, its tower shield and short blade; "blade" for the Blade Sentinel, its long blade).
@@ -502,15 +654,22 @@ def _sentinel(r, e, t, weapon):
     dark = hit_tint((200, 200, 210)) if e.flashing else STATUE_DARK
     glow = (HIT_GLOW if e.flashing else CRACK_FIRE) if lit else COLD
     raging = bool(getattr(e, "phase2", False)) and lit
-    with r.at(-0.6 * fall, 0.5 * fall, 0, rz=1.4 * fall, s=2.0):
+    lean, spin, hop, raised = sentinel_stance(e) if not dead else (0.0, 0.0, 0.0, None)
+    kind = getattr(e, "attack_kind", None)
+    with (
+        r.at(0, max(hop, -0.25), 0, ry=spin),
+        r.at(-0.6 * fall, 0.5 * fall, 0, rz=1.4 * fall - lean, s=2.0),
+    ):
         _sentinel_body(r, e, t, stone, dark, glow, raging, not lit)
         if statue:  # moss grown into the folds of the mantle and over the helm
             r.part("cube", -0.2, 1.7, 0, 0.1, 0.3, 0.5, STATUE_MOSS)
             r.part("cube", 0.02, 2.2, 0, 0.32, 0.04, 0.3, STATUE_MOSS)
         shoulder, elbow = chop_angle(e) - 0.4 * fall, elbow_bend(e) * (1 - fall)
-        sweeping = e.attack_kind == "sweep" and e.state in ("windup", "attack")
-        if sweeping:
+        sweeping = kind in ("sweep", "whirlwind") and e.state in ("windup", "attack")
+        if sweeping:  # the blade held straight out to its side, to scythe round
             shoulder, elbow = 1.5, 0.1
+        elif kind == "shield_charge" and e.state in ("windup", "attack"):  # tucked in behind the shield
+            shoulder, elbow = -0.3, 1.2
         wrist = aim_wrist(0.0, shoulder + elbow) if sweeping else wrist_angle(e)
         if dead:  # the blade falls with it, along its body
             wrist = aim_wrist(-1.4 * fall, shoulder + elbow)
@@ -536,6 +695,8 @@ def _sentinel(r, e, t, weapon):
                     for k in range(3):  # runes cut down the blade, burning in its rage
                         r.part("cube", 0.4 + k * length * 0.25, 0.03, 0, 0.08, 0.02, 0.06, rune, glow=raging)
         guard = 0.3 if weapon == "shield" and e.state in ("chase", "windup") else 0.0
+        if weapon == "shield" and raised is not None:  # its own moves raise and drive the shield
+            guard = raised
         with r.at(0, 1.78, -0.4, rz=guard + 0.2 * shoulder * (weapon == "blade") - 0.4 * fall):
             r.part("cube", 0, -0.18, 0, 0.14, 0.36, 0.14, stone)
             with r.at(0, -0.36, 0, rz=0.5):

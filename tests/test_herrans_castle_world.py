@@ -306,7 +306,7 @@ def test_herrans_creatures_outmatch_vesperholms():
 def test_herran_waits_only_behind_his_door_and_drops_the_auric_sigil():
     t = EnemyTypes.get("herran")
     assert t.boss and t.drop == "auric_sigil" and t.dead_flag == "herran_dead" and t.rise == "ash"
-    assert t.rage and set(t.phase_moves) == {"embrace", "solar_gaze"}
+    assert t.rage and {"embrace", "solar_gaze"} <= set(t.phase_moves)
     m = _castle()
     (herran,) = _spec(m, "herran")
     (dome,) = _spec(m, "anatomy_dome")
@@ -446,3 +446,106 @@ def test_the_sentinels_drop_their_armour_and_the_laboratory_keeps_herrans_cleave
     )
     assert plate.slot == "body" and gauntlets.slot == "hands" and cleaver.category == "axe"
     assert plate.power > Items.get("brigandine").power
+
+
+def _facing(enemy, x, z):
+    enemy.yaw = math.atan2(z - enemy.z, x - enemy.x)
+    return enemy
+
+
+def test_the_beasts_arms_rake_an_arc_before_him_and_miss_behind():
+    from ashen_vault.world.world import RAKE_BLEED
+
+    game, world, herran = _herran_at((28, 5), herran_at=(30, 5))
+    _facing(herran, game.player.x, game.player.z)
+    hp = game.player.stats.hp
+    world.beast_rake(herran)
+    assert game.player.stats.hp < hp  # torn, and the bleed built deeper than his other blows
+    assert RAKE_BLEED[0][1] > dict(herran.type.inflicts)["bleed"]
+    game, world, herran = _herran_at((28, 5), herran_at=(30, 5))
+    herran.yaw = 0.0  # his back to you
+    hp = game.player.stats.hp
+    world.beast_rake(herran)
+    assert game.player.stats.hp == hp
+
+
+def test_herrans_cage_closes_round_you_but_for_a_gap_away_from_him():
+    from ashen_vault.world.world import CAGE_HANDS, CAGE_RADIUS
+
+    game, world, herran = _herran_at((27, 5), herran_at=(32, 5))
+    world.hand_cage(herran)
+    ring = [f for f in world.eruptions if math.isclose(math.hypot(f.x - game.player.x, f.z - game.player.z),
+                                                       CAGE_RADIUS)]  # fmt: skip
+    heart = [f for f in world.eruptions if f not in ring]
+    assert len(ring) == CAGE_HANDS - 1 and all(f.style == "grafts" for f in world.eruptions)
+    (inner,) = heart
+    assert inner.warn > ring[0].warn  # the ring first, then where you stood
+    gap = (game.player.x - CAGE_RADIUS, game.player.z)  # the far side from him (he stands east)
+    assert all(math.hypot(f.x - gap[0], f.z - gap[1]) > f.radius for f in world.eruptions)
+
+
+def test_his_volley_of_flasks_lands_on_you_and_either_side_in_turn():
+    game, world, herran = _herran_at((25, 5), herran_at=(33, 5))
+    world.flask_volley(herran)
+    flasks = world.eruptions
+    assert len(flasks) == 4 and all(f.style == "elixir" and f.origin is not None for f in flasks)
+    assert math.isclose(flasks[0].x, game.player.x) and math.isclose(flasks[0].z, game.player.z)
+    assert [f.warn for f in flasks] == sorted(f.warn for f in flasks) and flasks[0].warn < flasks[-1].warn
+
+
+def test_his_clasped_arms_come_down_round_him_and_split_the_floor_on():
+    from ashen_vault.ai.enemy import CRADLE_RADIUS
+
+    game, world, herran = _herran_at((28, 5), herran_at=(30, 5))
+    hp = game.player.stats.hp
+    world.cradle_slam(herran)
+    assert game.player.stats.hp < hp and world.shockwaves
+    assert [f.style for f in world.eruptions] == ["grafts"] * 3
+    game, world, herran = _herran_at((25, 5), herran_at=(30, 5))
+    assert math.hypot(game.player.x - herran.x, game.player.z - herran.z) > CRADLE_RADIUS
+    hp = game.player.stats.hp
+    world.cradle_slam(herran)
+    assert game.player.stats.hp == hp
+
+
+def _hall(type_id, sentinel_at, player_at):
+    game = JungleGame()
+    world = World(game, CASTLE)
+    world.enemies = []
+    game.player.place(*TileMap.center(*player_at), 0.0, world.map)
+    return game, world, foe(world, type_id, sentinel_at)
+
+
+def test_the_blades_whirlwind_cuts_all_round_it():
+    game, world, blade = _hall("blade_sentinel", (4, 18), (2, 18))  # behind it: it faces +x
+    hp = game.player.stats.hp
+    world.whirlwind(blade)
+    assert game.player.stats.hp < hp
+    game, world, blade = _hall("blade_sentinel", (2, 14), (8, 22))
+    hp = game.player.stats.hp
+    world.whirlwind(blade)
+    assert game.player.stats.hp == hp
+
+
+def test_the_bulwarks_shield_throws_you_back_along_its_charge():
+    game, world, bulwark = _hall("bulwark_sentinel", (2, 18), (4, 18))
+    x = game.player.x
+    world.shield_bash(bulwark)
+    assert game.player.x > x + 1.0
+
+
+def test_the_bulwarks_rampart_splits_the_floor_toward_you_in_a_fan():
+    _game, world, bulwark = _hall("bulwark_sentinel", (2, 18), (7, 18))
+    world.rampart_slam(bulwark)
+    heads = {round(math.atan2(f.z - bulwark.z, f.x - bulwark.x), 2) for f in world.eruptions}
+    assert len(heads) == 3 and all(f.style == "fire" for f in world.eruptions)
+
+
+def test_the_blades_leap_marks_where_you_stood():
+    from ashen_vault.ai.enemy import SKY_REND_RADIUS
+
+    game, world, blade = _hall("blade_sentinel", (2, 14), (7, 21))
+    world.sky_rend(blade)
+    (mark,) = world.eruptions
+    assert math.isclose(mark.x, game.player.x) and math.isclose(mark.z, game.player.z)
+    assert mark.radius == SKY_REND_RADIUS and mark.warn > 0

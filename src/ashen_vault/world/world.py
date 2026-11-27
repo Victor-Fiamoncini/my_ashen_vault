@@ -9,21 +9,27 @@ from ashen_vault.ai.enemy import (
     ASH_SPREAD_BURST,
     ASH_SPREAD_GATHER,
     ASHFALL_RADIUS,
+    BEAST_RAKE_ARC,
+    BEAST_RAKE_REACH,
     BURROW_RADIUS,
+    CRADLE_RADIUS,
     EMBRACE_REACH,
     EXHALE_CONE,
     EXHALE_REACH,
     GRASP_SWEEP_REACH,
+    LEAPS,
     MOVES,
     PILLAR_RADIUS,
     PILLAR_REACH,
     QUAKE_RADIUS,
     QUAKE_SAFE,
+    SKY_REND_RADIUS,
     SLAB_REACH,
     SLAM_RADIUS,
     SQUEAL_RADIUS,
     STATUE_BURST,
     TOLL_RADIUS,
+    WHIRLWIND_REACH,
     Enemy,
     ash_rise,
 )
@@ -338,6 +344,7 @@ WALL_PROPS = (
     "sluice_wheel",
     "outfall_grate",
     "moon_window",
+    "moon_great_window",
     "prisoner_remains",
     "hand_rack",
 )
@@ -398,6 +405,7 @@ STATIC_PROPS = frozenset(
             "veiled_statue",
             "silver_tree",
             "moon_window",
+            "moon_great_window",
             "moon_spire",
             "moon_roof",
             "moon_portal",
@@ -531,6 +539,18 @@ ELIXIR_RADIUS = 1.5  # metres Herran's flask splashes out where it bursts
 ELIXIR_WARN = 1.1  # seconds its flight lasts, the ring glowing where it will land
 ELIXIR_TOXIC = 45  # toxic its splash builds in you
 ELIXIR_HIGH = 4.4  # metres over his feet he lobs it from, a hand held high
+RAKE_BLEED = (("bleed", 40),)  # what the beast's claws build in you: deeper than his other blows
+CAGE_HANDS = 8  # hands in the ring his cage bursts up in round you, but for the gap on your far side
+CAGE_RADIUS = 2.4  # metres out from where you stood
+CAGE_WARN = 0.75  # seconds its ring glows before the hands burst up
+CAGE_CLOSE = 0.5  # seconds later the hands inside it burst up where you stood
+CAGE_HEART = 1.5  # metres round where you stood that those catch you
+VOLLEY_SPREAD = 2.6  # metres either side of you (and beyond you) the flasks of his volley land
+VOLLEY_STAGGER = 0.28  # seconds between one flask's landing and the next
+CRADLE_LINE = 3  # grafted hands that run on toward you from where his clasped arms strike
+SHIELD_SHOVE = 2.4  # metres the Bulwark's charge throws you back along its way
+RAMPART_FAN = 0.38  # radians between the three faults of fire its rampart splits toward you
+RAMPART_LENGTH = 10.0  # metres they run out to, at most
 EMBRACE_HOLD = 1.4  # seconds his embrace leaves you held (slowed, as by silk)
 ENGULF_GLOOM = 2.5  # seconds the dark of the Pall's insides stays on your eyes after it lets you go
 ENGULF_DARK = 0.85  # how dark it gets, as on a `dark=` tile
@@ -1238,7 +1258,10 @@ class World:
             return
         if self.blocked_tile(TileMap.tile_coord(nx), TileMap.tile_coord(nz)):
             return
-        if abs(tile.floor - self.map.floor_at(enemy.x, enemy.z)) > collision.STEP_HEIGHT:
+        if (
+            abs(tile.floor - self.map.floor_at(enemy.x, enemy.z))
+            > collision.STEP_HEIGHT + collision.STEP_SLACK
+        ):
             return
         enemy.x = nx
         enemy.z = nz
@@ -1580,7 +1603,7 @@ class World:
         if self.enemy_strike(enemy, mult) <= 0:
             return
         player = self.player
-        if abs(player.y - self.enemy_y(enemy)) > collision.STEP_HEIGHT:
+        if abs(player.y - self.enemy_y(enemy)) > collision.STEP_HEIGHT + collision.STEP_SLACK:
             return  # out of his reach above or below (riding a lift): the chain only bites
         dx, dz = enemy.x - player.x, enemy.z - player.z
         d = math.hypot(dx, dz)
@@ -1733,7 +1756,9 @@ class World:
             tx, tz = TileMap.tile_coord(x), TileMap.tile_coord(z)
             if tile.hazardous or not collision.passable(self.map, tx, tz, floor, blocked=self.blocker):
                 continue
-            if abs(tile.floor - floor) > collision.STEP_HEIGHT or not self.can_see(player.x, player.z, x, z):
+            if abs(tile.floor - floor) > collision.STEP_HEIGHT + collision.STEP_SLACK or not self.can_see(
+                player.x, player.z, x, z
+            ):
                 continue
             if any(e is not enemy and e.alive and math.hypot(e.x - x, e.z - z) < e.radius + enemy.radius
                    for e in self.enemies):  # fmt: skip
@@ -2053,47 +2078,42 @@ class World:
         s, n = enemy.radius + 0.6, 0
         while s <= d + FAULT_PAST:
             x, z = enemy.x + ux * s, enemy.z + uz * s
-            tile = self.map.tile_at(x, z)
-            if tile.solid or not tile.walkable or tile.needs_footing:
+            if not self._graft(x, z, damage, FAULT_WARN + n * FAULT_RUN):
                 break
-            self.eruptions.append(
-                Eruption(
-                    x,
-                    z,
-                    tile.floor,
-                    damage=damage,
-                    radius=FAULT_RADIUS,
-                    warn=FAULT_WARN + n * FAULT_RUN,
-                    style="grafts",
-                )
-            )
             s += FAULT_STEP
             n += 1
         self.game.sfx("quake", 0.9)
+
+    def _graft(self, x, z, damage, warn, radius=FAULT_RADIUS, style="grafts"):
+        """A burst of grafted hands (or another `style` of eruption) up out of the floor at (x, z),
+        unless a wall, the chasm or deep water is there. Returns it, or None."""
+        tile = self.map.tile_at(x, z)
+        if tile.solid or not tile.walkable or tile.needs_footing:
+            return None
+        f = Eruption(x, z, tile.floor, damage=damage, radius=radius, warn=warn, style=style)
+        self.eruptions.append(f)
+        return f
 
     def elixir_hurl(self, enemy):
         """Herran lobs a flask of his elixir from a hand held high, on an arc to where you stand now:
         its ring glows there while it flies (ELIXIR_WARN), and it bursts in a toxic splash. Get out
         from under it."""
         player = self.player
-        tile = self.map.tile_at(player.x, player.z)
-        if tile.solid or not tile.walkable:
-            return
         damage = rround(enemy.type.damage * MOVES["elixir_hurl"][2])
-        origin = (enemy.x, self.enemy_y(enemy) + ELIXIR_HIGH, enemy.z)
-        self.eruptions.append(
-            Eruption(
-                player.x,
-                player.z,
-                tile.floor,
-                damage=damage,
-                radius=ELIXIR_RADIUS,
-                warn=ELIXIR_WARN,
-                origin=origin,
-                style="elixir",
-            )
-        )
-        self.game.sfx("lob", 0.9)
+        if self._lob_elixir(enemy, player.x, player.z, damage, ELIXIR_WARN, ELIXIR_HIGH):
+            self.game.sfx("lob", 0.9)
+
+    def _lob_elixir(self, enemy, x, z, damage, warn, high):
+        """A flask of Herran's elixir lobbed from `high` over his feet to burst at (x, z) after `warn`
+        seconds, its ring glowing there meanwhile; none where a wall or the chasm is. Returns it."""
+        tile = self.map.tile_at(x, z)
+        if tile.solid or not tile.walkable or tile.needs_footing:
+            return None
+        origin = (enemy.x, self.enemy_y(enemy) + high, enemy.z)
+        f = Eruption(x, z, tile.floor, damage=damage, radius=ELIXIR_RADIUS, warn=warn, origin=origin,
+                     style="elixir")  # fmt: skip
+        self.eruptions.append(f)
+        return f
 
     def embrace(self, enemy):
         """Second phase: Herran clamps all eight arms round you at once, as his mother would hold you: a
@@ -2126,6 +2146,136 @@ class World:
             s += BREATH_STEP
             n += 1
         self.game.sfx("breath", 0.9)
+
+    def beast_rake(self, enemy):
+        """The beast's arms, his lowest pair, thick and hooked, rake a wide arc before him: whoever is
+        within BEAST_RAKE_REACH and inside BEAST_RAKE_ARC of the way he faces is torn open, and bleeds
+        deep (RAKE_BLEED). Behind him, or round his flank, it passes you by."""
+        player = self.player
+        dx, dz = player.x - enemy.x, player.z - enemy.z
+        off = abs((math.atan2(dz, dx) - enemy.yaw + math.pi) % math.tau - math.pi)
+        in_reach = math.hypot(dx, dz) <= BEAST_RAKE_REACH and off <= BEAST_RAKE_ARC
+        if in_reach and self.enemy_strike(enemy, MOVES["beast_rake"][2], inflicts=RAKE_BLEED) > 0:
+            self.game.message("The beast's claws tear through you!")
+        self.game.sfx("swoosh", 0.7)
+
+    def hand_cage(self, enemy):
+        """All eight arms plunged into the floor: grafted hands burst up in a ring CAGE_RADIUS round
+        where you stand (CAGE_HANDS of them, but for the one on your far side from him), and a moment
+        later more burst up inside it, where you stood. Walk out through the gap, away from him, while
+        the seams glow; stand still and they close on you. Each that catches you holds you."""
+        player = self.player
+        away = math.atan2(player.z - enemy.z, player.x - enemy.x)
+        damage = rround(enemy.type.damage * MOVES["hand_cage"][2])
+        for i in range(1, CAGE_HANDS):  # the 0th, straight on away from him, is the gap
+            a = away + i * math.tau / CAGE_HANDS
+            self._graft(player.x + math.cos(a) * CAGE_RADIUS, player.z + math.sin(a) * CAGE_RADIUS, damage,
+                        CAGE_WARN)  # fmt: skip
+        self._graft(player.x, player.z, damage, CAGE_WARN + CAGE_CLOSE, radius=CAGE_HEART)
+        self.game.sfx("quake", 0.8)
+        self.game.message("Hands claw up out of the floor all round you!")
+
+    def flask_volley(self, enemy):
+        """Second phase: his four men's arms each lob a flask in turn, VOLLEY_STAGGER apart: at where
+        you stand, then either side of you and on beyond you, so strafing or backing away from him runs
+        you under the next. Step in toward him, out of the spread."""
+        player = self.player
+        dx, dz = player.x - enemy.x, player.z - enemy.z
+        d = math.hypot(dx, dz) or 1.0
+        ux, uz = dx / d, dz / d
+        damage = rround(enemy.type.damage * MOVES["flask_volley"][2])
+        spots = (
+            (0.0, 0.0),
+            (-VOLLEY_SPREAD, 0.0),
+            (VOLLEY_SPREAD, 0.0),
+            (0.0, VOLLEY_SPREAD),
+        )  # (across, beyond) you
+        for k, (across, beyond) in enumerate(spots):
+            x = player.x - uz * across + ux * beyond
+            z = player.z + ux * across + uz * beyond
+            self._lob_elixir(enemy, x, z, damage, ELIXIR_WARN + k * VOLLEY_STAGGER, ELIXIR_HIGH - 0.3 * k)
+        self.game.sfx("lob", 0.8)
+
+    def cradle_slam(self, enemy):
+        """Second phase: every arm raised high and clasped together, brought down at once before him
+        like a cradle dropped: a great blow on whoever is within CRADLE_RADIUS of him, on any side, and
+        the floor splits on toward you, CRADLE_LINE bursts of grafted hands. Get well back while his
+        arms are raised, and step off the line."""
+        player = self.player
+        dx, dz = player.x - enemy.x, player.z - enemy.z
+        d = math.hypot(dx, dz)
+        if d <= CRADLE_RADIUS:
+            self.enemy_strike(enemy, MOVES["cradle_slam"][2])
+        self.shockwaves.append(Shockwave(enemy.x, enemy.z, self.enemy_y(enemy), CRADLE_RADIUS))
+        ux, uz = (dx / d, dz / d) if d > 1e-6 else (math.cos(enemy.yaw), math.sin(enemy.yaw))
+        damage = rround(enemy.type.damage * MOVES["hand_rain"][2])
+        for n in range(CRADLE_LINE):
+            s = CRADLE_RADIUS + 0.4 + n * FAULT_STEP
+            if not self._graft(enemy.x + ux * s, enemy.z + uz * s, damage, FAULT_WARN + n * FAULT_RUN):
+                break
+        self.game.sfx("quake", 1.3)
+        self.game.sfx("crack", 0.8)
+
+    # --- the twin sentinels ----------------------------------------------------------------------
+
+    def shield_bash(self, enemy):
+        """The Bulwark's charge runs into you: its tower shield strikes, and throws you SHIELD_SHOVE
+        back along its way (a shield of your own takes the blow, never the shove). Step aside while it
+        lowers its shield to come."""
+        if not self.level_with(enemy):
+            return
+        self.enemy_strike(enemy, MOVES["shield_charge"][2])
+        c, sn = math.cos(enemy.yaw), math.sin(enemy.yaw)
+        self._knock_player(c * SHIELD_SHOVE, sn * SHIELD_SHOVE)
+        self.game.sfx("quake", 1.5)
+        self.game.message("The Bulwark's shield throws you back!")
+
+    def rampart_slam(self, enemy):
+        """Second phase: the Bulwark drives its shield's edge down into the floor, and it splits toward
+        you in a fan of three faults of fire (RAMPART_FAN apart), each glowing all along before it
+        bursts up, running out from its feet. Stand between them farther out, or step off the fan."""
+        player = self.player
+        ahead = math.atan2(player.z - enemy.z, player.x - enemy.x)
+        damage = rround(enemy.type.damage * MOVES["rampart_slam"][2])
+        for spread in (-RAMPART_FAN, 0.0, RAMPART_FAN):
+            ux, uz = math.cos(ahead + spread), math.sin(ahead + spread)
+            s, n = enemy.radius + 0.6, 0
+            while s <= RAMPART_LENGTH:
+                x, z = enemy.x + ux * s, enemy.z + uz * s
+                if not self._graft(x, z, damage, FAULT_WARN + n * FAULT_RUN, radius=0.9, style="fire"):
+                    break
+                s += FAULT_STEP
+                n += 1
+        self.shockwaves.append(Shockwave(enemy.x, enemy.z, self.enemy_y(enemy), enemy.radius + 1.5))
+        self.game.sfx("quake", 1.1)
+        self.game.sfx("crack", 1.0)
+
+    def whirlwind(self, enemy):
+        """The Blade Sentinel spins once round, its long blade held out: whoever is within its reach
+        and WHIRLWIND_REACH more, on any side, is struck. Back well off; behind it is no safer."""
+        player = self.player
+        reach = enemy.type.reach + WHIRLWIND_REACH
+        if math.hypot(player.x - enemy.x, player.z - enemy.z) <= reach:
+            self.enemy_strike(enemy, MOVES["whirlwind"][2])
+        self.shockwaves.append(Shockwave(enemy.x, enemy.z, self.enemy_y(enemy), reach))
+        self.game.sfx("swoosh", 1.2)
+
+    def sky_rend(self, enemy):
+        """Second phase: the Blade Sentinel leaps at where you stand (Enemy._pounce), and the floor
+        there glows while it is in the air (a ring SKY_REND_RADIUS round): it comes down blade-first in
+        a burst of fire. Get out of the ring."""
+        player = self.player
+        speed, longest = LEAPS["sky_rend"]
+        flight = min(math.hypot(player.x - enemy.x, player.z - enemy.z) / speed, longest)
+        damage = rround(enemy.type.damage * MOVES["sky_rend"][2])
+        self._graft(player.x, player.z, damage, max(flight, 0.3), radius=SKY_REND_RADIUS, style="fire")
+        self.game.sfx("swoosh", 0.6)
+
+    def sky_rend_land(self, enemy):
+        """It comes down: the ground shakes round it (the burst marked where it was going does the
+        harm)."""
+        self.shockwaves.append(Shockwave(enemy.x, enemy.z, self.enemy_y(enemy), SKY_REND_RADIUS + 1.0))
+        self.game.sfx("quake", 1.4)
 
     def can_shed(self, enemy):
         """Whether the Pall may slough off more clots: not while SHED_MAX of them still crawl."""

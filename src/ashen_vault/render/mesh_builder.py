@@ -61,6 +61,7 @@ LIGHT_KINDS = (
     "save_statue",
     "moon_lamp",
     "moon_window",
+    "moon_great_window",
     "moon_crystal",
     "sump_caps",
     "energy_core",
@@ -98,6 +99,7 @@ LIGHT_Y_WALL = {
     "great_window": "1.6",
     "rose_window": "0",
     "moon_window": "2.2",
+    "moon_great_window": "5.0",
 }
 LIGHT_COLOR = {
     "fen_beacon": "0.8,0.35,1.1",
@@ -121,6 +123,7 @@ LIGHT_COLOR = {
     "moon_stair": "1.7,0.72,0.22",  # the lamps at the head of the grand stair
     "moon_crystal": "0.72,0.62,1.0",
     "moon_window": "0.58,0.68,0.98",
+    "moon_great_window": "0.66,0.66,1.0",  # moon-glass, a little violet from its stained panes
     "candelabra": "1.3,0.8,0.45",  # candlelight, warm and small in the castle's cold halls
     "vat": "0.4,1.0,0.45",  # the green of what floats in the vats
 }
@@ -146,6 +149,7 @@ LIGHT_RADIUS = {
     "moon_stair": "8",
     "moon_crystal": "6",
     "moon_window": "8",
+    "moon_great_window": "11",
     "candelabra": "7",
     "vat": "4",
 }
@@ -153,6 +157,7 @@ LIGHT_RADIUS = {
 WALL_LIGHTS = (
     *("torch", "shelf_fungus", "hearth", "window", "barred_window", "great_window", "rose_window"),
     "moon_window",
+    "moon_great_window",
 )
 QUENCHABLE = (
     "energy_core",

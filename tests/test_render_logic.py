@@ -2492,6 +2492,7 @@ def test_vesperholms_dressing_draws_and_stands_still():
         ("veiled_statue", lambda r: moon_models.veiled_statue(r, 4)),
         ("silver_tree", lambda r: moon_models.silver_tree(r, 4)),
         ("moon_window", lambda r: moon_models.moon_window(r, 4)),
+        ("moon_great_window", lambda r: moon_models.moon_great_window(r, 4)),
         ("moon_spire", lambda r: moon_models.moon_spire(r, 4, 16.0)),
         ("moon_roof", lambda r: moon_models.moon_roof(r, 6, 4, "x", 5.5, 3.0, 0.4, seed=3)),
         ("moon_portal", lambda r: moon_models.moon_portal(r, 4)),
@@ -2502,9 +2503,17 @@ def test_vesperholms_dressing_draws_and_stands_still():
         assert min(y for _, y in gpu.parts) > -0.1, name
         assert name in STATIC_PROPS, name
     assert {"moon_lamp", "veiled_statue", "silver_tree"} <= set(BLOCKING_PROPS)
-    assert "moon_window" in WALL_PROPS and {"moon_spire", "moon_roof", "moon_portal"} <= set(LANDMARKS)
+    gpu = _GlowGpu()
+    moon_models.moon_great_window(rig.Rig(gpu), 4)
+    assert max(y for _, y in gpu.parts) <= moon_models.GREAT_WINDOW_HIGH  # the maps hang it by this
+    assert gpu.glows >= 30  # its stained panes, rose and boss all shine
+    assert {"moon_window", "moon_great_window"} <= set(WALL_PROPS) and {
+        "moon_spire",
+        "moon_roof",
+        "moon_portal",
+    } <= set(LANDMARKS)
     assert not {"moon_roof", "moon_portal"} & set(BLOCKING_PROPS)  # the cathedral's doorway stays open
-    assert {"moon_lamp", "moon_window"} <= set(mesh_builder.LIGHT_KINDS)  # they light the streets
+    assert {"moon_lamp", "moon_window", "moon_great_window"} <= set(mesh_builder.LIGHT_KINDS)  # they shine
     warm = [float(c) for c in mesh_builder.LIGHT_COLOR["moon_lamp"].split(",")]
     assert warm[0] > warm[1] > warm[2]  # the lamps burn orange under the cold moon
 
@@ -2861,3 +2870,15 @@ def test_the_great_fen_gate_is_built_in_detail_and_its_portcullis_winds_clear():
     fen_models.great_portcullis(rig.Rig(shut), 0.0, 0, 3)
     fen_models.great_portcullis(rig.Rig(raised), 1.0, 0, 3)
     assert shut.bottom < 0.0 and raised.bottom > 4.5, "it winds up clear of the passage"
+
+
+def test_the_wall_over_a_boss_door_rises_to_its_tiles_ceiling():
+    """No slot of open dark runs up from a boss door's lintel: masonry fills it to the tile's ceiling."""
+    from ashen_vault.render import models
+
+    for frame, reaches in ((models.BOSS_DOOR_TOP, False), (4.0, False), (6.0, True)):
+        gpu = _RecordingGpu()
+        models.boss_door_infill(rig.Rig(gpu), "x", "herran_dead", frame)
+        tops = [y for _, y in gpu.parts]
+        assert bool(tops) == (frame > models.BOSS_DOOR_TOP)
+        assert (bool(tops) and max(tops) > models.BOSS_DOOR_CLEAR) == reaches
