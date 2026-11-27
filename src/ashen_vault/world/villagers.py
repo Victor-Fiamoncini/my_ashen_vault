@@ -26,6 +26,7 @@ TOOLS = (
     "tankard",
     "lantern",
     "halberd",
+    "bucket",
 )
 IDLES = ("sway", "hammer", "watch", "stir", "pray", "count", "smith", "ready")
 BEARDS = (None, "short", "long")
@@ -259,7 +260,7 @@ LOOKS = {
         trousers=(80, 72, 60), boots=(60, 50, 40),
     ),
     # The neighbourhood: the weaver, the cooper, the midwife, the old sailor, the baker, and out in
-    # the lane the fisherman's wife and the lamplighter.
+    # the lane the fisherman's wife, hauling a bucket of water home, and the lamplighter.
     "tilde": Look(
         cloth=(160, 120, 70), hair=(90, 50, 30), build="average", hair_style="bun", apron=(200, 190, 160),
         tool="rod", idle="count",
@@ -283,8 +284,9 @@ LOOKS = {
         idle="stir",
     ),
     "jorun": Look(
-        cloth=(80, 100, 90), hair=(70, 46, 30), build="slight", hair_style="long", cloak=(60, 74, 70),
-        tool="rod", idle="watch",
+        cloth=(120, 62, 44), hair=(84, 56, 36), skin=(190, 150, 116), build="stout", hair_style="bun",
+        hat="coif", hat_rgb=(206, 198, 180), apron=(176, 164, 136), sleeves="rolled", tool="bucket",
+        trousers=(70, 50, 40), boots=(52, 40, 32),
     ),
     "cobb": Look(
         cloth=(70, 66, 60), hair=(150, 100, 60), build="tall", hat="brim", hat_rgb=(44, 40, 36),

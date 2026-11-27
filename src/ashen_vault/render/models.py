@@ -1386,7 +1386,7 @@ def _spider_leg(r, i, side, phase, amp, body, band, curl=0.0):
                 r.part("wedge", 0.45, 0.05, 0, 0.04, 0.09, 0.04, (40, 32, 40), rz=-0.5)  # a bristling spine
 
 
-def npc(r, look, t=0.0, near=True):
+def npc(r, look, t=0.0, near=True, seated=False):
     """A villager facing +X, built from a `villagers.Look` square and blocky, as the old PS1 crawlers
     drew their folk: chunky boots and box legs (or a long robe flaring to its hem, or a kimono's wide
     hakama), a box chest with square shoulders and a coat skirt flaring below the belt, trimmed at hem,
@@ -1395,20 +1395,28 @@ def npc(r, look, t=0.0, near=True):
     parts each beyond `world_view.DETAIL_RANGE`, `near` False), and an angular, faceless head (a flat face, a brow and a nose, no eyes) sitting right on
     the collar, under block hair, a beard, a hat or hood. They hold their trade's tool and idle by it
     (`look.idle`): the smith works a billet on the anvil before him (`villagers.smith_cycle`), the
-    swordmaster stands ready by his blades (`villagers.half_draw`)."""
+    swordmaster stands ready by his blades (`villagers.half_draw`). `seated`, they sit on a bench or a
+    pew whose seat is at `SEAT_Y`, knees forward and feet on the floor, bent a little over their prayers."""
     hs, ws, stoop = villagers.BUILDS[look.build]
     sway = math.sin(t * 1.5) * 0.03
     shift = 0.0
     lean, nod = _idle_lean(look, t)
     if look.idle == "ready":  # a swordmaster stands still, his weight easing from foot to foot
         sway, shift = math.sin(t * 0.9) * 0.008, math.sin(t * 0.45) * 0.025
+    hips = HIPS_Y
+    if seated:  # still on the seat, but for a slow breath that rocks them over their prayers
+        sway, shift, hips = 0.0, 0.0, SEAT_Y / hs
+        lean += 0.14 + 0.025 * math.sin(t * 0.8)
     beat = max(math.sin(t * 2.4), 0.0) ** 3  # the old hammer idle, the guard's shifting weight
     with r.at(0, 0, 0, rz=sway, rx=shift, s=hs):
-        _villager_legs(r, look, ws)
+        if seated:
+            _villager_seated_legs(r, look, ws, hips)
+        else:
+            _villager_legs(r, look, ws)
         if look.idle == "smith":
             _smith_anvil(r, t)
-        with r.at(0, 0.95, 0, rz=-stoop - lean):  # everything above the hips leans with the stoop
-            _villager_torso(r, look, ws)
+        with r.at(0, hips, 0, rz=-stoop - lean):  # everything above the hips leans with the stoop
+            _villager_torso(r, look, ws, seated)
             _villager_arms(r, look, ws, t, beat, near)
             with r.at(
                 0.03,
@@ -1426,6 +1434,8 @@ def npc(r, look, t=0.0, near=True):
                 _hip_blades(r, look, ws, t)
 
 
+HIPS_Y = 0.95  # a standing villager's hips above the floor
+SEAT_Y = 0.52  # a seated villager's hips: on a pew's seat (`town_models.pew`)
 CHEST_TOP = 0.62  # the flat top of the chest, the shoulders' line, above the hips
 HEAD_AT = CHEST_TOP + 0.02  # the head sits on the collar; its short neck sinks into the chest
 FLIP = math.pi  # turns a frustum over, so it narrows downward
@@ -1559,7 +1569,26 @@ def _villager_legs(r, look, ws):
         r.part("cube", 0.07, 0.04, z * ws, 0.32, 0.08, 0.19, _dim(look.boots, 0.9))  # foot
 
 
-def _villager_torso(r, look, ws):
+def _villager_seated_legs(r, look, ws, hips):
+    """A seated villager's legs, the hips `hips` up: thighs running forward along the seat, the shins
+    hanging from the knees to the boots on the floor. A robe (or the coat's skirt, drawn by the torso)
+    lies over the lap and falls from the knees."""
+    knee = 0.42
+    if look.garb == "robe":
+        r.part("cube", knee / 2 + 0.02, hips - 0.02, 0, knee + 0.1, 0.14, 0.56 * ws, look.cloth)  # the lap
+        r.part("frustum", knee + 0.02, hips / 2 - 0.04, 0, 0.2, hips - 0.08, 0.64 * ws, look.cloth)  # falling
+        r.part("cube", knee + 0.03, 0.05, 0, 0.24, 0.1, 0.7 * ws, _trim(look))  # its hem
+        for z in (-0.1, 0.1):
+            r.part("cube", knee + 0.16, 0.04, z * ws, 0.14, 0.08, 0.11, look.boots)  # the toes peeping out
+        return
+    for z in (-0.12, 0.12):
+        r.part("cube", knee / 2, hips, z * ws, knee + 0.1, 0.18, 0.18, look.trousers)  # thigh
+        r.part("cube", knee, hips / 2 + 0.1, z * ws, 0.16, hips - 0.2, 0.15, _dim(look.trousers, 0.9))  # shin
+        r.part("cube", knee, 0.14, z * ws, 0.19, 0.2, 0.18, look.boots)  # boot
+        r.part("cube", knee + 0.07, 0.04, z * ws, 0.32, 0.08, 0.19, _dim(look.boots, 0.9))  # foot
+
+
+def _villager_torso(r, look, ws, seated=False):
     w = _chest_width(ws)
     trim = _trim(look)
     r.part("cube", 0, CHEST_TOP - 0.24, 0, 0.28, 0.48, w, look.cloth)  # chest, square at the shoulders
@@ -1581,14 +1610,23 @@ def _villager_torso(r, look, ws):
     r.part("cube", 0, 0.08, 0, 0.26, 0.14, w * 0.9, _dim(look.cloth, 0.92))  # waist
     r.part("cube", 0, 0.03, 0, 0.3, 0.07, w * 0.95, look.belt)  # belt
     r.part("cube", 0.155, 0.03, 0, 0.02, 0.07, 0.07, (170, 150, 90))  # buckle
-    r.part("frustum", 0, -0.2, 0, 0.42, 0.42, w * 1.45, look.cloth)  # the coat's skirt, flaring below
-    r.part("frustum", 0, -0.38, 0, 0.44, 0.06, w * 1.5, trim)  # its hem
+    if seated:  # the coat's skirt spread over the lap and hanging from the knees
+        r.part("cube", 0.2, -0.04, 0, 0.5, 0.06, w * 1.3, look.cloth)
+        r.part("cube", 0.45, -0.16, 0, 0.04, 0.24, w * 1.3, look.cloth)
+        r.part("cube", 0.45, -0.29, 0, 0.05, 0.04, w * 1.32, trim)
+    else:
+        r.part("frustum", 0, -0.2, 0, 0.42, 0.42, w * 1.45, look.cloth)  # the coat's skirt, flaring below
+        r.part("frustum", 0, -0.38, 0, 0.44, 0.06, w * 1.5, trim)  # its hem
     r.part("cube", 0, CHEST_TOP + 0.015, 0, 0.22, 0.05, 0.26, trim)  # collar
     if look.apron:
         long = look.idle == "smith"  # a smith's leather apron, down to his shins
         r.part("cube", 0.15, CHEST_TOP - 0.24, 0, 0.02, 0.3, w * 0.5, look.apron)  # bib
-        r.part("cube", 0.185, -0.2 - 0.15 * long, 0, 0.02, 0.44 + 0.3 * long, w * 0.65, look.apron, rz=0.19)
-        r.part("cube", 0.2, -0.26, 0, 0.01, 0.12, w * 0.3, _dim(look.apron, 0.8), rz=0.19)  # pocket
+        if seated:  # lying over the lap
+            r.part("cube", 0.22, 0.0, 0, 0.44, 0.02, w * 0.65, look.apron)
+        else:
+            r.part("cube", 0.185, -0.2 - 0.15 * long, 0, 0.02, 0.44 + 0.3 * long, w * 0.65, look.apron,
+                   rz=0.19)  # fmt: skip
+            r.part("cube", 0.2, -0.26, 0, 0.01, 0.12, w * 0.3, _dim(look.apron, 0.8), rz=0.19)  # pocket
         if long:
             for side in (1, -1):  # straps over the shoulders, and a scorch on the leather
                 r.part(
@@ -1599,7 +1637,10 @@ def _villager_torso(r, look, ws):
     if look.tabard:
         _tabard(r, look, w)
     if look.cloak:
-        r.part("cube", -0.22, 0.05, 0, 0.05, 0.98, w * 1.25, look.cloak, rz=-0.1)
+        if seated:  # gathered behind on the seat
+            r.part("cube", -0.18, 0.28, 0, 0.05, 0.6, w * 1.25, look.cloak, rz=-0.06)
+        else:
+            r.part("cube", -0.22, 0.05, 0, 0.05, 0.98, w * 1.25, look.cloak, rz=-0.1)
         r.part("cube", -0.02, CHEST_TOP - 0.02, 0, 0.34, 0.07, w + 0.36, _dim(look.cloak, 1.1))  # mantle
         r.part("cube", 0.165, CHEST_TOP - 0.06, 0, 0.03, 0.06, 0.06, (170, 150, 90))  # clasp
 
@@ -1757,6 +1798,8 @@ def _arm_pose(look, side, t, beat):
         return 0.15, 0.55, look.tool, 0.0, 0.0
     if look.tool == "rod":
         return 0.7, 0.4, look.tool, 0.0, 0.0
+    if look.tool == "bucket":  # the arm hanging straight with the weight, a little out from the hip
+        return 0.06, 0.08, look.tool, -0.12, 0.0
     return 0.3, 1.0, look.tool, 0.0, 0.0
 
 
@@ -1872,6 +1915,14 @@ def _villager_tool(r, tool, t):
     elif tool == "tankard":
         r.part("cyl", 0.06, 0.02, 0, 0.1, 0.13, 0.1, (130, 110, 90))
         r.part("cyl", 0.06, 0.09, 0, 0.09, 0.02, 0.09, (230, 220, 200))  # froth
+    elif tool == "bucket":  # a wooden pail of water hanging from the fist by its iron bail
+        for side in (-1, 1):
+            r.part("cube", 0, -0.09, side * 0.1, 0.02, 0.18, 0.02, IRON, rx=side * 0.45)  # the bail
+        r.part("cube", 0, 0, 0, 0.03, 0.03, 0.06, TOOL_WOOD)  # its wooden grip
+        r.part("frustum", 0, -0.33, 0, 0.26, 0.3, 0.26, TOOL_WOOD, rz=FLIP)  # staves, wider at the brim
+        for y in (-0.42, -0.24):  # two iron hoops
+            r.part("cyl", 0, y, 0, 0.255 + (y + 0.42) * 0.1, 0.03, 0.255 + (y + 0.42) * 0.1, IRON)
+        r.part("cyl", 0, -0.19, 0, 0.24, 0.01, 0.24, (52, 60, 58))  # the water, dark in it
     elif tool == "lantern":
         r.part("cube", 0, -0.12, 0, 0.12, 0.16, 0.12, IRON)
         r.part("cube", 0, -0.12, 0, 0.08, 0.1, 0.08, (255, 200, 110), glow=True)

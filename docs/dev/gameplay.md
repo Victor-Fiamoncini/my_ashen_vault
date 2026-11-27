@@ -168,7 +168,7 @@ Equipment, combat, spells, shops, saves and the story.
   spell also needs a HUD icon (`hud.spell_icon`), colours in `models.SPELL_GLOW` / `SPELL_ORB`, and its
   scroll's parchment, rods and wax in `models.SCROLLS` with a rune in `models.SCROLL_RUNES` (no two alike).
 - Shops are `dialogue.SHOPS`: Brannoc's forged steel and armour, Pell's scrolls and salvage, Tamsin's remedies,
-  and Corvane's blades in the hut on the town's west edge (Corvane won't talk below `CORVANE_LEVEL`),
+  and Corvane's blades in his house on the town's west edge (Corvane won't talk below `CORVANE_LEVEL`),
   and Ysolde Vane's two copied spells in Old Harrowmere's Oubliette, sold only once the gaoler's lever
   (`dialogue.OUBLIETTE_OPEN`) has raised her cell front. Her fellow prisoners there, Aubel the Ringer and
   Sister Coldry, tell the first city's story (raised on the sleeping Keystone, sunk when its bells fell

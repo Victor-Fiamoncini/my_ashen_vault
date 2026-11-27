@@ -75,8 +75,8 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   (the keep's walled roof: the gargoyles wake at once).
 - The Harrow Sewers (`harrow_sewers`) lie under the town; each town grate stands over the sewer ladder that
   climbs back to it, at the same tile, one in each corner of the town: `--map harrowmere --at=3,2,180 --script
-  "wait:0.3 interact"` (go down the north-west grate, by the north road's gate; the others are at 45,2 by the
-  Vesper Gate, 3,37 and 45,39 at the south lane's west and east ends), `--map harrow_sewers
+  "wait:0.3 interact"` (go down the north-west grate, by the north road's gate; the others are at 44,2 by the
+  Vesper Gate, 3,37 and 44,39 at the south lane's west and east ends), `--map harrow_sewers
   --at=2,3,-90 --script "wait:0.3 interact"` (climb back up by the north road). Districts: `--map
   harrow_sewers` (the drain into the Market Drains, its `start`), `--at=27,6,0`
   (the North Sluices), `--at=4,36,0` (the Canal Culvert), `--at=36,36,90` (the Quay Outfall and its

@@ -836,6 +836,9 @@ def _draw_tree(view, rig, p, t):  # `kind=cypress|pine|olive`, or one picked by 
     town_models.town_tree(rig, kind, seed, t, near)
 
 
+PEW_SEAT_X = 0.06  # a seated villager sits this far forward of the pew's middle, clear of its back
+
+
 def _draw_npc(view, rig, p, t):
     world = view.world
     npc_id = p.props.get("id")
@@ -843,7 +846,12 @@ def _draw_npc(view, rig, p, t):
         models.enthroned(rig, t)
     else:
         near = view._baking or math.hypot(p.x - world.player.x, p.z - world.player.z) < DETAIL_RANGE
-        models.npc(rig, villagers.look(npc_id), t + p.tx, near)
+        if "pew" in p.props:  # sat in a pew of their own, `pew=` metres along it from its middle
+            town_models.pew(rig, p.tx * 7 + p.tz * 3)
+            with rig.at(PEW_SEAT_X, 0, float(p.props["pew"] or 0.0)):
+                models.npc(rig, villagers.look(npc_id), t + p.tx, near, seated=True)
+        else:
+            models.npc(rig, villagers.look(npc_id), t + p.tx, near)
 
 
 def _draw_secret_wall(view, rig, p, t):

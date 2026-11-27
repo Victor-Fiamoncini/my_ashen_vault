@@ -67,9 +67,9 @@ v = floor tex=flagstone h=-7.6 ceil=-2.5 ceil_tex=sewer_vault side=sewer_brick d
 
 [grid]
 ################################################
-##%##########################################%##
-#%B%###############.ÍF.Á......Á..F...........A%#
-##d################=================#########%##
+##%#########################################%%##
+#%B%###############.ÍF.Á......Á..F..........A%%#
+##d################=================########%%##
 ##ddddddddd########Â===========L====#FbbbÑbbbbF#
 ##########d########Æ.H............ÇF#bqqbbbqqqb#
 ##########...........HH...Å.........#bqqbbbqqqb#
@@ -105,7 +105,7 @@ v = floor tex=flagstone h=-7.6 ceil=-2.5 ceil_tex=sewer_vault side=sewer_brick d
 ###.Í.........F..F.....Z.Y.....oooooopÕoooooÇo##
 ##%C%##########################ÂoooooËpooÇoooo##
 ###%###########################FooHHoÒpoooooIF##
-###############################ÆooHHopÒooooooD%#
+###############################ÆooHHopÒoooooD%%#
 ###############################oooooopËooooooo##
 ###############################FÆooÅoÃÃooFooÆU##
 ################################################
@@ -113,10 +113,10 @@ v = floor tex=flagstone h=-7.6 ceil=-2.5 ceil_tex=sewer_vault side=sewer_brick d
 
 [entities]
 // The four ladders up to the town's grates, each under the grate it climbs to.
-A = exit map=harrowmere at=44,2,180 label=Climb_up_by_the_Vesper_Gate model=sewer_ladder on=^ yaw=180
+A = exit map=harrowmere at=43,2,180 label=Climb_up_by_the_Vesper_Gate model=sewer_ladder on=^ yaw=180
 B = exit map=harrowmere at=3,2,0 label=Climb_up_by_the_north_road model=sewer_ladder on=^ yaw=90
 C = exit map=harrowmere at=4,37,0 label=Climb_up_by_the_sea_wall model=sewer_ladder on=^ yaw=-90
-D = exit map=harrowmere at=44,39,180 label=Climb_up_by_the_east_wall model=sewer_ladder on=^ yaw=180
+D = exit map=harrowmere at=43,39,180 label=Climb_up_by_the_east_wall model=sewer_ladder on=^ yaw=180
 // The cistern's shrine, its pillars and the light.
 E = save_statue
 F = torch radius=8

@@ -18,7 +18,7 @@ entity_floor = auto
 // in by the cemetery's gate in the west wall, down the west avenue to the round plaza at the heart of
 // town, where the Silent Bell hangs on its plinth by the shrine. North of the plaza the cathedral stands
 // on its terrace two metres up, its great door facing south down the grand stair, the Enthroned at the
-// end of the nave. The west side is the craftsmen's and the watch's: Corvane's hut and Brannoc's forge
+// end of the nave. The west side is the craftsmen's and the watch's: Corvane's house and Brannoc's forge
 // on the north road's street, the walled garden behind them, and south of the avenue the gaol yard,
 // where the old gaol's barred pit drops into the Abandoned Prison, and the watch office. The east side
 // is the traders': Tamsin's hall and Pell's house on the Vesper street, the carters' yard by the east
@@ -31,12 +31,10 @@ entity_floor = auto
 [legend]
 R = wall tex=soot_ashlar top=7 cap=soot_ashlar dress=rampart
 A = wall tex=cliff_rock top=6 cap=rough_stone
-// The houses' thin walls: dressed stone (H), half-timbering over an ashlar ground floor (#), and the
-// timbered walls of Corvane's hut (q), a storey lower than the rest. All the town's stone, its wall,
-// its houses, the cathedral and the terrace it stands on, is one dressed ashlar blackened by the burning.
+// The houses' thin walls: dressed stone (H) and half-timbering over an ashlar ground floor (#). All
+// the town's stone, its wall, its houses, the cathedral and the terrace it stands on, is one dressed ashlar blackened by the burning.
 H = wall tex=soot_ashlar top=5.6 cap=roof thin=0.5
 # = wall tex=stone_timber top=5.6 cap=roof thin=0.5
-q = wall tex=timber top=4.4 cap=roof thin=0.5
 // The stone stack in the elbow of Pell's L, its chimney rising from it: a full wall, so both of the
 // thin runs that meet there end against it.
 ^ = wall tex=soot_ashlar top=5.6 cap=roof
@@ -86,15 +84,15 @@ c = floor tex=rough_stone h=0 ceil=3.4 ceil_tex=cliff_rock side=cliff_rock dark=
 [grid]
 ®RRRR¯RRRRRRRRRRRRRRRRRR¯RRRRRRRRRR¯RRRRRRRRRR°AAAAAAAAAAAAAA
 R.........N.....[;;;;;;;;;;;;;[.......Ë.(.č...RAAAAAAAAAAAAAA
-R.?......Ì.ÿ....[ù;;ÉêCCCëC;;ù[ssĕss¶ĕs).đ...!RAAAAAAAAAAAAAA
+R.?......Ì.ÿ....[ù;;ÉêCCCëC;;ù[ssĕss¶ĕs).đ..!.RAAAAAAAAAAAAAA
 R,,,,,,,/sss||||[;;íCDaîaDCí;;[.ÄHĘæHH¡sss,,,,RAAAAAAAAAAAAAA
 R,,..à.,,ssÇ|GGG[;;ìCYaEaYCì;;[,H%iiiLHsss,,,ÐRAAAAAAAAAAAAAA
-R,,Áqqqq,sss|GTG[;;ìCnĨnnnCì;;[.Hiiid¾HÇss,,,,RAAAAAAAėAAAAAA
-R,,q»Liq·sss|GGG[;;íCOIÊIOCí;;[.H%iii¾Hsss,,Ü,RAAAAAAAAAAAAAA
-R,,qZiiä-sss|GGG[;;ìCðQ`QñCì;;[,H+iÒi$Hsss,,,,RAAAAAAAAAAAAAA
-R,,q»iÏq.sss|TGG[;;ìCOQÓQOCì;;[.HHHHĘH¤sss,,,,RAAAAAAAAAAAAAA
-R,,qqqqq.sss|GGG[;;íCòInIóCí;;[,,,,,,,/sssX,ø,RAAAAAAAAAAAAAA
-R,,,.à.,.sss|GGG[;;;CĿn:nŀC;;;[,.ē..ē.ssss,,,,²AAAAAAAAAAAAAA
+R,,Á####,sss|GTG[;;ìCnĨnnnCì;;[.Hiiid¾HÇss,,,,RAAAAAAAėAAAAAA
+R,,#»Li#·sss|GGG[;;íCOIÊIOCí;;[.H%iii¾Hsss,,Ü,RAAAAAAAAAAAAAA
+R,,#Ziiä-sss|GGG[;;ìCðQ`ŀñCì;;[,H+iÒi$Hsss,,,,RAAAAAAAAAAAAAA
+R,,#»iÏ#.sss|TGG[;;ìCOĿÓQOCì;;[.HHHHĘH¤sss,,,,RAAAAAAAAAAAAAA
+R,,#####.sss|GGG[;;íCòInIóCí;;[,,,,,,,/sssX,ø,RAAAAAAAAAAAAAA
+R,,,.à.,.sss|GGG[;;;Cnn:nnC;;;[,.ē..ē.ssss,,,,²AAAAAAAAAAAAAA
 R,,,,,,,Xsss_GGT[ù;;èCnïnCé;;ù[,ÂHHĘHHXsss,,,,RAAAAAAAAAAAAAA
 ±,ÀHHĘHH¡.ss|GGG[;;;;;;¬;;;;;;[,Å%¼¼LH.sss,Û,ÆRAAAAAAAAAAAAAA
 R,Hû¸ãkÏHĒss|GGG[[[[[94"49[[[[[,HiiÒiH.sss,,,,RAAAAAAAAAAAAAA
@@ -123,7 +121,7 @@ R,,,,,,,,,,,,#$iÒiÏ#Ĕ,sss,,,,#+$&#,H%$<H,H$iÐHRAAAAAAAAAAAAAA
 R,,,,,,,X,,T,#i<iiÏ#,,sss,,,Ě#####,HHHHĘ,HHHHHRAAAAAAAAAAAAAA
 R,,{,Ç,,,T,,,###ę###Œ,sssÛ,T,,,,,,,,,,,,,,,,,,RAAAAAAAAAAAAAA
 R.............Œ.Ā........X.....Æ..........Ç...RAAAAAAAAAAAAAA
-R..................................Æ.........}RAAAAAAAAAAAAAA
+R..................................Æ........}.RAAAAAAAAAAAAAA
 R..œ..........................................RAAAAAAAAAAAAAA
 RRRRRRRRRRRRRRRRRRRRŝRsŜsRŝRRRRRRRRRRRRRRRRRRRRAAAAAAAAAAAAAA
 RttttĝttttttÛttttttÐtttttttttÝttttĝttttttÏttttRAAAAAAAAAAAAAA
@@ -161,10 +159,11 @@ d = npc id=tamsin yaw=-90
 Ĩ = npc id=ilse yaw=90
 l = npc id=wren yaw=180
 E = npc id=enthroned yaw=90 on=a
-// The townsfolk: two at prayer in the nave, three about the plaza, and the neighbourhood's own, each at
-// home but two out in the lane.
-Ŀ = npc id=hedda yaw=-90
-ŀ = npc id=aubrey yaw=-90
+// The townsfolk: two at prayer in the nave, each sat in a pew of their own (`pew=` draws it under them
+// and seats them that far along it, toward the aisle),
+// three about the plaza, and the neighbourhood's own, each at home but two out in the lane.
+Ŀ = npc id=hedda yaw=-90 pew=0.4
+ŀ = npc id=aubrey yaw=-90 pew=-0.4
 Ł = npc id=lisbet yaw=135
 ł = npc id=osric yaw=-45
 Ń = npc id=merrit yaw=-135
@@ -214,12 +213,12 @@ Y = candles
 Ó = light y=6 color=0.62,0.66,0.82 radius=9
 D = banner torn
 // The houses' roofs of weathered clay tile, each on its building's north-west corner, and each house
-// built its own way: Brannoc's forge under a long gable, its door between two windows; Corvane's low
-// timbered hut under a single gable; Pell's house an L of two crossing gables; Wren's timbering
+// built its own way: Brannoc's forge under a long gable, its door between two windows; Corvane's
+// half-timbered house under a single gable; Pell's house an L of two crossing gables; Wren's timbering
 // jettied out over its ashlar ground floor, dormers in its roof; Tamsin's stone hall and the watch
 // office under hipped roofs; and the neighbourhood's five, gabled and hipped by turns.
 À = roof span=7,7 ridge=z top=5.6 pitch=4.4 eave=0.45 tex=clay_tile wall=soot_ashlar on=H
-Á = roof span=5,5 ridge=x top=4.4 pitch=2.6 eave=0.5 tex=clay_tile wall=timber on=q
+Á = roof span=5,5 ridge=x top=5.6 pitch=3.4 eave=0.45 tex=clay_tile wall=timber on=#
 Â = roof span=6,5 ridge=x top=5.6 pitch=3.8 eave=0.45 tex=clay_tile wall=soot_ashlar on=H
 Å = roof span=4,6 ridge=z top=5.6 pitch=3.6 eave=0.45 tex=clay_tile wall=soot_ashlar on=H
 Ã = roof span=7,7 ridge=x top=5.6 pitch=4.4 eave=0.45 tex=clay_tile wall=timber on=#
@@ -241,7 +240,7 @@ D = banner torn
 // The houses' faces: shuttered windows, balconies and arched front doors. Each house's windows are
 // set either side of its door, or of the middle of a wall without one, and share one look (`seed=`
 // sets their paint, grille and shutters): Brannoc's (Ē), Pell's (ē), Wren's (Ĕ), Tamsin's (ĕ), the
-// watch office's (ŕ) and the neighbourhood's (Ţ ţ Ť ť Ŧ); Corvane's hut keeps one plain window in the
+// watch office's (ŕ) and the neighbourhood's (Ţ ţ Ť ť Ŧ); Corvane's house keeps one plain window in the
 // middle of its north and south walls (à). Corvane's and two of the neighbourhood's (ţ, Ŧ) are boarded
 // up, dark behind their planks, a shutter hanging off its last hinge (`broken`).
 à = shutters broken
@@ -353,9 +352,9 @@ z = mushrooms on=y
 // Four grates down into the Harrow Sewers, one in each corner of the town, each over its own
 // district below. The sewers join up beneath, so each is a short way back to the others.
 ? = exit map=harrow_sewers at=2,3,90 label=Descend_into_the_sewers model=sewer_grate
-! = exit map=harrow_sewers at=44,2,180 label=Descend_into_the_sewers model=sewer_grate
+! = exit map=harrow_sewers at=43,2,180 label=Descend_into_the_sewers model=sewer_grate
 { = exit map=harrow_sewers at=3,36,-90 label=Descend_into_the_sewers model=sewer_grate
-} = exit map=harrow_sewers at=44,39,180 label=Descend_into_the_sewers model=sewer_grate
+} = exit map=harrow_sewers at=43,39,180 label=Descend_into_the_sewers model=sewer_grate
 // The Vesper Gate in the north wall's east end: pale stone, standing open on Vesperholm. Nobody in
 // town remembers it shut, or why it was opened. Lamps flank it, so it reads from down the street.
 ( = exit map=vesperholm at=21,120,-90 label=Pass_the_Vesper_Gate model=vesper_gate yaw=90 on=s

@@ -1422,13 +1422,19 @@ def test_town_props_draw_and_roofs_cover_their_buildings():
 
 
 def test_house_doors_fill_their_arch_shut_and_swing_inside_open():
-    """A house door shut fills the arch's opening, standing at its outer face; open, it has swung in
-    against the jamb, clear of the way through. It is drawn every frame, so it stays lean."""
+    """A house door shut fills its doorway's square opening up to the lintel, standing at its outer face;
+    open, it has swung in against the jamb, clear of the way through. It is drawn every frame, so it
+    stays lean."""
     from ashen_vault.render import bounds, town_models
 
     (lo_x, lo_y, lo_z), (hi_x, hi_y, hi_z) = bounds.measure(lambda r: town_models.house_door(r, 0.0))
     assert lo_z == pytest.approx(-0.86, abs=0.05) and hi_z == pytest.approx(0.86, abs=0.05)
-    assert lo_x > 0.6 and hi_x < 1.0 and lo_y >= -0.01 and hi_y == pytest.approx(2.2 + 0.86, abs=0.1)
+    assert (
+        lo_x > 0.6
+        and hi_x < 1.0
+        and lo_y >= -0.01
+        and hi_y == pytest.approx(2.2 + town_models.DOOR_HEAD, abs=0.06)
+    )
     (lo_x, _, lo_z), (hi_x, _, hi_z) = bounds.measure(lambda r: town_models.house_door(r, 1.0))
     assert lo_x < -0.6 and hi_z < -0.5  # in along the jamb, out of the doorway
     gpu = _RecordingGpu()
@@ -1449,7 +1455,7 @@ def test_turrets_towers_and_the_shop_signs_draw():
         (lo_x, lo_y, lo_z), (hi_x, hi_y, hi_z) = bounds.measure(
             lambda r, e=emblem: town_models.shop_sign(r, e)
         )
-        assert lo_x >= -1.0 and hi_x < 0.2 and lo_y > 2.0 and hi_y < 3.6 and hi_z - lo_z < 1.0
+        assert lo_x >= -1.0 and hi_x < 0.3 and lo_y > 1.8 and hi_y < 3.6 and hi_z - lo_z < 1.0
     drawn = {}
     for emblem in town_models.SIGN_EMBLEMS:
         gpu = _RecordingGpu()
@@ -1499,6 +1505,24 @@ def test_town_trees_stand_straight_on_the_ground_with_no_dark_disc():
             gpu = Ground()
             town_models.town_tree(rig.Rig(gpu), kind, seed, 0.5)
             assert gpu.touching and set(gpu.touching) == {"bark"}, (kind, seed)
+
+
+def test_a_seated_villager_sits_on_the_pew_seat_with_feet_on_the_floor():
+    """Sat in a pew, a villager's hips rest on its seat and their feet on the floor, so they stand lower
+    than on their feet and reach forward over their knees; robed or coated, cloaked or aproned."""
+    from ashen_vault.render import bounds, models
+    from ashen_vault.world import villagers
+
+    for look in (
+        villagers.look("hedda"),
+        villagers.look("aubrey"),
+        villagers.Look(cloak=(60, 60, 60), apron=(200, 200, 200), idle="pray"),
+    ):
+        (_, lo_y, _), (hi_x, hi_y, _) = bounds.measure(lambda r, k=look: models.npc(r, k, 0.3, seated=True))
+        (_, _, _), (_, stand_y, _) = bounds.measure(lambda r, k=look: models.npc(r, k, 0.3))
+        assert lo_y >= -0.01 and lo_y < 0.05  # the feet on the floor
+        assert stand_y - hi_y > 0.3  # seated, a head shorter at least
+        assert hi_x > 0.45  # the knees out over the seat's edge
 
 
 def test_every_tool_hat_hair_and_build_a_villager_can_have_draws():
@@ -3011,7 +3035,7 @@ def test_harrowmere_is_built_of_one_sooty_stone():
     m = MapLoader.load_file(map_path("harrowmere"))
     natural = ("cliff_rock", "vine_wall", "flagstone")  # the cliffs, the hedges and the bell's low plinth
     walls = {t.wall_tex for _, _, t in m.each_tile() if t.solid and t.wall_tex not in natural}
-    assert walls == {"soot_ashlar", "stone_timber", "timber"}, walls
+    assert walls == {"soot_ashlar", "stone_timber"}, walls
     tex = _all_textures()
     for name in ("soot_ashlar", "soot_ashlar_tint"):
         px = tex[name]
