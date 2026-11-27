@@ -2269,3 +2269,177 @@ def gaol_grate(r, t):
         s = 0.2 + 0.32 * u
         r.part("cube", math.sin(t * 0.6 + i * 1.7) * 0.3, 0.12 + u * 1.5, math.cos(i * 2.1) * 0.3,
                s, s * 0.5, s, (112, 116, 120), tex="mist")  # fmt: skip
+
+
+# Harrowmere's skyline and harbour life: the harbour light out on its rock, the windmill on the cliffs
+# over the east lane, smoking chimney stacks on the houses' roofs, market stalls by the fountain,
+# washing strung across the lanes, nets drying on the quay and wrecks rotting out in the bay.
+HOUSE_SMOKE = (92, 90, 96)
+SAIL_CLOTH = (196, 184, 156)
+NET = (70, 76, 66)
+LIGHT_GLOW = (255, 214, 140)
+LINEN = ((222, 214, 196), (150, 60, 50), (70, 96, 130), (190, 170, 110), (120, 130, 100))
+
+
+def lighthouse(r, seed, height=16.0):
+    """The harbour light on its rock out in the bay: a tapering round tower of pale stone banded in
+    darker courses, a corbelled gallery with an iron rail, the lantern room's great lamp burning behind
+    its glazing bars and a conical iron cap with a weather vane. It never moves, so it is baked."""
+    rock = (74, 72, 70)
+    for i, (x, z, w) in enumerate(((0, 0, 5.2), (1.4, 1.0, 3.0), (-1.6, 0.8, 2.6), (0.6, -1.6, 2.8))):
+        r.part("pyramid", x, 0.4, z, w, 2.6 - i * 0.3, w * 0.9, _dim(rock, 0.9 + 0.05 * i), tex="cliff_rock",
+               ry=seed + i)  # fmt: skip
+    r.part("cyl", 0, 1.2, 0, 4.0, 1.4, 4.0, PALE_STONE, tex="ashlar")  # the plinth
+    shaft = height - 4.0
+    for k in range(4):  # the tower, tapering in four drums
+        h = shaft / 4
+        rad = 3.2 - k * 0.3
+        r.part("cyl", 0, 1.9 + h * (k + 0.5), 0, rad, h, rad, PALE_STONE, tex="ashlar")
+        r.part("cyl", 0, 1.9 + h * (k + 1), 0, rad + 0.12, 0.2, rad + 0.12, _dim(PALE_STONE, 0.7))  # a band
+    for k in range(3):  # small windows up the stair
+        r.part("cube", 1.45 - k * 0.1, 3.4 + k * shaft / 3.2, 0, 0.1, 0.5, 0.3, (40, 34, 30))
+    top = 1.9 + shaft
+    r.part("cyl", 0, top + 0.2, 0, 3.4, 0.4, 3.4, _dim(PALE_STONE, 0.85), tex="ashlar")  # the gallery
+    for a in range(12):  # its rail
+        ang = a * math.pi / 6
+        r.part("cube", math.cos(ang) * 1.6, top + 0.75, math.sin(ang) * 1.6, 0.06, 0.7, 0.06, IRON)
+    r.part("cyl", 0, top + 1.1, 0, 3.3, 0.06, 3.3, IRON)
+    r.part("cyl", 0, top + 1.3, 0, 1.9, 2.0, 1.9, LIGHT_GLOW, glow=True)  # the lamp behind the glass
+    for a in range(6):  # glazing bars
+        ang = a * math.pi / 3
+        r.part("cube", math.cos(ang) * 0.98, top + 1.3, math.sin(ang) * 0.98, 0.07, 2.0, 0.07, IRON)
+    r.part("cone", 0, top + 2.9, 0, 2.3, 1.4, 2.3, (52, 54, 58))  # the cap
+    r.part("sphere", 0, top + 3.7, 0, 0.18, 0.18, 0.18, IRON)
+    r.part("cube", 0.2, top + 4.0, 0, 0.5, 0.04, 0.04, IRON)  # the vane
+
+
+def windmill(r, t, seed, height=9.0):
+    """A stone tower mill on the cliffs over the town: a tapering rendered tower with a door and a
+    window, a boat-shaped cap of boards and four lattice sails turning slowly in the wind off the sea."""
+    stone = (164, 156, 140)
+    r.part("cyl", 0, height / 2, 0, 4.0, height, 4.0, stone, tex="rough_stone")
+    r.part("cyl", 0, height * 0.75, 0, 3.4, height * 0.5, 3.4, _dim(stone, 0.95), tex="rough_stone")  # taper
+    r.part("cube", 1.9, 1.1, 0, 0.3, 2.2, 1.0, DARK_WOOD, tex="wood_plank")  # the door
+    r.part("cube", 1.65, height * 0.6, 0.0, 0.2, 0.7, 0.5, (40, 34, 30))  # a window
+    r.part("cube", 1.75, height * 0.6 + 0.4, 0.0, 0.2, 0.1, 0.7, _dim(stone, 0.8))
+    with r.at(0, height, 0):  # the cap
+        r.part("cyl", 0, 0.1, 0, 3.6, 0.2, 3.6, DARK_WOOD)
+        r.part("wedge", 0, 0.9, 0, 3.8, 1.6, 3.0, WOOD, tex="wood_plank", ry=math.pi / 2)
+        r.part("cube", -2.2, 0.3, 0, 1.6, 0.1, 0.1, DARK_WOOD)  # the tail pole
+        with r.at(2.1, 0.8, 0, rx=t * 0.6 + seed):  # the sails, on their windshaft
+            r.part("cyl", -0.3, 0, 0, 0.4, 0.8, 0.4, DARK_WOOD, rz=math.pi / 2)
+            for k in range(4):
+                with r.at(0, 0, 0, rx=k * math.pi / 2):
+                    r.part("cube", 0.05, 3.2, 0, 0.12, 6.2, 0.14, DARK_WOOD)  # the stock
+                    r.part("cube", 0.1, 3.7, 0.55, 0.04, 4.6, 0.9, SAIL_CLOTH)  # the cloth
+                    for y in (1.8, 3.0, 4.2, 5.4):  # the lattice bars
+                        r.part("cube", 0.12, y, 0.55, 0.06, 0.05, 1.0, DARK_WOOD)
+
+
+def house_chimney(r, t, seed, height=7.4):
+    """A chimney stack astride a house's roof: dressed stone up from its wall, a projecting cap and two
+    clay pots, smoke curling up out of them and drifting off with the wind."""
+    stone = _dim(PALE_STONE, 0.85 + 0.1 * (seed % 3) / 2)
+    r.part("cube", 0, height / 2, 0, 0.9, height, 1.3, stone, tex="ashlar")
+    r.part("cube", 0, 5.7, 0, 1.06, 0.12, 1.46, (60, 58, 62))  # the lead flashing where it meets the roof
+    for y in (height - 1.4, height - 0.5):  # its string courses
+        r.part("cube", 0, y, 0, 1.0, 0.12, 1.4, _dim(stone, 0.85))
+    r.part("cube", 0, height - 0.25, 0, 0.92, 0.5, 1.32, _dim(stone, 0.45))  # soot blackening its head
+    r.part("cube", 0, height + 0.08, 0, 1.1, 0.16, 1.5, _dim(stone, 0.8))
+    r.part("cube", 0, height + 0.2, 0, 0.8, 0.1, 1.2, _dim(stone, 0.7))  # the flaunching round the pots
+    for z in (-0.3, 0.3):
+        r.part("cyl", 0, height + 0.45, z, 0.3, 0.5, 0.3, (150, 82, 58))  # the clay pots
+        r.part("cyl", 0, height + 0.72, z, 0.36, 0.06, 0.36, (130, 70, 50))  # their rims
+        r.part("cyl", 0, height + 0.74, z, 0.2, 0.02, 0.2, (20, 18, 18))  # black inside
+    for j in range(4):  # the smoke, swelling and thinning as it drifts off
+        u = (t * 0.1 + j / 4 + seed * 0.13) % 1.0
+        s = (0.35 + u * 1.1) * (1.0 - u * 0.4)
+        r.part("cube", u * 2.2 + math.sin(t * 0.5 + j + seed) * 0.3, height + 0.9 + u * 4.5,
+               (j % 2 - 0.5) * 0.4, s, s * 0.7, s, _dim(HOUSE_SMOKE, 1.0 - u * 0.25), ry=j + u)  # fmt: skip
+
+
+def market_stall(r, seed):
+    """A market stall, its counter facing +X: a trestle counter of boards, its goods laid out (fish on
+    a bed of weed, apples, cabbages and loaves, by `seed`), baskets and a crate at its feet, and a
+    striped awning on four posts sloping out over the customers."""
+    cloth = CLOTH[seed % len(CLOTH)]
+    for x, z, h in ((0.7, -0.85, 2.3), (0.7, 0.85, 2.3), (-0.6, -0.85, 2.7), (-0.6, 0.85, 2.7)):
+        r.part("cube", x, h / 2, z, 0.1, h, 0.1, DARK_WOOD)  # the posts
+    r.part("cube", 0.25, 0.9, 0, 1.0, 0.08, 1.9, WOOD, tex="wood_plank")  # the counter
+    r.part("cube", 0.72, 0.5, 0, 0.06, 0.8, 1.9, DARK_WOOD, tex="wood_plank")  # its front board
+    for k in range(6):  # the awning, striped
+        z = -0.95 + (k + 0.5) * 1.9 / 6
+        rgb = cloth if k % 2 == 0 else (214, 204, 182)
+        r.part("cube", 0.05, 2.52, z, 1.75, 0.05, 1.9 / 6, rgb, rz=-0.23)
+    r.part("cube", 0.93, 2.2, 0, 0.04, 0.3, 1.9, cloth)  # its valance
+    goods = seed % 3
+    for i in range(5):
+        z = -0.7 + i * 0.35
+        if goods == 0:  # fish laid on weed
+            r.part("cube", 0.25, 0.95, z, 0.8, 0.03, 0.28, (54, 80, 54))
+            r.part("wedge", 0.25, 0.99, z, 0.6, 0.06, 0.12, (150, 160, 170), rz=math.pi / 2)
+        elif goods == 1:  # apples in a heap, cabbages
+            r.part("sphere", 0.2, 0.99, z, 0.14, 0.12, 0.14, (150, 40, 34) if i % 2 else (90, 130, 60))
+            r.part("sphere", 0.4, 0.99, z + 0.12, 0.13, 0.11, 0.13, (170, 60, 40))
+        else:  # loaves
+            r.part("sphere", 0.3, 0.99, z, 0.26, 0.12, 0.14, (178, 128, 70))
+    r.part("cyl", 0.3, 0.2, -0.6, 0.5, 0.4, 0.5, (150, 120, 70), tex="wood_plank")  # baskets
+    r.part("cyl", 0.3, 0.2, 0.55, 0.46, 0.36, 0.46, (140, 112, 66), tex="wood_plank")
+    r.part("cube", -0.4, 0.3, 0, 0.6, 0.6, 0.6, WOOD, tex="wood_plank")  # a crate behind
+
+
+def washing_line(r, seed, span=6.0, height=4.2):
+    """A line strung across a lane between the walls either side (along local X, `span` metres), sagging
+    a little, linen and shirts pegged out on it. It hangs well over your head."""
+    rope = (110, 100, 84)
+    n = 6
+    pts = [(-span / 2 + span * i / n, height - 0.35 * math.sin(math.pi * i / n), 0) for i in range(n + 1)]
+    for a, b in itertools.pairwise(pts):
+        _bar(r, a, b, 0.025, rope)
+    for x0 in (-span / 2, span / 2):  # the iron hooks in the walls
+        r.part("cube", x0, height + 0.02, 0, 0.12, 0.05, 0.05, IRON)
+    for i in range(1, n):
+        if (seed + i) % 4 == 3:
+            continue
+        x, y, _ = pts[i]
+        rgb = LINEN[(seed + i) % len(LINEN)]
+        w, h = (0.55, 0.8) if i % 2 else (0.7, 0.55)
+        r.part("cube", x, y - h / 2 - 0.02, 0, w, h, 0.03, rgb, rx=0.06 * ((seed + i) % 3 - 1))
+        for dx in (-w * 0.4, w * 0.4):  # its pegs
+            r.part("cube", x + dx, y - 0.02, 0, 0.04, 0.1, 0.05, (150, 128, 96))
+
+
+def net_rack(r, seed):
+    """A fisherman's drying rack on the quay, facing +X: two forked posts and a pole with nets hung
+    over it in heavy folds, floats along their heads, lobster pots stacked beside it and a coil of rope."""
+    for z in (-0.9, 0.9):
+        r.part("cube", 0, 1.0, z, 0.12, 2.0, 0.12, DARK_WOOD)
+        r.part("cube", 0, 2.05, z, 0.24, 0.12, 0.08, DARK_WOOD, rz=0.5)
+    r.part("cyl", 0, 2.02, 0, 0.1, 2.2, 0.1, WOOD, rx=math.pi / 2)  # the pole
+    for side in (-1, 1):  # the nets draped down both faces
+        r.part("cube", side * 0.18, 1.35, 0, 0.04, 1.3, 1.7, NET, rz=side * 0.2)
+        for k in range(5):  # floats along the head
+            r.part("sphere", side * 0.06, 1.98, -0.7 + k * 0.35, 0.09, 0.09, 0.09, (180, 120, 60))
+    for i, (x, z) in enumerate(((0.8, -0.6), (0.8, 0.0), (0.8, 0.6), (0.8, -0.3))):  # lobster pots
+        y = 0.25 if i < 3 else 0.7
+        r.part("cyl", x, y, z, 0.5, 0.45, 0.5, (120, 96, 62), tex="wood_plank")
+        r.part("cyl", x, y + 0.24, z, 0.25, 0.04, 0.25, (40, 34, 26))
+    r.part("cyl", -0.6, 0.06, 0.5, 0.6, 0.12, 0.6, (130, 116, 90))  # a coil of rope
+    r.part("cyl", -0.6, 0.12, 0.5, 0.3, 0.04, 0.3, (60, 52, 40))
+
+
+def wreck(r, seed):
+    """A fishing boat's wreck rotting in the bay, its bow toward +X: a hull half sunk and listing, its
+    ribs bare where the planks have gone, a stump of mast and a broken spar trailing rope."""
+    rot = (78, 64, 50)
+    with r.at(0, -0.4, 0, rz=0.12, rx=0.35 * (1 if seed % 2 else -1)):
+        r.part("cube", -0.6, 0.3, 0, 3.0, 0.8, 1.6, rot, tex="wood_plank")  # the stern half, still planked
+        r.part("wedge", 1.9, 0.4, 0, 1.4, 1.0, 0.6, rot, tex="wood_plank", rz=-math.pi / 2)  # the bow
+        for k in range(5):  # bare ribs amidships
+            x = 0.6 + k * 0.32
+            for z in (-0.75, 0.75):
+                r.part("cube", x, 0.6, z, 0.08, 1.0, 0.08, _dim(rot, 0.8), rx=z * 0.3)
+        r.part("cube", 0.5, 0.9, 0, 4.2, 0.08, 0.1, _dim(rot, 0.7))  # the keelson, showing
+        r.part("cyl", 0.2, 1.6, 0, 0.12, 1.8, 0.12, DARK_WOOD, rz=0.3)  # the mast's stump
+        _bar(r, (0.0, 2.3, 0), (-1.8, 0.6, 0.5), 0.08, DARK_WOOD)  # the broken spar
+        _bar(r, (0.2, 2.4, 0), (1.6, 0.8, -0.4), 0.02, (100, 90, 70))  # a trailing rope

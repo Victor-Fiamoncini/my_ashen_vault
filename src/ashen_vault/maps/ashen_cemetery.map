@@ -4,6 +4,7 @@ ambient = 0.34 0.33 0.37
 fog = 0.30 0.30 0.34
 fog_range = 8 34
 sky = overcast
+atlas = ashen_cemetery
 torch = 5 0.6 0.55 0.5
 start = 10 45 -90
 default = ,

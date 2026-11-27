@@ -913,10 +913,39 @@ def _spire_roof(r, y, width, height, sides=4):
     )  # the eave
 
 
+def gargoyle_spout(r, x, y, z, size=1.0, ry=0.0):
+    """A gargoyle spout jutting out along +X from (x, y, z): a crouched winged beast, its forelegs
+    braced on the stone, its jaws open over the drop and a lead spout in its throat."""
+    s = size
+    with r.at(x, y, z, ry=ry):
+        r.part("cube", 0.35 * s, 0, 0, 0.8 * s, 0.36 * s, 0.4 * s, STATUE_STONE)  # the body, out of the wall
+        r.part("cube", 0.25 * s, 0.2 * s, 0, 0.5 * s, 0.1 * s, 0.32 * s, STATUE_DARK)  # its spine ridge
+        for side in (-1, 1):
+            r.part(
+                "cube", 0.55 * s, -0.24 * s, side * 0.16 * s, 0.14 * s, 0.3 * s, 0.1 * s, STATUE_DARK
+            )  # a foreleg
+            r.part("wedge", 0.15 * s, 0.25 * s, side * 0.24 * s, 0.5 * s, 0.4 * s, 0.04 * s, STATUE_DARK,
+                   rx=side * 0.3)  # fmt: skip  # a folded wing
+        with r.at(0.8 * s, 0.06 * s, 0, rz=-0.25):  # the head, craning out and down
+            r.part("cube", 0.1 * s, 0.05 * s, 0, 0.3 * s, 0.22 * s, 0.28 * s, STATUE_STONE)  # the skull
+            r.part("cube", 0.28 * s, 0.08 * s, 0, 0.18 * s, 0.08 * s, 0.2 * s, STATUE_STONE)  # the upper jaw
+            r.part(
+                "cube", 0.26 * s, -0.07 * s, 0, 0.16 * s, 0.06 * s, 0.18 * s, STATUE_DARK, rz=-0.35
+            )  # the lower
+            r.part("cube", 0.22 * s, 0.0, 0, 0.1 * s, 0.06 * s, 0.14 * s, WINDOW_DARK)  # the throat
+            r.part("cyl", 0.32 * s, 0.0, 0, 0.06 * s, 0.14 * s, 0.06 * s, LEAD, rz=math.pi / 2)  # the spout
+            for side in (-1, 1):
+                r.part("cone", 0.0, 0.22 * s, side * 0.1 * s, 0.06 * s, 0.22 * s, 0.06 * s, STATUE_DARK,
+                       rz=0.6)  # fmt: skip  # a horn swept back
+                r.part(
+                    "cube", 0.2 * s, 0.12 * s, side * 0.1 * s, 0.04 * s, 0.03 * s, 0.04 * s, WINDOW_DARK
+                )  # an eye
+
+
 def castle_tower(r, seed, height=24.0, style="round", width=5.0):
     """One of the many towers of Herran's Castle, for its skyline: a shaft of sooted grey stone `height`
-    metres tall and `width` across, lancet windows up it (a few lit), a corbelled parapet and its
-    crenels, and a steep slate roof with a leaded finial. Each `style` its own shape: "round" (a cone),
+    metres tall and `width` across, lancet windows up it (a few lit), a gargoyle spout at each corner
+    under a corbelled parapet and its crenels, and a steep slate roof with a leaded finial. Each `style` its own shape: "round" (a cone),
     "square" (a pyramid, a bartizan at each corner), "octagon" (an eight-sided spire), "belfry" (an open
     stage of arches with its bell hanging in the dark of it) and "keep" (the great tower: broad, a
     spire on it and a turret at each corner)."""
@@ -965,6 +994,10 @@ def castle_tower(r, seed, height=24.0, style="round", width=5.0):
             a = face * math.pi / 2
             lit = (seed + k * 3 + face) % 5 == 0
             _lancet(r, math.cos(a) * (half + 0.02), y, math.sin(a) * (half + 0.02), 0.7, 1.8, lit, -a)
+    for k in range(4):  # a gargoyle spout jutting from each corner under the parapet
+        a = math.pi / 4 + k * math.pi / 2
+        reach = half * (1.0 if round_ else math.sqrt(2)) - 0.1
+        gargoyle_spout(r, math.cos(a) * reach, top - 1.1, math.sin(a) * reach, 1.0, -a)
     corbel = width + 0.8  # the parapet, corbelled out over the shaft
     if round_:
         r.part("cyl", 0, top - 0.3, 0, corbel, 0.6, corbel, CASTLE_DARK, tex="castle_stone")

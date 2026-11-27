@@ -8,9 +8,11 @@ which darken with the darkness where you stand and turn pale under the Veil, as 
 
 import math
 import random
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
+from functools import cache
 from itertools import pairwise
 
+from ashen_vault.world import atlas
 from ashen_vault.world.darkness import VEIL_FOG, VEIL_MIX
 
 RADIUS = 80.0  # metres from the eye to the dome; the sky pass draws without fog or depth
@@ -130,6 +132,8 @@ class Ridge:
     smoke: tuple = (0.24, 0.1, 0.08)
     rivers: int = 5
     seed: int = 4111
+    scale: float = 1.0  # how much smaller it looks than from the Cinderhold (widths, billows, rivers)
+    plume: float = 1.0  # how much smaller its plume looks: smoke carries further than rock
 
 
 RIDGE_COLUMNS = 160  # across its span
@@ -139,6 +143,46 @@ RIDGE_RIVER = 0.32  # a lava river's width, degrees
 PLUME_RISE = 12.0  # degrees the smoke stands over the rim
 PLUME_BILLOWS = 8
 PLUME_DRIFT = 7.0  # degrees the wind carries its top aside
+HAZE_FROM = 5.0  # km: a landmark farther off than this fades into the sky's haze
+HAZE_KM = 12.0  # km over which it fades
+HAZE_MAX = 0.55
+
+
+@dataclass(frozen=True)
+class Peak:
+    """The Hollow Peak seen from afar (the black mountain behind Vesperholm, Herran's Castle on its
+    flank): sheer grey rock climbing to a cleft summit, snow on its tops, and the storm that never
+    breaks wrapped round its summit in a dark anvil of cloud, its rim faintly lit."""
+
+    at: float = 280.0  # azimuth of the summit, degrees
+    height: float = 10.0  # elevation of the summit, degrees
+    width: float = 16.0  # degrees of horizon its shoulders cover
+    rock: tuple = (0.1, 0.1, 0.13)  # black rock, a little lighter than the night
+    snow: tuple = (0.52, 0.54, 0.6)
+    storm: tuple = (0.14, 0.14, 0.18)  # the anvil's heart
+    storm_rim: tuple = (0.32, 0.32, 0.38)  # its edge, lit by the lightning inside it
+    seed: int = 2203
+
+
+PEAK_COLUMNS = 64
+PEAK_SPURS = 9
+PEAK_BILLOWS = 14
+PEAK_HAZE = 1.0  # degrees: its foot fades into the horizon's haze below this
+
+
+@dataclass(frozen=True)
+class Range:
+    """Low hills or mountains far off along the horizon, from azimuth `start` to `end` (degrees,
+    running east to south to west), their tops `height` degrees up, their feet lost in the mist."""
+
+    start: float
+    end: float
+    height: float
+    color: tuple
+    seed: int = 1
+
+
+RANGE_STEP = 1.5  # degrees of horizon per column
 
 
 @dataclass(frozen=True)
@@ -164,6 +208,8 @@ class Sky:
     veiled: tuple | None = None  # a sun hidden in a bank of cloud in the south: the light leaking round it
     far_moon: FarMoon | None = None  # another land's moon, far off, behind the cloud banks
     ridge: Ridge | None = None  # a burnt ridge along the horizon, its caldera glowing
+    peak: Peak | None = None  # the Hollow Peak, far off under its storm
+    ranges: tuple = ()  # low ranges of hills along the horizon (`Range`)
 
 
 SKIES = {
@@ -186,6 +232,7 @@ SKIES = {
             maria_shade=0.85,
             wisps=0.85,
         ),
+        ranges=(Range(195.0, 345.0, 4.0, (0.27, 0.28, 0.32), seed=21),),  # the downs, faint in the gloom
     ),
     # Harrowmere: dusk under a bruised ceiling of cloud, a dull copper sun sinking in the south,
     # and in the north, over the Vesper Gate, Vesperholm's full moon.
@@ -205,6 +252,15 @@ SKIES = {
             halo=(0.24, 0.26, 0.36),
             maria_shade=0.82,
             wisps=0.85,
+        ),
+        # The Harrow Downs inland, west, north and east of the town, and a dim headland either side
+        # of the open sea in the south.
+        ranges=(
+            Range(150.0, 215.0, 4.5, (0.06, 0.06, 0.09), seed=11),
+            Range(205.0, 335.0, 5.5, (0.05, 0.05, 0.08), seed=12),
+            Range(325.0, 40.0, 4.0, (0.06, 0.06, 0.09), seed=13),
+            Range(48.0, 76.0, 3.4, (0.07, 0.07, 0.1), seed=14),
+            Range(104.0, 132.0, 3.8, (0.07, 0.07, 0.1), seed=15),
         ),
     ),
     # The hollow: thick, humid green-gold haze over the canopy, a pale sun glaring in the south,
@@ -249,7 +305,11 @@ SKIES = {
             maria_shade=0.7,
             wisps=0.6,
         ),
-        ridge=Ridge(),
+        # Burnt hills east of the fortress and south behind the Sallow Fen.
+        ranges=(
+            Range(300.0, 25.0, 7.0, (0.17, 0.07, 0.06), seed=31),
+            Range(40.0, 165.0, 8.5, (0.15, 0.06, 0.06), seed=32),
+        ),
     ),
     # Vesperholm: a night that never ends, a full moon blazing in the north over the cathedral,
     # wisps of cloud trailing across it, a thin moonlit layer drifting overhead, stars crowded up
@@ -303,8 +363,67 @@ SKIES = {
 
 
 def get(meta):
-    """The sky a map's `[meta]` names, or None."""
-    return SKIES.get(str(meta.get("sky", "")).strip())
+    """The sky a map's `[meta]` names, or None, with the far landmarks its place in the world
+    (`[meta] atlas`) sees. The same object every time for the same map, so the sky pass bakes once."""
+    name = str(meta.get("sky", "")).strip()
+    if name not in SKIES:
+        return None
+    return _seen_from(name, atlas.place(meta))
+
+
+def _haze(rgb, toward, km):
+    """`rgb` faded toward the haze colour `toward` with distance `km`."""
+    return tuple(_mix(rgb, toward, min(HAZE_MAX, max(0.0, (km - HAZE_FROM) / HAZE_KM))))
+
+
+@cache
+def _seen_from(name, place):
+    """The sky `name` as seen from the atlas place `place` (None: no landmarks): the volcano at its
+    bearing, scaled by distance and hazed, and the Hollow Peak under its storm."""
+    spec = SKIES[name]
+    if place is None:
+        return spec
+    haze = spec.mist or spec.cloud_under
+    out = {}
+    volcano = atlas.sight(place, "volcano")
+    if volcano:
+        ref = atlas.sight(atlas.VOLCANO_FROM, "volcano")
+        base = Ridge()
+        scale = ref.km / volcano.km
+        tall = volcano.elevation / ref.elevation
+        if atlas.PLACES[place] == atlas.PLACES[atlas.VOLCANO_FROM]:
+            out["ridge"] = base  # the fortress's own view, exactly as it was drawn
+        else:
+            out["ridge"] = replace(
+                base,
+                at=volcano.azimuth,
+                span=base.span * scale,
+                height=base.height * tall,
+                shoulders=base.shoulders * tall,
+                cone=base.cone * scale,
+                rock=_haze(base.rock, haze, volcano.km),
+                lit=_haze(base.lit, haze, volcano.km),
+                # its smoke takes on the colour of the sky it drifts into
+                smoke=_haze(_mix(base.smoke, spec.clouds or spec.cloud_under, 0.6), haze, volcano.km),
+                lava=_haze(base.lava, haze, volcano.km),
+                scale=scale,
+                plume=scale**0.8,
+            )
+    peak = atlas.sight(place, "hollow_peak")
+    if peak:
+        base = Peak()
+        width = math.degrees(2 * math.atan(atlas.PEAK_WIDTH / 2 / peak.km))
+        out["peak"] = replace(
+            base,
+            at=peak.azimuth,
+            height=peak.elevation,
+            width=width,
+            rock=_haze(base.rock, haze, peak.km),
+            snow=_haze(base.snow, haze, peak.km),
+            storm=_haze(base.storm, haze, peak.km),
+            storm_rim=_haze(base.storm_rim, haze, peak.km),
+        )
+    return replace(spec, **out)
 
 
 def shade(rgb, dark, veil=False):
@@ -753,20 +872,21 @@ def ridge_profile(ridge, x):
         return RIDGE_FOOT
     rng = random.Random(ridge.seed)
     shoulders = 0.0
+    k = ridge.scale
     for _ in range(12):  # its peaks and spurs
-        c, w = rng.uniform(-half, half), rng.uniform(7.0, 22.0)
+        c, w = rng.uniform(-half, half), rng.uniform(7.0, 22.0) * k
         h = ridge.shoulders * rng.uniform(0.35, 1.0)
         shoulders = max(shoulders, h * (1 - abs(x - c) / w))
-    shoulders += 0.5 * math.sin(x * 1.7 + ridge.seed) + 0.3 * math.sin(x * 4.3)  # broken rock
+    shoulders += k * (0.5 * math.sin(x / k * 1.7 + ridge.seed) + 0.3 * math.sin(x / k * 4.3))  # broken rock
     shoulders *= 1 - (abs(x) / half) ** 4
     u = abs(x) / ridge.cone
     if u < RIDGE_CALDERA:
-        cone = ridge.height - 0.5  # the caldera's dip
+        cone = ridge.height - 0.5 * ridge.scale  # the caldera's dip
     elif u < 1:
         cone = ridge.height * (1 - (u - RIDGE_CALDERA) / (1 - RIDGE_CALDERA)) ** 1.5
     else:
         cone = 0.0
-    return max(shoulders, cone, 0.4)
+    return max(shoulders, cone, 0.4 * ridge.scale)
 
 
 def ridge(spec, dark=0.0, veil=False):
@@ -795,16 +915,17 @@ def ridge(spec, dark=0.0, veil=False):
             (at(x1, e1), (0, 0), _mix(lit, rock, min(1.0, e1 / 8)), r),
         )
     rim = rd.cone * RIDGE_CALDERA
+    sk, pk = rd.scale, rd.plume
     plume = _mix(lava, smoke, 0.7)  # smoke lit from below by the caldera
     for k in range(PLUME_BILLOWS):  # the plume: billows swelling as they climb, darkening into smoke
         f = k / (PLUME_BILLOWS - 1)
         for side in (-1, 1):  # two abreast, so the column has a broken edge
-            x = PLUME_DRIFT * f**1.4 + side * (0.8 + 1.4 * f) + 0.6 * math.sin(k * 2.1 + side)
-            centre = at(x, rd.height + 0.6 + PLUME_RISE * f)
+            x = pk * PLUME_DRIFT * f**1.4 + sk * (side * (0.8 + 1.4 * f) + 0.6 * math.sin(k * 2.1 + side))
+            centre = at(x, rd.height + 0.6 * sk + PLUME_RISE * pk * f)
             heart = _mix(plume, smoke, min(1.0, f * 1.4))
             edge = _mix(heart, rock, 0.35)
             cu, cv = _basis(centre)
-            size = 1.3 + 2.2 * f + 0.4 * (side > 0)
+            size = sk * (1.3 + 2.2 * f + 0.4 * (side > 0))
             for i in range(SHROUD_STEPS):
                 a0, a1 = 2 * math.pi * i / SHROUD_STEPS, 2 * math.pi * (i + 1) / SHROUD_STEPS
                 mesh.vertex(centre, (0, 0), heart, r)
@@ -812,21 +933,21 @@ def ridge(spec, dark=0.0, veil=False):
                     mesh.vertex(_around(centre, cu, cv, size, a), (0, 0), edge, r)
     hot = _mix(lava, shade((1.0, 0.9, 0.6), dark, veil), 0.4)
     mesh.quad(  # the caldera's glow, along its broken rim
-        (at(-rim, rd.height - 0.6), (0, 0), hot, r),
-        (at(rim, rd.height - 0.6), (0, 0), hot, r),
-        (at(-rim * 1.1, rd.height + 0.2), (0, 0), lava, r),
-        (at(rim * 1.1, rd.height + 0.2), (0, 0), lava, r),
+        (at(-rim, rd.height - 0.6 * sk), (0, 0), hot, r),
+        (at(rim, rd.height - 0.6 * sk), (0, 0), hot, r),
+        (at(-rim * 1.1, rd.height + 0.2 * sk), (0, 0), lava, r),
+        (at(rim * 1.1, rd.height + 0.2 * sk), (0, 0), lava, r),
     )
     rng = random.Random(rd.seed + 1)
     for _ in range(rd.rivers):  # rivers of lava down its face, wandering as they fall
         x = rng.uniform(-rim, rim)
-        elev = rd.height - 0.6
-        low = rng.uniform(4.0, 12.0)
+        elev = rd.height - 0.6 * sk
+        low = rng.uniform(4.0, 12.0) * rd.height / Ridge.height
         steps = 10
         for s in range(steps):
-            x1 = x + rng.uniform(-1.0, 1.0) + (1.0 if x > 0 else -1.0)
-            e1 = min(ridge_profile(rd, x1) - 0.2, elev - (rd.height - low) / steps)
-            w = RIDGE_RIVER * (0.7 + 0.6 * s / steps)
+            x1 = x + sk * (rng.uniform(-1.0, 1.0) + (1.0 if x > 0 else -1.0))
+            e1 = min(ridge_profile(rd, x1) - 0.2 * sk, elev - (rd.height - low) / steps)
+            w = RIDGE_RIVER * sk * (0.7 + 0.6 * s / steps)
             c0 = _mix(hot, lava, s / steps)
             c1 = _mix(hot, lava, (s + 1) / steps)
             mesh.quad(
@@ -841,6 +962,129 @@ def ridge(spec, dark=0.0, veil=False):
     return mesh
 
 
+def range_profile(rng_spec, x):
+    """A range's skyline, degrees of elevation, `x` degrees of azimuth past its `start`: rolling tops
+    and a few higher summits, sinking to nothing at both ends."""
+    span = (rng_spec.end - rng_spec.start) % 360.0
+    if not 0 <= x <= span:
+        return RIDGE_FOOT
+    rng = random.Random(rng_spec.seed)
+    top = 0.0
+    for _ in range(max(3, int(span / 8))):  # its summits
+        c, w = rng.uniform(0.0, span), rng.uniform(5.0, 14.0)
+        h = rng_spec.height * rng.uniform(0.45, 1.0)
+        top = max(top, h * (1 - abs(x - c) / w))
+    top += 0.35 * math.sin(x * 0.9 + rng_spec.seed) + 0.2 * math.sin(x * 2.7)  # rolling ground
+    u = 2 * x / span - 1
+    top *= 1 - u**6  # sinking away at its ends
+    return max(top, 0.3 * rng_spec.height * (1 - u**6), 0.0)
+
+
+def ranges(spec, dark=0.0, veil=False):
+    """The sky's low ranges along the horizon (`Range`), each a silhouette darkening from its foot,
+    lost in the mist, to its tops. None for a sky without any."""
+    if not spec.ranges:
+        return None
+    mesh = SkyMesh()
+    r = RADIUS * 0.92
+    foot = shade(spec.mist or spec.cloud_under, dark, veil)
+    for rg in spec.ranges:
+        top = shade(rg.color, dark, veil)
+        span = (rg.end - rg.start) % 360.0
+        n = max(2, int(span / RANGE_STEP))
+        for i in range(n):
+            x0, x1 = span * i / n, span * (i + 1) / n
+            e0, e1 = range_profile(rg, x0), range_profile(rg, x1)
+            mesh.quad(
+                (direction(rg.start + x0, RIDGE_FOOT), (0, 0), foot, r),
+                (direction(rg.start + x1, RIDGE_FOOT), (0, 0), foot, r),
+                (direction(rg.start + x0, e0), (0, 0), _mix(foot, top, min(1.0, 0.55 + e0 / 6)), r),
+                (direction(rg.start + x1, e1), (0, 0), _mix(foot, top, min(1.0, 0.55 + e1 / 6)), r),
+            )
+    return mesh
+
+
+def peak_profile(pk, x):
+    """The Hollow Peak's skyline, degrees of elevation, `x` degrees of azimuth from its summit: spurs
+    and shoulders stepping down either side of a summit cleft in two."""
+    half = pk.width / 2
+    if abs(x) >= half:
+        return RIDGE_FOOT
+    rng = random.Random(pk.seed)
+    top = 0.0
+    for i in range(PEAK_SPURS):  # the spurs and shoulders, lower toward its ends
+        k = (i - (PEAK_SPURS - 1) / 2) / ((PEAK_SPURS - 1) / 2)
+        c = k * half * 0.8 + rng.uniform(-0.05, 0.05) * pk.width
+        h = pk.height * (0.3 + 0.35 * (1 - abs(k)) + 0.15 * rng.random())
+        w = pk.width * (0.12 + 0.06 * rng.random())
+        top = max(top, h * (1 - abs(x - c) / w))
+    for c, k in ((-0.07, 1.0), (0.09, 0.9)):  # the summit, cleft in two
+        top = max(top, pk.height * k * (1 - abs(x - c * pk.width) / (pk.width * 0.16)))
+    return max(top, 0.0)
+
+
+def peak(spec, dark=0.0, veil=False):
+    """The Hollow Peak far off (`Peak`): its grey rock against the storm, snow on its tops, and the
+    storm's anvil of cloud wrapped round its summit. None for a sky that doesn't see it."""
+    pk = spec.peak
+    if not pk:
+        return None
+    mesh = SkyMesh()
+    r = RADIUS * 0.91
+    rock, snow = shade(pk.rock, dark, veil), shade(pk.snow, dark, veil)
+    foot = shade(spec.mist or spec.cloud_under, dark, veil)
+    half = pk.width / 2
+    n = PEAK_COLUMNS
+    snow_line = pk.height * 0.78
+    for i in range(n):
+        x0, x1 = -half + pk.width * i / n, -half + pk.width * (i + 1) / n
+        e0, e1 = peak_profile(pk, x0), peak_profile(pk, x1)
+        mid0, mid1 = min(e0, snow_line), min(e1, snow_line)
+        low0, low1 = min(e0, PEAK_HAZE), min(e1, PEAK_HAZE)
+        hazed = _mix(foot, rock, 0.75)
+        mesh.quad(  # its foot, in the haze
+            (direction(pk.at + x0, RIDGE_FOOT), (0, 0), foot, r),
+            (direction(pk.at + x1, RIDGE_FOOT), (0, 0), foot, r),
+            (direction(pk.at + x0, low0), (0, 0), hazed, r),
+            (direction(pk.at + x1, low1), (0, 0), hazed, r),
+        )
+        mesh.quad(  # its dark rock, above the haze
+            (direction(pk.at + x0, low0), (0, 0), hazed, r),
+            (direction(pk.at + x1, low1), (0, 0), hazed, r),
+            (direction(pk.at + x0, mid0), (0, 0), rock, r),
+            (direction(pk.at + x1, mid1), (0, 0), rock, r),
+        )
+        if e0 > snow_line or e1 > snow_line:  # snow lying on the tops
+            mesh.quad(
+                (direction(pk.at + x0, mid0), (0, 0), rock, r),
+                (direction(pk.at + x1, mid1), (0, 0), rock, r),
+                (direction(pk.at + x0, max(e0, mid0)), (0, 0), snow, r),
+                (direction(pk.at + x1, max(e1, mid1)), (0, 0), snow, r),
+            )
+    # The anvil takes the colour of the sky's own cloud, darkened by the storm in it.
+    heart = shade(_mix(spec.cloud_under, pk.storm, 0.4), dark, veil)
+    rim = shade(_mix(spec.clouds or spec.cloud_under, pk.storm_rim, 0.4), dark, veil)
+    rng = random.Random(pk.seed + 1)
+    for k in range(PEAK_BILLOWS):  # the anvil: a flat bank of billows round the summit
+        f = k / (PEAK_BILLOWS - 1)
+        x = (f * 2 - 1) * pk.width * 0.36 + rng.uniform(-0.05, 0.05) * pk.width
+        lift = 1 - abs(f * 2 - 1)  # thicker over the summit, trailing off either side
+        centre = direction(
+            pk.at + x, pk.height * (0.93 + 0.1 * lift * rng.random() + rng.uniform(-0.03, 0.03))
+        )
+        wide = pk.width * (0.05 + 0.06 * lift) * rng.uniform(0.7, 1.3)
+        tall = min(wide * rng.uniform(0.35, 0.6), pk.height * 0.14)
+        cu, cv = _basis(centre)
+        for i in range(SHROUD_STEPS):
+            a0, a1 = 2 * math.pi * i / SHROUD_STEPS, 2 * math.pi * (i + 1) / SHROUD_STEPS
+            mesh.vertex(centre, (0, 0), heart, r * 0.995)
+            for a in (a0, a1):
+                mesh.vertex(
+                    _at(centre, cu, cv, wide * math.cos(a), tall * math.sin(a)), (0, 0), rim, r * 0.995
+                )
+    return mesh
+
+
 TEXTURES = {
     "dome": "white",
     "stars": "white",
@@ -848,6 +1092,8 @@ TEXTURES = {
     "clouds": "clouds",
     "far_moon": "white",
     "far_wisps": "cloud_cap",
+    "ranges": "white",
+    "peak": "white",
     "ridge": "white",
     "shroud": "white",
     "sun": "white",
@@ -862,7 +1108,9 @@ def layers(spec, fog, dark=0.0, veil=False):
     """[(layer, mesh)] for a sky, back to front: the dome (with the sun's halo), the stars, the overhead
     cap, a far moon and the wisps across it, the cloud banks, the bank a veiled sun hides in, a burnt
     ridge along the horizon, the sun's disc (and a moon's seas and the wisps
-    across it) and the mist. Layers the sky lacks are left out."""
+    across it), the mist, then the Hollow Peak and the low ranges of hills, drawn over the mist so their
+    feet melt into it rather than sinking under it (each foot takes the mist's colour). Layers the sky
+    lacks are left out."""
     built = (
         ("dome", dome(spec, fog, dark, veil)),
         ("stars", stars(spec, fog, dark, veil)),
@@ -876,5 +1124,7 @@ def layers(spec, fog, dark=0.0, veil=False):
         ("maria", maria(spec, dark, veil)),
         ("wisps", wisps(spec, dark, veil)),
         ("mist", mist(spec, dark, veil)),
+        ("peak", peak(spec, dark, veil)),
+        ("ranges", ranges(spec, dark, veil)),
     )
     return [(name, mesh) for name, mesh in built if mesh is not None]

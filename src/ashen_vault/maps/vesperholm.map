@@ -6,6 +6,7 @@ fog_range = 14 84
 model_range = 46
 indoor_range = 26
 sky = moonlit
+atlas = vesperholm
 torch = 6 0.62 0.68 0.82
 start = 21 120 -90
 default = ,

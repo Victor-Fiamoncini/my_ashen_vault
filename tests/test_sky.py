@@ -5,7 +5,7 @@ import os
 import pytest
 
 from ashen_vault import MAP_DIR
-from ashen_vault.world import sky
+from ashen_vault.world import atlas, sky
 from ashen_vault.world.darkness import VEIL_FOG
 from ashen_vault.world.map_loader import MapLoader
 
@@ -18,7 +18,8 @@ def _meta(name):
 
 def test_each_outdoor_map_names_a_sky_and_the_keep_has_none():
     maps = ("harrowmere", "verdant_hollow", "cinderhold", "vesperholm", "herrans_castle")
-    names = {name: sky.get(_meta(name)) for name in maps}
+    # Each map's sky is its base sky, plus the far landmarks its place in the world sees.
+    names = {name: dataclasses.replace(sky.get(_meta(name)), ridge=None, peak=None) for name in maps}
     assert names == {
         "harrowmere": sky.SKIES["dusk"],
         "verdant_hollow": sky.SKIES["jungle"],
@@ -377,9 +378,11 @@ def test_the_cinderhold_sees_its_burnt_ridge_smoking_on_the_northern_horizon():
     the far moon: its cone looms over the fortress's walls, its caldera and the rivers of lava down its
     face glow, its foot sinks under the horizon's haze, and it is drawn over the clouds but under the
     mist."""
-    spec = sky.SKIES["ember"]
+    spec = sky.get(_meta("cinderhold"))
     rd = spec.ridge
-    assert rd is not None and all(s.ridge is None for name, s in sky.SKIES.items() if name != "ember")
+    assert rd == sky.Ridge()  # the fortress's own view, as it was first drawn
+    assert sky.get(_meta("cinder_keep")).ridge == rd
+    assert all(s.ridge is None for s in sky.SKIES.values())  # it comes from the atlas, not the base skies
     assert 225 < rd.at < 270  # north-west, beside the far moon (in the north)
     assert abs(rd.at - spec.far_moon.at[0]) > spec.far_moon.size + rd.cone * sky.RIDGE_CALDERA  # beside it
     assert sky.ridge_profile(rd, 0.0) == pytest.approx(rd.height - 0.5)  # the caldera's dip
@@ -394,3 +397,67 @@ def test_the_cinderhold_sees_its_burnt_ridge_smoking_on_the_northern_horizon():
     colors = [mesh.colors[i : i + 3] for i in range(0, len(mesh.colors), 3)]
     assert any(c[0] > 0.9 and c[1] > 0.4 for c in colors)  # the lava glows
     assert sky.TEXTURES["ridge"]
+
+
+def _seen(name):
+    return sky.get(_meta(name))
+
+
+def test_every_open_map_has_a_place_in_the_world():
+    for name in ("harrowmere", "ashen_cemetery", "verdant_hollow", "cinderhold", "cinder_keep", "vesperholm",
+                 "herrans_castle"):  # fmt: skip
+        assert atlas.place(_meta(name)) == name
+
+
+def test_get_returns_the_same_sky_every_time_so_it_bakes_once():
+    meta = _meta("harrowmere")
+    assert sky.get(meta) is sky.get(meta)
+    assert sky.get({"sky": "dusk"}) is sky.SKIES["dusk"]  # no place, no landmarks
+
+
+def test_the_volcano_smokes_on_every_horizon_where_it_lies():
+    """The same volcano from every land: north-west of Harrowmere and the cemetery, west of Vesperholm
+    and of Herran's Castle up on the peak, lower and narrower the farther off it is, hazed into the
+    sky, its plume shrinking less than its rock."""
+    near = _seen("cinderhold").ridge
+    for name, lo, hi in (("harrowmere", 225, 270), ("ashen_cemetery", 240, 270), ("vesperholm", 185, 215),
+                         ("herrans_castle", 160, 200)):  # fmt: skip
+        rd = _seen(name).ridge
+        assert lo < rd.at < hi, name
+        assert rd.height < near.height and rd.span < near.span and rd.scale < 1, name
+        assert rd.plume > rd.scale, name
+        assert rd.rock != near.rock, name  # hazed
+        mesh = sky.ridge(_seen(name))
+        assert mesh.vertex_count > 0 and mesh.vertex_count % 3 == 0
+
+
+def test_the_hollow_peak_stands_under_its_storm_north_of_the_lowlands_and_clear_of_the_moon():
+    for name in ("harrowmere", "ashen_cemetery", "cinderhold", "vesperholm"):
+        spec = _seen(name)
+        pk = spec.peak
+        assert pk is not None and 270 < pk.at < 340, name  # north to north-east
+        assert abs(pk.at - sky.MOON_AT[0]) > pk.width / 2 + sky.MOON_SIZE, name  # clear of the moon
+        assert sky.peak_profile(pk, 0.0) > 0 and sky.peak_profile(pk, pk.width) == sky.RIDGE_FOOT
+        mesh = sky.peak(spec)
+        assert mesh.vertex_count > 0 and mesh.vertex_count % 3 == 0
+        names = [n for n, _ in sky.layers(spec, FOG)]
+        assert names.index("mist") < names.index("peak")  # its foot melts into the haze, not under it
+    assert _seen("vesperholm").peak.height > _seen("harrowmere").peak.height  # nearer, taller
+    assert _seen("herrans_castle").peak is None  # you stand on it: the map has its own model
+
+
+def test_low_ranges_ring_the_lowlands_but_leave_the_sea_open():
+    dusk = sky.SKIES["dusk"]
+    assert dusk.ranges and sky.SKIES["ember"].ranges and sky.SKIES["overcast"].ranges
+    for rg in dusk.ranges:  # the open sea, due south, stays clear
+        span = (rg.end - rg.start) % 360
+        assert not 0 <= (90 - rg.start) % 360 <= span
+    for rg in (*dusk.ranges, *sky.SKIES["ember"].ranges):
+        span = (rg.end - rg.start) % 360
+        tops = [sky.range_profile(rg, span * i / 40) for i in range(41)]
+        assert max(tops) <= rg.height + 0.6 and max(tops) > rg.height * 0.4
+        assert tops[0] < 0.5 and tops[-1] < 0.5  # sinking away at its ends
+        assert sky.range_profile(rg, span + 1) == sky.RIDGE_FOOT
+    mesh = sky.ranges(dusk)
+    assert mesh.vertex_count > 0 and mesh.vertex_count % 3 == 0
+    assert sky.ranges(sky.SKIES["storm"]) is None

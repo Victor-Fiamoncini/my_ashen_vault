@@ -4,6 +4,7 @@ frame (props, platforms, foes, hazards, projectiles). The World holds the state;
 import math
 
 from ashen_vault.render import (
+    castle_props,
     cemetery_models,
     fen_models,
     forge_models,
@@ -729,7 +730,9 @@ def _draw_pillar(view, rig, p):
 
 
 def _draw_torch(view, rig, p, t):
-    if p.wall:
+    if p.props.get("model") == "castle":  # Herran's Castle's: held out from the wall in an iron hand
+        castle_props.castle_sconce(rig, t + p.tx)
+    elif p.wall:
         models.sconce(rig, t + p.tx)
     else:
         models.torch(rig, t)
@@ -978,6 +981,12 @@ def _wall_foot(view, p):
     return view.world.map[p.tx + dx, p.tz + dz].floor
 
 
+def _on_wall_top(view, rig, p, model, *args):
+    """Draw `model(rig, *args)` standing on top of the wall tile the prop is placed on."""
+    with rig.at(0, _wall_top(view, p), 0):
+        model(rig, *args)
+
+
 def _draw_wall_face(model):
     """A drawer for a piece built down a great wall's face, from its top to the ground it falls to."""
     return lambda view, rig, p, t: model(rig, p.tx * 7 + p.tz * 3, _wall_top(view, p), _wall_foot(view, p))
@@ -1090,7 +1099,11 @@ PROP_DRAWERS = {
     "rubble": lambda view, rig, p, t: models.rubble(rig, p.tx * 11 + p.tz * 5),
     "urn": lambda view, rig, p, t: models.urn(rig, p.tx * 3 + p.tz * 7, broken=p.open_t > 0, t=p.break_t),
     "altar": _draw_altar,
-    "brazier": lambda view, rig, p, t: models.brazier(rig, t, lit=view.world.is_lit(p)),
+    "brazier": lambda view, rig, p, t: (
+        castle_props.castle_brazier(rig, t + p.tx, view.world.is_lit(p))
+        if p.props.get("model") == "castle"
+        else models.brazier(rig, t, lit=view.world.is_lit(p))
+    ),
     "bonfire": lambda view, rig, p, t: models.bonfire(rig, t + p.tx, lit=view.world.is_lit(p)),
     "giant_mushroom": lambda view, rig, p, t: models.giant_mushroom(rig, p.tx * 5 + p.tz * 3, t),
     "shelf_fungus": lambda view, rig, p, t: models.shelf_fungus(rig, p.tx * 3 + p.tz * 7, t),
@@ -1251,6 +1264,27 @@ PROP_DRAWERS = {
         rig, p.tx * 7 + p.tz * 3, float(p.props.get("height", "34")), float(p.props.get("width", "56"))
     ),
     "moon_portal": _draw_moon_portal,
+    "runoff_sluice": lambda view, rig, p, t: fen_models.runoff_sluice(
+        rig, t, p.tx * 7 + p.tz * 3, _wall_top(view, p), _wall_foot(view, p)
+    ),
+    "marsh_lights": lambda view, rig, p, t: fen_models.marsh_lights(rig, t, p.tx * 7 + p.tz * 3),
+    "fallen_watchtower": lambda view, rig, p, t: fen_models.fallen_watchtower(rig, p.tx * 7 + p.tz * 3),
+    "rotten_palisade": lambda view, rig, p, t: fen_models.rotten_palisade(rig, p.tx * 7 + p.tz * 3),
+    "lighthouse": lambda view, rig, p, t: town_models.lighthouse(
+        rig, p.tx * 7 + p.tz * 3, float(p.props.get("height", "16"))
+    ),
+    "windmill": lambda view, rig, p, t: _on_wall_top(
+        view, rig, p, town_models.windmill, t, p.tx * 7 + p.tz * 3
+    ),
+    "house_chimney": lambda view, rig, p, t: town_models.house_chimney(
+        rig, t, p.tx * 7 + p.tz * 3, float(p.props.get("height", "7.4"))
+    ),
+    "market_stall": lambda view, rig, p, t: town_models.market_stall(rig, p.tx * 7 + p.tz * 3),
+    "washing_line": lambda view, rig, p, t: town_models.washing_line(
+        rig, p.tx * 7 + p.tz * 3, float(p.props.get("span", "6")), float(p.props.get("height", "4.2"))
+    ),
+    "net_rack": lambda view, rig, p, t: town_models.net_rack(rig, p.tx * 7 + p.tz * 3),
+    "wreck": lambda view, rig, p, t: town_models.wreck(rig, p.tx * 7 + p.tz * 3),
     "sunken_tower": lambda view, rig, p, t: sunken_models.sunken_tower(
         rig, p.tx * 7 + p.tz * 3, float(p.props.get("height", "18"))
     ),
@@ -1269,3 +1303,53 @@ PROP_DRAWERS = {
 }
 for _kind in TOWN_PROPS:
     PROP_DRAWERS.setdefault(_kind, lambda view, rig, p, t: view._draw_town_prop(rig, p, p.kind, t))
+
+
+# Herran's Castle's dressing (`render/castle_props.py`, `world.CASTLE_DRESSING`), in this one block.
+def _castle_seed(p):
+    return p.tx * 7 + p.tz * 3
+
+
+def _castle_rise(p, default):
+    return float(p.props.get("rise", default))
+
+
+def _draw_castle_window(view, rig, p, t):  # its sill `rise=` metres up its wall
+    with rig.at(0, _castle_rise(p, "2.4"), 0):
+        castle_props.castle_window(
+            rig, _castle_seed(p), p.props.get("light", "candle"), p.props.get("style", "lancet")
+        )
+
+
+PROP_DRAWERS.update(
+    {
+        "castle_buttress": lambda view, rig, p, t: castle_props.castle_buttress(
+            rig,
+            _castle_seed(p),
+            _wall_top(view, p) - p.y,
+            _wall_foot(view, p) - p.y,
+            float(p.props.get("span", "2")),
+        ),
+        "castle_window": _draw_castle_window,
+        "hand_banner": lambda view, rig, p, t: castle_props.hand_banner(
+            rig,
+            _castle_seed(p),
+            _castle_rise(p, "3.4"),
+            float(p.props.get("length", "2.4")),
+            p.props.get("style", "banner"),
+        ),
+        "hand_standard": lambda view, rig, p, t: castle_props.hand_standard(
+            rig, _castle_seed(p), _wall_top(view, p) - p.y
+        ),
+        "anatomy_chart": lambda view, rig, p, t: castle_props.anatomy_chart(rig, _castle_seed(p)),
+        "specimen_jars": lambda view, rig, p, t: castle_props.specimen_jars(rig, _castle_seed(p)),
+        "surgical_trolley": lambda view, rig, p, t: castle_props.surgical_trolley(rig, _castle_seed(p)),
+        "hung_cadaver": lambda view, rig, p, t: castle_props.hung_cadaver(
+            rig, _castle_seed(p), p.props.get("style", "hook")
+        ),
+        "wall_chains": lambda view, rig, p, t: castle_props.wall_chains(rig, _castle_seed(p)),
+        "broken_statue": lambda view, rig, p, t: castle_props.broken_statue(rig, _castle_seed(p)),
+        "breach_rubble": lambda view, rig, p, t: castle_props.breach_rubble(rig, _castle_seed(p)),
+    }
+)
+CRACK_TONES["castle_stone"] = castle_props.CASTLE_CRACK

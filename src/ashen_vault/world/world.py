@@ -265,6 +265,13 @@ BLOCKING_PROPS = (
     "old_idol",
     "lyra_statue",
     *("candelabra", "gate_statue", "vat", "dissecting_table", "specimen_cage", "lab_bench", "telescope"),
+    "lighthouse",
+    "windmill",
+    "market_stall",
+    "net_rack",
+    "wreck",
+    "fallen_watchtower",
+    "rotten_palisade",
 )
 # Ways to another map that fill their tile, so you take them by facing them and interacting: the well
 # and the gaol's grate in Harrowmere's plaza.
@@ -392,6 +399,11 @@ LANDMARKS = (
     "slag_runnel",
     "gibbet_cages",
     "chimney_cluster",
+    "lighthouse",
+    "windmill",
+    "house_chimney",
+    "wreck",
+    "runoff_sluice",
 )
 # Props that never move, open, break or flicker: they are baked once into world-space batches
 # (`render/prop_bake.py`) instead of being drawn part by part every frame. A prop drawn with the time
@@ -434,6 +446,8 @@ STATIC_PROPS = frozenset(
         *("specimen_cage", "hand_rack", "lab_bench", "telescope"),
         *("moon_townhouse", "moon_tower", "gorge_buttress", "moon_oriel", "distant_city"),
         *("wall_buttress", "slag_runnel", "gibbet_cages"),
+        *("lighthouse", "market_stall", "washing_line", "net_rack", "wreck"),
+        *("fallen_watchtower", "rotten_palisade"),
         "wall_crack",
         "ash_mound",
         "spire",
@@ -455,6 +469,23 @@ CRACK_CLEAR = ("lift", "secret_wall", "waterfall", "lavafall")
 # Wall props hung high on a great wall that the cracks keep clear of only on their own tile, so the bays
 # between a row of them still crack (the Cinderhold's great windows over the moat).
 CRACK_SNUG = ("great_window",)
+# Pieces built down a wall's face from the wall's own tile (the fen's runoff sluices): the rampart bays and
+# the cracks keep clear of them and of the tiles round them.
+WALL_FACE_PROPS = ("runoff_sluice",)
+# Herran's Castle's dressing (`render/castle_props.py`), joined to the tables above in this one block:
+# its great walls' buttresses, its windows, banners, standards and tapestries, charts, specimen jars,
+# trolleys, the hung dead, chains, broken statues and the storm's rubble. All are baked.
+CASTLE_DRESSING = (
+    *("castle_buttress", "castle_window", "hand_banner", "hand_standard", "anatomy_chart", "specimen_jars"),
+    *("surgical_trolley", "hung_cadaver", "wall_chains", "broken_statue", "breach_rubble"),
+)
+BLOCKING_PROPS = (*BLOCKING_PROPS, "surgical_trolley", "hung_cadaver", "broken_statue")
+PROP_TOP = {**PROP_TOP, "surgical_trolley": 1.05, "broken_statue": 1.3}
+WALL_PROPS = (*WALL_PROPS, "castle_window", "hand_banner", "anatomy_chart", "specimen_jars", "hung_cadaver")
+WALL_PROPS = (*WALL_PROPS, "wall_chains")
+LANDMARKS = (*LANDMARKS, "castle_buttress")
+STATIC_PROPS = STATIC_PROPS | frozenset(CASTLE_DRESSING)
+FACING_PROPS = (*FACING_PROPS, "surgical_trolley", "broken_statue")
 # Harrowmere's buildings, furniture and street dressing (`render/town_models.py`).
 TOWN_PROPS = (
     "rampart_bay",
@@ -3556,7 +3587,7 @@ class World:
         for e in self.map.entities:
             if e.kind in WALL_PROPS:
                 clear.add((e.tx, e.tz))
-            elif e.kind in RAMPART_GATES:
+            elif e.kind in RAMPART_GATES or e.kind in WALL_FACE_PROPS:
                 clear.update((e.tx + i, e.tz + j) for i in (-1, 0, 1) for j in (-1, 0, 1))
         for bay in ramparts.bays(self.map, frozenset(clear)):
             self.props.append(
@@ -3582,7 +3613,7 @@ class World:
                 reach = 2
             elif e.kind in CRACK_SNUG:
                 reach = 0
-            elif e.kind in WALL_PROPS:
+            elif e.kind in WALL_PROPS or e.kind in WALL_FACE_PROPS:
                 reach = 1
             else:
                 continue

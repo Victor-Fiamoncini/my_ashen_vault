@@ -143,7 +143,27 @@ How `.map` files work and what can stand on a tile.
   `walled=` the sides against the keep, where it rests on corbels instead of bars, `spring=` and `rise=`
   in metres), open to the storm through a breach in its north-east quarter. Herran rises five tiles in
   from his door, in line with it and facing it, as the other bosses do; his `telescope` (a blocking
-  prop) stands in the far corner, trained out over the parapet. Walled in `castle_stone`, capped in `castle_slate`, paved in `castle_flags`, the mountain
+  prop) stands in the far corner, trained out over the parapet. The castle is dressed throughout
+  (`render/castle_props.py`, `world.CASTLE_DRESSING`, kept in one block of the tables): its great walls'
+  faces open to the sky (round the Outer Ward, facing in, and the barbican's face over the platform)
+  carry `castle_buttress`es on their own tiles (`on=# yaw=` out of the face, built from the wall's top
+  down to the ground it faces, a gargoyle spout at each head and a pinnacle over the wall; `span=`
+  metres of string courses, plinth and corbel table along the wall either side, which must run along
+  solid wall only, never across a doorway, and shallow enough below head height to walk past); wall
+  props hang on them and through the halls: `castle_window` (`style=lancet|twin|loop`, `light=candle|storm|dark`,
+  `rise=` its sill: candlelit twins high in the ward and the barbican, arrow loops by the gates, lancets
+  lit cold by the storm in the halls, the chapel and the study), `hand_banner` (Herran's open hand with
+  the sun in its palm, on wine-dark cloth from a pole `rise=` metres up, `length=` long; `style=tapestry`
+  is the Many-Handed's woven tapestry in the Great Hall, the Hall of Sentinels and the chapel),
+  `anatomy_chart`, `specimen_jars`, `wall_chains` and `hung_cadaver` (`style=hook|cage`, a blocking
+  prop), and `torch model=castle` (its torch held in an iron hand) by every door; `hand_standard`s
+  stand on the parapets of the causeway and the platform (`on=p yaw=90`, the cloth turned to face along
+  the causeway); `brazier model=castle` (its fire cupped in an iron hand) burns along the causeway,
+  before the barbican, on its towers' decks and in the ward; `surgical_trolley`s stand in the chapel and
+  the study, `broken_statue`s in the ward and on the Portal Ledge, and `breach_rubble` (low, never
+  blocking) under the dome's breach in the theatre's +X/-Z quarter. `#` and `%` are `dress=cracks`, so
+  every face of them open to the sky cracks in `castle_props.CASTLE_CRACK`'s tones. A warm `light` burns in
+  the library and the study. Walled in `castle_stone`, capped in `castle_slate`, paved in `castle_flags`, the mountain
   `mountain_rock`; `tests/test_herrans_castle_world.py`), `herran_laboratory` (Herran's Laboratory,
   32x32, hewn out of the peak under the castle, no sky and dark everywhere, `dark` 0.6 and over: the
   hidden stair's foot (and the way back up), the vat cellar (`vat`s, a light), the dissecting rooms
@@ -165,6 +185,7 @@ How `.map` files work and what can stand on a tile.
 | `src/ashen_vault/world/footsteps.py` | Footsteps: each floor `tex` belongs to a surface (stone, wood, soft, mud, water, metal, gravel, glass (Vesperholm's `moon_glass`); the platform under you overrides it), and `Game._footstep` plays its `step_<surface>` sound. A new floor texture needs a surface (`tests/test_footsteps.py`) |
 | `src/ashen_vault/world/rest.py` | The shrine rest: timing and the pixelated ember fog pattern drawn while you pray |
 | `src/ashen_vault/world/sky.py`, `render/sky.py` | Skies (`[meta] sky = overcast\|dusk\|jungle\|ember\|moonlit\|storm`): a gradient dome meeting the fog at the horizon, a sun and halo, drifting cloud banks and an overhead cap, horizon mist; every sky's sun stands at `SUN_AT` (low in the south, over the town's sea), the same `SUN_SIZE` disc (Harrowmere's) on every map, only its halo's colour and width changing with each sky's haze (`test_every_sky_puts_the_sun_low_in_the_south_over_the_towns_sea`), but Vesperholm's `moonlit` sky hangs a vast pale moon at `MOON_AT` instead (high in the north, over its cathedral; `Sky.moon` makes it full, lit all over and a touch dimmer at its limb, `LIMB_SHADE`, its seas scattered across it, `sky.maria` / `MARIA`, and still wisps of cloud across it, `sky.wisps`) and buries the sun itself in a bank of cloud silvered at its rims (`Sky.veiled`, `sky.shroud`, with a faint glow round it) among a crowd of stars (`Sky.star_count`) that reach up to the moon's bright corona (`Sky.corona`, `CORONA_SCALE`; stars keep only `Sky.star_clear` degrees clear of the disc, and shine over its halo), with the galaxy's band strewn across them (`Sky.galaxy`, `sky.galaxy_field`) and moonlit cloud overhead; every other sky shows that same moon from afar over its own land (`Sky.far_moon`, a `FarMoon`: the same `MOON_SIZE` disc as over Vesperholm, so it looks alike on every map, but paler and dimmed by its sky, its `far_moon` and `far_wisps` layers drawn under the drifting clouds so they pass over it, its halo, `FAR_MOON_HALO`, in the dome, no stars on it; `test_the_moon_is_the_same_size_over_every_map`); Herran's `storm` sky, a near-black night over the Hollow Peak, veils its sun too; the Cinderhold's `ember` sky raises a burnt ridge along its northern horizon beside the far moon (`Sky.ridge`, a `Ridge`: jagged shoulders and a broken cone looming over the fortress's walls, `sky.ridge_profile`, its foot lit by its fires and lost under the mist, its caldera glowing, rivers of lava down its face and a plume of smoke drifting off it; drawn over the clouds and under the mist, `sky.ridge`); stars glint behind the clouds (`Sky.stars`, their brightness; only faint ones in the jungle's haze), its disc drawn over the clouds (`sky.sun`) and its halo behind them; dimmed by darkness and the Veil. Built pure in `world/sky.py`, drawn first each frame without fog or depth by `render/sky.py` |
+| `src/ashen_vault/world/atlas.py` | Where the lands lie, so every sky shows the world's great landmarks at their true bearing and size (`[meta] atlas = <place>`, on every sky-lit map; `test_every_open_map_has_a_place_in_the_world`): each place's position in km (`PLACES`, x east, z south: Harrowmere in the middle, the cemetery west, the Verdant Hollow east, the Cinderhold NNW up the north road, Vesperholm NNE through the Vesper Gate, Herran's Castle up on the Hollow Peak behind it to the north-east) and its eye's height, and the `LANDMARKS`: the volcano (set where the Cinderhold's own ridge stands, az 243 and 5 km off) and the Hollow Peak; `sight(place, landmark)` gives a landmark's bearing, distance and the height its top stands over the horizon, None where you stand on it. `sky.get` fills each sky with what its place sees, the same object every time for a map so it bakes once: the volcano as the `Ridge` (from the Cinderhold exactly `Ridge()`; farther off narrower and lower, `Ridge.scale`, its plume shrinking less, `Ridge.plume`, hazed into the sky's mist and its smoke into the sky's cloud), and the Hollow Peak as a `Peak` (`sky.peak`, `sky.peak_profile`: black rock with snow on its tops and a cleft summit like the `hollow_peak` model, its foot hazed, a flat anvil of the sky's own cloud darkened by the storm round its summit, clear of the moon; drawn over the mist), none over Herran's Castle, which stands on it. Low `Range`s of hills along the horizon are the sky's own (`Sky.ranges`, `sky.range_profile`, `sky.ranges`, drawn over the mist so their feet melt into it): the Harrow Downs west, north and east of the town with a headland either side of its open sea (`dusk`), burnt hills east of the Cinderhold and south behind the fen (`ember`), the downs faint over the cemetery (`overcast`); `test_low_ranges_ring_the_lowlands_but_leave_the_sea_open`, `test_the_volcano_smokes_on_every_horizon_where_it_lies`, `test_the_hollow_peak_stands_under_its_storm_north_of_the_lowlands_and_clear_of_the_moon` |
 | `tools/level_planner/` | A top-down level planner (`index.html`, open it in a browser; a design aid, not part of the game): paint tiles, pin NPCs, gates and wells, export JSON or an ASCII grid. `map_to_planner.py <map>` turns a game map into JSON for its Import box |
 | `tools/level_sketch/` | A free-form top-down sketchpad for level design (`index.html`, open it in Chrome; a design aid, not part of the game): shapes, lines and markers measured in metres, on layers, over an optional faint underlay of a game map (`map_to_underlay.py <map>`), saved as `<name>.sketch.json` + `.svg` in `sketches/` for planning a level's rebuild. Its logic is `model.js`, tested with `node --test tools/level_sketch/` (not in CI) |
 
@@ -298,8 +319,22 @@ How `.map` files work and what can stand on a tile.
   takes its wall's top and the ground its face falls to from the map. Its cracks are `dress=cracks` on
   `K`, on the moat's cliffs (`Ŧ`) and on the fen's curtain wall (`dress=rampart,cracks`), with
   `[meta] crack_run = 2` (its great windows leave bays two tiles wide) and `crack_seep = 0.5` (the fires
-  behind glow through half of them). The burnt ridge on its northern horizon is the `ember` sky's
-  (`Sky.ridge`), so no fog hides it.
+  behind glow through half of them). The burnt ridge on its northern horizon is the volcano the
+  `ember` sky sees from the Cinderhold's place in the atlas (`Sky.ridge`, `world/atlas.py`), so no fog
+  hides it. The Sallow Fen's flanks and south are broken crags of `cliff_rock` (`Ą` 3.6 m, `ą` 4.6 m and
+  `Ć` 5.6 m, lowest beside the mire, never the high one next to where you walk), so the ember sky's burnt
+  hills and the Hollow Peak's storm show over them while the fen stays shut in. Four `runoff_sluice`s
+  low in its curtain wall (`on=ē yaw=90`, a piece built down the wall's face from its own tile like the
+  great wall's, `world.WALL_FACE_PROPS`, which the rampart bays and cracks keep clear of) pour the
+  fortress's violet runoff into the mire; `marsh_lights` drift over its sink-holes, a `rotten_palisade`
+  stands in them round the moot, and the marsh-folk's `fallen_watchtower` lies east of the watch-post;
+  `test_the_sallow_fen_is_ringed_by_low_crags_and_fouled_by_the_fortress`.
+- Harrowmere's skyline and harbour life: the harbour `lighthouse` on its rock out in the deep bay
+  (`height=`) and two `wreck`s rotting in it, the `windmill` on the cliffs east of the town wall (on a
+  wall tile, standing on its top), `house_chimney` stacks smoking on the houses' walls (`height=`),
+  `market_stall`s by the fountain, `net_rack`s on the quay and a `washing_line` strung across the lane
+  by Pell's house (`span=` metres between the walls, `height=`; overhead, so you walk under it);
+  `test_harrowmeres_skyline_and_harbour_life_stand_where_they_belong`.
 - Props that fill their tile are listed in `world/world.py` (`BLOCKING_PROPS`, `BREAKABLE_PROPS`;
   the prison adds `pillar` (`pillar model=colossal`, the Keystone's court: a column of drums rising
   from the floor into a cavern's `vault`, `Vault.column_height`, its head sunk in the rock), `sarcophagus`, `headsman_block` and `old_idol`, Old Harrowmere `lyra_statue`, the jungle `bonfire`, `giant_mushroom` and

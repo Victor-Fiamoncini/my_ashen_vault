@@ -549,3 +549,234 @@ def test_the_blades_leap_marks_where_you_stood():
     (mark,) = world.eruptions
     assert math.isclose(mark.x, game.player.x) and math.isclose(mark.z, game.player.z)
     assert mark.radius == SKY_REND_RADIUS and mark.warn > 0
+
+
+# --- the castle's dressing (`render/castle_props.py`) ----------------------------------------------
+
+DRESSING = (
+    *("castle_buttress", "castle_window", "hand_banner", "hand_standard", "anatomy_chart", "specimen_jars"),
+    *("surgical_trolley", "hung_cadaver", "wall_chains", "broken_statue", "breach_rubble"),
+)
+
+
+def _hung_top(p):
+    """How high over its floor the top of one of the castle's wall props reaches."""
+    from ashen_vault.render import castle_props
+
+    rise = float(p.props.get("rise", "0"))
+    return {
+        "castle_window": rise + castle_props.WINDOW_HEAD,
+        "hand_banner": rise + castle_props.BANNER_TOP,
+        "anatomy_chart": 2.4,
+        "specimen_jars": 2.2,
+        "hung_cadaver": 3.9,
+        "wall_chains": 2.4,
+        "torch": 2.5,
+    }[p.kind]
+
+
+def _warm(spec):
+    r, _g, b = (float(c) for c in spec.props["color"].split(","))
+    return r > b
+
+
+def test_the_castle_is_dressed_and_lit_throughout():
+    """Every piece of the castle's dressing stands somewhere in it, and it is lit against the storm:
+    torches held in iron hands by its doors, fire-baskets along the causeway and through the ward,
+    candelabra and a warm light in the library, and one in the study."""
+    from ashen_vault.world.world import CASTLE_DRESSING
+
+    m = _castle()
+    assert set(DRESSING) == set(CASTLE_DRESSING) <= {s.kind for s in m.entities}
+    torches = _spec(m, "torch")
+    assert len(torches) >= 15 and all(s.props.get("model") == "castle" for s in torches)
+    braziers = _spec(m, "brazier")
+    assert len(braziers) >= 10 and all(s.props.get("model") == "castle" for s in braziers)
+    assert len([s for s in braziers if 51 <= s.tz <= 73]) >= 4  # along the causeway
+    library = [
+        s for s in m.entities if s.kind in ("candelabra", "light") and 7 <= s.tx <= 14 and 2 <= s.tz <= 8
+    ]
+    assert len(library) >= 3
+    assert len([s for s in _spec(m, "light") if _warm(s)]) >= 2
+    styles = {
+        (s.props.get("style", "lancet"), s.props.get("light", "candle")) for s in _spec(m, "castle_window")
+    }
+    assert {("twin", "candle"), ("loop", "dark"), ("lancet", "storm")} <= styles
+    assert {s.props.get("style", "banner") for s in _spec(m, "hand_banner")} == {"banner", "tapestry"}
+    assert {s.props.get("style", "hook") for s in _spec(m, "hung_cadaver")} == {"hook", "cage"}
+
+
+def test_the_castles_wall_props_hang_on_stone_that_rises_past_them():
+    """Each window, banner, tapestry, chart, shelf of jars, gibbet, chain and sconce hangs against a wall
+    whose stone (or the ceiling over it) rises past its top, and every banner's hem clears your head."""
+    from ashen_vault.world.world import WALL_PROPS
+
+    world = World(JungleGame(), CASTLE)
+    hung = [p for p in world.props if p.kind in WALL_PROPS and p.kind in (*DRESSING, "torch")]
+    assert len(hung) >= 60
+    for p in hung:
+        assert p.wall, (p.kind, p.tx, p.tz)
+        dx, dz = rround(-math.cos(p.yaw)), rround(-math.sin(p.yaw))
+        wall, tile = world.map[p.tx + dx, p.tz + dz], world.map[p.tx, p.tz]
+        assert wall.solid, (p.kind, p.tx, p.tz)
+        rise = (tile.ceil if tile.ceil is not None else wall.top) - tile.floor
+        assert rise >= _hung_top(p), (p.kind, p.tx, p.tz, rise)
+        if p.kind == "hand_banner":
+            assert float(p.props["rise"]) - float(p.props["length"]) >= 1.4, (p.tx, p.tz)
+
+
+class _LowGpu:
+    """Records the box corners of only the parts that lie wholly below head height."""
+
+    def __init__(self):
+        from ashen_vault.render import bounds
+
+        self.points = []
+        self._all = bounds.BoundsGpu()
+
+    def to_matrix(self, m):
+        return m
+
+    def draw_part(self, kind, m, rgb, tex="white", glow=False):
+        start = len(self._all.points)
+        self._all.draw_part(kind, m, rgb, tex, glow)
+        corners = self._all.points[start:]
+        if max(y for _, y, _ in corners) < 2.0:
+            self.points += corners
+
+
+def test_the_great_walls_are_buttressed_down_their_faces_open_to_the_sky():
+    """The buttresses stand on the ward's walls and the barbican's face, built down from the wall's top
+    to the open ground it faces; their string courses and plinths run along solid wall only (never
+    across a door or an arch), and they stand out shallow enough at their feet to walk past."""
+    from ashen_vault.player.player import Player
+    from ashen_vault.render import castle_props
+    from ashen_vault.render.rig import Rig
+    from ashen_vault.world.world import BLOCKING_PROPS, LANDMARKS, STATIC_PROPS
+
+    m = _castle()
+    buttresses = _spec(m, "castle_buttress")
+    assert len(buttresses) >= 14
+    for s in buttresses:
+        yaw = math.radians(float(s.props["yaw"]))
+        dx, dz = rround(math.cos(yaw)), rround(math.sin(yaw))
+        wall, ground = m[s.tx, s.tz], m[s.tx + dx, s.tz + dz]
+        assert wall.solid and ground.walkable and ground.ceil is None, (s.tx, s.tz)
+        assert wall.top - ground.floor >= 12
+        half = float(s.props["span"]) / 2 / TileMap.TILE  # tiles its courses run either side
+        for k in range(-math.ceil(half - 0.5), math.ceil(half - 0.5) + 1):
+            assert m[s.tx + k * abs(dz), s.tz + k * abs(dx)].solid, (s.tx, s.tz, k)
+            front = m[s.tx + k * abs(dz) + dx, s.tz + k * abs(dx) + dz]
+            assert front.walkable and front.ceil is None, (s.tx, s.tz, k)  # no doorway under them
+    assert "castle_buttress" in LANDMARKS and "castle_buttress" in STATIC_PROPS
+    assert "castle_buttress" not in BLOCKING_PROPS
+    gpu = _LowGpu()
+    castle_props.castle_buttress(Rig(gpu), 4, 14.0, 0.0, 8.0)
+    assert gpu.points and max(x for x, _, _ in gpu.points) < castle_props.FACE + Player.RADIUS
+
+
+def test_the_household_dressing_never_blocks_a_way():
+    """The trolleys, the hung dead and the broken statues fill their tiles, as do the candelabra and the
+    bookcases, yet every chest, shrine, exit, lift and door is still reached past them, and no
+    tile is cut off."""
+    from ashen_vault.world.world import BLOCKING_PROPS
+
+    m = _castle()
+    start = _start(m)
+    props = {(s.tx, s.tz) for s in m.entities if s.kind in BLOCKING_PROPS}
+    placed = {s.kind for s in m.entities if s.kind in BLOCKING_PROPS}
+    assert {"surgical_trolley", "hung_cadaver", "broken_statue", "candelabra"} <= placed
+    open_ = _doors(m)
+    free = _reachable(m, start, open_tiles=open_)
+    dressed = _reachable(m, start, open_tiles=open_, avoid=props)
+    assert dressed == free - props
+    for s in m.entities:
+        if s.kind in ("chest", "exit", "save_statue", "door", "lift", "secret_wall"):
+            assert _beside(m, s, dressed) or (s.tx, s.tz) in dressed, (s.kind, s.tx, s.tz)
+
+
+def test_the_storms_rubble_lies_under_the_domes_breach_and_the_standards_on_the_parapets():
+    """In the theatre the dome's rubble lies in its broken quarter (+X, -Z), low enough to step over;
+    the standards stand on the parapets along the causeway and before the barbican."""
+    from ashen_vault.render import bounds, castle_props
+    from ashen_vault.world.world import BLOCKING_PROPS
+
+    m = _castle()
+    (dome,) = _spec(m, "anatomy_dome")
+    w, d = (int(v) for v in dome.props["span"].split(","))
+    theatre = [s for s in _spec(m, "breach_rubble") if m[s.tx, s.tz].floor == 10]
+    assert len(theatre) >= 3
+    for s in theatre:
+        assert s.tx >= dome.tx + w / 2 and s.tz < dome.tz + d / 2, (s.tx, s.tz)
+    assert "breach_rubble" not in BLOCKING_PROPS
+    (x0, _, z0), (x1, y1, z1) = bounds.measure(lambda r: castle_props.breach_rubble(r, 4))
+    assert y1 <= 0.5 and x0 >= -1 and x1 <= 1 and z0 >= -1 and z1 <= 1
+    standards = _spec(m, "hand_standard")
+    assert len(standards) >= 6
+    for s in standards:
+        tile = m[s.tx, s.tz]
+        assert tile.solid and tile.top <= 1.5, (s.tx, s.tz)  # on a parapet, not a wall
+        assert any(m[s.tx + dx, s.tz + dz].walkable for dx, dz in BESIDE)
+
+
+def test_the_castles_walls_crack_where_they_face_the_sky():
+    """The castle's walls open to the storm (the ward's, the barbican's, the keep's over the theatre)
+    are split by cracks in its own tones, never on a tile dressed by hand."""
+    from ashen_vault.render.world_view import CRACK_TONES
+    from ashen_vault.world.wall_cracks import dressed
+
+    world = World(JungleGame(), CASTLE)
+    m = world.map
+    assert dressed(m[0, 12]) and dressed(m[0, 0])  # `#` and `%`
+    cracks = [p for p in world.props if p.kind == "wall_crack"]
+    assert len(cracks) >= 6
+    assert {c.props["stone"] for c in cracks} == {"castle_stone"} and "castle_stone" in CRACK_TONES
+    taken = {(s.tx, s.tz) for s in m.entities}
+    assert not any((c.tx, c.tz) in taken for c in cracks)
+
+
+def test_the_castles_new_models_are_built_in_detail():
+    """Each new model is built of many parts; its windows glow when lit and not when dark; the sconce
+    and the fire-basket burn (the basket goes cold unlit); each chart has its own subject; and the
+    towers carry a gargoyle at each corner."""
+    from ashen_vault.render import castle_props, herran_models, rig
+    from test_render_logic import _GlowGpu
+
+    def built(fn):
+        gpu = _GlowGpu()
+        fn(rig.Rig(gpu))
+        return gpu
+
+    models = {
+        "castle_buttress": lambda r: castle_props.castle_buttress(r, 4, 14.0, 0.0, 8.0),
+        "hand_banner": lambda r: castle_props.hand_banner(r, 4, 9.0, 5.5),
+        "tapestry": lambda r: castle_props.hand_banner(r, 4, 7.0, 4.4, "tapestry"),
+        "hand_standard": lambda r: castle_props.hand_standard(r, 4, 1.2),
+        "anatomy_chart": lambda r: castle_props.anatomy_chart(r, 4),
+        "specimen_jars": lambda r: castle_props.specimen_jars(r, 4),
+        "surgical_trolley": lambda r: castle_props.surgical_trolley(r, 4),
+        "hung_cadaver": lambda r: castle_props.hung_cadaver(r, 4),
+        "cage": lambda r: castle_props.hung_cadaver(r, 4, "cage"),
+        "wall_chains": lambda r: castle_props.wall_chains(r, 4),
+        "broken_statue": lambda r: castle_props.broken_statue(r, 4),
+        "breach_rubble": lambda r: castle_props.breach_rubble(r, 4),
+        "castle_sconce": lambda r: castle_props.castle_sconce(r, 0.3),
+        "castle_brazier": lambda r: castle_props.castle_brazier(r, 0.3),
+        **{
+            f"window {style} {light}": lambda r, s=style, li=light: castle_props.castle_window(r, 4, li, s)
+            for style in ("lancet", "twin", "loop")
+            for light in ("candle", "storm", "dark")
+        },
+    }
+    for name, fn in models.items():
+        assert len(built(fn).parts) >= 20, name
+    charts = {frozenset(built(lambda r, s=seed: castle_props.anatomy_chart(r, s)).looks) for seed in range(3)}
+    assert len(charts) == 3
+    for style in ("lancet", "twin", "loop"):
+        assert built(lambda r, s=style: castle_props.castle_window(r, 4, "storm", s)).glows
+        assert not built(lambda r, s=style: castle_props.castle_window(r, 4, "dark", s)).glows
+    assert built(models["castle_sconce"]).glows and built(models["castle_brazier"]).glows
+    assert not built(lambda r: castle_props.castle_brazier(r, 0.3, lit=False)).glows
+    tower = built(lambda r: herran_models.castle_tower(r, 4, 26.0, "round")).looks
+    spout = built(lambda r: herran_models.gargoyle_spout(r, 0, 0, 0)).looks
+    assert len(tower) > 4 * len(spout)  # a gargoyle at each corner

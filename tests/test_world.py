@@ -808,7 +808,7 @@ def test_cinderhold_skyline_has_no_two_towers_alike_and_stands_out_of_reach():
     marks = [s for s in m.entities if s.kind in LANDMARKS]
     assert {"keep", "gatehouse", "bastion", "smokestack", "lavafall", "spire"} <= {s.kind for s in marks}
     # the wall's dressing repeats down its face; its towers never do
-    repeated = ("lavafall", "great_window", "wall_buttress", "slag_runnel", "gibbet_cages")
+    repeated = ("lavafall", "great_window", "wall_buttress", "slag_runnel", "gibbet_cages", "runoff_sluice")
     towers = [(s.kind, tuple(sorted(s.props.items()))) for s in marks if s.kind not in repeated]
     assert len(towers) == len(set(towers))
     reach = _reachable(m, tuple(int(v) for v in m.meta["start"][:2]), avoid=_lava(m))
@@ -1328,3 +1328,53 @@ def test_vesperholms_gorge_is_a_sheer_drop_under_the_open_moon():
     assert far >= 80
     (shrine,) = _spec(m, "save_statue")
     assert m[shrine.tx, shrine.tz].ceil is None  # the overlook, the city spread out under the moon
+
+
+def test_harrowmeres_skyline_and_harbour_life_stand_where_they_belong():
+    """The harbour light and the wrecks stand out in the deep bay, the windmill on the cliffs east of the
+    wall, the chimney stacks on the houses' walls, and the stalls, nets and washing on open ground,
+    leaving every way through the town open."""
+    m = MapLoader.load_file(os.path.join(MAP_DIR, "harrowmere.map"))
+    for kind in ("lighthouse", "wreck"):
+        for s in _spec(m, kind):
+            assert m[s.tx, s.tz].deep, (kind, s.tx, s.tz)
+    (mill,) = _spec(m, "windmill")
+    assert m[mill.tx, mill.tz].solid and m[mill.tx, mill.tz].wall_tex == "cliff_rock"
+    assert len(_spec(m, "house_chimney")) >= 4
+    for s in _spec(m, "house_chimney"):
+        assert m[s.tx, s.tz].solid and m[s.tx, s.tz].top >= 5.0
+    for kind in ("market_stall", "net_rack", "washing_line"):
+        for s in _spec(m, kind):
+            assert m[s.tx, s.tz].walkable, (kind, s.tx, s.tz)
+    start = tuple(int(v) for v in m.meta["start"][:2])
+    reach = _reachable(m, start)
+    for s in m.entities:
+        if s.kind == "exit" and "sewer" not in s.props.get("model", ""):
+            sides = [(s.tx + dx, s.tz + dz) for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1))]
+            assert (s.tx, s.tz) in reach or any(t in reach for t in sides), s.props.get("map")
+
+
+def test_the_sallow_fen_is_ringed_by_low_crags_and_fouled_by_the_fortress():
+    """The fen's flanks and south are broken crags, lowest by the mire, so its skyline shows over them;
+    it stays shut in all the same. Culverts in the curtain wall pour runoff out over the mire."""
+    m = _cinder()
+    crags = {"Ą": 3.6, "ą": 4.6, "Ć": 5.6}  # their legend's tops
+    fen_rows = range(71, 109)
+    lowered = [(tx, tz) for tx, tz, tile in m.each_tile() if tile.solid and tile.top in crags.values()]
+    assert len(lowered) > 300
+    for tx, tz in lowered:
+        assert tz >= 71 and m[tx, tz].wall_tex == "cliff_rock"
+    reach = _reachable(m, tuple(int(v) for v in m.meta["start"][:2]), avoid=_lava(m))
+    for tz in fen_rows:  # the crag next to the mire is never the high one
+        for tx in range(1, m.width - 1):
+            tile = m[tx, tz]
+            if tile.solid and tile.top == crags["Ć"]:
+                assert (tx - 1, tz) not in reach and (tx + 1, tz) not in reach, (tx, tz)
+    for tx, tz in reach:  # nowhere you can walk lies on the map's rim
+        assert 0 < tx < m.width - 1 and 0 < tz < m.depth - 1, (tx, tz)
+    sluices = _spec(m, "runoff_sluice")
+    assert len(sluices) >= 3
+    for s in sluices:
+        assert m[s.tx, s.tz].wall_tex == "black_brick"
+        assert m[s.tx, s.tz + 1].walkable  # facing out over the mire (yaw 90: +Z)
+    assert _spec(m, "fallen_watchtower") and _spec(m, "rotten_palisade") and _spec(m, "marsh_lights")

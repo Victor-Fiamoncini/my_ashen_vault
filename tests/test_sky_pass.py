@@ -28,8 +28,18 @@ def test_the_sky_is_baked_once_and_rebaked_only_when_the_light_changes():
     layers = len(sky.layers(spec, FOG))
     assert len(gpu.uploaded) == layers
     textures = [tex for _, tex, _ in sky_pass._meshes]
-    # overcast now has: dome, stars, cap, far_moon, far_wisps, clouds, sun, mist
-    assert textures == ["white", "white", "cloud_cap", "white", "cloud_cap", "clouds", "white", "mist"]
+    # overcast has: dome, stars, cap, far_moon, far_wisps, clouds, sun, mist and the downs (ranges)
+    assert textures == [
+        "white",
+        "white",
+        "cloud_cap",
+        "white",
+        "cloud_cap",
+        "clouds",
+        "white",
+        "mist",
+        "white",
+    ]
     assert [drifts for _, _, drifts in sky_pass._meshes] == [
         False,
         False,
@@ -37,6 +47,7 @@ def test_the_sky_is_baked_once_and_rebaked_only_when_the_light_changes():
         False,
         False,
         True,
+        False,
         False,
         False,
     ]

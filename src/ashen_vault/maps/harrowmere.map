@@ -5,6 +5,7 @@ fog = 0.14 0.14 0.19
 fog_range = 8 40
 model_range = 36
 sky = dusk
+atlas = harrowmere
 torch = 4 0.55 0.5 0.45
 start = 2 31 0
 default = ,
@@ -92,7 +93,7 @@ R;;;;;;;;;;;;;;;;;;;;)(;;,,,,Ì,N,ÿ,!AAAAAAAAAARAAAAAAAAAAAAAA
 R;;;;;;;íììíììíììí;CCË;čđ,,,,,,s,ù,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;;ÉCCCCCCCCCCCCCCCèC;;,,,,,,,,s,,,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;;êDaYnnOOðOOñOOnnC===9876,Þù,s,ù,ùAAAAAAAAAARAAAAAAAAAAAAAA
-R;;CaannIQQIQQIQQInn===4321,,,,s,,,,AAAAAAAAAARAAAAAAAAAAAAAA
+R;;CaannIQQIQQIQQInn===4321,,,,s,,,,AAAAAAAAAARAAAAAAAėAAAAAA
 R;;CîEÓnnnnÊnnn`nn:ï¬=="321,,,,sX,,,AAAAAAAAAARAAAAAAAAAAAAAA
 R;;CaannIQQIQQIQQInn===4321sssss.,,,..AAAAAAAARAAAAAAAAAAAAAA
 R;;ëDaYenOOòOOóOOnnC===9876sČ.P.....Ü.AAAAAAAARAAAAAAAAAAAAAA
@@ -102,7 +103,7 @@ R;;;;;;;;;;;;;;;;;;;;33ą000000X333X3333333X33ÎRAAAAAAAAAAAAAA
 ±;;;;;;;;;;;;;;;;;;;;2200000003333333333333333²AAAAAAAAAAAAAA
 R[[[[[[[[[[[[[[[[[[[[11]]]]00033333333Wċg33333RAAAAAAAAAAAAAA
 R?.............,,,..sss/..]000ù333333333333333RAAAAAAAAAAAAAA
-R..ÀHHHHH¡...|||||||sss/ù.]0003333X3333333X333RAAAAAAAAAAAAAA
+R..ÀHHĘHH¡...|||||||sss/ù.]0003333X3333333X333RAAAAAAAAAAAAAA
 R..Hû¸ãkÏHĒ..|GTGGGPsĂsP..]000X33333Õ333Õ33333RAAAAAAAAAAAAAA
 R..H×kkkºHþ..|GGGTG|sss/ù.]0Ą0]]]]]||||||00033RAAAAAAAAAAAAAA
 R..Hôkbkk¹...|||_|||sss/..P2ć2P...]JJJJJ|00033RAAAAAAAAAAAAAA
@@ -117,26 +118,26 @@ RqZiiä----|GGGTG|/sssSssssssssssss]33333300033RwõVAVwwVAAAAAA
 Rq»iÏq....|||_|||Pssssssssssssssss]]]]]]]2Ĉ2h]RwwVAVwUVAAAAAA
 Rqqqqq..../X////X/sXsssssssssssXssssssss15555]RvvVAVwwVAAAAAA
 R¥.à.ē..ē.sssssssăssssssssssssssssăsssssĉ5555ĊvvvVAVwwVVVVVAA
-R,,,ÂHHHHHX.//Ĕ///Ĕsssssssssssssssĕss¶ĕs155551vvöVAVwwVVyx¢KA
-Rü,,Å%¼¼LH.//Ãā#æ#ā#sss/.........ÄHHæHH¡.5555§RVVVAVwwVVyyVAA
+R,,,ÂHHĘHHX.//Ĕ///Ĕsssssssssssssssĕss¶ĕs155551vvöVAVwwVVyx¢KA
+Rü,,Å%¼¼LH.//Ãā#æ#ā#sss/.........ÄHĘæHH¡.5555§RVVVAVwwVVyyVAA
 R,¿,HiiÒiH.//#Lii%i#sss/..Õ.Ô.Ö.ĕH%iiiLH......RAAAAVwõVVFyVAA
-R,,ēH&imiä.//#iiili#ĔssX.........Hiiid¾H..RRRRRAAAAVwwyyyyVAA
+R,,ēH&imiä.ě/#iiili#ĔssX.........Hiiid¾H..RRRRRAAAAVwwyyyyVAA
 R...H>iĎHHµ//#iÒiii#Dss/....Ù....H%iii¾H..RRRRRAAAAVUwyzyyVAA
-RRR.H%½H.Ï.//#$iÒiÏ#Ĕss/........ĕH+iÒi$H,.RRRRRAAAAVVVVVVVVAA
-RRR,«HH¤...//#i<iiÏ#sĂsP..ÐÏ.....HHHHHH¤,,RRRRRAAAAAAAAAAAAAA
-RRR{,,,,,,rr.#######ss¨........ÏÎ.....,,,}RRRRRAAAAAAAAAAAAAA
+RRR.H%½H.Ï.ě/#$iÒiÏ#Ĕss/.Ě.....ĚĕH+iÒi$H,.RRRRRAAAAVVVVVVVVAA
+RRR,«HH¤...//#i<iiÏ#sĂsP..ÐÏ.....HHHHĘH¤,,RRRRRAAAAAAAAAAAAAA
+RRR{,,,,,,rr.###ę###ss¨........ÏÎ.....,,,}RRRRRAAAAAAAAAAAAAA
 RRR,,,,,ø,ppÎ...Ā...ss.................,,øRRRRRAAAAAAAAAAAAAA
 RRR,,,,,,Xrr........ss..Ý.....X.........,.RRRRRAAAAAAAAAAAAAA
-±RR.......÷rÝ...ÏÐ.ÞssÞÝ..Û...............RRRR²AAAAAAAAAAAAAA
+±RR..ĝ....÷rÝ...ÏÐ.ÞssÞÝ..Û......ĝ..ĝ.....RRRR²AAAAAAAAAAAAAA
 R~~~~~~~~~~~~~~~~~~~pp~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
 R~~~~~~~~~~~~~~~~~~~pp~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
 R~~~~~~~~~@~~~~~~~~~pp~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
 R~~~~~~~~~~~~~~~~~~~pp~~@~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
 R~~~~~~~~~~~~~~~~~~~pp~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
-R~~~~~~~~~~~~~~~~~~~pp~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
-R~~~~~~~~~~~~~~~~~~~pf~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
+R~~~~~~~~~~~~~~~~~~~pp~~~~~~~~~~~~~~~~~~~ď~~~~RAAAAAAAAAAAAAA
+R~~~~~Đ~~~~~~~~~~~~~pf~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
 R~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
-R~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
+R~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Ė~~~~~~~~~~~~RAAAAAAAAAAAAAA
 R~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~RAAAAAAAAAAAAAA
 ³~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~´AAAAAAAAAAAAAA
 
@@ -361,3 +362,15 @@ z = mushrooms on=y
 // The north road, out through the wall to the Cinderhold, under a gate built in its likeness: black
 // stone and iron, fire baskets burning on it and a red haze down the road beyond.
 N = exit map=cinderhold at=30,111,-90 label=Take_the_north_road model=road_gate yaw=-90 on=-
+// The skyline and the harbour's life: the harbour light on its rock out in the bay, two wrecks rotting
+// in it, the windmill on the cliffs over the east lane, smoking chimney stacks on the houses, market
+// stalls by the fountain, washing strung across the lane by Pell's house and nets drying on the quay.
+ď = lighthouse height=16 on=~
+Đ = wreck yaw=30 on=~
+Ė = wreck yaw=200 on=~
+ė = windmill yaw=180 on=A
+Ę = house_chimney on=H
+ę = house_chimney height=7.6 on=#
+Ě = market_stall yaw=-90
+ě = washing_line span=7.5 on=/
+ĝ = net_rack yaw=-90

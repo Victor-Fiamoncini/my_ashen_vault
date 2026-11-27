@@ -610,3 +610,106 @@ def fen_great_gate(r, n, t):
             for mz in (-0.35, 0.35):
                 for mx in (-2.05, 2.05):
                     r.part("cube", mx, 0.75, mz, 0.3, 0.9, 0.5, GATE_BRICK, tex="black_brick")
+
+
+# The fen's own fouling and ruin: the culverts in the fortress's curtain wall pouring its violet runoff
+# into the mire, marsh-lights drifting over the sink-holes, the marsh-folk's fallen watchtower and the
+# broken palisade that once ringed their moot.
+RUNOFF = (150, 70, 200)
+RUNOFF_FOAM = (214, 160, 240)
+RUNOFF_STAIN = (58, 36, 64)
+CULVERT_STONE = (70, 60, 64)
+CULVERT_DARK = (16, 12, 18)
+WALL_FACE = 1.0  # a wall prop's tile is the wall's: its face lies a half tile out along +X
+
+
+def runoff_sluice(r, t, seed, top=9.0, foot=-0.3):
+    """A culvert low in the curtain wall's face (its tile the wall's, the face out along +X) pouring the
+    fortress's runoff into the fen: an arched mouth barred with rusted iron, a violet sheet spilling
+    from it and frothing where it meets the mire, a stain spreading down the stone beneath and slime
+    lining its lip."""
+    mouth = min(top - 2.0, 3.2)
+    r.part(
+        "cube", WALL_FACE + 0.02, (mouth + foot) / 2, 0, 0.03, mouth - foot, 2.6, RUNOFF_STAIN
+    )  # the stain
+    r.part("cube", WALL_FACE + 0.15, mouth + 0.2, 0, 0.3, 1.6, 2.0, CULVERT_STONE, tex="black_brick")
+    for i in range(5):  # its arched head
+        a = math.pi * i / 4
+        r.part("cube", WALL_FACE + 0.2, mouth + 0.7 + math.sin(a) * 0.5, math.cos(a) * 0.8, 0.3, 0.26, 0.3,
+               _dim(CULVERT_STONE, 1.15), rx=a - math.pi / 2)  # fmt: skip
+    r.part("cube", WALL_FACE + 0.32, mouth + 0.3, 0, 0.03, 1.0, 1.3, CULVERT_DARK)  # the black mouth
+    for z in (-0.45, -0.15, 0.15, 0.45):  # its rusted bars
+        r.part("cube", WALL_FACE + 0.36, mouth + 0.35, z, 0.05, 1.1, 0.06, (92, 52, 40))
+    r.part("cube", WALL_FACE + 0.4, mouth - 0.2, 0, 0.3, 0.08, 1.2, MOSS)  # slime on its lip
+    drop = mouth - 0.2 - foot
+    wave = math.sin(t * 3 + seed) * 0.04
+    r.part("cube", WALL_FACE + 0.55 + wave, (mouth - 0.2 + foot) / 2, 0, 0.08, drop, 0.9, RUNOFF, tex="rapids",
+           glow=True)  # fmt: skip
+    r.part("cube", WALL_FACE + 0.5, (mouth - 0.2 + foot) / 2, 0, 0.06, drop, 0.5, _dim(RUNOFF, 0.7), tex="rapids",
+           glow=True)  # fmt: skip
+    for k in range(6):  # the froth where it meets the mire, churning
+        a = k * 1.05 + t * 1.6 + seed
+        d = 0.35 + 0.2 * math.sin(t * 2.3 + k)
+        s = 0.28 + 0.08 * math.sin(t * 4 + k * 2)
+        r.part("sphere", WALL_FACE + 0.9 + math.cos(a) * d, foot + 0.05, math.sin(a) * d * 1.3, s, s * 0.4, s,
+               RUNOFF_FOAM, glow=True)  # fmt: skip
+
+
+def marsh_lights(r, t, seed):
+    """Will-o'-the-wisps over the sink-holes: three faint violet motes drifting and bobbing a little
+    over the mire, each in its own pale halo, winking slowly in and out."""
+    for k in range(3):
+        a = t * (0.3 + 0.07 * k) + seed + k * 2.1
+        x, z = math.cos(a) * (0.5 + 0.3 * k), math.sin(a * 1.3) * (0.6 + 0.2 * k)
+        y = 0.9 + 0.3 * k + math.sin(t * 1.1 + k + seed) * 0.25
+        pulse = 0.55 + 0.45 * max(0.0, math.sin(t * 0.8 + k * 2.4 + seed))
+        r.part("sphere", x, y, z, 0.1 * pulse, 0.1 * pulse, 0.1 * pulse, VIOLET_PALE, glow=True)
+        r.part("sphere", x, y, z, 0.28 * pulse, 0.28 * pulse, 0.28 * pulse, _dim(FEN_VIOLET, 0.6), glow=True)
+
+
+def fallen_watchtower(r, seed):
+    """The marsh-folk's watchtower, fallen: four tall legs snapped at the knee, the platform lying
+    tilted in the mire with its rail broken off, its ladder pitched beside it and the hood of its roof
+    lying apart, staved in."""
+    wood = DEAD_WOOD
+    for sx, sz, h in ((-0.9, -0.9, 2.2), (0.9, -0.9, 1.4), (-0.9, 0.9, 0.9), (0.9, 0.9, 1.8)):  # the stumps
+        r.part("cyl", sx, h / 2, sz, 0.2, h, 0.2, wood, tex="bark")
+        r.part("cone", sx, h + 0.15, sz, 0.18, 0.35, 0.18, _dim(wood, 0.8))  # the splintered break
+    with r.at(0.6, 0.6, 0.2, rz=0.5, ry=0.3 + seed % 3 * 0.2):  # the platform, tipped into the mire
+        r.part("cube", 0, 0, 0, 2.4, 0.14, 2.4, (255, 255, 255), tex="wood_plank")
+        for z in (-1.15, 1.15):
+            r.part("cube", 0, 0.5, z, 2.4, 0.08, 0.08, wood)  # its rail
+            for x in (-1.1, 0, 1.1):
+                r.part("cube", x, 0.25, z, 0.08, 0.5, 0.08, wood)
+        r.part("cube", 1.15, 0.5, 0.3, 0.08, 0.08, 1.2, wood, ry=0.4)  # a rail torn loose
+    _bar(r, (-1.6, 0.0, 1.4), (-0.4, 2.6, 1.0), 0.08, wood)  # the ladder pitched against a stump
+    _bar(r, (-1.9, 0.0, 1.1), (-0.7, 2.6, 0.7), 0.08, wood)
+    for k in range(5):
+        f = (k + 0.5) / 5
+        a = (-1.6 + 1.2 * f, 2.6 * f, 1.4 - 0.4 * f)
+        b = (-1.9 + 1.2 * f, 2.6 * f, 1.1 - 0.4 * f)
+        _bar(r, a, b, 0.05, wood)
+    with r.at(-1.2, 0.3, -1.3, rz=1.1, rx=0.3):  # the roof's hood, staved in
+        r.part("pyramid", 0, 0, 0, 2.2, 0.9, 2.2, (124, 110, 70))
+        r.part("cube", 0.3, -0.2, 0, 0.6, 0.12, 0.7, (14, 10, 14))  # a hole stove through it
+
+
+def rotten_palisade(r, seed):
+    """A stretch of the palisade that ringed the old moot, along local Z: sharpened stakes leaning every
+    which way, some snapped, a rail of lashed poles sagging across them, moss and a skull spiked on one."""
+    for k in range(7):
+        z = -0.9 + k * 0.3
+        h = 1.4 + ((seed * 3 + k * 7) % 5) * 0.18
+        lean = (((seed + k * 5) % 7) - 3) * 0.07
+        snapped = (seed + k) % 4 == 0
+        h = h * 0.5 if snapped else h
+        with r.at(0, 0, z, rx=lean, rz=lean * 0.6):
+            r.part("cyl", 0, h / 2, 0, 0.18, h, 0.18, DEAD_WOOD, tex="bark")
+            if not snapped:
+                r.part("cone", 0, h + 0.15, 0, 0.18, 0.3, 0.18, _dim(DEAD_WOOD, 0.85))
+            if k % 3 == 1:
+                r.part("cone", 0.1, h * 0.7, 0, 0.12, 0.5, 0.12, MOSS, rx=math.pi)
+    _bar(r, (0.1, 0.9, -1.0), (0.1, 0.7, 1.0), 0.08, _dim(DEAD_WOOD, 0.9))  # the rail
+    k = seed % 7
+    r.part("sphere", 0, 1.9, -0.9 + k * 0.3, 0.16, 0.18, 0.15, BONE)  # a skull spiked on a stake
+    r.part("cube", 0.12, 1.88, -0.9 + k * 0.3, 0.04, 0.05, 0.1, (20, 16, 18))

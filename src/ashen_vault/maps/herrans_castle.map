@@ -6,6 +6,7 @@ fog_range = 16 220
 model_range = 60
 indoor_range = 26
 sky = storm
+atlas = herrans_castle
 torch = 6 1.0 0.72 0.45
 start = 19 81 -90
 default = w
@@ -38,9 +39,10 @@ l = floor tex=mountain_rock h=0 side=mountain_rock
 // The causeway, the platform at its head and their low parapets.
 c = floor tex=castle_flags h=0 side=castle_stone
 p = wall tex=castle_stone top=1.2 cap=castle_stone
-// The castle's walls, and the keep's, taller.
-# = wall tex=castle_stone top=14 cap=castle_slate
-% = wall tex=castle_stone top=22 cap=castle_slate
+// The castle's walls, and the keep's, taller, split by the storm and the years down their faces open to
+// the sky (the ward's, the barbican's over the platform and the gorge, the keep's over the theatre).
+# = wall tex=castle_stone top=14 cap=castle_slate dress=cracks
+% = wall tex=castle_stone top=22 cap=castle_slate dress=cracks
 // The barbican: a tower's room, its lift's shaft, its deck at 8 m inside its crenels; the gate passage.
 t = floor tex=castle_flags h=0 ceil=6 ceil_tex=castle_stone side=castle_stone roof=14 dark=0.4
 q = floor tex=castle_flags h=0 ceil=12.5 ceil_tex=castle_stone side=castle_stone roof=14 chasm
@@ -88,57 +90,57 @@ e = wall tex=castle_stone top=11.2 cap=castle_stone
 [grid]
 À%%%%%%%Á%%%%%%%Â%%M%Ã%%eeeeeeeeeeeeee#Ä
 %%%%%%%%%%%%%%%%%%%%%%%%%YooooooooooÔe##
-%%%%%%%ËbËbËbËb%%%yyyyyK%ooooooooooooe##
-%%%%ικλbbbbbbbb%%%yyByyy%ooooooooooooe##
-%%%%Ò%%bbbbbbbb%%%yyyyyy%ooooooooooooe##
-%%%%η%%bbbbbbbbνξοyyyyyyZooooHoooooooe##
-%%%%ζ%%bIbbbbbb%%%yJyyyy%ooooooooooooe##
-%%%%ε%%bbbbbbKb%%%yyyyÍy%ooooooooooooe##
-%%%%δ%%bbbbbbbÌ%%%yyyyyy%ooooooooooooe##
+%%%%%%%ËЭËЮËЭËb%%%yФyЮyK%ooooooooжoooe##
+%%%%ικλbbbbbbbK%%%ЭyByyy%Ыoooooooooooe##
+%%%%Ò%%bbbbbbbb%%%yyyyyФ%Бooooooooooжe##
+%%%%η%%ЮbbиbbbbνξοyyyyyyZooooHooooжooe##
+%%%%л%%bIbbbbbЮ%%%yJyyyз%Бoooooooooooe##
+%%%%ε%%ЭbbbbbKb%%%ЭyиЯÍy%ooooooooooooe##
+%%%%δ%%KbbbbbbÌ%%%бyyyyЮ%Ыoooooooooooe##
 %%%%Ñ%%%%%X%%%%%%%%%%%%%%ooooooooooooe##
-%%%%β%%%%%x%%%%%%%%%%%%%%ooooooooooooe##
+%%%%п%%%%%x%%%%%%%%%%%%%%ooooooooooooe##
 %%%%α%%%%%E%%%%%%%%%%%%%eeeeeeeeeeeeee##
 ####Q###################################
-#KssssssK#####hhhhhhhhhhhh##############
-#ssssssss#####hKhhhhhhhhKh#uuuuÊ########
-#ssUsssss#####hhPhhhhhhPhh#uuuuu########
-#ssssssss#####hhhhhGhhhhhh#uuuuu########
-#ssssssss#####hhhhhhhhhhhhuuuKuu####Î###
-#ssssssssOv321hhPhhNhhhPhh#uuuuu########
-#ssssssss#####hhhhhhhhhhhh#uuuuu########
-#ssssssss#####hhhhhhhGhhhh#uuuuu########
-#ssVsssss#####hhPhhhhhhPhh##############
+#KПsssПsK#####hhПhЧhhЧhПhh##############
+#ssssssss#####hKhhhhhhhhKh#uuФuÊ########
+#ssUssssЩ#####hhPhhhhhhPhБ#Юuuuu########
+#Щsssssss#####ЩhhhhGhhhhhЩ#uuuuu########
+#sssssssБ#####БhhhhhhhhhhhuuuKuЪ####Î###
+#БsssssssOv321hhPhhNhhhPhh#uuuuu########
+#sssssssБ#####БhhhhhhhhhhБ#ЭuuЯu########
+#Щsssssss#####ЩhhhhhhGhhhЩ#uuФuб########
+#ssVssssЩ#####hhPhhhhhhPhh##############
 #ssssssss#####hKhhhhhhhhKh##############
-#KssssssK#####hhhhhhhhhhhh##############
-###################aa###################
-######wwwwwwwwwwwwwwwwwwwwwwwwwwww######
+#KsПssПsK#####hhПhhhhhhПhh##############
+########Г####Г#####aa#####Г####Г########
+######wwwwwИwwwwЧwБwwБwЧwwwwИwwwww######
 ######wwTwwwwwwwwwwwwwwwwwwwwwwTww######
-######wwwwwwwwwwwwwwwwwwwwwwwwwwww######
-######wwwwwwwwwwwwwwwwwwwwwGwwwwww######
+#####ЖwwwwwwwwwFwwwwwwwwFwwwwwwwwwЗ#####
+######wwwwwwwwwwwwwwwwwwwwwGwдwwww######
 ######wwwwwwGwwwwwwwwwwwwwwwwwwwww######
-##Å###wwwwwwwwwwwwwwwwwwwwwwwwwwww###Æ##
+##Å###гwwwwwwwwwwwwwwwwwwwwwwwwwwг###Æ##
 ######wwwwwwwwwwwwwwwwwwwwwwwwwwww######
 ######wwwwwwwwFwwwwwwwwwwFwwwwwwww######
-######wwwwwwwwwwwwwwwwwwwwwwwwwwww######
-######wwwwwwwwwwwwwwwwwwwwwwwwwwww######
+#####ЖwwwwдwwwwwwwwwwwwwwwwwwwwwwwЗ#####
+######wwwwwжwwwwwwwwwwwwwwwwwwwwww######
 ######wwwwwwwwwwwwwwwBwwwwwwwwwwww######
-######Éwwwwwwwwwwwwwwwwwwwwwwwwwww######
-###################g####################
-________kkkkkkk####g####kkkkkkk_________
+######ÉwwwwИwwwЛwwБwБwwwЛwwwИwwwww######
+########Д####Д#####g######Д####Д########
+________kkkkkkk####Б####kkkkkkk_________
 ________kÇddddk####g####kddddÈk_________
 ________kddWddk####g####kddWddk_________
-________kdddddk####g####kdddddk_________
+________kddddFk####g####kFddddk_________
 ________###L#######D#######L###_________
 ________##ttt######g######ttt##_________
-________##tNt######g######tNt##_________
+________##tNз######Б######зNt##_________
 ________##ttt######g######ttt##_________
-________###t#######g#######t###_________
-_______pcccccccccccccccccccccccp________
+________###t###Ђ###g###Ђ###t###_________
+_______pcЛcccИcccЦБcБЦcccИcccЛcp________
 _______pcFcccGcccccccccccccccFcp________
 _______pcccccccccccccccccGcccccp________
-________pppppppppcccccppppppppp_________
-________________pcccccp_________________
-________________pcccccp_________________
+________ppЬppppppcccccppppppЬpp_________
+________________pFcccFp_________________
+________________ЬcccccЬ_________________
 ________________pcccccp_________________
 ________________pTcccTp_________________
 ________________pcccccp_________________
@@ -150,24 +152,24 @@ ________________pTcccTp_________________
 ________________pcccccp_________________
 _________________cccccp_________________
 ________________pcccccp_________________
-________________pcGcccp_________________
+________________ЬcGcccЬ_________________
 ________________pcccccp_________________
 ________________pTcccTp_________________
 ________________pcccccp_________________
-________________pcccccp_________________
+________________pFcccFp_________________
 ________________pcccGcp_________________
-________________pcccccp_________________
+________________ЬcccccЬ_________________
 ________________pcccccp_________________
 ________________pTcccTp_________________
 ________________pcccccp_________________
 mmmmmmmmmmmmmmmmmcccccmmmmmmmmmmmmmmmmmm
 mmmmmmmmmmmmmmmmmcccccmmmmmmmmmmmmmmmmmm
-mmmmmmmmmmmmmmlllllllllllmmmmmmmmmmmmmmm
+mmmmmmmmmmmmmmдllllllllжlmmmmmmmmmmmmmmm
 mmmmmmmmmmmmmmllllllllNllmmmmmmmmmmmmmmm
 mmmmmmmmmmmmmmllBllllllllmmmmmmmmmmmmmmm
 mmmmmmmmmmmmmmlllllllllllmmmmmmmmmmmmmmm
-mmmmmmmmmmmmmmlllllllllllmmmmmmmmmmmmmmm
-mmmmmmmmmmmmmmlllllllllllmmmmmmmmmmmmmmm
+mmmmmmmmmmmmmmllllllllllдmmmmmmmmmmmmmmm
+mmmmmmmmmmmmmmlжlllllllllmmmmmmmmmmmmmmm
 mmmmmmmmmmmmmmmmmmmAmmmmmmmmmmmmmmmmmmmm
 mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm
 
@@ -177,12 +179,19 @@ mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm
 A = exit map=vesperholm at=21,3,90 label=Step_through_the_portal model=argent_portal yaw=-90 on=l
 B = save_statue
 // Light: a cold light on the ledge and in the barbican's rooms, high in the Great Hall and up the keep
-// stair; braziers before the barbican and in the ward; candelabra in the halls.
+// stair; the household's fire-baskets, each an iron hand cupping its fire, along the causeway, before
+// the barbican, on its towers' decks and in the ward; candelabra in the halls and the library; a warm
+// light in the library and the study, where Herran works by candle against the storm; and torches
+// held out from the walls in iron hands (`torch model=castle`) by every door and up the keep stair.
 N = light y=4 color=0.9,0.8,0.7 radius=9
 Ñ = light y=3 color=0.9,0.75,0.6 radius=7 on=γ
 Ò = light y=3 color=0.9,0.75,0.6 radius=7 on=θ
-F = brazier
+F = brazier model=castle
 K = candelabra
+и = light y=3.2 color=1.0,0.62,0.34 radius=8
+Б = torch model=castle
+л = torch model=castle on=ζ
+п = torch model=castle on=β
 // Statues along the causeway and in the ward; the Great Hall's pillars.
 T = gate_statue
 P = pillar
@@ -230,3 +239,42 @@ M = hollow_peak height=140 width=120 yaw=-90 on=%
 Å = castle_tower style=round height=26 on=#
 Æ = castle_tower style=square height=27 on=#
 Î = castle_tower style=octagon height=24 on=#
+// The great walls' faces open to the storm, dressed down from their heads: buttresses stepping back
+// up them, a gargoyle spouting from each and a pinnacle over the wall, with string courses, a plinth and
+// a corbel table along them (`span=` metres): round the Outer Ward, facing in, and across the
+// barbican's face over the platform, between its doors (`yaw=` out of the face).
+Г = castle_buttress yaw=90 span=8 on=#
+Д = castle_buttress yaw=-90 span=8 on=#
+Ж = castle_buttress yaw=0 span=8 on=#
+З = castle_buttress yaw=180 span=8 on=#
+Ђ = castle_buttress yaw=90 span=4 on=#
+// Windows: twin lancets lit by candles high in the ward's walls and the barbican's face, arrow loops
+// low beside its gate and the ward's, and in the halls, the chapel and the study lancets lit cold by
+// the storm (`rise=` the sill's height).
+И = castle_window style=twin light=candle rise=7
+Л = castle_window style=loop light=dark rise=3.6
+П = castle_window style=lancet light=storm rise=7.5
+Ф = castle_window style=lancet light=storm rise=2.6
+// Herran's banners, the open hand with the sun in its palm: great ones either side of the barbican's
+// gate and the hall's arch and across the Great Hall's north wall, smaller ones in the theatre either
+// side of his door; tapestries of the Many-Handed down the Great Hall, the Hall of Sentinels and the
+// chapel; and his standards on the parapets of the causeway and the platform.
+Ц = hand_banner rise=10 length=7
+Ч = hand_banner rise=9 length=5.5
+Ы = hand_banner rise=4.4 length=2.8
+Щ = hand_banner style=tapestry rise=7 length=4.4
+Ъ = hand_banner style=tapestry rise=4.6 length=3
+Ь = hand_standard yaw=90 on=p
+// The anatomist's household: his charts and shelves of specimens in the chapel, the library and the
+// study; surgical trolleys; his failures hung up on hooks in the chapel and the study and in gibbet
+// cages on the ward's walls; chains in the barbican's rooms and the study.
+Э = anatomy_chart
+Ю = specimen_jars
+Я = surgical_trolley
+б = hung_cadaver style=hook
+г = hung_cadaver style=cage
+з = wall_chains
+// What the years and the storm have broken: statues fallen in the ward and on the Portal Ledge, and
+// rubble from the dome's breach in the theatre's north-east quarter (and on the ledge, and in the ward).
+д = broken_statue
+ж = breach_rubble

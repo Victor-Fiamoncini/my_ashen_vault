@@ -197,3 +197,13 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   after dying in a sealed arena (or with its `fog:` flag set); `tests/test_arena.py` drives the flow.
 - `--level` only sets the level (for equipment requirements); HP and stats stay at level 1, so judge boss
   balance headless (`World` with a `JungleGame`) rather than from a smoke fight.
+- The world's skyline (`world/atlas.py`): `--map harrowmere --at=30,39,70` (the harbour light, a wreck and
+  the headlands either side of the sea), `--map harrowmere --at=30,39,-70 --script "look_up:0.15"` (the
+  volcano's smoke in the north-west over the roofs), `--map vesperholm --at=16,80,-45` (the Hollow Peak under
+  its storm north-east of the city), `--map vesperholm --at=21,63,180 --script "look_up:0.2"` (the volcano's
+  plume in the west over Lantern Square), `--map cinderhold --at=30,100,-60` (the peak's storm over the
+  fen's curtain wall) and `--at=30,96,10` / `--at=26,96,170` (the burnt hills over the fen's crags).
+  Harrowmere's dressing: `--map harrowmere --at=11,31,90 --script "look_up:0.3"` (washing across the lane),
+  `--at=36,39,60 --script "look_up:0.25"` (the harbour light), `--at=28,33,135` (a market stall). The fen's:
+  `--map cinderhold --at=20,74,-90 --script "look_up:0.2"` (a runoff sluice in the curtain wall),
+  `--at=37,104,20` (the fallen watchtower).

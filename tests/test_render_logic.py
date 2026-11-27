@@ -2931,3 +2931,45 @@ def test_the_wall_over_a_boss_door_rises_to_its_tiles_ceiling():
         tops = [y for _, y in gpu.parts]
         assert bool(tops) == (frame > models.BOSS_DOOR_TOP)
         assert (bool(tops) and max(tops) > models.BOSS_DOOR_CLEAR) == reaches
+
+
+def test_harrowmeres_and_the_fens_new_dressing_is_built_in_detail():
+    """Harrowmere's harbour light, windmill, chimney stacks, stalls, washing, nets and wrecks, and the
+    fen's runoff sluices, marsh-lights, fallen watchtower and palisade are each built of many parts,
+    lit where they burn or foul the mire, and listed where they belong (baked if they never move,
+    drawn to the fog if they make a skyline, solid if they fill their tile)."""
+    from ashen_vault.render import bounds, fen_models, town_models
+    from ashen_vault.world.world import BLOCKING_PROPS, LANDMARKS, STATIC_PROPS
+
+    built = {
+        "lighthouse": (lambda r: town_models.lighthouse(r, 4), True),
+        "windmill": (lambda r: town_models.windmill(r, 0.3, 4), False),
+        "house_chimney": (lambda r: town_models.house_chimney(r, 0.3, 4), False),
+        "market_stall": (lambda r: town_models.market_stall(r, 4), False),
+        "washing_line": (lambda r: town_models.washing_line(r, 4), False),
+        "net_rack": (lambda r: town_models.net_rack(r, 4), False),
+        "wreck": (lambda r: town_models.wreck(r, 4), False),
+        "runoff_sluice": (lambda r: fen_models.runoff_sluice(r, 0.3, 4), True),
+        "marsh_lights": (lambda r: fen_models.marsh_lights(r, 0.3, 4), True),
+        "fallen_watchtower": (lambda r: fen_models.fallen_watchtower(r, 4), False),
+        "rotten_palisade": (lambda r: fen_models.rotten_palisade(r, 4), False),
+    }
+    for kind, (fn, lit) in built.items():
+        gpu = _GlowGpu()
+        fn(rig.Rig(gpu))
+        assert len(gpu.parts) >= (6 if kind == "marsh_lights" else 15), kind
+        assert bool(gpu.glows) == lit, kind
+    moving = {"windmill", "house_chimney", "runoff_sluice", "marsh_lights"}
+    for kind in built:
+        assert (kind in STATIC_PROPS) == (kind not in moving), kind
+    assert {"lighthouse", "windmill", "house_chimney", "wreck", "runoff_sluice"} <= set(LANDMARKS)
+    assert {"lighthouse", "windmill", "market_stall", "net_rack", "wreck"} <= set(BLOCKING_PROPS)
+    assert "washing_line" not in BLOCKING_PROPS and "marsh_lights" not in BLOCKING_PROPS
+    for s in (2, 5, 11):  # stalls sell fish, fruit or bread
+        gpu = _GlowGpu()
+        town_models.market_stall(rig.Rig(gpu), s)
+    # The washing hangs over your head; the sluice pours from its mouth right down into the mire.
+    (_, y0, _), _ = bounds.measure(lambda r: town_models.washing_line(r, 4))
+    assert y0 > 2.4
+    (_, y0, _), (_, y1, _) = bounds.measure(lambda r: fen_models.runoff_sluice(r, 0.3, 4, 9.0, -0.3))
+    assert y0 <= -0.2 and y1 >= 3.0

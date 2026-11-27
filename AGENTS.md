@@ -69,7 +69,7 @@ ASHEN_VAULT_SAVE=/tmp/ashen_test_save.json \
 | Path | Contents |
 | --- | --- |
 | `src/ashen_vault/world/`, `player/`, `ai/`, `save/` | Pure game logic. **No raylib imports here**; covered by `tests/` |
-| `src/ashen_vault/render/` | Shaders, procedural textures, mesh builder, models, the prop bake; the shared model pieces in `parts`, the weapons in `weapon_models`, a World's meshes and drawing in `world_view`, each area's own models in a module of their own (`cemetery_models`, `town_models`, `forge_models`, `fortress_props`, `sewer_models`, `moon_models`, `sunken_models`, `herran_models`) |
+| `src/ashen_vault/render/` | Shaders, procedural textures, mesh builder, models, the prop bake; the shared model pieces in `parts`, the weapons in `weapon_models`, a World's meshes and drawing in `world_view`, each area's own models in a module of their own (`cemetery_models`, `town_models`, `forge_models`, `fortress_props`, `sewer_models`, `moon_models`, `sunken_models`, `herran_models`, `castle_props`) |
 | `src/ashen_vault/ui/` | HUD, menus, dialogue boxes, fonts (`hud.py` draws them all) |
 | `src/ashen_vault/audio/synth.py` | Synthesized sound effects |
 | `src/ashen_vault/game.py` | Scenes and the main loop |
