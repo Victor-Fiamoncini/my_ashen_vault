@@ -39,6 +39,10 @@ crack_span = 14
 Ъ = wall tex=moonstone top=14 cap=silver_slate dress=cracks
 % = wall tex=moonstone top=14 cap=silver_slate
 h = wall tex=moonstone top=5.5 cap=silver_slate
+// The gorge's end walls and the backs of the lower town's houses over it, split by the years the moon
+// has hung over them (cracked only near their tops, `crack_span`).
+Ш = wall tex=moonstone top=9 cap=silver_slate dress=cracks
+Ч = wall tex=moonstone top=5.5 cap=silver_slate dress=cracks
 , = floor tex=moon_paving h=0 side=moonstone
 // The moon pool in the square: shallow, it only casts you back out.
 ~ = water tex=water h=-0.6 side=moonstone
@@ -152,7 +156,7 @@ w = water tex=water h=3.9 side=crystal_rock
 Я_____________ЩъщщщщщпщщщщщъЩ______________Я
 Я_____________ЩщщщщщщщщщщщщщЩ______________Я
 Я_____________эЩЩЩЩЩщющЩЩЩЩЩэ______________Я
-Я________________ÅшSшшшSшÅ_________________Я
+Ў________________ÅшSшшшSшÅ_________________Џ
 Я__________________ИчёчИ___________________Я
 Я__________________ЗцццЗ___________________Я
 Я__________________ЖфффЖ___________________Я
@@ -189,12 +193,12 @@ w = water tex=water h=3.9 side=crystal_rock
 ###,,,,,ä,,,,,,,,,,,,,,,,,,M,,,,,,ä,,,,,,###
 ###,,,,,,,,,,,,,,,,,,,,,,,,,,M,,,,,,,,,,,###
 ###,,V,,,,Ó,,,,,,,,,G,,,,,,,,,,,Ó,,,,,,,O###
-#Õ##pp#####Õ########ppp########Õ##########Õ#
-#___gg______________FFF____________________#
-#___gg______________FFF____________________#
-#___gg______________FFF____________________#
-#___gg______________FFF____________________#
-#hhÔ,,ÔÀhhhhhhhhhÔ,,,,,,,ÔÎhhhhhhhhhh,,,,hh#
+ЌÕЀ#pp##Ђ##ÕЀ#Ѓ##Є##ppp##Ѕ##І##Õ##Ї##Ј##Љ#Õ#
+Ш___gg______________FFF____________________Ш
+Ш___gg______________FFF____________________Ш
+Ш___gg______________FFF____________________Ш
+Ш___gg______Ћ_______FFF________Ћ___Ћ_______Ш
+#hЊÔ,,ÔÀЧЧЧЧЧЧЧЧЧÔ,,,,,,,ÔÎЧЧЧЧЧЧЧЧЧЧ,,,,ЊhЍ
 #hh,,,Shhhhhhhhhh,,Ä,,,Ä,,hhhhhhhhhhh,,,Ihh#
 #hh,,,,hhhhhhhhhh,,,,,,,,,hhhhhhhhhhL,,,,hh#
 #hh,,,,hhhhhhhhhhhhhRRRhhhhhhhhhhhhhh,,,,hh#
@@ -385,3 +389,23 @@ O = chest item=bitter_root count=2 gold=100 model=coffer
 á = moon_spire height=20 on=%
 ã = veiled_statue
 ä = silver_tree
+// The gorge's walls, seen across it from the Landing and down it from the Glass Bridge: tall houses
+// built along the castle's wall top, hung out over the drop on their undercrofts; the city's towers
+// among them (a clock stopped at midnight, a belfry, a lantern of moon-glass); great buttresses built
+// down into the deep; oriels hung on the lower town's backs; and past the gorge's ends, and either side
+// of the drop behind the cathedral, the rest of the city climbing away into the haze.
+Ѐ = gorge_buttress drop=16 yaw=90 on=#
+Њ = gorge_buttress drop=12 yaw=-90 on=h
+Ђ = moon_townhouse span=4 storeys=2 drop=8 yaw=90 on=#
+Є = moon_townhouse span=3 storeys=3 drop=7 yaw=90 on=#
+Ѕ = moon_townhouse span=3 storeys=2 drop=9 yaw=90 on=#
+Ї = moon_townhouse span=3 storeys=2 drop=6 yaw=90 on=#
+Љ = moon_townhouse span=2 storeys=3 drop=8 yaw=90 on=#
+Ѓ = moon_tower style=clock height=22 on=#
+І = moon_tower style=belfry height=20 on=#
+Ј = moon_tower style=lantern height=19 on=#
+Ћ = moon_oriel rise=18.6 on=_
+Ќ = distant_city height=34 width=56 yaw=180 on=#
+Ѝ = distant_city height=30 width=56 yaw=0 on=#
+Ў = distant_city height=40 width=60 yaw=180 on=Я
+Џ = distant_city height=36 width=60 yaw=0 on=Я

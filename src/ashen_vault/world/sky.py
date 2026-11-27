@@ -112,6 +112,36 @@ class FarMoon:
 
 
 @dataclass(frozen=True)
+class Ridge:
+    """A burnt ridge along the horizon (the Cinderhold's, north beyond the keep, the land the fortress
+    was quarried from): jagged shoulders of rock either side of a broken cone, its foot lit by its own
+    fires and lost in the horizon's haze, its caldera glowing, rivers of lava running down its face from
+    the rim and a plume of smoke standing over it, under the far moon. Part of the sky, so no fog
+    hides it: the fortress's walls and towers stand in front of it."""
+
+    at: float = 243.0  # azimuth of the cone, degrees: west of north, beside the far moon
+    span: float = 200.0  # degrees of horizon its shoulders cover
+    height: float = 22.0  # elevation of the cone's rim, degrees: it looms over the fortress's walls
+    shoulders: float = 15.0  # elevation of its tallest shoulders, degrees
+    cone: float = 24.0  # degrees from the cone's middle to where its flanks meet the shoulders
+    rock: tuple = (0.13, 0.06, 0.06)  # its upper slopes, dark against the sky
+    lit: tuple = (0.42, 0.13, 0.06)  # its foot, lit by the fires below
+    lava: tuple = (1.0, 0.46, 0.12)
+    smoke: tuple = (0.24, 0.1, 0.08)
+    rivers: int = 5
+    seed: int = 4111
+
+
+RIDGE_COLUMNS = 160  # across its span
+RIDGE_FOOT = -4.0  # elevation its foot reaches down to, under the mist
+RIDGE_CALDERA = 0.22  # the caldera's half-width, as a share of `cone`
+RIDGE_RIVER = 0.32  # a lava river's width, degrees
+PLUME_RISE = 12.0  # degrees the smoke stands over the rim
+PLUME_BILLOWS = 8
+PLUME_DRIFT = 7.0  # degrees the wind carries its top aside
+
+
+@dataclass(frozen=True)
 class Sky:
     zenith: tuple  # colour straight up; the horizon is always the map's fog colour
     sun: tuple | None = None  # the sun's disc colour (None: no sun)
@@ -133,6 +163,7 @@ class Sky:
     corona: tuple | None = None  # a moon's bright glow hugging its disc
     veiled: tuple | None = None  # a sun hidden in a bank of cloud in the south: the light leaking round it
     far_moon: FarMoon | None = None  # another land's moon, far off, behind the cloud banks
+    ridge: Ridge | None = None  # a burnt ridge along the horizon, its caldera glowing
 
 
 SKIES = {
@@ -218,6 +249,7 @@ SKIES = {
             maria_shade=0.7,
             wisps=0.6,
         ),
+        ridge=Ridge(),
     ),
     # Vesperholm: a night that never ends, a full moon blazing in the north over the cathedral,
     # wisps of cloud trailing across it, a thin moonlit layer drifting overhead, stars crowded up
@@ -712,6 +744,103 @@ def mist(spec, dark=0.0, veil=False):
     return mesh
 
 
+def ridge_profile(ridge, x):
+    """The ridge's skyline, in degrees of elevation, `x` degrees of azimuth from its cone's middle: the
+    broken cone (its flanks steepening toward the rim, a dip where the caldera is) over jagged shoulders
+    that sink away toward the ridge's ends. Below the horizon past its span."""
+    half = ridge.span / 2
+    if abs(x) >= half:
+        return RIDGE_FOOT
+    rng = random.Random(ridge.seed)
+    shoulders = 0.0
+    for _ in range(12):  # its peaks and spurs
+        c, w = rng.uniform(-half, half), rng.uniform(7.0, 22.0)
+        h = ridge.shoulders * rng.uniform(0.35, 1.0)
+        shoulders = max(shoulders, h * (1 - abs(x - c) / w))
+    shoulders += 0.5 * math.sin(x * 1.7 + ridge.seed) + 0.3 * math.sin(x * 4.3)  # broken rock
+    shoulders *= 1 - (abs(x) / half) ** 4
+    u = abs(x) / ridge.cone
+    if u < RIDGE_CALDERA:
+        cone = ridge.height - 0.5  # the caldera's dip
+    elif u < 1:
+        cone = ridge.height * (1 - (u - RIDGE_CALDERA) / (1 - RIDGE_CALDERA)) ** 1.5
+    else:
+        cone = 0.0
+    return max(shoulders, cone, 0.4)
+
+
+def ridge(spec, dark=0.0, veil=False):
+    """The burnt ridge along the horizon (`Ridge`): its silhouette lit from below, the glow in its
+    caldera, the rivers of lava down its face and the plume over it. None for a sky without one."""
+    rd = spec.ridge
+    if not rd:
+        return None
+    mesh = SkyMesh()
+    r = RADIUS * 0.9
+    rock, lit = shade(rd.rock, dark, veil), shade(rd.lit, dark, veil)
+    lava, smoke = shade(rd.lava, dark, veil), shade(rd.smoke, dark, veil)
+    half = rd.span / 2
+
+    def at(x, elev):
+        return direction(rd.at + x, elev)
+
+    for i in range(RIDGE_COLUMNS):  # the silhouette, column by column
+        x0 = -half + rd.span * i / RIDGE_COLUMNS
+        x1 = -half + rd.span * (i + 1) / RIDGE_COLUMNS
+        e0, e1 = ridge_profile(rd, x0), ridge_profile(rd, x1)
+        mesh.quad(
+            (at(x0, RIDGE_FOOT), (0, 0), lit, r),
+            (at(x1, RIDGE_FOOT), (0, 0), lit, r),
+            (at(x0, e0), (0, 0), _mix(lit, rock, min(1.0, e0 / 8)), r),
+            (at(x1, e1), (0, 0), _mix(lit, rock, min(1.0, e1 / 8)), r),
+        )
+    rim = rd.cone * RIDGE_CALDERA
+    plume = _mix(lava, smoke, 0.7)  # smoke lit from below by the caldera
+    for k in range(PLUME_BILLOWS):  # the plume: billows swelling as they climb, darkening into smoke
+        f = k / (PLUME_BILLOWS - 1)
+        for side in (-1, 1):  # two abreast, so the column has a broken edge
+            x = PLUME_DRIFT * f**1.4 + side * (0.8 + 1.4 * f) + 0.6 * math.sin(k * 2.1 + side)
+            centre = at(x, rd.height + 0.6 + PLUME_RISE * f)
+            heart = _mix(plume, smoke, min(1.0, f * 1.4))
+            edge = _mix(heart, rock, 0.35)
+            cu, cv = _basis(centre)
+            size = 1.3 + 2.2 * f + 0.4 * (side > 0)
+            for i in range(SHROUD_STEPS):
+                a0, a1 = 2 * math.pi * i / SHROUD_STEPS, 2 * math.pi * (i + 1) / SHROUD_STEPS
+                mesh.vertex(centre, (0, 0), heart, r)
+                for a in (a0, a1):
+                    mesh.vertex(_around(centre, cu, cv, size, a), (0, 0), edge, r)
+    hot = _mix(lava, shade((1.0, 0.9, 0.6), dark, veil), 0.4)
+    mesh.quad(  # the caldera's glow, along its broken rim
+        (at(-rim, rd.height - 0.6), (0, 0), hot, r),
+        (at(rim, rd.height - 0.6), (0, 0), hot, r),
+        (at(-rim * 1.1, rd.height + 0.2), (0, 0), lava, r),
+        (at(rim * 1.1, rd.height + 0.2), (0, 0), lava, r),
+    )
+    rng = random.Random(rd.seed + 1)
+    for _ in range(rd.rivers):  # rivers of lava down its face, wandering as they fall
+        x = rng.uniform(-rim, rim)
+        elev = rd.height - 0.6
+        low = rng.uniform(4.0, 12.0)
+        steps = 10
+        for s in range(steps):
+            x1 = x + rng.uniform(-1.0, 1.0) + (1.0 if x > 0 else -1.0)
+            e1 = min(ridge_profile(rd, x1) - 0.2, elev - (rd.height - low) / steps)
+            w = RIDGE_RIVER * (0.7 + 0.6 * s / steps)
+            c0 = _mix(hot, lava, s / steps)
+            c1 = _mix(hot, lava, (s + 1) / steps)
+            mesh.quad(
+                (at(x - w, elev), (0, 0), c0, r * 0.995),
+                (at(x + w, elev), (0, 0), c0, r * 0.995),
+                (at(x1 - w, e1), (0, 0), c1, r * 0.995),
+                (at(x1 + w, e1), (0, 0), c1, r * 0.995),
+            )
+            x, elev = x1, e1
+            if elev <= low:
+                break
+    return mesh
+
+
 TEXTURES = {
     "dome": "white",
     "stars": "white",
@@ -719,6 +848,7 @@ TEXTURES = {
     "clouds": "clouds",
     "far_moon": "white",
     "far_wisps": "cloud_cap",
+    "ridge": "white",
     "shroud": "white",
     "sun": "white",
     "maria": "white",
@@ -730,7 +860,8 @@ DRIFTING = ("cap", "clouds")  # layers that turn slowly around you
 
 def layers(spec, fog, dark=0.0, veil=False):
     """[(layer, mesh)] for a sky, back to front: the dome (with the sun's halo), the stars, the overhead
-    cap, a far moon and the wisps across it, the cloud banks, the bank a veiled sun hides in, the sun's disc (and a moon's seas and the wisps
+    cap, a far moon and the wisps across it, the cloud banks, the bank a veiled sun hides in, a burnt
+    ridge along the horizon, the sun's disc (and a moon's seas and the wisps
     across it) and the mist. Layers the sky lacks are left out."""
     built = (
         ("dome", dome(spec, fog, dark, veil)),
@@ -740,6 +871,7 @@ def layers(spec, fog, dark=0.0, veil=False):
         ("far_wisps", far_wisps(spec, dark, veil)),
         ("clouds", clouds(spec, dark, veil)),
         ("shroud", shroud(spec, dark, veil)),
+        ("ridge", ridge(spec, dark, veil)),
         ("sun", sun(spec, dark, veil)),
         ("maria", maria(spec, dark, veil)),
         ("wisps", wisps(spec, dark, veil)),

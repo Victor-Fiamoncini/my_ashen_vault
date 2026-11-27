@@ -127,3 +127,21 @@ def test_a_crack_glows_only_where_it_seeps():
         sunken_models.wall_crack(Rig(gpu), 7, 18.0, 2.0, seep)
         assert len(gpu.parts) < 200  # cheap enough to bake dozens of them
         assert any(glow for *_, glow in gpu.parts) is seep
+
+
+def test_a_map_can_crack_shorter_runs_and_let_more_cracks_seep(city):
+    """`[meta] crack_run` lets runs shorter than MIN_RUN carry a crack (the Cinderhold's bays between its
+    great windows; never less than two tiles), and `crack_seep` sets the share that seep (its fires glow
+    through half)."""
+    import copy
+
+    base = wall_cracks.cracks(city)
+    loose = copy.copy(city)
+    loose.meta = {**city.meta, "crack_run": "1", "crack_seep": "1"}  # read as two
+    more = wall_cracks.cracks(loose)
+    assert len(more) >= len(base) and all(c.seep for c in more)
+    assert all(c.reach <= wall_cracks.MAX_REACH for c in more)
+    dry = copy.copy(city)
+    dry.meta = {**city.meta, "crack_seep": "0"}
+    assert not any(c.seep for c in wall_cracks.cracks(dry))
+    assert [(c.x, c.z, c.height) for c in wall_cracks.cracks(dry)] == [(c.x, c.z, c.height) for c in base]

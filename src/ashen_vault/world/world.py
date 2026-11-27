@@ -345,6 +345,7 @@ WALL_PROPS = (
     "outfall_grate",
     "moon_window",
     "moon_great_window",
+    "moon_oriel",
     "prisoner_remains",
     "hand_rack",
 )
@@ -382,6 +383,15 @@ LANDMARKS = (
     "castle_tower",
     "hollow_peak",
     "anatomy_dome",
+    "moon_townhouse",
+    "moon_tower",
+    "gorge_buttress",
+    "moon_oriel",
+    "distant_city",
+    "wall_buttress",
+    "slag_runnel",
+    "gibbet_cages",
+    "chimney_cluster",
 )
 # Props that never move, open, break or flicker: they are baked once into world-space batches
 # (`render/prop_bake.py`) instead of being drawn part by part every frame. A prop drawn with the time
@@ -422,6 +432,8 @@ STATIC_PROPS = frozenset(
         *("prisoner_remains", "old_idol", "sunken_tower", "lyra_statue"),
         *("castle_tower", "hollow_peak", "anatomy_dome", "gate_statue", "dissecting_table"),
         *("specimen_cage", "hand_rack", "lab_bench", "telescope"),
+        *("moon_townhouse", "moon_tower", "gorge_buttress", "moon_oriel", "distant_city"),
+        *("wall_buttress", "slag_runnel", "gibbet_cages"),
         "wall_crack",
         "ash_mound",
         "spire",
@@ -439,7 +451,10 @@ FACING_PROPS = (
 # Ways through a wall that its rampart bays keep clear of (`World._dress_ramparts`).
 RAMPART_GATES = ("exit", "cemetery_gate", "door", "gate", "door_arch", "moon_portal", "cathedral_portal")
 # What the cracks down a cavern's walls keep two tiles clear of (`World._dress_cracks`), besides gates.
-CRACK_CLEAR = ("lift", "secret_wall", "waterfall")
+CRACK_CLEAR = ("lift", "secret_wall", "waterfall", "lavafall")
+# Wall props hung high on a great wall that the cracks keep clear of only on their own tile, so the bays
+# between a row of them still crack (the Cinderhold's great windows over the moat).
+CRACK_SNUG = ("great_window",)
 # Harrowmere's buildings, furniture and street dressing (`render/town_models.py`).
 TOWN_PROPS = (
     "rampart_bay",
@@ -3565,6 +3580,8 @@ class World:
         for e in self.map.entities:
             if e.kind in RAMPART_GATES or e.kind in CRACK_CLEAR:
                 reach = 2
+            elif e.kind in CRACK_SNUG:
+                reach = 0
             elif e.kind in WALL_PROPS:
                 reach = 1
             else:

@@ -13,15 +13,22 @@ edge_top = 16
 edge_tex = black_brick
 entity_floor = auto
 roofs = true
+crack_span = 20
+crack_run = 2
+crack_seep = 0.5
 
 [legend]
-K = wall tex=black_brick top=16 cap=slate
+// The great wall, cracked down its tall faces by the heat of the fires behind it, which glow through
+// many of its cracks (`crack_seep`); its great windows leave bays only two tiles wide (`crack_run`).
+K = wall tex=black_brick top=16 cap=slate dress=cracks
 ] = wall tex=black_brick top=11 cap=slate
 ~ = floor tex=slate h=8 side=black_brick
 # = wall tex=black_brick top=8 cap=slate
 p = wall tex=black_brick top=7.2 cap=black_brick
 P = wall tex=black_brick top=13.2 cap=black_brick
 A = wall tex=cliff_rock top=7 cap=cliff_rock
+// The cliffs walling the lava moat, split by the heat.
+Ŧ = wall tex=cliff_rock top=7 cap=cliff_rock dress=cracks
 r = wall tex=black_brick top=1.0 cap=black_brick
 , = floor tex=ash_road h=0 side=cliff_rock
 = = floor tex=flagstone h=0 side=black_brick
@@ -98,7 +105,7 @@ z = floor tex=flagstone h=9.5 side=black_brick
 đ = wall tex=rough_stone top=1.4 cap=rough_stone
 Ē = wall tex=rough_stone top=2.4 cap=rough_stone
 // The fortress's curtain wall closing the fen's north side, and the two towers of its great gate.
-ē = wall tex=black_brick top=9 cap=slate dress=rampart
+ē = wall tex=black_brick top=9 cap=slate dress=rampart,cracks
 Ĕ = wall tex=black_brick top=13 cap=slate
 
 [grid]
@@ -125,41 +132,41 @@ KK#À....gg..£.ll.N..##:::Z:::::::::Z::#############......#KK
 KK#.....llÀ.T.llÅ.Ã.##::::::::::::::::#############Â..F..#KK
 KK#1##################::::::::::::::::#############......#KK
 KK#2TssvvsHsssssvvT##########..######K######...Ï..Ù......#KK
-KK#3sssvvsssvvvsvvs#.T.#T..À....À..T#K######Ç....Æ#....N.#KK
+KK#3sssvvsssvvvsvvs#.T.#T..À....À..T#Ő######Ç....Æ#....N.#KK
 KK#4sssvvsssvvvssssD...#............#K######...T..#T.....#KK
 KK#5sÏssssssvvvssÏs#...............À#K######À.....#À.....#KK
 KK#6sUsssssTvvvHssY#...#.........Ô..#K####################KK
 KK##################Q..#...CÕ.LT....#K####################KK
 ]]]]KKËKKæKKKKÊKKKçKKKÉKKKKKKGKKKèKKKÒKKKéKKKÌKKKKêKKØKK]]]]
 ]]]]KKKKKKKKKKKKKKKKKKÓKKKKKKÈKKKKKKKKKKKKKKKKKKKKKKKKKK]]]]
-AAAKKKKKKKKKKKKKKKKKKr=BJ=Þ====ArB$rKKKKKKKKKKKKKKKKKKKKKAAA
-AAA__ë__ë__Î___ë__ë__________==________ë___ë____Î___ë__ë_AAA
-AAA_________________________r==r_________________________AAA
-AAA__________________________==__________________________AAA
-AAA__________________________==__________________________AAA
-AAA_________________________r=Er_________________________AAA
-AAA__________________________==______V___________________AAA
-AAA___________________Ä______==__________________________AAA
-AAA_________________________r==r_________________________AAA
-AAA__________________________==__________________________AAA
-AAA__________________________==__________________________AAA
-AAA_______________________rr_==rrrr______________________AAA
-AAA______________________r========r______________________AAA
-AAA_______________________B==H=E==_______________________AAA
-AAA______________________r======H=r______________________AAA
-AAA______________________r========r______________________AAA
-AAA______________________rrrr==_rr_______________________AAA
-AAA_________________________r==r_________________________AAA
-AAA___________________V______==__________________________AAA
-AAA__________________________==__________________________AAA
-AAA_________________________r==r_________________________AAA
-AAA__________________________==__________________________AAA
-AAA__________________________E=______Ä___________________AAA
-AAA_________________________r==r_________________________AAA
-AAA__________________________==__________________________AAA
-AAA__________________________==__________________________AAA
-AAA_________________________r==r_________________________AAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAA,==,AAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAKKKKKKŊKKKŌŎKKKKKKr=BJ=Þ====ArB$rKKKKKKKKKKŌKKKŊKKKKKŎAAA
+AAŦ__ë__ë__Î___ë__ë__________==________ë___ë____Î___ë__ë_ŦAA
+AAŦ_________________________r==r_________________________ŦAA
+AAŦ__________________________==__________________________ŦAA
+AAŦ__________________________==__________________________ŦAA
+AAŦ_________________________r=Er_________________________ŦAA
+AAŦ__________________________==______V___________________ŦAA
+AAŦ___________________Ä______==__________________________ŦAA
+AAŦ_________________________r==r_________________________ŦAA
+AAŦ__________________________==__________________________ŦAA
+AAŦ__________________________==__________________________ŦAA
+AAŦ_______________________rr_==rrrr______________________ŦAA
+AAŦ______________________r========r______________________ŦAA
+AAŦ_______________________B==H=E==_______________________ŦAA
+AAŦ______________________r======H=r______________________ŦAA
+AAŦ______________________r========r______________________ŦAA
+AAŦ______________________rrrr==_rr_______________________ŦAA
+AAŦ_________________________r==r_________________________ŦAA
+AAŦ___________________V______==__________________________ŦAA
+AAŦ__________________________==__________________________ŦAA
+AAŦ_________________________r==r_________________________ŦAA
+AAŦ__________________________==__________________________ŦAA
+AAŦ__________________________E=______Ä___________________ŦAA
+AAŦ_________________________r==r_________________________ŦAA
+AAŦ__________________________==__________________________ŦAA
+AAŦ__________________________==__________________________ŦAA
+AAŦ_________________________r==r_________________________ŦAA
+AAAŦŦŦŦŦŦŦŦŦŦŦŦŦŦŦŦŦŦŦŦŦŦŦŦŦ,==,ŦŦŦŦŦŦŦŦŦŦŦŦŦŦŦŦŦŦŦŦŦŦŦŦŦAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAT,,,,,TAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAă,,,,,ĂAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAA,,,,,A,,áàAAAAAAAAAAAAAAAAAAAAAA
@@ -345,3 +352,11 @@ L = gargoyle_statue pose=snarl
 ê = battlement span=5 on=^
 // Great windows high in the curtain wall's face, the fires of the halls behind them burning over the moat.
 ë = great_window rise=13 on=_
+// The great wall's face over the moat, seen from the long bridge: buttresses battered down into the
+// lava, a fire basket on each, drains spilling slag down the stone, and gibbets hung from its top with
+// the dead in them; and behind the front a smelting house's three flues. (The burnt ridge the
+// fortress was quarried from stands on the northern horizon: the `ember` sky's own.)
+Ŋ = slag_runnel yaw=90 on=K
+Ō = wall_buttress yaw=90 on=K
+Ŏ = gibbet_cages yaw=90 on=K
+Ő = chimney_cluster on=^

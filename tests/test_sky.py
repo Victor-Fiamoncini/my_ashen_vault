@@ -370,3 +370,27 @@ def test_skies_without_a_far_moon_have_no_such_layer(name):
     assert sky.far_moon(spec) is None and sky.far_wisps(spec) is None
     built = dict(sky.layers(spec, FOG))
     assert "far_moon" not in built and "far_wisps" not in built
+
+
+def test_the_cinderhold_sees_its_burnt_ridge_smoking_on_the_northern_horizon():
+    """Over the Cinderhold, and only there, a burnt ridge stands along the horizon west of north beside
+    the far moon: its cone looms over the fortress's walls, its caldera and the rivers of lava down its
+    face glow, its foot sinks under the horizon's haze, and it is drawn over the clouds but under the
+    mist."""
+    spec = sky.SKIES["ember"]
+    rd = spec.ridge
+    assert rd is not None and all(s.ridge is None for name, s in sky.SKIES.items() if name != "ember")
+    assert 225 < rd.at < 270  # north-west, beside the far moon (in the north)
+    assert abs(rd.at - spec.far_moon.at[0]) > spec.far_moon.size + rd.cone * sky.RIDGE_CALDERA  # beside it
+    assert sky.ridge_profile(rd, 0.0) == pytest.approx(rd.height - 0.5)  # the caldera's dip
+    assert rd.height > 17  # over the great wall's top as seen from the long bridge
+    assert sky.ridge_profile(rd, rd.cone * 0.5) < rd.height  # its flanks fall away from the rim
+    assert sky.ridge_profile(rd, rd.span / 2 + 1) == sky.RIDGE_FOOT  # past its ends, nothing
+    assert sky.MIST_BAND[1] > sky.RIDGE_FOOT  # its foot lost in the haze
+    names = [name for name, _ in sky.layers(spec, FOG)]
+    assert names.index("clouds") < names.index("ridge") < names.index("mist")
+    mesh = sky.ridge(spec)
+    assert mesh.vertex_count % 3 == 0
+    colors = [mesh.colors[i : i + 3] for i in range(0, len(mesh.colors), 3)]
+    assert any(c[0] > 0.9 and c[1] > 0.4 for c in colors)  # the lava glows
+    assert sky.TEXTURES["ridge"]

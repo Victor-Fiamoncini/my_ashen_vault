@@ -12,6 +12,7 @@ from ashen_vault.render.mesh_builder import MeshBuilder
 from ashen_vault.world import elements, relics, shots
 from ashen_vault.world.hazards import Eruption, FlameJet, MagmaVent
 from ashen_vault.world.tile_map import TileMap
+from ashen_vault.world.wall_cracks import dressed
 from ashen_vault.world.world import LAVA_MIN, LAVA_SHARE, World, gate_runs
 from conftest import risen
 from test_enemy import FakeWorld, tick
@@ -679,7 +680,10 @@ def test_the_fen_gate_is_one_great_portcullis_three_tiles_wide_between_two_tower
             m[x, z].solid and m[x, z].top > m[x - 1 if x == 28 else x + 1, FEN_GATE_Z].top for z in (70, 71)
         )
     wall = [m[x, FEN_GATE_Z] for x in range(5, 55) if x not in range(28, 33)]
-    assert all(t.solid and t.dress == "rampart" for t in wall), "the curtain wall closes the fen's north side"
+    assert all(t.solid and dressed(t, "rampart") for t in wall), (
+        "the curtain wall closes the fen's north side"
+    )
+    assert all(dressed(t) for t in wall)  # and the heat behind it has cracked it
 
 
 def test_a_row_of_great_gate_tiles_on_one_lever_is_one_run():
@@ -805,3 +809,42 @@ def test_the_gargoyle_way_runs_straight_and_its_gargoyles_face_it_from_their_nic
     assert not any(
         s.kind in ("rubble", "slag_heap") and s.tx in ROAD and 58 <= s.tz <= 68 for s in world.map.entities
     )
+
+
+def test_the_great_wall_over_the_moat_is_cracked_and_the_fires_behind_it_glow_through():
+    """Seen from the long bridge, the great wall's face over the moat is split by cracks in the bays
+    between its great windows, and the moat's cliffs and the fen's curtain wall are too, in soot-black
+    with the fortress's fires glowing through many of them; none splits by a gate, a lavafall or a
+    window hung on the wall."""
+    from ashen_vault.render.world_view import CRACK_TONES
+
+    _game, world = hold(FEN_START)
+    m = world.map
+    cracks = [p for p in world.props if p.kind == "wall_crack"]
+    face = [c for c in cracks if c.tz == 30 and m[c.tx, 31].chasm]  # the great wall's face over the moat
+    assert len(face) >= 5
+    assert all(c.y >= m[c.tx, c.tz].top - float(m.meta["crack_span"]) - 1e-6 for c in face)
+    assert len([c for c in cracks if m[c.tx, c.tz].wall_tex == "cliff_rock"]) >= 6  # the moat's cliffs
+    assert len([c for c in cracks if c.tz == FEN_GATE_Z]) >= 4  # the fen's curtain wall
+    assert {c.props["stone"] for c in cracks} <= {"black_brick", "cliff_rock"} <= set(CRACK_TONES)
+    glowing = [c for c in cracks if c.props["seep"] == "true"]
+    assert 0.3 * len(cracks) <= len(glowing) <= 0.7 * len(cracks)
+    for e in (e for e in m.entities if e.kind == "lavafall"):  # two tiles clear of each lavafall
+        assert all(abs(c.x / TileMap.TILE - (e.tx + 0.5)) > 2 for c in face), e.tx
+    for c in face:  # its spread stays off the windows' tiles
+        for e in (e for e in m.entities if e.kind == "great_window"):
+            lo, hi = c.x - float(c.props["reach"]), c.x + float(c.props["reach"])
+            assert hi <= e.tx * TileMap.TILE + 1e-6 or lo >= (e.tx + 1) * TileMap.TILE - 1e-6, (c.tx, e.tx)
+
+
+def test_the_great_walls_face_is_dressed_with_buttresses_drains_and_gibbets():
+    """The great wall over the moat carries buttresses, drains of slag and gibbets on its own tiles, out
+    of reach, clear of the bridge head, and a smelting house's flues rise behind the front."""
+    _game, world = hold(FEN_START)
+    m = world.map
+    face = [e for e in m.entities if e.kind in ("wall_buttress", "slag_runnel", "gibbet_cages")]
+    assert {e.kind for e in face} == {"wall_buttress", "slag_runnel", "gibbet_cages"}
+    for e in face:
+        assert e.tz == 30 and m[e.tx, e.tz].solid and m[e.tx, 31].chasm, (e.kind, e.tx)
+        assert not 20 <= e.tx <= 36  # clear of the bridge head
+    assert [e for e in m.entities if e.kind == "chimney_cluster"]

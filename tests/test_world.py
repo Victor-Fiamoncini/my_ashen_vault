@@ -807,7 +807,8 @@ def test_cinderhold_skyline_has_no_two_towers_alike_and_stands_out_of_reach():
     m = _cinder()
     marks = [s for s in m.entities if s.kind in LANDMARKS]
     assert {"keep", "gatehouse", "bastion", "smokestack", "lavafall", "spire"} <= {s.kind for s in marks}
-    repeated = ("lavafall", "great_window")  # the wall's dressing repeats; its towers never do
+    # the wall's dressing repeats down its face; its towers never do
+    repeated = ("lavafall", "great_window", "wall_buttress", "slag_runnel", "gibbet_cages")
     towers = [(s.kind, tuple(sorted(s.props.items()))) for s in marks if s.kind not in repeated]
     assert len(towers) == len(set(towers))
     reach = _reachable(m, tuple(int(v) for v in m.meta["start"][:2]), avoid=_lava(m))

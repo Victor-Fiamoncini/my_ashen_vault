@@ -265,18 +265,54 @@ def test_great_windows_of_moon_glass_look_out_of_the_choirs_back_wall_over_the_d
         assert size >= 2 and foot > 0 and foot + GREAT_WINDOW_HIGH * size <= roof  # within the wall
 
 
-def test_great_cracks_split_lyras_chapel_and_the_choirs_back_wall_and_nothing_else():
-    """The great walls you climb past behind the Duchess's choir are split by cracks, in the moonstone's
-    own cold tones; nothing else in the city is."""
+def test_great_cracks_split_lyras_chapel_the_choirs_back_wall_and_the_gorges_walls_and_nothing_else():
+    """The great walls you climb past behind the Duchess's choir, and the walls of the gorge seen from the
+    Landing, are split by cracks in the moonstone's own cold tones; nothing else in the city is."""
     _game, world = city()
     cracks = [p for p in world.props if p.kind == "wall_crack"]
     chapel = [c for c in cracks if world.map[c.tx, c.tz].top == 26]
     choir = [c for c in cracks if c.tz == 20 and 12 <= c.tx <= 31]
+    gorge = [c for c in cracks if 48 <= c.tz <= 52 and _faces_gorge(world, c)]
     assert len(chapel) >= 3 and choir
-    assert len(chapel) + len(choir) == len(cracks)
+    assert len(gorge) >= 4 and {c.tz for c in gorge} >= {52} and {c.tx for c in gorge} >= {0, 43}
+    assert len(chapel) + len(choir) + len(gorge) == len(cracks)
     assert {c.props["stone"] for c in cracks} == {"moonstone"}
     for c in cracks:  # near the walls' tops, where the climb sees them, never deep in the gorge
         assert c.y >= world.map[c.tx, c.tz].top - float(world.map.meta["crack_span"]) - 1e-6, (c.tx, c.tz)
+
+
+def _faces_gorge(world, crack):
+    """Whether a crack's face turns to the gorge's drop."""
+    dx, dz = round(math.cos(crack.yaw)), round(math.sin(crack.yaw))
+    return world.map[crack.tx + dx, crack.tz + dz].chasm
+
+
+def test_the_gorges_walls_carry_houses_towers_buttresses_and_the_city_beyond_out_of_reach():
+    """Across the gorge from the Landing the castle's wall is built up with tall houses hung over the drop
+    and towers of three shapes among them; buttresses run down both rims into the deep, oriels hang on
+    the lower town's backs, and past both ends of the gorge and of the drop behind the cathedral the city
+    runs on. All of it stands on walls or over the drop, where no one walks."""
+    _game, world = city()
+    m = world.map
+    kinds = ("moon_townhouse", "moon_tower", "gorge_buttress", "moon_oriel", "distant_city")
+    marks = [e for e in m.entities if e.kind in kinds]
+    by = {k: [e for e in marks if e.kind == k] for k in kinds}
+    assert len(by["moon_townhouse"]) >= 4 and all(e.tz == 47 for e in by["moon_townhouse"])
+    assert {e.props["style"] for e in by["moon_tower"]} == {"clock", "belfry", "lantern"}
+    assert {e.tz for e in by["gorge_buttress"]} == {47, 52}  # down both rims
+    assert by["moon_oriel"] and all(m[e.tx, e.tz].chasm and m[e.tx, e.tz + 1].solid for e in by["moon_oriel"])
+    assert {e.tx for e in by["distant_city"]} == {0, 43}
+    for e in marks:
+        tile = m[e.tx, e.tz]
+        assert tile.solid or tile.chasm, (e.kind, e.tx, e.tz)
+    # Nothing built along the north rim stands over a way through its wall or a bridge over the gorge.
+    ways = {x for x in range(m.width) if not m[x, 47].solid or not m[x, 48].chasm}
+    assert ways >= {4, 5, 20, 21, 22}
+    for e in by["moon_townhouse"] + by["moon_tower"]:
+        half = int(e.props.get("span", "1")) * TileMap.TILE / 2 + (0.9 if e.kind == "moon_tower" else 0.0)
+        x = TileMap.center(e.tx, e.tz)[0]
+        covered = range(TileMap.tile_coord(x - half + 0.01), TileMap.tile_coord(x + half - 0.01) + 1)
+        assert not ways & set(covered), (e.kind, e.tx)
 
 
 def test_the_apse_holds_the_portals_arch_dormant_until_the_sigil_is_lifted():

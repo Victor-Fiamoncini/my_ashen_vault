@@ -10,6 +10,7 @@ Original low-poly models assembled from primitives; like everything in `models`,
 ghostliness is the PS1's: pale glowing parts and stippled `mist` that the shader cuts to a dither."""
 
 import math
+import random
 
 from ashen_vault.render.parts import (
     BLADE_LANDED,
@@ -1442,6 +1443,372 @@ def moon_roof(r, w, d, ridge="x", top=5.5, pitch=3.0, eave=0.4, seed=0, grand=Fa
                 z = (k * 2 - 1 if seed % 2 else 0.5 - (seed % 3) * 0.5) * along * 0.3
                 x = side * half * 0.3
                 _chimney(r, x, pitch * 0.55, pitch + 1.1, z)
+
+
+# --- the gorge's walls ------------------------------------------------------------------------------
+# The rims of the gorge between the lower town and the castle, seen across it from the Landing and down
+# its length from the Glass Bridge: houses built on the walls and hung out over the drop, towers, great
+# buttresses running down into the deep, oriels, and the rest of the city running on past its ends.
+# All stand on wall tiles no one walks (or hang on a wall over the drop), local +X out of the wall's
+# face toward the gorge, the face itself at x = T / 2 for those on the wall.
+
+FACE = T / 2  # a wall tile's face, from its middle
+GLASS_DARK = (70, 78, 104)  # moon-glass with no one behind it
+
+
+def _lancet(r, x, y, z, w, h, lit, hood=True):
+    """A narrow lancet window of moon-glass in a face at `x` facing +X, its sill at `y`: lit or dark
+    glass, a glazing bar, a pointed head, a sill and a hood mould over it."""
+    glass = GLASS_LIT if lit else GLASS_DARK
+    r.part("cube", x + 0.01, y + h / 2, z, 0.04, h, w, glass, tex="moon_glass", glow=lit)
+    r.part("wedge", x + 0.01, y + h + w * 0.3, z, 0.04, w * 0.6, w, glass, tex="moon_glass", glow=lit,
+           ry=math.pi / 2)  # fmt: skip
+    r.part("cube", x + 0.03, y + h / 2, z, 0.03, h, 0.04, IRON)  # the glazing bar
+    r.part("cube", x + 0.05, y - 0.04, z, 0.12, 0.08, w + 0.16, MOONSTONE_DARK, tex="moonstone")  # the sill
+    if hood:
+        for side in (-1, 1):
+            r.part("cube", x + 0.05, y + h + w * 0.3, z + side * w * 0.3, 0.08, 0.07, w * 0.72,
+                   MOONSTONE_DARK, tex="moonstone", rx=side * 0.75)  # fmt: skip
+
+
+def moon_townhouse(r, seed, span=3, top=9.0, drop=8.0, storeys=2):
+    """A terrace of Vesperholm's tall narrow houses built along a wall top over the gorge, `span` tiles
+    long (along Z, centred): each house stands on a corbelled undercroft hung `drop` metres down the
+    wall's face, its storeys jettied out one over the next toward the drop, a steep gable of silvered
+    slate turned to the gorge with pierced bargeboards and a finial, lancets of moon-glass (most lit,
+    some dark), iron balconies here and there, chimney stacks behind, and pilasters between the houses.
+    Its back stays within the wall's tile, so nothing overhangs the walks behind."""
+    length = span * T
+    n = max(1, round(length / 2.8))
+    w = length / n
+    storey = 2.5
+    back = -FACE + 0.1
+    r.part(
+        "cube", FACE + 0.2, top - 0.12, 0, 0.5, 0.24, length, MOONSTONE_DARK, tex="moonstone"
+    )  # string course
+    for i in range(n):
+        s = (seed * 7 + i * 13) % 11
+        z = -length / 2 + w * (i + 0.5)
+        floors = storeys + (s % 2)
+        out = 0.55 + 0.1 * (s % 3)  # how far the ground storey stands out over the drop
+        hang = drop * (0.55 + 0.1 * (s % 4))
+        # The undercroft hung down the face: a box of moonstone with a blind arch and a small lit light,
+        # its foot a cul-de-lampe of stepped courses closing to a drop.
+        r.part("cube", FACE + out / 2, top - hang / 2, z, out, hang, w - 0.5, FACADE, tex="moonstone")
+        for k in range(4):
+            r.part("cube", FACE + out / 2, top - hang - 0.2 - 0.35 * k, z, out * (1 - 0.22 * k), 0.35,
+                   (w - 0.5) * (1 - 0.22 * k), MOONSTONE_DARK if k % 2 else MOONSTONE, tex="moonstone")  # fmt: skip
+        r.part("cone", FACE + out / 2, top - hang - 1.9, z, 0.36, 0.8, 0.36, MOONSTONE_DARK, rx=math.pi)
+        for side in (-1, 1):  # the blind arch's jambs and its pointed head
+            r.part("cube", FACE + out + 0.04, top - hang * 0.55, z + side * (w / 2 - 0.55), 0.1, hang * 0.6,
+                   0.14, MOONSTONE_DARK, tex="moonstone")  # fmt: skip
+            r.part("cube", FACE + out + 0.04, top - hang * 0.25 + 0.1, z + side * (w / 2 - 0.85), 0.1, 0.12,
+                   0.75, MOONSTONE_DARK, tex="moonstone", rx=side * 0.7)  # fmt: skip
+        _lancet(r, FACE + out, top - hang * 0.6, z, 0.34, 0.8, lit=s % 3 != 0, hood=False)
+        for k in range(3):  # corbels under the ground storey's overhang
+            r.part("wedge", FACE + out - 0.2, top - 0.42, z + (k - 1) * (w - 0.8) / 2, 0.4, 0.4, 0.26,
+                   MOONSTONE, tex="moonstone", rz=math.pi)  # fmt: skip
+        # The storeys, each jettied a little further out than the one below it.
+        y = top
+        front = FACE + out
+        for f in range(floors):
+            if f:
+                front += 0.3
+                for k in range(4):  # the jetty's brackets
+                    r.part(
+                        "cube", front - 0.15, y - 0.12, z + (k - 1.5) * (w - 0.6) / 3, 0.36, 0.14, 0.1, IRON
+                    )
+            r.part("cube", (back + front) / 2, y + storey / 2, z, front - back, storey, w - 0.08, FACADE,
+                   tex="moonstone")  # fmt: skip
+            band = SLATE_DARK if f % 2 else MOONSTONE_DARK
+            r.part("cube", front + 0.02, y + 0.1, z, 0.06, 0.2, w - 0.06, band, tex="silver_slate")
+            panes = 1 if w < 2.6 or (s + f) % 3 == 0 else 2
+            for p in range(panes):
+                pz = z + (p - (panes - 1) / 2) * w * 0.38
+                _lancet(r, front, y + 0.55, pz, 0.42, 1.2, lit=(s + f + p) % 4 != 0)
+            if f == 1 and s % 3 == 0:  # an iron balcony on the first floor
+                r.part("cube", front + 0.35, y + 0.4, z, 0.7, 0.08, w * 0.6, IRON)
+                r.part("cube", front + 0.68, y + 0.85, z, 0.04, 0.04, w * 0.6, IRON)
+                for k in range(5):
+                    r.part("cube", front + 0.68, y + 0.62, z + (k - 2) * w * 0.14, 0.03, 0.45, 0.03, IRON)
+                for side in (-1, 1):
+                    r.part("wedge", front + 0.15, y + 0.22, z + side * w * 0.26, 0.3, 0.3, 0.06, IRON,
+                           rz=math.pi)  # fmt: skip
+            y += storey
+        # The gable, turned to the gorge, steep and crested at its finial.
+        pitch = 2.6 + 0.5 * (s % 3)
+        depth = front - back + 0.5
+        with r.at((back + front) / 2 + 0.25, y, z, ry=math.pi / 2):
+            r.part("wedge", 0, pitch / 2, 0, w + 0.3, pitch, depth, SLATE, tex="silver_slate")
+            r.part("wedge", 0, (pitch - 0.2) / 2, -depth / 2 - 0.01, w - 0.2, pitch - 0.2, 0.04, FACADE,
+                   tex="moonstone")  # fmt: skip
+            r.part("cube", 0, pitch + 0.05, 0, 0.2, 0.14, depth + 0.04, SLATE_DARK)  # its ridge
+            for k, f in enumerate((0.3, 0.6)):  # polychrome courses
+                for side in (-1, 1):
+                    r.part("cube", side * (1 - f) * (w / 2 + 0.15), f * pitch, 0, 0.12, 0.06, depth - 0.02,
+                           SLATE_DARK if k == 0 else SLATE_PALE, tex="silver_slate",
+                           rz=-side * math.atan2(pitch, w / 2))  # fmt: skip
+            slope = math.atan2(pitch, w / 2 + 0.15)
+            run = math.hypot(pitch, w / 2 + 0.15)
+            for side in (-1, 1):  # the bargeboards on the gorge's gable
+                with r.at(side * (w / 2 + 0.15) / 2, pitch / 2, -depth / 2 - 0.04):
+                    r.part("cube", 0, 0, 0, run + 0.1, 0.18, 0.05, SILVER_DARK, rz=-side * slope)
+            r.part("cube", 0, pitch + 0.55, -depth / 2, 0.07, 1.0, 0.07, IRON)  # the finial
+            r.part("sphere", 0, pitch + 0.2, -depth / 2, 0.18, 0.18, 0.18, IRON_LIGHT)
+            r.part("cone", 0, pitch - 0.45, -depth / 2 - 0.04, 0.16, 0.5, 0.16, SILVER_DARK, rx=math.pi)
+            # A small lit light high in the gable.
+            r.part("cyl", 0, pitch * 0.38, -depth / 2 - 0.03, 0.5, 0.04, 0.5,
+                   GLASS_LIT if s % 4 else GLASS_DARK, tex="moon_glass", glow=s % 4 != 0, rx=math.pi / 2)  # fmt: skip
+        if s % 2 == 0:  # a chimney stack behind the ridge
+            _chimney(r, back + 0.4, y + pitch * 0.3, y + pitch + 0.9, z + w * 0.22)
+    for i in range(n + 1):  # pilasters between the houses, up the ground storey
+        z = -length / 2 + w * i
+        r.part("cube", FACE + 0.62, top + 1.2, z, 0.3, 2.4, 0.24, MOONSTONE_DARK, tex="moonstone")
+        r.part("cube", FACE + 0.62, top + 2.5, z, 0.36, 0.2, 0.3, MOONSTONE, tex="moonstone")
+
+
+TOWER_STYLES = ("clock", "belfry", "lantern")
+
+
+def moon_tower(r, seed, height=18.0, style="clock"):
+    """One of the city's taller towers on the gorge's walls, standing from the wall's foot: `clock` is a
+    square tower banded in polychrome courses with angle buttresses, a silver dial on each face stopped
+    at midnight, and a steep slate cap between four pinnacles; `belfry` a square tower opening at its
+    top into a tall belfry of pointed arches with its bell hung in the dark, under a saddleback roof;
+    `lantern` an octagonal tower rising to a glazed lantern of moon-glass, a gallery of cresting round
+    it and an ogee dome with a crescent on its finial."""
+    if style == "lantern":
+        _lantern_tower(r, seed, height)
+        return
+    w = 3.0 if style == "clock" else 2.8
+    body = height - (3.4 if style == "belfry" else 0.0)
+    r.part("cube", 0, body / 2, 0, w, body, w, FACADE, tex="moonstone")
+    r.part("cube", 0, 0.7, 0, w + 0.5, 1.4, w + 0.5, MOONSTONE_DARK, tex="moonstone")  # its battered foot
+    for k in range(int(body // 2.4)):  # polychrome courses
+        y = 2.0 + k * 2.4
+        rgb = SLATE_DARK if k % 2 else MOONSTONE_DARK
+        r.part("cube", 0, y, 0, w + 0.06, 0.2, w + 0.06, rgb, tex="silver_slate" if k % 2 else "moonstone")
+    for sx in (-1, 1):  # angle buttresses, stepping in as they rise
+        for sz in (-1, 1):
+            for k, f in enumerate((0.3, 0.55, 0.75)):
+                r.part("cube", sx * (w / 2 + 0.1 - 0.06 * k), body * f / 2, sz * (w / 2 + 0.1 - 0.06 * k),
+                       0.5 - 0.1 * k, body * f, 0.5 - 0.1 * k, MOONSTONE, tex="moonstone")  # fmt: skip
+    for i in range(4):  # a lancet up each face, every few metres
+        a = i * math.pi / 2
+        with r.at(0, 0, 0, ry=-a):
+            for y in range(3, int(body) - 5, 5):
+                _lancet(r, w / 2, y, 0, 0.36, 1.3, lit=(seed + i + y) % 3 != 0)
+    if style == "clock":
+        for i in range(4):  # the dials, stopped at midnight
+            a = i * math.pi / 2
+            with r.at(0, body - 2.2, 0, ry=-a):
+                r.part("cyl", w / 2 + 0.03, 0, 0, 1.9, 0.06, 1.9, MOONSTONE_DARK, rz=math.pi / 2)
+                r.part("cyl", w / 2 + 0.06, 0, 0, 1.6, 0.04, 1.6, SILVER, rz=math.pi / 2, glow=True)
+                for h in range(12):
+                    b = h * math.pi / 6
+                    r.part(
+                        "cube", w / 2 + 0.09, math.cos(b) * 0.66, math.sin(b) * 0.66, 0.02, 0.14, 0.05, IRON
+                    )
+                r.part("cube", w / 2 + 0.11, 0.25, 0, 0.03, 0.55, 0.07, IRON)  # both hands at twelve
+                r.part("cube", w / 2 + 0.13, 0.18, 0, 0.03, 0.4, 0.1, IRON)
+        r.part("cube", 0, body + 0.15, 0, w + 0.4, 0.3, w + 0.4, MOONSTONE_DARK, tex="moonstone")  # cornice
+        cap = 4.5 + (seed % 2)
+        r.part("cone", 0, body + 0.3 + cap / 2, 0, w * 1.25, cap, w * 1.25, SLATE, tex="silver_slate")
+        r.part("cone", 0, body + 0.3 + cap * 0.3, 0, w * 0.9, 0.16, w * 0.9, SLATE_DARK)
+        for sx in (-1, 1):
+            for sz in (-1, 1):  # the pinnacles at its corners
+                r.part("cube", sx * w / 2, body + 0.9, sz * w / 2, 0.42, 1.2, 0.42, FACADE, tex="moonstone")
+                r.part("cone", sx * w / 2, body + 2.2, sz * w / 2, 0.42, 1.4, 0.42, SLATE, tex="silver_slate")
+        tip = body + 0.3 + cap
+        r.part("cyl", 0, tip + 0.35, 0, 0.08, 0.7, 0.08, SILVER)
+        _crescent(r, 0, tip + 0.9, 0, 0.3, 5, 0.1, SILVER)
+        return
+    # The belfry: four piers round open pointed arches, the bell hung in the dark between them.
+    r.part("cube", 0, body + 0.12, 0, w + 0.3, 0.24, w + 0.3, MOONSTONE_DARK, tex="moonstone")
+    r.part("cube", 0, body + 1.7, 0, w - 0.9, 3.2, w - 0.9, PASSAGE_DARK)
+    for sx in (-1, 1):
+        for sz in (-1, 1):
+            r.part("cube", sx * (w / 2 - 0.25), body + 1.7, sz * (w / 2 - 0.25), 0.5, 3.4, 0.5, FACADE,
+                   tex="moonstone")  # fmt: skip
+    for i in range(4):
+        a = i * math.pi / 2
+        with r.at(0, body, 0, ry=-a):
+            for side in (-1, 1):  # the pointed heads of the arches
+                r.part(
+                    "cube",
+                    w / 2 - 0.2,
+                    2.9,
+                    side * 0.5,
+                    0.36,
+                    0.3,
+                    1.2,
+                    FACADE,
+                    tex="moonstone",
+                    rx=side * 0.7,
+                )
+            r.part("cube", w / 2 - 0.2, 3.25, 0, 0.36, 0.3, w, FACADE, tex="moonstone")
+            for k in range(3):  # louvres across the lower half
+                r.part("cube", w / 2 - 0.3, 0.5 + k * 0.4, 0, 0.06, 0.08, w - 1.0, IRON, rz=0.5)
+    r.part("cone", 0, body + 2.1, 0, 1.0, 1.1, 1.0, SILVER_DARK)  # the bell
+    r.part("cyl", 0, body + 1.52, 0, 1.06, 0.1, 1.06, SILVER)
+    r.part("cube", 0, body + 2.8, 0, 0.1, 0.4, w - 0.8, IRON)  # its headstock
+    roof = 3.2
+    with r.at(0, body + 3.4, 0):  # the saddleback roof, its gables crested
+        r.part("cube", 0, 0.1, 0, w + 0.3, 0.2, w + 0.3, MOONSTONE_DARK, tex="moonstone")
+        r.part("wedge", 0, 0.2 + roof / 2, 0, w + 0.4, roof, w + 0.4, SLATE, tex="silver_slate")
+        _cresting(r, roof + 0.2, w, 0.4)
+        for end in (-1, 1):
+            r.part("cube", 0, roof + 0.8, end * (w / 2 + 0.1), 0.08, 1.2, 0.08, IRON)
+            _crescent(r, 0, roof + 1.5, end * (w / 2 + 0.1), 0.2, 5, 0.07, SILVER)
+
+
+def _lantern_tower(r, seed, height):
+    """`moon_tower style=lantern`: an octagonal shaft, its glazed lantern, gallery and ogee dome."""
+    radius = 1.5
+    shaft = height - 4.0
+    for i in range(8):  # the octagon's faces, each with a lancet up it
+        a = i * math.pi / 4 + math.pi / 8
+        with r.at(0, 0, 0, ry=-a):
+            r.part("cube", radius * 0.92, shaft / 2, 0, 0.3, shaft, radius * 0.8, FACADE, tex="moonstone")
+            r.part("cube", radius * 1.02, shaft * 0.45, radius * 0.41, 0.16, shaft * 0.9, 0.12, MOONSTONE_DARK,
+                   tex="moonstone")  # fmt: skip  # the angle rolls
+            if i % 2 == 0:
+                _lancet(r, radius * 1.07, shaft * 0.5, 0, 0.3, 1.2, lit=(seed + i) % 3 != 0)
+    r.part("cyl", 0, shaft / 2, 0, radius * 1.8, shaft, radius * 1.8, MOONSTONE_DARK, tex="moonstone")
+    r.part("cyl", 0, 0.8, 0, radius * 2.4, 1.6, radius * 2.4, MOONSTONE_DARK, tex="moonstone")
+    for k in range(3):
+        r.part("cyl", 0, shaft * (0.3 + 0.25 * k), 0, radius * 2.06, 0.2, radius * 2.06, SLATE_DARK,
+               tex="silver_slate")  # fmt: skip
+    r.part("cyl", 0, shaft + 0.15, 0, radius * 2.5, 0.3, radius * 2.5, MOONSTONE_DARK, tex="moonstone")
+    for i in range(16):  # the gallery's cresting
+        a = 2 * math.pi * i / 16
+        x, z = math.cos(a) * radius * 1.22, math.sin(a) * radius * 1.22
+        r.part("cube", x, shaft + 0.6, z, 0.05, 0.6, 0.05, IRON)
+        r.part("cube", x, shaft + 0.95, z, 0.09, 0.09, 0.09, IRON, ry=-a, rx=math.pi / 4)
+    lantern = 2.4
+    r.part("cyl", 0, shaft + 0.3 + lantern / 2, 0, radius * 1.3, lantern, radius * 1.3, GLASS_LIT,
+           tex="moon_glass", glow=True)  # fmt: skip
+    for i in range(8):  # its mullions
+        a = i * math.pi / 4
+        r.part("cube", math.cos(a) * radius * 0.67, shaft + 0.3 + lantern / 2, math.sin(a) * radius * 0.67,
+               0.1, lantern, 0.1, IRON)  # fmt: skip
+    dome = shaft + 0.3 + lantern
+    r.part("cyl", 0, dome + 0.1, 0, radius * 1.5, 0.2, radius * 1.5, MOONSTONE_DARK)
+    r.part("sphere", 0, dome + 0.5, 0, radius * 1.4, 1.4, radius * 1.4, SLATE, tex="silver_slate")
+    r.part("cone", 0, dome + 1.8, 0, radius * 0.6, 2.0, radius * 0.6, SLATE, tex="silver_slate")  # its ogee
+    r.part("cyl", 0, dome + 3.1, 0, 0.08, 0.6, 0.08, SILVER)
+    _crescent(r, 0, dome + 3.6, 0, 0.3, 5, 0.1, SILVER)
+
+
+def gorge_buttress(r, seed, top=9.0, drop=14.0):
+    """A great buttress built down a wall's face into the gorge, from the wall's top `drop` metres down:
+    stepping out in three stages as it falls, each with a sloped set-off, a niche with a veiled figure in
+    its top stage under a little gable, iron tie-plates, a gargoyle spout jutting from its head with a
+    long rime of frost down from its jaws, and frost lying on its set-offs."""
+    stages = 3
+    h = drop / stages
+    for k in range(stages):  # deeper and wider the further down
+        d = 0.8 + 0.45 * k
+        wd = 1.3 + 0.3 * k
+        y = top - h * (k + 0.5)
+        r.part("cube", FACE + d / 2, y, 0, d, h, wd, FACADE if k % 2 == 0 else MOONSTONE, tex="moonstone")
+        r.part("wedge", FACE + d + 0.2, top - h * k + 0.2, 0, 0.42, 0.4, wd, MOONSTONE_DARK, tex="moonstone",
+               ry=math.pi / 2, rx=0)  # fmt: skip
+        r.part("cube", FACE + d / 2 + 0.05, top - h * k - 0.15, 0, d + 0.12, 0.08, wd + 0.06, FROST)  # rime
+        for side in (-1, 1):  # tie-plates across it
+            r.part("cube", FACE + d + 0.02, y, side * wd * 0.3, 0.04, 0.5, 0.18, IRON)
+            r.part("cube", FACE + d + 0.04, y, side * wd * 0.3, 0.05, 0.1, 0.1, IRON_LIGHT)
+        r.part("cube", FACE + d + 0.02, y - h * 0.25, 0, 0.04, 0.2, wd * 0.8, SLATE_DARK, tex="silver_slate")
+    # Its head: a gabled cap over the wall's top and a niche with a veiled figure in it.
+    r.part("cube", FACE + 0.4, top + 0.6, 0, 0.8, 1.2, 1.3, FACADE, tex="moonstone")
+    r.part("wedge", FACE + 0.4, top + 1.6, 0, 0.9, 0.8, 1.4, SLATE, tex="silver_slate", ry=math.pi / 2)
+    r.part("cube", FACE + 0.4, top + 2.3, 0, 0.06, 0.7, 0.06, IRON)
+    r.part("cube", FACE + 0.81, top - h * 0.45, 0, 0.04, 1.6, 0.6, PASSAGE_DARK)  # the niche
+    r.part("cone", FACE + 0.7, top - h * 0.45 - 0.2, 0, 0.36, 1.1, 0.36, MOONSTONE)  # the figure's veil
+    r.part("sphere", FACE + 0.7, top - h * 0.45 + 0.45, 0, 0.2, 0.24, 0.2, MOONSTONE)
+    r.part("wedge", FACE + 0.85, top - h * 0.45 + 1.0, 0, 0.14, 0.4, 0.8, MOONSTONE_DARK, tex="moonstone",
+           ry=math.pi / 2)  # fmt: skip
+    with r.at(FACE + 0.8, top - 0.5, 0):  # the gargoyle spout, jaws agape
+        r.part("cube", 0.25, 0, 0, 0.5, 0.3, 0.3, MOONSTONE_DARK, tex="moonstone")
+        r.part("cube", 0.58, 0.05, 0, 0.3, 0.3, 0.32, MOONSTONE)
+        r.part("cube", 0.78, 0.12, 0, 0.24, 0.1, 0.22, MOONSTONE, rz=0.15)
+        r.part("cube", 0.76, -0.08, 0, 0.22, 0.07, 0.2, MOONSTONE_DARK, rz=-0.4)
+        for z in (-0.1, 0.1):
+            r.part("wedge", 0.6, 0.26, z, 0.06, 0.16, 0.06, MOONSTONE_DARK)  # ears
+        for k in range(4):  # the rime of frost hanging from its jaws
+            r.part("cone", 0.86, -0.3 - 0.45 * k, 0, 0.1 - 0.015 * k, 0.5, 0.1 - 0.015 * k, FROST, rx=math.pi)
+
+
+def moon_oriel(r, seed):
+    """An oriel hung on a wall's face over the drop (the wall behind at -X, facing +X), its sill at y=0:
+    a three-sided bay of moonstone with a lit lancet in each face, standing on a corbelled cone that
+    closes to a finial drop below it, and over it a little slate roof leaning on the wall, crested in
+    iron."""
+    out, half, h = 1.0, 0.9, 2.8
+    r.part("cube", out * 0.55, h / 2, 0, out * 0.9, h, half * 2 - 0.5, FACADE, tex="moonstone")  # the front
+    for side in (-1, 1):  # its canted sides
+        r.part("cube", out * 0.45, h / 2, side * (half - 0.25), 0.2, h, 0.8, FACADE, tex="moonstone",
+               ry=side * 0.6)  # fmt: skip
+        r.part("cube", out * 0.45 + 0.1, h * 0.5, side * (half - 0.15), 0.24, 1.2, 0.2,
+               GLASS_LIT if (seed + side) % 3 else GLASS_DARK, tex="moon_glass", glow=(seed + side) % 3 != 0,
+               ry=side * 0.6)  # fmt: skip
+    _lancet(r, out, 0.7, 0, 0.46, 1.4, lit=seed % 4 != 0)
+    for y in (0.0, h):  # the sill course and the cornice
+        r.part("cube", out * 0.5, y, 0, out + 0.16, 0.16, half * 2 + 0.1, MOONSTONE_DARK, tex="moonstone")
+    for k in range(5):  # the corbelling under it, closing to a point
+        f = 1 - k / 5
+        r.part("cube", out * 0.5 * f, -0.2 - 0.3 * k, 0, out * f, 0.3, (half * 2 - 0.2) * f,
+               MOONSTONE if k % 2 else MOONSTONE_DARK, tex="moonstone")  # fmt: skip
+    r.part("cone", 0.12, -1.9, 0, 0.24, 0.6, 0.24, SILVER_DARK, rx=math.pi)  # its finial drop
+    r.part("wedge", out * 0.5, h + 0.55, 0, out + 0.2, 0.9, half * 2 + 0.3, SLATE, tex="silver_slate",
+           rz=-0.25)  # fmt: skip
+    _cresting(r, h + 0.95, half * 2, 0.3)
+    r.part("cube", out * 0.6, h + 1.5, 0, 0.06, 0.6, 0.06, IRON)
+
+
+def distant_city(r, seed, height=34.0, width=56.0):
+    """The rest of Vesperholm, past the end of the gorge where no one goes: beyond its tile along +X, a
+    far city wall with its towers, roofs crowding up a hill behind it in tiers, spires among them, a
+    few windows lit, and on the hill's crown one great spire, all half lost in the moonlit haze."""
+    rng = random.Random(seed)
+    far = (98, 106, 130)
+    roof = (74, 80, 104)
+    with r.at(T / 2, 0, 0):
+        r.part("cube", 4.0, 3.5, 0, 1.6, 7.0, width, far, tex="moonstone")  # the far wall
+        for i in range(5):  # its towers
+            z = -width / 2 + width * (i + 0.5) / 5
+            r.part("cyl", 4.0, 5.0, z, 3.0, 10.0, 3.0, far, tex="moonstone")
+            r.part("cone", 4.0, 11.5, z, 3.4, 3.0, 3.4, roof, tex="silver_slate")
+        for tier in range(4):  # roofs crowding up the hill behind it
+            x = 10 + tier * 9
+            base = tier * height * 0.12
+            for i in range(7 - tier):
+                z = rng.uniform(-width / 2, width / 2) * (1 - tier * 0.15)
+                w, d = rng.uniform(4, 8), rng.uniform(4, 7)
+                tall = rng.uniform(5, 9) + base
+                r.part("cube", x, tall / 2, z, d, tall, w, far, tex="moonstone")
+                r.part("wedge", x, tall + 1.4, z, d + 0.4, 2.8, w + 0.4, roof, tex="silver_slate",
+                       ry=math.pi / 2 * (i % 2))  # fmt: skip
+                if rng.random() < 0.6:  # a lit window or two toward the gorge
+                    for k in range(1 + (i % 2)):
+                        r.part("cube", x - d / 2 - 0.05, tall * (0.45 + 0.2 * k), z + (k - 0.5) * w * 0.3,
+                               0.1, 0.9, 0.5, GLASS_LIT if (i + k) % 3 else FLAME_GLASS, glow=True)  # fmt: skip
+                if rng.random() < 0.35:  # a spire
+                    sh = tall + rng.uniform(6, 12)
+                    sz = z + rng.uniform(-w, w) * 0.3
+                    r.part("cyl", x, sh / 2, sz, 1.6, sh, 1.6, far, tex="moonstone")
+                    r.part("cone", x, sh + 2.5, sz, 2.0, 5.0, 2.0, roof, tex="silver_slate")
+        # The great spire on the hill's crown.
+        x = 10 + 4 * 9
+        r.part("cube", x, height * 0.3, 0, 7, height * 0.6, 7, far, tex="moonstone")
+        r.part("cyl", x, height * 0.75, 0, 4.4, height * 0.3, 4.4, far, tex="moonstone")
+        for i in range(6):
+            a = i * math.pi / 3
+            r.part("cube", x + math.cos(a) * 2.2, height * 0.8, math.sin(a) * 2.2, 0.2, 2.2, 0.6, GLASS_LIT,
+                   ry=-a, glow=True)  # fmt: skip
+        r.part("cone", x, height + 6, 0, 4.6, 12, 4.6, roof, tex="silver_slate")
+        r.part("cyl", x, height + 12.6, 0, 0.2, 1.2, 0.2, SILVER)
+        _crescent(r, x, height + 13.6, 0, 0.8, 7, 0.25, SILVER)
 
 
 # --- the Cathedral of the Long Night ---------------------------------------------------------------

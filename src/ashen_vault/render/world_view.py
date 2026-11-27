@@ -859,7 +859,11 @@ def _draw_chains(view, rig, p, t):
 
 
 # The tones a great crack takes in a stone other than the cavern's (`sunken_models.wall_crack`).
-CRACK_TONES = {"moonstone": moon_models.MOON_CRACK}
+CRACK_TONES = {
+    "moonstone": moon_models.MOON_CRACK,
+    "black_brick": fortress_props.BRICK_CRACK,
+    "cliff_rock": fortress_props.ROCK_CRACK,
+}
 
 
 def _draw_exit(view, rig, p, t):
@@ -961,6 +965,38 @@ def _draw_anatomy_dome(view, rig, p, t):  # on the theatre's -X/-Z floor tile, `
             walled=p.props.get("walled", ""),
             seed=p.tx * 7 + p.tz * 3,
         )
+
+
+def _wall_top(view, p):
+    """The top of the wall tile a prop stands on (a rim of the gorge)."""
+    return view.world.map[p.tx, p.tz].top or 0.0
+
+
+def _wall_foot(view, p):
+    """The ground a wall's face falls to, out along the prop's facing (the moat under the great wall)."""
+    dx, dz = round(math.cos(p.yaw)), round(math.sin(p.yaw))
+    return view.world.map[p.tx + dx, p.tz + dz].floor
+
+
+def _draw_wall_face(model):
+    """A drawer for a piece built down a great wall's face, from its top to the ground it falls to."""
+    return lambda view, rig, p, t: model(rig, p.tx * 7 + p.tz * 3, _wall_top(view, p), _wall_foot(view, p))
+
+
+def _draw_moon_townhouse(view, rig, p, t):  # a terrace along its wall top, hung out over the drop
+    moon_models.moon_townhouse(
+        rig,
+        p.tx * 7 + p.tz * 3,
+        int(p.props.get("span", "3")),
+        _wall_top(view, p),
+        float(p.props.get("drop", "8")),
+        int(p.props.get("storeys", "2")),
+    )
+
+
+def _draw_moon_oriel(view, rig, p, t):  # hung on the wall behind it, `rise=` up from its tile's floor
+    with rig.at(-TileMap.TILE / 2, float(p.props.get("rise", "0")), 0):
+        moon_models.moon_oriel(rig, p.tx * 7 + p.tz * 3)
 
 
 def _draw_moon_roof(view, rig, p, t):
@@ -1113,6 +1149,14 @@ PROP_DRAWERS = {
     ),
     "gargoyle_statue": _draw_gargoyle_statue,
     "great_window": _draw_great_window,
+    "wall_buttress": _draw_wall_face(fortress_props.wall_buttress),
+    "slag_runnel": _draw_wall_face(fortress_props.slag_runnel),
+    "gibbet_cages": lambda view, rig, p, t: fortress_props.gibbet_cages(
+        rig, p.tx * 7 + p.tz * 3, _wall_top(view, p)
+    ),
+    "chimney_cluster": lambda view, rig, p, t: fortress_props.chimney_cluster(
+        rig, t + p.tx, p.tx * 7 + p.tz * 3
+    ),
     "barred_window": lambda view, rig, p, t: fortress_props.barred_window(rig, t, p.tx * 7 + p.tz * 3),
     "forge_hearth": lambda view, rig, p, t: fortress_props.forge_hearth(rig, t, p.tx * 7 + p.tz * 3),
     "quench_trough": lambda view, rig, p, t: fortress_props.quench_trough(rig, t + p.tx),
@@ -1195,6 +1239,17 @@ PROP_DRAWERS = {
         rig, p.tx * 7 + p.tz * 3, float(p.props.get("height", "14"))
     ),
     "moon_roof": _draw_moon_roof,
+    "moon_townhouse": _draw_moon_townhouse,
+    "moon_tower": lambda view, rig, p, t: moon_models.moon_tower(
+        rig, p.tx * 7 + p.tz * 3, float(p.props.get("height", "18")), p.props.get("style", "clock")
+    ),
+    "gorge_buttress": lambda view, rig, p, t: moon_models.gorge_buttress(
+        rig, p.tx * 7 + p.tz * 3, _wall_top(view, p), float(p.props.get("drop", "14"))
+    ),
+    "moon_oriel": _draw_moon_oriel,
+    "distant_city": lambda view, rig, p, t: moon_models.distant_city(
+        rig, p.tx * 7 + p.tz * 3, float(p.props.get("height", "34")), float(p.props.get("width", "56"))
+    ),
     "moon_portal": _draw_moon_portal,
     "sunken_tower": lambda view, rig, p, t: sunken_models.sunken_tower(
         rig, p.tx * 7 + p.tz * 3, float(p.props.get("height", "18"))

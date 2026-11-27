@@ -19,12 +19,16 @@ MAX_SPAN = 46.0  # how far down from its top a face is cracked at most (a face o
 # A map may crack its walls less far down (`[meta] crack_span = <m>`): Vesperholm's, whose faces drop
 # into the gorge far below where anyone looks, crack only near their tops, where they are seen.
 MIN_RUN = 3  # tiles of straight face, unbroken, that a run must have to carry a crack
+# A map may let shorter runs carry one (`[meta] crack_run = <tiles>`): the Cinderhold's great wall,
+# whose great windows leave bays only two tiles wide between them.
 EVERY = 10.0  # metres of run per crack, about
 MIN_GAP = 6.0  # metres between the middles of two cracks on one run, at the least
 END_CLEAR = 2.0  # metres a crack's middle keeps from its run's ends
 MAX_REACH = 2.4  # metres a crack may wander to either side of its middle
 MAX_CRACKS = 90  # on the whole map: the tallest faces keep theirs
 SEEP = 0.2  # the share of cracks the mortar-light seeps faintly through
+# A map may set its own share (`[meta] crack_seep = <0..1>`): the fires behind the Cinderhold's walls
+# show through half its cracks.
 FACES = ((1, 0), (-1, 0), (0, 1), (0, -1))  # from the wall toward the open ground
 
 
@@ -100,9 +104,11 @@ def cracks(map_, clear=frozenset()):
     """Every crack down the map's dressed walls. `clear` holds open tiles whose face must stay bare (a
     door or gate stands there, a lift rides there, or something already hangs on the wall)."""
     faces = _faces(map_, clear)
+    min_run = max(2, int(map_.meta.get("crack_run", MIN_RUN)))  # one tile can't keep END_CLEAR
+    seep = float(map_.meta.get("crack_seep", SEEP))
     out = []
     for run in _runs(faces):
-        if len(run) < MIN_RUN:
+        if len(run) < min_run:
             continue
         tx0, tz0, dx, dz = run[0]
         ax, az = abs(dz), abs(dx)
@@ -134,7 +140,7 @@ def cracks(map_, clear=frozenset()):
                     height=round(span, 2),
                     reach=round(reach, 2),
                     seed=rng.randrange(1 << 16),
-                    seep=rng.random() < SEEP,
+                    seep=rng.random() < seep,
                 )
             )
     if len(out) > MAX_CRACKS:

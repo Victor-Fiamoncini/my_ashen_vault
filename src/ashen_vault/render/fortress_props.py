@@ -13,6 +13,7 @@ from ashen_vault.render.forge_models import (
     DARK,
     MOLTEN,
     RIVET,
+    SMOKE,
     STATUE,
     STATUE_DARK,
     STONE,
@@ -529,3 +530,147 @@ def lava_spout(r, t, seed):
         r.part("cube", 0, y, -0.1, 0.05, 0.12, 0.05, MOLTEN if u > 0.2 else WHITE_HOT, glow=True)
     r.part("cyl", 0, 0.02, -0.1, 0.4, 0.03, 0.4, _dim_rgb(MOLTEN, 0.8), glow=True)  # the puddle it feeds
     r.part("cyl", 0, 0.01, -0.1, 0.55, 0.02, 0.55, CRUST)
+
+
+# --- the great wall's face ---------------------------------------------------------------------------
+# The front of the great wall over the moat, seen from the long bridge: buttresses battered down into
+# the lava, drains spilling slag down the face and gibbets hung from its top. Those on the wall stand
+# on its tile, local +X out of its face toward the moat, the face itself at x = FACE; `top` is the
+# wall's top and `foot` the ground (the lava) it falls to. The burnt ridge on the horizon beyond the
+# keep is the `ember` sky's own (`world/sky.py`, `Ridge`), so no fog hides it.
+
+FACE = 1.0
+BONE = (206, 196, 172)
+# A great crack down the fortress's black stone or its cliffs: soot-black in its depth, scorched stone
+# either side, and in many the fires behind the wall glowing through (`sunken_models.wall_crack`).
+BRICK_CRACK = ((12, 8, 8), (40, 32, 32), (255, 110, 30))
+ROCK_CRACK = ((14, 10, 8), (58, 44, 40), (240, 96, 26))
+
+
+def wall_buttress(r, seed, top=16.0, foot=-8.0):
+    """A great buttress built down the wall's face from its top into the lava: three battered stages,
+    each stepping out further than the one above under a sloped set-off, iron tie-plates riveted across
+    them, a slit burning in the middle stage, the lowest stage scorched where the lava laps it, and on
+    its head a fire basket over the moat."""
+    h = (top - foot) / 3
+    for k in range(3):
+        d = 0.9 + 0.5 * k
+        wd = 1.4 + 0.3 * k
+        y = top - h * (k + 0.5)
+        r.part("cube", FACE + d / 2, y, 0, d, h, wd, STONE if k % 2 else STONE_LIGHT, tex="black_brick")
+        r.part("wedge", FACE + d + 0.25, top - h * k, 0, 0.5, 0.5, wd, STONE_LIGHT, ry=math.pi / 2)
+        for side in (-1, 1):  # tie-plates and their rivets
+            r.part("cube", FACE + d + 0.02, y + 0.6, side * wd * 0.3, 0.04, 0.7, 0.2, BLACK_IRON)
+            r.part("cube", FACE + d + 0.05, y + 0.8, side * wd * 0.3, 0.05, 0.1, 0.1, RIVET)
+            r.part("cube", FACE + d + 0.05, y + 0.4, side * wd * 0.3, 0.05, 0.1, 0.1, RIVET)
+        if k == 1:
+            _slit(r, FACE + d + 0.01, y, 0, "x", 1.4)
+    r.part("cube", FACE + 1.15, foot + 1.0, 0, 2.5, 2.0, 2.4, SOOT, tex="black_brick")  # scorched foot
+    r.part("cube", FACE + 1.2, foot + 0.25, 0, 2.7, 0.3, 2.6, WARM, glow=True)  # the lava's glow on it
+    with r.at(FACE + 0.45, top, 0):  # the fire basket on its head
+        r.part("cube", 0, 0.2, 0, 0.9, 0.4, 1.4, STONE_LIGHT)
+        r.part("cyl", 0, 0.6, 0, 0.12, 0.4, 0.12, BLACK_IRON)
+        r.part("frustum", 0, 0.95, 0, 0.6, 0.35, 0.6, BLACK_IRON)
+        r.part("cyl", 0, 1.08, 0, 0.48, 0.04, 0.48, MOLTEN, glow=True)
+        r.part("cone", 0, 1.4, 0, 0.4, 0.6, 0.4, MOLTEN, glow=True)
+        r.part("cone", 0, 1.32, 0, 0.2, 0.42, 0.2, WHITE_HOT, glow=True)
+
+
+def slag_runnel(r, seed, top=16.0, foot=-8.0):
+    """A drain high in the wall's face spilling molten slag down it into the moat: an arched outlet in a
+    dressed surround, a white-hot tongue in its mouth, the slag running down the stone in a wandering
+    ribbon (white-hot under the mouth, cooling to orange and crusting black at its edges as it falls),
+    a soot stain spread behind it, and a fan of cooled slag where it meets the lava."""
+    rng = random.Random(seed)
+    mouth = top - 2.6
+    r.part("cube", FACE + 0.02, (mouth + foot) / 2, 0, 0.03, mouth - foot, 2.2, SOOT)  # the stain
+    r.part("cube", FACE + 0.15, mouth, 0, 0.3, 1.5, 1.5, STONE_LIGHT, tex="black_brick")  # its surround
+    r.part("wedge", FACE + 0.15, mouth + 0.95, 0, 0.3, 0.4, 1.5, STONE_LIGHT, ry=math.pi / 2)
+    r.part("cube", FACE + 0.31, mouth - 0.1, 0, 0.03, 0.8, 0.8, DARK)  # the outlet
+    for z in (-0.25, 0.0, 0.25):  # its grate
+        r.part("cube", FACE + 0.34, mouth - 0.1, z, 0.04, 0.8, 0.06, BLACK_IRON)
+    r.part("cube", FACE + 0.45, mouth - 0.45, 0, 0.4, 0.1, 0.6, WHITE_HOT, glow=True)  # the tongue
+    y, z = mouth - 0.5, 0.0
+    steps = max(int((mouth - 0.5 - foot) / 1.6), 2)
+    seg = (mouth - 0.5 - foot) / steps
+    for i in range(steps):
+        k = i / steps
+        dz = rng.uniform(-0.18, 0.18)
+        w = 0.65 + 0.35 * k
+        hot = WHITE_HOT if k < 0.2 else MOLTEN if k < 0.7 else WARM
+        mid = y - seg / 2
+        r.part("cube", FACE + 0.05, mid, z + dz / 2, 0.05, seg + 0.1, w, hot, glow=True)
+        for side in (-1, 1):  # the crust at its edges
+            r.part("cube", FACE + 0.06, mid, z + dz / 2 + side * (w / 2 + 0.06), 0.07, seg + 0.1, 0.14, CRUST)
+        if i % 3 == 1:  # a drip cooled where it ran off the edge
+            r.part("cone", FACE + 0.08, mid - 0.2, z + rng.choice((-1, 1)) * (w / 2 + 0.15), 0.12, 0.4, 0.12,
+                   COOL_SLAG, rx=math.pi)  # fmt: skip
+        y -= seg
+        z += dz
+    r.part("cyl", FACE + 0.9, foot + 0.15, z, 2.2, 0.3, 2.6, COOL_SLAG)  # the fan at its foot
+    r.part("cyl", FACE + 0.6, foot + 0.32, z, 1.0, 0.06, 1.2, MOLTEN, glow=True)
+    for i in range(3):
+        r.part("cube", FACE + 0.7 + 0.5 * i, foot + 0.35, z + rng.uniform(-0.8, 0.8), 0.4, 0.2, 0.3, SLAG_LIGHT,
+               ry=rng.uniform(0, math.pi))  # fmt: skip
+
+
+def _cage(r, drop, bones, seed):
+    """A gibbet cage hung `drop` metres below its chain's hook at the origin, its door rusted shut, and
+    in it what is left of whoever was hung there (`bones`) or rags."""
+    for i in range(int(drop / 0.35)):  # the chain, link by link
+        r.part("cube", 0, -0.18 - i * 0.35, 0, 0.06, 0.3, 0.12 if i % 2 else 0.04, BLACK_IRON)
+    with r.at(0, -drop, 0, ry=seed * 0.7):
+        r.part("cone", 0, -0.15, 0, 0.9, 0.3, 0.9, BLACK_IRON)  # its dome
+        r.part("cyl", 0, -1.8, 0, 0.9, 0.06, 0.9, BLACK_IRON)  # the floor
+        r.part("cyl", 0, -1.0, 0, 0.94, 0.05, 0.94, RUST)  # a hoop
+        for k in range(8):
+            a = k * math.pi / 4
+            r.part("cube", math.cos(a) * 0.44, -1.0, math.sin(a) * 0.44, 0.04, 1.6, 0.04, BLACK_IRON)
+        if bones:
+            r.part("sphere", 0.1, -1.55, 0.1, 0.22, 0.24, 0.22, BONE)  # a skull fallen to the floor
+            for k in range(4):
+                r.part("cube", -0.05, -1.2 - k * 0.1, -0.05, 0.36 - 0.04 * k, 0.03, 0.06, BONE, ry=0.4)
+            r.part("cube", 0.15, -1.6, -0.2, 0.05, 0.05, 0.5, BONE, ry=1.1)  # a long bone
+            r.part("cube", -0.1, -1.0, 0.36, 0.05, 0.5, 0.04, BONE, rz=0.3)  # an arm through the bars
+        else:
+            r.part("cube", 0, -1.3, 0, 0.5, 0.8, 0.4, (64, 54, 46))  # rags in a heap
+
+
+def gibbet_cages(r, seed, top=16.0):
+    """Gibbets hung over the moat from the wall's top: iron davits jutting from the parapet on braces,
+    each with a cage hung on its chain at its own depth, the dead left in them."""
+    for k, z in enumerate((-0.6, 0.65)):
+        drop = 2.5 + ((seed + k * 3) % 4) * 0.9
+        reach = 1.6 + 0.3 * k
+        with r.at(0, top, z):
+            r.part("cube", FACE + 0.1, -0.4, 0, 0.5, 0.5, 0.5, STONE_LIGHT, tex="black_brick")  # its block
+            r.part("cube", FACE + reach / 2, -0.3, 0, reach, 0.14, 0.14, BLACK_IRON)  # the davit
+            r.part(
+                "cube", FACE + reach * 0.4, -0.85, 0, reach * 0.9, 0.1, 0.1, BLACK_IRON, rz=0.62
+            )  # its brace
+            r.part("cube", FACE + reach - 0.05, -0.38, 0, 0.12, 0.12, 0.16, RIVET)  # the hook's eye
+            with r.at(FACE + reach - 0.05, -0.45, 0):
+                _cage(r, drop, bones=(seed + k) % 2 == 0, seed=seed + k)
+
+
+def chimney_cluster(r, t, seed):
+    """Three flues of a smelting house on one plinth, rising from the wall tops behind the front: each a
+    different height, banded in iron, glowing at its mouth, smoke rolling up out of each and embers
+    blowing off them."""
+    r.part("cube", 0, 1.2, 0, 5.4, 2.4, 3.4, STONE, tex="black_brick")
+    r.part("cube", 0, 2.5, 0, 5.8, 0.3, 3.8, STONE_LIGHT)
+    for i, (x, z, h, d) in enumerate(((-1.6, -0.3, 9.0, 1.4), (0.2, 0.4, 13.0, 1.8), (1.8, -0.2, 7.0, 1.2))):
+        r.part("cyl", x, 2.6 + h / 2, z, d, h, d, (66, 48, 42))
+        for k in range(1, int(h / 3) + 1):
+            r.part("cyl", x, 2.6 + k * 3, z, d + 0.2, 0.22, d + 0.2, BLACK_IRON)
+        top = 2.6 + h
+        r.part("cyl", x, top + 0.1, z, d + 0.3, 0.3, d + 0.3, BLACK_IRON)
+        r.part("cyl", x, top + 0.2, z, d * 0.7, 0.04, d * 0.7, MOLTEN, glow=True)
+        for j in range(3):  # its smoke, swelling and thinning as it drifts off
+            u = (t * 0.12 + j / 3 + i * 0.21) % 1.0
+            s = (0.4 + u * 1.2) * (1.0 - u * 0.5)
+            r.part("cube", x + u * 1.8 + math.sin(t * 0.6 + j + i) * 0.5, top + 0.7 + u * 5, z, s, s * 0.7, s,
+                   SMOKE, ry=j + u)  # fmt: skip
+        u = (t * 0.45 + i / 3) % 1.0
+        r.part("cube", x + math.sin(i * 2.1 + t) * 0.4 + u * 0.6, top + 0.4 + 3 * u, z, 0.1, 0.1, 0.1, EMBER,
+               glow=True)  # fmt: skip

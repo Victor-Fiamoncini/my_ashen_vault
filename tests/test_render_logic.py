@@ -2518,6 +2518,55 @@ def test_vesperholms_dressing_draws_and_stands_still():
     assert warm[0] > warm[1] > warm[2]  # the lamps burn orange under the cold moon
 
 
+def test_the_gorge_and_the_great_walls_new_dressing_is_built_in_detail():
+    """Vesperholm's gorge walls (houses hung over the drop, towers of three shapes, buttresses, oriels,
+    the city beyond) and the Cinderhold's great wall (buttresses, slag runnels, gibbets, the smelting
+    flues) are each built of many parts, lit where they should be, and drawn out to the fog."""
+    from ashen_vault.render import bounds, fortress_props, moon_models
+    from ashen_vault.world.world import BLOCKING_PROPS, LANDMARKS, STATIC_PROPS, WALL_PROPS
+
+    built = {
+        "moon_townhouse": lambda r: moon_models.moon_townhouse(r, 4, 3, 9.0, 8.0, 2),
+        "gorge_buttress": lambda r: moon_models.gorge_buttress(r, 4, 9.0, 16.0),
+        "moon_oriel": lambda r: moon_models.moon_oriel(r, 4),
+        "distant_city": lambda r: moon_models.distant_city(r, 4),
+        "wall_buttress": lambda r: fortress_props.wall_buttress(r, 4, 16.0, -8.0),
+        "slag_runnel": lambda r: fortress_props.slag_runnel(r, 4, 16.0, -8.0),
+        "gibbet_cages": lambda r: fortress_props.gibbet_cages(r, 4, 16.0),
+        "chimney_cluster": lambda r: fortress_props.chimney_cluster(r, 0.3, 4),
+        **{
+            f"moon_tower {style}": lambda r, s=style: moon_models.moon_tower(r, 4, 20.0, s)
+            for style in moon_models.TOWER_STYLES
+        },
+    }
+    for name, fn in built.items():
+        gpu = _GlowGpu()
+        fn(rig.Rig(gpu))
+        assert len(gpu.parts) >= 20, name
+        kind = name.split()[0]
+        if kind not in ("gorge_buttress", "gibbet_cages"):  # frost and iron: nothing in them burns
+            assert gpu.glows, name  # a lit window, a burning slit, molten slag, the coals
+        assert kind in LANDMARKS and kind not in BLOCKING_PROPS, kind
+        assert (kind in STATIC_PROPS) == (kind != "chimney_cluster"), kind  # only the smoke moves
+    looks = set()
+    for style in moon_models.TOWER_STYLES:
+        gpu = _GlowGpu()
+        moon_models.moon_tower(rig.Rig(gpu), 4, 20.0, style)
+        looks.add(frozenset(gpu.looks))
+    assert len(looks) == len(moon_models.TOWER_STYLES)  # no two tower shapes alike
+    assert "moon_oriel" in WALL_PROPS
+    # A house's back keeps to its wall's tile; its front and undercroft hang out over the drop.
+    (x0, y0, _), (x1, _, _) = bounds.measure(lambda r: moon_models.moon_townhouse(r, 4, 3, 9.0, 8.0, 2))
+    assert x0 >= -1.05 and x1 > moon_models.FACE + 0.5 and y0 < 9.0 - 4
+    # The far city stands wholly beyond the wall it is set on.
+    (x0, _, _), _ = bounds.measure(lambda r: moon_models.distant_city(r, 4))
+    assert x0 > moon_models.FACE
+    # The great wall's dressing runs from its top down into the lava.
+    for fn in (fortress_props.wall_buttress, fortress_props.slag_runnel):
+        (_, y0, _), (_, y1, _) = bounds.measure(lambda r, f=fn: f(r, 4, 16.0, -8.0))
+        assert y0 <= -7.5 and y1 >= 13
+
+
 def test_vesperholms_grand_stair_is_its_own_moonstone_flight_with_lamps_down_it():
     """The stair from the overlook into the Gate Court is Vesperholm's own, not Harrowmere's: its
     treads climb from each tile's floor to the floor of the tile above as `grand_stair`'s do, never
