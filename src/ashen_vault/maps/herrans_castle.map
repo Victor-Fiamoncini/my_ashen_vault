@@ -92,7 +92,7 @@ e = wall tex=castle_stone top=11.2 cap=castle_stone
 %%%%%%%%%%%%%%%%%%%%%%%%%YooooooooooÔe##
 %%%%%%%ËЭËЮËЭËb%%%yФyЮyK%ooooooooжoooe##
 %%%%ικλbbbbbbbK%%%ЭyByyy%Ыoooooooooooe##
-%%%%Ò%%bbbbbbbb%%%yyyyyФ%Бooooooooooжe##
+%%%%Ò%%bbbbbbbщ%%%yyyyyФ%Бooooooooooжe##
 %%%%η%%ЮbbиbbbbνξοyyyyyyZooooHooooжooe##
 %%%%л%%bIbbbbbЮ%%%yJyyyз%Бoooooooooooe##
 %%%%ε%%ЭbbbbbKb%%%ЭyиЯÍy%ooooooooooooe##
@@ -102,14 +102,14 @@ e = wall tex=castle_stone top=11.2 cap=castle_stone
 %%%%α%%%%%E%%%%%%%%%%%%%eeeeeeeeeeeeee##
 ####Q###################################
 #KПsssПsK#####hhПhЧhhЧhПhh##############
-#ssssssss#####hKhhhhhhhhKh#uuФuÊ########
-#ssUssssЩ#####hhPhhhhhhPhБ#Юuuuu########
+#ssssssss#####hKhhhhhhhhKщ#uuФuÊ########
+#ssUssssЩ#####шhPhhhhhhPhБ#Юuuuu########
 #Щsssssss#####ЩhhhhGhhhhhЩ#uuuuu########
 #sssssssБ#####БhhhhhhhhhhhuuuKuЪ####Î###
 #БsssssssOv321hhPhhNhhhPhh#uuuuu########
 #sssssssБ#####БhhhhhhhhhhБ#ЭuuЯu########
 #Щsssssss#####ЩhhhhhhGhhhЩ#uuФuб########
-#ssVssssЩ#####hhPhhhhhhPhh##############
+#ssVssssЩ#####шhPhhhhhhPhщ##############
 #ssssssss#####hKhhhhhhhhKh##############
 #KsПssПsK#####hhПhhhhhhПhh##############
 ########Г####Г#####aa#####Г####Г########
@@ -119,7 +119,7 @@ e = wall tex=castle_stone top=11.2 cap=castle_stone
 ######wwwwwwwwwwwwwwwwwwwwwGwдwwww######
 ######wwwwwwGwwwwwwwwwwwwwwwwwwwww######
 ##Å###гwwwwwwwwwwwwwwwwwwwwwwwwwwг###Æ##
-######wwwwwwwwwwwwwwwwwwwwwwwwwwww######
+######шwwwwwwwwwwwwwwwwwwwwwwwwwwщ######
 ######wwwwwwwwFwwwwwwwwwwFwwwwwwww######
 #####ЖwwwwдwwwwwwwwwwwwwwwwwwwwwwwЗ#####
 ######wwwwwжwwwwwwwwwwwwwwwwwwwwww######
@@ -219,13 +219,13 @@ Z = door boss=herran_dead on=z
 H = herran yaw=180
 Y = anatomy_dome span=12,10 walled=w spring=4.8 rise=6 on=o
 Ô = telescope yaw=-45 on=o
-// Finds: Hearth Ash in the ward, Mender's Kits in the chapel, a draught and tonics on the towers'
-// decks and in the library.
-É = chest item=hearth_ash count=2 gold=90 model=coffer
-Ê = chest item=menders_kit count=2 gold=140 model=banded
-Ç = chest item=ember_draught count=2 gold=120 model=banded
-È = chest item=red_tonic count=3 gold=120 model=worn
-Ì = chest item=red_tonic count=3 gold=300 model=banded
+// Finds, in the household's own chests (`model=anatomist`): Hearth Ash in the ward, Mender's Kits in
+// the chapel, a draught and tonics on the towers' decks and in the library.
+É = chest item=hearth_ash count=2 gold=90 model=anatomist
+Ê = chest item=menders_kit count=2 gold=140 model=anatomist
+Ç = chest item=ember_draught count=2 gold=120 model=anatomist
+È = chest item=red_tonic count=3 gold=120 model=anatomist
+Ì = chest item=red_tonic count=3 gold=300 model=anatomist
 // Two pages of Herran's journal.
 I = hint text="The sentinels keep the stair, and the stair keeps me.|Below, in the rock, I keep what I have made."
 J = hint text="Mother has a hundred hands to hold us. I have eight.|It will be enough. It must be enough."
@@ -278,3 +278,8 @@ M = hollow_peak height=140 width=120 yaw=-90 on=%
 // rubble from the dome's breach in the theatre's north-east quarter (and on the ledge, and in the ward).
 д = broken_statue
 ж = breach_rubble
+// High-backed stone settles against the walls of the Great Hall, the library and the ward, each carved
+// with the open hand: one with its velvet cushion still on it, one with a candle burnt down beside a
+// book, one broken at the corner (by tile).
+ш = castle_bench yaw=0
+щ = castle_bench yaw=180

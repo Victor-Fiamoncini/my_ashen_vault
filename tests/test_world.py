@@ -350,7 +350,7 @@ def test_harrowmere_wall_is_towered_and_its_houses_turreted():
     assert len(turrets) >= 5 and all(m[s.tx, s.tz].thin for s in turrets)
     assert all(s.props.get("roof_tex") == "clay_tile" for s in turrets)
     roofs = _spec(m, "roof")
-    assert [s.props["wall"] for s in roofs].count("rough_stone") == 1  # the cathedral's
+    assert {s.props["wall"] for s in roofs} == {"soot_ashlar", "timber"}  # the town's one stone, or timbering
     assert all(s.props["tex"] == "clay_tile" for s in roofs)  # one dark red over the whole town
     signs = {s.props["emblem"]: s for s in _spec(m, "shop_sign")}
     for keeper, emblem in (

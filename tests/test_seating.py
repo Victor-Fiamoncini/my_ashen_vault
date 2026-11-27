@@ -67,4 +67,7 @@ def test_harrowmere_windows_take_the_frame_of_the_wall_they_are_set_in():
     tx, tz = next((tx, tz) for tx, tz, t in m.each_tile() if t.walkable and not m[tx - 1, tz].solid)
     assert m.wall_behind(tx, tz, 0.0) is None
     walls = {m.wall_behind(p.tx, p.tz, p.yaw).wall_tex for p in world.props if p.kind == "shutters"}
-    assert {"ashlar", "timber"} <= walls  # every window is backed by a wall, both kinds of house have them
+    assert {
+        "soot_ashlar",
+        "timber",
+    } <= walls  # every window is backed by a wall, both kinds of house have them

@@ -161,7 +161,10 @@ How `.map` files work and what can stand on a tile.
   the causeway); `brazier model=castle` (its fire cupped in an iron hand) burns along the causeway,
   before the barbican, on its towers' decks and in the ward; `surgical_trolley`s stand in the chapel and
   the study, `broken_statue`s in the ward and on the Portal Ledge, and `breach_rubble` (low, never
-  blocking) under the dome's breach in the theatre's +X/-Z quarter. `#` and `%` are `dress=cracks`, so
+  blocking) under the dome's breach in the theatre's +X/-Z quarter. `castle_bench`es (high-backed stone
+  settles carved with the open hand, facing out of their wall by `yaw=`: cushioned, a candle burnt down
+  on one, or broken at the corner, by tile) line the Great Hall, the library and the ward, and every
+  chest in the castle is the household's `chest model=anatomist`. `#` and `%` are `dress=cracks`, so
   every face of them open to the sky cracks in `castle_props.CASTLE_CRACK`'s tones. A warm `light` burns in
   the library and the study. Walled in `castle_stone`, capped in `castle_slate`, paved in `castle_flags`, the mountain
   `mountain_rock`; `tests/test_herrans_castle_world.py`), `herran_laboratory` (Herran's Laboratory,
@@ -294,7 +297,7 @@ How `.map` files work and what can stand on a tile.
   on without a pool (over the chasm), otherwise it lands in a churned pool with spray and mist. Its
   sheet runs along local X: `yaw=90` turns it to run along z.
   A wall tile may set `dress=rampart` (Harrowmere's great walls): carved bays along its open faces
-  (`world/ramparts.py`).
+  (`world/ramparts.py`), in the wall's own stone on a `soot_ashlar` wall and in rough stone on any other.
   A wall tile may set `dress=cracks` (Old Harrowmere's cavern walls and the old city's tall brick,
   Vesperholm's walls of Lyra's Chapel and the choir's back wall): great
   branching cracks down its tall open faces (`world/wall_cracks.py`). Join dressings with commas
@@ -335,9 +338,17 @@ How `.map` files work and what can stand on a tile.
   `market_stall`s by the fountain, `net_rack`s on the quay and a `washing_line` strung across the square
   between the watch office and Wren's house (`span=` metres between the walls, `height=`; overhead, so you walk under it);
   `test_harrowmeres_skyline_and_harbour_life_stand_where_they_belong`.
-- Harrowmere's ruin: a sooty dusk (`[meta]` and the `dusk` sky darkened), the cathedral and the town's
-  stone blackened (`town_models.CATHEDRAL_STONE`, `TOWN_STONE`, `TOWER_STONE`), one oxblood tile on
-  every roof, turret and tower, the fountain's water gone foul and still, and the spoils of the ruin
+- Harrowmere's ruin: a sooty dusk (`[meta]` and the `dusk` sky darkened), and all the town's stone
+  one dressed ashlar blackened by the burning: its wall, houses, cathedral, terrace and stair cheeks
+  are `soot_ashlar` in the legend, and every stone model (towers, portal, buttresses, fountain,
+  benches, plinths) draws `town_models.STONE_TEX`, the same blocks at full brightness tinted with
+  `TOWN_STONE` so it comes out as dark as the walls (`test_harrowmere_is_built_of_one_sooty_stone`).
+  One oxblood tile on every roof, turret and tower; the fountain foul and still, its crest tarnished
+  black, the benches cracked or lichened; the market rotted (`market_stall`: spoiled goods, torn
+  awning, a basket tipped over), the washing half blown away, the hay wagon down a wheel; the realm's
+  banners sooted, `banner_pole style=whole|torn|bare` (torn half off its crossbar, or gone but for a
+  knotted scrap) and the cathedral's wall banners `banner torn`
+  (`test_harrowmeres_market_has_rotted_and_its_banners_are_torn_or_gone`); and the spoils of the ruin
   left lying in the streets: `town_debris style=tiles|beams|masonry` (broken roof tiles, charred
   timbers in their ash, fallen ashlar; baked, low on the floor and inside its tile, so it blocks
   nothing), `bones` by the wall, and windows boarded up (`shutters broken`: dark behind nailed planks,
@@ -383,6 +394,8 @@ How `.map` files work and what can stand on a tile.
   carves it in `crest_plaque`s, and `through=` draws one crest that shows on both faces of a cloth or
   a block.
   `banner burnt` is the Cinderhold's: sooty cloth, a charred and smouldering hem, burn holes.
+  `banner torn` is Harrowmere's: cloth dark with soot and damp, a top corner torn from the pole, a rent
+  up from a hem rotted into rags.
   A wall prop must hang on stone that rises past it (at least 2.5 m over its floor, or the ceiling):
   `test_wall_props_hang_on_a_wall_tall_enough_to_hold_them`.
   Light comes from `mesh_builder.LIGHT_KINDS` (torches, braziers, fungus, bonfires, the glowing
@@ -394,7 +407,9 @@ How `.map` files work and what can stand on a tile.
   which won't shut it on anyone in the doorway), and shut it fills its tile.
   `chest model=iron` is the Cinderhold's iron chest (`models.chest` style), and `mimic model=iron` hides as
   one (`Enemy.look`); the wooden chests also come `model=worn` (weathered, roped shut), `banded` (dark wood
-  strapped in iron) and `coffer` (a small brass-cornered strongbox), every style a key of `models.CHEST_SHELLS`. Opened, every chest is hollow (`models._chest_body`): a bottom and plank walls lined in darker wood, a batten round the inside of its rim and a crumpled cloth on its floor, its bands and ropes running only round the outside (`models._belt`), and battens or straps under its lid (`models._lid_inside`); shut, its body stays one block (`test_an_open_chest_is_hollow_with_a_bottom`). An exit's `model=` draws its way through (`road_gate` for both ends of the north road (each stands out in the open before its wall, never sunk between rock: a pointed arch of soot-black stone, as tall as the Vesper Gate, wrought in iron and fire for the Cinderhold, its joints glowing, an anvil-and-flame crest over the keystone, fire baskets on its piers and cornice, iron leaves swung back and a red haze down the road beyond), `well`, `gaol_grate` (Harrowmere's barred pit, flush with its plaza; like the `well` it fills its tile, so you take it with interact, and it casts no light, so a `light` stands beside it), `cave_mouth`, `keep_door`, `cemetery_gate`, `sewer_grate`, `sewer_ladder`, `vesper_gate` (Vesperholm's, both ends: shut, its
+  strapped in iron), `coffer` (a small brass-cornered strongbox) and `anatomist` (Herran's Castle's:
+  near-black oak on brass claws, a pitched reliquary lid, his open hand on a wine-leather panel and a
+  keyhole lit gold while it is shut), every style a key of `models.CHEST_SHELLS`. Opened, every chest is hollow (`models._chest_body`): a bottom and plank walls lined in darker wood, a batten round the inside of its rim and a crumpled cloth on its floor, its bands and ropes running only round the outside (`models._belt`), and battens or straps under its lid (`models._lid_inside`); shut, its body stays one block (`test_an_open_chest_is_hollow_with_a_bottom`). An exit's `model=` draws its way through (`road_gate` for both ends of the north road (each stands out in the open before its wall, never sunk between rock: a pointed arch of soot-black stone, as tall as the Vesper Gate, wrought in iron and fire for the Cinderhold, its joints glowing, an anvil-and-flame crest over the keystone, fire baskets on its piers and cornice, iron leaves swung back and a red haze down the road beyond), `well`, `gaol_grate` (Harrowmere's barred pit, flush with its plaza; like the `well` it fills its tile, so you take it with interact, and it casts no light, so a `light` stands beside it), `cave_mouth`, `keep_door`, `cemetery_gate`, `sewer_grate`, `sewer_ladder`, `vesper_gate` (Vesperholm's, both ends: shut, its
   three sockets dark; open, they shine and moonlight pours through), `chapel_door` (the Vigil Chapel's, both ends: oak leaves strapped in silver under a moonstone arch, a moon rosette over it), else a `rope`, hung from a beam just under its tile's ceiling, so it climbs a tall shaft, with the daylit mouth of the well above it there); each is a landmark of some detail (`test_every_way_between_maps_is_built_in_detail`), and one set against a wall shows black passage through it (`parts.PASSAGE_DARK`), never the wall, so the way on stays unseen; a cold `light` hangs over the cemetery's gate on both sides, and a warm one before the north road's Cinderhold end, so their stone shows. An `exit` with `boss=<dead_flag>` is a way on to a boss on another map: the compass
   points at it while that boss lives (`World.boss_target`), except a lair's `rear` door, reached only
   from inside it. `exit requires=<flag> shut="..."` stays shut

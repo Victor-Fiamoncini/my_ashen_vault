@@ -854,3 +854,59 @@ def breach_rubble(r, seed):
     for _ in range(6):  # shards of the dome's glass
         x, z = (rng.random() - 0.5) * 1.5, (rng.random() - 0.5) * 1.5
         r.part("cube", x, 0.02, z, 0.12, 0.01, 0.08, PANE, ry=rng.random() * 3)
+
+
+# --- the halls' furniture ---------------------------------------------------------------------------
+
+SEAT_STONE = _dim(SLATE, 1.2)  # the seat's black stone, worn smooth by the household's sitting
+CUSHION = _dim(TABARD, 1.35)  # the household's wine velvet, gone threadbare
+
+
+def castle_bench(r, seed):
+    """A high-backed stone settle against the wall at -X, facing +X: a slab of black stone on a step,
+    between two end standards with arm rests ending in balls, under a back of the castle's dressed
+    stone carved with three blind lancets, the open hand in tarnished gilt in the middle one. By `seed`
+    its velvet cushion still lies along it, threadbare; a candle has burnt down on it beside an open
+    book; or a corner of the seat has broken off, and the rain has run green down its back."""
+    gilt = _dim(GILT, 0.6)
+    look = seed % 5 % 3  # (spreads the looks round the Great Hall's four)
+    r.part("cube", 0.02, 0.04, 0, 0.66, 0.08, 1.94, DRESSED_DARK, tex="castle_stone")  # the step
+    broken = look == 2
+    if broken:  # the seat cracked through near one end, the corner fallen on the step
+        r.part("cube", -0.04, 0.46, -0.16, 0.56, 0.08, 1.48, SEAT_STONE)
+        r.part("cube", -0.12, 0.43, 0.75, 0.4, 0.08, 0.3, SEAT_STONE, rx=0.12)
+        r.part("cube", 0.26, 0.12, 0.66, 0.24, 0.08, 0.3, SEAT_STONE, ry=0.5, rz=0.2)
+    else:
+        r.part("cube", -0.04, 0.46, 0, 0.56, 0.08, 1.8, SEAT_STONE)
+        r.part("cube", 0.25, 0.43, 0, 0.04, 0.05, 1.8, _dim(SEAT_STONE, 0.8))  # the nosing under its edge
+    r.part("cube", -0.12, 0.25, 0, 0.3, 0.34, 1.3, DRESSED_DARK, tex="castle_stone")  # the core under it
+    for side in (-1, 1):  # the end standards, their arm rests and the balls on them
+        z = side * 0.85
+        r.part("cube", -0.02, 0.36, z, 0.58, 0.64, 0.14, DRESSED, tex="castle_stone")
+        r.part("cube", 0.0, 0.71, z, 0.62, 0.07, 0.18, DRESSED_DARK, tex="castle_stone")
+        r.part("sphere", 0.26, 0.8, z, 0.13, 0.13, 0.13, DRESSED, tex="castle_stone")
+    r.part("cube", -0.3, 1.0, 0, 0.14, 1.04, 1.84, DRESSED, tex="castle_stone")  # the back
+    for k, z in enumerate((-0.56, 0, 0.56)):  # its blind lancets, pointed at the head
+        r.part("cube", -0.225, 0.98, z, 0.02, 0.62, 0.34, CASTLE_DARK)
+        r.part("pyramid", -0.225, 1.38, z, 0.02, 0.2, 0.34, CASTLE_DARK)
+        if k == 1:
+            hand_sigil(r, -0.215, 1.02, z, 0.36, gilt, sun=_dim(SUN_GOLD, 0.55))
+    r.part("cube", -0.3, 1.55, 0, 0.2, 0.06, 1.9, DRESSED_DARK, tex="castle_stone")  # the coping
+    r.part("pyramid", -0.3, 1.58, 0, 0.2, 0.3, 0.44, DRESSED_DARK, tex="castle_stone")  # its gablet
+    r.part("sphere", -0.3, 1.92, 0, 0.07, 0.07, 0.07, LEAD)  # the lead knop on it
+    if look == 0:  # the cushion, sagging where the household sat
+        r.part("cube", -0.02, 0.53, 0, 0.48, 0.06, 1.5, CUSHION)
+        r.part("cube", -0.02, 0.515, 0.3, 0.46, 0.03, 0.4, _dim(CUSHION, 0.8))  # worn through
+        for z in (-0.74, 0.74):
+            r.part("cube", 0.22, 0.48, z, 0.03, 0.1, 0.03, _dim(TABARD_TRIM, 0.6))  # its tassels
+    elif look == 1:  # a candle burnt down to its stub, and the book left open beside it
+        r.part("cyl", 0.05, 0.53, 0.55, 0.07, 0.06, 0.07, TALLOW)
+        r.part("cube", 0.05, 0.505, 0.55, 0.2, 0.01, 0.16, TALLOW, ry=0.4)  # its wax, puddled
+        r.part("cube", 0.0, 0.51, 0.62, 0.02, 0.06, 0.02, _dim(TALLOW, 0.9))  # a run down the edge
+        with r.at(0.0, 0.51, -0.3, ry=0.25):
+            r.part("cube", 0, 0, 0, 0.26, 0.02, 0.38, INK)  # the binding
+            for z in (-0.09, 0.09):
+                r.part("cube", 0, 0.015, z, 0.24, 0.012, 0.17, PARCHMENT, rx=-z)  # its pages
+    else:  # the rain, green down the back from the coping
+        for z in (-0.3, 0.7):
+            r.part("cube", -0.225, 1.1, z, 0.02, 0.8, 0.12, STATUE_MOSS)

@@ -475,15 +475,15 @@ WALL_FACE_PROPS = ("runoff_sluice",)
 # trolleys, the hung dead, chains, broken statues and the storm's rubble. All are baked.
 CASTLE_DRESSING = (
     *("castle_buttress", "castle_window", "hand_banner", "hand_standard", "anatomy_chart", "specimen_jars"),
-    *("surgical_trolley", "hung_cadaver", "wall_chains", "broken_statue", "breach_rubble"),
+    *("surgical_trolley", "hung_cadaver", "wall_chains", "broken_statue", "breach_rubble", "castle_bench"),
 )
-BLOCKING_PROPS = (*BLOCKING_PROPS, "surgical_trolley", "hung_cadaver", "broken_statue")
-PROP_TOP = {**PROP_TOP, "surgical_trolley": 1.05, "broken_statue": 1.3}
+BLOCKING_PROPS = (*BLOCKING_PROPS, "surgical_trolley", "hung_cadaver", "broken_statue", "castle_bench")
+PROP_TOP = {**PROP_TOP, "surgical_trolley": 1.05, "broken_statue": 1.3, "castle_bench": 0.55}
 WALL_PROPS = (*WALL_PROPS, "castle_window", "hand_banner", "anatomy_chart", "specimen_jars", "hung_cadaver")
 WALL_PROPS = (*WALL_PROPS, "wall_chains")
 LANDMARKS = (*LANDMARKS, "castle_buttress")
 STATIC_PROPS = STATIC_PROPS | frozenset(CASTLE_DRESSING)
-FACING_PROPS = (*FACING_PROPS, "surgical_trolley", "broken_statue")
+FACING_PROPS = (*FACING_PROPS, "surgical_trolley", "broken_statue", "castle_bench")
 # Harrowmere's buildings, furniture and street dressing (`render/town_models.py`).
 TOWN_PROPS = (
     "rampart_bay",
@@ -3596,7 +3596,11 @@ class World:
                     y=bay.y,
                     tx=bay.tx,
                     tz=bay.tz,
-                    props={"kind": bay.kind, "height": f"{bay.height:g}"},
+                    props={
+                        "kind": bay.kind,
+                        "height": f"{bay.height:g}",
+                        "wall": self.map[bay.tx, bay.tz].wall_tex,
+                    },
                     key=None,
                     yaw=bay.yaw,
                 )

@@ -555,7 +555,7 @@ def test_the_blades_leap_marks_where_you_stood():
 
 DRESSING = (
     *("castle_buttress", "castle_window", "hand_banner", "hand_standard", "anatomy_chart", "specimen_jars"),
-    *("surgical_trolley", "hung_cadaver", "wall_chains", "broken_statue", "breach_rubble"),
+    *("surgical_trolley", "hung_cadaver", "wall_chains", "broken_statue", "breach_rubble", "castle_bench"),
 )
 
 
@@ -760,6 +760,7 @@ def test_the_castles_new_models_are_built_in_detail():
         "wall_chains": lambda r: castle_props.wall_chains(r, 4),
         "broken_statue": lambda r: castle_props.broken_statue(r, 4),
         "breach_rubble": lambda r: castle_props.breach_rubble(r, 4),
+        **{f"castle_bench {seed}": lambda r, s=seed: castle_props.castle_bench(r, s) for seed in range(3)},
         "castle_sconce": lambda r: castle_props.castle_sconce(r, 0.3),
         "castle_brazier": lambda r: castle_props.castle_brazier(r, 0.3),
         **{
@@ -780,3 +781,29 @@ def test_the_castles_new_models_are_built_in_detail():
     tower = built(lambda r: herran_models.castle_tower(r, 4, 26.0, "round")).looks
     spout = built(lambda r: herran_models.gargoyle_spout(r, 0, 0, 0)).looks
     assert len(tower) > 4 * len(spout)  # a gargoyle at each corner
+
+
+def test_the_castle_has_its_own_benches_and_chests():
+    """The halls' settles are the castle's own stone, not Harrowmere's sooty bench: three looks by tile,
+    all three standing in the castle; and every chest in it is the household's reliquary chest, lit
+    gold at its keyhole only while it is shut."""
+    from ashen_vault.render import castle_props, models, rig
+    from test_render_logic import _GlowGpu
+
+    m = _castle()
+    benches = _spec(m, "castle_bench")
+    assert len(benches) >= 6
+    assert {(s.tx * 7 + s.tz * 3) % 5 % 3 for s in benches} == {0, 1, 2}
+    looks = set()
+    for seed in range(3):
+        gpu = _GlowGpu()
+        castle_props.castle_bench(rig.Rig(gpu), seed)
+        assert min(y for _, y in gpu.parts) > -0.1
+        assert "soot_ashlar_tint" not in {tex for _, _, tex in gpu.looks}
+        looks.add(frozenset(gpu.looks))
+    assert len(looks) == 3
+    assert {s.props.get("model") for s in _spec(m, "chest")} == {"anatomist"}
+    shut, opened = _GlowGpu(), _GlowGpu()
+    models.chest(rig.Rig(shut), False, "anatomist")
+    models.chest(rig.Rig(opened), True, "anatomist")
+    assert shut.glows and not opened.glows

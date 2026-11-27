@@ -882,7 +882,7 @@ def test_an_open_chest_is_hollow_with_a_bottom():
     and lining add detail a shut chest doesn't draw."""
     from ashen_vault.render import models
 
-    floors = {"wood": 0.02, "worn": 0.02, "banded": 0.02, "iron": 0.08, "coffer": 0.08}
+    floors = {"wood": 0.02, "worn": 0.02, "banded": 0.02, "iron": 0.08, "coffer": 0.08, "anatomist": 0.12}
     for style, floor_y in floors.items():
         shut, opened = _SolidsGpu(), _SolidsGpu()
         models.chest(rig.Rig(shut), False, style)
@@ -2780,8 +2780,11 @@ def test_the_terracotta_tiles_and_the_stone_and_timber_wall_are_generated():
         px = [sum(wall[(y * 64 + x) * 4 : (y * 64 + x) * 4 + 3]) for y in rows for x in range(64)]
         return sum(px) / len(px)
 
-    # The foot (the last rows, as on a map's wall) is pale ashlar; the oak beams darken the storey above.
-    assert mean(range(40, 64)) > mean(range(0, 32)) + 40
+    # The foot (the last rows, as on a map's wall) is Harrowmere's sooty grey ashlar, darker than the
+    # plastered storey above it, and grey rather than the tan of the plain `ashlar`.
+    assert mean(range(40, 64)) < mean(range(0, 32))
+    foot = [wall[(y * 64 + x) * 4 : (y * 64 + x) * 4 + 3] for y in range(40, 64) for x in range(64)]
+    assert sum(p[0] - p[2] for p in foot) / len(foot) < 12
     assert mean(range(28, 32)) < 200  # the sill beam between the two
 
 
@@ -2997,3 +3000,60 @@ def test_harrowmeres_and_the_fens_new_dressing_is_built_in_detail():
     assert y0 > 2.4
     (_, y0, _), (_, y1, _) = bounds.measure(lambda r: fen_models.runoff_sluice(r, 0.3, 4, 9.0, -0.3))
     assert y0 <= -0.2 and y1 >= 3.0
+
+
+def test_harrowmere_is_built_of_one_sooty_stone():
+    """The town's wall, its houses, the cathedral, the terrace it stands on and the stair's cheek walls
+    are all one stone, and the models carved of it (towers, portal, fountain, benches) draw it too, in
+    the bright copy tinted dark, so they match the walls."""
+    from ashen_vault.render import town_models
+
+    m = MapLoader.load_file(map_path("harrowmere"))
+    natural = ("cliff_rock", "vine_wall", "flagstone")  # the cliffs, the hedges and the bell's low plinth
+    walls = {t.wall_tex for _, _, t in m.each_tile() if t.solid and t.wall_tex not in natural}
+    assert walls == {"soot_ashlar", "stone_timber", "timber"}, walls
+    tex = _all_textures()
+    for name in ("soot_ashlar", "soot_ashlar_tint"):
+        px = tex[name]
+        grey = [px[i] - px[i + 2] for i in range(0, len(px), 4)]
+        assert abs(sum(grey) / len(grey)) < 12, name  # grey, not the plain ashlar's tan
+    dark = sum(tex["soot_ashlar"][i] for i in range(0, 64 * 64 * 4, 4)) / (64 * 64)
+    assert dark < 90
+    for draw in (
+        lambda r: town_models.fountain(r, 0.3, 2),
+        lambda r: town_models.bench(r, 1),
+        lambda r: town_models.wall_tower(r, 3),
+        lambda r: town_models.cathedral_portal(r, 1),
+    ):
+        gpu = _GlowGpu()
+        draw(rig.Rig(gpu))
+        texes = {t for _, _, t in gpu.looks}
+        assert town_models.STONE_TEX in texes and not texes & {"ashlar", "rough_stone"}, texes
+
+
+def test_harrowmeres_market_has_rotted_and_its_banners_are_torn_or_gone():
+    """Nothing bright is left on the market's stalls; the realm's banners on their poles hang whole,
+    torn or are gone but for a scrap, and a wall banner can be torn."""
+    from ashen_vault.render import town_models
+
+    for seed in range(6):
+        gpu = _GlowGpu()
+        town_models.market_stall(rig.Rig(gpu), seed)
+        assert max(max(rgb) for _, rgb, _ in gpu.looks) < 130, seed
+
+    def cloth(style):
+        gpu = _GlowGpu()
+        town_models.banner_pole(rig.Rig(gpu), 0.0, 4, style)
+        return gpu
+
+    whole, torn, bare = cloth("whole"), cloth("torn"), cloth("bare")
+    assert len(bare.parts) < len(torn.parts) and len(bare.parts) < len(whole.parts)
+    assert whole.looks != torn.looks
+    assert len(bare.parts) <= 8  # pole, foot, finial, crossbar and the scrap
+    plain, ragged = _GlowGpu(), _GlowGpu()
+    models.banner(rig.Rig(plain), 0.0, 3)
+    models.banner(rig.Rig(ragged), 0.0, 3, torn=True)
+    assert plain.looks != ragged.looks
+    m = MapLoader.load_file(map_path("harrowmere"))
+    styles = {e.props.get("style") for e in m.entities if e.kind == "banner_pole"}
+    assert {"whole", "torn", "bare"} <= styles

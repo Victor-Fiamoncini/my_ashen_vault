@@ -24,6 +24,8 @@ def all_textures():
         "setts": setts(),
         "stucco": stucco(),
         "ashlar": ashlar(),
+        "soot_ashlar": soot_ashlar(),
+        "soot_ashlar_tint": soot_ashlar(tinted=True),
         "terracotta": terracotta(),
         "water": water(),
         "glitter": glitter(),
@@ -387,6 +389,40 @@ def ashlar():
         if y % 16 == 15 or xx == left + 1:
             k *= 0.85
         return tint([186, 158, 116], k)
+
+    return build(px)
+
+
+SOOT_STONE = (96, 92, 88)  # Harrowmere's stone, its walls' colour before shading
+
+
+def soot_ashlar(tinted=False):
+    """Harrowmere's stone: the same coursed blocks as `ashlar`, but a cold grey stone blackened by the
+    town's burning, its mortar gone dark, some blocks sootier than the rest and soot run down in
+    streaks from the joints. `tinted` draws the same blocks at full brightness, for models that tint
+    it with the stone's own colour (`town_models.TOWN_STONE`), so they come out as dark as the walls."""
+    base = [255, 250, 245] if tinted else list(SOOT_STONE)
+    mortar = [rround(c * 0.52) for c in base]
+
+    def px(x, y):
+        row = y // 16
+        shift = 0 if row % 2 == 0 else 20
+        xx = (x + shift) % SIZE
+        widths = (24, 40) if row % 2 == 0 else (36, 28)
+        col = 0 if xx < widths[0] else 1
+        left = 0 if col == 0 else widths[0]
+        if y % 16 == 0 or xx == left:
+            return tint(mortar, 0.9 + fbm(x, y, 161) * 0.2)  # the mortar, black with soot
+        block = hash_(col, row, 162)
+        k = 0.72 + block * 0.24 + (fbm(x, y, 163) - 0.5) * 0.26
+        if block < 0.3:
+            k *= 0.72  # a block the fire blackened
+        streak = fbm(x * 3, y // 3, 164)
+        if streak > 0.62:
+            k *= 0.8  # soot run down the face
+        if y % 16 == 15 or xx == left + 1:
+            k *= 0.8
+        return tint(base, k)
 
     return build(px)
 
@@ -951,7 +987,7 @@ def stone_timber():
     an upper half framed in dark oak (sill beam, posts, a top plate and raking braces) over a lime
     plaster infill. Its last row is the wall's foot, as on the map's walls: on a wall it repeats every
     tile's height."""
-    stone = ashlar()
+    stone = soot_ashlar()
     lime = plaster()
 
     def px(x, y):
@@ -969,7 +1005,7 @@ def stone_timber():
             if (sill and y == 31) or (plate and y == 2):
                 k *= 0.8  # a beam's lower arris in shade
             return tint([70, 48, 30], k)
-        return _rgb_at(lime, x, y + 32)  # the plaster, its grime toward the beam below
+        return tint(_rgb_at(lime, x, y + 32), 0.8)  # the plaster, sooted, its grime toward the beam below
 
     return build(px)
 

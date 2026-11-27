@@ -8,6 +8,7 @@ from ashen_vault.player import view_blend, weapons
 from ashen_vault.player.items import Items
 from ashen_vault.render import (
     bounds,
+    castle_props,
     cemetery_models,
     fen_models,
     forge_models,
@@ -2154,6 +2155,8 @@ BANDED_WOOD = (140, 112, 96)  # dark-stained
 COFFER_WOOD = (196, 150, 118)  # warm, oiled
 CHEST_ROPE = (150, 128, 88)
 CHEST_BRASS = (178, 150, 82)
+ANATOMIST_OAK = (120, 92, 96)  # tint over the planks of Herran's chests: oak stained near black-wine
+ANATOMIST_BRASS = (134, 108, 62)  # their fittings, tarnished
 # A chest's look, chosen by its entity's `model=`: (tint over its planks, texture).
 CHEST_SHELLS = {
     "wood": (WHITE, "wood_plank"),
@@ -2161,6 +2164,7 @@ CHEST_SHELLS = {
     "worn": (WORN_WOOD, "wood_plank"),
     "banded": (BANDED_WOOD, "wood_plank"),
     "coffer": (COFFER_WOOD, "wood_plank"),
+    "anatomist": (ANATOMIST_OAK, "wood_plank"),
 }
 
 
@@ -2173,7 +2177,8 @@ def chest(r, is_open, style="wood"):
     the plain one; "worn" weathered, roped shut, its lid cracked; "banded" dark wood strapped in iron
     with a ring pull; "coffer" a small brass-cornered strongbox on feet with a domed lid; "iron" the
     Cinderhold's: riveted black bands, corner brackets, iron feet, a rounded lid and a heavy hasp with
-    an ember-lit keyhole. Shut, its body is one block; open, it is hollow (`_chest_body`), and the
+    an ember-lit keyhole; "anatomist" Herran's (`_chest_anatomist`), a pitched reliquary lid over a
+    panel of wine leather bearing his open hand. Shut, its body is one block; open, it is hollow (`_chest_body`), and the
     battens under its lid show."""
     shell, tex = CHEST_SHELLS.get(style, CHEST_SHELLS["wood"])
     if style in _CHEST_STYLES:
@@ -2320,7 +2325,53 @@ def _chest_coffer(r, is_open, shell, tex):
         r.part("cube", 0.25, 0.33, 0, 0.01, 0.05, 0.02, (30, 24, 20))  # its keyhole
 
 
-_CHEST_STYLES = {"worn": _chest_worn, "banded": _chest_banded, "coffer": _chest_coffer}
+def _chest_anatomist(r, is_open, shell, tex):
+    """Herran's household chest, like a reliquary: oak stained near black on four brass claws, each
+    clutching a ball, strapped with lead at its corners and banded in brass at its foot and rim; on its
+    front a panel of wine leather studded in brass, his open hand on it with the sun in its palm, and
+    while it is shut a keyhole lit gold behind the sun. Its lid is pitched like a shrine's roof, with
+    a lead ridge and the sun on a boss at its middle."""
+    for x, z in ((0.25, 0.38), (0.25, -0.38), (-0.25, 0.38), (-0.25, -0.38)):  # the claw feet
+        r.part("sphere", x, 0.05, z, 0.1, 0.1, 0.1, ANATOMIST_BRASS)
+        for k in range(3):
+            a = k * math.tau / 3 + 0.5
+            r.part("cube", x + math.cos(a) * 0.045, 0.09, z + math.sin(a) * 0.045, 0.03, 0.08, 0.03,
+                   _dim(ANATOMIST_BRASS, 0.8))  # fmt: skip
+    _chest_body(r, 0.62, 0.46, 0.94, 0.1, shell, tex, is_open)
+    _belt(r, 0, 0.13, 0, 0.65, 0.06, 0.97, ANATOMIST_BRASS, is_open)  # the foot moulding
+    _belt(r, 0, 0.53, 0, 0.65, 0.05, 0.97, ANATOMIST_BRASS, is_open)  # the rim
+    for x, z in ((0.3, 0.46), (0.3, -0.46), (-0.3, 0.46), (-0.3, -0.46)):
+        r.part("cube", x, 0.33, z, 0.05, 0.42, 0.05, herran_models.LEAD)  # lead down the corners
+    r.part("cube", 0.312, 0.33, 0, 0.01, 0.28, 0.6, herran_models.TABARD)  # the leather panel
+    for k in range(7):  # brass studs along its head and foot
+        for y in (0.2, 0.46):
+            r.part("cube", 0.318, y, (k - 3) * 0.095, 0.012, 0.025, 0.025, ANATOMIST_BRASS)
+    castle_props.hand_sigil(r, 0.314, 0.33, 0, 0.24, ANATOMIST_BRASS, sun=_dim(herran_models.SUN_GOLD, 0.7))
+    if not is_open:
+        r.part("cube", 0.335, 0.33, 0, 0.01, 0.035, 0.014, herran_models.SUN_GOLD, glow=True)  # the keyhole
+    with r.at(-0.31, 0.56, 0, rz=1.9 if is_open else 0):
+        r.part("cube", 0.31, 0.04, 0, 0.64, 0.08, 0.96, shell, tex=tex)  # the lid's frame
+        for side in (-1, 1):  # its two pitches, meeting at the ridge
+            r.part("cube", 0.31 + side * 0.15, 0.13, 0, 0.36, 0.05, 0.96, shell, tex=tex, rz=-side * 0.42)
+        for z in (-0.46, 0.46):  # the gable ends, and brass along their edges
+            r.part("cube", 0.31, 0.06, z, 0.24, 0.24, 0.04, shell, tex=tex, rz=math.pi / 4)
+            r.part("cube", 0.31, 0.06, z * 1.02, 0.25, 0.25, 0.01, ANATOMIST_BRASS, rz=math.pi / 4)
+        r.part("cube", 0.31, 0.23, 0, 0.06, 0.05, 1.0, herran_models.LEAD)  # the ridge
+        r.part("cyl", 0.31, 0.26, 0, 0.12, 0.06, 0.12, ANATOMIST_BRASS)  # the sun's boss
+        for k in range(8):
+            with r.at(0.31, 0.29, 0, ry=k * math.pi / 4):
+                r.part("cube", 0.08, 0, 0, 0.06, 0.02, 0.02, _dim(herran_models.SUN_GOLD, 0.6))
+        r.part("cube", 0.645, -0.02, 0, 0.03, 0.14, 0.1, ANATOMIST_BRASS)  # the hasp, hanging from it
+        if is_open:
+            _lid_inside(r, 0.31, 0.62, 0.94, shell, tex, strap=ANATOMIST_BRASS)
+
+
+_CHEST_STYLES = {
+    "worn": _chest_worn,
+    "banded": _chest_banded,
+    "coffer": _chest_coffer,
+    "anatomist": _chest_anatomist,
+}
 
 
 DOOR_FRAME = (70, 64, 66)  # the dark dressed stone round an iron door
@@ -4199,9 +4250,10 @@ BANNER_POLE = 3.05  # how high a wall banner's pole is set: its 2.4 m of cloth c
 SCORCH_RIM = (70, 36, 22)  # the brown ring round a burn
 
 
-def banner(r, t, seed, burnt=False):
+def banner(r, t, seed, burnt=False, torn=False):
     """A tattered banner of the realm hung from a pole on the wall at local -X, its crest in gold thread.
-    A `burnt` one (the Cinderhold's) is the same cloth after the fires: see `_burnt_banner`."""
+    A `burnt` one (the Cinderhold's) is the same cloth after the fires: see `_burnt_banner`. A `torn`
+    one (Harrowmere's) is the same cloth after the town fell: see `_torn_banner`."""
     sway = math.sin(t * 0.7) * 0.03
     pole = (40, 30, 24) if burnt else (70, 50, 32)
     r.part("cyl", -0.9, BANNER_POLE, 0, 0.05, 1.0, 0.05, pole, rx=math.pi / 2)
@@ -4212,11 +4264,33 @@ def banner(r, t, seed, burnt=False):
         with r.at(-0.9, BANNER_POLE - 0.05, 0, rz=sway):
             _burnt_banner(r, t, seed, cloth)
         return
+    if torn:
+        with r.at(-0.9, BANNER_POLE - 0.05, 0, rz=sway):
+            _torn_banner(r, seed, cloth)
+        return
     with r.at(-0.9, BANNER_POLE - 0.05, 0, rz=sway):
         r.part("cube", 0, -1.2, 0, 0.03, 2.4, 0.8, cloth)
         for i, z in enumerate((-0.3, -0.1, 0.1, 0.3)):  # ragged hem
             r.part("cube", 0, -2.45 - (i % 2) * 0.08, z, 0.03, 0.2 + (i % 2) * 0.12, 0.16, cloth)
         realm_crest(r, (226, 192, 106), cy=-1.12, scale=1.1)
+
+
+def _torn_banner(r, seed, cloth):
+    """A banner left hanging over a ruined town: the cloth dark with soot and damp, one top corner
+    torn from the pole and sagging, a long rent up from the hem and the hem itself rotted into uneven
+    rags, the crest's thread gone dull. Drawn in the cloth's frame: hanging from y = 0, faces +-X."""
+    soot = _dim(cloth, 0.55)
+    side = 1 if seed % 2 else -1  # which corner tore away
+    r.part("cube", 0, -1.0, -side * 0.12, 0.03, 2.0, 0.56, soot)  # the cloth still whole
+    with r.at(0, -0.12, side * 0.18, rx=-side * 0.12):  # the torn corner, sagging off the pole
+        r.part("cube", 0, -1.0, side * 0.06, 0.03, 1.9, 0.2, _dim(soot, 0.9))
+    r.part("cube", 0.001, -1.75, side * 0.05, 0.034, 0.7, 0.04, (18, 14, 14))  # the rent, dark behind
+    for i in range(6):  # the hem, rotted into rags
+        k = (seed * 5 + i * 3) % 6
+        length = (0.34, 0.1, 0.42, 0.2, 0.05, 0.28)[k]
+        z = -0.33 + i * 0.13
+        r.part("cube", 0, -2.0 - length / 2, z, 0.03, length, 0.1, _dim(soot, 0.85), rx=(k % 3 - 1) * 0.1)
+    realm_crest(r, (112, 94, 60), cy=-1.0, scale=1.0)
 
 
 def _burnt_banner(r, t, seed, cloth):

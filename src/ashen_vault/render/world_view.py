@@ -633,7 +633,9 @@ class WorldView:
                     p.props.get("roof_tex", "clay_tile"),
                 )
         elif k == "rampart_bay":
-            town_models.rampart_bay(rig, p.props["kind"], float(p.props["height"]), seed)
+            town_models.rampart_bay(
+                rig, p.props["kind"], float(p.props["height"]), seed, p.props.get("wall", "rough_stone")
+            )
         elif k == "wall_tower":
             dx, dz = (float(v) for v in p.props.get("shift", "0,0").split(","))
             with rig.at(dx, 0, dz):
@@ -646,7 +648,7 @@ class WorldView:
                     p.props.get("capped", "true") != "false",
                 )
         elif k == "banner_pole":
-            town_models.banner_pole(rig, t, seed)
+            town_models.banner_pole(rig, t, seed, p.props.get("style"))
         elif k == "fountain":
             town_models.fountain(rig, t, seed)
         elif k == "bench":
@@ -1093,7 +1095,9 @@ def _draw_lever(view, rig, p, t):
 
 PROP_DRAWERS = {
     "torch": _draw_torch,
-    "banner": lambda view, rig, p, t: models.banner(rig, t + p.tz, p.tx * 3 + p.tz, burnt="burnt" in p.props),
+    "banner": lambda view, rig, p, t: models.banner(
+        rig, t + p.tz, p.tx * 3 + p.tz, burnt="burnt" in p.props, torn="torn" in p.props
+    ),
     "rack": lambda view, rig, p, t: models.rack(rig, p.tx + p.tz),
     "table": lambda view, rig, p, t: models.table(rig, t, p.tx * 5 + p.tz),
     "candles": lambda view, rig, p, t: models.candles(rig, t + p.tx, p.tx * 7 + p.tz * 3),
@@ -1354,6 +1358,7 @@ PROP_DRAWERS.update(
         "wall_chains": lambda view, rig, p, t: castle_props.wall_chains(rig, _castle_seed(p)),
         "broken_statue": lambda view, rig, p, t: castle_props.broken_statue(rig, _castle_seed(p)),
         "breach_rubble": lambda view, rig, p, t: castle_props.breach_rubble(rig, _castle_seed(p)),
+        "castle_bench": lambda view, rig, p, t: castle_props.castle_bench(rig, _castle_seed(p)),
     }
 )
 CRACK_TONES["castle_stone"] = castle_props.CASTLE_CRACK
