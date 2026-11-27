@@ -337,7 +337,7 @@ def test_every_harrowmere_gate_has_a_watchman_beside_it():
 def test_harrowmere_wall_is_towered_and_its_houses_turreted():
     """Round towers stand in the town wall, at its corners and along it, never beside a way out;
     turrets sit on the houses' walls; the houses' roofs and turrets are of clay tile, and only the
-    cathedral's of dark slate, so the hilltop stands out."""
+    cathedral's too, all of one old oxblood tile."""
     m = MapLoader.load_file(os.path.join(MAP_DIR, "harrowmere.map"))
     towers = {(s.tx, s.tz) for s in _spec(m, "wall_tower")}
     assert all(m[x, z].solid for x, z in towers)
@@ -350,9 +350,8 @@ def test_harrowmere_wall_is_towered_and_its_houses_turreted():
     assert len(turrets) >= 5 and all(m[s.tx, s.tz].thin for s in turrets)
     assert all(s.props.get("roof_tex") == "clay_tile" for s in turrets)
     roofs = _spec(m, "roof")
-    (cathedral,) = [s for s in roofs if s.props["wall"] == "rough_stone"]
-    assert cathedral.props["tex"] == "violet_slate"
-    assert all(s.props["tex"] == "clay_tile" for s in roofs if s is not cathedral)
+    assert [s.props["wall"] for s in roofs].count("rough_stone") == 1  # the cathedral's
+    assert all(s.props["tex"] == "clay_tile" for s in roofs)  # one dark red over the whole town
     signs = {s.props["emblem"]: s for s in _spec(m, "shop_sign")}
     for keeper, emblem in (
         ("brannoc", "anvil"),

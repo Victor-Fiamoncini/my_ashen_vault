@@ -51,7 +51,6 @@ def all_textures():
         "slag": slag(),
         "ash_road": ash_road(),
         "slate": slate(),
-        "violet_slate": violet_slate(),
         "clay_tile": clay_tile(),
         "stone_timber": stone_timber(),
         "clouds": clouds(),
@@ -911,30 +910,10 @@ def slate():
     return build(px)
 
 
-def violet_slate():
-    """Fish-scale roof slates of a dusky violet, laid in staggered courses: each scale rounded at its
-    foot, lit along its crown and shadowed where it laps the course below, edged with soot."""
-
-    def px(x, y):
-        row = y // 4
-        ox = (x + (2 if row % 2 else 0)) % 4
-        dy = y % 4
-        # The scale's rounded foot: the lower edge curves up toward the scale's sides.
-        foot = 3 - abs(ox - 1.5) ** 2 / 2.0
-        n = fbm(x, y, 371)
-        if dy > foot:
-            return tint([56, 40, 68], 0.85 + n * 0.25)
-        k = 0.72 + hash_((x + (2 if row % 2 else 0)) // 4, row, 372) * 0.22 + (n - 0.5) * 0.3
-        k += (1 - dy / 4) * 0.08  # lit along the crown, darker toward the lap
-        return tint([92, 66, 118], k)
-
-    return build(px)
-
-
 def clay_tile():
-    """Weathered terracotta barrel tiles in staggered courses (eight across, eight up the slope): each
-    tile rounded across its width (lit along its crown, shaded into the pan between), fired its own
-    shade from brick-red to warm tan, darkened by soot toward its foot, with a dark lap shadow where
+    """Old oxblood barrel tiles in staggered courses (eight across, eight up the slope): each tile
+    rounded across its width (lit along its crown, shaded into the pan between), fired its own shade
+    of dark red, blackened by soot and smoke toward its foot, with a dark lap shadow where
     the course above overhangs it and a few flecks of grey lichen and green moss. Row 0 is the eaves:
     models' faces map their foot to the texture's first row."""
 
@@ -947,11 +926,11 @@ def clay_tile():
         n = fbm(x, y, 381)
         if dy == 7:  # the lap: the course above casts its shadow over this one
             moss = hash_(x, row, 387) > 0.86
-            return tint([62, 70, 40] if moss else [58, 30, 22], 0.85 + n * 0.3)
+            return tint([46, 50, 32] if moss else [34, 16, 14], 0.85 + n * 0.3)
         hue = hash_(tile, row, 382)
-        base = [150 + 26 * hue, 72 + 20 * hue, 48 + 10 * hue]
+        base = [96 + 20 * hue, 30 + 10 * hue, 26 + 6 * hue]
         if hash_(tile, row, 383) > 0.86:  # now and then a tile fired darker, or a newer brighter one
-            base = tint(base, 0.78 if hash_(tile, row, 384) > 0.5 else 1.12)
+            base = tint(base, 0.66 if hash_(tile, row, 384) > 0.5 else 1.08)
         curve = math.cos((ox - 3.5) / 4.0 * math.pi / 2)  # round across its width
         k = 0.5 + curve * 0.6 + (n - 0.5) * 0.22
         k *= 0.78 + 0.22 * dy / 6  # soot gathered toward its foot
@@ -961,7 +940,7 @@ def clay_tile():
             k *= 0.8  # the pan between two barrels
         k *= 1.0 - 0.12 * (1 - y / 63) ** 2  # rain-blackened along the eaves
         if hash_(x, y, 385) > 0.982 and noise(x, y, 16, 386) > 0.5:  # a fleck of lichen
-            return tint([150, 148, 112] if hash_(x, y, 388) > 0.5 else [96, 112, 64], 0.85 + n * 0.25)
+            return tint([104, 102, 84] if hash_(x, y, 388) > 0.5 else [62, 72, 46], 0.85 + n * 0.25)
         return tint(base, k)
 
     return build(px)

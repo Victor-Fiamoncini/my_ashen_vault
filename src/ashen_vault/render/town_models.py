@@ -7,6 +7,7 @@ moored boat, the smith's bellows and grindstone). Pure part lists drawn through 
 
 import itertools
 import math
+import random
 
 from ashen_vault.render.models import garment, gauntlet
 from ashen_vault.render.parts import (
@@ -30,25 +31,36 @@ WOOD = (104, 74, 48)
 DARK_WOOD = (70, 50, 34)
 BRONZE = (120, 96, 54)
 BRONZE_DARK = (74, 58, 34)
-PALE_STONE = (150, 146, 136)
-CLOTH = ((150, 50, 44), (60, 90, 120), (140, 120, 60), (70, 110, 70))
-GLASS = ((120, 150, 200), (190, 150, 70), (150, 60, 60), (90, 140, 110))
+PALE_STONE = (110, 106, 100)
+CLOTH = ((96, 44, 40), (56, 66, 78), (98, 86, 56), (60, 70, 56))  # faded and grimed
+GLASS = ((76, 88, 108), (118, 96, 56), (96, 46, 44), (62, 84, 72))
 # Stained glass: ruby, cobalt, gold, emerald and amethyst, leaded in dark came.
-STAINED = ((178, 34, 44), (44, 70, 190), (226, 172, 48), (44, 140, 78), (120, 56, 150))
+STAINED = ((104, 30, 34), (36, 46, 100), (124, 98, 42), (36, 80, 52), (70, 40, 82))  # dimmed under grime
 LEAD = (28, 26, 30)
-GILT = (214, 176, 84)
+GILT = (132, 110, 62)  # tarnished
 SANDSTONE = (186, 160, 120)
 REALM_CLOTH = REALM_CRIMSON
 HAY = (200, 168, 88)
 SACK = (160, 136, 98)
 
 
-CLAY_RIDGE = (150, 76, 52)  # the half-round ridge and hip tiles of a terracotta roof
-PLASTER_WHITE = (240, 234, 222)  # lime plaster, under the plaster texture's own tint
+CLAY_RIDGE = (78, 30, 26)  # the half-round ridge and hip tiles of an oxblood roof
+PLASTER_WHITE = (
+    172,
+    164,
+    148,
+)  # lime plaster gone grey with soot and damp, under the plaster texture's own tint
+TOWN_STONE = (
+    134,
+    126,
+    116,
+)  # the houses' dressed stone, darkened by smoke and rain, under the texture's grain
+STAGNANT = (78, 84, 70)  # still water gone foul and green-black
+TOWER_STONE = (118, 112, 104)  # the town wall's towers and their kind, weathered dark
 
 
 def _ridge_rgb(tex):
-    """The ridge's colour: capping tiles on a terracotta roof, an oak beam on slate."""
+    """The ridge's colour: capping tiles on a tiled roof, an oak beam on slate."""
     return CLAY_RIDGE if tex == "clay_tile" else DARK_WOOD
 
 
@@ -125,9 +137,7 @@ def silent_bell(r, t):
     r.part("cube", 0, base + 6.2, 0, 0.6, 0.5, 3.8, WOOD, tex="wood_plank")  # the headstock
     for sx in (-1, 1):
         r.part("cube", sx * 2.0, base + 6.55, 0, 0.5, 0.3, 3.8, DARK_WOOD, tex="wood_plank")
-    r.part(
-        "wedge", 0, base + 7.1, 0, 4.8, 1.0, 4.2, WHITE, tex="violet_slate", ry=math.pi / 2
-    )  # a small roof
+    r.part("wedge", 0, base + 7.1, 0, 4.8, 1.0, 4.2, WHITE, tex="clay_tile", ry=math.pi / 2)  # a small roof
     # The bell: crown, waist flaring to the sound bow and lip, a band of raised lettering.
     with r.at(0, base + 2.4, 0):
         r.part("cube", 0, 3.4, 0, 0.3, 0.6, 0.3, IRON)  # the hanger
@@ -157,7 +167,7 @@ def silent_bell(r, t):
 
 def cathedral_spire(r, height=18.0):
     """The cathedral's bell-less spire: a pale square tower with tall lancet windows, pinnacles at the
-    corners, and a steep slate needle."""
+    corners, and a steep needle of oxblood tile."""
     w = 3.0
     r.part("cube", 0, height / 2, 0, w, height, w, PALE_STONE, tex="rough_stone")
     r.part("cube", 0, 1.0, 0, w * 1.15, 2.0, w * 1.15, _dim(PALE_STONE, 0.9), tex="rough_stone")
@@ -173,7 +183,7 @@ def cathedral_spire(r, height=18.0):
     for sx in (-1, 1):
         for sz in (-1, 1):
             r.part("cone", sx * w / 2, height + 1.0, sz * w / 2, 0.5, 2.0, 0.5, _dim(PALE_STONE, 1.05))
-    r.part("cone", 0, height + 4.0, 0, w * 0.85, 8.0, w * 0.85, WHITE, tex="violet_slate")
+    r.part("cone", 0, height + 4.0, 0, w * 0.85, 8.0, w * 0.85, WHITE, tex="clay_tile")
     r.part("cube", 0, height + 8.3, 0, 0.08, 0.9, 0.08, IRON)  # a finial
     r.part("cube", 0, height + 8.5, 0, 0.08, 0.08, 0.5, IRON)
 
@@ -269,7 +279,7 @@ def rose_window(r, seed, x=-0.92):
         )
     r.part("cyl", x + 0.02, 0, 0, 0.5, 0.03, 0.5, LEAD, rz=math.pi / 2)
     r.part("cyl", x + 0.03, 0, 0, 0.38, 0.03, 0.38, STAINED[2], glow=True, rz=math.pi / 2)  # the sun
-    r.part("cyl", x + 0.04, 0, 0, 0.14, 0.03, 0.14, (250, 220, 140), glow=True, rz=math.pi / 2)
+    r.part("cyl", x + 0.04, 0, 0, 0.14, 0.03, 0.14, (150, 124, 76), glow=True, rz=math.pi / 2)
 
 
 def bed(r, seed):
@@ -481,7 +491,7 @@ def banner_pole(r, t, seed):
 def crest_plaque(r, seed):
     """The realm's crest carved in a slab of stone set into the wall at local -X, its relief gilded,
     under a little drip moulding."""
-    stone = (226, 222, 214)
+    stone = CATHEDRAL_STONE
     r.part("cube", -0.94, 0, 0, 0.12, 1.5, 1.2, stone, tex="rough_stone")
     r.part("cube", -0.9, 0.82, 0, 0.2, 0.12, 1.36, _dim(stone, 0.9))  # the drip moulding
     r.part("cube", -0.9, -0.8, 0, 0.18, 0.1, 1.28, _dim(stone, 0.9))  # its ledge
@@ -489,8 +499,9 @@ def crest_plaque(r, seed):
         realm_crest(r, GILT if seed % 3 else _dim(GILT, 0.9), cy=0.0, scale=1.45)
 
 
-SHUTTER_OAK = ((96, 40, 34), (58, 78, 60), (92, 66, 42), (62, 50, 40))  # oxblood, weathered green, oak
+SHUTTER_OAK = ((70, 36, 32), (46, 54, 46), (68, 52, 38), (52, 44, 38))  # oxblood, green and oak, all faded
 WINDOW_GLOW = (118, 90, 54)  # lamplight through leaded glass
+DARK_PANE = (24, 22, 22)  # a window long dark, behind its boards
 OAK = (74, 54, 36)
 
 
@@ -508,15 +519,19 @@ def _board_shutter(r, w, h, paint, seed):
     _bar(r, (0.03, -h * 0.32, w * 0.12), (0.03, h * 0.32, w * 0.88), 0.05, _dim(paint, 0.7))  # the brace
 
 
-def shutters(r, seed, timber=False):
+def shutters(r, seed, timber=False, broken=False):
     """A medieval window deep in a house wall at local -X: two round-headed lights of leaded diamond
     quarries faintly lit within, parted by a mullion, in a dressed stone surround under a hood mould
     with carved stops (an oak frame under a pegged lintel in a half-timbered wall), its two board
-    shutters strapped in iron and folded back, one now and then half shut, some lights barred."""
-    stone = (236, 230, 218)
+    shutters strapped in iron and folded back, one now and then half shut, some lights barred.
+    `broken`, the lights are dark behind rough boards nailed across them, and one shutter hangs
+    askew from its last hinge."""
+    stone = TOWN_STONE
     frame = OAK if timber else stone
     tex = "wood_plank" if timber else "ashlar"
     paint = SHUTTER_OAK[seed % len(SHUTTER_OAK)]
+    lit = not broken
+    glass = WINDOW_GLOW if lit else DARK_PANE
     lw, low, spring = 0.36, -0.55, 0.3  # each light's width, its foot and where its head springs
     rad = lw / 2
     head = spring + rad + 0.1
@@ -524,12 +539,12 @@ def shutters(r, seed, timber=False):
            tex=tex)  # fmt: skip  # the head of the surround, over the arches
     for zc in (-0.24, 0.24):
         r.part("cube", -0.985, (low + spring) / 2, zc, 0.02, spring - low, lw, (30, 26, 22))  # the reveal
-        r.part("cube", -0.955, (low + spring) / 2, zc, 0.01, spring - low - 0.04, lw - 0.04, WINDOW_GLOW,
-               glow=True)  # fmt: skip
+        r.part("cube", -0.955, (low + spring) / 2, zc, 0.01, spring - low - 0.04, lw - 0.04, glass,
+               glow=lit)  # fmt: skip
         for i in range(3):  # the round head, glazed in strips
             z = zc - rad + lw * (i + 0.5) / 3
             hh = math.sqrt(max(rad * rad - (z - zc) ** 2, 0.0)) * 0.9
-            r.part("cube", -0.955, spring + hh / 2, z, 0.01, hh, lw / 3, WINDOW_GLOW, glow=True)
+            r.part("cube", -0.955, spring + hh / 2, z, 0.01, hh, lw / 3, glass, glow=lit)
         # The leading: diagonal cames crossing into diamonds, and a saddle bar across.
         for k in range(5):
             y = low + rad + k * 0.18
@@ -563,6 +578,17 @@ def shutters(r, seed, timber=False):
         for z in (-0.32, -0.16, 0.16, 0.32):
             r.part("cube", -0.88, (low + spring) / 2, z, 0.03, spring - low, 0.03, IRON)
         r.part("cube", -0.88, -0.22, 0, 0.03, 0.03, 0.8, IRON)
+    if broken:
+        for k, (y, tilt) in enumerate(((0.18, 0.12), (-0.1, -0.08), (-0.38, 0.05))):  # boards nailed across
+            r.part("cube", -0.84, y, 0, 0.04, 0.16, 1.06, _dim(OAK, 0.8 + 0.1 * (k % 2)), tex="wood_plank",
+                   rx=tilt)  # fmt: skip
+            for z in (-0.46, 0.46):
+                r.part("cube", -0.815, y + z * tilt, z, 0.02, 0.035, 0.035, IRON)  # a nail head
+        with r.at(-0.95, 0.0, -0.5, ry=math.pi):  # one shutter still folded back
+            _board_shutter(r, 0.44, 1.12, paint, seed - 1)
+        with r.at(-0.9, -0.3, 0.5, ry=0.25, rx=-0.45):  # the other hanging by its last hinge
+            _board_shutter(r, 0.44, 1.12, _dim(paint, 0.8), seed + 1)
+        return
     shut = seed % 4 == 1  # one shutter swung half shut
     for side in (-1, 1):
         swing = 0.9 if shut and side == 1 else 0.0
@@ -570,9 +596,9 @@ def shutters(r, seed, timber=False):
             _board_shutter(r, 0.44, 1.12, paint, seed + side)
 
 
-def balcony(r, seed, roof_tex="violet_slate"):
+def balcony(r, seed, roof_tex="clay_tile"):
     """An upper-floor gallery jettied out of the wall at local -X: a plank deck on carved corbels and
-    raking braces, a parapet of boards under a rail, a half-open door behind it, and a pent roof of slate
+    raking braces, a parapet of boards under a rail, a half-open door behind it, and a pent roof of tile
     (or `roof_tex`) over it on two brackets; some days a rug airs over the boards or a lantern hangs from the roof."""
     wood = _dim(WOOD, 0.9)
     r.part("cube", -0.98, 1.05, 0, 0.03, 2.1, 1.0, (34, 28, 24))  # the doorway behind
@@ -615,7 +641,7 @@ def door_arch(r, seed, height=3.2, spring=2.2, rose=False, leaf=True):
     ceiling, and a studded plank door standing open against the jamb inside (without `leaf`, the
     `house_door` that swings in it is drawn apart). With `rose`, a rose window glows in the tympanum
     (the cathedral's west door)."""
-    stone = (236, 230, 218) if not rose else (226, 222, 214)
+    stone = TOWN_STONE if not rose else CATHEDRAL_STONE
     tex = "rough_stone" if rose else "ashlar"
     half = 0.9
     for side in (-1, 1):  # the pilasters, with plinths and capitals
@@ -698,17 +724,14 @@ def house_door(r, open_t, spring=2.2, seed=0):
             r.part("cube", side * 0.05, 1.18, w - 0.3, 0.03, 0.08, 0.08, IRON)
 
 
-VIOLET_TRIM = (60, 44, 70)  # the dark painted timber of turrets
-
-
-def roof_turret(r, seed, height=3.2, radius=0.9, cap=3.6, roof_tex="violet_slate"):
+def roof_turret(r, seed, height=3.2, radius=0.9, cap=3.6, roof_tex="clay_tile"):
     """A little round turret set out on a house's corner, its foot at the origin: a cone of corbels
     swelling out of the wall below, a plastered drum with a slit window or two lit from within, a
-    timber band at the eaves, and a tall witch-hat cone of violet slate (or `roof_tex`) with an iron
-    finial."""
+    timber band at the eaves, and a tall witch-hat cone of the town's oxblood tile (or `roof_tex`) with
+    an iron finial."""
     d = radius * 2
-    trim = VIOLET_TRIM if roof_tex == "violet_slate" else OAK  # painted to suit its roof
-    stone = (176, 166, 152)
+    trim = OAK
+    stone = TOWER_STONE
     r.part("cone", 0, -0.6, 0, d, 1.2, d, _dim(stone, 0.85), tex="ashlar", rx=math.pi)  # the corbelling
     r.part("cyl", 0, height / 2, 0, d, height, d, stone, tex="plaster" if seed % 2 else "ashlar")
     r.part("cyl", 0, 0.05, 0, d + 0.1, 0.16, d + 0.1, trim)  # string course at its foot
@@ -726,10 +749,10 @@ def roof_turret(r, seed, height=3.2, radius=0.9, cap=3.6, roof_tex="violet_slate
 
 def wall_tower(r, seed, height=10.0, radius=2.2, cap=5.0, capped=True):
     """A round tower in the town wall: a battered plinth, coursed rough stone with arrow slits, a ring
-    of machicolation corbels carrying a crenellated parapet and, `capped`, a steep cone of violet
-    slate rising inside it to a gilt finial."""
+    of machicolation corbels carrying a crenellated parapet and, `capped`, a steep cone of oxblood
+    tile rising inside it to a gilt finial."""
     d = radius * 2
-    stone = (196, 190, 180)
+    stone = TOWER_STONE
     r.part("cone", 0, 1.2, 0, d + 1.2, 2.4, d + 1.2, _dim(stone, 0.85), tex="rough_stone")  # the batter
     r.part("cyl", 0, height / 2, 0, d, height, d, stone, tex="rough_stone")
     r.part("cyl", 0, height * 0.45, 0, d + 0.14, 0.2, d + 0.14, _dim(stone, 1.08))  # a string course
@@ -748,7 +771,7 @@ def wall_tower(r, seed, height=10.0, radius=2.2, cap=5.0, capped=True):
             x, z = math.cos(a) * (radius + 0.2), math.sin(a) * (radius + 0.2)
             r.part("cube", x, top + 0.95, z, 0.4, 0.7, 0.9, stone, tex="rough_stone", ry=-a)
     if capped:
-        r.part("cone", 0, top + 0.6 + cap / 2, 0, d + 0.2, cap, d + 0.2, WHITE, tex="violet_slate")
+        r.part("cone", 0, top + 0.6 + cap / 2, 0, d + 0.2, cap, d + 0.2, WHITE, tex="clay_tile")
         r.part("cube", 0, top + 0.6 + cap + 0.4, 0, 0.08, 0.8, 0.08, IRON)
         r.part("sphere", 0, top + 0.6 + cap + 0.85, 0, 0.22, 0.22, 0.22, GILT)
 
@@ -756,9 +779,9 @@ def wall_tower(r, seed, height=10.0, radius=2.2, cap=5.0, capped=True):
 def cathedral_tower(r, height=15.0, width=3.8, belfry=True, helm=7.0):
     """A square cathedral tower rising from the ground: stepped buttresses at its corners, lancets
     climbing its faces, a belfry of louvred openings, a corbelled parapet with a pinnacle at each
-    corner, and a steep slate helm with a gilt sun on its spike. Narrow and belfry-less, it is one of
-    the little stair turrets at the apse."""
-    stone = (226, 222, 214)  # pale, under the rough stone's grain, like the walls
+    corner, and a steep helm of oxblood tile with a gilt sun on its spike. Narrow and belfry-less, it
+    is one of the little stair turrets at the apse."""
+    stone = CATHEDRAL_STONE  # under the rough stone's grain, like the walls
     w = width
     r.part("cube", 0, height / 2, 0, w, height, w, stone, tex="rough_stone")
     r.part("cube", 0, 0.8, 0, w + 0.3, 1.6, w + 0.3, _dim(stone, 0.88), tex="rough_stone")  # plinth
@@ -826,7 +849,7 @@ def cathedral_tower(r, height=15.0, width=3.8, belfry=True, helm=7.0):
             r.part("cone", x, height + 2.1, z, 0.5, 1.6, 0.5, _dim(stone, 1.05))
             r.part("sphere", x, height + 2.95, z, 0.14, 0.14, 0.14, GILT)
     r.part(
-        "cone", 0, height + 0.7 + helm / 2, 0, w * 0.82, helm, w * 0.82, WHITE, tex="violet_slate"
+        "cone", 0, height + 0.7 + helm / 2, 0, w * 0.82, helm, w * 0.82, WHITE, tex="clay_tile"
     )  # the helm
     top = height + 0.7 + helm
     r.part("cube", 0, top + 0.5, 0, 0.08, 1.0, 0.08, IRON)
@@ -839,7 +862,7 @@ def cathedral_tower(r, height=15.0, width=3.8, belfry=True, helm=7.0):
 def flying_buttress(r, seed, top=9.0):
     """A flying buttress beside the nave, the wall at local -X: a stepped pier on the ground with a
     pinnacle, and a sloping flyer on a half arch reaching from it to the wall's head."""
-    stone = (226, 222, 214)
+    stone = CATHEDRAL_STONE
     r.part("cube", 0.35, 2.6, 0, 0.9, 5.2, 0.8, stone, tex="rough_stone")  # the pier
     r.part("cube", 0.35, 0.5, 0, 1.1, 1.0, 1.0, _dim(stone, 0.88), tex="rough_stone")
     r.part("wedge", 0.35, 5.45, 0, 0.9, 0.5, 0.8, _dim(stone, 1.05), ry=math.pi / 2)
@@ -871,8 +894,8 @@ def flying_buttress(r, seed, top=9.0):
 
 # --- the cathedral's great west front, its stair and its nave -------------------------------------
 
-CATHEDRAL_STONE = (226, 222, 214)  # the cathedral's pale stone, under the rough stone's grain
-STEP_STONE = (204, 198, 186)  # the treads of its stairs, worn smooth
+CATHEDRAL_STONE = (104, 98, 96)  # the cathedral's stone, blackened by soot and the years, under its grain
+STEP_STONE = (92, 88, 84)  # the treads of its stairs, worn smooth and grimed
 PORTAL_HALF = 3.0  # half the width of the cathedral's doorway: three tiles across
 PORTAL_SPRING = 3.8  # where its arches spring from their colonnettes
 PORTAL_OFF = 0.9  # how far past the middle its arcs are centred: how sharply they point
@@ -933,7 +956,7 @@ def great_rose(r, seed, radius=1.6):
                    math.cos(a) * 0.2 * rad + math.cos(b) * 0.04 * rad, 0.07 * rad, 0.03, 0.07 * rad, rgb,
                    glow=True, rz=math.pi / 2)  # fmt: skip
     r.part("cyl", 0.04, 0, 0, 0.18 * rad, 0.04, 0.18 * rad, STAINED[2], glow=True, rz=math.pi / 2)  # the sun
-    r.part("cyl", 0.06, 0, 0, 0.08 * rad, 0.04, 0.08 * rad, (250, 220, 140), glow=True, rz=math.pi / 2)
+    r.part("cyl", 0.06, 0, 0, 0.08 * rad, 0.04, 0.08 * rad, (150, 124, 76), glow=True, rz=math.pi / 2)
 
 
 def cathedral_portal(r, seed, height=9.0, rose=10.6, gable=3.5, span=14.7):
@@ -1064,8 +1087,8 @@ def grand_stair(r, run=5, width=3, rise=0.4, steps=4, offset=0.0, cheeks=True):
     stair tile `rise` below the last and cut into `steps` steps, so its top step meets the floor above
     it; `width` tiles across, centred `offset` metres along Z. With `cheeks`, the cathedral's own: on
     the cheek walls either side a raking stone balustrade, a pedestal at each end, wrought-iron
-    lanterns burning on the top pair and stone urns on the foot pair. A tile's floor is its lowest
-    step, so everything sits on or above it."""
+    lanterns on the top pair (only one still burns) and stone urns on the foot pair. A tile's floor
+    is its lowest step, so everything sits on or above it."""
     d = T / steps
     across = width * T
     for i in range(run):
@@ -1125,7 +1148,10 @@ def grand_stair(r, run=5, width=3, rise=0.4, steps=4, offset=0.0, cheeks=True):
                     _bar(r, (x + ca * 0.24, top + 0.1, zb + sa * 0.24), (x, top + 0.7, zb), 0.04, IRON)
                 with r.at(x, top + 1.35, zb):
                     r.part("cube", 0, -0.3, 0, 0.44, 0.06, 0.44, IRON)
-                    r.part("cube", 0, 0, 0, 0.36, 0.54, 0.36, (236, 184, 100), glow=True)  # its panes, lit
+                    if side < 0:  # its panes, lit
+                        r.part("cube", 0, 0, 0, 0.36, 0.54, 0.36, (236, 184, 100), glow=True)
+                    else:  # long gone out, its glass cracked and sooted
+                        r.part("cube", 0, 0, 0, 0.36, 0.54, 0.36, (34, 30, 28))
                     for dx in (-0.19, 0.19):
                         for dz in (-0.19, 0.19):
                             r.part("cube", dx, 0, dz, 0.04, 0.6, 0.04, IRON)
@@ -1160,45 +1186,51 @@ def nave_runner(r, length=12, head=True, foot=True):
 
 
 def fountain(r, t, seed):
-    """The market's fountain, filling its tile: an octagonal basin of pale stone brimming with water, a
-    fluted shaft, an upper bowl spilling three falling streams, and a block on top carved with the
-    realm's crest on all four faces."""
-    stone = (236, 230, 218)  # sandstone, like the houses
+    """The market's fountain, filling its tile: an octagonal basin of sooted stone holding a skin of
+    dark, stagnant water, a fluted shaft, an upper bowl run dry but for one spout still dribbling into
+    the basin, a slab of its coping broken off and lying in the water, and a block on top carved with
+    the realm's crest on all four faces."""
+    stone = TOWN_STONE  # like the houses
     for i in range(8):  # the basin's eight sides and their coping
         a = i * math.pi / 4 + math.pi / 8
         x, z = math.cos(a) * 0.9, math.sin(a) * 0.9
         r.part("cube", x, 0.3, z, 0.2, 0.6, 0.78, stone, tex="ashlar", ry=-a)
-        r.part("cube", x * 1.02, 0.63, z * 1.02, 0.3, 0.08, 0.82, _dim(stone, 1.1), ry=-a)
-    r.part("cyl", 0, 0.48, 0, 1.75, 0.04, 1.75, WHITE, tex="water")  # the water
+        if i != int(seed) % 8:
+            r.part("cube", x * 1.02, 0.63, z * 1.02, 0.3, 0.08, 0.82, _dim(stone, 1.1), ry=-a)
+        else:  # this side's coping broke off and slid into the basin
+            r.part("cube", x * 0.7, 0.5, z * 0.7, 0.3, 0.08, 0.6, _dim(stone, 0.9), ry=-a + 0.4, rz=0.35)
+    r.part("cyl", 0, 0.48, 0, 1.75, 0.04, 1.75, STAGNANT, tex="water")  # the water, gone foul
     r.part("cyl", 0, 0.05, 0, 1.9, 0.1, 1.9, _dim(stone, 0.8), tex="flagstone")  # the step
     r.part("cyl", 0, 1.0, 0, 0.32, 1.1, 0.32, stone, tex="ashlar")  # the shaft
     for i in range(6):  # its flutes
         a = i * math.pi / 3
         r.part("cube", math.cos(a) * 0.16, 1.0, math.sin(a) * 0.16, 0.04, 1.0, 0.04, _dim(stone, 0.8))
     r.part("cyl", 0, 1.55, 0, 1.0, 0.16, 1.0, stone, tex="ashlar")  # the upper bowl
-    r.part("cyl", 0, 1.64, 0, 0.86, 0.03, 0.86, WHITE, tex="water")
+    r.part("cyl", 0, 1.64, 0, 0.86, 0.03, 0.86, _dim(stone, 0.55))  # its dry floor, black with old silt
     r.part("cube", 0, 2.05, 0, 0.42, 0.7, 0.42, _dim(stone, 1.05), tex="ashlar")  # the crest block
     r.part("cube", 0, 2.45, 0, 0.52, 0.1, 0.52, _dim(stone, 0.95))
     r.part("cyl", 0, 2.62, 0, 0.16, 0.24, 0.16, GILT)  # a gilt finial
     for i in range(2):  # through the block, so each shows on two of its faces
         with r.at(0, 2.05, 0, ry=i * math.pi / 2):
             realm_crest(r, GILT, cy=0.0, scale=0.6, through=0.46)
-    for i in range(3):  # three streams from the bowl's lip, falling to the basin
+    for i in range(3):  # three spouts round the bowl's lip; only the first still drips
         a = i * 2 * math.pi / 3 + seed
         ca, sa = math.cos(a), math.sin(a)
         r.part("cube", ca * 0.5, 1.62, sa * 0.5, 0.1, 0.06, 0.1, _dim(stone, 0.8))  # a spout
-        for k in range(3):
-            f = (t * 1.4 + k / 3) % 1.0
-            d = 0.52 + f * 0.3
+        if i:
+            continue
+        for k in range(2):
+            f = (t * 0.9 + k / 2) % 1.0
+            d = 0.52 + f * 0.12
             y = 1.6 - f * f * 1.1
-            r.part("sphere", ca * d, y, sa * d, 0.07, 0.11, 0.07, (160, 196, 220))
-        f = (t * 0.8 + i / 3) % 1.0  # a ripple spreading where it lands
-        r.part("cyl", ca * 0.82, 0.51, sa * 0.82, 0.1 + f * 0.3, 0.01, 0.1 + f * 0.3, (190, 214, 230))
+            r.part("sphere", ca * d, y, sa * d, 0.05, 0.08, 0.05, _dim(STAGNANT, 1.5))
+        f = (t * 0.5) % 1.0  # a slow ring spreading where it lands
+        r.part("cyl", ca * 0.64, 0.51, sa * 0.64, 0.1 + f * 0.3, 0.01, 0.1 + f * 0.3, _dim(STAGNANT, 1.3))
 
 
 def bench(r, seed):
     """A stone bench facing +X: a worn slab on two carved legs, a little moss in its joints."""
-    stone = _dim((236, 230, 218), 0.95 + (seed % 3) * 0.04)
+    stone = _dim(TOWN_STONE, 0.95 + (seed % 3) * 0.04)
     r.part("cube", 0, 0.46, 0, 0.5, 0.1, 1.7, stone, tex="ashlar")
     for z in (-0.65, 0.65):
         r.part("cube", 0, 0.2, z, 0.42, 0.42, 0.24, _dim(stone, 0.85), tex="ashlar")
@@ -1358,7 +1390,7 @@ def town_statue(r, seed):
     """A statue of the realm's founder on a stepped plinth in the square: a cloaked, hooded figure in
     weathered bronze gone green, the crest's shield held before it and a sword's point resting at its
     feet, a carved band round the plinth and offerings left on its step."""
-    stone = (170, 160, 140)
+    stone = _dim(TOWN_STONE, 0.86)
     bronze = (92, 120, 104) if seed % 2 == 0 else (110, 116, 96)
     dark = _dim(bronze, 0.7)
     r.part("cube", 0, 0.1, 0, 1.8, 0.2, 1.8, _dim(stone, 0.85), tex="ashlar")  # the plinth's steps
@@ -1624,7 +1656,7 @@ def town_tree(r, kind, seed, t=0.0, near=True):
     {"cypress": cypress, "pine": umbrella_pine, "olive": olive, "dead": dead_tree}[kind](r, seed, t, near)
 
 
-RAMPART_STONE = (236, 230, 220)  # pale, under the rough stone's grain, like the wall it dresses
+RAMPART_STONE = (126, 120, 112)  # weathered dark, under the rough stone's grain, like the wall it dresses
 RAMPART_SHADOW = _dim(RAMPART_STONE, 0.42)  # the depth of a blind arch
 
 
@@ -1903,7 +1935,7 @@ def drawers(r, seed, apothecary=False):
 
 # --- the redesigned town: jetties, dormers, pentices, outside stairs, street arches, the gaol grate ---
 
-GATE_STONE = (206, 198, 184)  # the street arch's dressed stone, under the ashlar's grain
+GATE_STONE = (124, 118, 108)  # the street arch's dressed stone, under the ashlar's grain
 GAOL_IRON = (46, 44, 48)
 GAOL_STONE = (128, 122, 112)
 GAOL_RUST = (112, 66, 42)
@@ -1944,7 +1976,7 @@ def jetty(r, seed, length=3, height=2.4):
     for i in range(length + 1):  # a bracket under each post, rising off a stone corbel in the wall
         z = -span / 2 + i * T
         z = max(-span / 2 + 0.12, min(span / 2 - 0.12, z))
-        r.part("cube", -0.94, -1.12, z, 0.14, 0.3, 0.22, (176, 166, 150), tex="ashlar")  # the corbel
+        r.part("cube", -0.94, -1.12, z, 0.14, 0.3, 0.22, TOWER_STONE, tex="ashlar")  # the corbel
         for k in range(4):  # the bracket's curve, built up in short lengths
             a0, a1 = k * math.pi / 8, (k + 1) * math.pi / 8
             p0 = (-1 + 0.56 * (1 - math.cos(a0)), -1.0 + 0.9 * math.sin(a0), z)
@@ -2062,7 +2094,7 @@ def outside_stair(r, seed, run=2, rise=3.0, flip=False):
     top a landing with a parapet before a plank door under a little tiled hood, a lantern glowing
     beside it."""
     sz = -1.0 if flip else 1.0
-    stone = (176, 168, 154)
+    stone = _dim(TOWN_STONE, 0.94)
     x, w = -0.55, 0.9  # the flight's middle and its width
     landing = 1.1
     length = run * T - landing
@@ -2275,10 +2307,10 @@ def gaol_grate(r, t):
 # east of the town wall, smoking chimney stacks on the houses' roofs, market stalls by the fountain,
 # washing strung across the lanes, nets drying on the quay and wrecks rotting out in the bay.
 HOUSE_SMOKE = (92, 90, 96)
-SAIL_CLOTH = (196, 184, 156)
+SAIL_CLOTH = (136, 126, 108)
 NET = (70, 76, 66)
 LIGHT_GLOW = (255, 214, 140)
-LINEN = ((222, 214, 196), (150, 60, 50), (70, 96, 130), (190, 170, 110), (120, 130, 100))
+LINEN = ((150, 144, 130), (100, 50, 44), (60, 70, 86), (120, 108, 80), (84, 90, 74))  # greyed
 
 
 def lighthouse(r, seed, height=16.0):
@@ -2316,7 +2348,7 @@ def lighthouse(r, seed, height=16.0):
 def windmill(r, t, seed, height=9.0):
     """A stone tower mill on the cliffs over the town: a tapering rendered tower with a door and a
     window, a boat-shaped cap of boards and four lattice sails turning slowly in the wind off the sea."""
-    stone = (164, 156, 140)
+    stone = _dim(TOWN_STONE, 0.88)
     r.part("cyl", 0, height / 2, 0, 4.0, height, 4.0, stone, tex="rough_stone")
     r.part("cyl", 0, height * 0.75, 0, 3.4, height * 0.5, 3.4, _dim(stone, 0.95), tex="rough_stone")  # taper
     r.part("cube", 1.9, 1.1, 0, 0.3, 2.2, 1.0, DARK_WOOD, tex="wood_plank")  # the door
@@ -2369,7 +2401,7 @@ def market_stall(r, seed):
     r.part("cube", 0.72, 0.5, 0, 0.06, 0.8, 1.9, DARK_WOOD, tex="wood_plank")  # its front board
     for k in range(6):  # the awning, striped
         z = -0.95 + (k + 0.5) * 1.9 / 6
-        rgb = cloth if k % 2 == 0 else (214, 204, 182)
+        rgb = cloth if k % 2 == 0 else (140, 132, 116)
         r.part("cube", 0.05, 2.52, z, 1.75, 0.05, 1.9 / 6, rgb, rz=-0.23)
     r.part("cube", 0.93, 2.2, 0, 0.04, 0.3, 1.9, cloth)  # its valance
     goods = seed % 3
@@ -2443,3 +2475,66 @@ def wreck(r, seed):
         r.part("cyl", 0.2, 1.6, 0, 0.12, 1.8, 0.12, DARK_WOOD, rz=0.3)  # the mast's stump
         _bar(r, (0.0, 2.3, 0), (-1.8, 0.6, 0.5), 0.08, DARK_WOOD)  # the broken spar
         _bar(r, (0.2, 2.4, 0), (1.6, 0.8, -0.4), 0.02, (100, 90, 70))  # a trailing rope
+
+
+CHAR = (34, 28, 26)  # timber burnt black
+ASH_GREY = (70, 66, 64)  # ash and cinders, drifted
+DEBRIS_STYLES = ("tiles", "beams", "masonry")
+
+
+def town_debris(r, seed, style="tiles"):
+    """What the town's ruin left lying in its streets, low on the floor so you step over it and never
+    past its tile. `tiles`: a spill of broken oxblood roof tiles slid off the eaves, a slipped batten
+    and the dust they brought down. `beams`: two charred timbers fallen across each other in a drift of
+    ash, cinders and a scorched plank. `masonry`: dark blocks of ashlar and chips knocked off a wall,
+    one block split in two."""
+    rng = random.Random(seed * 7919 + DEBRIS_STYLES.index(style))
+
+    def spot(reach):  # somewhere within `reach` of the middle, so a turned pile keeps inside its tile
+        a, d = rng.random() * math.tau, reach * math.sqrt(rng.random())
+        return math.cos(a) * d, math.sin(a) * d
+
+    turn = rng.random() * math.tau
+    with r.at(0, 0, 0, ry=turn):
+        r.part("cube", 0, 0.008, 0, 1.4, 0.016, 1.1, ASH_GREY, ry=rng.random())  # the dust under it all
+        if style == "tiles":
+            for _ in range(14):  # broken pantiles, some on edge
+                x, z = spot(0.6)
+                k = rng.uniform(0.6, 1.1)
+                r.part("cube", x, 0.05, z, 0.42 * k, 0.05, 0.26 * k, _dim(CLAY_RIDGE, rng.uniform(0.7, 1.3)),
+                       tex="clay_tile", ry=rng.random() * 3, rz=rng.uniform(-0.5, 0.5))  # fmt: skip
+            for _ in range(5):  # shards
+                x, z = spot(0.7)
+                r.part("cube", x, 0.025, z, 0.1, 0.03, 0.08, _dim(CLAY_RIDGE, 0.8), ry=rng.random() * 3)
+            r.part(
+                "cube", 0.1, 0.06, -0.1, 1.3, 0.06, 0.08, _dim(OAK, 0.7), tex="wood_plank", ry=0.4, rz=0.05
+            )
+        elif style == "beams":
+            r.part("cube", 0, 0.14, 0, 1.36, 0.24, 0.24, CHAR, tex="wood_plank", ry=0.3, rz=0.06)
+            r.part(
+                "cube", 0.1, 0.32, 0.05, 1.3, 0.2, 0.2, _dim(CHAR, 1.2), tex="wood_plank", ry=-0.9, rz=-0.12
+            )
+            r.part("cube", -0.2, 0.04, 0.3, 0.8, 0.05, 0.26, _dim(OAK, 0.45), tex="wood_plank", ry=1.2)
+            for _ in range(6):  # heaps of ash and a few cinders still dull red
+                x, z = spot(0.6)
+                w = rng.uniform(0.25, 0.45)
+                r.part("sphere", x, 0.02, z, w, 0.08, w * 0.8, ASH_GREY)
+            for _ in range(4):
+                x, z = spot(0.5)
+                r.part("cube", x, 0.04, z, 0.06, 0.04, 0.06, (88, 30, 20))
+        else:
+            stone = _dim(TOWN_STONE, 0.8)
+            for _ in range(4):  # blocks fallen from a wall
+                x, z = spot(0.45)
+                h = rng.uniform(0.2, 0.32)
+                r.part("cube", x, h / 2, z, rng.uniform(0.35, 0.55), h, rng.uniform(0.25, 0.35),
+                       _dim(stone, rng.uniform(0.85, 1.1)), tex="ashlar", ry=rng.random() * 3,
+                       rz=rng.uniform(-0.15, 0.15))  # fmt: skip
+            r.part(
+                "cube", 0.4, 0.12, 0.4, 0.26, 0.24, 0.3, stone, tex="ashlar", ry=0.6, rz=0.2
+            )  # a split block
+            r.part("cube", 0.58, 0.1, 0.5, 0.2, 0.2, 0.3, _dim(stone, 0.9), tex="ashlar", ry=0.8, rz=-0.3)
+            for _ in range(8):  # chips
+                x, z = spot(0.7)
+                s = rng.uniform(0.06, 0.14)
+                r.part("cube", x, s / 2, z, s, s, s, _dim(stone, 0.9), ry=rng.random() * 3)

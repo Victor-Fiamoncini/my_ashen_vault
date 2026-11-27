@@ -2809,9 +2809,9 @@ def test_a_hipped_roof_slopes_on_every_side_over_the_same_eaves_as_a_gabled_one(
     square = Tex()
     town_models.roof(rig.Rig(square), 3, 3, hip=True)
     assert [k for k, _ in square.texes].count("wedge") == 0
-    # Gabled, an existing roof draws just as it did: slate, its gable ends in the wall's texture.
+    # Gabled, an existing roof draws just as it did: its gable ends in the wall's texture.
     old = Tex()
-    town_models.roof(rig.Rig(old), 4, 3, tex="violet_slate", wall_tex="ashlar")
+    town_models.roof(rig.Rig(old), 4, 3, tex="slate", wall_tex="ashlar")
     assert ("wedge", "ashlar") in old.texes and "pyramid" not in [k for k, _ in old.texes]
 
 
@@ -2871,11 +2871,11 @@ def test_the_new_town_dressing_is_built_in_detail_and_set_where_it_belongs():
     clear = Clear()
     town_models.street_arch(rig.Rig(clear), 0)
     assert clear.low == []
-    # Turrets and balconies wear slate unless told otherwise.
+    # Turrets and balconies wear the town's oxblood tile unless told otherwise.
     for fn in (town_models.roof_turret, town_models.balcony):
-        for roof_tex in ("violet_slate", "clay_tile"):
+        for roof_tex in ("clay_tile", "slate"):
             gpu = _GlowGpu()
-            if roof_tex == "violet_slate":
+            if roof_tex == "clay_tile":
                 fn(rig.Rig(gpu), 1)
             else:
                 fn(rig.Rig(gpu), 1, roof_tex=roof_tex)
@@ -2931,6 +2931,30 @@ def test_the_wall_over_a_boss_door_rises_to_its_tiles_ceiling():
         tops = [y for _, y in gpu.parts]
         assert bool(tops) == (frame > models.BOSS_DOOR_TOP)
         assert (bool(tops) and max(tops) > models.BOSS_DOOR_CLEAR) == reaches
+
+
+def test_harrowmeres_ruin_lies_low_in_its_tile_and_its_broken_windows_are_dark():
+    """The debris of the town's ruin is built in detail in every style, baked, blocks nothing and lies
+    low inside its own tile; a boarded-up window shows no light, where a whole one glows."""
+    from ashen_vault.render import bounds, town_models
+    from ashen_vault.world.world import BLOCKING_PROPS, STATIC_PROPS
+
+    assert "town_debris" in STATIC_PROPS and "town_debris" not in BLOCKING_PROPS
+    for style in town_models.DEBRIS_STYLES:
+        for seed in (0, 5, 17):
+            gpu = _GlowGpu()
+            town_models.town_debris(rig.Rig(gpu), seed, style)
+            assert len(gpu.parts) >= 8 and gpu.glows == 0, (style, seed)
+            (x0, y0, z0), (x1, y1, z1) = bounds.measure(
+                lambda r, seed=seed, style=style: town_models.town_debris(r, seed, style)
+            )
+            assert y1 < 0.6 and y0 > -0.1, (style, seed)
+            assert max(-x0, x1, -z0, z1) < 1.0, (style, seed)
+    whole, boarded = _GlowGpu(), _GlowGpu()
+    town_models.shutters(rig.Rig(whole), 3)
+    town_models.shutters(rig.Rig(boarded), 3, broken=True)
+    assert whole.glows > 0 and boarded.glows == 0
+    assert any(tex == "wood_plank" and kind == "cube" for kind, _, tex in boarded.looks)
 
 
 def test_harrowmeres_and_the_fens_new_dressing_is_built_in_detail():

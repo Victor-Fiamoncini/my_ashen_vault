@@ -1,19 +1,20 @@
 [meta]
 name = Harrowmere
-ambient = 0.25 0.24 0.29
-fog = 0.14 0.14 0.19
-fog_range = 8 40
+ambient = 0.2 0.19 0.22
+fog = 0.11 0.11 0.13
+fog_range = 6 34
 model_range = 36
 sky = dusk
 atlas = harrowmere
-torch = 4 0.55 0.5 0.45
+torch = 4 0.5 0.42 0.36
 start = 2 22 0
 default = ,
 edge_top = -0.5
 open_sea = true
 entity_floor = auto
 
-// Harrowmere under a low, darkening dusk: a walled town laid out square, one gate to each road. You come
+// Harrowmere under a low, sooty dusk, its trees dead and its streets still strewn with what fell when
+// the town was ruined: a walled town laid out square, one gate to each road. You come
 // in by the cemetery's gate in the west wall, down the west avenue to the round plaza at the heart of
 // town, where the Silent Bell hangs on its plinth by the shrine. North of the plaza the cathedral stands
 // on its terrace two metres up, its great door facing south down the grand stair, the Enthroned at the
@@ -47,10 +48,11 @@ P = wall tex=flagstone top=0.8 cap=flagstone
 . = floor tex=cobble h=0
 s = floor tex=setts h=0
 - = floor tex=setts h=0
-// The flagged kerbs raised along the avenues and the streets, the garden's earth gate and the grass.
+// The flagged kerbs raised along the avenues and the streets, the garden's earth gate and its dead,
+// ash-grey grass.
 / = floor tex=flagstone h=0.15 side=flagstone
 _ = floor tex=dirt h=0 side=rough_stone
-G = floor tex=grass h=0 side=rough_stone
+G = floor tex=ash_grass h=0 side=rough_stone
 // The plaza's flagstones, round the bell, and the quay's outside the sea gate.
 e = floor tex=flagstone h=0 side=rough_stone
 t = floor tex=flagstone h=0 side=rough_stone
@@ -85,43 +87,43 @@ c = floor tex=rough_stone h=0 ceil=3.4 ceil_tex=cliff_rock side=cliff_rock dark=
 R.........N.....[;;;;;;;;;;;;;[.......Ë.(.č...RAAAAAAAAAAAAAA
 R.?......Ì.ÿ....[ù;;ÉêCCCëC;;ù[ssĕss¶ĕs).đ...!RAAAAAAAAAAAAAA
 R,,,,,,,/sss||||[;;íCDaîaDCí;;[.ÄHĘæHH¡sss,,,,RAAAAAAAAAAAAAA
-R,,..à.,,sss|GGG[;;ìCYaEaYCì;;[,H%iiiLHsss,,,ÐRAAAAAAAAAAAAAA
-R,,Áqqqq,sss|GTG[;;ìCnĨnnnCì;;[.Hiiid¾Hsss,,,,RAAAAAAAėAAAAAA
+R,,..à.,,ssÇ|GGG[;;ìCYaEaYCì;;[,H%iiiLHsss,,,ÐRAAAAAAAAAAAAAA
+R,,Áqqqq,sss|GTG[;;ìCnĨnnnCì;;[.Hiiid¾HÇss,,,,RAAAAAAAėAAAAAA
 R,,q»Liq·sss|GGG[;;íCOIÊIOCí;;[.H%iii¾Hsss,,Ü,RAAAAAAAAAAAAAA
 R,,qZiiä-sss|GGG[;;ìCðQ`QñCì;;[,H+iÒi$Hsss,,,,RAAAAAAAAAAAAAA
 R,,q»iÏq.sss|TGG[;;ìCOQÓQOCì;;[.HHHHĘH¤sss,,,,RAAAAAAAAAAAAAA
 R,,qqqqq.sss|GGG[;;íCòInIóCí;;[,,,,,,,/sssX,ø,RAAAAAAAAAAAAAA
 R,,,.à.,.sss|GGG[;;;CĿn:nŀC;;;[,.ē..ē.ssss,,,,²AAAAAAAAAAAAAA
 R,,,,,,,Xsss_GGT[ù;;èCnïnCé;;ù[,ÂHHĘHHXsss,,,,RAAAAAAAAAAAAAA
-±,ÀHHĘHH¡.ss|GGG[;;;;;;¬;;;;;;[,Å%¼¼LH.sss,Û,,RAAAAAAAAAAAAAA
+±,ÀHHĘHH¡.ss|GGG[;;;;;;¬;;;;;;[,Å%¼¼LH.sss,Û,ÆRAAAAAAAAAAAAAA
 R,Hû¸ãkÏHĒss|GGG[[[[[94"49[[[[[,HiiÒiH.sss,,,,RAAAAAAAAAAAAAA
-R,H×kkkºHþss|TGG,,,,,83338,,,,,ēH&imiä.sssĚ,,,RAAAAAAAAAAAAAA
-R,Hôkbkk¹.ss|GGG,,,,,72227,,,,,.H>iĎHHµsss,,,,RVVVVVVVVAAAAAA
-R,HÍkúkkH.ss|GGG,,,,,61116,,,,,.H%½H.Ï.sss,,,ÝRwUwvvwwVAAAAAA
+R,H×kkkºHþsŒ|TGG,,,,,83338,,,,,ēH&imiä.sssĚ,,,RAAAAAAAAAAAAAA
+R,Hôkbkk¹.ss|GGG,,,,,72227,Æ,,,.H>iĎHHµsss,,,,RVVVVVVVVAAAAAA
+RŒHÍkúkkH.ss|GGG,,,Œ,61116,,,,,.H%½H.Ï.sss,,,ÝRwUwvvwwVAAAAAA
 R,H*k¸ýÎHĒss|GGTÞ,,eeeeeeeee,,Þ,«HH¤...sss,ø,ÝRwwwvvwwVAAAAAA
-R,ÑHHHHHH.ss|GGG,,XeeeeeeeŁeX,,,,,,,,,/sss,,,,RwwVVVwwVAAAAAA
-R,,,,â,,/sss||||,,eeMeeeeeeee,,,,,,,,,/sss,,,,RwõVAVwwVAAAAAA
-R///X////sss,,X,,eeeeeeeeeeeee///X/////sss/X//RwwVAVwUVAAAAAA
+R,ÑHHHHHH.ss|GGG,,XeeeÆeeeŁeX,,,,,,,,,/sss,,,,RwwVVVwwVAAAAAA
+R,,,,â,,/sss||||,,eeMeeeeeeee,,Œ,,,,,,/sss,,,,RwõVAVwwVAAAAAA
+R///X////sss,,X,,eeeeeeeeeŒeee///X/////ssÇ/X//RwwVAVwUVAAAAAA
 Rs¿sssssssssssssseeeeePPPeeeeessssssssssssssssRvvVAVwwVAAAAAA
 RüssssssssssssssseeÕeePBPeeÖeessssssssssssssssvvvVAVwwVVVVVAA
-RsssssssssssssssseeeeePPPeeeeessssssssssssssssvvöVAVwwVVyx¢KA
-R/¥/////,,]]e]]//eeeeeeeeeeeee///////////////§RVVVAVwwVVyyVAA
+RsssssssssssssssseeeeePPPeeeeesssssssssssssœssvvöVAVwwVVyx¢KA
+R/¥/////Æ,]]e]]//Æeeeeeeeeeeee///////////////§RVVVAVwwVVyyVAA
 R,,,,,,,,,]ċeg],,,ełeeeeeeeŃe,ŚHHHH,,ś####,GGGRAAAAVwõVVFyVAA
 R,ŔHHHH¡,,]eWe],,,XeeeeSeeeeX,H+%$H,,#Ï$Ï#,GTGRAAAAVwwyyyyVAA
 R,H+L¸ÍHŕ,]ßee],,Þ,eeeeeeeee,ÞHńiÒĘ,,ęiiŅ#,GGGRAAAAVUwyzyyVAA
 R,H+kkkH,,]]]]],,,,,,eeeee,,,,HiiiH,,#Ðii#,GTGRAAAAVVVVVVVVAA
-R,HkÒkk¹,,,,,,,,,,,,,,sss,,,Ě,HHšHH,,##š##,GGGRAAAAAAAAAAAAAA
+R,HkÒkk¹,,,,,,,,Æ,,,,,sss,,,Ě,HHšHH,,##š##,GGGRAAAAAAAAAAAAAA
 R,HkkkhH,,,,,,Ĕ,,,Ĕ,,Xsss,,,,..Ţ.Ţ..Ŋ.ţ.ţ....ŋRAAAAAAAAAAAAAA
-R,H*kÎ>Hŕ,ě,,Ãā#æ#ā#,,sss,,,,.Ť.Ť...ť.ť...Ŧ.Ŧ.RAAAAAAAAAAAAAA
+R,H*kÎ>Hŕ,ě,,Ãā#æ#ā#,,sss,,Ç,.Ť.Ť...ť.ť...Ŧ.Ŧ.RAAAAAAAAAAAAAA
 ±,ĘHHHHH,,,,,#Lii%i#,,sss,,,,Ş#æ##,şHæHH,ŠHæHH²AAAAAAAAAAAAAA
-R,,,,,,,,,¨,,#iiili#Ĕ,sss,ÔÙ,#iii#,HiiiH,HÒiiHRAAAAAAAAAAAAAA
-R,,,,,,,,,,,,#iÒiii#D,sss,,,,ęņii#,HÒiŇH,HiiňĘRAAAAAAAAAAAAAA
+R,,,,,,,,,¨,Ç#iiili#Ĕ,sss,ÔÙ,#iii#,HiiiH,HÒiiHRAAAAAAAAAAAAAA
+Rœ,,,,,,,,,,,#iÒiii#D,sss,,,,ęņii#,HÒiŇH,HiiňĘRAAAAAAAAAAAAAA
 R,,,,,,,,,,,,#$iÒiÏ#Ĕ,sss,,,,#+$&#,H%$<H,H$iÐHRAAAAAAAAAAAAAA
 R,,,,,,,X,,T,#i<iiÏ#,,sss,,,Ě#####,HHHHĘ,HHHHHRAAAAAAAAAAAAAA
-R,,{,,,,,T,,,###ę###,,sssÛ,T,,,,,,,,,,,,,,,,,,RAAAAAAAAAAAAAA
-R...............Ā........X....................RAAAAAAAAAAAAAA
-R............................................}RAAAAAAAAAAAAAA
-R.............................................RAAAAAAAAAAAAAA
+R,,{,Ç,,,T,,,###ę###Œ,sssÛ,T,,,,,,,,,,,,,,,,,,RAAAAAAAAAAAAAA
+R.............Œ.Ā........X.....Æ..........Ç...RAAAAAAAAAAAAAA
+R..................................Æ.........}RAAAAAAAAAAAAAA
+R..œ..........................................RAAAAAAAAAAAAAA
 RRRRRRRRRRRRRRRRRRRRŝRsŜsRŝRRRRRRRRRRRRRRRRRRRRAAAAAAAAAAAAAA
 RttttĝttttttÛttttttÐtttttttttÝttttĝttttttÏttttRAAAAAAAAAAAAAA
 RtttttttÏttttttĝttttttttttttttÐtttttttttÝtttttRAAAAAAAAAAAAAA
@@ -182,7 +184,7 @@ X = lamp_post
 // the gable over it and another rose above the throne, pillars, pews facing the throne, a crimson
 // runner up the nave, candles and banners. Its floor is marble lozenges in bordered panels. Its roofs
 // stay dark slate, so the hilltop stands out over the town's clay.
-É = roof span=7,10 ridge=z top=9 pitch=3.5 tex=violet_slate wall=rough_stone on=C
+É = roof span=7,10 ridge=z top=9 pitch=3.5 tex=clay_tile wall=rough_stone on=C
 Ê = cathedral_spire height=15 base=11 on=n
 è = cathedral_tower height=15 shift=-1,1 on=C
 é = cathedral_tower height=15 shift=1,1 on=C
@@ -239,18 +241,19 @@ D = banner
 // set either side of its door, or of the middle of a wall without one, and share one look (`seed=`
 // sets their paint, grille and shutters): Brannoc's (Ē), Pell's (ē), Wren's (Ĕ), Tamsin's (ĕ), the
 // watch office's (ŕ) and the neighbourhood's (Ţ ţ Ť ť Ŧ); Corvane's hut keeps one plain window in the
-// middle of its north and south walls (à).
-à = shutters
+// middle of its north and south walls (à). Corvane's and two of the neighbourhood's (ţ, Ŧ) are boarded
+// up, dark behind their planks, a shutter hanging off its last hinge (`broken`).
+à = shutters broken
 Ē = shutters seed=8
 ē = shutters seed=0
 Ĕ = shutters seed=6
 ĕ = shutters seed=11
 ŕ = shutters seed=3
 Ţ = shutters seed=2
-ţ = shutters seed=4
+ţ = shutters seed=4 broken
 Ť = shutters seed=5
 ť = shutters seed=9
-Ŧ = shutters seed=13
+Ŧ = shutters seed=13 broken
 ä = door_arch yaw=0 on=i
 æ = door_arch yaw=-90 on=i
 š = door_arch yaw=90 on=i
@@ -317,9 +320,10 @@ $ = hearth
 // Wattle fences round the walled garden.
 | = fence
 @ = boat on=~
-T = tree kind=olive
-ø = tree kind=pine
-ù = tree kind=cypress
+// The town's trees, long dead in the ash: bare, grey limbs clawing at the sky.
+T = tree kind=dead
+ø = tree kind=dead
+ù = tree kind=dead
 // The gate of the Cemetery of Ashes in the west wall: the Ashen come through it into town, and it
 // shuts behind them for good.
 ü = cemetery_gate yaw=0 sentinels=false
@@ -371,3 +375,10 @@ N = exit map=cinderhold at=30,111,-90 label=Take_the_north_road model=road_gate 
 // Washing strung between the watch office and Wren's house, and a balcony over the forge's yard.
 ě = washing_line span=10
 â = balcony roof_tex=clay_tile
+// The spoils of the town's ruin, left where they fell: broken roof tiles slid off the eaves, charred
+// timbers in their ash, masonry knocked out of the walls; and the bones no one came to bury, in the
+// corners by the wall.
+Æ = town_debris style=tiles
+Ç = town_debris style=beams
+Œ = town_debris style=masonry
+œ = bones

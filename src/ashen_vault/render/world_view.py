@@ -580,13 +580,14 @@ class WorldView:
                 elif k == "shutters":  # an oak frame in a half-timbered wall, dressed stone in any other
                     wall = world.map.wall_behind(p.tx, p.tz, p.yaw)
                     look = int(p.props.get("seed", seed))  # `seed=`: the windows of one house alike
-                    town_models.shutters(rig, look, timber=wall is not None and wall.wall_tex == "timber")
+                    timber = wall is not None and wall.wall_tex == "timber"
+                    town_models.shutters(rig, look, timber=timber, broken=flag(p.props, "broken"))
                 elif k == "jetty":
                     town_models.jetty(
                         rig, seed, int(p.props.get("len", "3")), float(p.props.get("height", "2.4"))
                     )
                 else:
-                    town_models.balcony(rig, seed, p.props.get("roof_tex", "violet_slate"))
+                    town_models.balcony(rig, seed, p.props.get("roof_tex", "clay_tile"))
         elif k == "door_arch":
             town_models.door_arch(
                 rig,
@@ -629,7 +630,7 @@ class WorldView:
                     float(p.props.get("height", "3.2")),
                     float(p.props.get("radius", "0.9")),
                     float(p.props.get("cap", "3.6")),
-                    p.props.get("roof_tex", "violet_slate"),
+                    p.props.get("roof_tex", "clay_tile"),
                 )
         elif k == "rampart_bay":
             town_models.rampart_bay(rig, p.props["kind"], float(p.props["height"]), seed)
@@ -1285,6 +1286,9 @@ PROP_DRAWERS = {
     ),
     "net_rack": lambda view, rig, p, t: town_models.net_rack(rig, p.tx * 7 + p.tz * 3),
     "wreck": lambda view, rig, p, t: town_models.wreck(rig, p.tx * 7 + p.tz * 3),
+    "town_debris": lambda view, rig, p, t: town_models.town_debris(
+        rig, p.tx * 7 + p.tz * 3, p.props.get("style", "tiles")
+    ),
     "sunken_tower": lambda view, rig, p, t: sunken_models.sunken_tower(
         rig, p.tx * 7 + p.tz * 3, float(p.props.get("height", "18"))
     ),

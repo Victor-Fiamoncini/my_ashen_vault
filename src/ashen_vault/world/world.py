@@ -444,7 +444,7 @@ STATIC_PROPS = frozenset(
         *("specimen_cage", "hand_rack", "lab_bench", "telescope"),
         *("moon_townhouse", "moon_tower", "gorge_buttress", "moon_oriel", "distant_city"),
         *("wall_buttress", "slag_runnel", "gibbet_cages"),
-        *("lighthouse", "market_stall", "washing_line", "net_rack", "wreck"),
+        *("lighthouse", "market_stall", "washing_line", "net_rack", "wreck", "town_debris"),
         *("fallen_watchtower", "rotten_palisade"),
         "wall_crack",
         "ash_mound",

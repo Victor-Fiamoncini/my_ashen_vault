@@ -234,18 +234,18 @@ SKIES = {
         ),
         ranges=(Range(195.0, 345.0, 4.0, (0.27, 0.28, 0.32), seed=21),),  # the downs, faint in the gloom
     ),
-    # Harrowmere: dusk under a bruised ceiling of cloud, a dull copper sun sinking in the south,
-    # and in the north, over the Vesper Gate, Vesperholm's full moon.
+    # Harrowmere: a sooty dusk under a heavy, bruised ceiling of cloud, a dull ember of a sun sinking
+    # in the south, and in the north, over the Vesper Gate, Vesperholm's full moon.
     "dusk": Sky(
-        zenith=(0.07, 0.07, 0.12),
-        sun=(0.92, 0.6, 0.38),
+        zenith=(0.045, 0.045, 0.065),
+        sun=(0.74, 0.42, 0.28),
         sun_at=SUN_AT,
-        halo=(0.43, 0.29, 0.23),
+        halo=(0.3, 0.19, 0.15),
         halo_size=18.0,
-        clouds=(0.24, 0.22, 0.27),
-        cloud_under=(0.12, 0.12, 0.17),
-        mist=(0.18, 0.18, 0.23),
-        stars=0.5,
+        clouds=(0.17, 0.16, 0.18),
+        cloud_under=(0.08, 0.08, 0.1),
+        mist=(0.12, 0.12, 0.14),
+        stars=0.32,
         far_moon=FarMoon(
             at=MOON_AT,
             color=(0.8, 0.84, 0.92),
