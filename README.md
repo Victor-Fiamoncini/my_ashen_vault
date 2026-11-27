@@ -45,193 +45,51 @@ trademarks of FromSoftware, Inc. (*Dark Souls* is published by Bandai Namco Ente
 
 <table>
   <tr>
-    <td><img src="docs/screenshots/title.png" alt="Title screen circling the Silent Bell on the foggy, cobbled Bell Square"></td>
     <td><img src="docs/screenshots/village.png" alt="The Silent Bell in its frame on Harrowmere's paved Bell Square, a cathedral tower behind, a hatchet and a buckler in hand"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>Title screen</sub></td>
-    <td align="center"><sub>The Silent Bell, at the heart of Harrowmere</sub></td>
-  </tr>
-  <tr>
     <td><img src="docs/screenshots/cemetery.png" alt="Waking bare-handed in the Cemetery of Ashes: grey ash underfoot between soot-stained walls, a shrine's flame burning in its iron dish, the first hint below"></td>
-    <td><img src="docs/screenshots/mourner.png" alt="A Shrouded Mourner, a hooded figure in dark robes, bowed by a stone coffin in the cemetery's chapel, a rusted sword in hand"></td>
   </tr>
   <tr>
+    <td align="center"><sub>The Silent Bell, at the heart of Harrowmere</sub></td>
     <td align="center"><sub>Waking in the Cemetery of Ashes, by its first shrine</sub></td>
-    <td align="center"><sub>A Shrouded Mourner, bowed at a grave until you come too close</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/silk.png" alt="The silk sealing the chapel's far door burning away from the bottom up, charred patches glowing at the edges, flames licking up its face"></td>
-    <td><img src="docs/screenshots/sexton.png" alt="The Ashen Sexton in its walled yard, a hulking grave-digger of ash raising its spade, its health bar above"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>Flame Bolt burning the silk off the chapel door</sub></td>
-    <td align="center"><sub>The Ashen Sexton, keeper of the cemetery's gate</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/dialogue.png" alt="Talking to Odrin the bell-keeper"></td>
-    <td><img src="docs/screenshots/forge.png" alt="Brannoc the smith hammering at his anvil in the forge"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>Odrin, keeper of the silent bell</sub></td>
-    <td align="center"><sub>Brannoc's forge</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/cathedral.png" alt="The cathedral's nave, pews and pillars between stained-glass windows, leading to the Enthroned under a rose window"></td>
-    <td><img src="docs/screenshots/inventory.png" alt="The Belongings screen: a mace in the Primary slot, a round shield in Secondary, ringmail and leather gloves, the Equipped panel and the stats"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>The cathedral, where the Enthroned sits</sub></td>
-    <td align="center"><sub>Belongings, with a spinning item preview</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/sewer_drains.png" alt="A narrow vaulted sewer run, sludge underfoot between brick walls"></td>
     <td><img src="docs/screenshots/cistern.png" alt="The sewers' cistern: brick pillars, a grate in the floor and its shrine's flame burning in the dark"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>The Market Drains, under Harrowmere's streets</sub></td>
-    <td align="center"><sub>The Cistern, where the sewers meet</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/mother_gnawl.png" alt="Mother Gnawl, a giant rat with glowing red eyes, risen in her dark nest, her health bar above"></td>
-    <td><img src="docs/screenshots/sodden_pall.png" alt="The Sodden Pall, a towering bell of green ooze with a drowned face in its folds, in its flooded cistern"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>Mother Gnawl rising in her open nest</sub></td>
-    <td align="center"><sub>The Sodden Pall, behind its great door</sub></td>
-  </tr>
-  <tr>
     <td><img src="docs/screenshots/harrowmere_chasm.png" alt="Looking out from a ledge over a vast amber-lit chasm, ruined brick towers rising out of it and a plaza far below"></td>
-    <td><img src="docs/screenshots/drowned_plaza.png" alt="A broad sunken plaza around its fountain, stone golems standing like statues among the pillars"></td>
   </tr>
   <tr>
+    <td align="center"><sub>The Cistern, where the sewers meet</sub></td>
     <td align="center"><sub>Old Harrowmere, from the Breach Landing</sub></td>
-    <td align="center"><sub>The Drowned Plaza, under its rift of daylight</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/sunken_sexton.png" alt="A stooped, sodden bell-keeper on a stair cut into the cliff, pointing a staff crowned with teal mortar-light"></td>
-    <td><img src="docs/screenshots/keystone.png" alt="The Keystone, a stone giant carrying a slab of the old city's floor on its back, rising in its torchlit court, its health bar above"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>A Sunken Sexton on the Cliff Stair</sub></td>
-    <td align="center"><sub>The Keystone, in the Foundation Court</sub></td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/vigil_chapel.png" alt="A dim moonstone nave, a red runner between dark pews leading to a faint glow on the altar, tall pillars either side"></td>
-    <td><img src="docs/screenshots/combat.png" alt="A claymore held in both hands, ringmail sleeves and chain mitts, facing a bone walker"></td>
+    <td><img src="docs/screenshots/combat.png" alt="A claymore held in both hands, ringmail sleeves and chain mitts, facing a bone walker in a torchlit cell row"></td>
   </tr>
   <tr>
     <td align="center"><sub>The Vigil Chapel, the one hall the fall never reached</sub></td>
-    <td align="center"><sub>The prison's Claymore, against a Bone Walker</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/warden.png" alt="The Ashen Warden boss in his hall"></td>
-    <td><img src="docs/screenshots/undercroft_lift.png" alt="Riding a barred cage lift down a shaft toward a wall of skulls and bones"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>The Ashen Warden</sub></td>
-    <td align="center"><sub>Riding the cage lift down into the Undercroft</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/gallery.png" alt="The Butcher, a hooded brute with a cleaver, in his slaughter hall above the Warden's Gallery, meat hooks hanging behind him"></td>
-    <td><img src="docs/screenshots/corvane.png" alt="Corvane's shop of curved blades, the katana on show"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>The Butcher, waiting in his slaughter hall</sub></td>
-    <td align="center"><sub>Corvane's blades, for those who have proven themselves</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/jungle_trail.png" alt="A narrow hedged trail under a darkening canopy, glowing toadstools at the cave mouth ahead"></td>
-    <td><img src="docs/screenshots/mossmouth.png" alt="A brazier just kindled in the dark Mossmouth cave, a chest beside it"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>The green trail out of Harrowmere, ending at the cave</sub></td>
-    <td align="center"><sub>Mossmouth: a cold brazier kindled with Pyre</sub></td>
+    <td align="center"><sub>The Abandoned Prison's Claymore, against a Bone Walker</sub></td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/verdant_hollow.png" alt="A vine-walled path under the canopy of the Verdant Hollow"></td>
-    <td><img src="docs/screenshots/bark_husk.png" alt="A Bark Husk, a hollow dead tree with a gaping face and splintered crown, beside a thorn plant"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>The Verdant Hollow, through the cave at the end of Harrowmere's green trail</sub></td>
-    <td align="center"><sub>A Bark Husk: circle it and strike the glow in its back</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/canopy_walk.png" alt="A plank walkway lit by torches high in the treetops, a snare bloom waiting on it"></td>
-    <td><img src="docs/screenshots/root_caverns.png" alt="A bonfire throwing sparks in the dark Root Caverns, roots hanging from the ceiling"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>The Canopy Walk, the long way to the Loom Mother</sub></td>
-    <td align="center"><sub>A bonfire in the Root Caverns, under the bog</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/loom_mother.png" alt="The Loom Mother, a giant spider boss"></td>
-    <td><img src="docs/screenshots/sallow_fen.png" alt="A violet mire under a red sky, a stone beacon on its island crowned with violet fire, a Fen Lurk squatting in the water and the toxin bar filling"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>The Loom Mother</sub></td>
-    <td align="center"><sub>The Sallow Fen: one of its three beacons, burning violet</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/gargoyle_way.png" alt="A straight ash road between dark cliffs leading to the black fortress, gargoyles and torches in niches either side, the name THE CINDERHOLD rising over the screen"></td>
     <td><img src="docs/screenshots/cinderhold_bridge.png" alt="A long stone bridge leading to a black fortress under a smoky red sky: a crenellated great wall with burning windows rising from the lava, a gatehouse, a bastion, a great keep and smelter stacks"></td>
   </tr>
   <tr>
-    <td align="center"><sub>Through the fen gate, onto the Gargoyle Way</sub></td>
+    <td align="center"><sub>The Verdant Hollow, through the cave at the end of Harrowmere's green trail</sub></td>
     <td align="center"><sub>The long bridge to the Cinderhold, up Harrowmere's north road</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/postern_ledge.png" alt="A narrow ledge along the fortress wall above lava, a magma bomb arcing toward a glowing landing circle and an iron bowman ahead"></td>
-    <td><img src="docs/screenshots/foundry.png" alt="The torchlit foundry hall, a channel of lava across the floor and a forge golem beyond it, the Stormbrand in an iron gauntlet"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>The postern ledge: a magma bomb about to land, a bowman waiting</sub></td>
-    <td align="center"><sub>The foundry, where a Forge Golem guards the lava channels</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/thunder_scroll.png" alt="Belongings on the Spells tab, previewing the Scroll of Thunder Spear: a soot-dark scroll on iron rods, its blue wax seal pressed with a glowing lightning rune"></td>
     <td><img src="docs/screenshots/keep_hall.png" alt="The Cinderhold Keep's great hall: iron pillars and a brazier, a forge golem standing among them"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>A spell scroll, sealed with its rune</sub></td>
-    <td align="center"><sub>The great hall of the Cinderhold Keep</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/gargoyles.png" alt="Two iron gargoyles on the keep's walled rooftop, battlements and turrets behind them, under two boss health bars"></td>
-    <td><img src="docs/screenshots/vesper_gate.png" alt="The Vesper Gate in Harrowmere's north wall standing open, pale moonlight pouring through it"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>Brand and Bellows, the twin gargoyles on the keep's roof</sub></td>
-    <td align="center"><sub>The Vesper Gate, standing open at the head of the cathedral steps</sub></td>
-  </tr>
-  <tr>
     <td><img src="docs/screenshots/vesperholm.png" alt="Lantern Square in Vesperholm, pale stone and silver roofs under a huge moon and a sky full of stars"></td>
-    <td><img src="docs/screenshots/veiled_knight.png" alt="A Veiled Knight, a pale armored shade, closing in across the moonlit castle bailey"></td>
   </tr>
   <tr>
+    <td align="center"><sub>The great hall of the Cinderhold Keep</sub></td>
     <td align="center"><sub>Vesperholm, the Moonbound City, under a moon that never sets</sub></td>
-    <td align="center"><sub>A Veiled Knight in the castle bailey</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/lantern_wraith.png" alt="A lantern-bearing wraith in a moonlit square by a pale statue, frost creeping in at the screen's corners after its lance hits"></td>
-    <td><img src="docs/screenshots/cathedral_long_night.png" alt="The front of a pale cathedral rising over the castle bailey, its spires lit by the moon"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>A Lantern Wraith's frost lance: moon-frost numbs your legs</sub></td>
-    <td align="center"><sub>The Cathedral of the Long Night, from the bailey</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/duchess.png" alt="Duchess Ilvane, a tall veiled noblewoman with a crescent glaive, rising in the cathedral's choir, her health bar above"></td>
     <td><img src="docs/screenshots/herrans_castle.png" alt="A terrace of pale stone high over the clouds, red-brick Victorian towers and a needle spire beyond"></td>
+    <td><img src="docs/screenshots/herran.png" alt="Herran's grafted arms reaching in under the broken iron dome of his observatory, his health bar above"></td>
   </tr>
   <tr>
-    <td align="center"><sub>Duchess Ilvane, the Moonwed, in her choir</sub></td>
     <td align="center"><sub>Herran's Castle, its towers over a sea of cloud</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/herran.png" alt="A towering gaunt figure with eight grafted arms and a crown of gold eyes under a broken iron dome, his health bar above"></td>
-  </tr>
-  <tr>
     <td align="center"><sub>Herran, the Many-Handed, in his observatory</sub></td>
   </tr>
 </table>

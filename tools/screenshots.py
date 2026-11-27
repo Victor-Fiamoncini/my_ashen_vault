@@ -1,7 +1,7 @@
 """Retakes the README screenshots.
 
     uv run python tools/screenshots.py                 # every shot, into docs/screenshots/
-    uv run python tools/screenshots.py sexton warden   # just these
+    uv run python tools/screenshots.py cemetery herran # just these
     uv run python tools/screenshots.py --out /tmp/x    # somewhere else, to look before replacing
     uv run python tools/screenshots.py --table         # print the README's gallery table
 
@@ -35,12 +35,6 @@ class Shot:
 
 SHOTS = [
     Shot(
-        "title",
-        "--smoke 60",
-        "Title screen",
-        "Title screen circling the Silent Bell on the foggy, cobbled Bell Square",
-    ),
-    Shot(
         "village",
         "--map harrowmere --at=22,30,-60 --equip primary=hatchet,secondary=buckler --smoke 40",
         "The Silent Bell, at the heart of Harrowmere",
@@ -55,83 +49,11 @@ SHOTS = [
         "a shrine's flame burning in its iron dish, the first hint below",
     ),
     Shot(
-        "mourner",
-        "--map ashen_cemetery --at=11,22,-90 --equip primary=rusted_sword,secondary=none --smoke 40",
-        "A Shrouded Mourner, bowed at a grave until you come too close",
-        "A Shrouded Mourner, a hooded figure in dark robes, bowed by a stone coffin in the cemetery's "
-        "chapel, a rusted sword in hand",
-    ),
-    Shot(
-        "silk",
-        "--map ashen_cemetery --at=12,18,-135 --equip primary=rusted_sword,secondary=spell:flame "
-        '--smoke 90 --script "wait:0.3 cast wait:0.9"',
-        "Flame Bolt burning the silk off the chapel door",
-        "The silk sealing the chapel's far door burning away from the bottom up, charred patches "
-        "glowing at the edges, flames licking up its face",
-    ),
-    Shot(
-        "sexton",
-        "--map ashen_cemetery --at=10,11,-90 --equip primary=rusted_sword,secondary=spell:flame "
-        '--smoke 700 --script "wait:0.1 interact wait:2.5 forward:2.0 wait:3.6"',
-        "The Ashen Sexton, keeper of the cemetery's gate",
-        "The Ashen Sexton in its walled yard, a hulking grave-digger of ash raising its spade, its health bar above",
-        note="its moves are random: retake until its spade is raised",
-    ),
-    Shot(
-        "dialogue",
-        "--map harrowmere --at=28,25,-90 --equip primary=rusted_sword,secondary=spell:flame "
-        '--smoke 40 --script "wait:0.2 interact"',
-        "Odrin, keeper of the silent bell",
-        "Talking to Odrin the bell-keeper",
-    ),
-    Shot(
-        "forge",
-        "--map harrowmere --at=8,18,180 --equip primary=hatchet,secondary=buckler --smoke 40",
-        "Brannoc's forge",
-        "Brannoc the smith hammering at his anvil in the forge",
-    ),
-    Shot(
-        "cathedral",
-        "--map harrowmere --at=18,6,180 --equip primary=ashblade,secondary=spell:mend --smoke 40",
-        "The cathedral, where the Enthroned sits",
-        "The cathedral's nave, pews and pillars between stained-glass windows, leading to the "
-        "Enthroned under a rose window",
-    ),
-    Shot(
-        "inventory",
-        "--map harrowmere --at=20,44,-90 --level 3 "
-        "--equip primary=mace,secondary=round_shield,body=ringmail,hands=leather_gloves "
-        '--smoke 60 --script "wait:0.2 menu wait:0.2 tab_next"',
-        "Belongings, with a spinning item preview",
-        "The Belongings screen: a mace in the Primary slot, a round shield in Secondary, ringmail and "
-        "leather gloves, the Equipped panel and the stats",
-    ),
-    Shot(
-        "sewer_drains",
-        "--map harrow_sewers --at=15,23,90 --level 3 --equip primary=leather_whip,secondary=spell:flame --smoke 40",
-        "The Market Drains, under Harrowmere's streets",
-        "A narrow vaulted sewer run, sludge underfoot between brick walls",
-    ),
-    Shot(
         "cistern",
         "--map harrow_sewers --at=22,20,-117 --level 3 --equip primary=spiked_club,secondary=round_shield "
         "--smoke 40",
         "The Cistern, where the sewers meet",
         "The sewers' cistern: brick pillars, a grate in the floor and its shrine's flame burning in the dark",
-    ),
-    Shot(
-        "mother_gnawl",
-        "--map harrow_sewers --at=34,32,-160 --level 4 --equip primary=bastard_sword,secondary=buckler "
-        '--smoke 300 --script "wait:3.6 back:0.8"',
-        "Mother Gnawl rising in her open nest",
-        "Mother Gnawl, a giant rat with glowing red eyes, risen in her dark nest, her health bar above",
-    ),
-    Shot(
-        "sodden_pall",
-        "--map harrow_sewers --at=41,13,-90 --level 4 --equip primary=spiked_club,secondary=round_shield "
-        '--smoke 300 --script "wait:4.5"',
-        "The Sodden Pall, behind its great door",
-        "The Sodden Pall, a towering bell of green ooze with a drowned face in its folds, in its flooded cistern",
     ),
     Shot(
         "harrowmere_chasm",
@@ -140,29 +62,6 @@ SHOTS = [
         "Old Harrowmere, from the Breach Landing",
         "Looking out from a ledge over a vast amber-lit chasm, ruined brick towers rising out of it and a "
         "plaza far below",
-    ),
-    Shot(
-        "drowned_plaza",
-        "--map old_harrowmere --at=15,24,40 --level 5 --equip primary=spiked_club,secondary=round_shield "
-        "--smoke 60",
-        "The Drowned Plaza, under its rift of daylight",
-        "A broad sunken plaza around its fountain, stone golems standing like statues among the pillars",
-    ),
-    Shot(
-        "sunken_sexton",
-        "--map old_harrowmere --at=23,3,184 --level 5 --equip primary=spiked_club,secondary=round_shield "
-        "--smoke 120",
-        "A Sunken Sexton on the Cliff Stair",
-        "A stooped, sodden bell-keeper on a stair cut into the cliff, pointing a staff crowned with teal "
-        "mortar-light",
-    ),
-    Shot(
-        "keystone",
-        "--map old_harrowmere --at=22,39,90 --level 6 --equip primary=spiked_club,secondary=round_shield "
-        '--smoke 300 --script "wait:3.4 back:1.2 look_up:0.12"',
-        "The Keystone, in the Foundation Court",
-        "The Keystone, a stone giant carrying a slab of the old city's floor on its back, rising in its "
-        "torchlit court, its health bar above",
     ),
     Shot(
         "vigil_chapel",
@@ -176,96 +75,14 @@ SHOTS = [
         "combat",
         "--map abandoned_prison --at 15,22,0 --level 4 --equip primary=claymore,body=ringmail,hands=chain_mitts "
         "--smoke 100",
-        "The prison's Claymore, against a Bone Walker",
-        "A claymore held in both hands, ringmail sleeves and chain mitts, facing a bone walker",
-    ),
-    Shot(
-        "warden",
-        "--map abandoned_prison --at=15,7,-90 --level 4 --equip primary=claymore --smoke 300",
-        "The Ashen Warden",
-        "The Ashen Warden boss in his hall",
-    ),
-    Shot(
-        "undercroft_lift",
-        "--map abandoned_prison --at 4,24,90 --level 5 --equip primary=bastard_sword,secondary=kite_shield "
-        '--smoke 680 --script "forward:0.15 wait:5 forward:0.6 wait:7"',
-        "Riding the cage lift down into the Undercroft",
-        "Riding a barred cage lift down a shaft toward a wall of skulls and bones",
-    ),
-    Shot(
-        "gallery",
-        "--map abandoned_prison --at=27,7,-90 --level 5 --equip primary=war_hammer --smoke 300",
-        "The Butcher, waiting in his slaughter hall",
-        "The Butcher, a hooded brute with a cleaver, in his slaughter hall above the Warden's Gallery, "
-        "meat hooks hanging behind him",
-    ),
-    Shot(
-        "corvane",
-        "--map harrowmere --at=6,26,180 --level 5 --equip primary=war_hammer --smoke 700 "
-        '--script "forward:2 interact wait:0.8 forward:2.2 wait:0.2 interact wait:0.3 confirm wait:0.3 confirm wait:0.3 confirm wait:0.3 confirm"',
-        "Corvane's blades, for those who have proven themselves",
-        "Corvane's shop of curved blades, the katana on show",
-    ),
-    Shot(
-        "jungle_trail",
-        "--map harrowmere --at=56,34,-90 --level 5 --equip primary=butcher_cleaver,secondary=spell:lumen "
-        "--smoke 40",
-        "The green trail out of Harrowmere, ending at the cave",
-        "A narrow hedged trail under a darkening canopy, glowing toadstools at the cave mouth ahead",
-    ),
-    Shot(
-        "mossmouth",
-        "--map verdant_hollow --at=15,31,180 --level 5 --equip primary=thornlash,secondary=spell:pyre "
-        '--smoke 120 --script "wait:0.3 cast wait:3"',
-        "Mossmouth: a cold brazier kindled with Pyre",
-        "A brazier just kindled in the dark Mossmouth cave, a chest beside it",
+        "The Abandoned Prison's Claymore, against a Bone Walker",
+        "A claymore held in both hands, ringmail sleeves and chain mitts, facing a bone walker in a torchlit cell row",
     ),
     Shot(
         "verdant_hollow",
         "--map verdant_hollow --at=9,12,90 --level 5 --equip primary=katana,secondary=spell:veil --smoke 40",
         "The Verdant Hollow, through the cave at the end of Harrowmere's green trail",
         "A vine-walled path under the canopy of the Verdant Hollow",
-    ),
-    Shot(
-        "bark_husk",
-        "--map verdant_hollow --at=26,17,-90 --level 5 --equip primary=leather_whip,secondary=spell:pyre --smoke 60",
-        "A Bark Husk: circle it and strike the glow in its back",
-        "A Bark Husk, a hollow dead tree with a gaping face and splintered crown, beside a thorn plant",
-    ),
-    Shot(
-        "canopy_walk",
-        "--map verdant_hollow --at=31,3,180 --level 5 --equip primary=katana,secondary=spell:venom "
-        '--smoke 40 --script "look_down:0.12"',
-        "The Canopy Walk, the long way to the Loom Mother",
-        "A plank walkway lit by torches high in the treetops, a snare bloom waiting on it",
-    ),
-    Shot(
-        "root_caverns",
-        "--map verdant_hollow --at=6,38,-100 --level 5 --equip primary=flamberge --smoke 25",
-        "A bonfire in the Root Caverns, under the bog",
-        "A bonfire throwing sparks in the dark Root Caverns, roots hanging from the ceiling",
-    ),
-    Shot(
-        "loom_mother",
-        "--map verdant_hollow --at=15,7,-90 --level 6 --equip primary=flamberge --smoke 300",
-        "The Loom Mother",
-        "The Loom Mother, a giant spider boss",
-    ),
-    Shot(
-        "sallow_fen",
-        "--map cinderhold --at=49,97,-90 --level 7 --equip primary=moonless_tachi,secondary=spell:veil "
-        "--smoke 60",
-        "The Sallow Fen: one of its three beacons, burning violet",
-        "A violet mire under a red sky, a stone beacon on its island crowned with violet fire, a Fen Lurk "
-        "squatting in the water and the toxin bar filling",
-    ),
-    Shot(
-        "gargoyle_way",
-        "--map cinderhold --at=30,72,-90 --flags lever:fen_beacons --level 7 "
-        '--equip primary=moonless_tachi,secondary=spell:veil --smoke 230 --script "wait:0.3 forward:2.6"',
-        "Through the fen gate, onto the Gargoyle Way",
-        "A straight ash road between dark cliffs leading to the black fortress, gargoyles and torches in "
-        "niches either side, the name THE CINDERHOLD rising over the screen",
     ),
     Shot(
         "cinderhold_bridge",
@@ -276,51 +93,10 @@ SHOTS = [
         "with burning windows rising from the lava, a gatehouse, a bastion, a great keep and smelter stacks",
     ),
     Shot(
-        "postern_ledge",
-        "--map cinderhold --at=28,30,180 --level 7 "
-        "--equip primary=bearded_axe,secondary=kite_shield,body=brigandine --smoke 190",
-        "The postern ledge: a magma bomb about to land, a bowman waiting",
-        "A narrow ledge along the fortress wall above lava, a magma bomb arcing toward a glowing landing "
-        "circle and an iron bowman ahead",
-        note="the bomb's timing can drift: retake if no circle shows",
-    ),
-    Shot(
-        "foundry",
-        "--map cinderhold --at=18,17,180 --level 7 "
-        "--equip primary=stormbrand,secondary=spell:thunder,hands=iron_gauntlets --smoke 40",
-        "The foundry, where a Forge Golem guards the lava channels",
-        "The torchlit foundry hall, a channel of lava across the floor and a forge golem beyond it, "
-        "the Stormbrand in an iron gauntlet",
-    ),
-    Shot(
-        "thunder_scroll",
-        "--map cinderhold --at=4,15,-90 --level 7 --equip primary=zweihander --smoke 280 "
-        '--script "interact wait:1.5 menu wait:0.2 tab_next wait:0.2 tab_next wait:0.2 tab_next '
-        'wait:0.2 down wait:3"',
-        "A spell scroll, sealed with its rune",
-        "Belongings on the Spells tab, previewing the Scroll of Thunder Spear: a soot-dark scroll on iron "
-        "rods, its blue wax seal pressed with a glowing lightning rune",
-    ),
-    Shot(
         "keep_hall",
         "--map cinder_keep --at=17,18,180 --level 9 --equip primary=slagbreaker --smoke 40",
         "The great hall of the Cinderhold Keep",
         "The Cinderhold Keep's great hall: iron pillars and a brazier, a forge golem standing among them",
-    ),
-    Shot(
-        "gargoyles",
-        "--map cinder_keep --at=9,6,180 --level 9 --equip primary=stormbrand,secondary=spell:ward "
-        '--smoke 200 --script "wait:1 attack wait:1"',
-        "Brand and Bellows, the twin gargoyles on the keep's roof",
-        "Two iron gargoyles on the keep's walled rooftop, battlements and turrets behind them, under two "
-        "boss health bars",
-    ),
-    Shot(
-        "vesper_gate",
-        "--map harrowmere --at=22,3,-90 --level 10 "
-        '--equip primary=stormbrand,secondary=spell:ward --smoke 80 --script "back:0.35 look_up:0.12"',
-        "The Vesper Gate, standing open at the head of the cathedral steps",
-        "The Vesper Gate in Harrowmere's north wall standing open, pale moonlight pouring through it",
     ),
     Shot(
         "vesperholm",
@@ -328,37 +104,6 @@ SHOTS = [
         '--smoke 60 --script "look_up:0.25"',
         "Vesperholm, the Moonbound City, under a moon that never sets",
         "Lantern Square in Vesperholm, pale stone and silver roofs under a huge moon and a sky full of stars",
-    ),
-    Shot(
-        "veiled_knight",
-        "--map vesperholm --at=17,41,180 --level 10 --equip primary=stormbrand,secondary=spell:ward "
-        '--smoke 120 --script "wait:0.9 attack"',
-        "A Veiled Knight in the castle bailey",
-        "A Veiled Knight, a pale armored shade, closing in across the moonlit castle bailey",
-    ),
-    Shot(
-        "lantern_wraith",
-        "--map vesperholm --at=25,62,-90 --level 10 --equip primary=stormbrand,secondary=spell:ward "
-        '--smoke 145 --script "wait:1.7"',
-        "A Lantern Wraith's frost lance: moon-frost numbs your legs",
-        "A lantern-bearing wraith in a moonlit square by a pale statue, frost creeping in at the screen's "
-        "corners after its lance hits",
-    ),
-    Shot(
-        "cathedral_long_night",
-        "--map vesperholm --at=21,46,-90 --level 10 --equip primary=stormbrand,secondary=spell:ward "
-        '--smoke 60 --script "look_up:0.25"',
-        "The Cathedral of the Long Night, from the bailey",
-        "The front of a pale cathedral rising over the castle bailey, its spires lit by the moon",
-    ),
-    Shot(
-        "duchess",
-        "--map vesperholm --at=21,28,-90 --level 10 "
-        "--equip primary=stormbrand,secondary=spell:ward,body=brigandine,hands=iron_gauntlets "
-        '--smoke 300 --script "wait:4.2"',
-        "Duchess Ilvane, the Moonwed, in her choir",
-        "Duchess Ilvane, a tall veiled noblewoman with a crescent glaive, rising in the cathedral's choir, "
-        "her health bar above",
     ),
     Shot(
         "herrans_castle",
@@ -371,9 +116,9 @@ SHOTS = [
         "herran",
         "--map herran_spire --at=14,5,0 --level 12 "
         "--equip primary=stormbrand,secondary=spell:ward,body=brigandine,hands=iron_gauntlets "
-        '--smoke 720 --script "interact wait:0.8 forward:1.6 wait:5"',
+        '--smoke 360 --script "interact wait:0.8 forward:1.0 wait:5"',
         "Herran, the Many-Handed, in his observatory",
-        "A towering gaunt figure with eight grafted arms and a crown of gold eyes under a broken iron dome, "
+        "Herran's grafted arms reaching in under the broken iron dome of his observatory, "
         "his health bar above",
     ),
 ]

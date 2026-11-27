@@ -185,7 +185,7 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   and picks the first empty slot in the chooser (with a throwaway save that doesn't exist yet).
 - Boss doors: `--map abandoned_prison --at=15,11,-90` faces the Warden's great door, `--at=28,10,-116` the
   Butcher's, `--map verdant_hollow --at=15,11,-90` the Loom Mother's, `--map cinder_keep --at=22,5,180`
-  the gargoyles', `--map ashen_cemetery --at=10,11,-90` the Sexton's, `--map vesperholm --at=21,11,-90` the Duchess's, `--map herran_spire --at=10,5,0` Herran's. The fog appears only
+  the gargoyles', `--map ashen_cemetery --at=10,11,-90` the Sexton's, `--map vesperholm --at=21,31,-90` the Duchess's, `--map herran_spire --at=10,5,0` Herran's. The fog appears only
   after dying in a sealed arena (or with its `fog:` flag set); `tests/test_arena.py` drives the flow.
 - `--level` only sets the level (for equipment requirements); HP and stats stay at level 1, so judge boss
   balance headless (`World` with a `JungleGame`) rather than from a smoke fight.
