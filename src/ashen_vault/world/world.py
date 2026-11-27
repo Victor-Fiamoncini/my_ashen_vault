@@ -3440,6 +3440,7 @@ class World:
                         "reach": f"{c.reach:g}",
                         "seed": str(c.seed),
                         "seep": "true" if c.seep else "false",
+                        "stone": self.map[c.tx, c.tz].wall_tex or "",  # its cracks take the stone's tones
                     },
                     key=None,
                     yaw=c.yaw,

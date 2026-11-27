@@ -1086,13 +1086,16 @@ def _crack_seg(r, a, b, width, out, rgb, glow=False):
            ry=math.atan2(-dz, -dy), glow=glow)  # fmt: skip
 
 
-def wall_crack(r, seed, height, reach=2.0, seep=False):
+def wall_crack(r, seed, height, reach=2.0, seep=False, tones=None):
     """A great crack split down a cavern wall, its foot at the origin and the wall's face the local
     YZ plane (+X out of it): a long jagged fissure climbing `height` metres, wandering no farther than
     `reach` to either side, widest in its middle and closing to a hair at its ends, with offshoots
     forking off it and a few of those forking again. Each stretch is a black core over a wider lip of
     shadowed stone, laid a hair off the wall. In a few (`seep`), the mortar-light that runs in the old
-    city's stone seeps faintly teal through the middle of the trunk; most are dark."""
+    city's stone seeps faintly teal through the middle of the trunk; most are dark. `tones` gives
+    another stone its own (core, lip, seep): Vesperholm's moonstone cracks blue-black, and moonlight
+    seeps up its few."""
+    core, lip, seep_rgb = tones or (CRACK_CORE, CRACK_LIP, CRACK_SEEP)
     rng = random.Random(seed)  # the same crack is always split the same way
     lip_out, core_out, seep_out = CRACK_OUT
     big = min(1.0, height / 20)
@@ -1105,10 +1108,10 @@ def wall_crack(r, seed, height, reach=2.0, seep=False):
         for i in range(n):
             k = (i + 0.5) / n
             w = width * (0.25 + 0.75 * math.sin(math.pi * k) ** 0.6)  # closing toward both ends
-            _crack_seg(r, trunk[i], trunk[i + 1], w * 2.2, lip_out, CRACK_LIP)
-            _crack_seg(r, trunk[i], trunk[i + 1], w, core_out, CRACK_CORE)
+            _crack_seg(r, trunk[i], trunk[i + 1], w * 2.2, lip_out, lip)
+            _crack_seg(r, trunk[i], trunk[i + 1], w, core_out, core)
             if seep and 0.2 < k < 0.8:  # a thread of light deep in the dark
-                _crack_seg(r, trunk[i], trunk[i + 1], w * 0.35, seep_out, CRACK_SEEP, glow=True)
+                _crack_seg(r, trunk[i], trunk[i + 1], w * 0.35, seep_out, seep_rgb, glow=True)
         for i in range(1, n - 1):  # the offshoots, forking off the trunk now and then
             if rng.random() > 0.42:
                 continue
@@ -1125,14 +1128,14 @@ def wall_crack(r, seed, height, reach=2.0, seep=False):
             bw = width * 0.45 * (0.4 + 0.6 * math.sin(math.pi * k))
             for j in range(len(shoot) - 1):
                 w = bw * (1 - j / len(shoot))
-                _crack_seg(r, shoot[j], shoot[j + 1], w * 2, lip_out, CRACK_LIP)
-                _crack_seg(r, shoot[j], shoot[j + 1], w, core_out, CRACK_CORE)
+                _crack_seg(r, shoot[j], shoot[j + 1], w * 2, lip_out, lip)
+                _crack_seg(r, shoot[j], shoot[j + 1], w, core_out, core)
                 if j == 0 and len(shoot) > 2 and rng.random() < 0.5:  # a hairline forking off it again
                     y2, z2 = shoot[1]
                     hair = _crack_path(rng, y2, z2, min(height, y2 + rng.uniform(0.8, 2.0)), reach, step * 0.4,
                                        -side * rng.uniform(0.3, 0.8), 0.3)  # fmt: skip
                     for m in range(len(hair) - 1):
-                        _crack_seg(r, hair[m], hair[m + 1], w * 0.5, core_out, CRACK_CORE)
+                        _crack_seg(r, hair[m], hair[m + 1], w * 0.5, core_out, core)
 
 
 BREACH_HALF = 0.82  # half the width of the passage through the hole in the wall

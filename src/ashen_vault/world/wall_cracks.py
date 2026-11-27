@@ -16,6 +16,8 @@ T = TileMap.TILE
 DRESS = "cracks"
 MIN_HEIGHT = 6.0  # metres of wall over the ground it faces, at the least, to carry a crack
 MAX_SPAN = 46.0  # how far down from its top a face is cracked at most (a face over the chasm drops on)
+# A map may crack its walls less far down (`[meta] crack_span = <m>`): Vesperholm's, whose faces drop
+# into the gorge far below where anyone looks, crack only near their tops, where they are seen.
 MIN_RUN = 3  # tiles of straight face, unbroken, that a run must have to carry a crack
 EVERY = 10.0  # metres of run per crack, about
 MIN_GAP = 6.0  # metres between the middles of two cracks on one run, at the least
@@ -50,6 +52,7 @@ def dressed(tile, name=DRESS):
 def _faces(map_, clear):
     """{(tx, tz, dx, dz): (top, base)} of every dressed wall face that turns to open ground."""
     taken = {(e.tx, e.tz) for e in map_.entities}
+    span = min(MAX_SPAN, float(map_.meta.get("crack_span", MAX_SPAN)))
     out = {}
     for tx, tz, tile in map_.each_tile():
         if not tile.solid or not dressed(tile) or (tx, tz) in taken:
@@ -59,7 +62,7 @@ def _faces(map_, clear):
             ground = map_[ox, oz]
             if ground.solid or ground.ceil is not None or (ox, oz) in clear:
                 continue
-            out[(tx, tz, dx, dz)] = (tile.top, max(ground.floor, tile.top - MAX_SPAN))
+            out[(tx, tz, dx, dz)] = (tile.top, max(ground.floor, tile.top - span))
     return out
 
 

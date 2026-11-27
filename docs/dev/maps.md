@@ -85,8 +85,9 @@ How `.map` files work and what can stand on a tile.
   (`moon_glass`) at the west street's head into the castle's postern; the bailey, the west chapel and
   the Duchess's garden; the Cathedral of the Long Night, its nave, and behind its great door
   (`door boss=duchess_dead`) the choir floored in moon-glass where Duchess Ilvane waits. Her choir has a
-  second mouth, a back door in its east wall (`door boss=duchess_dead rear` at 32,22: it seals, fogs and
-  opens with the great door, and `rear` keeps the compass off it), onto the old stair north up through
+  second mouth, a back door in its east wall (`door boss=duchess_dead rear` at 32,23: it seals, fogs and
+  opens with the great door, and `rear` keeps the compass off it), onto the old stair's foot, level with
+  the choir (its `stair_flight` reaches down onto it, so the first tread rises off the choir's floor), and the stair north up through
   the cathedral's east wall and the stair tower on its north-east corner (half a metre a tile under its
   own vaults), out onto a flying stair one tile wide that climbs west over the drop behind the
   cathedral (an 18 m `chasm` either side, a Lantern Wraith throwing down it from the Moon Terrace at
@@ -96,7 +97,11 @@ How `.map` files work and what can stand on a tile.
   own `moon_portal` and under a `grand` `moon_roof` higher than the cathedral's. The Argent Sigil lies
   in the hands of Lyra the Embracer on her altar in the middle of the nave (`altar item=argent_sigil
   model=lyra` at 21,5; the Duchess drops nothing), and once it is lifted the portal to Herran's Castle
-  opens in the apse behind her (`exit model=argent_portal requires=argent_sigil_taken hidden` at 21,2).
+  opens in the apse behind her (`exit model=argent_portal requires=argent_sigil_taken hidden` at 21,2;
+  its arch stands there dormant, dark and empty, until then). Three great `moon_window`s (`rise=` and
+  `size=`, on the drop's tiles) hang high in the choir's back wall over the drop, in line with its windows
+  inside, and the choir's back wall (`Ъ`) and the chapel's walls are `dress=cracks`, cracked only near
+  their tops (`[meta] crack_span`), where they are seen from the climb.
   The crag and the chapel are twenty rows north of the city's old edge: saves made before them are
   moved to match (`save_system.SHIFTED_MAPS`). Shortcut: the
   great bridge over the gorge, three tiles abreast and four long (`bridge rise=18`, one entity a tile),
@@ -112,7 +117,7 @@ How `.map` files work and what can stand on a tile.
   `tests/test_vigil_chapel_world.py`), `herrans_castle` (Herran's Castle, 32x42, over a sea of cloud under the
   `storm` sky: a stormy night, gas lamps for light: through the portal (`exit model=argent_portal
   requires=argent_sigil_taken hidden`, at 21,2 in the apse of Lyra's Chapel: `hidden` keeps an exit
-  undrawn and out of reach while it is shut; its twin stands at the quay's edge) you arrive on the Cloud Quay, its `start` and shrine, a broken
+  out of reach while it is shut, and undrawn but for an `argent_portal`, whose arch stands dormant; its twin stands at the quay's edge) you arrive on the Cloud Quay, its `start` and shrine, a broken
   stretch of balustrade open on the clouds, and go north through the gatehouse corridor into the Ring, a
   roofed passage of sooted brick round a central void that falls to the clouds, its arches open on the drop.
   Four towers stand on it: the Laboratory (NW, the Spire Key, and in its back wall the one `secret_wall` onto
@@ -134,7 +139,7 @@ How `.map` files work and what can stand on a tile.
 | `src/ashen_vault/world/hazards.py` | Dungeon traps: floor spikes, pendulum blades, crumbling floors, flame jets, magma vents (whose bombs are `Eruption`s with an `origin`); the bosses' fire eruptions and slam shockwaves |
 | `src/ashen_vault/world/thin_walls.py` | Thin walls (`wall ... thin=<m>`): the slab each such tile stands as (hugging the side open to the sky, else a full wall it backs onto, centred between two rooms; a run keeps one line, `test_harrowmere_has_no_slits_between_its_thin_walls`), the margins it lends to its open neighbours (`Layout`), and how far a prop must move back to touch it (`inset`) |
 | `src/ashen_vault/world/ramparts.py` | The great walls' dressing: every face of a `dress=rampart` wall turned to open sky-lit ground at least `MIN_HEIGHT` below its top gets a static `rampart_bay` (`town_models.rampart_bay`: a stepped plinth, a corbelled parapet with merlons, and a `pier` of three engaged columns every `PIER_EVERY` tiles and at each run's ends, blind round arches between), kept clear of wall towers, gates (`world.RAMPART_GATES`) and wall props. Nothing stands out past the player's radius, so bays need no collision |
-| `src/ashen_vault/world/wall_cracks.py` | The cavern walls' cracks: along every straight run (at least `MIN_RUN` tiles, one top) of faces a `dress=cracks` wall turns to open sky-lit ground at least `MIN_HEIGHT` below its top, a few static `wall_crack`s (`sunken_models.wall_crack`: a long jagged fissure of quads a hair off the wall, a black core over a lip of shadowed stone, offshoots forking up and down it, a `SEEP` share with a faint thread of teal mortar-light), one about every `EVERY` m, at least `MIN_GAP` apart and `END_CLEAR` from a run's ends, seeded from the map so the same walls always crack the same way, the tallest kept past `MAX_CRACKS`. A face over the chasm is cracked only its top `MAX_SPAN` m. `World._dress_cracks` keeps them two tiles clear of gates (`world.RAMPART_GATES`), lifts, false walls and falls (`world.CRACK_CLEAR`) and a tile clear of wall props. No collision |
+| `src/ashen_vault/world/wall_cracks.py` | The cavern walls' cracks: along every straight run (at least `MIN_RUN` tiles, one top) of faces a `dress=cracks` wall turns to open sky-lit ground at least `MIN_HEIGHT` below its top, a few static `wall_crack`s (`sunken_models.wall_crack`: a long jagged fissure of quads a hair off the wall, a black core over a lip of shadowed stone, offshoots forking up and down it, a `SEEP` share with a faint thread of teal mortar-light), one about every `EVERY` m, at least `MIN_GAP` apart and `END_CLEAR` from a run's ends, seeded from the map so the same walls always crack the same way, the tallest kept past `MAX_CRACKS`. A face over the chasm is cracked only its top `MAX_SPAN` m, or less on a map that sets `[meta] crack_span` (Vesperholm's 14). Each crack takes its wall's tones (`world_view.CRACK_TONES`: moonstone cracks blue-black, moonlight seeping up a few). `World._dress_cracks` keeps them two tiles clear of gates (`world.RAMPART_GATES`), lifts, false walls and falls (`world.CRACK_CLEAR`) and a tile clear of wall props. No collision |
 | `src/ashen_vault/world/sea.py` | The open sea (`[meta] open_sea = true`, Harrowmere only): the deep water and its far reaches past the grid's south edge (`far_cells`, bands of cells doubling in size out to `FAR`) go into the mesh builder's own `sea` batch, which `World._draw_sea` draws under a fog `SEA_REACH` times thinner than the land's, so it runs on to the horizon; the sun lays a twinkling path of glints on it (`glitter`, the cut-out `glitter` texture, coloured by `sky.sun_color`) |
 | `src/ashen_vault/world/darkness.py` | Dark tiles: how your light and the fog close in, Lumen and the Veil of Mist |
 | `src/ashen_vault/world/doors.py` | One-way doors (`door from=`): which side lifts the bar |
@@ -253,7 +258,8 @@ How `.map` files work and what can stand on a tile.
   sheet runs along local X: `yaw=90` turns it to run along z.
   A wall tile may set `dress=rampart` (Harrowmere's great walls): carved bays along its open faces
   (`world/ramparts.py`).
-  A wall tile may set `dress=cracks` (Old Harrowmere's cavern walls and the old city's tall brick): great
+  A wall tile may set `dress=cracks` (Old Harrowmere's cavern walls and the old city's tall brick,
+  Vesperholm's walls of Lyra's Chapel and the choir's back wall): great
   branching cracks down its tall open faces (`world/wall_cracks.py`). Join dressings with commas
   (`dress=rampart,cracks`) to give a wall both.
   A wall tile may set `thin=<m>` (the town's houses use 0.5): it stands as a slab that thick, joined to

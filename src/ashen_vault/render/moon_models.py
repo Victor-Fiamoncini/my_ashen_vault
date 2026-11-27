@@ -973,6 +973,11 @@ def vesper_gate(r, open_t, t):
 IRON = (46, 50, 62)  # Victorian cast iron, blacked
 IRON_LIGHT = (84, 90, 110)
 LAMP_GLASS = (176, 196, 236)
+FLAME_GLASS = (255, 192, 112)  # a street lamp's glass, the flame inside it burning amber through it
+FLAME_MANTLE = (255, 156, 64)  # the flame at a street lamp's heart
+# A great crack down moonstone: blue-black in its depth, the cold shadowed stone either side of it,
+# and in a few the moonlight seeping faintly up through it (`sunken_models.wall_crack`'s `tones`).
+MOON_CRACK = ((14, 16, 28), (78, 84, 108), (70, 78, 104))
 GLASS_LIT = (150, 170, 214)  # moon-glass with the moon behind it
 FACADE = (222, 226, 238)  # tints the moonstone texture to match the city's walls
 SLATE = (196, 202, 222)
@@ -983,8 +988,9 @@ SLATE_PALE = (214, 220, 236)
 def moon_lamp(r, seed):
     """A street lamp of Vesperholm, cast like a Victorian gas lamp: a stepped moonstone foot, a fat iron
     base drum tapering into a fluted column with collars, the lamplighter's ladder bar across it on
-    scrolled brackets, and on top a four-sided lantern of moon-glass under a crowned iron canopy, cold
-    moonlight burning in it where a gas mantle would be."""
+    scrolled brackets, and on top a four-sided lantern under a crowned iron canopy, a warm flame
+    burning amber through its glass where a gas mantle would be, the one fire-coloured light under the
+    cold moon."""
     r.part("cube", 0, 0.1, 0, 0.56, 0.2, 0.56, MOONSTONE_DARK, tex="moonstone")  # the foot
     r.part("cube", 0, 0.26, 0, 0.42, 0.12, 0.42, MOONSTONE, tex="moonstone")
     r.part("cyl", 0, 0.5, 0, 0.3, 0.36, 0.3, IRON)  # the base drum
@@ -1002,8 +1008,8 @@ def moon_lamp(r, seed):
         _bar(r, (0, 2.02, side * 0.05), (0, 2.28, side * 0.3), 0.03, IRON)  # its scrolled bracket
     r.part("cone", 0, 2.66, 0, 0.28, 0.2, 0.28, IRON, rx=math.pi)  # the cup the lantern sits in
     with r.at(0, 2.95, 0, ry=math.pi / 4 + (seed % 2) * math.pi / 2):
-        r.part("cube", 0, 0, 0, 0.3, 0.42, 0.3, LAMP_GLASS, tex="moon_glass", glow=True)
-        r.part("sphere", 0, -0.02, 0, 0.12, 0.18, 0.12, MOON_GLOW, glow=True)  # the cold mantle
+        r.part("cube", 0, 0, 0, 0.3, 0.42, 0.3, FLAME_GLASS, glow=True)
+        r.part("sphere", 0, -0.02, 0, 0.12, 0.18, 0.12, FLAME_MANTLE, glow=True)  # the flame
         for sx in (-1, 1):
             for sz in (-1, 1):
                 r.part("cube", sx * 0.16, 0, sz * 0.16, 0.035, 0.46, 0.035, IRON)  # its corner frames
@@ -1759,13 +1765,15 @@ ARGENT_HALF = 1.4  # half the width of the light inside it
 ARGENT_RINGS = 5  # rings of moonlight turning in the veil
 
 
-def argent_portal(r, t):
+def argent_portal(r, t, lit=True):
     """The portal the moon opens once the Argent Sigil is lifted (Lyra's apse in Vesperholm, the Cloud
     Quay over Herran's Castle), standing at the back of its tile (-X) and facing +X: a tall pointed arch
     of Lyra's pale moonstone on clustered piers, banded in silver, six open hands carved up its jambs
     as on her idols, a crescent over its keystone and an empty socket under it, where the sigil was
     set. Inside it stands a veil of moonlight, rings of brighter light turning slowly through it and
-    motes of frost rising off it, both fading as they shrink. Nothing of it is below the floor."""
+    motes of frost rising off it, both fading as they shrink. Not `lit` (Lyra's apse, until the sigil
+    is lifted), the arch stands dormant: a still, dark film of stone-cold light under it and nothing
+    turning or rising. Nothing of it is below the floor."""
     stone, dark = LYRA_MOON, LYRA_MOON_DARK
     spring, half = ARGENT_SPRING, ARGENT_HALF
     mid = 2 * half + 0.2
@@ -1775,14 +1783,21 @@ def argent_portal(r, t):
     # The veil of light: strips under the arch, brightest in the middle, breathing.
     strips = 12
     breathe = 0.9 + 0.1 * math.sin(t * 1.3)
-    for i in range(strips):
+    for i in range(strips if lit else 0):
         z0 = -half + 2 * half * i / strips
         zm = z0 + half / strips
         top = spring + max(math.sqrt(max(mid * mid - (half + abs(zm)) ** 2, 0.0)), 0.0)
         bright = 1.0 - 0.35 * abs(zm) / half
         r.part("cube", x, top / 2, zm, 0.04, top, 2 * half / strips + 0.01, _dim(MOON_GLOW, bright * breathe),
                glow=True)  # fmt: skip
-    for k in range(ARGENT_RINGS):  # rings of brighter light, swelling out of the middle and fading
+    if not lit:  # dormant: a dark, still film under the arch, the moonstone behind it barely showing
+        for i in range(strips):
+            z0 = -half + 2 * half * i / strips
+            zm = z0 + half / strips
+            top = spring + max(math.sqrt(max(mid * mid - (half + abs(zm)) ** 2, 0.0)), 0.0)
+            r.part("cube", x - 0.06, top / 2, zm, 0.04, top, 2 * half / strips + 0.01,
+                   _dim(VOID, 1.4 + 0.5 * (1 - abs(zm) / half)))  # fmt: skip
+    for k in range(ARGENT_RINGS if lit else 0):  # rings of brighter light, swelling out and fading
         u = (t * 0.22 + k / ARGENT_RINGS) % 1.0
         radius = 0.2 + u * (half - 0.15)
         bead = 0.02 + 0.08 * (1 - u)  # each fades by shrinking, never by darkening
@@ -1815,7 +1830,7 @@ def argent_portal(r, t):
     r.part("cyl", x + 0.33, apex - 0.02, 0, 0.26, 0.03, 0.26, SILVER, rz=math.pi / 2)
     _crescent(r, x + 0.34, apex + 0.7, 0, 0.4, 9, 0.1, SILVER)  # the crescent over it
     r.part("cube", x + 0.1, 0.04, 0, 0.9, 0.08, 2 * half + 1.2, dark, tex="moonstone")  # the threshold
-    for k in range(6):  # motes of frost rising off the veil
+    for k in range(6 if lit else 0):  # motes of frost rising off the veil
         u = (t * 0.3 + k / 6) % 1.0
         zz = ((k * 0.37) % 1.0 - 0.5) * 1.6 * half
         size = 0.015 + 0.05 * (1 - u)
@@ -1881,12 +1896,12 @@ def great_bridge(r, span, t, moving=False):
             r.part("cube", x * (h + 0.22), top - tall / 2, z, 0.44, tall, 0.5, dark, tex="moonstone")
             r.part("cone", x * (h + 0.22), top + 0.4, z, 0.44, 0.8, 0.5, dark, tex="moonstone")
         r.part("cube", 0, top + 0.1, z, T + 0.36, 0.2, BRIDGE_PIER + 0.2, dark, tex="moonstone")  # impost
-        if end in span.ends:  # a newel over the span's end, a moon-glass lantern on it
+        if end in span.ends:  # a newel over the span's end, a lantern burning amber on it
             for side in span.sides:
                 x = side * (h - 0.16)
                 r.part("cube", x, 0.7, z, 0.46, 1.4, 0.46, dark, tex="moonstone")
                 r.part("cube", x, 1.44, z, 0.56, 0.1, 0.56, stone, tex="moonstone")
-                r.part("cube", x, 1.7, z, 0.24, 0.36, 0.24, LAMP_GLASS, tex="moon_glass", glow=True)
+                r.part("cube", x, 1.7, z, 0.24, 0.36, 0.24, FLAME_GLASS, glow=True)
                 r.part("cone", x, 2.0, z, 0.34, 0.24, 0.34, IRON)
     if moving:  # grit and chips of stone pouring off it as it grinds up
         for k in range(6):

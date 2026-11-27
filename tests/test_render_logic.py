@@ -2197,12 +2197,15 @@ def test_every_way_between_maps_is_built_in_detail():
         "sunken_stair": lambda r: sunken_models.sunken_stair(r, 0.3),
         "chapel_door": lambda r: moon_models.chapel_door(r, 0.3),
         "argent_portal": lambda r: moon_models.argent_portal(r, 0.3),
+        "argent_portal dormant": lambda r: moon_models.argent_portal(r, 0.3, lit=False),
         "spire_door": lambda r: herran_models.spire_door(r, 0.3),
     }
     for name, fn in exits.items():
         assert len(parts(fn)) >= 25, name
         assert min(y for _, y in parts(fn)) > -0.1, name
     assert parts(exits["vesper_gate"]) != parts(exits["vesper_gate open"])
+    # Dormant, the portal's arch stands with no rings turning in it and no frost rising off it.
+    assert len(parts(exits["argent_portal dormant"])) < len(parts(exits["argent_portal"]))
 
 
 def test_a_sewer_ladder_climbs_into_the_dark_not_a_glow():

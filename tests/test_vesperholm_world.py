@@ -180,7 +180,7 @@ def test_she_waits_in_her_choir_behind_a_great_door():
     (duchess,) = [e for e in world.enemies if e.type.id == "moon_duchess"]
     assert duchess.state == "ashes"
     great, back = sorted((a for a in world.arenas if a.flag == "duchess_dead"), key=lambda a: a.gate[0])
-    assert (great.gate, back.gate) == ((21, 29), (32, 22))  # the great door, and her choir's back door
+    assert (great.gate, back.gate) == ((21, 29), (32, 23))  # the great door, and her choir's back door
     tile = (TileMap.tile_coord(duchess.x), TileMap.tile_coord(duchess.z))
     assert tile in great.tiles and great.tiles == back.tiles  # one choir, two mouths
     assert all(world.map[t].floor_tex == "moon_glass" for t in great.tiles)  # none of the stair beyond
@@ -204,25 +204,28 @@ def test_the_argent_sigil_lies_in_lyras_hands_in_her_chapel():
 def _climb():
     """The way from her choir's back door to the chapel's door, tile by tile: north up the wall stair,
     west along the flying stair to the Moon Terrace, north up the grand stair to the forecourt."""
-    wall = [(33, z) for z in range(22, 16, -1)]
+    wall = [(33, z) for z in range(23, 16, -1)]
     flying = [(x, 17) for x in range(32, 20, -1)]
     grand = [(21, z) for z in range(16, 8, -1)]
     return wall + flying + grand
 
 
 def test_the_stair_behind_her_choir_climbs_to_lyras_chapel_high_over_it():
-    """The back door opens on the old stair north up through the cathedral's east wall, each step under
-    its own vault; out of its tower a flying stair climbs west over the drop behind the cathedral to the
+    """The back door opens on the old stair's foot, level with the choir, and the stair climbs north from
+    it up through the cathedral's east wall, each step under its own vault; out of its tower a flying stair climbs west over the drop behind the cathedral to the
     Moon Terrace, and a grand stair north off it between cheek walls to the chapel's forecourt: never a
     step over half a metre, and the chapel's walls tower over the cathedral's."""
     _game, world = city()
     m = world.map
     way = _climb()
-    assert m[way[0]].floor == 0.5 and m[32, 22].floor == 0  # off the choir's floor, through the back door
+    assert m[way[0]].floor == 0 and m[32, 23].floor == 0  # through the back door onto its level foot
+    (flight,) = [p for p in m.entities if p.kind == "stair_flight" and p.tx == 33]
+    head = int(flight.props["run"]) - 1  # its steps reach down onto the foot, from the choir's floor up
+    assert (flight.tz + head, m[flight.tx, flight.tz + head].floor) == (23, 0)
     for a, b in itertools.pairwise(way):
         assert 0 <= m[b].floor - m[a].floor <= 0.5 + 1e-6, (a, b)
-    assert all(m[33, z].ceil is not None for z in range(18, 23))  # the wall stair, vaulted
-    assert all(m[33, z].solid for z in range(23, 38))  # nothing of the old stair to the garden is left
+    assert all(m[33, z].ceil is not None for z in range(18, 24))  # the wall stair, vaulted
+    assert all(m[33, z].solid for z in range(24, 38))  # nothing of the old stair to the garden is left
     flying = [(x, 17) for x in range(24, 33)]
     assert all(m[t].ceil is None for t in flying)
     for x, z in flying[:-1]:  # nothing either side of it but the drop (the last step is by the tower)
@@ -233,6 +236,45 @@ def test_the_stair_behind_her_choir_climbs_to_lyras_chapel_high_over_it():
     assert m[way[-1]].floor == 11.5 and m[way[-1]].ceil is not None  # in the chapel's door
     chapel_walls = [t for _x, _z, t in m.each_tile() if t.solid and t.top is not None and t.top > 20]
     assert chapel_walls and min(t.top for t in chapel_walls) > m[20, 29].top  # over the cathedral's
+
+
+def test_great_windows_of_moon_glass_look_out_of_the_choirs_back_wall_over_the_drop():
+    """Seen from the Moon Terrace and the chapel's forecourt, the choir's back wall is no blank: three
+    great windows of moon-glass hang high in it, in line with the choir's own windows inside."""
+    _game, world = city()
+    m = world.map
+    inside = sorted(p.tx for p in m.entities if p.kind == "moon_window" and p.tz == 21)
+    outside = [p for p in m.entities if p.kind == "moon_window" and p.tz == 19]
+    assert sorted(p.tx for p in outside) == inside == [16, 21, 26]
+    for w in outside:
+        assert m[w.tx, w.tz].chasm and m[w.tx, w.tz + 1].solid  # hung on the wall's face over the drop
+        size = float(w.props["size"])
+        foot = m[w.tx, w.tz].floor + float(w.props["rise"])
+        assert size >= 2 and foot > 0 and foot + 3.4 * size <= m[w.tx, w.tz + 1].top  # within the wall
+
+
+def test_great_cracks_split_lyras_chapel_and_the_choirs_back_wall_and_nothing_else():
+    """The great walls you climb past behind the Duchess's choir are split by cracks, in the moonstone's
+    own cold tones; nothing else in the city is."""
+    _game, world = city()
+    cracks = [p for p in world.props if p.kind == "wall_crack"]
+    chapel = [c for c in cracks if world.map[c.tx, c.tz].top == 26]
+    choir = [c for c in cracks if c.tz == 20 and 12 <= c.tx <= 31]
+    assert len(chapel) >= 3 and choir
+    assert len(chapel) + len(choir) == len(cracks)
+    assert {c.props["stone"] for c in cracks} == {"moonstone"}
+    for c in cracks:  # near the walls' tops, where the climb sees them, never deep in the gorge
+        assert c.y >= world.map[c.tx, c.tz].top - float(world.map.meta["crack_span"]) - 1e-6, (c.tx, c.tz)
+
+
+def test_the_apse_holds_the_portals_arch_dormant_until_the_sigil_is_lifted():
+    """The portal's arch always stands in Lyra's apse, but it can't be taken until the sigil is lifted."""
+    _game, world = city(at=(21, 3), flags={"duchess_dead"})
+    (portal,) = [p for p in world.props if p.kind == "exit" and p.props.get("model") == "argent_portal"]
+    assert not world.exit_open(portal) and world.focus() is not portal
+    _game, world = city(at=(21, 3), flags={"duchess_dead", "argent_sigil_taken"})
+    (portal,) = [p for p in world.props if p.kind == "exit" and p.props.get("model") == "argent_portal"]
+    assert world.exit_open(portal)
 
 
 # --- the Vesper Gate ---------------------------------------------------------------------------------

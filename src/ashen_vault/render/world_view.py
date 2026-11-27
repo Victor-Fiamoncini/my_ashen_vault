@@ -843,10 +843,16 @@ def _draw_chains(view, rig, p, t):
     models.chains(rig, t + p.tx, (tile.ceil or tile.floor + 3.2) - tile.floor)
 
 
+# The tones a great crack takes in a stone other than the cavern's (`sunken_models.wall_crack`).
+CRACK_TONES = {"moonstone": moon_models.MOON_CRACK}
+
+
 def _draw_exit(view, rig, p, t):
     world = view.world
-    if "hidden" in p.props and not world.exit_open(p):
-        return  # a way that is not there until its flag is set (the portal in Lyra's apse, until the Argent Sigil)
+    if "hidden" in p.props and not world.exit_open(p):  # a way that is not there until its flag is set
+        if p.props.get("model") == "argent_portal":  # Lyra's apse: the arch stands dormant till the sigil
+            moon_models.argent_portal(rig, t, lit=False)
+        return
     if p.props.get("model") == "well":
         models.well(rig, t)
     elif p.props.get("model") == "vine_door":
@@ -1168,6 +1174,7 @@ PROP_DRAWERS = {
         float(p.props["height"]),
         float(p.props.get("reach", "2")),
         p.props.get("seep") == "true",
+        CRACK_TONES.get(p.props.get("stone", "")),
     ),
     "sun_shaft": _draw_sun_shaft,
     "ward_crystal": lambda view, rig, p, t: sunken_models.ward_crystal(rig, t + p.tx, view.world.ward_set),

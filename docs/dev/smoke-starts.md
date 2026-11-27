@@ -155,12 +155,14 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   (the drawbridge's lever in the bailey; walk out through the gatehouse and over it to the Landing). Boss:
   `--at=21,28,-90 --level 8 --equip primary=katana,secondary=buckler --script "wait:4.2"` (Duchess Ilvane
   rising in her choir behind its great door at 21,29). After her, with `--flags duchess_dead`:
-  `--at=31,22,0 --script "interact wait:1.2"` (her choir's back door onto the old stair),
-  `--at=33,22,-90 --smoke 200 --script "forward:3"` (up the old stair through the wall and its tower),
+  `--at=31,23,0 --script "interact wait:1.2"` (her choir's back door onto the old stair),
+  `--at=33,23,-90 --smoke 240 --script "forward:3.2"` (up the old stair through the wall and its tower),
   `--at=33,17,180` (the flying stair over the drop behind the cathedral, the chapel's crag beyond it),
   `--at=24,17,-90 --script "look_up:0.3"` (the grand stair from the Moon Terrace, the chapel's front at
   its head), `--at=21,8,-90` (Lyra's Chapel: her altar in the nave, the apse behind her),
-  `--at=21,6,-90 --script "interact wait:1"` (take the Argent Sigil from Lyra's hands) and
+  `--at=21,6,-90 --script "interact wait:1"` (take the Argent Sigil from Lyra's hands), `--at=22,7,-100 --script "look_up:0.1"` (the portal's
+  arch dormant in the apse behind her; add `argent_sigil_taken` to the flags to see it open), `--at=21,10,90`
+  (the great windows in the choir's back wall) and
   `--at=27,46,-110 --script "look_up:0.4"` (the chapel's roof over the cathedral's, from the bailey).
 - Herran's Castle (`herrans_castle`) is through the portal behind Lyra's altar in Vesperholm, there
   only once the Argent Sigil is taken: `--map vesperholm --at=21,3,-90 --flags duchess_dead,argent_sigil_taken

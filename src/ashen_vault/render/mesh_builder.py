@@ -117,8 +117,8 @@ LIGHT_COLOR = {
     "forge_hearth": "1.0,0.55,0.22",
     "crucible": "1.0,0.5,0.2",
     "rose_window": "0.95,0.55,0.62",
-    "moon_lamp": "1.6,0.8,0.25",  # the city's lamps burn warm under the cold moon
-    "moon_stair": "1.6,0.8,0.25",  # the lamps at the head of the grand stair
+    "moon_lamp": "1.7,0.72,0.22",  # the city's lamps burn warm under the cold moon, a flame's orange
+    "moon_stair": "1.7,0.72,0.22",  # the lamps at the head of the grand stair
     "moon_crystal": "0.72,0.62,1.0",
     "moon_window": "0.58,0.68,0.98",
     "gas_lamp": "1.4,0.95,0.5",  # gaslight, warm and yellow over the cold air

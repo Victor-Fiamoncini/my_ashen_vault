@@ -12,6 +12,7 @@ default = ,
 entity_floor = auto
 edge_top = 9
 edge_tex = moonstone
+crack_span = 14
 
 // Vesperholm, the Moonbound City, behind the Vesper Gate in Harrowmere's north wall at the head of the
 // cathedral steps, which stands open to anyone who climbs them: the seat of the king's sister, Duchess
@@ -29,11 +30,13 @@ edge_tex = moonstone
 // old stair up through its east wall to a flying stair over the drop behind the cathedral, the Moon
 // Terrace and a grand stair up to Lyra's Chapel, older than the city, on its crag high over the
 // choir, where the Argent Sigil she wed the moon on lies in the hands of Lyra the Embracer. Lift it,
-// and a portal opens in the apse behind her. The great bridge's lever, in the bailey, is the short
+// and the empty arch in the apse behind her opens into a portal. The great bridge's lever, in the bailey, is the short
 // way back to the shrine.
 
 [legend]
 # = wall tex=moonstone top=9 cap=silver_slate
+// The choir's back wall over the drop behind the cathedral, split by the years the moon has hung over it.
+Ъ = wall tex=moonstone top=9 cap=silver_slate dress=cracks
 % = wall tex=moonstone top=14 cap=silver_slate
 h = wall tex=moonstone top=5.5 cap=silver_slate
 , = floor tex=moon_paving h=0 side=moonstone
@@ -80,7 +83,9 @@ q = wall tex=moonstone top=7 cap=silver_slate
 Μ = wall tex=moonstone top=6 cap=moon_paving
 // The old stair inside the cathedral's east wall, behind the choir's back door: half a metre a tile
 // north from the choir's floor, each step under its own vault, up through the wall and the stair tower
-// on the cathedral's north-east corner to the head of the flying stair at 3 m.
+// on the cathedral's north-east corner to the head of the flying stair at 3 m. Its foot, just inside
+// the back door, lies level with the choir.
+τ = floor tex=moon_paving h=0 ceil=4 ceil_tex=moonstone side=moonstone dark=0.3
 μ = floor tex=moon_paving h=0.5 ceil=4.5 ceil_tex=moonstone side=moonstone dark=0.3
 ν = floor tex=moon_paving h=1 ceil=5 ceil_tex=moonstone side=moonstone dark=0.3
 ξ = floor tex=moon_paving h=1.5 ceil=5.5 ceil_tex=moonstone side=moonstone dark=0.3
@@ -108,9 +113,10 @@ q = wall tex=moonstone top=7 cap=silver_slate
 З = wall tex=moonstone top=11 cap=moon_paving
 И = wall tex=moonstone top=11.5 cap=moon_paving
 // Lyra's Chapel, older than the city, on its crag behind the cathedral: its nave of moon-glass under a
-// vault far higher than the choir's, and its walls, towering over the cathedral's. The crag's rim.
+// vault far higher than the choir's, and its walls, towering over the cathedral's and split by great
+// cracks down their faces. The crag's rim.
 щ = floor tex=moon_glass h=11.5 ceil=24 ceil_tex=silver_slate side=moonstone dark=0.15
-Щ = wall tex=moonstone top=26 cap=silver_slate
+Щ = wall tex=moonstone top=26 cap=silver_slate dress=cracks
 Я = wall tex=crystal_rock top=14 cap=crystal_rock
 // The Glimmering Cave between the Vesper Gate and the overlook: its rock, and its floors climbing
 // half a metre at a time from the gate's hall at 0 m to the mouth at 6 m, each under its own roof.
@@ -155,11 +161,11 @@ w = water tex=water h=3.9 side=crystal_rock
 Я__________________БзззБ___________________Я
 Я___________________Lжжжӂгвбλκιθηζ_________Я
 Я_______________________________%Þ%________Я
-Я_______________________________%ë%________Я
-###########Ø####################Øξ##########
+Я_______________Ѣ____Ѣ____Ѣ_____%ë%________Я
+###########ØЪЪЪЪЪЪЪЪЪЪЪЪЪЪЪЪЪЪЪЪØξ##########
 ###########ßÇcccÜccccÜccccÜccccÇ%ν##########
-###########%ccccccccccccccccccccÊê##########
-###########%cccccccccccccccccccc%%#,,Û,,,K##
+###########%cccccccccccccccccccc%μ##########
+###########%ccccccccccccccccccccÊê#,,Û,,,K##
 ###########%ÜccccccccDcccccccccÜ%%#,,,,,,,##
 ###########%cccccccccccccccccccc%%#,,,,,,,##
 ###########%ÑccccccccccccccccccÑ%%#,Æ,,,,,##
@@ -274,8 +280,8 @@ X = crystal_arch yaw=-90 height=8
 P = hint text="Below lies Vesperholm, the Moonbound City.|The moon over it has not moved since the night the Duchess wed it."
 Z = moon_stair run=12 rise=0.5 steps=5 width=3 yaw=-90 on=λ
 // The lamps on the piers down the flight, burning warm as the city's.
-Ł = light y=4.3 color=1.6,0.8,0.25 radius=8 on=η
-ł = light y=4.3 color=1.6,0.8,0.25 radius=8 on=γ
+Ł = light y=4.3 color=1.7,0.72,0.22 radius=8 on=η
+ł = light y=4.3 color=1.7,0.72,0.22 radius=8 on=γ
 // The Vesper Gate home to Harrowmere, at the cave's far end, and the shrine on the overlook.
 A = exit map=harrowmere at=22,2,90 label=Return_to_Harrowmere model=vesper_gate yaw=-90
 B = save_statue
@@ -285,13 +291,13 @@ R = hint text="Far below, a bridge of stone lies sunk in the gorge.|Whatever rai
 D = moon_duchess
 E = door boss=duchess_dead on=n
 // Her choir's second mouth, a back door in its east wall (`rear`: the compass never points at it, as
-// it is no way in): it shuts with the great door and opens when she falls, onto the old stair north
-// up through the wall and its tower, the flying stair west over the drop behind the cathedral, the
+// it is no way in): it shuts with the great door and opens when she falls, onto the old stair's foot,
+// level with the choir, and the stair north up through the wall and its tower, the flying stair west over the drop behind the cathedral, the
 // Moon Terrace and the grand stair up to Lyra's Chapel on its crag, high over her choir.
 Ê = door boss=duchess_dead rear on=p
-ê = hint text="A stair older than the cathedral climbs into the wall.|Above, something silver answers the moon." on=μ
+ê = hint text="A stair older than the cathedral climbs into the wall.|Above, something silver answers the moon." on=τ
 ë = light y=2.6 color=0.6,0.7,1.0 radius=6 on=π
-Þ = stair_flight run=5 rise=0.5 steps=4 width=1 yaw=90 on=ρ
+Þ = stair_flight run=6 rise=0.5 steps=4 width=1 yaw=90 on=ρ
 ӂ = stair_flight run=9 rise=0.5 steps=4 width=1 yaw=0 on=д
 ё = moon_stair run=6 rise=0.5 steps=5 width=3 yaw=90 on=ч
 // The chapel: its front on the forecourt, a lesser gate of the cathedral's kind, a spire either side;
@@ -305,8 +311,9 @@ E = door boss=duchess_dead on=n
 х = candles on=щ
 п = light y=3 color=0.6,0.7,1.0 radius=9 on=щ
 // The altar of Lyra the Embracer in the middle of her nave, the Argent Sigil the Duchess wed the moon
-// on in the old god's hands; once it is lifted, the moon's light pours into the apse behind her and
-// opens there into a portal to Herran's Castle over the clouds: there is nothing there before.
+// on in the old god's hands. In the apse behind her stands an arch of her pale moonstone, empty and
+// dark; once the sigil is lifted, the moon's light pours into it and opens there into a portal to
+// Herran's Castle over the clouds (`hidden`: it can't be taken before).
 ÿ = exit map=herrans_castle at=16,38,-90 label=Step_through_the_portal model=argent_portal yaw=90 requires=argent_sigil_taken hidden on=щ
 þ = altar item=argent_sigil model=lyra yaw=90 on=щ said="You lift the Argent Sigil out of Lyra's open hands. They stay open.|Behind her, the moonlight pours into the apse and does not stop."
 // The great bridge over the gorge, three abreast and four long, sunk 18 m down on the gorge floor until
@@ -334,6 +341,9 @@ O = chest item=bitter_root count=2 gold=100 model=coffer
 Ô = moon_lamp
 Ö = moon_window on=n
 Ü = moon_window on=c
+// Great windows of moon-glass high in the choir's back wall, over the drop behind the cathedral, in
+// line with the choir's own: seen from the Moon Terrace and the chapel's forecourt.
+Ѣ = moon_window rise=18.2 size=2.4 on=_
 Ú = moon_window on=a
 Ñ = light y=3 color=0.6,0.7,1.0 radius=9 on=c
 Ò = light y=3 color=0.62,0.72,1.0 radius=7
