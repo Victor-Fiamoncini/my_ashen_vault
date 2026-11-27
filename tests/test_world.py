@@ -107,6 +107,7 @@ STATIC_BLOCKERS = (
     *("gravestone", "cemetery_gate", "dead_cypress", "huge_rotten_tree"),
     *("moon_lamp", "veiled_statue", "silver_tree"),
     *("candelabra", "gate_statue", "vat", "dissecting_table", "specimen_cage", "lab_bench", "bookcase"),
+    "telescope",
 )
 
 

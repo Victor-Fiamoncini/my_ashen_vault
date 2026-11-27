@@ -173,13 +173,15 @@ Ready-made `--map` / `--at` / `--script` starts for checking a place or a fight.
   `tests/test_herrans_castle_world.py` checks it opening),
   `--at=13,40,180` (a Castellan Warden on its tower's deck), `--at=19,33,-90` (the Outer Ward),
   `--at=19,23,-90 --script "look_up:0.2"` (the Great Hall), `--at=10,8,90` (the library's false wall;
-  `attack` it), `--at=20,5,0` (Herran's study and its shrine). The laboratory: `--map herran_laboratory`
+  `attack` it), `--at=20,5,0` (Herran's study and its shrine), `--at=25,10,-40 --flags herran_dead --script
+  "look_up:0.5"` (the iron cage over the anatomy theatre), `--at=34,1,0 --flags herran_dead` (Herran's
+  telescope). The laboratory: `--map herran_laboratory`
   (the vat cellar), `--at=5,8,180` (the dissecting rooms), `--at=27,8,0` (the menagerie),
   `--at=16,16,90` (the ossuary of hands), `--at=16,24,90` (Herran's own laboratory). Fights: `--map
   herrans_castle --at=10,18,180 --level 12 --equip right=claymore,body=brigandine --smoke 480 --script
   "interact wait:0.8 forward:1.6 wait:3"` (the Hall of Sentinels: the two stone giants tear free),
   `--map herrans_castle --at=23,5,0 --level 12 --equip right=claymore,body=brigandine --smoke 520 --script
-  "interact wait:0.8 forward:1.4 wait:5.5"` (through his door; Herran rising in his anatomy theatre). The
+  "interact wait:0.8 forward:1.4 wait:5.5"` (through his door; Herran rising before it, facing you). The
   ending: `--map harrowmere --at=25,26,-90 --flags bell_unsealed --script "wait:0.5 interact"` (the bell
   refuses without the five sigils in hand).
 - The story begins in `ashen_cemetery` (the title's New Game, `Game.start_story`: bare hands and no

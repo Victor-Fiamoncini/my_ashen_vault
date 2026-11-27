@@ -134,9 +134,13 @@ How `.map` files work and what can stand on a tile.
   two stone giants' arena between `door boss=sentinels_dead` and its `rear` door onto the keep stair,
   which climbs half a metre a tile to the library at 8 m. A `secret_wall` in the library's south wall
   hides a passage and the stair down to `herran_laboratory`; a stair on climbs to Herran's study at 10 m
-  and its shrine, and behind `door boss=herran_dead` the anatomy theatre, open to the storm under its
-  broken `anatomy_dome`, ringed by a parapet of wall tiles (never chasm, which an arena's flood would
-  leak into). Walled in `castle_stone`, capped in `castle_slate`, paved in `castle_flags`, the mountain
+  and its shrine, and behind `door boss=herran_dead` the anatomy theatre, ringed by a parapet of wall tiles
+  (never chasm, which an arena's flood would leak into) and caged whole under its broken
+  `anatomy_dome`, a cloister vault of iron set on the theatre's -X/-Z floor tile (`span=` tiles across,
+  `walled=` the sides against the keep, where it rests on corbels instead of bars, `spring=` and `rise=`
+  in metres), open to the storm through a breach in its north-east quarter. Herran rises five tiles in
+  from his door, in line with it and facing it, as the other bosses do; his `telescope` (a blocking
+  prop) stands in the far corner, trained out over the parapet. Walled in `castle_stone`, capped in `castle_slate`, paved in `castle_flags`, the mountain
   `mountain_rock`; `tests/test_herrans_castle_world.py`), `herran_laboratory` (Herran's Laboratory,
   32x32, hewn out of the peak under the castle, no sky and dark everywhere, `dark` 0.6 and over: the
   hidden stair's foot (and the way back up), the vat cellar (`vat`s, a light), the dissecting rooms

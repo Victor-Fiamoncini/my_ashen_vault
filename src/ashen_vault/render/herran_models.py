@@ -886,37 +886,183 @@ def hollow_peak(r, seed, height=90.0, width=60.0):
                    snow)  # fmt: skip
 
 
-def anatomy_dome(r, radius=6.0, height=1.2):
-    """The dome over Herran's anatomy theatre at the top of his keep, broken open to the storm: ribs of
-    black iron curving up from the theatre's parapet (`radius` metres out, at `height` over the floor)
-    to an iron ring at the crown, most of its glass long gone, a few panes still hanging."""
-    ribs = 12
-    for i in range(ribs):
-        a = i * math.tau / ribs
-        for k in range(5):  # each rib in five bars, up to the crown
-            e0, e1 = math.pi / 2 * k / 5, math.pi / 2 * (k + 1) / 5
-            p0 = (
-                math.cos(a) * radius * math.cos(e0),
-                height + radius * 0.8 * math.sin(e0),
-                math.sin(a) * radius * math.cos(e0),
-            )
-            p1 = (
-                math.cos(a) * radius * math.cos(e1),
-                height + radius * 0.8 * math.sin(e1),
-                math.sin(a) * radius * math.cos(e1),
-            )
-            if i % 4 == 1 and k >= 3:
-                continue  # a rib broken off short
-            _bar(r, p0, p1, 0.14, IRON if k % 2 else LEAD)
-        if i % 3 == 0:  # a pane still hanging
-            e = math.pi / 2 * 0.3
-            r.part("cube", math.cos(a + 0.26) * radius * math.cos(e), height + radius * 0.8 * math.sin(e),
-                   math.sin(a + 0.26) * radius * math.cos(e), 0.03, 1.4, 1.6, PANE, ry=-a - 0.26 + math.pi / 2)  # fmt: skip
-    r.part("cyl", 0, height + radius * 0.8, 0, radius * 0.4, 0.18, radius * 0.4, IRON)  # the crown ring
-    for i in range(ribs):  # the iron ring at its foot, rib to rib
-        a0, a1 = i * math.tau / ribs, (i + 1) * math.tau / ribs
-        _bar(r, (math.cos(a0) * radius, height, math.sin(a0) * radius),
-             (math.cos(a1) * radius, height, math.sin(a1) * radius), 0.18, IRON)  # fmt: skip
+ROD = (176, 104, 60)  # copper: the lightning rod on the dome's crown
+BRASS = (184, 140, 70)  # the telescope's brass
+BRASS_DARK = (130, 96, 48)
+OAK_DARK = (70, 48, 34)
+LEATHER = (74, 34, 28)
+OILCLOTH = (58, 62, 52)
+VAULT_STEP = 4.0  # metres between the vault's ribs along its foot
+BAR_STEP = 2.0  # and between the cage-wall's bars
+
+
+def _vault_perimeter(x0, z0, x1, z1):
+    """Points round the rectangle (x0, z0)-(x1, z1), clockwise from its -X/-Z corner, each side's first
+    corner then the rest about `VAULT_STEP` apart: the feet of the vault's ribs."""
+    corners = ((x0, z0), (x1, z0), (x1, z1), (x0, z1))
+    points = []
+    for i, (ax, az) in enumerate(corners):
+        bx, bz = corners[(i + 1) % 4]
+        n = max(1, rround(math.hypot(bx - ax, bz - az) / VAULT_STEP))
+        points += [(ax + (bx - ax) * j / n, az + (bz - az) * j / n) for j in range(n)]
+    return points
+
+
+def _pane(r, a, b, c, e, rgb, hang=0.0):
+    """A pane of glass between the vault's points a, b (below) and c, e (above), leaning with it, or
+    `hang` radians further where it has come loose."""
+    mid = [(a[i] + b[i] + c[i] + e[i]) / 4 for i in range(3)]
+    across = math.hypot(b[0] - a[0], b[2] - a[2])
+    up = [(c[i] + e[i] - a[i] - b[i]) / 2 for i in range(3)]
+    ry = math.atan2(-(b[2] - a[2]), b[0] - a[0])
+    lean = math.pi / 2 - math.atan2(up[1], math.hypot(up[0], up[2]))
+    inward = math.sin(ry) * up[0] + math.cos(ry) * up[2]
+    rx = (lean + hang) * (1 if inward > 0 else -1)
+    r.part("cube", *mid, across * 0.8, math.hypot(*up) * 0.8, 0.03, rgb, rx=rx, ry=ry)
+
+
+def anatomy_dome(r, w, d, spring=4.8, rise=6.0, walled="", seed=0):
+    """The iron cage over Herran's anatomy theatre at the top of his keep, shutting in the whole of its
+    `w` by `d` metres of floor (centred on the origin), corners and all. A cage-wall of black iron bars
+    stands on the parapets, but not on the sides listed in `walled` ("n", "s", "e", "w", with -Z north
+    and -X west), which stand against the keep: there the cage rests on iron corbels in its face, its
+    springing beam `spring` metres up, clear of the door's arch. Over it a cloister vault of ribs rises
+    `rise` metres more to a flat crown, with an iron lantern and a copper lightning rod. Its glass is
+    long gone but for a few panes, and in its +X/-Z quarter the storm has broken it open: ribs snapped
+    short and bent down, the panes between them hanging loose."""
+    out = 0.4  # how far past the floor's edge the bars stand, on the parapet
+    x0 = -w / 2 + (0.15 if "w" in walled else -out)
+    x1 = w / 2 - (0.15 if "e" in walled else -out)
+    z0 = -d / 2 + (0.15 if "n" in walled else -out)
+    z1 = d / 2 - (0.15 if "s" in walled else -out)
+    sides = {
+        "n": ((x0, z0), (x1, z0)),
+        "e": ((x1, z0), (x1, z1)),
+        "s": ((x1, z1), (x0, z1)),
+        "w": ((x0, z1), (x0, z0)),
+    }
+    bars = set()
+    for side, (a, b) in sides.items():
+        _bar(r, (a[0], spring, a[1]), (b[0], spring, b[1]), 0.2, IRON)  # the springing beam
+        if side in walled:
+            continue
+        _bar(r, (a[0], 1.2, a[1]), (b[0], 1.2, b[1]), 0.16, IRON)  # the wall plate on the parapet
+        _bar(r, (a[0], 3.0, a[1]), (b[0], 3.0, b[1]), 0.08, LEAD)  # the mid-rail
+        n = max(1, rround(math.hypot(b[0] - a[0], b[1] - a[1]) / BAR_STEP))
+        bars |= {(rround((a[0] + (b[0] - a[0]) * j / n) * 100), rround((a[1] + (b[1] - a[1]) * j / n) * 100))
+                 for j in range(n + 1)}  # fmt: skip
+    for bx, bz in sorted(bars):  # the cage-wall's bars
+        _bar(r, (bx / 100, 1.2, bz / 100), (bx / 100, spring, bz / 100), 0.07, IRON)
+    cx, cz = (x0 + x1) / 2, (z0 + z1) / 2
+    feet = _vault_perimeter(x0, z0, x1, z1)
+    top = math.acos(0.18)  # the crown is the springing rectangle at 0.18 of its size
+
+    def at(p, k):  # the point k fifths of the way up the rib springing from p
+        s = math.cos(top * k / 5)
+        return (
+            cx + (p[0] - cx) * s,
+            spring + rise * math.sin(top * k / 5) / math.sin(top),
+            cz + (p[1] - cz) * s,
+        )
+
+    quarter = [i for i, p in enumerate(feet) if p[0] > cx and p[1] < cz]
+    start = seed % max(1, len(quarter) - 2)
+    broken = set(quarter[start : start + 3])
+    for i, p in enumerate(feet):
+        for k in range(2 if i in broken else 5):
+            _bar(r, at(p, k), at(p, k + 1), 0.16, IRON if k % 2 == 0 else LEAD)  # the rib
+        if i in broken:  # its stub, bent down and out where it snapped
+            a = at(p, 2)
+            dx, dz = p[0] - cx, p[1] - cz
+            n = math.hypot(dx, dz)
+            _bar(r, a, (a[0] + dx / n * 0.6, a[1] - 1.0, a[2] + dz / n * 0.6), 0.12, IRON)
+        against = ("w" in walled and p[0] == x0) or ("e" in walled and p[0] == x1)
+        against |= ("n" in walled and p[1] == z0) or ("s" in walled and p[1] == z1)
+        if against:  # an iron corbel in the keep's face under its foot
+            r.part("cube", p[0], spring - 0.35, p[1], 0.36, 0.5, 0.36, IRON)
+    for k in range(1, 6):  # the purlins, rib to rib, ring above ring, and the crown
+        for i, p in enumerate(feet):
+            j = (i + 1) % len(feet)
+            if k >= 2 and (i in broken or j in broken):
+                continue
+            _bar(r, at(p, k), at(feet[j], k), 0.08 if k < 5 else 0.16, LEAD if k % 2 else IRON)
+    for i in sorted(broken):  # the panes hanging loose at the breach
+        j = (i + 1) % len(feet)
+        _pane(r, at(feet[i], 1), at(feet[j], 1), at(feet[i], 2), at(feet[j], 2), PANE, hang=0.5)
+    for i in range(0, len(feet), 5):  # and the few still in their frames
+        j = (i + 1) % len(feet)
+        if i not in broken and j not in broken:
+            _pane(r, at(feet[i], 0), at(feet[j], 0), at(feet[i], 1), at(feet[j], 1), PANE)
+    crown = spring + rise
+    r.part("cube", cx, crown + 0.1, cz, 1.2, 0.12, 1.2, IRON)  # the lantern on the crown
+    for sx, sz in ((-1, -1), (-1, 1), (1, -1), (1, 1)):
+        r.part("cube", cx + sx * 0.5, crown + 0.6, cz + sz * 0.5, 0.08, 1.0, 0.08, IRON)
+    r.part("pyramid", cx, crown + 1.35, cz, 1.3, 0.6, 1.3, LEAD)
+    r.part("cyl", cx, crown + 2.6, cz, 0.06, 2.0, 0.06, ROD)  # the lightning rod
+    r.part("cone", cx, crown + 3.75, cz, 0.12, 0.3, 0.12, ROD)
+
+
+def telescope(r, seed):
+    """Herran's telescope: a brass refractor on an equatorial head, on a field tripod of dark oak, its
+    object glass trained along +X and up at the storm. A tray between the legs keeps his folio, an
+    eyepiece case, a pair of dividers and a hand lens; an oilcloth rag is thrown over one leg against
+    the rain."""
+    for i in range(3):  # the tripod, one leg back under the eyepiece
+        a = math.pi + i * math.tau / 3
+        foot = (math.cos(a) * 0.75, 0.0, math.sin(a) * 0.75)
+        _bar(r, foot, (math.cos(a) * 0.1, 1.35, math.sin(a) * 0.1), 0.07, OAK_DARK)
+        r.part("cube", foot[0], 0.06, foot[2], 0.09, 0.12, 0.09, BRASS_DARK)  # its brass shoe
+    r.part("cyl", 0, 0.55, 0, 0.62, 0.03, 0.62, OAK_DARK)  # the spreader tray
+    r.part("cube", -0.1, 0.58, 0.08, 0.26, 0.03, 0.2, LEATHER, ry=0.3 + seed * 0.1)  # his folio
+    r.part("cube", 0.14, 0.6, -0.1, 0.12, 0.07, 0.08, BRASS_DARK, ry=-0.4)  # the eyepiece case
+    _bar(r, (-0.05, 0.575, -0.15), (0.12, 0.575, -0.22), 0.015, BRASS)  # the dividers
+    _bar(r, (-0.05, 0.575, -0.15), (0.13, 0.575, -0.16), 0.015, BRASS)
+    r.part("cyl", 0.08, 0.575, 0.18, 0.08, 0.015, 0.08, PANE)  # the hand lens
+    r.part("cube", 0.15, 0.575, 0.18, 0.08, 0.015, 0.02, BRASS)
+    r.part("cyl", 0, 1.38, 0, 0.2, 0.08, 0.2, BRASS_DARK)  # the tripod's head
+    r.part("cyl", 0, 1.5, 0, 0.08, 0.18, 0.08, BRASS)  # the pillar
+    r.part("cube", 0, 1.66, 0, 0.3, 0.12, 0.12, BRASS, rz=0.7)  # the polar axis
+    r.part("cyl", -0.06, 1.62, 0.08, 0.16, 0.02, 0.16, GILT, rx=math.pi / 2)  # its setting circle
+    r.part("cube", 0.04, 1.78, 0, 0.12, 0.12, 0.16, BRASS_DARK)  # the declination housing
+    _bar(r, (0.04, 1.76, -0.06), (-0.12, 1.5, -0.34), 0.03, IRON)  # the counterweight's shaft
+    r.part("sphere", -0.12, 1.5, -0.34, 0.14, 0.14, 0.14, IRON)
+    e = 0.6  # the tube's elevation
+    ce, se = math.cos(e), math.sin(e)
+
+    def tube(s, dia, length, rgb, up=0.0):  # a drum of the tube, s metres along it from its cradle
+        r.part(
+            "cyl",
+            0.12 + ce * s - se * up,
+            1.9 + se * s + ce * up,
+            0,
+            dia,
+            length,
+            dia,
+            rgb,
+            rz=e - math.pi / 2,
+        )
+
+    tube(0.0, 0.13, 1.3, BRASS)  # the main tube
+    for s in (-0.45, 0.0, 0.45):
+        tube(s, 0.15, 0.04, BRASS_DARK)  # its bands
+    tube(-0.22, 0.145, 0.12, LEATHER)  # the grip
+    tube(0.78, 0.17, 0.3, BRASS)  # the dew shield
+    tube(0.93, 0.14, 0.01, PANE)  # the object glass
+    tube(-0.72, 0.08, 0.15, BRASS_DARK)  # the draw tubes
+    tube(-0.84, 0.06, 0.12, BRASS)
+    tube(0.1, 0.045, 0.36, BRASS_DARK, up=0.13)  # the finder
+    for s in (-0.05, 0.25):
+        tube(s, 0.03, 0.1, BRASS, up=0.07)  # its brackets
+    back = (0.12 - ce * 0.92, 1.9 - se * 0.92)
+    r.part("cube", back[0], back[1], 0, 0.06, 0.06, 0.06, BRASS)  # the star diagonal
+    r.part("cyl", back[0] - 0.02, back[1] + 0.08, 0, 0.04, 0.1, 0.04, BRASS_DARK)  # the eyepiece
+    for side in (-1, 1):
+        r.part("cyl", 0.12 - ce * 0.7, 1.9 - se * 0.7 - 0.06, side * 0.07, 0.04, 0.03, 0.04, BRASS,
+               rx=math.pi / 2)  # fmt: skip  # the focus knobs
+        _bar(r, (0.04, 1.74, side * 0.08), (0.1, 1.3, side * 0.16), 0.012, BRASS)  # the slow-motion rods
+        r.part("sphere", 0.1, 1.29, side * 0.16, 0.04, 0.04, 0.04, BRASS_DARK)
+    a = math.pi + math.tau / 3  # the rag over a leg
+    r.part("cube", math.cos(a) * 0.45, 0.6, math.sin(a) * 0.45, 0.04, 0.4, 0.22, OILCLOTH, ry=-a, rz=0.4)
 
 
 def candelabra(r, seed, t):

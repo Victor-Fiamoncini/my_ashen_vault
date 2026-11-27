@@ -258,7 +258,7 @@ BLOCKING_PROPS = (
     "moon_crystal",
     "old_idol",
     "lyra_statue",
-    *("candelabra", "gate_statue", "vat", "dissecting_table", "specimen_cage", "lab_bench"),
+    *("candelabra", "gate_statue", "vat", "dissecting_table", "specimen_cage", "lab_bench", "telescope"),
 )
 # Ways to another map that fill their tile, so you take them by facing them and interacting: the well
 # and the gaol's grate in Harrowmere's plaza.
@@ -413,7 +413,7 @@ STATIC_PROPS = frozenset(
         ),
         *("prisoner_remains", "old_idol", "sunken_tower", "lyra_statue"),
         *("castle_tower", "hollow_peak", "anatomy_dome", "gate_statue", "dissecting_table"),
-        *("specimen_cage", "hand_rack", "lab_bench"),
+        *("specimen_cage", "hand_rack", "lab_bench", "telescope"),
         "wall_crack",
         "ash_mound",
         "spire",

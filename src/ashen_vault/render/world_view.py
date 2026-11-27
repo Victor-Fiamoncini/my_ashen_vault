@@ -934,6 +934,20 @@ def _draw_moon_window(
         moon_models.moon_window(rig, p.tx * 7 + p.tz * 3)
 
 
+def _draw_anatomy_dome(view, rig, p, t):  # on the theatre's -X/-Z floor tile, `span=` tiles across
+    w, d = (int(v) for v in p.props.get("span", "6,6").split(","))
+    with rig.at((w - 1) * TileMap.TILE / 2, 0, (d - 1) * TileMap.TILE / 2):
+        herran_models.anatomy_dome(
+            rig,
+            w * TileMap.TILE,
+            d * TileMap.TILE,
+            spring=float(p.props.get("spring", "4.8")),
+            rise=float(p.props.get("rise", "6")),
+            walled=p.props.get("walled", ""),
+            seed=p.tx * 7 + p.tz * 3,
+        )
+
+
 def _draw_moon_roof(view, rig, p, t):
     w, d = (int(v) for v in p.props.get("span", "2,2").split(","))
     moon_models.moon_roof(
@@ -1125,9 +1139,8 @@ PROP_DRAWERS = {
     "hollow_peak": lambda view, rig, p, t: herran_models.hollow_peak(
         rig, p.tx * 7 + p.tz * 3, float(p.props.get("height", "90")), float(p.props.get("width", "60"))
     ),
-    "anatomy_dome": lambda view, rig, p, t: herran_models.anatomy_dome(
-        rig, float(p.props.get("radius", "6")), float(p.props.get("height", "1.2"))
-    ),
+    "anatomy_dome": _draw_anatomy_dome,
+    "telescope": lambda view, rig, p, t: herran_models.telescope(rig, p.tx * 7 + p.tz * 3),
     "candelabra": lambda view, rig, p, t: herran_models.candelabra(rig, p.tx * 7 + p.tz * 3, t),
     "gate_statue": lambda view, rig, p, t: herran_models.gate_statue(rig, p.tx * 7 + p.tz * 3),
     "vat": lambda view, rig, p, t: herran_models.vat(rig, p.tx * 7 + p.tz * 3, t),

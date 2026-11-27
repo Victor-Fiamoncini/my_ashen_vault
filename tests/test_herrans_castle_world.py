@@ -6,6 +6,7 @@ import math
 
 from ashen_vault import map_path
 from ashen_vault.ai.enemy_types import EnemyTypes
+from ashen_vault.util import rround
 from ashen_vault.world import seals, terrain
 from ashen_vault.world.map_loader import MapLoader
 from ashen_vault.world.tile_map import TileMap
@@ -309,19 +310,54 @@ def test_herran_waits_only_behind_his_door_and_drops_the_auric_sigil():
     m = _castle()
     (herran,) = _spec(m, "herran")
     (dome,) = _spec(m, "anatomy_dome")
-    assert abs(dome.tx - herran.tx) + abs(dome.tz - herran.tz) <= 2
+    w, d = (int(v) for v in dome.props["span"].split(","))
+    assert dome.tx <= herran.tx < dome.tx + w and dome.tz <= herran.tz < dome.tz + d
+    # He rises as the other bosses do: in line with his door, a few tiles inside, facing it.
+    (door,) = _spec(m, "door", boss="herran_dead")
+    assert herran.tz == door.tz and 4 <= herran.tx - door.tx <= 6
+    assert herran.props["yaw"] == "180"
+    (enemy,) = [e for e in World(JungleGame(), CASTLE).enemies if e.type.id == "herran"]
+    assert math.isclose(math.cos(enemy.yaw), -1.0)
 
 
-def _herran_at(at, herran_at=(31, 6)):
+def _herran_at(at, herran_at=None):
     game = JungleGame()
     world = World(game, CASTLE)
     world.enemies = []
     game.player.place(*TileMap.center(*at), 0.0, world.map)
+    if herran_at is None:
+        (spec,) = _spec(world.map, "herran")
+        herran_at = (spec.tx, spec.tz)
     return game, world, foe(world, "herran", herran_at)
 
 
+def test_the_iron_dome_cages_the_whole_theatre():
+    from ashen_vault.render import bounds, world_view
+
+    world = World(JungleGame(), CASTLE)
+    (arena,) = [a for a in world.arenas if a.flag == "herran_dead"]
+    (dome,) = [p for p in world.props if p.kind == "anatomy_dome"]
+    lo, hi = bounds.measure(lambda r: world_view.PROP_DRAWERS["anatomy_dome"](None, r, dome, 0.0))
+    xs = [tx for tx, _ in arena.tiles]
+    zs = [tz for _, tz in arena.tiles]
+    assert dome.x + lo[0] <= min(xs) * TileMap.TILE and dome.x + hi[0] >= (max(xs) + 1) * TileMap.TILE
+    assert dome.z + lo[2] <= min(zs) * TileMap.TILE and dome.z + hi[2] >= (max(zs) + 1) * TileMap.TILE
+    assert hi[1] >= 10  # high over Herran
+
+
+def test_the_telescope_looks_out_from_the_theatre():
+    world = World(JungleGame(), CASTLE)
+    (arena,) = [a for a in world.arenas if a.flag == "herran_dead"]
+    (scope,) = [p for p in world.props if p.kind == "telescope"]
+    assert (scope.tx, scope.tz) in arena.tiles
+    door, (herran,) = arena.door, _spec(world.map, "herran")
+    assert not (scope.tz == door.tz and door.tx < scope.tx <= herran.tx)  # not in his way to you
+    ahead = world.map[scope.tx + rround(math.cos(scope.yaw)), scope.tz + rround(math.sin(scope.yaw))]
+    assert ahead.solid  # trained out over the parapet, at the storm
+
+
 def test_herrans_hands_rise_in_a_line_and_his_elixir_lands_where_you_stood():
-    game, world, herran = _herran_at((27, 6))
+    game, world, herran = _herran_at((25, 5))
     world.hand_rain(herran)
     hands = [f for f in world.eruptions if f.style == "grafts"]
     assert len(hands) >= 3
@@ -339,14 +375,14 @@ def test_herrans_hands_rise_in_a_line_and_his_elixir_lands_where_you_stood():
 def test_herrans_sweep_and_embrace_reach_only_so_far():
     from ashen_vault.ai.enemy import EMBRACE_REACH, GRASP_SWEEP_REACH
 
-    game, world, herran = _herran_at((30, 6))
+    game, world, herran = _herran_at((28, 5))
     hp = game.player.stats.hp
     world.grasp_sweep(herran)
     assert game.player.stats.hp < hp
     hp = game.player.stats.hp
     world.embrace(herran)
     assert game.player.stats.hp < hp and game.player.webbed_t > 0
-    game, world, herran = _herran_at((26, 2))
+    game, world, herran = _herran_at((34, 9))
     assert math.hypot(game.player.x - herran.x, game.player.z - herran.z) > max(
         GRASP_SWEEP_REACH, EMBRACE_REACH
     )
@@ -358,7 +394,7 @@ def test_herrans_sweep_and_embrace_reach_only_so_far():
 
 def test_every_new_prop_and_landmark_is_built_in_detail():
     from ashen_vault.render import herran_models, rig
-    from ashen_vault.world.world import BLOCKING_PROPS, LANDMARKS, STATIC_PROPS, WALL_PROPS
+    from ashen_vault.world.world import BLOCKING_PROPS, FACING_PROPS, LANDMARKS, STATIC_PROPS, WALL_PROPS
     from test_render_logic import _RecordingGpu
 
     def parts(fn):
@@ -374,7 +410,8 @@ def test_every_new_prop_and_landmark_is_built_in_detail():
         "specimen_cage": lambda r: herran_models.specimen_cage(r, 4),
         "hand_rack": lambda r: herran_models.hand_rack(r, 4),
         "lab_bench": lambda r: herran_models.lab_bench(r, 4),
-        "anatomy_dome": lambda r: herran_models.anatomy_dome(r, 11.0, 1.2),
+        "anatomy_dome": lambda r: herran_models.anatomy_dome(r, 24.0, 20.0, 4.8, 6.0, "w", 4),
+        "telescope": lambda r: herran_models.telescope(r, 4),
         "hollow_peak": lambda r: herran_models.hollow_peak(r, 4, 140.0, 120.0),
         "sealed_gate": lambda r: herran_models.sealed_gate(r, 0.0, 5.0, 2, 0.3),
         **{
@@ -392,6 +429,8 @@ def test_every_new_prop_and_landmark_is_built_in_detail():
         BLOCKING_PROPS
     )
     assert "hand_rack" in WALL_PROPS
+    assert len(parts(built["anatomy_dome"])) >= 150 and len(parts(built["telescope"])) >= 30
+    assert "telescope" in BLOCKING_PROPS and "telescope" in STATIC_PROPS and "telescope" not in FACING_PROPS
     lit, out = parts(lambda r: herran_models.sealed_gate(r, 0.0, 5.0, 2, 0.0)), None
     out = parts(lambda r: herran_models.sealed_gate(r, 0.0, 5.0, 0, 0.0))
     assert len(lit) == len(out)  # its eyes go out; nothing else changes

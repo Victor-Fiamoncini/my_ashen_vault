@@ -32,7 +32,7 @@ def world_on(name, flags=(), at=None):
         ("vesperholm", "duchess_dead", (21, 24)),
         ("old_harrowmere", "keystone_dead", (22, 43)),
         ("herrans_castle", "sentinels_dead", (4, 18)),
-        ("herrans_castle", "herran_dead", (31, 6)),
+        ("herrans_castle", "herran_dead", (29, 5)),
     ],
 )
 def test_every_boss_has_a_closed_arena_behind_a_great_door(map_name, flag, lair):
