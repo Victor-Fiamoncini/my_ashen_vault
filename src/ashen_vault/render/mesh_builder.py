@@ -110,7 +110,7 @@ LIGHT_Y_WALL = {
 LIGHT_COLOR = {
     "founder_altar": "1.3,0.8,0.45",  # candlelight, as the castle's candelabra
     "ground_torch": "1.0,0.6,0.28",
-    "burning_tree": "1.7,0.7,0.28",
+    "burning_tree": "1.4,0.6,0.25",
     "fen_beacon": "0.8,0.35,1.1",
     "energy_core": "0.45,1.25,1.0",
     "fungus": "0.3,0.85,0.65",
@@ -139,7 +139,7 @@ LIGHT_COLOR = {
 LIGHT_RADIUS = {
     "founder_altar": "5",
     "ground_torch": "6",
-    "burning_tree": "12",
+    "burning_tree": "10",
     "fen_beacon": "10",
     "energy_core": "9",
     "save_statue": "6",

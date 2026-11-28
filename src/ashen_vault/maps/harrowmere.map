@@ -22,8 +22,8 @@ entity_floor = auto
 // on the north road's street, the walled garden behind them, and south of the avenue the gaol yard,
 // where the old gaol's barred pit drops into the Abandoned Prison, and the watch office. The east side
 // is the traders': Tamsin's hall and Pell's house on the Vesper street, the carters' yard by the east
-// gate. South-east, a little neighbourhood of five houses round a lane; south-west, Wren's house by the
-// founder's statue. The north road leaves by the gate in the north wall's west end, Vesperholm through
+// gate. South-east, a little neighbourhood of five houses round a lane; south-west, Wren's house and
+// the founder's chapel against the wall beside the watch office. The north road leaves by the gate in the north wall's west end, Vesperholm through
 // the Vesper Gate at its east end, the green trail through the east gate for the cave, and the south
 // street through the sea gate onto the quay, where Maeve fishes off the end of the pier. A sewer grate
 // in each corner of the town drops into the Harrow Sewers.
@@ -66,6 +66,8 @@ n = floor tex=cathedral_floor h=2 ceil=10 ceil_tex=slate side=soot_ashlar dark=0
 a = floor tex=cathedral_floor h=2.4 ceil=10 ceil_tex=slate side=soot_ashlar dark=0.3
 i = floor tex=wood_plank h=0.2 ceil=3.4 ceil_tex=wood_plank side=wood_plank
 k = floor tex=flagstone h=0 ceil=3.4 ceil_tex=wood_plank side=soot_ashlar
+// The founder's chapel's flagged floor, under a ceiling high enough for his statue.
+Ċ = floor tex=flagstone h=0 ceil=4.6 ceil_tex=wood_plank side=soot_ashlar dark=0.35
 // The cheek walls either side of the cathedral's grand stair, each stepping down with the stair
 // beside it: its top is the top of that tile's highest step, and the stair's balustrade rakes along it.
 9 = wall tex=soot_ashlar top=2.0 cap=flagstone
@@ -114,14 +116,14 @@ R,H+kkkHć,]]]]],,,,,,eeeee,,,,HiiiH,,#Ðii#,GTGRAAAAVVVVVVVVAA
 R,HkÒkk¹,,,,,,,,Æ,,,,,sss,,,Ě,HHšHH,,##š##,GGGRAAAAAAAAAAAAAA
 RĉHkkkhH,,,,,,Ĕ,,,Ĕ,,Xsss,,,,..Ţ.Ţ..Ŋ.ţ.ţ....ŋRAAAAAAAAAAAAAA
 R,H*kÎ>Hŕ,ě,,Ãā#æ#ā#,,sss,,Ç,.Ť.Ť...ť.ť...Ŧ.Ŧ.RAAAAAAAAAAAAAA
-±,ĘHHHHH,,Y,,#Lii%i#,,sss,,,,Ş#æ##,şHæHH,ŠHæHH²AAAAAAAAAAAAAA
-R,,,,,,,,,¨ĂÇ#iiili#Ĕ,sss,ÔÙ,#iii#,HiiiH,HÒiiHRAAAAAAAAAAAAAA
-Rœ,,,,,,,,Y,ć#iÒiii#D,sss,,,,ęņii#ĉHÒiŇHćHiiňĘRAAAAAAAAAAAAAA
-R,,,,,,,,,,,Ĉ#$iÒiÏ#Ĕ,sss,,,,#+$&#,H%$<H,H$iÐHRAAAAAAAAAAAAAA
-R,,,,,,,X,,T,#i<iiÏ#Î,sss,,,Ě#####,HHHHĘ,HHHHHRAAAAAAAAAAAAAA
-R,,{,Ç,,,T,,,###ę###Œ,sssÛ,T,,Ð,,,,,,,Ĉ,,,,,,,RAAAAAAAAAAAAAA
-R.............Œ.Ā........X.....Æ..........Ç...RAAAAAAAAAAAAAA
-R..................................Æ........}.RAAAAAAAAAAAAAA
+±,ĘHHHHH,,,,,#Lii%i#,,sss,,,,Ş#æ##,şHæHH,ŠHæHH²AAAAAAAAAAAAAA
+R,,,,,,,,,,,Ç#iiili#Ĕ,sss,ÔÙ,#iii#,HiiiH,HÒiiHRAAAAAAAAAAAAAA
+RĜHHHHHHX,,,ć#iÒiii#D,sss,,,,ęņii#ĉHÒiŇHćHiiňĘRAAAAAAAAAAAAAA
+RĠĊĊĞĊĊH,,,,Ĉ#$iÒiÏ#Ĕ,sss,,,,#+$&#,H%$<H,H$iÐHRAAAAAAAAAAAAAA
+R¨ĂĊĊĊĊČ,,,T,#i<iiÏ#Î,sss,,,Ě#####,HHHHĘ,HHHHHRAAAAAAAAAAAAAA
+RĠĊĊğĊĊH,T,,,###ę###Œ,sssÛ,T,,Ð,,,,,,,Ĉ,,,,,,,RAAAAAAAAAAAAAA
+RHHHHHHH......Œ.Ā........X.....Æ..........Ç...RAAAAAAAAAAAAAA
+R..{...............................Æ........}.RAAAAAAAAAAAAAA
 R..œ..........................................RAAAAAAAAAAAAAA
 RRRRRRRRRRRRRRRRRRRRŝRsŜsRŝRRRRRRRRRRRRRRRRRRRRAAAAAAAAAAAAAA
 RttttĝttttttÛttttttÐtttttttttÝttttĝttttttÏttttRAAAAAAAAAAAAAA
@@ -174,6 +176,8 @@ E = npc id=enthroned yaw=90 on=a
 ň = npc id=sefa yaw=180
 Ŋ = npc id=jorun yaw=90
 ŋ = npc id=cobb yaw=180
+// Old Berthe, at prayer in the founder's chapel.
+Ğ = npc id=berthe yaw=180 pew=0 on=Ċ
 // The heart of town.
 B = silent_bell on=P
 S = save_statue
@@ -273,10 +277,16 @@ D = banner torn
 Û = hand_cart
 Ü = hay_wagon yaw=-90
 Ý = cargo
-// The founder's statue in bronze, gone green, on the square by Wren's house: the faithful still keep
-// a shrine at its feet, an altar crowded with candles before it and more burning either side (Y).
-¨ = town_statue yaw=0
-Ă = founder_altar yaw=0
+// The founder's chapel, a little house of worship built against the west wall by the watch office,
+// its door facing the square by Wren's house: the founder's statue in bronze, gone green, stands at
+// its far end against the wall he raised, an altar crowded with candles before it and more burning
+// either side, two pews before them, and Old Berthe, who keeps its candles, at prayer in one.
+Ĝ = roof span=7,5 ridge=x top=5.6 pitch=3.4 eave=0.45 tex=clay_tile wall=soot_ashlar on=H
+Č = door_arch yaw=0 on=Ċ
+¨ = town_statue yaw=0 on=Ċ
+Ă = founder_altar yaw=0 on=Ċ
+Ġ = candles on=Ċ
+ğ = pew yaw=180 on=Ċ
 // The town wall's round towers, of the town's sooty stone under oxblood tile: its corners, along the walls, the two either
 // side of the sea gate and the two at the moles' ends.
 ® = wall_tower shift=-0.8,-0.8 radius=1.8 on=R
@@ -363,7 +373,7 @@ z = mushrooms on=y
 // district below. The sewers join up beneath, so each is a short way back to the others.
 ? = exit map=harrow_sewers at=2,3,90 label=Descend_into_the_sewers model=sewer_grate
 ! = exit map=harrow_sewers at=43,2,180 label=Descend_into_the_sewers model=sewer_grate
-{ = exit map=harrow_sewers at=3,36,-90 label=Descend_into_the_sewers model=sewer_grate
+{ = exit map=harrow_sewers at=3,38,-90 label=Descend_into_the_sewers model=sewer_grate
 } = exit map=harrow_sewers at=43,39,180 label=Descend_into_the_sewers model=sewer_grate
 // The Vesper Gate in the north wall's east end: pale stone, standing open on Vesperholm. Nobody in
 // town remembers it shut, or why it was opened. Lamps flank it, so it reads from down the street.

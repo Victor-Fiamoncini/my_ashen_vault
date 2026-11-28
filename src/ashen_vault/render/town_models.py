@@ -2982,27 +2982,26 @@ def burning_tree(r, t, seed):
         tip = (mid[0] + math.cos(bend) * 0.8, mid[1] + 0.5 + 0.2 * (k % 2), mid[2] + math.sin(bend) * 0.8)
         _bough(r, [(top[0], y0, top[2]), mid, tip], 0.18, 0.07, SCORCH)
         base = (top[0], y0, top[2])
-        for j, u in enumerate((0.35, 0.7, 1.0, 1.35, 1.7, 2.0)):  # fire running out along the limb
+        for j, u in enumerate((0.5, 1.0, 1.6)[: 2 + k % 2]):  # fire catching here and there along the limb
             a_, b_ = (base, mid) if u <= 1 else (mid, tip)
             f = u if u <= 1 else u - 1
             p = [a_[i] + (b_[i] - a_[i]) * f for i in range(3)]
-            _flame(r, p[0], p[1] + 0.12, p[2], 0.62 - 0.07 * j, t + k * 1.3 + j * 0.7)
+            _flame(r, p[0], p[1] + 0.12, p[2], 0.5 - 0.06 * j, t + k * 1.3 + j * 0.7)
     crown = (top[0], h * 1.05, top[2])
     _bough(r, [top, (top[0] - 0.1, h * 0.95, top[2] + 0.1), crown], 0.22, 0.08, SCORCH)
-    for k in range(9):  # up the trunk, the flames climbing it on every side
-        y = 0.5 + k * 0.33
+    for k in range(5):  # up the trunk, the flames climbing it
+        y = 0.6 + k * 0.55
         u = y / top[1]
         a = yaw + k * 2.2
-        _flame(r, top[0] * u + math.cos(a) * 0.2, y, top[2] * u + math.sin(a) * 0.2, 0.55 + 0.06 * k,
+        _flame(r, top[0] * u + math.cos(a) * 0.2, y, top[2] * u + math.sin(a) * 0.2, 0.45 + 0.04 * k,
                t + k * 0.9)  # fmt: skip
-    _flame(r, crown[0], crown[1], crown[2], 0.9, t + 3.3)
-    for k in range(3):  # the fork, a mass of fire
-        a = yaw + k * 2.1
-        _flame(r, top[0] + math.cos(a) * 0.35, top[1] + 0.2, top[2] + math.sin(a) * 0.35, 0.8, t + k * 1.9)
+    _flame(r, crown[0], crown[1], crown[2], 0.65, t + 3.3)
+    for k in range(2):  # the fork, where the fire burns hottest
+        a = yaw + k * 3.1
+        _flame(r, top[0] + math.cos(a) * 0.3, top[1] + 0.2, top[2] + math.sin(a) * 0.3, 0.6, t + k * 1.9)
     with r.at(0.9, 0.12, -0.7, ry=0.6):  # a fallen limb burning at its foot
         _limb(r, -0.6, 0, 0, 0.6, 0.05, 0, 0.14, SCORCH)
-        _flame(r, -0.2, 0.2, 0, 0.45, t + 5)
-        _flame(r, 0.3, 0.2, 0, 0.35, t + 6)
+        _flame(r, 0.1, 0.2, 0, 0.4, t + 5)
     for k in range(10):  # sparks whirling up
         u = (t * 0.35 + k / 10 + seed * 0.07) % 1.0
         a = k * 2.4 + t * 0.8

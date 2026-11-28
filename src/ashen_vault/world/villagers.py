@@ -244,6 +244,12 @@ LOOKS = {
         cloth=(150, 140, 120), hair=(120, 84, 48), skin=(206, 172, 140), build="slight", garb="robe",
         hair_style="short", belt=(110, 86, 60), tool="lantern", idle="pray",
     ),
+    # Old Berthe, who keeps the founder's chapel by the west wall: grey wool under a black hood, the
+    # lantern she lights its candles from at her side.
+    "berthe": Look(
+        cloth=(66, 60, 58), hair=(206, 202, 194), skin=(186, 156, 130), build="stooped", garb="robe",
+        hair_style="bun", hood=True, cloak=(40, 36, 38), tool="lantern", idle="pray",
+    ),
     # About the plaza: the flower seller with her basket's ladle, the crier with his ledger of
     # notices, and old Merrit, who begs by the bell.
     "lisbet": Look(

@@ -499,6 +499,18 @@ def cobb_lines(flags):
     ]
 
 
+def berthe_lines(flags):
+    lines = [
+        "The cathedral has its Enthroned. This little house is for the one who came before.",
+        "He raised the wall at our backs with his own hands, they say. I keep his candles so it remembers.",
+    ]
+    if _cleared(flags) >= 2:
+        lines.append(
+            "The wax runs slower these nights. As if something out there has stopped breathing on it."
+        )
+    return lines
+
+
 TOWNSFOLK = {  # the townsfolk of Harrowmere: (name, lines)
     "hedda": ("Old Hedda", hedda_lines),
     "aubrey": ("Aubrey", aubrey_lines),
@@ -512,6 +524,7 @@ TOWNSFOLK = {  # the townsfolk of Harrowmere: (name, lines)
     "sefa": ("Sefa", sefa_lines),
     "jorun": ("Jorun", jorun_lines),
     "cobb": ("Cobb", cobb_lines),
+    "berthe": ("Old Berthe", berthe_lines),
 }
 
 

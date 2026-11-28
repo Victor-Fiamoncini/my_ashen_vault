@@ -310,7 +310,7 @@ def test_harrowmere_every_villager_shop_and_road_is_reachable_from_the_cemetery_
         "reyna",
         "wynn",
         *("hedda", "aubrey", "lisbet", "osric", "merrit", "tilde", "barnaby", "ottilie", "hamund", "sefa"),
-        *("jorun", "cobb"),
+        *("jorun", "cobb", "berthe"),
     } <= ids
     (throne,) = _spec(m, "npc", id="enthroned")
     (bell,) = _spec(m, "silent_bell")

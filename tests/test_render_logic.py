@@ -3018,6 +3018,31 @@ def test_harrowmeres_darker_corners_burn_and_stand_where_they_belong():
     assert {"founder_altar", "chain_post"} <= set(kinds)
 
 
+def test_harrowmeres_founder_stands_in_his_chapel_against_the_wall_he_raised():
+    """The founder's statue and its altar stand under the roof of a little chapel built against the
+    town's west wall beside the watch office, the statue's back to the wall and its face to the chapel's
+    door down a clear aisle, with Old Berthe at prayer under the same roof."""
+    m = MapLoader.load_file(map_path("harrowmere"))
+    specs = {e.kind: e for e in m.entities}
+    statue, altar = specs["town_statue"], specs["founder_altar"]
+    (garrick,) = [e for e in m.entities if e.kind == "npc" and e.props.get("id") == "garrick"]
+    (berthe,) = [e for e in m.entities if e.kind == "npc" and e.props.get("id") == "berthe"]
+    assert statue.tx == 1 and m[0, statue.tz].solid  # its back to the town wall
+    assert (altar.tx, altar.tz) == (statue.tx + 1, statue.tz)  # the altar before it
+    assert abs(statue.tz - garrick.tz) <= 8  # beside the watch office
+    for s in (statue, altar, berthe):
+        assert m[s.tx, s.tz].ceil is not None and m[s.tx, s.tz].ceil >= 4.4, s.kind  # roofed, and high
+    (door,) = [e for e in m.entities if e.kind == "door_arch" and e.tz == statue.tz and e.tx < 10]
+    assert all(m[x, statue.tz].walkable for x in range(altar.tx + 1, door.tx + 2))  # the aisle to it
+    roofs = [e for e in m.entities if e.kind == "roof" and (e.tx, e.tz) == (statue.tx, statue.tz - 2)]
+    assert roofs and all(
+        r.tx <= s.tx < r.tx + int(r.props["span"].split(",")[0])
+        and r.tz <= s.tz < r.tz + int(r.props["span"].split(",")[1])
+        for r in roofs
+        for s in (statue, altar, berthe)
+    )
+
+
 def test_harrowmeres_and_the_fens_new_dressing_is_built_in_detail():
     """Harrowmere's harbour light, windmill, chimney stacks, stalls, washing, nets and wrecks, and the
     fen's runoff sluices, marsh-lights, fallen watchtower and palisade are each built of many parts,

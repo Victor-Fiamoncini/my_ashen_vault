@@ -385,8 +385,8 @@ def test_house_doors_start_shut_and_bar_the_doorway():
     assert {(p.tx, p.tz) for p in arches if "rose" not in p.props} == doors
     assert all((p.tx, p.tz) not in doors for p in arches if "rose" in p.props)
     assert (
-        len(doors) == 11
-    )  # the forge, Corvane's hut, Pell's, Wren's, Tamsin's, the watch office, five homes
+        len(doors) == 12
+    )  # the forge, Corvane's hut, Pell's, Wren's, Tamsin's, the watch office, the chapel, five homes
 
 
 def test_a_house_door_opens_lets_you_in_and_shuts_again():
