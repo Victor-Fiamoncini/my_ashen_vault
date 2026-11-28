@@ -1298,6 +1298,10 @@ PROP_DRAWERS = {
     ),
     "net_rack": lambda view, rig, p, t: town_models.net_rack(rig, p.tx * 7 + p.tz * 3),
     "wreck": lambda view, rig, p, t: town_models.wreck(rig, p.tx * 7 + p.tz * 3),
+    "founder_altar": lambda view, rig, p, t: town_models.founder_altar(rig, t + p.tx, p.tx * 7 + p.tz * 3),
+    "ground_torch": lambda view, rig, p, t: town_models.ground_torch(rig, t + p.tx, p.tx * 7 + p.tz * 3),
+    "chain_post": lambda view, rig, p, t: town_models.chain_post(rig, p.tx * 7 + p.tz * 3),
+    "burning_tree": lambda view, rig, p, t: town_models.burning_tree(rig, t + p.tx, p.tx * 7 + p.tz * 3),
     "town_debris": lambda view, rig, p, t: town_models.town_debris(
         rig, p.tx * 7 + p.tz * 3, p.props.get("style", "tiles")
     ),

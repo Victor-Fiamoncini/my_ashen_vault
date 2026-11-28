@@ -484,6 +484,15 @@ WALL_PROPS = (*WALL_PROPS, "wall_chains")
 LANDMARKS = (*LANDMARKS, "castle_buttress")
 STATIC_PROPS = STATIC_PROPS | frozenset(CASTLE_DRESSING)
 FACING_PROPS = (*FACING_PROPS, "surgical_trolley", "broken_statue", "castle_bench")
+# Harrowmere's darker corners (`render/town_models.py`): the faithful's altar at the founder's feet, the
+# torches planted round the gaol yard, its whipping post and the dead tree burning by the east gate. Only
+# the post never flickers, so only it is baked.
+TOWN_DARK = ("founder_altar", "ground_torch", "chain_post", "burning_tree")
+BLOCKING_PROPS = (*BLOCKING_PROPS, *TOWN_DARK)
+PROP_TOP = {**PROP_TOP, "founder_altar": 1.1}
+FACING_PROPS = (*FACING_PROPS, "founder_altar")
+LANDMARKS = (*LANDMARKS, "burning_tree")
+STATIC_PROPS = STATIC_PROPS | frozenset({"chain_post"})
 # Harrowmere's buildings, furniture and street dressing (`render/town_models.py`).
 TOWN_PROPS = (
     "rampart_bay",

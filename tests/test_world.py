@@ -1047,8 +1047,9 @@ def test_harrowmere_trees_cut_off_no_part_of_the_town():
     """Trees fill their tiles: none may stand in the only way to anywhere (the lane behind the
     cathedral once held one, sealing off its hill)."""
     m = MapLoader.load_file(map_path("harrowmere"))
-    trees = {(e.tx, e.tz) for e in m.entities if e.kind == "tree"}
-    others = {(e.tx, e.tz) for e in m.entities if e.kind in STATIC_BLOCKERS and e.kind not in ("tree", "npc")}
+    kinds = ("tree", "burning_tree")
+    trees = {(e.tx, e.tz) for e in m.entities if e.kind in kinds}
+    others = {(e.tx, e.tz) for e in m.entities if e.kind in STATIC_BLOCKERS and e.kind not in (*kinds, "npc")}
 
     def reach(solid):
         start = tuple(int(float(v)) for v in m.meta["start"][:2])

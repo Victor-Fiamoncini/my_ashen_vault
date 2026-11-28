@@ -349,11 +349,17 @@ How `.map` files work and what can stand on a tile.
   banners sooted, `banner_pole style=whole|torn|bare` (torn half off its crossbar, or gone but for a
   knotted scrap) and the cathedral's wall banners `banner torn`
   (`test_harrowmeres_market_has_rotted_and_its_banners_are_torn_or_gone`); and the spoils of the ruin
-  left lying in the streets: `town_debris style=tiles|beams|masonry` (broken roof tiles, charred
-  timbers in their ash, fallen ashlar; baked, low on the floor and inside its tile, so it blocks
-  nothing), `bones` by the wall, and windows boarded up (`shutters broken`: dark behind nailed planks,
-  a shutter hanging off its last hinge);
-  `test_harrowmeres_ruin_lies_low_in_its_tile_and_its_broken_windows_are_dark`.
+  left lying in the streets: `town_debris style=tiles|beams|masonry|glass|weapons|household` (broken
+  roof tiles, charred timbers in their ash, fallen ashlar, a window fallen out in a spray of glass, the
+  rusted arms of the last stand, a house's smashed chattels; baked, low on the floor and inside its
+  tile, so it blocks nothing), `bones` by the wall, and windows boarded up (`shutters broken`: dark
+  behind nailed planks, a shutter hanging off its last hinge);
+  `test_harrowmeres_ruin_lies_low_in_its_tile_and_its_broken_windows_are_dark`. Its darker corners
+  (`world.TOWN_DARK`, all blocking): the `founder_altar` before the founder's statue (candles burning
+  on it, a light, facing +X like a statue), the `ground_torch`es planted round the gaol yard (a light),
+  its whipping `chain_post` (baked) and the `burning_tree` by the east gate (a light and a landmark;
+  `test_harrowmere_trees_cut_off_no_part_of_the_town` counts it as a tree);
+  `test_harrowmeres_darker_corners_burn_and_stand_where_they_belong`.
 - Props that fill their tile are listed in `world/world.py` (`BLOCKING_PROPS`, `BREAKABLE_PROPS`;
   the prison adds `pillar` (`pillar model=colossal`, the Keystone's court: a column of drums rising
   from the floor into a cavern's `vault`, `Vault.column_height`, its head sunk in the rock), `sarcophagus`, `headsman_block` and `old_idol`, Old Harrowmere `lyra_statue`, the jungle `bonfire`, `giant_mushroom` and

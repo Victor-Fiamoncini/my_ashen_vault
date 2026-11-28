@@ -1544,6 +1544,21 @@ def town_statue(r, seed):
             realm_crest(r, _dim(bronze, 1.25), cy=0.05, scale=0.62)
         r.part("cube", 0.48, 0.2, 0.26, 0.04, 0.5, 0.06, dark)  # the sword, point down by its feet
         r.part("cube", 0.48, 0.5, 0.26, 0.04, 0.04, 0.2, dark)
+        for k, rgb in enumerate(REALM_CLOTH):  # ribbons the faithful tied round its grip
+            r.part(
+                "cube", 0.5, 0.36 - k * 0.04, 0.24 + k * 0.05, 0.015, 0.3, 0.035, rgb, rx=0.15 * (k * 2 - 1)
+            )
+    wax = (196, 184, 152)
+    for k, z in enumerate((-0.62, -0.3, 0.05, 0.55)):  # candles burnt down to stubs on the steps
+        r.part("cyl", 0.8, 0.21, z, 0.16, 0.02, 0.16, wax)  # the pooled wax
+        r.part("cyl", 0.8, 0.24 + k % 2 * 0.02, z, 0.06, 0.06 + k % 2 * 0.04, 0.06, _dim(wax, 0.9))
+        r.part("cube", 0.81, 0.08, z, 0.02, 0.16, 0.03, wax)  # run down the step's face
+    with r.at(0.58, 1.08, 0):  # a wreath of dried flowers hung on the die, gone black
+        for k in range(10):
+            a = k * math.tau / 10
+            r.part("cube", 0.02, math.sin(a) * 0.14, math.cos(a) * 0.14, 0.04, 0.06, 0.06,
+                   (44, 46, 32) if k % 3 else (58, 24, 28), rx=a)  # fmt: skip
+        r.part("cube", 0.03, -0.2, 0.03, 0.02, 0.14, 0.04, REALM_CLOTH[0])  # its ribbon
     r.part("cube", 0.8, 0.44, 0.3, 0.12, 0.08, 0.12, (84, 56, 46), rz=1.2)  # offerings long gone stale: a pot
     r.part(
         "cube", 0.8, 0.43, -0.25, 0.08, 0.06, 0.24, (74, 68, 52)
@@ -2420,6 +2435,15 @@ def gaol_grate(r, t):
         a = [drum[i] + (free[i] - drum[i]) * k / links for i in range(3)]
         b = [drum[i] + (free[i] - drum[i]) * (k + 1) / links for i in range(3)]
         _bar(r, a, b, 0.035 if k % 2 else 0.05, _dim(GAOL_IRON, 1.2))
+    for k in range(11):  # a heavy loose chain coiled on the grid, and the padlock broken off it
+        a = k * math.tau / 11
+        r.part("cube", -0.32 + math.cos(a) * 0.2, 0.14, 0.34 + math.sin(a) * 0.2, 0.11, 0.04, 0.06,
+               _dim(GAOL_IRON, 1.25), ry=-a + (math.pi / 2 if k % 2 else 0))  # fmt: skip
+    for k in range(4):  # its tail, run off over the kerb
+        r.part("cube", -0.12 + k * 0.1, 0.13 - k * 0.02, 0.52 + k * 0.08, 0.11, 0.04, 0.06, _dim(GAOL_IRON, 1.2),
+               ry=0.6 + (math.pi / 2 if k % 2 else 0))  # fmt: skip
+    r.part("cube", -0.5, 0.17, 0.05, 0.14, 0.06, 0.12, GAOL_RUST, ry=0.4)  # the padlock's body
+    r.part("cyl", -0.44, 0.2, 0.0, 0.1, 0.03, 0.1, GAOL_RUST, rz=0.5)  # its hasp, sprung
     r.part("cube", px, 1.36, pz + 0.22, 0.06, 0.06, 0.5, GAOL_IRON)  # the lantern's arm
     _lantern(r, px, 1.33, pz + 0.42, t)
     for i in range(4):  # the cells' cold breath, curling up through the bars
@@ -2654,7 +2678,9 @@ def wreck(r, seed):
 
 CHAR = (34, 28, 26)  # timber burnt black
 ASH_GREY = (70, 66, 64)  # ash and cinders, drifted
-DEBRIS_STYLES = ("tiles", "beams", "masonry")
+DEBRIS_STYLES = ("tiles", "beams", "masonry", "glass", "weapons", "household")
+RUST_IRON = (100, 60, 40)  # iron left out in the rain since the town fell
+SHARD = (128, 138, 146)  # broken window glass, grey with soot
 
 
 def town_debris(r, seed, style="tiles"):
@@ -2662,7 +2688,11 @@ def town_debris(r, seed, style="tiles"):
     past its tile. `tiles`: a spill of broken oxblood roof tiles slid off the eaves, a slipped batten
     and the dust they brought down. `beams`: two charred timbers fallen across each other in a drift of
     ash, cinders and a scorched plank. `masonry`: dark blocks of ashlar and chips knocked off a wall,
-    one block split in two."""
+    one block split in two. `glass`: a leaded window fallen out of its wall, its panes smashed and the
+    shards strewn round it, a torn-off shutter beside. `weapons`: the rusted arms of the town's last
+    stand, a snapped sword, a broken spear, a dented helm and a split shield. `household`: what was
+    dragged out of a house and dropped, a smashed chair, a cracked crock, a split sack of grain spilling
+    and rags."""
     rng = random.Random(seed * 7919 + DEBRIS_STYLES.index(style))
 
     def spot(reach):  # somewhere within `reach` of the middle, so a turned pile keeps inside its tile
@@ -2697,6 +2727,12 @@ def town_debris(r, seed, style="tiles"):
             for _ in range(4):
                 x, z = spot(0.5)
                 r.part("cube", x, 0.04, z, 0.06, 0.04, 0.06, (88, 30, 20))
+        elif style == "glass":
+            _debris_glass(r, rng, spot)
+        elif style == "weapons":
+            _debris_weapons(r, rng, spot)
+        elif style == "household":
+            _debris_household(r, rng, spot)
         else:
             stone = _dim(TOWN_STONE, 0.8)
             for _ in range(4):  # blocks fallen from a wall
@@ -2713,3 +2749,267 @@ def town_debris(r, seed, style="tiles"):
                 x, z = spot(0.7)
                 s = rng.uniform(0.06, 0.14)
                 r.part("cube", x, s / 2, z, s, s, s, _dim(stone, 0.9), ry=rng.random() * 3)
+
+
+def _debris_glass(r, rng, spot):
+    """A leaded window fallen flat out of its wall, its panes smashed, glass strewn round it."""
+    pane = GLASS[rng.randrange(len(GLASS))]
+    with r.at(-0.1, 0.05, 0.05, ry=rng.uniform(-0.4, 0.4), rz=0.1):
+        for z in (-0.3, 0.3):  # the frame
+            r.part("cube", 0, 0, z, 0.9, 0.06, 0.06, _dim(OAK, 0.7), tex="wood_plank")
+        for x in (-0.42, 0.42):
+            r.part("cube", x, 0, 0, 0.06, 0.06, 0.6, _dim(OAK, 0.7), tex="wood_plank")
+        for k in range(4):  # the leading, bent where it fell
+            r.part("cube", -0.3 + k * 0.2, 0.01, 0, 0.02, 0.02, 0.62, LEAD, ry=0.5 * (1 if k % 2 else -1))
+        for x, z in ((-0.3, -0.15), (0.1, 0.15), (0.3, -0.12)):  # the few panes still in it
+            r.part("cube", x, 0.0, z, 0.16, 0.01, 0.18, _dim(pane, 0.8), ry=0.78)
+    for _ in range(14):  # the shards
+        x, z = spot(0.72)
+        w = rng.uniform(0.05, 0.13)
+        r.part("cube", x, 0.012, z, w, 0.012, w * rng.uniform(0.4, 0.9),
+               _dim(SHARD if rng.random() < 0.6 else pane, rng.uniform(0.8, 1.2)), ry=rng.random() * 3)  # fmt: skip
+    with r.at(0.35, 0.05, -0.4, ry=rng.uniform(0.6, 1.2), rz=0.12):  # a shutter torn off its hinges
+        r.part("cube", 0, 0, 0, 0.5, 0.04, 0.6, _dim(DARK_WOOD, 0.9), tex="wood_plank")
+        for z in (-0.18, 0.18):
+            r.part("cube", 0.02, 0.025, z, 0.44, 0.012, 0.05, RUST_IRON)
+
+
+def _debris_weapons(r, rng, spot):
+    """The rusted arms of the town's last stand, left where their bearers fell."""
+    with r.at(*_xz(spot(0.25), 0.03), ry=rng.random() * 3):  # a sword snapped a hand from its guard
+        r.part("cube", 0.12, 0, 0, 0.5, 0.02, 0.07, RUST_IRON)
+        r.part("cube", -0.15, 0.01, 0, 0.04, 0.04, 0.26, _dim(RUST_IRON, 0.8))  # the guard
+        r.part("cube", -0.26, 0.01, 0, 0.18, 0.04, 0.04, (52, 36, 26))  # the grip, its leather rotted
+        r.part("sphere", -0.37, 0.02, 0, 0.06, 0.06, 0.06, _dim(RUST_IRON, 0.9))  # the pommel
+        r.part("cube", 0.5, 0, 0.12, 0.22, 0.02, 0.06, _dim(RUST_IRON, 1.1), ry=0.5)  # its point, apart
+    with r.at(0, 0.03, 0, ry=rng.random() * 3):  # a spear broken across its shaft
+        r.part("cube", -0.2, 0, 0.3, 0.8, 0.05, 0.05, _dim(OAK, 0.8), tex="wood_plank")
+        r.part("cube", 0.28, 0, 0.3, 0.18, 0.02, 0.08, RUST_IRON)  # the head
+        r.part("cube", 0.4, 0, 0.3, 0.08, 0.02, 0.04, RUST_IRON, ry=0.78)
+        r.part("cube", 0.25, 0.01, 0.42, 0.3, 0.04, 0.04, _dim(OAK, 0.7), ry=0.5)  # the splintered butt
+    x, z = spot(0.45)
+    with r.at(x, 0.17, z, rx=1.2, ry=rng.random() * 3):  # a kettle helm on its side, dented in
+        r.part("sphere", 0, 0, 0, 0.3, 0.24, 0.3, RUST_IRON)
+        r.part("cyl", 0, -0.08, 0, 0.42, 0.03, 0.42, _dim(RUST_IRON, 0.85))  # its brim
+        r.part("cube", 0.12, 0.06, 0.05, 0.1, 0.06, 0.1, _dim(RUST_IRON, 0.6))  # the dent
+    x, z = spot(0.45)
+    with r.at(x, 0.035, z, ry=rng.random() * 3, rz=0.08):  # a round shield split across
+        r.part("cyl", 0, 0, 0, 0.56, 0.04, 0.56, _dim(WOOD, 0.65), tex="wood_plank")
+        r.part("cyl", 0, 0.01, 0, 0.6, 0.03, 0.6, _dim(RUST_IRON, 0.8))  # its rim
+        r.part("cube", 0, 0.03, 0, 0.6, 0.02, 0.04, (18, 16, 16))  # the split
+        r.part("sphere", 0.12, 0.04, 0.1, 0.14, 0.08, 0.14, RUST_IRON)  # the boss
+    for _ in range(3):  # bolts that missed
+        x, z = spot(0.6)
+        r.part("cube", x, 0.015, z, 0.34, 0.02, 0.02, _dim(OAK, 0.75), ry=rng.random() * 3)
+
+
+def _debris_household(r, rng, spot):
+    """What was dragged out of a house and dropped: a smashed chair, a cracked crock, a split sack."""
+    with r.at(-0.2, 0, -0.15, ry=rng.random() * 3):  # the chair, its seat cracked and legs off
+        r.part("cube", 0, 0.12, 0, 0.42, 0.05, 0.42, _dim(OAK, 0.85), tex="wood_plank", rz=0.4)
+        for x, z in ((-0.16, 0.16), (0.16, 0.16)):
+            r.part("cube", x, 0.1, z, 0.05, 0.22, 0.05, _dim(OAK, 0.8), rz=0.4)
+        r.part("cube", 0.35, 0.03, -0.25, 0.4, 0.05, 0.05, _dim(OAK, 0.8), ry=0.8)  # a broken leg
+        with r.at(-0.35, 0.03, 0.2, ry=0.3):  # its back, lying flat
+            for z in (-0.17, 0.17):
+                r.part("cube", 0, 0, z, 0.5, 0.04, 0.04, _dim(OAK, 0.8))
+            for x in (-0.12, 0.08):
+                r.part("cube", x, 0, 0, 0.05, 0.03, 0.34, _dim(OAK, 0.7))
+    x, z = spot(0.4)
+    clay = (110, 72, 50)
+    r.part("sphere", x, 0.16, z, 0.3, 0.32, 0.3, clay)  # a crock, cracked open on one side
+    r.part("cube", x + 0.12, 0.18, z, 0.08, 0.16, 0.12, (20, 16, 14))
+    for k in range(3):
+        r.part("cube", x + 0.25 + k * 0.06, 0.02, z - 0.1 + k * 0.08, 0.1, 0.03, 0.08, clay, ry=k)
+    x, z = spot(0.4)
+    with r.at(x, 0, z, ry=rng.random() * 3):  # a sack split open, its grain spilled grey
+        r.part("sphere", 0, 0.12, 0, 0.5, 0.24, 0.34, SACK)
+        r.part("cube", 0.24, 0.16, 0, 0.06, 0.06, 0.18, _dim(SACK, 0.6))  # the tear
+        r.part("sphere", 0.42, 0.02, 0.05, 0.4, 0.06, 0.32, _dim(HAY, 0.85))
+    for _ in range(3):  # rags
+        x, z = spot(0.6)
+        r.part("cube", x, 0.012, z, 0.3, 0.015, 0.2, _dim(CLOTH[rng.randrange(len(CLOTH))], 0.8),
+               ry=rng.random() * 3)  # fmt: skip
+
+
+def _xz(xz, y):
+    return xz[0], y, xz[1]
+
+
+# --- the town's darker corners: the founder's shrine, the gaol yard, the burning tree -------------
+WAX = (206, 192, 158)
+PITCH = (34, 26, 20)  # pitch-soaked rag round a torch's head
+SCORCH = (26, 22, 20)  # bark burnt black
+SMOKE_DARK = (44, 42, 44)
+EMBER_GLOW = (230, 96, 34)
+
+
+def founder_altar(r, t, seed):
+    """The altar the faithful set at the founder's feet, facing +X: a block of the town's stone on a
+    step, a frayed runner of the realm's red with the crest hanging down its face, a crowd of candles
+    of every height still kept burning, their wax run down the front and pooled on the step, a
+    tarnished bowl of offerings, dried flowers gone black and a scatter of coins."""
+    rng = random.Random(seed * 31 + 7)
+    stone = _dim(TOWN_STONE, 0.82)
+    cloth = REALM_CLOTH[0]
+    r.part("cube", 0, 0.08, 0, 1.5, 0.16, 1.8, _dim(stone, 0.85), tex=STONE_TEX)  # its step
+    r.part("cube", -0.1, 0.56, 0, 0.9, 0.8, 1.44, stone, tex=STONE_TEX)  # the block
+    r.part("cube", -0.1, 0.99, 0, 1.04, 0.08, 1.58, _dim(stone, 1.05), tex=STONE_TEX)  # its top slab
+    r.part("cube", 0.36, 0.56, 0, 0.02, 0.56, 1.1, _dim(stone, 0.7))  # the sunken panel on its face
+    r.part("cube", -0.1, 1.035, 0, 0.5, 0.02, 1.62, cloth)  # the runner along the top
+    r.part("cube", 0.44, 0.82, 0, 0.02, 0.42, 0.5, cloth)  # and hanging down the front
+    for k in range(5):  # its frayed hem
+        r.part("cube", 0.44, 0.58 - (k % 2) * 0.03, -0.2 + k * 0.1, 0.02, 0.08, 0.04, _dim(cloth, 0.8))
+    with r.at(0.44, 0.84, 0):
+        realm_crest(r, _dim(GILT, 0.75), cy=0, scale=0.3)
+    candles = [(-0.1 + rng.uniform(-0.38, 0.38), 1.03, z) for z in (-0.68, -0.52, -0.38, 0.4, 0.55, 0.7)]
+    candles += [(0.58, 0.16, z) for z in (-0.75, -0.55, 0.6, 0.78)]  # on the step before it
+    candles += [(-0.42, 1.03, -0.1), (-0.4, 1.03, 0.14)]
+    for i, (x, y, z) in enumerate(candles):
+        h = rng.uniform(0.12, 0.42)
+        r.part("cyl", x, y + 0.01, z, 0.16, 0.02, 0.16, WAX)  # the wax pooled under it
+        r.part("cyl", x, y + h / 2, z, 0.08, h, 0.08, _dim(WAX, rng.uniform(0.9, 1.05)))
+        _flame(r, x, y + h + 0.04, z, 0.055, t + i * 1.7)
+    for k in range(6):  # wax run down over the top slab's edge
+        z = -0.7 + k * 0.27
+        r.part("cube", 0.43, 0.9, z, 0.02, rng.uniform(0.1, 0.3), 0.04, WAX)
+    r.part("cyl", -0.15, 1.08, 0.0, 0.34, 0.08, 0.34, _dim(GILT, 0.6))  # the offering bowl
+    r.part("cyl", -0.15, 1.12, 0.0, 0.26, 0.02, 0.26, (40, 34, 30))
+    for k in range(4):  # coins in it and spilled
+        r.part("cyl", -0.15 + (k - 1.5) * 0.06, 1.13 + (k % 2) * 0.01, 0.04 * (k % 3), 0.05, 0.01, 0.05, GILT)
+    r.part("cyl", 0.6, 0.17, 0.1, 0.05, 0.01, 0.05, GILT)
+    for k in range(4):  # dried flowers laid across the runner, gone black
+        z = 0.12 + k * 0.05
+        r.part("cube", -0.05, 1.06, z, 0.4, 0.015, 0.015, (40, 44, 30), ry=0.2 * k - 0.3)
+        r.part("sphere", 0.15, 1.07, z + 0.03, 0.06, 0.04, 0.06, (54, 22, 26))
+
+
+def ground_torch(r, t, seed):
+    """A torch planted in the ground: an iron-shod stake driven into a cairn of stones, an iron cage at
+    its top round a head of pitch-soaked rag, burning and trailing smoke and sparks."""
+    rng = random.Random(seed * 13 + 3)
+    for k in range(7):  # the cairn
+        a = k * math.tau / 7 + rng.random() * 0.4
+        d = 0.18 + rng.random() * 0.06
+        r.part("sphere", math.cos(a) * 0.2, 0.08, math.sin(a) * 0.2, d, d * 0.8, d, _dim(TOWN_STONE, 0.7),
+               tex=STONE_TEX)  # fmt: skip
+    lean = rng.uniform(-0.06, 0.06)
+    with r.at(0, 0, 0, rz=lean, rx=rng.uniform(-0.05, 0.05)):
+        r.part("cube", 0, 1.0, 0, 0.1, 2.0, 0.1, _dim(DARK_WOOD, 0.8), tex="wood_plank")  # the stake
+        for y in (0.35, 1.2):  # its iron bands
+            r.part("cube", 0, y, 0, 0.13, 0.05, 0.13, GAOL_IRON)
+        r.part("cyl", 0, 2.12, 0, 0.18, 0.24, 0.18, PITCH)  # the head
+        for k in range(4):  # the cage round it
+            a = k * math.pi / 2 + 0.4
+            r.part("cube", math.cos(a) * 0.13, 2.13, math.sin(a) * 0.13, 0.025, 0.36, 0.025, GAOL_IRON)
+        for y in (1.96, 2.3):
+            r.part("cyl", 0, y, 0, 0.3, 0.025, 0.3, GAOL_IRON)
+        _flame(r, 0, 2.42, 0, 0.26, t)
+        r.part("sphere", 0, 2.26, 0, 0.16, 0.08, 0.16, EMBER_GLOW, glow=True)  # the rag glowing
+        for k in range(3):  # sparks
+            u = (t * 0.6 + k / 3 + seed * 0.17) % 1.0
+            r.part("cube", math.sin(t * 2 + k * 2.3) * 0.15, 2.5 + u * 1.2, math.cos(t * 1.7 + k) * 0.15,
+                   0.03, 0.03, 0.03, EMBER_GLOW, glow=True)  # fmt: skip
+        for k in range(3):  # its smoke
+            u = (t * 0.25 + k / 3 + seed * 0.11) % 1.0
+            s = 0.12 + u * 0.4
+            r.part(
+                "cube", u * 0.5, 2.7 + u * 1.6, 0, s, s * 0.7, s, _dim(SMOKE_DARK, 1.0 - u * 0.3), ry=k + u
+            )
+
+
+def chain_post(r, seed):
+    """The gaol's whipping post: a squared oak post scarred and stained, set in an iron collar on a
+    stone foot, an iron ring near its top with two chains run down from it to manacles lying open on the
+    flags, more chain coiled round its foot and the old dark stain under it all."""
+    rng = random.Random(seed * 17 + 1)
+    r.part("cube", 0.1, 0.006, 0.05, 1.3, 0.012, 1.1, (40, 24, 22), ry=0.3)  # the stain
+    r.part("cube", 0, 0.15, 0, 0.6, 0.3, 0.6, _dim(TOWN_STONE, 0.75), tex=STONE_TEX)  # its foot
+    r.part("cube", 0, 1.45, 0, 0.28, 2.3, 0.28, _dim(OAK, 0.75), tex="wood_plank")  # the post
+    r.part("cube", 0, 2.64, 0, 0.34, 0.1, 0.34, _dim(OAK, 0.6))  # its cap
+    for y in (0.4, 1.7, 2.3):  # iron collars
+        r.part("cube", 0, y, 0, 0.32, 0.07, 0.32, GAOL_IRON)
+    for _ in range(6):  # scars hacked and worn in it
+        r.part("cube", 0.145, rng.uniform(0.9, 2.1), rng.uniform(-0.1, 0.1), 0.01, 0.03, 0.12,
+               _dim(OAK, 0.45), rx=rng.uniform(-0.6, 0.6))  # fmt: skip
+    r.part("cyl", 0.17, 2.1, 0, 0.18, 0.03, 0.18, GAOL_IRON, rz=math.pi / 2)  # the ring
+    for side in (-1, 1):  # two chains from the ring down to the manacles on the ground
+        a, b = (0.19, 2.02, side * 0.04), (0.62, 0.04, side * 0.42)
+        links = 10
+        for k in range(links):
+            u0, u1 = k / links, (k + 1) / links
+            p0 = [a[i] + (b[i] - a[i]) * u0 for i in range(3)]
+            p1 = [a[i] + (b[i] - a[i]) * u1 for i in range(3)]
+            sag = 0.25 * math.sin(math.pi * u0), 0.25 * math.sin(math.pi * u1)
+            p0[0] -= sag[0] * 0.3
+            p1[0] -= sag[1] * 0.3
+            _bar(r, p0, p1, 0.04 if k % 2 else 0.055, _dim(GAOL_IRON, 1.15))
+        r.part("cyl", 0.7, 0.04, side * 0.5, 0.2, 0.05, 0.2, GAOL_RUST)  # the manacle, open
+        r.part("cube", 0.8, 0.04, side * 0.5, 0.06, 0.05, 0.14, (20, 18, 18))  # its gap
+    for k in range(9):  # chain coiled round its foot
+        a = k * math.tau / 9
+        r.part("cube", math.cos(a) * 0.42, 0.04, math.sin(a) * 0.42, 0.14, 0.04, 0.06, GAOL_IRON,
+               ry=-a + (math.pi / 2 if k % 2 else 0))  # fmt: skip
+
+
+def burning_tree(r, t, seed):
+    """A dead tree on fire: its trunk and crooked limbs burnt black and split with glowing cracks,
+    flames licking up the trunk and out along the limbs, a fallen limb burning at its foot in a ring of
+    scorched ash and cinders, sparks whirling up and a column of smoke leaning off with the wind."""
+    rng = random.Random(seed * 23 + 5)
+    h = 4.8
+    yaw = seed * 1.3
+    top = (math.cos(yaw) * 0.35, h * 0.62, math.sin(yaw) * 0.35)
+    r.part("cyl", 0, 0.01, 0, 3.4, 0.02, 3.4, _dim(ASH_GREY, 0.6))  # the scorched ground
+    for k in range(10):  # cinders in it, still glowing
+        a, d = rng.random() * math.tau, 0.6 + rng.random() * 1.0
+        r.part("cube", math.cos(a) * d, 0.03, math.sin(a) * d, 0.08, 0.04, 0.08,
+               EMBER_GLOW if k % 3 == 0 else (88, 30, 20), glow=k % 3 == 0)  # fmt: skip
+    _bough(r, [(0, 0.0, 0), (0.05, h * 0.3, -0.05), top], 0.5, 0.3, SCORCH)
+    for k in range(3):  # roots
+        a = yaw + k * math.tau / 3 + 0.5
+        _limb(r, 0, 0.2, 0, math.cos(a) * 0.7, 0.02, math.sin(a) * 0.7, 0.16, SCORCH)
+    for k in range(5):  # cracks in the bark, glowing
+        y = 0.4 + k * 0.5
+        a = yaw + k * 1.9
+        r.part("cube", math.cos(a) * 0.22, y, math.sin(a) * 0.22, 0.03, 0.35, 0.05, EMBER_GLOW, glow=True,
+               ry=-a)  # fmt: skip
+    for k in range(4):  # the limbs, burning along their length
+        a = yaw + k * math.tau / 4 + 0.4
+        bend = a + (0.8 if k % 2 else -0.8)
+        y0 = h * (0.45 + 0.08 * k)
+        mid = (top[0] + math.cos(a) * 0.9, y0 + 0.8, top[2] + math.sin(a) * 0.9)
+        tip = (mid[0] + math.cos(bend) * 0.8, mid[1] + 0.5 + 0.2 * (k % 2), mid[2] + math.sin(bend) * 0.8)
+        _bough(r, [(top[0], y0, top[2]), mid, tip], 0.18, 0.07, SCORCH)
+        base = (top[0], y0, top[2])
+        for j, u in enumerate((0.35, 0.7, 1.0, 1.35, 1.7, 2.0)):  # fire running out along the limb
+            a_, b_ = (base, mid) if u <= 1 else (mid, tip)
+            f = u if u <= 1 else u - 1
+            p = [a_[i] + (b_[i] - a_[i]) * f for i in range(3)]
+            _flame(r, p[0], p[1] + 0.12, p[2], 0.62 - 0.07 * j, t + k * 1.3 + j * 0.7)
+    crown = (top[0], h * 1.05, top[2])
+    _bough(r, [top, (top[0] - 0.1, h * 0.95, top[2] + 0.1), crown], 0.22, 0.08, SCORCH)
+    for k in range(9):  # up the trunk, the flames climbing it on every side
+        y = 0.5 + k * 0.33
+        u = y / top[1]
+        a = yaw + k * 2.2
+        _flame(r, top[0] * u + math.cos(a) * 0.2, y, top[2] * u + math.sin(a) * 0.2, 0.55 + 0.06 * k,
+               t + k * 0.9)  # fmt: skip
+    _flame(r, crown[0], crown[1], crown[2], 0.9, t + 3.3)
+    for k in range(3):  # the fork, a mass of fire
+        a = yaw + k * 2.1
+        _flame(r, top[0] + math.cos(a) * 0.35, top[1] + 0.2, top[2] + math.sin(a) * 0.35, 0.8, t + k * 1.9)
+    with r.at(0.9, 0.12, -0.7, ry=0.6):  # a fallen limb burning at its foot
+        _limb(r, -0.6, 0, 0, 0.6, 0.05, 0, 0.14, SCORCH)
+        _flame(r, -0.2, 0.2, 0, 0.45, t + 5)
+        _flame(r, 0.3, 0.2, 0, 0.35, t + 6)
+    for k in range(10):  # sparks whirling up
+        u = (t * 0.35 + k / 10 + seed * 0.07) % 1.0
+        a = k * 2.4 + t * 0.8
+        r.part("cube", top[0] + math.cos(a) * (0.6 + u), 1.5 + u * 6.5, top[2] + math.sin(a) * (0.6 + u),
+               0.06, 0.06, 0.06, EMBER_GLOW, glow=True)  # fmt: skip
+    for j in range(7):  # the smoke, leaning off with the wind
+        u = (t * 0.08 + j / 7 + seed * 0.13) % 1.0
+        s = (0.8 + u * 2.4) * (1.0 - u * 0.3)
+        r.part("cube", crown[0] + u * 4.5 + math.sin(t * 0.4 + j) * 0.4, crown[1] + 0.8 + u * 8,
+               crown[2] + (j % 2 - 0.5) * 0.6, s, s * 0.7, s, _dim(SMOKE_DARK, 1.0 - u * 0.3), ry=j + u)  # fmt: skip

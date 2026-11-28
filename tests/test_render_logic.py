@@ -2984,6 +2984,40 @@ def test_harrowmeres_ruin_lies_low_in_its_tile_and_its_broken_windows_are_dark()
     assert any(tex == "wood_plank" and kind == "cube" for kind, _, tex in boarded.looks)
 
 
+def test_harrowmeres_darker_corners_burn_and_stand_where_they_belong():
+    """The founder's altar, the gaol yard's ground torches and the burning tree burn and flicker, drawn
+    each frame and casting light; the whipping post is baked; all four fill their tiles. The altar
+    and the torches keep inside their tile, and the town has no balcony left."""
+    from ashen_vault.render import bounds, mesh_builder, town_models
+    from ashen_vault.world.world import BLOCKING_PROPS, FACING_PROPS, LANDMARKS, STATIC_PROPS
+
+    burning = {
+        "founder_altar": (lambda r, t: town_models.founder_altar(r, t, 4), 60),
+        "ground_torch": (lambda r, t: town_models.ground_torch(r, t, 4), 20),
+        "burning_tree": (lambda r, t: town_models.burning_tree(r, t, 4), 80),
+    }
+    for kind, (fn, least) in burning.items():
+        a, b = _GlowGpu(), _GlowGpu()
+        fn(rig.Rig(a), 0.0)
+        fn(rig.Rig(b), 0.7)
+        assert len(a.parts) >= least and a.glows > 0, kind
+        assert a.parts != b.parts, kind  # its flames move
+        assert kind not in STATIC_PROPS and kind in mesh_builder.LIGHT_KINDS, kind
+    for kind in ("founder_altar", "ground_torch"):
+        (x0, y0, z0), (x1, _, z1) = bounds.measure(lambda r, k=kind: burning[k][0](r, 0.3))
+        assert max(-x0, x1, -z0, z1) < 1.0 and y0 > -0.05, kind
+    gpu = _GlowGpu()
+    town_models.chain_post(rig.Rig(gpu), 4)
+    assert len(gpu.parts) >= 30 and gpu.glows == 0
+    assert "chain_post" in STATIC_PROPS
+    assert {"founder_altar", "ground_torch", "chain_post", "burning_tree"} <= set(BLOCKING_PROPS)
+    assert "founder_altar" in FACING_PROPS and "burning_tree" in LANDMARKS
+    kinds = [e.kind for e in MapLoader.load_file(map_path("harrowmere")).entities]
+    assert "balcony" not in kinds
+    assert kinds.count("ground_torch") == 4 and kinds.count("burning_tree") == 1
+    assert {"founder_altar", "chain_post"} <= set(kinds)
+
+
 def test_harrowmeres_and_the_fens_new_dressing_is_built_in_detail():
     """Harrowmere's harbour light, windmill, chimney stacks, stalls, washing, nets and wrecks, and the
     fen's runoff sluices, marsh-lights, fallen watchtower and palisade are each built of many parts,

@@ -69,8 +69,14 @@ LIGHT_KINDS = (
     "fen_beacon",
     "candelabra",
     "vat",
+    "founder_altar",
+    "ground_torch",
+    "burning_tree",
 )
 LIGHT_Y = {
+    "founder_altar": "1.3",
+    "ground_torch": "2.3",
+    "burning_tree": "3.0",
     "fen_beacon": "3.1",
     "energy_core": "2.4",
     "save_statue": "2.4",
@@ -102,6 +108,9 @@ LIGHT_Y_WALL = {
     "moon_great_window": "5.0",
 }
 LIGHT_COLOR = {
+    "founder_altar": "1.3,0.8,0.45",  # candlelight, as the castle's candelabra
+    "ground_torch": "1.0,0.6,0.28",
+    "burning_tree": "1.7,0.7,0.28",
     "fen_beacon": "0.8,0.35,1.1",
     "energy_core": "0.45,1.25,1.0",
     "fungus": "0.3,0.85,0.65",
@@ -128,6 +137,9 @@ LIGHT_COLOR = {
     "vat": "0.4,1.0,0.45",  # the green of what floats in the vats
 }
 LIGHT_RADIUS = {
+    "founder_altar": "5",
+    "ground_torch": "6",
+    "burning_tree": "12",
     "fen_beacon": "10",
     "energy_core": "9",
     "save_statue": "6",
